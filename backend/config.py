@@ -20,6 +20,10 @@ class Config:
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
+    # Additional data source keys
+    FINNHUB_API_KEY: str = os.getenv("FINNHUB_API_KEY", "")
+    UNUSUAL_WHALES_API_KEY: str = os.getenv("UNUSUAL_WHALES_API_KEY", "")
+
     # Trading parameters
     STARTING_CAPITAL: float = float(os.getenv("STARTING_CAPITAL", "100000"))
     MAX_POSITION_SIZE: float = float(os.getenv("MAX_POSITION_SIZE", "0.15"))  # 15% max per position

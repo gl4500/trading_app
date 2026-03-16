@@ -567,9 +567,9 @@ async def news_sentinel_loop() -> None:
             if not app_state.is_running:
                 break
 
-            # Only run when all sessions are closed (true overnight / weekends)
-            if _get_market_status() != "closed":
-                continue
+            # Poll interval: every 15 min when closed, every 5 min during market hours
+            market_open = _get_market_status() == "open" or app_state.force_trading
+            SENTINEL_POLL_MIN = 5 if market_open else 15
 
             now_ts = time.time()
             elapsed_min = (now_ts - last_poll) / 60
@@ -593,8 +593,9 @@ async def news_sentinel_loop() -> None:
             except Exception:
                 pass
 
-            # Run standard catalyst scan
+            # Run standard catalyst scan (Alpaca news)
             from data.news_service import news_service
+            from data.sentinel_sources import fetch_all_sources
             try:
                 news_map = await news_service.get_news_multi(watchlist_syms)
             except Exception as e:
@@ -635,6 +636,22 @@ async def news_sentinel_loop() -> None:
             except Exception as e:
                 logger.warning(f"Sentinel: policy monitor failed: {e}")
                 max_policy_score = 0
+
+            # Run additional sources: RSS, Yahoo Finance, EDGAR 8-K, Finnhub, Unusual Whales
+            try:
+                extra_catalysts = await fetch_all_sources(watchlist_syms)
+                # Merge — deduplicate against headlines already collected
+                existing_headlines = {c["headline"] for c in new_catalysts}
+                added = 0
+                for cat in extra_catalysts:
+                    if cat["headline"] not in existing_headlines:
+                        new_catalysts.append(cat)
+                        existing_headlines.add(cat["headline"])
+                        added += 1
+                if added:
+                    logger.info(f"Sentinel: +{added} catalysts from additional sources")
+            except Exception as e:
+                logger.warning(f"Sentinel: additional sources failed: {e}")
 
             # Persist (keep only latest 50, deduplicate by headline)
             all_headlines = {c["headline"] for c in app_state.after_hours_catalysts}
