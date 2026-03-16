@@ -119,11 +119,25 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
 
         market_data = "\n".join(market_sections)
 
+        # Overnight / after-hours catalysts from the news sentinel
+        overnight = market_context.get("__overnight_catalysts__", [])
+        if overnight:
+            overnight_lines = []
+            for c in overnight[:10]:
+                sym_tag = f"[{c['symbol']}] " if c.get("symbol") else ""
+                overnight_lines.append(
+                    f"  • {sym_tag}{c['headline']} "
+                    f"(score={c.get('score',0)}, {c.get('category','news')}, {c.get('date','')})"
+                )
+            overnight_section = "## Overnight / After-Hours Catalysts\n" + "\n".join(overnight_lines)
+        else:
+            overnight_section = ""
+
         return f"""You are an expert quantitative trader competing in a paper trading competition. Maximize risk-adjusted returns.
 
 ## Portfolio State
 {portfolio_ctx}
-
+{overnight_section}
 ## Market Data
 {market_data}
 

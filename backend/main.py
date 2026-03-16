@@ -197,6 +197,10 @@ async def trading_loop() -> None:
             except Exception as e:
                 logger.warning(f"Could not augment market context with agent picks: {e}")
 
+            # Inject overnight sentinel catalysts so agents see what happened after hours
+            if app_state.after_hours_catalysts:
+                market_context["__overnight_catalysts__"] = app_state.after_hours_catalysts
+
             app_state.last_prices = prices
             app_state.last_market_context = market_context
 
