@@ -81,6 +81,7 @@ class AppState:
         self.cycle_count: int = 0
         self.start_time: Optional[datetime] = None
         self.market_status: str = "unknown"          # "open" | "closed"
+        self.force_trading: bool = False              # bypass market-hours gate for testing
         self.after_hours_catalysts: List[Dict] = []  # catalysts found by sentinel
         self.last_sentinel_poll: Optional[str] = None  # ISO timestamp of last sentinel poll
         self.news_price_snapshots: List[Dict] = []    # price at catalyst detection + later change
@@ -168,7 +169,7 @@ async def trading_loop() -> None:
             status = _get_market_status()
             app_state.market_status = status
 
-            if status == "closed":
+            if status == "closed" and not app_state.force_trading:
                 mins = _minutes_until_open()
                 # Wake up 5 min before open; minimum 60s poll
                 sleep_secs = max(60, (mins - 5) * 60)
@@ -182,8 +183,11 @@ async def trading_loop() -> None:
                     break
                 continue  # re-check after sleep
 
-            # Log session transitions
-            logger.debug(f"Trading session: {status.upper()}")
+            if app_state.force_trading and status == "closed":
+                app_state.market_status = "open (test)"
+                logger.debug("Trading session: FORCED (test mode)")
+            else:
+                logger.debug(f"Trading session: {status.upper()}")
             # ── End session gate ─────────────────────────────────────────────
 
             cycle_start = time.time()
@@ -1248,6 +1252,15 @@ async def get_agent_picks():
         if picks:
             result[name] = picks
     return {"picks": result, "total_agents_with_picks": len(result)}
+
+
+@app.post("/api/force-trading")
+async def set_force_trading(enabled: bool = True):
+    """Enable or disable forced trading mode (bypasses market-hours gate)."""
+    app_state.force_trading = enabled
+    state = "ENABLED" if enabled else "DISABLED"
+    logger.warning(f"Force-trading mode {state}")
+    return {"force_trading": enabled, "message": f"Force trading {state}"}
 
 
 @app.get("/api/sentinel")
