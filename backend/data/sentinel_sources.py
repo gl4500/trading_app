@@ -26,6 +26,20 @@ import httpx
 
 from config import config
 
+# All httpx / network errors we treat as silent retryable failures
+_NET_ERRORS = (
+    httpx.ConnectError,
+    httpx.ReadError,
+    httpx.WriteError,
+    httpx.RemoteProtocolError,
+    httpx.ConnectTimeout,
+    httpx.ReadTimeout,
+    httpx.PoolTimeout,
+    ConnectionResetError,
+    ConnectionAbortedError,
+    OSError,
+)
+
 logger = logging.getLogger(__name__)
 
 # ── RSS feed definitions ──────────────────────────────────────────────────────
@@ -119,8 +133,10 @@ async def fetch_rss_feeds() -> List[Dict]:
                     items = _parse_rss(resp.text, name)
                     results.extend(items)
                     logger.debug(f"RSS {name}: {len(items)} catalysts")
+            except _NET_ERRORS as e:
+                logger.debug(f"RSS fetch failed ({name}): {type(e).__name__}")
             except Exception as e:
-                logger.debug(f"RSS fetch failed ({name}): {e}")
+                logger.debug(f"RSS fetch error ({name}): {e}")
     return results
 
 
@@ -142,6 +158,8 @@ async def fetch_yahoo_rss(symbols: List[str]) -> List[Dict]:
                         for item in items:
                             item["symbol"] = sym
                         return items
+            except _NET_ERRORS as e:
+                logger.debug(f"Yahoo RSS {sym}: {type(e).__name__}")
             except Exception as e:
                 logger.debug(f"Yahoo RSS {sym}: {e}")
             return []
@@ -240,6 +258,8 @@ async def fetch_edgar_8k(symbols: List[str]) -> List[Dict]:
                 results.append(cat)
 
         logger.debug(f"EDGAR 8-K: {len(results)} relevant filings")
+    except _NET_ERRORS as e:
+        logger.debug(f"EDGAR fetch failed: {type(e).__name__}")
     except Exception as e:
         logger.warning(f"EDGAR fetch failed: {e}")
     return results

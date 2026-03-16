@@ -53,8 +53,12 @@ logger = logging.getLogger(__name__)
 # Suppress the Windows-specific "connection forcibly closed" asyncio noise.
 # This fires whenever a browser tab closes/refreshes mid-connection and is harmless.
 class _SuppressWin10054(logging.Filter):
+    _NOISE = ("WinError 10054", "ConnectionResetError", "ConnectionAbortedError",
+              "_call_connection_lost", "RemoteProtocolError")
+
     def filter(self, record: logging.LogRecord) -> bool:
-        return "WinError 10054" not in record.getMessage()
+        msg = record.getMessage()
+        return not any(n in msg for n in self._NOISE)
 
 _win10054_filter = _SuppressWin10054()
 logging.getLogger("asyncio").addFilter(_win10054_filter)
