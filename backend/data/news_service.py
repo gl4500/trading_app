@@ -29,6 +29,7 @@ class NewsService:
     def __init__(self):
         self._client = None
         self._cache: Dict[str, tuple] = {}  # symbol -> (timestamp, [articles])
+        self._sem = asyncio.Semaphore(8)    # cap concurrent Alpaca connections below pool size
 
     def _get_client(self):
         if self._client is None:
@@ -68,7 +69,8 @@ class NewsService:
                 return articles
 
         try:
-            articles = await asyncio.to_thread(self._fetch_news_sync, symbol)
+            async with self._sem:
+                articles = await asyncio.to_thread(self._fetch_news_sync, symbol)
             self._cache[symbol] = (now, articles)
             return articles
         except Exception as e:
