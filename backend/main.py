@@ -1082,12 +1082,34 @@ async def reset_competition():
         agent_id = await upsert_agent(agent.name, agent.strategy_description)
         agent.agent_id = agent_id
 
-    # Clear market data cache
+    # Clear market data cache and app state
     await market_data_service.clear_cache()
 
     app_state.cycle_count = 0
     app_state.last_prices = {}
+    app_state.last_market_context = {}
     app_state.start_time = None
+    app_state.after_hours_catalysts = []
+
+    # Broadcast zeroed state immediately so UI updates without waiting for next WS cycle
+    if app_state.ws_connections:
+        reset_msg = {
+            "type": "update",
+            "agents": [a.get_state({}) for a in app_state.agents.values()],
+            "leaderboard": [],
+            "prices": {},
+            "is_running": False,
+            "cycle_count": 0,
+            "timestamp": datetime.utcnow().isoformat(),
+            "watchlist": config.WATCHLIST,
+        }
+        dead = set()
+        for ws in app_state.ws_connections.copy():
+            try:
+                await ws.send_text(json.dumps(reset_msg))
+            except Exception:
+                dead.add(ws)
+        app_state.ws_connections -= dead
 
     logger.info("Competition reset complete")
     return {"status": "reset", "message": "All portfolios reset to starting capital"}
