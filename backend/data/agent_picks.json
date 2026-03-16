@@ -1,0 +1,231 @@
+{
+  "TechAgent": {
+    "AAPL": {
+      "action": "BUY",
+      "confidence": 0.6499999999999999,
+      "reasoning": "TECH BUY: RSI=33.2 (oversold), Price at lower BB ($250.89). Score=0.65",
+      "added_at": "2026-03-16T10:07:30.947800",
+      "last_updated": "2026-03-16T10:13:27.256933"
+    },
+    "SPY": {
+      "action": "BUY",
+      "confidence": 0.6499999999999999,
+      "reasoning": "TECH BUY: RSI=35.0 (oversold), Price at lower BB ($665.99). Score=0.65",
+      "added_at": "2026-03-16T10:07:30.947800",
+      "last_updated": "2026-03-16T10:13:27.256933"
+    },
+    "CLF": {
+      "action": "BUY",
+      "confidence": 0.6499999999999999,
+      "reasoning": "TECH BUY: RSI=25.0 (oversold), Price at lower BB ($8.75). Score=0.65",
+      "added_at": "2026-03-16T10:09:34.414586",
+      "last_updated": "2026-03-16T10:13:27.256933"
+    }
+  },
+  "MeanReversionAgent": {
+    "AAPL": {
+      "action": "BUY",
+      "confidence": 0.5304222976613846,
+      "reasoning": "MR BUY: z=-1.59 (oversold, target z=0). Price $252.82 vs mean $262.59 (-3.7%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-03-16T10:07:30.983794",
+      "last_updated": "2026-03-16T21:58:24.990338"
+    },
+    "TSLA": {
+      "action": "BUY",
+      "confidence": 0.5884696154538246,
+      "reasoning": "MR BUY: z=-1.77 (oversold, target z=0). Price $391.13 vs mean $404.82 (-3.4%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-03-16T10:07:30.983794",
+      "last_updated": "2026-03-16T10:13:27.333720"
+    },
+    "META": {
+      "action": "BUY",
+      "confidence": 0.5255024954637529,
+      "reasoning": "MR BUY: z=-1.58 (oversold, target z=0). Price $625.20 vs mean $646.78 (-3.3%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-03-16T10:07:30.983794",
+      "last_updated": "2026-03-16T21:58:24.990338"
+    },
+    "SPY": {
+      "action": "BUY",
+      "confidence": 0.8261552687762123,
+      "reasoning": "MR BUY: z=-2.48 (oversold, target z=0). Price $661.94 vs mean $681.43 (-2.9%). not yet reverting. Reversion freq=0.16",
+      "added_at": "2026-03-16T10:07:30.983794",
+      "last_updated": "2026-03-16T10:13:27.333720"
+    },
+    "NEM": {
+      "action": "BUY",
+      "confidence": 0.5953972109240387,
+      "reasoning": "MR BUY: z=-1.79 (oversold, target z=0). Price $110.16 vs mean $120.53 (-8.6%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-03-16T10:09:34.480291",
+      "last_updated": "2026-03-16T21:58:24.990338"
+    },
+    "FCX": {
+      "action": "BUY",
+      "confidence": 0.6893833937590164,
+      "reasoning": "MR BUY: z=-2.07 (oversold, target z=0). Price $56.35 vs mean $63.69 (-11.5%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-03-16T10:09:34.480291",
+      "last_updated": "2026-03-16T10:13:27.333720"
+    },
+    "CLF": {
+      "action": "BUY",
+      "confidence": 0.6210235710150723,
+      "reasoning": "MR BUY: z=-1.86 (oversold, target z=0). Price $8.60 vs mean $10.20 (-15.7%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-03-16T10:09:34.480291",
+      "last_updated": "2026-03-16T21:58:24.990338"
+    },
+    "GE": {
+      "action": "BUY",
+      "confidence": 0.6255113632980521,
+      "reasoning": "MR BUY: z=-1.88 (oversold, target z=0). Price $304.10 vs mean $329.93 (-7.8%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-03-16T10:45:16.107393",
+      "last_updated": "2026-03-16T21:58:24.990338"
+    }
+  },
+  "ClaudeAgent": {
+    "MSFT": {
+      "action": "BUY",
+      "confidence": 0.48,
+      "reasoning": "CLAUDE ANALYSIS: Bullish MACD (+2.46), price near SMA20, and strongest analyst consensus (54 buy/3 hold/0 sell) with 49% upside. OpenAI restructuring news provides positive AI narrative. Low confidenc",
+      "added_at": "2026-03-16T10:08:33.712136",
+      "last_updated": "2026-03-16T22:03:44.068162"
+    },
+    "AMZN": {
+      "action": "BUY",
+      "confidence": 0.6,
+      "reasoning": "CLAUDE ANALYSIS: Best technical picture among current holdings \u2014 price above SMA20, positive MACD (+1.12), RSI neutral at 50. AI-driven 'super seller' marketplace growth is a strong fundamental cataly",
+      "added_at": "2026-03-16T10:08:33.712136",
+      "last_updated": "2026-03-16T22:08:36.978316"
+    },
+    "DDOG": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CLAUDE ANALYSIS: Best technical setup in portfolio: price above SMA20, strong bullish MACD (+1.71), healthy RSI (55), best 5D (+2.9%) and 20D (+3.3%) momentum. Analyst target $182 implies 44% upside. ",
+      "added_at": "2026-03-16T10:14:50.788218",
+      "last_updated": "2026-03-16T22:15:40.494256"
+    },
+    "NVDA": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CLAUDE ANALYSIS: GTC conference delivering exceptional news flow \u2014 Uber, Lyft, Hyundai/Kia autonomous partnerships, robotics frameworks, NemoClaw platform. RSI 48.3 leaves room for upside. After-hours",
+      "added_at": "2026-03-16T10:18:19.793678",
+      "last_updated": "2026-03-16T22:21:50.964748"
+    },
+    "ORCL": {
+      "action": "BUY",
+      "confidence": 0.62,
+      "reasoning": "CLAUDE ANALYSIS: Highest composite confidence at 62% with strongest composite score (+0.75). MACD strongly positive (+2.37), price above SMA20, RSI neutral at 48.5. AI deals supporting outlook with Mi",
+      "added_at": "2026-03-16T21:59:43.196186",
+      "last_updated": "2026-03-16T22:08:36.978316"
+    }
+  },
+  "MomentumAgent": {
+    "MU": {
+      "action": "BUY",
+      "confidence": 0.6611520488323348,
+      "reasoning": "MOMENTUM BUY: 5d momentum=13.5%, 10d momentum=7.1%, 20d momentum=7.4%. Score=0.66",
+      "added_at": "2026-03-16T10:09:34.448202",
+      "last_updated": "2026-03-16T21:58:24.951794"
+    },
+    "CF": {
+      "action": "BUY",
+      "confidence": 0.7500000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=10.2%, 10d momentum=17.3%, 20d momentum=29.3%, High volume (2.5x). Score=0.75",
+      "added_at": "2026-03-16T22:00:44.287176",
+      "last_updated": "2026-03-16T22:00:44.287176"
+    }
+  },
+  "ScannerAgent": {
+    "NEM": {
+      "action": "BUY",
+      "confidence": 0.82,
+      "reasoning": "Scanner BUY (conf=82%): NEM has the highest composite score (+0.701) in the entire scan. It posted a massive +21.55% earnings surprise, has near-unanimous analyst consensus ( | Catalysts: 21.55% earni",
+      "added_at": "2026-03-16T10:09:34.506075",
+      "last_updated": "2026-03-16T10:45:16.114934"
+    },
+    "MU": {
+      "action": "BUY",
+      "confidence": 0.88,
+      "reasoning": "Scanner BUY (conf=88%): MU is the strongest setup on the board today. Composite score of +0.576 is backed by overwhelming analyst consensus (37 bull / 4 hold / 2 bear), a mas | Catalysts: Massive volu",
+      "added_at": "2026-03-16T10:09:34.506075",
+      "last_updated": "2026-03-16T22:04:09.649252"
+    },
+    "DDOG": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): DDOG is a textbook bullish setup: composite +0.523, MACD has just crossed above signal line (bullish crossover confirmed), RSI at 53.2 is perfectly ne | Catalysts: MACD bullish",
+      "added_at": "2026-03-16T10:09:34.506075",
+      "last_updated": "2026-03-16T10:13:27.418725"
+    },
+    "AVGO": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): AVGO presents a compelling value accumulation opportunity. Composite score of +0.499 is supported by near-unanimous analyst consensus (47 bull / 2 hol | Catalysts: 47/49 analys",
+      "added_at": "2026-03-16T10:09:34.506075",
+      "last_updated": "2026-03-16T22:04:09.649252"
+    },
+    "AMD": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): AMD has a composite score of 0.533 with an RSI of 41.05, indicating bullish momentum. Positive earnings surprise and a favorable price target support  | Catalysts: Earnings sur",
+      "added_at": "2026-03-16T10:09:34.506075",
+      "last_updated": "2026-03-16T10:45:16.114934"
+    },
+    "AAPL": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): AAPL shows strong bullish potential with a composite score of 0.411, RSI at 33.20 and a recent earnings surprise of 5.43%, along with positive analyst | Catalysts: Earnings sur",
+      "added_at": "2026-03-16T10:45:16.114934",
+      "last_updated": "2026-03-16T10:45:16.114934"
+    },
+    "ORCL": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): ORCL's composite score of 0.642 and an RSI of 47.66 signal bullish momentum. The recent earnings surprise of 21.87% and positive analyst targets imply | Catalysts: Earnings sur",
+      "added_at": "2026-03-16T10:45:16.114934",
+      "last_updated": "2026-03-16T10:45:16.114934"
+    },
+    "GE": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): GE's composite score of 0.570 and RSI at 35.02 suggest a bullish outlook. Recent earnings surprise and strong analyst pricing indicate significant pot | Catalysts: Earnings sur",
+      "added_at": "2026-03-16T10:45:16.114934",
+      "last_updated": "2026-03-16T10:45:16.114934"
+    },
+    "NVDA": {
+      "action": "BUY",
+      "confidence": 0.82,
+      "reasoning": "Scanner BUY (conf=82%): NVDA has the highest composite score in the scan at +0.616 with exceptional multi-source confirmation: 54 of 57 analysts are bullish, news sentiment i | Catalysts: Highest comp",
+      "added_at": "2026-03-16T10:45:16.114934",
+      "last_updated": "2026-03-16T22:04:09.649252"
+    },
+    "CF": {
+      "action": "BUY",
+      "confidence": 0.72,
+      "reasoning": "Scanner BUY (conf=72%): CF is a contrarian opportunity \u2014 the -5.59% daily drop is creating a buy-the-dip setup against strong underlying fundamentals. Composite score of +0.4 | Catalysts: Contrarian b",
+      "added_at": "2026-03-16T22:00:44.372716",
+      "last_updated": "2026-03-16T22:04:09.649252"
+    }
+  },
+  "SentimentAgent": {
+    "MU": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "SENTIMENT BUY (strong): The price is in a modest uptrend with significant recent gains and unusual trading volume, indicating strong buyer interest. The positive momentum over the last few days furthe",
+      "added_at": "2026-03-16T10:09:57.091440",
+      "last_updated": "2026-03-16T21:58:41.622102"
+    },
+    "AMZN": {
+      "action": "BUY",
+      "confidence": 0.5599999999999999,
+      "reasoning": "SENTIMENT BUY (moderate): The recent price action shows a modest uptrend with a positive performance over the 20-day period, and the price is above the 20-day low while being close to the 20-day high.",
+      "added_at": "2026-03-16T21:43:32.389398",
+      "last_updated": "2026-03-16T21:58:41.622102"
+    },
+    "CF": {
+      "action": "BUY",
+      "confidence": 0.6000000000000001,
+      "reasoning": "SENTIMENT BUY (moderate): Despite a recent decline of 5.6% in the last day, the overall trend shows strong upward momentum over the past 20 days, with significant gains and unusual trading volume indi",
+      "added_at": "2026-03-16T22:20:33.636533",
+      "last_updated": "2026-03-16T22:20:33.636533"
+    }
+  }
+}

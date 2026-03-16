@@ -1,0 +1,287 @@
+"""
+Portfolio management: tracks cash, positions, and performance metrics.
+"""
+import math
+import logging
+from datetime import datetime, date
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass, field
+
+from config import config
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Position:
+    symbol: str
+    shares: float
+    avg_cost: float  # average cost basis per share
+
+    @property
+    def total_cost(self) -> float:
+        return self.shares * self.avg_cost
+
+    def current_value(self, price: float) -> float:
+        return self.shares * price
+
+    def unrealized_pnl(self, price: float) -> float:
+        return self.current_value(price) - self.total_cost
+
+    def unrealized_pnl_pct(self, price: float) -> float:
+        if self.avg_cost == 0:
+            return 0.0
+        return (price - self.avg_cost) / self.avg_cost * 100
+
+
+@dataclass
+class TradeRecord:
+    symbol: str
+    action: str  # BUY or SELL
+    shares: float
+    price: float
+    timestamp: datetime
+    reasoning: str = ""
+    pnl: float = 0.0  # realized P&L for SELL trades
+
+
+class Portfolio:
+    """Tracks a single agent's virtual portfolio."""
+
+    def __init__(self, starting_capital: float = None):
+        self.starting_capital = starting_capital or config.STARTING_CAPITAL
+        self.cash: float = self.starting_capital
+        self.positions: Dict[str, Position] = {}
+        self.trade_history: List[TradeRecord] = []
+        self.daily_starting_value: float = self.starting_capital
+        self.daily_start_date: date = date.today()
+        self._value_history: List[Tuple[datetime, float]] = [
+            (datetime.utcnow(), self.starting_capital)
+        ]
+
+    def get_total_value(self, prices: Dict[str, float]) -> float:
+        """Calculate total portfolio value (cash + positions)."""
+        position_value = sum(
+            pos.current_value(prices.get(sym, pos.avg_cost))
+            for sym, pos in self.positions.items()
+        )
+        return self.cash + position_value
+
+    def get_position_value(self, symbol: str, price: float) -> float:
+        """Get value of a specific position."""
+        if symbol not in self.positions:
+            return 0.0
+        return self.positions[symbol].current_value(price)
+
+    def can_buy(self, symbol: str, shares: float, price: float) -> Tuple[bool, str]:
+        """Check if we can execute a buy order."""
+        cost = shares * price
+        if cost > self.cash:
+            return False, f"Insufficient cash: need ${cost:.2f}, have ${self.cash:.2f}"
+        return True, ""
+
+    def execute_buy(self, symbol: str, shares: float, price: float, reasoning: str = "") -> bool:
+        """Execute a buy order, return True if successful."""
+        cost = shares * price
+        if cost > self.cash:
+            logger.warning(f"Buy failed: insufficient cash for {shares} {symbol} @ ${price}")
+            return False
+
+        self.cash -= cost
+
+        if symbol in self.positions:
+            pos = self.positions[symbol]
+            new_shares = pos.shares + shares
+            new_avg_cost = (pos.total_cost + cost) / new_shares
+            pos.shares = new_shares
+            pos.avg_cost = new_avg_cost
+        else:
+            self.positions[symbol] = Position(symbol=symbol, shares=shares, avg_cost=price)
+
+        record = TradeRecord(
+            symbol=symbol,
+            action="BUY",
+            shares=shares,
+            price=price,
+            timestamp=datetime.utcnow(),
+            reasoning=reasoning,
+        )
+        self.trade_history.append(record)
+        self._value_history.append((datetime.utcnow(), self.cash))  # snapshot
+        return True
+
+    def execute_sell(self, symbol: str, shares: float, price: float, reasoning: str = "") -> bool:
+        """Execute a sell order, return True if successful."""
+        if symbol not in self.positions:
+            logger.warning(f"Sell failed: no position in {symbol}")
+            return False
+
+        pos = self.positions[symbol]
+        shares_to_sell = min(shares, pos.shares)
+
+        if shares_to_sell <= 0:
+            return False
+
+        proceeds = shares_to_sell * price
+        cost_basis = shares_to_sell * pos.avg_cost
+        realized_pnl = proceeds - cost_basis
+
+        self.cash += proceeds
+        pos.shares -= shares_to_sell
+
+        if pos.shares < 0.001:
+            del self.positions[symbol]
+
+        record = TradeRecord(
+            symbol=symbol,
+            action="SELL",
+            shares=shares_to_sell,
+            price=price,
+            timestamp=datetime.utcnow(),
+            reasoning=reasoning,
+            pnl=realized_pnl,
+        )
+        self.trade_history.append(record)
+        self._value_history.append((datetime.utcnow(), self.cash))
+        return True
+
+    def record_value(self, prices: Dict[str, float]) -> float:
+        """Record current portfolio value for history tracking."""
+        total_value = self.get_total_value(prices)
+        self._value_history.append((datetime.utcnow(), total_value))
+        # Keep only last 2000 records
+        if len(self._value_history) > 2000:
+            self._value_history = self._value_history[-2000:]
+        return total_value
+
+    def reset_daily_tracking(self, prices: Dict[str, float]) -> None:
+        """Reset daily tracking at market open."""
+        today = date.today()
+        if today != self.daily_start_date:
+            self.daily_starting_value = self.get_total_value(prices)
+            self.daily_start_date = today
+
+    def get_daily_return(self, prices: Dict[str, float]) -> float:
+        """Get today's return percentage."""
+        current = self.get_total_value(prices)
+        if self.daily_starting_value == 0:
+            return 0.0
+        return (current - self.daily_starting_value) / self.daily_starting_value
+
+    def calculate_metrics(self, prices: Dict[str, float]) -> Dict:
+        """Calculate comprehensive performance metrics."""
+        total_value = self.get_total_value(prices)
+        total_return_pct = (total_value - self.starting_capital) / self.starting_capital * 100
+
+        # Win rate from closed trades
+        sell_trades = [t for t in self.trade_history if t.action == "SELL"]
+        winning_trades = [t for t in sell_trades if t.pnl > 0]
+        win_rate = (len(winning_trades) / len(sell_trades) * 100) if sell_trades else 0.0
+
+        # Sharpe ratio from value history
+        sharpe = self._calculate_sharpe()
+
+        # Max drawdown
+        max_drawdown = self._calculate_max_drawdown()
+
+        # Positions summary
+        positions_summary = []
+        for sym, pos in self.positions.items():
+            price = prices.get(sym, pos.avg_cost)
+            positions_summary.append({
+                "symbol": sym,
+                "shares": pos.shares,
+                "avg_cost": pos.avg_cost,
+                "current_price": price,
+                "current_value": pos.current_value(price),
+                "unrealized_pnl": pos.unrealized_pnl(price),
+                "unrealized_pnl_pct": pos.unrealized_pnl_pct(price),
+            })
+
+        return {
+            "total_value": total_value,
+            "cash": self.cash,
+            "position_value": total_value - self.cash,
+            "total_return_pct": total_return_pct,
+            "total_return": total_value - self.starting_capital,
+            "win_rate": win_rate,
+            "sharpe_ratio": sharpe,
+            "max_drawdown": max_drawdown,
+            "total_trades": len(self.trade_history),
+            "winning_trades": len(winning_trades),
+            "losing_trades": len(sell_trades) - len(winning_trades),
+            "positions": positions_summary,
+        }
+
+    def _calculate_sharpe(self, risk_free_rate: float = 0.04) -> float:
+        """Calculate annualized Sharpe ratio from value history."""
+        if len(self._value_history) < 10:
+            return 0.0
+
+        values = [v for _, v in self._value_history]
+        returns = []
+        for i in range(1, len(values)):
+            if values[i - 1] > 0:
+                ret = (values[i] - values[i - 1]) / values[i - 1]
+                returns.append(ret)
+
+        if not returns:
+            return 0.0
+
+        mean_return = sum(returns) / len(returns)
+        if len(returns) < 2:
+            return 0.0
+
+        variance = sum((r - mean_return) ** 2 for r in returns) / (len(returns) - 1)
+        std_dev = math.sqrt(variance)
+
+        if std_dev == 0:
+            return 0.0
+
+        # Annualize (assuming ~1440 data points per day for minute-level, or adjust)
+        annualized_return = mean_return * 252 * 24  # rough annualization
+        annualized_std = std_dev * math.sqrt(252 * 24)
+        daily_rf = risk_free_rate / 252
+
+        return (annualized_return - risk_free_rate) / annualized_std if annualized_std > 0 else 0.0
+
+    def _calculate_max_drawdown(self) -> float:
+        """Calculate maximum drawdown percentage."""
+        if len(self._value_history) < 2:
+            return 0.0
+
+        values = [v for _, v in self._value_history]
+        peak = values[0]
+        max_dd = 0.0
+
+        for v in values:
+            if v > peak:
+                peak = v
+            drawdown = (peak - v) / peak if peak > 0 else 0
+            max_dd = max(max_dd, drawdown)
+
+        return max_dd * 100
+
+    def to_dict(self, prices: Dict[str, float]) -> Dict:
+        """Serialize portfolio to dictionary."""
+        metrics = self.calculate_metrics(prices)
+        recent_trades = [
+            {
+                "symbol": t.symbol,
+                "action": t.action,
+                "shares": t.shares,
+                "price": t.price,
+                "timestamp": t.timestamp.isoformat(),
+                "reasoning": t.reasoning,
+                "pnl": t.pnl,
+            }
+            for t in self.trade_history[-20:]
+        ]
+        return {**metrics, "recent_trades": recent_trades}
+
+    def get_value_history(self) -> List[Dict]:
+        """Get value history for charting."""
+        return [
+            {"timestamp": ts.isoformat(), "value": val}
+            for ts, val in self._value_history[-500:]
+        ]

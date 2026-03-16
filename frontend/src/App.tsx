@@ -1,0 +1,308 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import Dashboard from './components/Dashboard'
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface Position {
+  symbol: string
+  shares: number
+  avg_cost: number
+  current_price: number
+  current_value: number
+  unrealized_pnl: number
+  unrealized_pnl_pct: number
+}
+
+export interface Trade {
+  id?: number
+  symbol: string
+  action: 'BUY' | 'SELL'
+  shares: number
+  price: number
+  timestamp: string
+  reasoning: string
+  pnl: number
+  agent_name?: string
+  agent_id?: number
+}
+
+export interface Signal {
+  action: 'BUY' | 'SELL' | 'HOLD'
+  confidence: number
+  reasoning: string
+  timestamp: string
+}
+
+export interface Agent {
+  id: number
+  name: string
+  strategy: string
+  is_active: boolean
+  cash: number
+  total_value: number
+  position_value: number
+  total_return_pct: number
+  total_return: number
+  win_rate: number
+  sharpe_ratio: number
+  max_drawdown: number
+  total_trades: number
+  positions: Position[]
+  recent_trades: Trade[]
+  last_signals: Record<string, Signal>
+  value_history: Array<{ timestamp: string; value: number }>
+  rank?: number
+}
+
+export interface AppData {
+  agents: Agent[]
+  prices: Record<string, number>
+  leaderboard: Agent[]
+  is_running: boolean
+  cycle_count: number
+  timestamp: string
+  watchlist: string[]
+}
+
+// ── WebSocket Hook ────────────────────────────────────────────────────────────
+
+function useWebSocket(url: string, onMessage: (data: AppData) => void) {
+  const wsRef = useRef<WebSocket | null>(null)
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reconnectDelay = useRef(1000)
+  const [connected, setConnected] = useState(false)
+
+  const connect = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) return
+
+    const ws = new WebSocket(url)
+    wsRef.current = ws
+
+    ws.onopen = () => {
+      setConnected(true)
+      reconnectDelay.current = 1000
+      // Ping every 25 seconds
+      const pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send('ping')
+        }
+      }, 25000)
+      ws.addEventListener('close', () => clearInterval(pingInterval))
+    }
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'update') {
+          onMessage(data)
+        }
+      } catch (e) {
+        if (event.data !== 'pong') {
+          console.warn('WebSocket: unexpected message format', event.data)
+        }
+      }
+    }
+
+    ws.onclose = () => {
+      setConnected(false)
+      wsRef.current = null
+      // Exponential backoff reconnect
+      reconnectDelay.current = Math.min(reconnectDelay.current * 1.5, 30000)
+      reconnectTimer.current = setTimeout(connect, reconnectDelay.current)
+    }
+
+    ws.onerror = () => {
+      ws.close()
+    }
+  }, [url, onMessage])
+
+  useEffect(() => {
+    connect()
+    return () => {
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
+      wsRef.current?.close()
+    }
+  }, [connect])
+
+  return connected
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+
+// Always route WebSocket through Vite proxy — browser only needs to trust port 5173
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
+const API_BASE = ''
+
+export default function App() {
+  const [appData, setAppData] = useState<AppData>({
+    agents: [],
+    prices: {},
+    leaderboard: [],
+    is_running: false,
+    cycle_count: 0,
+    timestamp: new Date().toISOString(),
+    watchlist: [],
+  })
+  const [trades, setTrades] = useState<Trade[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [statusMessage, setStatusMessage] = useState('')
+
+  const handleWsMessage = useCallback((data: AppData) => {
+    setAppData(data)
+  }, [])
+
+  const wsConnected = useWebSocket(WS_URL, handleWsMessage)
+
+  // Fetch initial data and trades
+  useEffect(() => {
+    fetchTrades()
+    const interval = setInterval(fetchTrades, 15000)
+    return () => clearInterval(interval)
+  }, [])
+
+  async function fetchTrades() {
+    try {
+      const res = await fetch(`${API_BASE}/api/trades?limit=100`)
+      if (res.ok) {
+        const data = await res.json()
+        setTrades(data.trades || [])
+      }
+    } catch (e) {
+      // silently fail
+    }
+  }
+
+  async function handleStart() {
+    setIsLoading(true)
+    setStatusMessage('')
+    try {
+      const res = await fetch(`${API_BASE}/api/start`, { method: 'POST' })
+      const data = await res.json()
+      setStatusMessage(data.message)
+      setAppData(prev => ({ ...prev, is_running: true }))
+    } catch (e) {
+      setStatusMessage('Failed to start: server unavailable')
+    } finally {
+      setIsLoading(false)
+      setTimeout(() => setStatusMessage(''), 4000)
+    }
+  }
+
+  async function handleStop() {
+    setIsLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/stop`, { method: 'POST' })
+      const data = await res.json()
+      setStatusMessage(data.message)
+      setAppData(prev => ({ ...prev, is_running: false }))
+    } catch (e) {
+      setStatusMessage('Failed to stop')
+    } finally {
+      setIsLoading(false)
+      setTimeout(() => setStatusMessage(''), 3000)
+    }
+  }
+
+  async function handleReset() {
+    if (!confirm('Reset all portfolios? This cannot be undone.')) return
+    setIsLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/reset`, { method: 'POST' })
+      const data = await res.json()
+      setStatusMessage(data.message)
+      setTrades([])
+      setAppData(prev => ({ ...prev, is_running: false, cycle_count: 0 }))
+    } catch (e) {
+      setStatusMessage('Failed to reset')
+    } finally {
+      setIsLoading(false)
+      setTimeout(() => setStatusMessage(''), 3000)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-gray-100">
+      {/* Header */}
+      <header className="gradient-border sticky top-0 z-50">
+        <div className="max-w-screen-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          {/* Title */}
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">🤖</div>
+            <div>
+              <h1 className="text-lg font-bold text-white leading-none">
+                AI Trading Competition
+              </h1>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {appData.agents.length} agents competing • Cycle #{appData.cycle_count}
+              </p>
+            </div>
+          </div>
+
+          {/* Status & Controls */}
+          <div className="flex items-center gap-3">
+            {/* Connection status */}
+            <div className={`flex items-center gap-1.5 text-xs ${wsConnected ? 'text-green-400' : 'text-gray-500'}`}>
+              <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-400 animate-pulse' : 'bg-gray-600'}`} />
+              {wsConnected ? 'Live' : 'Connecting...'}
+            </div>
+
+            {/* Trading status */}
+            <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full border ${
+              appData.is_running
+                ? 'text-green-400 border-green-700/50 bg-green-900/20'
+                : 'text-gray-400 border-gray-700 bg-gray-800/50'
+            }`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${appData.is_running ? 'bg-green-400' : 'bg-gray-500'}`} />
+              {appData.is_running ? 'Trading Active' : 'Paused'}
+            </div>
+
+            {/* Status message */}
+            {statusMessage && (
+              <span className="text-xs text-blue-400 animate-pulse">{statusMessage}</span>
+            )}
+
+            {/* Control buttons */}
+            <div className="flex gap-2">
+              {!appData.is_running ? (
+                <button
+                  onClick={handleStart}
+                  disabled={isLoading}
+                  className="btn-success text-xs px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ▶ Start
+                </button>
+              ) : (
+                <button
+                  onClick={handleStop}
+                  disabled={isLoading}
+                  className="btn-danger text-xs px-3 py-1.5 disabled:opacity-50"
+                >
+                  ⏸ Stop
+                </button>
+              )}
+              <button
+                onClick={handleReset}
+                disabled={isLoading}
+                className="btn-secondary text-xs px-3 py-1.5 disabled:opacity-50"
+              >
+                ↺ Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-screen-2xl mx-auto px-4 py-4">
+        <Dashboard
+          agents={appData.agents}
+          prices={appData.prices}
+          leaderboard={appData.leaderboard}
+          trades={trades}
+          watchlist={appData.watchlist}
+          isRunning={appData.is_running}
+        />
+      </main>
+    </div>
+  )
+}
