@@ -76,7 +76,7 @@ class AppState:
         self.last_market_context: Dict = {}
         self.cycle_count: int = 0
         self.start_time: Optional[datetime] = None
-        self.market_status: str = "unknown"          # "open" | "closed" | "pre-market"
+        self.market_status: str = "unknown"          # "open" | "closed"
         self.after_hours_catalysts: List[Dict] = []  # catalysts found by sentinel
 
     def get_agents_list(self) -> list:
@@ -138,11 +138,11 @@ async def trading_loop() -> None:
             app_state.market_status = status
 
             if status == "closed":
-                mins = _minutes_until_trading()
-                # Wake up 5 min before pre-market opens; minimum 60s poll
+                mins = _minutes_until_open()
+                # Wake up 5 min before open; minimum 60s poll
                 sleep_secs = max(60, (mins - 5) * 60)
                 logger.info(
-                    f"Market closed (next session in {mins:.0f} min). "
+                    f"Market closed (next open in {mins:.0f} min). "
                     f"Trading loop sleeping {sleep_secs/60:.0f} min."
                 )
                 try:
@@ -363,64 +363,33 @@ def _nyse_holidays(year: int) -> set:
 
 def _get_market_status() -> str:
     """
-    Return the current US market session as a string:
-      'pre-market'  — 04:00–09:29 ET on a trading day
-      'open'        — 09:30–15:59 ET on a trading day
-      'after-hours' — 16:00–19:59 ET on a trading day
-      'closed'      — weekends, holidays, or outside all sessions
+    Return 'open' during regular NYSE hours (09:30–15:59 ET on trading days),
+    'closed' at all other times.
     """
     now = _et_now()
     if now.weekday() >= 5:
         return "closed"
     if (now.month, now.day) in _nyse_holidays(now.year):
         return "closed"
-
     h, m = now.hour, now.minute
-    if 4 <= h < 9 or (h == 9 and m < 30):
-        return "pre-market"
     if (h == 9 and m >= 30) or (10 <= h <= 15):
         return "open"
-    if h == 16 or h == 17 or h == 18 or (h == 19 and m < 60):
-        return "after-hours"
     return "closed"
 
 
 def _market_is_open() -> bool:
-    """
-    Return True if trading should be active — covers pre-market, regular, and after-hours.
-    The trading loop runs during all extended sessions; only true overnight and weekends
-    are skipped.
-    """
-    return _get_market_status() in ("pre-market", "open", "after-hours")
-
-
-def _minutes_until_trading() -> float:
-    """
-    Minutes until the next pre-market session opens (04:00 ET on the next trading day).
-    Returns 0 if any trading session is currently active.
-    """
-    from datetime import timedelta
-    if _market_is_open():
-        return 0
-    now = _et_now()
-    for days_ahead in range(8):
-        candidate = now + timedelta(days=days_ahead)
-        if candidate.weekday() >= 5:
-            continue
-        if (candidate.month, candidate.day) in _nyse_holidays(candidate.year):
-            continue
-        opens = candidate.replace(hour=4, minute=0, second=0, microsecond=0)
-        if opens > now:
-            return (opens - now).total_seconds() / 60
-    return 0
+    """Return True only during regular NYSE trading hours."""
+    return _get_market_status() == "open"
 
 
 def _minutes_until_open() -> float:
     """
-    Minutes until regular market open (09:30 ET). Used for pre-market warmup scheduling.
-    Returns 0 if regular session is currently open.
+    Minutes until the next regular market open (09:30 ET on the next trading day).
+    Returns 0 if the market is currently open.
     """
     from datetime import timedelta
+    if _market_is_open():
+        return 0
     now = _et_now()
     for days_ahead in range(8):
         candidate = now + timedelta(days=days_ahead)
@@ -481,18 +450,18 @@ async def auto_scan_loop() -> None:
             elapsed_min = (now_ts - last_scan_triggered) / 60
 
             session = _get_market_status()
-            if session in ("open", "pre-market", "after-hours"):
-                # Regular interval scan during any active session
+            if session == "open":
+                # Regular interval scan during market hours
                 if elapsed_min >= AUTO_SCAN_INTERVAL_MIN:
-                    await _do_scan(f"scheduled every {AUTO_SCAN_INTERVAL_MIN} min ({session})")
+                    await _do_scan(f"scheduled every {AUTO_SCAN_INTERVAL_MIN} min")
                     last_scan_triggered = now_ts
             else:
-                # Overnight / weekend: fire a warmup scan 10 min before pre-market opens (4 AM)
-                mins_to_premarket = _minutes_until_trading()
-                if 0 < mins_to_premarket <= PRE_MARKET_WARMUP_MIN:
+                # Market closed: fire a warmup scan before the open
+                mins_to_open = _minutes_until_open()
+                if 0 < mins_to_open <= PRE_MARKET_WARMUP_MIN:
                     if elapsed_min >= AUTO_SCAN_INTERVAL_MIN:
                         await _do_scan(
-                            f"pre-session warmup ({mins_to_premarket:.0f} min before 4 AM open)"
+                            f"pre-open warmup ({mins_to_open:.0f} min before 9:30 AM)"
                         )
                         last_scan_triggered = now_ts
 
