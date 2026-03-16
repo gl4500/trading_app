@@ -54,9 +54,13 @@ logger = logging.getLogger(__name__)
 # This fires whenever a browser tab closes/refreshes mid-connection and is harmless.
 class _SuppressWin10054(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        return "WinError 10054" not in (record.getMessage())
+        return "WinError 10054" not in record.getMessage()
 
-logging.getLogger("asyncio").addFilter(_SuppressWin10054())
+_win10054_filter = _SuppressWin10054()
+logging.getLogger("asyncio").addFilter(_win10054_filter)
+logging.getLogger("uvicorn.error").addFilter(_win10054_filter)
+logging.getLogger("uvicorn.access").addFilter(_win10054_filter)
+logging.root.addFilter(_win10054_filter)
 
 
 # ─── Application State ──────────────────────────────────────────────────────
