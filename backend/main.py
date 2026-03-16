@@ -1062,10 +1062,11 @@ async def reset_competition():
 
     # Broadcast zeroed state immediately so UI updates without waiting for next WS cycle
     if app_state.ws_connections:
+        reset_agents = [a.get_state({}) for a in app_state.agents.values()]
         reset_msg = {
             "type": "update",
-            "agents": [a.get_state({}) for a in app_state.agents.values()],
-            "leaderboard": [],
+            "agents": reset_agents,
+            "leaderboard": reset_agents,
             "prices": {},
             "is_running": False,
             "cycle_count": 0,

@@ -211,11 +211,8 @@ export default function App() {
       const data = await res.json()
       setStatusMessage(data.message)
       setTrades([])
-      setAppData(prev => ({
-        ...prev,
-        is_running: false,
-        cycle_count: 0,
-        agents: prev.agents.map(a => ({
+      setAppData(prev => {
+        const resetAgents = prev.agents.map(a => ({
           ...a,
           cash: 100000,
           total_value: 100000,
@@ -230,9 +227,15 @@ export default function App() {
           recent_trades: [],
           last_signals: {},
           value_history: [],
-        })),
-        leaderboard: [],
-      }))
+        }))
+        return {
+          ...prev,
+          is_running: false,
+          cycle_count: 0,
+          agents: resetAgents,
+          leaderboard: resetAgents,
+        }
+      })
     } catch (e) {
       setStatusMessage('Failed to reset')
     } finally {
