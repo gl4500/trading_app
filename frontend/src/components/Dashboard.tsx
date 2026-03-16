@@ -8,6 +8,7 @@ import MarketOverview from './MarketOverview'
 import SignalsPanel from './SignalsPanel'
 import ScannerPanel from './ScannerPanel'
 import SummaryPanel from './SummaryPanel'
+import SentinelPanel from './SentinelPanel'
 
 interface DashboardProps {
   agents: Agent[]
@@ -27,7 +28,7 @@ export default function Dashboard({
   isRunning,
 }: DashboardProps) {
   const [selectedAgentName, setSelectedAgentName] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'chart' | 'detail' | 'signals' | 'scanner' | 'summary'>('chart')
+  const [activeTab, setActiveTab] = useState<'chart' | 'detail' | 'signals' | 'scanner' | 'summary' | 'sentinel'>('chart')
 
   function handleSelectAgent(name: string) {
     setSelectedAgentName(name)
@@ -109,7 +110,17 @@ export default function Dashboard({
             >
               ◈ Daily Roll-Up
             </button>
-            {displayAgent && activeTab !== 'signals' && activeTab !== 'scanner' && activeTab !== 'summary' && (
+            <button
+              onClick={() => setActiveTab('sentinel')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'sentinel'
+                  ? 'bg-orange-700 text-white'
+                  : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              ⚡ Sentinel
+            </button>
+            {displayAgent && activeTab !== 'signals' && activeTab !== 'scanner' && activeTab !== 'summary' && activeTab !== 'sentinel' && (
               <span className="ml-auto text-xs text-gray-400 self-center">
                 Viewing: <span className="text-blue-400 font-medium">{displayAgent.name}</span>
               </span>
@@ -138,6 +149,8 @@ export default function Dashboard({
           {activeTab === 'scanner' && <ScannerPanel />}
 
           {activeTab === 'summary' && <SummaryPanel />}
+
+          {activeTab === 'sentinel' && <SentinelPanel />}
         </div>
       </div>
 

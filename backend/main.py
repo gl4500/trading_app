@@ -78,6 +78,8 @@ class AppState:
         self.start_time: Optional[datetime] = None
         self.market_status: str = "unknown"          # "open" | "closed"
         self.after_hours_catalysts: List[Dict] = []  # catalysts found by sentinel
+        self.last_sentinel_poll: Optional[str] = None  # ISO timestamp of last sentinel poll
+        self.news_price_snapshots: List[Dict] = []    # price at catalyst detection + later change
 
     def get_agents_list(self) -> list:
         return list(self.agents.values())
@@ -123,6 +125,31 @@ async def init_agents() -> None:
         logger.info(f"Registered agent: {agent.name} (id={agent_id})")
 
     logger.info(f"Initialized {len(all_agents)} agents")
+
+
+# ─── News-Price Correlation ──────────────────────────────────────────────────
+
+def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
+    """Fill price_open / price_1h fields on correlation snapshots as trading progresses."""
+    now_iso = datetime.utcnow().isoformat()
+    for snap in app_state.news_price_snapshots:
+        sym = snap["symbol"]
+        if sym not in prices:
+            continue
+        current = prices[sym]
+        base = snap["price_at"]
+        if base and base > 0:
+            pct = (current - base) / base * 100
+            # First cycle after detection → price_open
+            if snap["price_open"] is None:
+                snap["price_open"] = current
+                snap["change_open"] = round(pct, 2)
+            # After price_open is set, keep updating price_1h with the latest
+            else:
+                snap["price_1h"] = current
+                snap["change_1h"] = round(pct, 2)
+    # Keep only the 100 most recent
+    app_state.news_price_snapshots = app_state.news_price_snapshots[-100:]
 
 
 # ─── Trading Loop ────────────────────────────────────────────────────────────
@@ -203,6 +230,9 @@ async def trading_loop() -> None:
 
             app_state.last_prices = prices
             app_state.last_market_context = market_context
+
+            # Update news-price correlation snapshots with live prices
+            _update_news_price_snapshots(prices)
 
             # Filter out agents that are ensemble (it runs sub-agents internally)
             # Run all agents concurrently (excluding ensemble's sub-agents which it runs itself)
@@ -539,6 +569,7 @@ async def news_sentinel_loop() -> None:
                 continue
 
             last_poll = now_ts
+            app_state.last_sentinel_poll = datetime.utcnow().isoformat()
             logger.info("Sentinel: polling news for after-hours catalysts")
 
             # Gather watchlist + current scanner symbols
@@ -603,6 +634,21 @@ async def news_sentinel_loop() -> None:
                 if cat["headline"] not in all_headlines:
                     app_state.after_hours_catalysts.append(cat)
                     all_headlines.add(cat["headline"])
+                    # Record price snapshot for news-price correlation tracking
+                    sym = cat.get("symbol")
+                    if sym and sym in app_state.last_prices:
+                        app_state.news_price_snapshots.append({
+                            "symbol":       sym,
+                            "headline":     cat["headline"][:120],
+                            "score":        cat.get("score", 0),
+                            "category":     cat.get("category", "news"),
+                            "price_at":     app_state.last_prices[sym],
+                            "detected_at":  cat.get("detected_at", datetime.utcnow().isoformat()),
+                            "price_open":   None,   # filled at next market open
+                            "price_1h":     None,   # filled 1h after open
+                            "change_open":  None,
+                            "change_1h":    None,
+                        })
             # Trim to most recent 50
             app_state.after_hours_catalysts = sorted(
                 app_state.after_hours_catalysts,
@@ -1207,8 +1253,27 @@ async def get_sentinel_catalysts():
         "market_status":       app_state.market_status,
         "market_is_open":      _market_is_open(),
         "minutes_until_open":  round(_minutes_until_open(), 1),
+        "last_poll":           app_state.last_sentinel_poll,
         "catalyst_count":      len(app_state.after_hours_catalysts),
         "catalysts":           app_state.after_hours_catalysts,
+    }
+
+
+@app.get("/api/news-impact")
+async def get_news_impact():
+    """Return news-price correlation snapshots — shows how catalysts moved prices."""
+    snapshots = app_state.news_price_snapshots
+    # Sort: confirmed moves first (have price_1h), then pending
+    confirmed = sorted(
+        [s for s in snapshots if s["change_1h"] is not None],
+        key=lambda x: abs(x["change_1h"]),
+        reverse=True,
+    )
+    pending = [s for s in snapshots if s["change_1h"] is None]
+    return {
+        "total":     len(snapshots),
+        "confirmed": confirmed,
+        "pending":   pending,
     }
 
 
