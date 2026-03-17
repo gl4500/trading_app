@@ -12,6 +12,8 @@ __pycache__/
 # Database - contains trading data
 backend/trading.db
 backend/learning.json
+backend/data/scan_cache.json
+backend/data/agent_picks.json
 
 # Runtime & deps
 site-packages/

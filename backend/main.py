@@ -141,7 +141,7 @@ async def init_agents() -> None:
 
 def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
     """Fill price_open / price_1h fields on correlation snapshots as trading progresses."""
-    now_iso = datetime.utcnow().isoformat()
+    now_iso = datetime.utcnow().isoformat() + "Z"
     for snap in app_state.news_price_snapshots:
         sym = snap["symbol"]
         if sym not in prices:
@@ -592,7 +592,7 @@ async def news_sentinel_loop() -> None:
                 continue
 
             last_poll = now_ts
-            app_state.last_sentinel_poll = datetime.utcnow().isoformat()
+            app_state.last_sentinel_poll = datetime.utcnow().isoformat() + "Z"
             logger.info("Sentinel: polling news for after-hours catalysts")
 
             # Gather watchlist + current scanner symbols
@@ -640,7 +640,7 @@ async def news_sentinel_loop() -> None:
                             "category":    "catalyst",
                             "sectors":     [],
                             "reason":      "earnings/M&A/FDA/upgrade keyword match",
-                            "detected_at": datetime.utcnow().isoformat(),
+                            "detected_at": datetime.utcnow().isoformat() + "Z",
                         })
 
             # Run policy / congressional / executive order scan
@@ -683,7 +683,7 @@ async def news_sentinel_loop() -> None:
                             "score":        cat.get("score", 0),
                             "category":     cat.get("category", "news"),
                             "price_at":     app_state.last_prices[sym],
-                            "detected_at":  cat.get("detected_at", datetime.utcnow().isoformat()),
+                            "detected_at":  cat.get("detected_at", datetime.utcnow().isoformat() + "Z"),
                             "price_open":   None,   # filled at next market open
                             "price_1h":     None,   # filled 1h after open
                             "change_open":  None,
@@ -851,7 +851,7 @@ async def build_ws_message() -> Dict:
 
     return {
         "type": "update",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
         "is_running": app_state.is_running,
         "cycle_count": app_state.cycle_count,
         "agents": agents_state,
@@ -1055,7 +1055,7 @@ async def get_market():
         return {
             "prices": prices,
             "watchlist": watchlist_manager.get_active_watchlist(),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.utcnow().isoformat() + "Z",
         }
     except Exception as e:
         logger.error(f"Error fetching market data: {e}")
@@ -1175,7 +1175,7 @@ async def reset_competition():
             "prices": {},
             "is_running": False,
             "cycle_count": 0,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.utcnow().isoformat() + "Z",
             "watchlist": config.WATCHLIST,
         }
         dead = set()
@@ -1275,7 +1275,7 @@ async def get_status():
         "is_running": app_state.is_running,
         "market_status": app_state.market_status,
         "cycle_count": app_state.cycle_count,
-        "start_time": app_state.start_time.isoformat() if app_state.start_time else None,
+        "start_time": (app_state.start_time.isoformat() + "Z") if app_state.start_time else None,
         "agent_count": len(app_state.agents),
         "ws_connections": len(app_state.ws_connections),
         "watchlist": watchlist_manager.get_active_watchlist(),
@@ -1385,7 +1385,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_text("pong")
             except asyncio.TimeoutError:
                 # Send heartbeat
-                await websocket.send_text(json.dumps({"type": "heartbeat", "timestamp": datetime.utcnow().isoformat()}))
+                await websocket.send_text(json.dumps({"type": "heartbeat", "timestamp": datetime.utcnow().isoformat() + "Z"}))
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected: {client}")
