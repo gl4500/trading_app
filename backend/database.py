@@ -81,8 +81,10 @@ async def init_db() -> None:
             await db.execute("ALTER TABLE trades ADD COLUMN pnl REAL DEFAULT 0")
             await db.commit()
             logger.info("Database migration: added pnl column to trades")
-        except Exception:
-            pass  # column already exists
+        except Exception as e:
+            if "duplicate column" not in str(e).lower() and "already exists" not in str(e).lower():
+                logger.warning(f"Database migration warning (add pnl column): {e}")
+            # else: column already exists — expected on restart, not a bug
 
         await db.commit()
     logger.info("Database initialized successfully")

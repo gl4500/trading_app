@@ -103,8 +103,10 @@ def _parse_rss(xml_text: str, source_name: str) -> List[Dict]:
         ns = {"atom": "http://www.w3.org/2005/Atom"}
         entries = root.findall(".//item") or root.findall(".//atom:entry", ns)
         for entry in entries:
-            def _t(tag: str) -> str:
-                node = entry.find(tag) or entry.find(f"atom:{tag}", ns)
+            def _t(tag: str, _entry=entry) -> str:
+                node = _entry.find(tag)
+                if node is None:
+                    node = _entry.find(f"atom:{tag}", ns)
                 return (node.text or "").strip() if node is not None else ""
 
             headline = _t("title")

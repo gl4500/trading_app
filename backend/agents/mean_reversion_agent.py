@@ -50,6 +50,8 @@ class MeanReversionAgent(BaseAgent):
         recent_z = []
         for i in range(-5, 0):
             if abs(i) < len(close):
+                if float(rolling_std.iloc[i]) == 0:
+                    continue
                 z = (float(close.iloc[i]) - float(rolling_mean.iloc[i])) / float(rolling_std.iloc[i])
                 if not math.isnan(z):
                     recent_z.append(z)
@@ -199,9 +201,11 @@ class MeanReversionAgent(BaseAgent):
     async def analyze(self, market_context: Dict) -> List[Signal]:
         """Analyze all symbols using mean reversion."""
         signals = []
-        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items()}
+        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
 
         for symbol, ctx in market_context.items():
+            if not isinstance(ctx, dict):
+                continue
             try:
                 bars = ctx.get("bars")
 

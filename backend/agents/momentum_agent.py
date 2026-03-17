@@ -5,7 +5,6 @@ import logging
 import math
 from typing import Dict, List, Optional
 import pandas as pd
-import numpy as np
 
 from agents.base_agent import BaseAgent, Signal
 from config import config
@@ -233,9 +232,11 @@ class MomentumAgent(BaseAgent):
     async def analyze(self, market_context: Dict) -> List[Signal]:
         """Analyze all symbols and return momentum signals."""
         signals = []
-        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items()}
+        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
 
         for symbol, ctx in market_context.items():
+            if not isinstance(ctx, dict):
+                continue
             try:
                 bars = ctx.get("bars")
 

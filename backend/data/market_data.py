@@ -22,7 +22,7 @@ class MarketDataCache:
     """Thread-safe in-memory cache for market data."""
 
     def __init__(self, ttl_seconds: int = None):
-        self.ttl = ttl_seconds or config.DATA_CACHE_SECONDS
+        self.ttl = ttl_seconds if ttl_seconds is not None else config.DATA_CACHE_SECONDS
         self._cache: Dict[str, tuple] = {}  # key -> (timestamp, data)
         self._lock = asyncio.Lock()
 

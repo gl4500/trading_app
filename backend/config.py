@@ -30,12 +30,19 @@ class Config:
     TRADE_INTERVAL_SECONDS: int = int(os.getenv("TRADE_INTERVAL_SECONDS", "60"))
     DAILY_LOSS_LIMIT: float = float(os.getenv("DAILY_LOSS_LIMIT", "0.05"))  # 5% daily loss stops trading
 
-    # Watchlist
+    # Watchlist — seeds used as fallback when scanner pool is small
     WATCHLIST_STR: str = os.getenv("WATCHLIST", "AAPL,MSFT,GOOGL,TSLA,AMZN,NVDA,META,SPY")
+    # Fluid watchlist settings
+    WATCHLIST_SIZE: int = int(os.getenv("WATCHLIST_SIZE", "15"))
+    WATCHLIST_ANCHORS_STR: str = os.getenv("WATCHLIST_ANCHORS", "SPY")
 
     @property
     def WATCHLIST(self) -> List[str]:
         return [s.strip() for s in self.WATCHLIST_STR.split(",") if s.strip()]
+
+    @property
+    def WATCHLIST_ANCHORS(self) -> List[str]:
+        return [s.strip() for s in self.WATCHLIST_ANCHORS_STR.split(",") if s.strip()]
 
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "trading.db")

@@ -1,0 +1,148 @@
+# CLAUDE.md — AI Trading App Coordination Contract
+
+This file is read by all Claude Code agents working on this repository.
+It defines responsibilities, workflows, and rules that every agent must follow.
+
+---
+
+## Scope
+
+**Only modify files inside `C:\Users\gl450\trading_app\`.**
+Never touch `radioconda\`, `.spyder-py3\`, or any other directory in the user's home folder.
+
+---
+
+## Two-Agent Setup
+
+| Agent | Role | Owns |
+|---|---|---|
+| **Implementation agent** (main Claude Code session) | Feature work, bug fixes, refactors | `backend/`, `frontend/`, `README.md` |
+| **Testing sub-agent** (separate session) | Unit & component tests, test infrastructure | `backend/tests/`, `backend/pytest.ini`, `backend/tests/conftest.py` |
+
+**Coordination via filesystem:** both agents read/write files — the contract below prevents conflicts.
+
+---
+
+## TDD Workflow — Required for every change
+
+```
+1. Testing sub-agent writes a failing test  →  backend/tests/test_<module>.py
+2. Implementation agent implements the code
+3. Run tests:  cd backend && python -m pytest tests/ -v
+4. Both agents verify GREEN before committing
+5. Commit:  git add tests/<file> <module.py> && git commit
+```
+
+No code change is committed without a corresponding test. No exceptions for "small" fixes.
+
+---
+
+## File Ownership
+
+### Implementation agent writes:
+```
+backend/
+  agents/*.py          (agent logic)
+  data/*.py            (data services)
+  trading/*.py         (portfolio, risk)
+  main.py              (API + trading loop)
+  config.py            (configuration)
+  database.py          (persistence)
+frontend/
+  src/                 (React components)
+README.md
+```
+
+### Testing sub-agent writes:
+```
+backend/
+  tests/test_*.py      (unit & component tests)
+  tests/conftest.py    (shared pytest fixtures)
+  tests/README.md      (test documentation)
+  pytest.ini           (pytest configuration)
+```
+
+### Both agents may read any file. Neither deletes the other's files.
+
+---
+
+## Test Conventions
+
+- Framework: `unittest.TestCase` + `pytest` runner
+- Async tests: `unittest.IsolatedAsyncioTestCase`
+- **No live API calls** — mock `anthropic`, `openai`, `alpaca`, `yfinance`, `httpx`
+- **No real DB writes** — use `tempfile.mkstemp()` for database tests
+- **No real file I/O** — mock `learning.json`, `agent_picks.json`, `scan_cache.json`
+- Shared fixtures live in `tests/conftest.py` — don't duplicate setup across files
+- One test file per module: `agents/foo.py` → `tests/test_foo.py`
+
+### Running tests
+```bash
+cd C:\Users\gl450\trading_app\backend
+runtime\python\python.exe run_tests.py -v    # full suite (verbose)
+runtime\python\python.exe run_tests.py       # full suite (summary only)
+```
+Note: pytest is not installed in the self-contained runtime. Use `run_tests.py` (unittest discovery).
+
+---
+
+## Commit Standards
+
+```
+feat: short description of new feature
+fix:  short description of bug fixed
+test: add/update tests for X
+docs: update README or CLAUDE.md
+refactor: internal cleanup, no behavior change
+```
+
+All commits include both the implementation file and its test file.
+Co-Authored-By line required (added automatically by implementation agent).
+
+---
+
+## Current Test Coverage
+
+| Module | Test File | Status |
+|---|---|---|
+| `trading/portfolio.py` | `test_portfolio.py` | ✅ covered |
+| `trading/risk_manager.py` | `test_risk_manager.py` | ✅ covered |
+| `data/technicals.py` | `test_technicals.py` | ✅ covered |
+| `data/policy_monitor.py` | `test_policy_monitor.py` | ✅ covered |
+| `data/signal_aggregator.py` | `test_signal_aggregator.py` | ✅ covered |
+| `data/sentinel_sources.py` | `test_sentinel_sources.py` | ✅ covered |
+| `data/learning_manager.py` | `test_learning_manager.py` | ✅ covered |
+| `data/market_data.py` (cache) | `test_market_data_cache.py` | ✅ covered |
+| `agents/ensemble_agent.py` | `test_ensemble_voting.py` | ✅ covered |
+| `agents/momentum_agent.py` | `test_momentum_agent.py` | ✅ covered |
+| `agents/agent_utils.py` | `test_agent_utils.py` | ✅ covered |
+| `agents/base_agent.py` | `test_signals_and_drift.py` | ✅ covered |
+| `database.py` | `test_database.py` | ✅ covered |
+| `agents/mean_reversion_agent.py` | `test_mean_reversion_agent.py` | ✅ covered |
+| `agents/tech_agent.py` | `test_tech_agent.py` | ✅ covered |
+| `agents/claude_agent.py` | `test_claude_agent.py` | ✅ covered |
+| `agents/gemini_agent.py` | `test_gemini_agent.py` | ✅ covered |
+| `agents/sentiment_agent.py` | `test_sentiment_agent.py` | ✅ covered |
+| `agents/scanner_agent.py` | `test_scanner_agent.py` | ✅ covered |
+| `agents/scanner_portfolio_agent.py` | `test_scanner_portfolio_agent.py` | ✅ covered |
+| `agents/summary_agent.py` | `test_summary_agent.py` | ✅ covered |
+| `main.py` endpoints | `test_main_endpoints.py` | ✅ covered |
+
+---
+
+## Architecture Quick Reference
+
+- **Backend:** FastAPI + asyncio, port 8000
+- **Frontend:** React + Vite + Tailwind, port 5173
+- **DB:** SQLite via aiosqlite (`trading.db`)
+- **Market data:** Alpaca Markets (paper trading)
+- **AI agents:** Claude Opus 4.6, Gemini 2.0 Flash, GPT-4o-mini
+- **Config:** `.env` → `backend/config.py` → `config` singleton
+- **Agent context key:** `market_context["__overnight_catalysts__"]` is a `list` — all agents guard with `isinstance(ctx, dict)` when iterating
+
+## Key invariants (never break these)
+1. `market_context` values are `dict` per symbol, except `__overnight_catalysts__` which is a `list` — always use `isinstance(ctx, dict)` guard when iterating
+2. All agents must handle `market_context` with non-dict values gracefully
+3. Force-trading loop wakes within 10 seconds of `app_state.force_trading` being set
+4. Sentinel polls every 5 min during market hours, 15 min overnight
+5. NYSE regular hours only: 9:30–16:00 ET — no pre/after-hours trading

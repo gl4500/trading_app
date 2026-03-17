@@ -63,7 +63,7 @@ class ScannerPortfolioAgent(BaseAgent):
         prices: Dict[str, float] = {
             sym: ctx.get("price", 0)
             for sym, ctx in market_context.items()
-            if ctx.get("price", 0) > 0
+            if isinstance(ctx, dict) and ctx.get("price", 0) > 0
         }
 
         # Fetch prices for scanner symbols and held positions not yet in prices

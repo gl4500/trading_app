@@ -238,7 +238,7 @@ Respond with ONLY valid JSON in this exact format:
     async def analyze(self, market_context: Dict) -> List[Signal]:
         """Analyze sentiment for all symbols using OpenAI."""
         signals = []
-        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items()}
+        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
 
         # Analyze symbols concurrently (with rate limit consideration)
         async def analyze_symbol(symbol: str, ctx: Dict) -> Signal:
@@ -267,7 +267,7 @@ Respond with ONLY valid JSON in this exact format:
                 )
 
         # Process with small delays to avoid rate limits (max 5 concurrent)
-        items = list(market_context.items())
+        items = [(s, ctx) for s, ctx in market_context.items() if isinstance(ctx, dict)]
         batch_size = 3
         for i in range(0, len(items), batch_size):
             batch = items[i:i + batch_size]

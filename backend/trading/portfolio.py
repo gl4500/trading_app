@@ -238,10 +238,18 @@ class Portfolio:
         if std_dev == 0:
             return 0.0
 
-        # Annualize (assuming ~1440 data points per day for minute-level, or adjust)
-        annualized_return = mean_return * 252 * 24  # rough annualization
-        annualized_std = std_dev * math.sqrt(252 * 24)
-        daily_rf = risk_free_rate / 252
+        # Annualize based on actual elapsed time so the factor is correct
+        # regardless of cycle interval (60s production, faster in tests, etc.)
+        timestamps = [ts for ts, _ in self._value_history]
+        elapsed_secs = (timestamps[-1] - timestamps[0]).total_seconds()
+        if elapsed_secs > 60 and len(returns) > 0:
+            # periods per year = periods recorded / fraction of year elapsed
+            periods_per_year = len(returns) * (365.25 * 24 * 3600) / elapsed_secs
+        else:
+            periods_per_year = 252 * 78  # fallback: ~5-min bars in a trading year
+
+        annualized_return = mean_return * periods_per_year
+        annualized_std = std_dev * math.sqrt(periods_per_year)
 
         return (annualized_return - risk_free_rate) / annualized_std if annualized_std > 0 else 0.0
 

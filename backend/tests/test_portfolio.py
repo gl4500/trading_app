@@ -1,0 +1,218 @@
+"""
+Unit tests for trading/portfolio.py
+Covers: buy/sell execution, cash tracking, avg cost averaging,
+        metrics calculation, Sharpe ratio, max drawdown.
+"""
+import sys
+import os
+import time
+import unittest
+from datetime import datetime, timedelta
+
+_BACKEND = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
+_SITE    = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "site-packages"))
+for _p in (_BACKEND, _SITE):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+from trading.portfolio import Portfolio, Position, TradeRecord
+
+
+PRICES = {"AAPL": 150.0, "MSFT": 300.0, "GOOGL": 2800.0}
+
+
+class TestPortfolioInit(unittest.TestCase):
+
+    def test_starting_cash(self):
+        p = Portfolio(starting_capital=100_000)
+        self.assertEqual(p.cash, 100_000)
+
+    def test_no_positions_at_start(self):
+        p = Portfolio(starting_capital=100_000)
+        self.assertEqual(len(p.positions), 0)
+
+    def test_total_value_all_cash(self):
+        p = Portfolio(starting_capital=100_000)
+        self.assertEqual(p.get_total_value(PRICES), 100_000)
+
+
+class TestPortfolioBuy(unittest.TestCase):
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_buy_reduces_cash(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.assertAlmostEqual(self.p.cash, 100_000 - 1_500)
+
+    def test_buy_creates_position(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.assertIn("AAPL", self.p.positions)
+        self.assertEqual(self.p.positions["AAPL"].shares, 10)
+
+    def test_buy_sets_avg_cost(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.assertEqual(self.p.positions["AAPL"].avg_cost, 150.0)
+
+    def test_buy_avg_cost_averaging(self):
+        # Buy 10 @ 100, then 10 @ 200 → avg = 150
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.execute_buy("AAPL", 10, 200.0)
+        self.assertAlmostEqual(self.p.positions["AAPL"].avg_cost, 150.0)
+        self.assertEqual(self.p.positions["AAPL"].shares, 20)
+
+    def test_buy_insufficient_cash_returns_false(self):
+        result = self.p.execute_buy("AAPL", 10_000, 150.0)  # costs $1.5M
+        self.assertFalse(result)
+
+    def test_buy_insufficient_cash_cash_unchanged(self):
+        self.p.execute_buy("AAPL", 10_000, 150.0)
+        self.assertEqual(self.p.cash, 100_000)
+
+    def test_buy_appends_trade_record(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.assertEqual(len(self.p.trade_history), 1)
+        self.assertEqual(self.p.trade_history[0].action, "BUY")
+
+    def test_total_value_includes_position(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        # 98500 cash + 10 * 160 (current price) = 100100
+        val = self.p.get_total_value({"AAPL": 160.0})
+        self.assertAlmostEqual(val, 98_500 + 1_600)
+
+
+class TestPortfolioSell(unittest.TestCase):
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+        self.p.execute_buy("AAPL", 100, 100.0)   # cost $10,000; cash = $90,000
+
+    def test_sell_increases_cash(self):
+        self.p.execute_sell("AAPL", 50, 120.0)
+        self.assertAlmostEqual(self.p.cash, 90_000 + 6_000)
+
+    def test_sell_reduces_position(self):
+        self.p.execute_sell("AAPL", 50, 120.0)
+        self.assertEqual(self.p.positions["AAPL"].shares, 50)
+
+    def test_full_sell_removes_position(self):
+        self.p.execute_sell("AAPL", 100, 120.0)
+        self.assertNotIn("AAPL", self.p.positions)
+
+    def test_sell_pnl_recorded(self):
+        self.p.execute_sell("AAPL", 100, 120.0)
+        sell_trade = [t for t in self.p.trade_history if t.action == "SELL"][0]
+        self.assertAlmostEqual(sell_trade.pnl, 2_000.0)   # (120-100)*100
+
+    def test_sell_no_position_returns_false(self):
+        result = self.p.execute_sell("GOOGL", 10, 2800.0)
+        self.assertFalse(result)
+
+    def test_sell_clamps_to_held_shares(self):
+        # Request 200 shares, only 100 held — should sell 100
+        self.p.execute_sell("AAPL", 200, 120.0)
+        self.assertNotIn("AAPL", self.p.positions)
+
+
+class TestPortfolioMetrics(unittest.TestCase):
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_win_rate_no_trades(self):
+        m = self.p.calculate_metrics(PRICES)
+        self.assertEqual(m["win_rate"], 0.0)
+
+    def test_win_rate_all_winners(self):
+        self.p.execute_buy("AAPL", 100, 100.0)
+        self.p.execute_sell("AAPL", 100, 110.0)   # profit
+        m = self.p.calculate_metrics(PRICES)
+        self.assertAlmostEqual(m["win_rate"], 100.0)
+
+    def test_win_rate_mixed(self):
+        self.p.execute_buy("AAPL", 50, 100.0)
+        self.p.execute_sell("AAPL", 50, 110.0)    # winner
+        self.p.execute_buy("MSFT", 10, 300.0)
+        self.p.execute_sell("MSFT", 10, 280.0)    # loser
+        m = self.p.calculate_metrics(PRICES)
+        self.assertAlmostEqual(m["win_rate"], 50.0)
+
+    def test_total_return_pct_positive(self):
+        self.p.execute_buy("AAPL", 100, 100.0)
+        self.p.execute_sell("AAPL", 100, 200.0)
+        m = self.p.calculate_metrics(PRICES)
+        self.assertGreater(m["total_return_pct"], 0)
+
+    def test_total_return_pct_negative(self):
+        self.p.execute_buy("AAPL", 100, 100.0)
+        self.p.execute_sell("AAPL", 100, 50.0)
+        m = self.p.calculate_metrics(PRICES)
+        self.assertLess(m["total_return_pct"], 0)
+
+    def test_positions_in_metrics(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        m = self.p.calculate_metrics({"AAPL": 160.0})
+        self.assertEqual(len(m["positions"]), 1)
+        self.assertEqual(m["positions"][0]["symbol"], "AAPL")
+
+
+class TestSharpeRatio(unittest.TestCase):
+
+    def test_sharpe_too_few_records(self):
+        p = Portfolio(starting_capital=100_000)
+        # Only initial record — not enough
+        self.assertEqual(p._calculate_sharpe(), 0.0)
+
+    def test_sharpe_returns_float(self):
+        p = Portfolio(starting_capital=100_000)
+        # Manufacture enough value history entries with timestamps spread over time
+        base_time = datetime.utcnow() - timedelta(hours=2)
+        p._value_history = [
+            (base_time + timedelta(seconds=i * 60), 100_000 + i * 10)
+            for i in range(20)
+        ]
+        result = p._calculate_sharpe()
+        self.assertIsInstance(result, float)
+
+    def test_sharpe_constant_returns_zero(self):
+        # Flat portfolio → std_dev = 0 → Sharpe = 0
+        p = Portfolio(starting_capital=100_000)
+        base_time = datetime.utcnow() - timedelta(hours=2)
+        p._value_history = [
+            (base_time + timedelta(seconds=i * 60), 100_000)
+            for i in range(20)
+        ]
+        self.assertEqual(p._calculate_sharpe(), 0.0)
+
+
+class TestMaxDrawdown(unittest.TestCase):
+
+    def test_no_drawdown(self):
+        p = Portfolio(starting_capital=100_000)
+        # Monotonically increasing — no drawdown
+        p._value_history = [
+            (datetime.utcnow(), 100_000 + i * 1_000) for i in range(10)
+        ]
+        self.assertAlmostEqual(p._calculate_max_drawdown(), 0.0)
+
+    def test_drawdown_calculated(self):
+        p = Portfolio(starting_capital=100_000)
+        # Peak 120k, then drops to 90k → drawdown = 25%
+        p._value_history = [
+            (datetime.utcnow(), 100_000),
+            (datetime.utcnow(), 120_000),
+            (datetime.utcnow(), 90_000),
+        ]
+        dd = p._calculate_max_drawdown()
+        self.assertAlmostEqual(dd, 25.0, places=1)
+
+    def test_value_history_pruned_at_2000(self):
+        p = Portfolio(starting_capital=100_000)
+        prices = {"AAPL": 100.0}
+        for _ in range(2010):
+            p.record_value(prices)
+        self.assertLessEqual(len(p._value_history), 2000)
+
+
+if __name__ == "__main__":
+    unittest.main()

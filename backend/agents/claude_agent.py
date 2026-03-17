@@ -7,10 +7,17 @@ import json
 import logging
 import math
 import re
+import time
 from typing import Dict, List, Optional, Any
-import pandas as pd
 
 from agents.base_agent import BaseAgent, Signal
+from agents.agent_utils import (
+    format_bars_for_prompt,
+    build_portfolio_context,
+    parse_ai_decisions,
+    fill_missing_symbols,
+    get_fallback_signals,
+)
 from config import config
 from data.learning_manager import get_learning_summary, record_trade
 from data.news_service import news_service
@@ -25,41 +32,6 @@ try:
 except ImportError:
     HAS_ANTHROPIC = False
     logger.warning("Anthropic package not available")
-
-
-def _format_bars_for_claude(bars: pd.DataFrame, limit: int = 30) -> str:
-    """Format OHLCV bars as readable text for Claude."""
-    if bars is None or bars.empty:
-        return "No data available"
-
-    recent = bars.tail(limit)
-    lines = ["Date,Open,High,Low,Close,Volume"]
-    for _, row in recent.iterrows():
-        date = str(row.get("timestamp", "")).split("T")[0] if "timestamp" in row else "N/A"
-        lines.append(
-            f"{date},{row.get('open', 0):.2f},{row.get('high', 0):.2f},"
-            f"{row.get('low', 0):.2f},{row.get('close', 0):.2f},"
-            f"{int(row.get('volume', 0))}"
-        )
-    return "\n".join(lines)
-
-
-def _build_portfolio_context(portfolio) -> str:
-    """Build portfolio context string for Claude."""
-    lines = [f"Cash: ${portfolio.cash:,.2f}"]
-
-    if portfolio.positions:
-        lines.append("\nCurrent positions:")
-        for sym, pos in portfolio.positions.items():
-            lines.append(
-                f"  {sym}: {pos.shares:.2f} shares @ avg ${pos.avg_cost:.2f} "
-                f"(cost basis: ${pos.total_cost:,.2f})"
-            )
-    else:
-        lines.append("No current positions (fully in cash)")
-
-    lines.append(f"\nTotal portfolio cost basis: ${sum(p.total_cost for p in portfolio.positions.values()):,.2f}")
-    return "\n".join(lines)
 
 
 class ClaudeAgent(BaseAgent):
@@ -87,7 +59,7 @@ class ClaudeAgent(BaseAgent):
 
     def _build_market_prompt(self, market_context: Dict, watchlist: List[str]) -> str:
         """Build comprehensive market analysis prompt for Claude."""
-        portfolio_ctx = _build_portfolio_context(self.portfolio)
+        portfolio_ctx = build_portfolio_context(self.portfolio)
 
         # Build market data section
         market_sections = []
@@ -97,7 +69,7 @@ class ClaudeAgent(BaseAgent):
             stats = ctx.get("stats", {})
             price = ctx.get("price", 0)
 
-            bars_text      = _format_bars_for_claude(bars, limit=15) if bars is not None else "No data"
+            bars_text      = format_bars_for_prompt(bars, limit=15) if bars is not None else "No data"
             news_items     = ctx.get("news", [])
             news_text      = news_service.format_for_prompt(symbol, news_items)
             ind            = ctx.get("indicators")
@@ -188,10 +160,7 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
     async def _get_claude_decisions(self, market_context: Dict, watchlist: List[str]) -> Optional[Dict]:
         """Get trading decisions from Claude with adaptive thinking."""
         client = self._get_client()
-        if client is None:
-            return None
-
-        if not config.ANTHROPIC_API_KEY:
+        if client is None or not config.ANTHROPIC_API_KEY:
             return None
 
         prompt = self._build_market_prompt(market_context, watchlist)
@@ -222,8 +191,7 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
                 logger.warning("ClaudeAgent: No text content in response")
                 return None
 
-            # Parse JSON from response
-            # Try to find JSON block
+            # Try JSON block first, then direct parse
             json_match = re.search(r'\{[\s\S]*\}', text_content)
             if json_match:
                 try:
@@ -231,7 +199,6 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
                 except json.JSONDecodeError:
                     pass
 
-            # Try direct parse
             try:
                 return json.loads(text_content.strip())
             except json.JSONDecodeError:
@@ -239,9 +206,8 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
                 return None
 
         except anthropic.APIStatusError as e:
-            import time as _time
             if e.status_code in (429, 529):  # rate limit or overloaded
-                self._backoff_until = _time.time() + self._backoff_seconds
+                self._backoff_until = time.time() + self._backoff_seconds
                 logger.warning(
                     f"ClaudeAgent: Rate limited ({e.status_code}) — backing off for {self._backoff_seconds:.0f}s"
                 )
@@ -258,129 +224,9 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
             logger.error(f"ClaudeAgent: Unexpected error: {e}", exc_info=True)
             return None
 
-    def _parse_decisions(self, claude_response: Dict, market_context: Dict,
-                         prices: Dict[str, float]) -> List[Signal]:
-        """Convert Claude's response into Signal objects."""
-        signals = []
-        decisions = claude_response.get("decisions", [])
-        market_analysis = claude_response.get("market_analysis", "")
-
-        for decision in decisions:
-            symbol = decision.get("symbol", "")
-            action = decision.get("action", "HOLD").upper()
-            shares_requested = float(decision.get("shares", 0))
-            confidence = float(decision.get("confidence", 0.5))
-            reasoning = decision.get("reasoning", "")
-
-            if not symbol or symbol not in market_context:
-                continue
-
-            current_price = prices.get(symbol, 0)
-            if current_price <= 0:
-                signals.append(Signal(
-                    action="HOLD", symbol=symbol, confidence=0, shares=0,
-                    reasoning="No price data available"
-                ))
-                continue
-
-            # Validate and adjust share counts
-            if action == "BUY":
-                # Calculate max affordable shares
-                portfolio_value = self.portfolio.get_total_value(prices)
-                max_alloc = portfolio_value * config.MAX_POSITION_SIZE * confidence
-                max_alloc = min(max_alloc, self.portfolio.cash * 0.95)
-                max_shares = math.floor(max_alloc / current_price * 100) / 100
-
-                # Use Claude's suggestion but cap at max
-                if shares_requested > 0:
-                    shares = min(shares_requested, max_shares)
-                else:
-                    shares = max_shares
-
-                if shares < 0.01:
-                    action = "HOLD"
-                    shares = 0
-
-            elif action == "SELL":
-                # Validate we have the position
-                if symbol not in self.portfolio.positions:
-                    action = "HOLD"
-                    shares = 0
-                else:
-                    pos = self.portfolio.positions[symbol]
-                    shares = min(shares_requested if shares_requested > 0 else pos.shares, pos.shares)
-            else:
-                shares = 0
-
-            full_reasoning = f"CLAUDE ANALYSIS: {reasoning}"
-            if market_analysis and symbol == list(market_context.keys())[0]:
-                full_reasoning = f"MARKET VIEW: {market_analysis[:100]}. {full_reasoning}"
-
-            signals.append(Signal(
-                action=action,
-                symbol=symbol,
-                confidence=confidence,
-                shares=shares,
-                reasoning=full_reasoning,
-            ))
-
-        return signals
-
-    def _fill_missing(self, signals: List[Signal], market_context: Dict, prices: Dict[str, float]) -> List[Signal]:
-        """
-        Cover any market_context symbols not included in Claude's analysis window.
-        If the agent has a stored pick for the symbol, replay that conviction rather
-        than emitting a blank HOLD.
-        """
-        covered = {s.symbol for s in signals}
-        for symbol in market_context:
-            if symbol in covered:
-                continue
-            pick = self._picks.get(symbol)
-            if pick and pick.get("action") == "BUY":
-                # Replay stored conviction — agent hasn't changed its mind,
-                # the symbol just didn't fit in this cycle's prompt window.
-                current_price = prices.get(symbol, 0)
-                confidence = float(pick.get("confidence", 0.5))
-                shares = 0
-                if current_price > 0 and symbol not in self.portfolio.positions:
-                    portfolio_value = self.portfolio.get_total_value(prices)
-                    max_alloc = min(
-                        portfolio_value * config.MAX_POSITION_SIZE * confidence,
-                        self.portfolio.cash * 0.95,
-                    )
-                    import math
-                    shares = math.floor(max_alloc / current_price * 100) / 100
-                signals.append(Signal(
-                    action="BUY" if shares >= 0.01 else "HOLD",
-                    symbol=symbol,
-                    confidence=confidence,
-                    shares=shares,
-                    reasoning=f"ClaudeAgent [pick replay]: {pick.get('reasoning', 'prior conviction')}",
-                ))
-            else:
-                signals.append(Signal(
-                    action="HOLD", symbol=symbol, confidence=0.5, shares=0,
-                    reasoning="ClaudeAgent: symbol not in current analysis window — HOLD",
-                ))
-        return signals
-
-    def _get_fallback_signals(self, market_context: Dict, prices: Dict[str, float]) -> List[Signal]:
-        """Return HOLD signals when Claude is unavailable."""
-        return [
-            Signal(
-                action="HOLD",
-                symbol=symbol,
-                confidence=0.5,
-                shares=0,
-                reasoning="ClaudeAgent: API unavailable, holding positions",
-            )
-            for symbol in market_context.keys()
-        ]
-
     async def analyze(self, market_context: Dict) -> List[Signal]:
         """Analyze market using Claude with extended thinking."""
-        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items()}
+        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
 
         # Build watchlist: core symbols + held positions + own picks + scanner extras,
         # capped at MAX_SYMBOLS so the prompt stays manageable.
@@ -408,8 +254,11 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
             async with self._api_lock:
                 pass
             if self._last_decisions:
-                return self._parse_decisions(self._last_decisions, market_context, prices)
-            return self._get_fallback_signals(market_context, prices)
+                return parse_ai_decisions(
+                    self._last_decisions, market_context, prices,
+                    self.portfolio, config.MAX_POSITION_SIZE, "CLAUDE ANALYSIS"
+                )
+            return get_fallback_signals(market_context, "ClaudeAgent")
 
         async with self._api_lock:
             self._cycle_count += 1
@@ -417,20 +266,28 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
             # Only call Claude API every N cycles to manage costs
             if self._cycle_count % self._analysis_interval != 1 and self._last_decisions:
                 logger.debug(f"ClaudeAgent: Replaying cached decisions (cycle {self._cycle_count})")
-                signals = self._parse_decisions(self._last_decisions, market_context, prices)
-                return self._fill_missing(signals, market_context, prices)
+                signals = parse_ai_decisions(
+                    self._last_decisions, market_context, prices,
+                    self.portfolio, config.MAX_POSITION_SIZE, "CLAUDE ANALYSIS"
+                )
+                return fill_missing_symbols(
+                    signals, market_context, prices,
+                    self.portfolio, self._picks, config.MAX_POSITION_SIZE, "ClaudeAgent"
+                )
 
             if not HAS_ANTHROPIC or not config.ANTHROPIC_API_KEY:
                 logger.warning("ClaudeAgent: Anthropic not configured, using fallback")
-                return self._get_fallback_signals(market_context, prices)
+                return get_fallback_signals(market_context, "ClaudeAgent")
 
-            import time as _time
-            if _time.time() < self._backoff_until:
-                remaining = int(self._backoff_until - _time.time())
+            if time.time() < self._backoff_until:
+                remaining = int(self._backoff_until - time.time())
                 logger.debug(f"ClaudeAgent: In backoff, {remaining}s remaining — reusing last decisions")
                 if self._last_decisions:
-                    return self._parse_decisions(self._last_decisions, market_context, prices)
-                return self._get_fallback_signals(market_context, prices)
+                    return parse_ai_decisions(
+                        self._last_decisions, market_context, prices,
+                        self.portfolio, config.MAX_POSITION_SIZE, "CLAUDE ANALYSIS"
+                    )
+                return get_fallback_signals(market_context, "ClaudeAgent")
 
             logger.info(f"ClaudeAgent: Requesting analysis from Claude (cycle {self._cycle_count})")
 
@@ -439,13 +296,20 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
 
                 if claude_response is None:
                     logger.warning("ClaudeAgent: No response from Claude, using fallback")
-                    return self._get_fallback_signals(market_context, prices)
+                    return get_fallback_signals(market_context, "ClaudeAgent")
 
                 claude_response["_watchlist"] = watchlist
                 self._last_decisions = claude_response
                 self._backoff_seconds = 60.0  # reset backoff on success
-                signals = self._parse_decisions(claude_response, market_context, prices)
-                signals = self._fill_missing(signals, market_context, prices)
+
+                signals = parse_ai_decisions(
+                    claude_response, market_context, prices,
+                    self.portfolio, config.MAX_POSITION_SIZE, "CLAUDE ANALYSIS"
+                )
+                signals = fill_missing_symbols(
+                    signals, market_context, prices,
+                    self.portfolio, self._picks, config.MAX_POSITION_SIZE, "ClaudeAgent"
+                )
 
                 # Record completed SELL trades to learning file
                 for signal in signals:
@@ -476,4 +340,4 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
 
             except Exception as e:
                 logger.error(f"ClaudeAgent: Error in analyze: {e}", exc_info=True)
-                return self._get_fallback_signals(market_context, prices)
+                return get_fallback_signals(market_context, "ClaudeAgent")

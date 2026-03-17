@@ -1,0 +1,296 @@
+"""
+Unit tests for agents/scanner_agent.py
+Covers: _coerce_rec(), _merge_recommendations(), _split_candidates(),
+        get_cached_scan(), _pre_screen() (mocked), _build_user_message()
+"""
+import sys
+import os
+import asyncio
+import time
+import unittest
+from unittest.mock import patch, AsyncMock, MagicMock
+
+_BACKEND = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
+_SITE    = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "site-packages"))
+for _p in (_BACKEND, _SITE):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+import agents.scanner_agent as scanner_module
+from agents.scanner_agent import (
+    _coerce_rec,
+    _merge_recommendations,
+    _split_candidates,
+    _build_user_message,
+    get_cached_scan,
+    SCAN_CACHE_TTL,
+    MAX_RECOMMENDATIONS,
+)
+
+
+class TestCoerceRec(unittest.TestCase):
+    """_coerce_rec converts string numerics and uppercases action."""
+
+    def test_string_confidence_converted_to_float(self):
+        rec = {"symbol": "AAPL", "action": "buy", "confidence": "0.75", "composite_score": "0.3"}
+        result = _coerce_rec(rec)
+        self.assertIsInstance(result["confidence"], float)
+        self.assertAlmostEqual(result["confidence"], 0.75)
+
+    def test_action_uppercased(self):
+        rec = {"symbol": "MSFT", "action": "sell", "confidence": 0.6, "composite_score": 0.1}
+        result = _coerce_rec(rec)
+        self.assertEqual(result["action"], "SELL")
+
+    def test_none_fields_not_converted(self):
+        rec = {"symbol": "AAPL", "action": "BUY", "confidence": None, "composite_score": None}
+        result = _coerce_rec(rec)
+        self.assertIsNone(result["confidence"])
+        self.assertIsNone(result["composite_score"])
+
+    def test_price_target_converted(self):
+        rec = {"symbol": "GOOG", "action": "BUY", "confidence": 0.8,
+               "composite_score": 0.5, "price_target": "200.0"}
+        result = _coerce_rec(rec)
+        self.assertAlmostEqual(result["price_target"], 200.0)
+
+    def test_stop_loss_pct_converted(self):
+        rec = {"symbol": "TSLA", "action": "BUY", "confidence": 0.7,
+               "composite_score": 0.4, "stop_loss_pct": "5"}
+        result = _coerce_rec(rec)
+        self.assertAlmostEqual(result["stop_loss_pct"], 5.0)
+
+    def test_invalid_string_left_unchanged(self):
+        rec = {"symbol": "XYZ", "action": "BUY", "confidence": "not_a_number", "composite_score": 0.2}
+        result = _coerce_rec(rec)
+        # Should remain as the original value (not crash)
+        self.assertEqual(result["confidence"], "not_a_number")
+
+    def test_integer_confidence_converted_to_float(self):
+        rec = {"symbol": "AAPL", "action": "BUY", "confidence": 1, "composite_score": 0.5}
+        result = _coerce_rec(rec)
+        self.assertIsInstance(result["confidence"], float)
+
+
+class TestMergeRecommendations(unittest.TestCase):
+    """_merge_recommendations deduplicates by symbol (highest confidence wins)."""
+
+    def test_deduplication_keeps_highest_confidence(self):
+        recs_a = [{"symbol": "AAPL", "action": "BUY", "confidence": 0.65}]
+        recs_b = [{"symbol": "AAPL", "action": "BUY", "confidence": 0.80}]
+        merged = _merge_recommendations([recs_a, recs_b])
+        # Only one AAPL, and it should be the 0.80 one
+        aapl_recs = [r for r in merged if r["symbol"] == "AAPL"]
+        self.assertEqual(len(aapl_recs), 1)
+        self.assertAlmostEqual(aapl_recs[0]["confidence"], 0.80)
+
+    def test_different_symbols_all_kept(self):
+        recs = [
+            [{"symbol": "AAPL", "action": "BUY", "confidence": 0.70}],
+            [{"symbol": "MSFT", "action": "SELL", "confidence": 0.75}],
+        ]
+        merged = _merge_recommendations(recs)
+        syms = {r["symbol"] for r in merged}
+        self.assertIn("AAPL", syms)
+        self.assertIn("MSFT", syms)
+
+    def test_capped_at_max_recommendations(self):
+        # Create MAX_RECOMMENDATIONS + 2 unique symbols
+        recs = [[{"symbol": f"SYM{i}", "action": "BUY", "confidence": 0.5 + i * 0.01}
+                 for i in range(MAX_RECOMMENDATIONS + 3)]]
+        merged = _merge_recommendations(recs)
+        self.assertLessEqual(len(merged), MAX_RECOMMENDATIONS)
+
+    def test_exception_in_results_skipped(self):
+        """Exception objects in results list are skipped gracefully."""
+        recs_good = [{"symbol": "AAPL", "action": "BUY", "confidence": 0.70}]
+        merged = _merge_recommendations([Exception("api error"), [recs_good[0]]])
+        self.assertEqual(len(merged), 1)
+
+    def test_non_list_results_skipped(self):
+        """Non-list results are skipped gracefully."""
+        merged = _merge_recommendations(["bad_result", [{"symbol": "AAPL", "action": "BUY", "confidence": 0.7}]])
+        self.assertEqual(len(merged), 1)
+
+    def test_empty_inputs_returns_empty(self):
+        merged = _merge_recommendations([[], []])
+        self.assertEqual(merged, [])
+
+    def test_rec_missing_symbol_skipped(self):
+        recs = [[{"action": "BUY", "confidence": 0.75}]]  # no symbol
+        merged = _merge_recommendations(recs)
+        self.assertEqual(merged, [])
+
+    def test_sorted_descending_by_confidence(self):
+        recs = [[
+            {"symbol": "LOW", "action": "BUY", "confidence": 0.60},
+            {"symbol": "HIGH", "action": "BUY", "confidence": 0.90},
+            {"symbol": "MID", "action": "BUY", "confidence": 0.75},
+        ]]
+        merged = _merge_recommendations(recs)
+        confs = [r["confidence"] for r in merged]
+        self.assertEqual(confs, sorted(confs, reverse=True))
+
+
+class TestSplitCandidates(unittest.TestCase):
+    """_split_candidates splits candidate list into n sequential chunks."""
+
+    def test_n1_returns_full_list(self):
+        candidates = [{"symbol": f"S{i}"} for i in range(10)]
+        result = _split_candidates(candidates, 1)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result[0]), 10)
+
+    def test_n2_splits_roughly_equal(self):
+        candidates = [{"symbol": f"S{i}"} for i in range(10)]
+        result = _split_candidates(candidates, 2)
+        self.assertEqual(len(result), 2)
+        total = sum(len(c) for c in result)
+        self.assertEqual(total, 10)
+
+    def test_first_chunk_gets_top_ranked(self):
+        """First chunk should contain highest-ranked (first) candidates."""
+        candidates = [{"symbol": f"S{i}", "momentum_score": 10 - i} for i in range(6)]
+        result = _split_candidates(candidates, 3)
+        # First element of first chunk is the highest-momentum candidate
+        self.assertEqual(result[0][0]["symbol"], "S0")
+
+    def test_n_equals_zero_treated_as_one(self):
+        candidates = [{"symbol": "AAPL"}]
+        result = _split_candidates(candidates, 0)
+        self.assertEqual(len(result), 1)
+
+    def test_n_larger_than_candidates_no_crash(self):
+        candidates = [{"symbol": "AAPL"}]
+        result = _split_candidates(candidates, 5)
+        total = sum(len(c) for c in result)
+        self.assertEqual(total, 1)
+
+
+class TestGetCachedScan(unittest.TestCase):
+    """get_cached_scan returns None when no cache, stale flag when expired."""
+
+    def setUp(self):
+        # Reset module globals
+        scanner_module._cache = None
+        scanner_module._cache_ts = 0.0
+
+    def test_no_cache_returns_none(self):
+        result = get_cached_scan()
+        self.assertIsNone(result)
+
+    def test_fresh_cache_returned(self):
+        scanner_module._cache = {"status": "ok", "recommendations": [], "scanned_at": "2024-01-01T10:00:00"}
+        scanner_module._cache_ts = time.time()  # just set
+        result = get_cached_scan()
+        self.assertIsNotNone(result)
+        self.assertEqual(result["status"], "ok")
+
+    def test_stale_cache_tagged_as_stale(self):
+        scanner_module._cache = {"status": "ok", "recommendations": [], "scanned_at": "2024-01-01T00:00:00"}
+        scanner_module._cache_ts = time.time() - SCAN_CACHE_TTL - 1  # expired
+        result = get_cached_scan()
+        self.assertIsNotNone(result)
+        self.assertTrue(result["is_stale"])
+
+    def test_require_fresh_returns_none_when_stale(self):
+        scanner_module._cache = {"status": "ok", "recommendations": []}
+        scanner_module._cache_ts = time.time() - SCAN_CACHE_TTL - 1  # expired
+        result = get_cached_scan(require_fresh=True)
+        self.assertIsNone(result)
+
+    def test_require_fresh_returns_result_when_fresh(self):
+        scanner_module._cache = {"status": "ok", "recommendations": [], "scanned_at": "2024-01-01T10:00:00"}
+        scanner_module._cache_ts = time.time()  # just set
+        result = get_cached_scan(require_fresh=True)
+        self.assertIsNotNone(result)
+
+    def tearDown(self):
+        scanner_module._cache = None
+        scanner_module._cache_ts = 0.0
+
+
+class TestBuildUserMessage(unittest.TestCase):
+    """_build_user_message includes candidate symbols and momentum scores."""
+
+    def test_contains_all_symbols(self):
+        candidates = [
+            {"symbol": "AAPL", "pct_change": 2.5, "vol_ratio": 1.8, "momentum_score": 4.5},
+            {"symbol": "MSFT", "pct_change": -1.2, "vol_ratio": 0.9, "momentum_score": 1.1},
+        ]
+        msg = _build_user_message(candidates)
+        self.assertIn("AAPL", msg)
+        self.assertIn("MSFT", msg)
+
+    def test_contains_momentum_scores(self):
+        candidates = [
+            {"symbol": "TSLA", "pct_change": 5.0, "vol_ratio": 3.0, "momentum_score": 15.0},
+        ]
+        msg = _build_user_message(candidates)
+        self.assertIn("momentum", msg.lower())
+        self.assertIn("15.0", msg)
+
+    def test_empty_candidates_no_crash(self):
+        msg = _build_user_message([])
+        self.assertIsInstance(msg, str)
+
+
+class TestPreScreenMocked(unittest.IsolatedAsyncioTestCase):
+    """_pre_screen with mocked alpaca returns correctly ranked candidates."""
+
+    async def test_pre_screen_returns_candidates(self):
+        """Pre-screen with mocked bars returns sorted list of candidates."""
+        try:
+            import pandas as pd
+        except ImportError:
+            self.skipTest("pandas not available")
+
+        # Build fake bars: 5 bars per symbol
+        def _make_bars(close_vals):
+            return pd.DataFrame({
+                "close":  close_vals,
+                "volume": [1_000_000] * len(close_vals),
+            })
+
+        fake_bars = {
+            "AAPL": _make_bars([100, 101, 102, 103, 110]),  # +6.8% last day
+            "MSFT": _make_bars([200, 201, 202, 203, 204]),  # +0.5% last day
+        }
+
+        with patch("trading.alpaca_client.alpaca_client.get_bars_multi", new_callable=AsyncMock) as mock_bm, \
+             patch("data.stock_universe.ALL_SYMBOLS", ["AAPL", "MSFT"]):
+            mock_bm.return_value = fake_bars
+            from agents.scanner_agent import _pre_screen
+            candidates = await _pre_screen(top_n=10)
+
+        self.assertIsInstance(candidates, list)
+        self.assertGreater(len(candidates), 0)
+        # AAPL has higher momentum score → should be first
+        if len(candidates) >= 2:
+            self.assertEqual(candidates[0]["symbol"], "AAPL")
+
+    async def test_pre_screen_filters_insufficient_bars(self):
+        """Symbols with < 2 bars are filtered out."""
+        try:
+            import pandas as pd
+        except ImportError:
+            self.skipTest("pandas not available")
+
+        fake_bars = {
+            "AAPL": pd.DataFrame({"close": [100.0], "volume": [1_000_000]}),  # only 1 bar
+            "MSFT": pd.DataFrame({"close": [200, 201], "volume": [500_000, 600_000]}),
+        }
+
+        with patch("trading.alpaca_client.alpaca_client.get_bars_multi", new_callable=AsyncMock) as mock_bm, \
+             patch("data.stock_universe.ALL_SYMBOLS", ["AAPL", "MSFT"]):
+            mock_bm.return_value = fake_bars
+            from agents.scanner_agent import _pre_screen
+            candidates = await _pre_screen(top_n=10)
+
+        syms = [c["symbol"] for c in candidates]
+        self.assertNotIn("AAPL", syms)
+        self.assertIn("MSFT", syms)
+
+
+if __name__ == "__main__":
+    unittest.main()

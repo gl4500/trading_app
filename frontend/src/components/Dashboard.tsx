@@ -28,7 +28,7 @@ export default function Dashboard({
   isRunning,
 }: DashboardProps) {
   const [selectedAgentName, setSelectedAgentName] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'chart' | 'detail' | 'signals' | 'scanner' | 'summary' | 'sentinel'>('chart')
+  const [activeTab, setActiveTab] = useState<'chart' | 'detail' | 'signals' | 'scanner' | 'summary' | 'sentinel' | 'trades'>('chart')
 
   function handleSelectAgent(name: string) {
     setSelectedAgentName(name)
@@ -120,7 +120,17 @@ export default function Dashboard({
             >
               ⚡ Sentinel
             </button>
-            {displayAgent && activeTab !== 'signals' && activeTab !== 'scanner' && activeTab !== 'summary' && activeTab !== 'sentinel' && (
+            <button
+              onClick={() => setActiveTab('trades')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'trades'
+                  ? 'bg-gray-600 text-white'
+                  : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              📋 Trades
+            </button>
+            {displayAgent && activeTab !== 'signals' && activeTab !== 'scanner' && activeTab !== 'summary' && activeTab !== 'sentinel' && activeTab !== 'trades' && (
               <span className="ml-auto text-xs text-gray-400 self-center">
                 Viewing: <span className="text-blue-400 font-medium">{displayAgent.name}</span>
               </span>
@@ -151,11 +161,10 @@ export default function Dashboard({
           {activeTab === 'summary' && <SummaryPanel />}
 
           {activeTab === 'sentinel' && <SentinelPanel />}
+
+          {activeTab === 'trades' && <TradeLog trades={trades} agents={agents} />}
         </div>
       </div>
-
-      {/* Trade Log */}
-      <TradeLog trades={trades} agents={agents} />
     </div>
   )
 }

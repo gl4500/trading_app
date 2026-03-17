@@ -28,6 +28,7 @@ from database import (
     reset_database,
 )
 from data.market_data import market_data_service
+from data.watchlist_manager import watchlist_manager
 from trading.alpaca_client import alpaca_client
 
 from data.drift_detector import check_all_agents
@@ -181,11 +182,17 @@ async def trading_loop() -> None:
                     f"Market closed (next open in {mins:.0f} min). "
                     f"Trading loop sleeping {sleep_secs/60:.0f} min."
                 )
+                # Sleep in 10-second chunks so force_trading toggle takes effect quickly
+                slept = 0
                 try:
-                    await asyncio.sleep(sleep_secs)
+                    while slept < sleep_secs and app_state.is_running and not app_state.force_trading:
+                        await asyncio.sleep(min(10, sleep_secs - slept))
+                        slept += 10
                 except asyncio.CancelledError:
                     break
-                continue  # re-check after sleep
+                if not app_state.is_running:
+                    break
+                continue  # re-check status (may now be force_trading=True or market open)
 
             if app_state.force_trading and status == "closed":
                 app_state.market_status = "open (test)"
@@ -198,8 +205,10 @@ async def trading_loop() -> None:
             app_state.cycle_count += 1
             logger.info(f"=== Trading Cycle {app_state.cycle_count} ===")
 
-            # Fetch market data once for all agents
-            market_context = await market_data_service.get_market_context(config.WATCHLIST)
+            # Fetch market data once for all agents (fluid watchlist ranked by projected return)
+            market_context = await market_data_service.get_market_context(
+                watchlist_manager.get_active_watchlist()
+            )
             prices = {sym: ctx.get("price", 0) for sym, ctx in market_context.items()}
 
             # Augment context with fresh scanner recommendations so every agent
@@ -474,7 +483,9 @@ async def auto_scan_loop() -> None:
             return
         logger.info(f"Auto-scan: triggering scan ({reason})")
         try:
-            await run_scan()
+            result = await run_scan()
+            if result:
+                watchlist_manager.update_from_scan(result)
         except Exception as e:
             logger.error(f"Auto-scan error: {e}")
 
@@ -701,7 +712,9 @@ async def news_sentinel_loop() -> None:
                     f"(threshold={TRIGGER_SCORE})"
                 )
                 try:
-                    await run_scan()
+                    result = await run_scan()
+                    if result:
+                        watchlist_manager.update_from_scan(result)
                 except Exception as e:
                     logger.error(f"Sentinel: scanner run failed: {e}")
 
@@ -844,7 +857,7 @@ async def build_ws_message() -> Dict:
         "agents": agents_state,
         "prices": prices,
         "leaderboard": leaderboard,
-        "watchlist": config.WATCHLIST,
+        "watchlist": watchlist_manager.get_active_watchlist(),
     }
 
 
@@ -857,6 +870,18 @@ async def lifespan(app: FastAPI):
     logger.info("Starting AI Trading Competition backend...")
     await init_db()
     await init_agents()
+
+    # Bootstrap fluid watchlist from cached scan (if available)
+    try:
+        from agents.scanner_agent import get_cached_scan
+        cached = get_cached_scan()
+        if cached and cached.get("status") == "ok":
+            watchlist_manager.update_from_scan(cached)
+            logger.info("Fluid watchlist bootstrapped from cached scan.")
+        else:
+            logger.info("No cached scan — fluid watchlist will use seed symbols until first scan.")
+    except Exception as e:
+        logger.warning(f"Could not bootstrap fluid watchlist: {e}")
 
     # Start WebSocket broadcast task
     app_state.ws_task = asyncio.create_task(ws_broadcast_loop())
@@ -1022,13 +1047,14 @@ async def get_market():
         if app_state.last_prices and (time.time() - getattr(app_state, '_last_market_fetch', 0) < 10):
             prices = app_state.last_prices
         else:
-            prices = await market_data_service.get_latest_prices(config.WATCHLIST)
+            active_wl = watchlist_manager.get_active_watchlist()
+            prices = await market_data_service.get_latest_prices(active_wl)
             app_state.last_prices = prices
             app_state._last_market_fetch = time.time()
 
         return {
             "prices": prices,
-            "watchlist": config.WATCHLIST,
+            "watchlist": watchlist_manager.get_active_watchlist(),
             "timestamp": datetime.utcnow().isoformat(),
         }
     except Exception as e:
@@ -1171,14 +1197,28 @@ async def get_composite_signals():
     from data.news_service import news_service
     ctx = app_state.last_market_context
     if ctx:
-        signals = {sym: ctx[sym].get("composite_signal", {}) for sym in ctx}
+        signals = {sym: ctx[sym].get("composite_signal", {}) for sym in ctx if isinstance(ctx[sym], dict)}
     else:
-        news = await news_service.get_news_multi(config.WATCHLIST)
-        tasks = [get_composite_signal(sym, news.get(sym, [])) for sym in config.WATCHLIST]
+        active_wl = watchlist_manager.get_active_watchlist()
+        news = await news_service.get_news_multi(active_wl)
+        tasks = [get_composite_signal(sym, news.get(sym, [])) for sym in active_wl]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        signals = {sym: r for sym, r in zip(config.WATCHLIST, results)
+        signals = {sym: r for sym, r in zip(active_wl, results)
                    if not isinstance(r, Exception)}
     return {"signals": signals}
+
+
+@app.get("/api/watchlist")
+async def get_watchlist():
+    """Get the current fluid watchlist with projected return scores for each symbol."""
+    return {
+        "watchlist": watchlist_manager.get_active_watchlist(),
+        "scored_pool": watchlist_manager.scored_pool,
+        "is_initialized": watchlist_manager.is_initialized,
+        "anchors": config.WATCHLIST_ANCHORS,
+        "seeds": config.WATCHLIST,
+        "size": config.WATCHLIST_SIZE,
+    }
 
 
 @app.get("/api/scanner")
@@ -1208,6 +1248,8 @@ async def trigger_scanner(request: Request):
     from agents.scanner_agent import run_scan
     try:
         result = await run_scan()
+        if result and result.get("status") == "ok":
+            watchlist_manager.update_from_scan(result)
         return result
     except Exception as e:
         logger.error(f"Scanner run error: {e}")
@@ -1236,7 +1278,7 @@ async def get_status():
         "start_time": app_state.start_time.isoformat() if app_state.start_time else None,
         "agent_count": len(app_state.agents),
         "ws_connections": len(app_state.ws_connections),
-        "watchlist": config.WATCHLIST,
+        "watchlist": watchlist_manager.get_active_watchlist(),
         "starting_capital": config.STARTING_CAPITAL,
         "trade_interval_seconds": config.TRADE_INTERVAL_SECONDS,
     }

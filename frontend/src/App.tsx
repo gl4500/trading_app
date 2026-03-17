@@ -146,6 +146,7 @@ export default function App() {
   const [trades, setTrades] = useState<Trade[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [forceTrading, setForceTrading] = useState(false)
 
   const handleWsMessage = useCallback((data: AppData) => {
     setAppData(data)
@@ -199,6 +200,21 @@ export default function App() {
       setStatusMessage('Failed to stop')
     } finally {
       setIsLoading(false)
+      setTimeout(() => setStatusMessage(''), 3000)
+    }
+  }
+
+  async function handleForceTrading() {
+    const next = !forceTrading
+    try {
+      const res = await fetch(`${API_BASE}/api/force-trading?enabled=${next}`, { method: 'POST' })
+      if (res.ok) {
+        setForceTrading(next)
+        setStatusMessage(next ? 'Force-trading ON — bypassing market hours' : 'Force-trading OFF')
+        setTimeout(() => setStatusMessage(''), 4000)
+      }
+    } catch (e) {
+      setStatusMessage('Failed to toggle force-trading')
       setTimeout(() => setStatusMessage(''), 3000)
     }
   }
@@ -284,6 +300,19 @@ export default function App() {
             {statusMessage && (
               <span className="text-xs text-blue-400 animate-pulse">{statusMessage}</span>
             )}
+
+            {/* Force-trading toggle */}
+            <button
+              onClick={handleForceTrading}
+              title="Bypass market hours gate for testing"
+              className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                forceTrading
+                  ? 'bg-orange-700 border-orange-500 text-white hover:bg-orange-600'
+                  : 'bg-gray-800 border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400'
+              }`}
+            >
+              {forceTrading ? '⚡ Force ON' : '⚡ Force OFF'}
+            </button>
 
             {/* Control buttons */}
             <div className="flex gap-2">

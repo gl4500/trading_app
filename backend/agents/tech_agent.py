@@ -243,9 +243,11 @@ class TechAgent(BaseAgent):
         signals = []
 
         for symbol, ctx in market_context.items():
+            if not isinstance(ctx, dict):
+                continue
             try:
                 bars = ctx.get("bars")
-                prices = {s: c.get("price", 0) for s, c in market_context.items()}
+                prices = {s: c.get("price", 0) for s, c in market_context.items() if isinstance(c, dict)}
 
                 if bars is None or (hasattr(bars, "empty") and bars.empty):
                     signals.append(Signal(

@@ -40,6 +40,7 @@ _CACHE_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "scan_cache.
 _cache: Optional[Dict] = None
 _cache_ts: float = 0.0
 _scan_in_progress: bool = False
+_scan_lock = asyncio.Lock()  # prevents duplicate concurrent scans wasting API quota
 
 
 def _save_cache_to_disk(data: Dict) -> None:
@@ -746,19 +747,31 @@ async def run_scan() -> Dict:
     """
     Full scan pipeline: pre-screen → parallel AI analysis → merged recommendations.
     Results cached for SCAN_CACHE_TTL seconds.
+
+    A module-level asyncio.Lock prevents multiple concurrent callers from
+    all launching expensive AI scans simultaneously — the second caller waits,
+    then returns the result the first caller just produced.
     """
     global _cache, _cache_ts, _scan_in_progress
 
+    # Fast path: return cache without acquiring the lock
     now = time.time()
     if _cache and (now - _cache_ts) < SCAN_CACHE_TTL:
         logger.info("Scanner: returning cached results")
         return _cache
 
-    _scan_in_progress = True
-    try:
-        return await _run_scan_inner()
-    finally:
-        _scan_in_progress = False
+    async with _scan_lock:
+        # Re-check after acquiring lock: a concurrent caller may have just finished
+        now = time.time()
+        if _cache and (now - _cache_ts) < SCAN_CACHE_TTL:
+            logger.info("Scanner: returning results from concurrent scan")
+            return _cache
+
+        _scan_in_progress = True
+        try:
+            return await _run_scan_inner()
+        finally:
+            _scan_in_progress = False
 
 
 async def _run_scan_inner() -> Dict:

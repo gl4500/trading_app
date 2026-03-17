@@ -5,12 +5,18 @@ Runs in parallel with ClaudeAgent as a second AI perspective in the ensemble.
 import asyncio
 import json
 import logging
-import math
 import re
+import time
 from typing import Dict, List, Optional, Any
-import pandas as pd
 
 from agents.base_agent import BaseAgent, Signal
+from agents.agent_utils import (
+    format_bars_for_prompt,
+    build_portfolio_context,
+    parse_ai_decisions,
+    fill_missing_symbols,
+    get_fallback_signals,
+)
 from config import config
 from data.news_service import news_service
 from data.technicals import format_for_prompt as format_technicals
@@ -25,36 +31,6 @@ try:
 except ImportError:
     HAS_GEMINI = False
     logger.warning("google-genai package not available")
-
-
-def _format_bars(bars: pd.DataFrame, limit: int = 30) -> str:
-    if bars is None or bars.empty:
-        return "No data available"
-    recent = bars.tail(limit)
-    lines = ["Date,Open,High,Low,Close,Volume"]
-    for _, row in recent.iterrows():
-        date = str(row.get("timestamp", "")).split("T")[0] if "timestamp" in row else "N/A"
-        lines.append(
-            f"{date},{row.get('open', 0):.2f},{row.get('high', 0):.2f},"
-            f"{row.get('low', 0):.2f},{row.get('close', 0):.2f},"
-            f"{int(row.get('volume', 0))}"
-        )
-    return "\n".join(lines)
-
-
-def _build_portfolio_context(portfolio) -> str:
-    lines = [f"Cash: ${portfolio.cash:,.2f}"]
-    if portfolio.positions:
-        lines.append("\nCurrent positions:")
-        for sym, pos in portfolio.positions.items():
-            lines.append(
-                f"  {sym}: {pos.shares:.2f} shares @ avg ${pos.avg_cost:.2f} "
-                f"(cost basis: ${pos.total_cost:,.2f})"
-            )
-    else:
-        lines.append("No current positions (fully in cash)")
-    lines.append(f"\nTotal cost basis: ${sum(p.total_cost for p in portfolio.positions.values()):,.2f}")
-    return "\n".join(lines)
 
 
 class GeminiAgent(BaseAgent):
@@ -81,7 +57,7 @@ class GeminiAgent(BaseAgent):
         return self._client
 
     def _build_prompt(self, market_context: Dict, watchlist: List[str]) -> str:
-        portfolio_ctx = _build_portfolio_context(self.portfolio)
+        portfolio_ctx = build_portfolio_context(self.portfolio)
 
         market_sections = []
         for symbol in watchlist:
@@ -90,7 +66,7 @@ class GeminiAgent(BaseAgent):
             stats = ctx.get("stats", {})
             price = ctx.get("price", 0)
 
-            bars_text      = _format_bars(bars, limit=15) if bars is not None else "No data"
+            bars_text      = format_bars_for_prompt(bars, limit=15) if bars is not None else "No data"
             news_items     = ctx.get("news", [])
             news_text      = news_service.format_for_prompt(symbol, news_items)
             ind            = ctx.get("indicators")
@@ -214,8 +190,7 @@ Include an entry for every symbol: {', '.join(watchlist)}
                 logger.warning("GeminiAgent: Invalid API key — update GEMINI_API_KEY in .env (get key at aistudio.google.com/app/apikey)")
                 self._client = None
             elif "429" in err or "RESOURCE_EXHAUSTED" in err or "quota" in err.lower():
-                import time as _time
-                self._backoff_until = _time.time() + self._backoff_seconds
+                self._backoff_until = time.time() + self._backoff_seconds
                 logger.warning(
                     f"GeminiAgent: Rate limited (429) — backing off for {self._backoff_seconds:.0f}s"
                 )
@@ -226,109 +201,14 @@ Include an entry for every symbol: {', '.join(watchlist)}
                 logger.error(f"GeminiAgent: API error: {err[:200]}")
             return None
 
-    def _parse_decisions(self, response: Dict, market_context: Dict,
-                         prices: Dict[str, float]) -> List[Signal]:
-        signals = []
-        decisions = response.get("decisions", [])
-        market_analysis = response.get("market_analysis", "")
-
-        for decision in decisions:
-            symbol = decision.get("symbol", "")
-            action = decision.get("action", "HOLD").upper()
-            shares_requested = float(decision.get("shares", 0))
-            confidence = float(decision.get("confidence", 0.5))
-            reasoning = decision.get("reasoning", "")
-
-            if not symbol or symbol not in market_context:
-                continue
-
-            current_price = prices.get(symbol, 0)
-            if current_price <= 0:
-                signals.append(Signal(action="HOLD", symbol=symbol, confidence=0,
-                                      shares=0, reasoning="No price data available"))
-                continue
-
-            if action == "BUY":
-                portfolio_value = self.portfolio.get_total_value(prices)
-                max_alloc = portfolio_value * config.MAX_POSITION_SIZE * confidence
-                max_alloc = min(max_alloc, self.portfolio.cash * 0.95)
-                max_shares = math.floor(max_alloc / current_price * 100) / 100
-                shares = min(shares_requested, max_shares) if shares_requested > 0 else max_shares
-                if shares < 0.01:
-                    action = "HOLD"
-                    shares = 0
-            elif action == "SELL":
-                if symbol not in self.portfolio.positions:
-                    action = "HOLD"
-                    shares = 0
-                else:
-                    pos = self.portfolio.positions[symbol]
-                    shares = min(shares_requested if shares_requested > 0 else pos.shares, pos.shares)
-            else:
-                shares = 0
-
-            full_reasoning = f"GEMINI ANALYSIS: {reasoning}"
-            if market_analysis and symbol == list(market_context.keys())[0]:
-                full_reasoning = f"MARKET VIEW: {market_analysis[:100]}. {full_reasoning}"
-
-            signals.append(Signal(
-                action=action, symbol=symbol, confidence=confidence,
-                shares=shares, reasoning=full_reasoning,
-            ))
-
-        return signals
-
-    def _get_fallback_signals(self, market_context: Dict) -> List[Signal]:
-        return [
-            Signal(action="HOLD", symbol=symbol, confidence=0.5, shares=0,
-                   reasoning="GeminiAgent: API unavailable, holding positions")
-            for symbol in market_context.keys()
-        ]
-
-    def _fill_missing(self, signals: List[Signal], market_context: Dict, prices: Dict[str, float]) -> List[Signal]:
-        """
-        Cover market_context symbols not included in Gemini's response.
-        Replays stored pick conviction instead of a blank HOLD when available.
-        """
-        covered = {s.symbol for s in signals}
-        for symbol in market_context:
-            if symbol in covered:
-                continue
-            pick = self._picks.get(symbol)
-            if pick and pick.get("action") == "BUY":
-                current_price = prices.get(symbol, 0)
-                confidence = float(pick.get("confidence", 0.5))
-                shares = 0
-                if current_price > 0 and symbol not in self.portfolio.positions:
-                    import math
-                    portfolio_value = self.portfolio.get_total_value(prices)
-                    max_alloc = min(
-                        portfolio_value * config.MAX_POSITION_SIZE * confidence,
-                        self.portfolio.cash * 0.95,
-                    )
-                    shares = math.floor(max_alloc / current_price * 100) / 100
-                signals.append(Signal(
-                    action="BUY" if shares >= 0.01 else "HOLD",
-                    symbol=symbol,
-                    confidence=confidence,
-                    shares=shares,
-                    reasoning=f"GeminiAgent [pick replay]: {pick.get('reasoning', 'prior conviction')}",
-                ))
-            else:
-                signals.append(Signal(
-                    action="HOLD", symbol=symbol, confidence=0.5, shares=0,
-                    reasoning="GeminiAgent: symbol not in current analysis window — HOLD",
-                ))
-        return signals
-
     async def analyze(self, market_context: Dict) -> List[Signal]:
-        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items()}
+        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
 
         # Build watchlist prioritising held positions and own picks so they always
-        # appear in the prompt rather than getting a blank HOLD from _fill_missing.
+        # appear in the prompt rather than getting a blank HOLD from fill_missing_symbols.
         held  = set(self.portfolio.positions.keys())
         picks = set(self.get_pick_symbols())
-        all_syms = list(market_context.keys())
+        all_syms = [s for s in market_context.keys() if isinstance(market_context[s], dict)]
         watchlist = (
             [s for s in all_syms if s in held] +
             [s for s in all_syms if s in picks and s not in held] +
@@ -346,8 +226,11 @@ Include an entry for every symbol: {', '.join(watchlist)}
             async with self._api_lock:
                 pass  # wait for in-flight request to finish
             if self._last_decisions:
-                return self._parse_decisions(self._last_decisions, market_context, prices)
-            return self._get_fallback_signals(market_context)
+                return parse_ai_decisions(
+                    self._last_decisions, market_context, prices,
+                    self.portfolio, config.MAX_POSITION_SIZE, "GEMINI ANALYSIS"
+                )
+            return get_fallback_signals(market_context, "GeminiAgent")
 
         async with self._api_lock:
             self._cycle_count += 1
@@ -355,20 +238,28 @@ Include an entry for every symbol: {', '.join(watchlist)}
             # Reuse cached decisions between intervals to save API costs
             if self._cycle_count % self._analysis_interval != 1 and self._last_decisions:
                 logger.debug(f"GeminiAgent: Replaying cached decisions (cycle {self._cycle_count})")
-                signals = self._parse_decisions(self._last_decisions, market_context, prices)
-                return self._fill_missing(signals, market_context, prices)
+                signals = parse_ai_decisions(
+                    self._last_decisions, market_context, prices,
+                    self.portfolio, config.MAX_POSITION_SIZE, "GEMINI ANALYSIS"
+                )
+                return fill_missing_symbols(
+                    signals, market_context, prices,
+                    self.portfolio, self._picks, config.MAX_POSITION_SIZE, "GeminiAgent"
+                )
 
             if not HAS_GEMINI or not config.GEMINI_API_KEY:
                 logger.warning("GeminiAgent: Not configured, using fallback")
-                return self._get_fallback_signals(market_context)
+                return get_fallback_signals(market_context, "GeminiAgent")
 
-            import time as _time
-            if _time.time() < self._backoff_until:
-                remaining = int(self._backoff_until - _time.time())
+            if time.time() < self._backoff_until:
+                remaining = int(self._backoff_until - time.time())
                 logger.debug(f"GeminiAgent: In backoff, {remaining}s remaining — reusing last decisions")
                 if self._last_decisions:
-                    return self._parse_decisions(self._last_decisions, market_context, prices)
-                return self._get_fallback_signals(market_context)
+                    return parse_ai_decisions(
+                        self._last_decisions, market_context, prices,
+                        self.portfolio, config.MAX_POSITION_SIZE, "GEMINI ANALYSIS"
+                    )
+                return get_fallback_signals(market_context, "GeminiAgent")
 
             logger.info(f"GeminiAgent: Requesting analysis from Gemini (cycle {self._cycle_count})")
 
@@ -377,16 +268,23 @@ Include an entry for every symbol: {', '.join(watchlist)}
 
                 if response is None:
                     logger.warning("GeminiAgent: No response, using fallback")
-                    return self._get_fallback_signals(market_context)
+                    return get_fallback_signals(market_context, "GeminiAgent")
 
                 response["_watchlist"] = watchlist
                 self._last_decisions = response
                 self._backoff_seconds = 120.0  # reset backoff on success
-                signals = self._parse_decisions(response, market_context, prices)
-                signals = self._fill_missing(signals, market_context, prices)
+
+                signals = parse_ai_decisions(
+                    response, market_context, prices,
+                    self.portfolio, config.MAX_POSITION_SIZE, "GEMINI ANALYSIS"
+                )
+                signals = fill_missing_symbols(
+                    signals, market_context, prices,
+                    self.portfolio, self._picks, config.MAX_POSITION_SIZE, "GeminiAgent"
+                )
                 logger.info(f"GeminiAgent: Got {len(signals)} signals")
                 return signals
 
             except Exception as e:
                 logger.error(f"GeminiAgent: Error in analyze: {e}", exc_info=True)
-                return self._get_fallback_signals(market_context)
+                return get_fallback_signals(market_context, "GeminiAgent")

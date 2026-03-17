@@ -361,7 +361,7 @@ class EnsembleAgent(BaseAgent):
                 for sym in market_context.keys()
             ]
 
-        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items()}
+        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
         self._cycle_count += 1
 
         # Recompute regime + weights periodically
@@ -376,6 +376,8 @@ class EnsembleAgent(BaseAgent):
 
         ensemble_signals = []
         for symbol, ctx in market_context.items():
+            if not isinstance(ctx, dict):
+                continue
             try:
                 agent_signals = signals_by_symbol.get(symbol, [])
                 if not agent_signals:

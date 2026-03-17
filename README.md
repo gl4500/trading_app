@@ -152,6 +152,72 @@ Both ClaudeAgent and GeminiAgent receive per symbol each cycle:
 
 ---
 
+## Decision Architecture
+
+### How signals flow — bottom to top
+
+```
+Sentinel (24/7 news feed)
+    ↓  catalysts injected into market_context at each cycle
+Individual Agents  (each runs independently, in parallel)
+    ↓  each returns BUY / SELL / HOLD signals with confidence scores
+EnsembleAgent  (the coordinator — votes, weights, and executes)
+    ↓  issues final trades
+```
+
+### What each agent sees
+
+Every agent receives the same `market_context` dict each cycle:
+
+| Data | Agents that use it |
+|---|---|
+| Price + OHLCV bars (30 days) | All |
+| RSI, MACD, Bollinger Bands, SMA, ATR | All |
+| Multi-source composite signal | ClaudeAgent, GeminiAgent, SentimentAgent |
+| Alpaca news headlines (last 24h) | ClaudeAgent, GeminiAgent, SentimentAgent |
+| **Overnight sentinel catalysts** | ClaudeAgent, GeminiAgent |
+| Past trade learnings | ClaudeAgent only |
+| Portfolio state (cash, positions) | All |
+
+The three rule-based agents (TechAgent, MomentumAgent, MeanReversionAgent) are **pure technical/statistical** — they do not read news or sentinel data.
+
+### EnsembleAgent — the overarching coordinator
+
+The EnsembleAgent is the final decision-maker. It does not trade on its own analysis — it **aggregates all agent signals** and applies three layers of weighting before acting:
+
+**1. Base weights** (from `config.py`)
+
+| Agent | Base Weight |
+|---|---|
+| ClaudeAgent | 25% |
+| GeminiAgent | 20% |
+| TechAgent | 20% |
+| SentimentAgent | 15% |
+| MomentumAgent | 12% |
+| MeanReversionAgent | 8% |
+
+**2. Adaptive performance adjustment** — every 5 cycles, each agent's weight is scaled by its recent Sharpe ratio and win rate. Underperforming agents are reduced (minimum 30% of base weight preserved). Outperforming agents gain more influence automatically.
+
+**3. Regime multipliers** — market regime is detected from SMA-20 slope + ATR:
+
+| Regime | Who gets boosted | Who gets reduced |
+|---|---|---|
+| **Trending** | MomentumAgent (1.5×), TechAgent (1.2×) | MeanReversionAgent (0.4×) |
+| **Ranging** | MeanReversionAgent (1.6×), SentimentAgent (1.2×) | MomentumAgent (0.55×) |
+| **Volatile** | ClaudeAgent (1.4×), GeminiAgent (1.25×), SentimentAgent (1.2×) | TechAgent (0.8×), MomentumAgent (0.65×) |
+
+**Consensus threshold:** 35% weighted agreement required to execute a BUY or SELL. If no combination of agents clears that bar, the Ensemble HOLDs. Trade reasoning records which agents voted and the regime, e.g.:
+
+> `ENSEMBLE BUY [VOLATILE]: 42% consensus | Agents: ClaudeAgent, GeminiAgent | CLAUDE ANALYSIS: ...`
+
+### News & sentinel correlation
+
+In volatile or news-driven markets, Claude and Gemini receive the most weight (via the volatile regime multiplier). Their prompts include a dedicated **Overnight / After-Hours Catalysts** section sourced from the sentinel, alongside the per-symbol Alpaca news feed. Claude is instructed to use news for direction and technicals for timing — and to flag conflicts rather than blindly follow either signal.
+
+In calm trending markets, momentum and technical signals can outvote the AI agents even when Claude identifies a news catalyst, because the regime multipliers shift weight to TechAgent and MomentumAgent.
+
+---
+
 ## Dashboard Tabs
 
 | Tab | Description |
