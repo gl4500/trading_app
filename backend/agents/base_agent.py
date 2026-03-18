@@ -160,6 +160,11 @@ class BaseAgent(ABC):
                 # Update persistent pick memory before executing
                 self._update_picks(signals)
 
+                # Prune stale symbols from _last_signals
+                current_symbols = {s for s, v in market_context.items() if isinstance(v, dict)}
+                for stale in [k for k in self._last_signals if k not in current_symbols]:
+                    del self._last_signals[stale]
+
                 # Execute actionable signals
                 executed = []
                 for signal in signals:

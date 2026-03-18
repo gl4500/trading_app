@@ -175,5 +175,114 @@ class TestCheckDrift(unittest.TestCase):
         self.assertEqual(report.agent_name, "MyAgent")
 
 
+# ── _last_signals pruning tests ──────────────────────────────────────────────
+
+import asyncio
+from unittest.mock import patch
+
+
+class _StubAgent:
+    """Minimal concrete stand-in that exercises BaseAgent.run_cycle pruning."""
+
+    def __init__(self, signals_to_return):
+        from agents.base_agent import BaseAgent, Signal
+        from config import config
+
+        class _Concrete(BaseAgent):
+            def __init__(self, sigs):
+                self._sigs = sigs
+                with patch("agents.base_agent.BaseAgent._load_picks"):
+                    super().__init__("StubAgent", "stub")
+
+            async def analyze(self, market_context):
+                return self._sigs
+
+        self._agent = _Concrete(signals_to_return)
+
+    @property
+    def agent(self):
+        return self._agent
+
+
+class TestLastSignalsPruning(unittest.IsolatedAsyncioTestCase):
+
+    def _make_signal(self, symbol, action="HOLD"):
+        return Signal(action=action, symbol=symbol, confidence=0.5, shares=0, reasoning="")
+
+    def _make_ctx(self, *symbols):
+        return {sym: {"price": 100.0, "bars": None, "news": []} for sym in symbols}
+
+    async def test_stale_symbol_pruned_from_last_signals(self):
+        """Symbol removed from market_context must be pruned from _last_signals."""
+        from agents.base_agent import Signal
+
+        sig_aapl = self._make_signal("AAPL")
+        stub = _StubAgent([sig_aapl])
+        agent = stub.agent
+
+        # Seed stale entry for MSFT
+        agent._last_signals["MSFT"] = self._make_signal("MSFT")
+
+        ctx = self._make_ctx("AAPL")
+        prices = {"AAPL": 100.0}
+
+        with patch.object(agent, "_execute_signal", return_value=False), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(ctx, prices)
+
+        self.assertNotIn("MSFT", agent._last_signals)
+        self.assertIn("AAPL", agent._last_signals)
+
+    async def test_current_symbol_kept_in_last_signals(self):
+        """Symbols still in market_context must remain in _last_signals."""
+        from agents.base_agent import Signal
+
+        sigs = [self._make_signal("AAPL"), self._make_signal("GOOG")]
+        stub = _StubAgent(sigs)
+        agent = stub.agent
+
+        ctx = self._make_ctx("AAPL", "GOOG")
+        prices = {"AAPL": 100.0, "GOOG": 200.0}
+
+        with patch.object(agent, "_execute_signal", return_value=False), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(ctx, prices)
+
+        self.assertIn("AAPL", agent._last_signals)
+        self.assertIn("GOOG", agent._last_signals)
+
+    async def test_non_dict_context_values_excluded_from_current_symbols(self):
+        """__overnight_catalysts__ (list) must not count as a current symbol."""
+        from agents.base_agent import Signal
+
+        sig_aapl = self._make_signal("AAPL")
+        stub = _StubAgent([sig_aapl])
+        agent = stub.agent
+
+        ctx = {
+            "AAPL": {"price": 100.0, "bars": None, "news": []},
+            "__overnight_catalysts__": [{"headline": "big news"}],
+        }
+        prices = {"AAPL": 100.0}
+        # Seed stale MSFT entry
+        agent._last_signals["MSFT"] = self._make_signal("MSFT")
+
+        with patch.object(agent, "_execute_signal", return_value=False), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(ctx, prices)
+
+        self.assertNotIn("MSFT", agent._last_signals)
+        self.assertIn("AAPL", agent._last_signals)
+
+
 if __name__ == "__main__":
     unittest.main()
