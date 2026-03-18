@@ -241,5 +241,199 @@ class TestSentimentAnalyze(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(aapl_signal.action, "HOLD")
 
 
+class TestSentimentAgentThrottling(unittest.IsolatedAsyncioTestCase):
+
+    def _mock_ctx(self):
+        return {"AAPL": {"price": 150.0, "bars": None, "news": []}}
+
+    def _make_agent_with_client(self, sentiment="bullish"):
+        agent = SentimentAgent()
+        mock_resp = MagicMock()
+        mock_resp.choices = [MagicMock()]
+        mock_resp.choices[0].message.content = (
+            f'{{"sentiment": "{sentiment}", "confidence": 0.8, '
+            f'"strength": "strong", "reasoning": "test", "key_signals": []}}'
+        )
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_resp)
+        agent._openai_client = mock_client
+        return agent, mock_client
+
+    async def test_api_called_on_first_cycle(self):
+        agent, mock_client = self._make_agent_with_client()
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent._is_market_hours", return_value=True):
+            cfg.OPENAI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            cfg.STARTING_CAPITAL = 100_000
+            await agent.analyze(self._mock_ctx())
+        mock_client.chat.completions.create.assert_called_once()
+
+    async def test_api_skipped_on_non_api_cycle(self):
+        agent, mock_client = self._make_agent_with_client()
+        # Seed cache so replay is possible
+        agent._sentiment_cache["AAPL"] = {
+            "sentiment": "neutral", "confidence": 0.5,
+            "strength": "weak", "reasoning": "cached", "key_signals": []
+        }
+        agent._cycle_count = 2  # not on API cycle (interval=5, 2%5 != 1)
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent._is_market_hours", return_value=True):
+            cfg.OPENAI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            cfg.STARTING_CAPITAL = 100_000
+            signals = await agent.analyze(self._mock_ctx())
+        mock_client.chat.completions.create.assert_not_called()
+        self.assertTrue(len(signals) > 0)
+
+    async def test_off_hours_uses_closed_interval(self):
+        agent, mock_client = self._make_agent_with_client()
+        agent._sentiment_cache["AAPL"] = {
+            "sentiment": "neutral", "confidence": 0.5,
+            "strength": "weak", "reasoning": "cached", "key_signals": []
+        }
+        # cycle 2 would be an API cycle under open_interval=5 (2%5==2, not 1)
+        # but should also be non-API under closed_interval=25
+        agent._cycle_count = 2
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent._is_market_hours", return_value=False):
+            cfg.OPENAI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            cfg.STARTING_CAPITAL = 100_000
+            await agent.analyze(self._mock_ctx())
+        mock_client.chat.completions.create.assert_not_called()
+
+    async def test_cache_populated_after_api_cycle(self):
+        agent, mock_client = self._make_agent_with_client("bullish")
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent._is_market_hours", return_value=True):
+            cfg.OPENAI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            cfg.STARTING_CAPITAL = 100_000
+            await agent.analyze(self._mock_ctx())
+        self.assertIn("AAPL", agent._sentiment_cache)
+
+
+# ── Token logging & daily limit tests ────────────────────────────────────────
+
+class TestTokenLogging(unittest.IsolatedAsyncioTestCase):
+
+    def _make_agent_with_usage(self, prompt_tokens=200, completion_tokens=100):
+        agent = SentimentAgent()
+
+        mock_usage = MagicMock()
+        mock_usage.prompt_tokens = prompt_tokens
+        mock_usage.completion_tokens = completion_tokens
+
+        mock_message = MagicMock()
+        mock_message.content = '{"sentiment": "neutral", "confidence": 0.5, "strength": "weak", "reasoning": "flat", "key_signals": []}'
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.usage = mock_usage
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+        agent._openai_client = mock_client
+        return agent, mock_client
+
+    async def test_token_usage_logged_after_api_call(self):
+        agent, _ = self._make_agent_with_usage(prompt_tokens=210, completion_tokens=95)
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg:
+            cfg.OPENAI_API_KEY = "key"
+            with self.assertLogs("agents.sentiment_agent", level="INFO") as cm:
+                await agent._get_sentiment("AAPL", "price description")
+        log_text = " ".join(cm.output)
+        self.assertIn("210", log_text)   # prompt tokens
+        self.assertIn("95", log_text)    # completion tokens
+
+    async def test_daily_token_counter_incremented(self):
+        agent, _ = self._make_agent_with_usage(prompt_tokens=200, completion_tokens=100)
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg:
+            cfg.OPENAI_API_KEY = "key"
+            await agent._get_sentiment("AAPL", "desc")
+        self.assertEqual(agent._daily_tokens, 300)
+
+    async def test_daily_token_counter_accumulates_across_calls(self):
+        agent, _ = self._make_agent_with_usage(prompt_tokens=100, completion_tokens=50)
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg:
+            cfg.OPENAI_API_KEY = "key"
+            await agent._get_sentiment("AAPL", "desc")
+            await agent._get_sentiment("MSFT", "desc")
+        self.assertEqual(agent._daily_tokens, 300)
+
+
+class TestDailyTokenLimit(unittest.IsolatedAsyncioTestCase):
+
+    def _make_agent_at_limit(self, tokens_used=9_500):
+        agent = SentimentAgent()
+        agent._daily_tokens = tokens_used
+
+        mock_message = MagicMock()
+        mock_message.content = '{"sentiment": "bullish", "confidence": 0.8, "strength": "strong", "reasoning": "up", "key_signals": []}'
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+        mock_usage = MagicMock()
+        mock_usage.prompt_tokens = 250
+        mock_usage.completion_tokens = 100
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.usage = mock_usage
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+        agent._openai_client = mock_client
+        return agent, mock_client
+
+    async def test_api_blocked_when_limit_reached(self):
+        agent, mock_client = self._make_agent_at_limit(tokens_used=10_000)
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg:
+            cfg.OPENAI_API_KEY = "key"
+            result = await agent._get_sentiment("AAPL", "desc")
+        mock_client.chat.completions.create.assert_not_called()
+        self.assertEqual(result["sentiment"], "neutral")
+        self.assertIn("limit", result["reasoning"].lower())
+
+    async def test_api_allowed_below_limit(self):
+        agent, mock_client = self._make_agent_at_limit(tokens_used=9_000)
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg:
+            cfg.OPENAI_API_KEY = "key"
+            await agent._get_sentiment("AAPL", "desc")
+        mock_client.chat.completions.create.assert_called_once()
+
+    async def test_counter_resets_on_new_day(self):
+        from datetime import date
+        agent, mock_client = self._make_agent_at_limit(tokens_used=10_000)
+        # Simulate that the stored reset day is yesterday
+        from datetime import timedelta
+        agent._token_reset_day = date.today() - timedelta(days=1)
+
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg:
+            cfg.OPENAI_API_KEY = "key"
+            await agent._get_sentiment("AAPL", "desc")
+        # After reset, API should have been called
+        mock_client.chat.completions.create.assert_called_once()
+
+    async def test_limit_warning_logged(self):
+        agent, _ = self._make_agent_at_limit(tokens_used=10_000)
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg:
+            cfg.OPENAI_API_KEY = "key"
+            with self.assertLogs("agents.sentiment_agent", level="WARNING") as cm:
+                await agent._get_sentiment("AAPL", "desc")
+        self.assertTrue(any("limit" in line.lower() for line in cm.output))
+
+
 if __name__ == "__main__":
     unittest.main()

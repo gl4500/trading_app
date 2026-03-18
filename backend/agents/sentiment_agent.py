@@ -6,10 +6,12 @@ import asyncio
 import json
 import logging
 import math
+from datetime import date
 from typing import Dict, List, Optional
 import pandas as pd
 
 from agents.base_agent import BaseAgent, Signal
+from agents.agent_utils import _is_market_hours
 from config import config
 
 logger = logging.getLogger(__name__)
@@ -111,8 +113,13 @@ class SentimentAgent(BaseAgent):
             strategy_description="Market sentiment analysis via OpenAI GPT-4o-mini",
         )
         self._openai_client: Optional["AsyncOpenAI"] = None
-        self._sentiment_cache: Dict[str, Dict] = {}  # symbol -> {sentiment, timestamp}
-        self._cache_ttl: int = 300  # cache sentiment for 5 minutes
+        self._sentiment_cache: Dict[str, Dict] = {}  # symbol -> last sentiment_data from API
+        self._cycle_count: int = 0
+        self._open_interval: int = 5    # API call every N cycles during market hours (80% budget)
+        self._closed_interval: int = 25  # API call every N cycles during off hours  (20% budget)
+        self._daily_tokens: int = 0
+        self._token_reset_day: Optional[date] = None
+        self._daily_token_limit: int = 10_000
 
     def _get_client(self):
         if not HAS_OPENAI:
@@ -129,6 +136,22 @@ class SentimentAgent(BaseAgent):
 
         if not config.OPENAI_API_KEY:
             return {"sentiment": "neutral", "confidence": 0.5, "reasoning": "No OpenAI API key configured"}
+
+        # Reset daily counter on a new calendar day
+        today = date.today()
+        if self._token_reset_day is None:
+            self._token_reset_day = today  # first call: record the day, keep existing counter
+        elif self._token_reset_day != today:
+            self._daily_tokens = 0
+            self._token_reset_day = today
+
+        # Enforce daily token budget
+        if self._daily_tokens >= self._daily_token_limit:
+            logger.warning(
+                f"SentimentAgent: Daily token limit ({self._daily_token_limit}) reached — "
+                f"skipping API call for {symbol}"
+            )
+            return {"sentiment": "neutral", "confidence": 0.5, "reasoning": "Daily token limit reached"}
 
         prompt = f"""You are a quantitative analyst. Analyze the following price action data and provide a market sentiment assessment.
 
@@ -160,6 +183,18 @@ Respond with ONLY valid JSON in this exact format:
 
             content = response.choices[0].message.content
             result = json.loads(content)
+
+            # Log and accumulate token usage
+            usage = response.usage
+            prompt_tok = usage.prompt_tokens
+            completion_tok = usage.completion_tokens
+            self._daily_tokens += prompt_tok + completion_tok
+            logger.info(
+                f"SentimentAgent: {symbol} tokens — "
+                f"in={prompt_tok} out={completion_tok} "
+                f"daily_total={self._daily_tokens}/{self._daily_token_limit}"
+            )
+
             return result
 
         except json.JSONDecodeError as e:
@@ -237,10 +272,25 @@ Respond with ONLY valid JSON in this exact format:
 
     async def analyze(self, market_context: Dict) -> List[Signal]:
         """Analyze sentiment for all symbols using OpenAI."""
-        signals = []
-        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
+        interval = self._open_interval if _is_market_hours() else self._closed_interval
+        self._cycle_count += 1
+        use_cache = (self._cycle_count % interval != 1) and bool(self._sentiment_cache)
 
-        # Analyze symbols concurrently (with rate limit consideration)
+        prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
+        items = [(s, ctx) for s, ctx in market_context.items() if isinstance(ctx, dict)]
+
+        # Replay cached sentiment on non-API cycles
+        if use_cache:
+            logger.debug(f"SentimentAgent: Replaying cached sentiment (cycle {self._cycle_count})")
+            return [
+                self._generate_signal(sym, self._sentiment_cache[sym], prices)
+                for sym, _ in items
+                if sym in self._sentiment_cache
+            ]
+
+        # API cycle — fetch fresh sentiment for each symbol
+        signals = []
+
         async def analyze_symbol(symbol: str, ctx: Dict) -> Signal:
             try:
                 bars = ctx.get("bars")
@@ -249,14 +299,12 @@ Respond with ONLY valid JSON in this exact format:
 
                 description = _describe_price_action(bars, symbol, current_price)
 
-                # Append recent news headlines to price description
                 if news_items:
-                    headlines = " | ".join(
-                        a["headline"] for a in news_items[:3]
-                    )
+                    headlines = " | ".join(a["headline"] for a in news_items[:3])
                     description += f" Recent news: {headlines}"
 
                 sentiment_data = await self._get_sentiment(symbol, description)
+                self._sentiment_cache[symbol] = sentiment_data
                 return self._generate_signal(symbol, sentiment_data, prices)
 
             except Exception as e:
@@ -266,8 +314,6 @@ Respond with ONLY valid JSON in this exact format:
                     reasoning=f"Analysis error: {str(e)[:100]}"
                 )
 
-        # Process with small delays to avoid rate limits (max 5 concurrent)
-        items = [(s, ctx) for s, ctx in market_context.items() if isinstance(ctx, dict)]
         batch_size = 3
         for i in range(0, len(items), batch_size):
             batch = items[i:i + batch_size]
@@ -281,7 +327,6 @@ Respond with ONLY valid JSON in this exact format:
                 else:
                     signals.append(result)
 
-            # Small delay between batches
             if i + batch_size < len(items):
                 await asyncio.sleep(0.5)
 
