@@ -25,8 +25,12 @@ from database import (
     upsert_portfolio_position,
     get_agent_trades,
     get_performance_history,
+    get_latest_cash,
+    get_portfolio_positions,
+    restore_value_history,
     reset_database,
 )
+from trading.portfolio import Position, TradeRecord
 from data.market_data import market_data_service
 from data.watchlist_manager import watchlist_manager
 from trading.alpaca_client import alpaca_client
@@ -86,6 +90,7 @@ class AppState:
         self.cycle_count: int = 0
         self.start_time: Optional[datetime] = None
         self.market_status: str = "unknown"          # "open" | "closed"
+        self._prev_market_status: str = "unknown"    # for EOD roll-up transition detection
         self.force_trading: bool = False              # bypass market-hours gate for testing
         self.after_hours_catalysts: List[Dict] = []  # catalysts found by sentinel
         self.last_sentinel_poll: Optional[str] = None  # ISO timestamp of last sentinel poll
@@ -127,10 +132,44 @@ async def init_agents() -> None:
 
     all_agents = [tech, momentum, mean_rev, sentiment, claude, gemini, ensemble, scanner_portfolio]
 
-    # Register agents in DB
+    # Register agents in DB and restore full portfolio state for continuity across restarts
     for agent in all_agents:
         agent_id = await upsert_agent(agent.name, agent.strategy_description)
         agent.agent_id = agent_id
+
+        # Restore cash balance from last performance snapshot
+        cash = await get_latest_cash(agent_id)
+        if cash is not None:
+            agent.portfolio.cash = cash
+
+            # Restore open positions
+            db_positions = await get_portfolio_positions(agent_id)
+            for pos in db_positions:
+                agent.portfolio.positions[pos["symbol"]] = Position(
+                    symbol=pos["symbol"],
+                    shares=pos["shares"],
+                    avg_cost=pos["avg_cost"],
+                )
+
+            # Restore trade history for win_rate / total_trades
+            db_trades = await get_agent_trades(agent_id, limit=500)
+            db_trades.reverse()  # DB returns DESC; portfolio expects chronological order
+            for t in db_trades:
+                agent.portfolio.trade_history.append(TradeRecord(
+                    symbol=t["symbol"],
+                    action=t["action"],
+                    shares=t["shares"],
+                    price=t["price"],
+                    timestamp=datetime.fromisoformat(t["timestamp"]),
+                    reasoning=t.get("reasoning", ""),
+                    pnl=t.get("pnl", 0.0),
+                ))
+
+        # Restore value history for portfolio chart
+        history = await restore_value_history(agent_id)
+        if history:
+            agent.portfolio._value_history = history
+
         app_state.agents[agent.name] = agent
         logger.info(f"Registered agent: {agent.name} (id={agent_id})")
 
@@ -172,6 +211,8 @@ async def trading_loop() -> None:
         try:
             # ── Session gate ─────────────────────────────────────────────────
             status = _get_market_status()
+            just_closed = _detect_close_transition(app_state._prev_market_status, status)
+            app_state._prev_market_status = status
             app_state.market_status = status
 
             if status == "closed" and not app_state.force_trading:
@@ -192,6 +233,11 @@ async def trading_loop() -> None:
                     break
                 if not app_state.is_running:
                     break
+                if just_closed:
+                    logger.info("Market closed — triggering end-of-day roll-up")
+                    asyncio.create_task(
+                        _refresh_summary(app_state.last_prices or {}, status)
+                    )
                 continue  # re-check status (may now be force_trading=True or market open)
 
             if app_state.force_trading and status == "closed":
@@ -277,10 +323,6 @@ async def trading_loop() -> None:
 
             # Save performance snapshots
             await save_performance_snapshots(prices)
-
-            # Refresh daily summary every 10 cycles (background — don't block the loop)
-            if app_state.cycle_count % 10 == 0:
-                asyncio.create_task(_refresh_summary(prices, status))
 
             # Check for performance drift every 10 cycles
             if app_state.cycle_count % 10 == 0:
@@ -435,6 +477,11 @@ def _get_market_status() -> str:
 def _market_is_open() -> bool:
     """Return True only during regular NYSE trading hours."""
     return _get_market_status() == "open"
+
+
+def _detect_close_transition(prev_status: str, current_status: str) -> bool:
+    """Return True when the market has just transitioned from open to closed."""
+    return "open" in prev_status and current_status == "closed"
 
 
 def _minutes_until_open() -> float:
@@ -752,6 +799,7 @@ async def run_agent_cycle(agent, market_context: Dict, prices: Dict[str, float])
     try:
         # Record trade history before cycle
         trades_before = set(id(t) for t in agent.portfolio.trade_history)
+        positions_before = set(agent.portfolio.positions.keys())
 
         signals = await agent.run_cycle(market_context, prices)
 
@@ -765,9 +813,22 @@ async def run_agent_cycle(agent, market_context: Dict, prices: Dict[str, float])
                 shares=trade.shares,
                 price=trade.price,
                 reasoning=trade.reasoning[:500],
+                pnl=trade.pnl,
             )
 
-        # Update portfolio positions in DB
+        # Delete positions that were fully closed this cycle
+        positions_after = set(agent.portfolio.positions.keys())
+        for sym in positions_before - positions_after:
+            await upsert_portfolio_position(
+                agent_id=agent.agent_id,
+                symbol=sym,
+                shares=0,
+                avg_cost=0,
+                current_value=0,
+                unrealized_pnl=0,
+            )
+
+        # Update remaining open positions in DB
         for sym, pos in agent.portfolio.positions.items():
             price = prices.get(sym, pos.avg_cost)
             await upsert_portfolio_position(
@@ -849,6 +910,22 @@ async def build_ws_message() -> Dict:
     for rank, entry in enumerate(leaderboard, 1):
         entry["rank"] = rank
 
+    # Build live summary data (no Claude API call — safe to call every 5 s)
+    summary_live = None
+    try:
+        from agents.scanner_agent import get_cached_scan
+        scan = get_cached_scan()
+        scanner_recs = scan.get("recommendations", []) if scan else []
+        summary_live = daily_summary.get_live_data(
+            agents=app_state.agents,
+            prices=prices,
+            market_status=app_state.market_status,
+            scanner_recs=scanner_recs,
+            sentinel_catalysts=app_state.after_hours_catalysts,
+        )
+    except Exception as e:
+        logger.debug(f"build_ws_message: summary_live failed: {e}")
+
     return {
         "type": "update",
         "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -858,6 +935,7 @@ async def build_ws_message() -> Dict:
         "prices": prices,
         "leaderboard": leaderboard,
         "watchlist": watchlist_manager.get_active_watchlist(),
+        "summary_live": summary_live,
     }
 
 

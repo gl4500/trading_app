@@ -234,16 +234,13 @@ class DailySummaryService:
         self._cache: Optional[Dict] = None
         self._cache_ts: float = 0.0
         self._generating: bool = False
+        self._generated_for_date: Optional[date] = None
 
     def _is_fresh(self, market_status: str) -> bool:
+        """Cache is fresh only when it was generated today (EOD roll-up already done)."""
         if not self._cache:
             return False
-        ttl = (
-            CACHE_TTL_MARKET_CLOSED
-            if market_status == "closed"
-            else CACHE_TTL_MARKET_OPEN
-        )
-        return (time.time() - self._cache_ts) < ttl
+        return self._generated_for_date == date.today()
 
     async def generate(
         self,
@@ -274,8 +271,9 @@ class DailySummaryService:
                 scanner_recs or [],
                 sentinel_catalysts or [],
             )
-            self._cache    = result
-            self._cache_ts = time.time()
+            self._cache              = result
+            self._cache_ts           = time.time()
+            self._generated_for_date = date.today()
             return result
         except Exception as e:
             logger.error(f"DailySummary: generation failed: {e}", exc_info=True)
@@ -353,6 +351,74 @@ class DailySummaryService:
             "scanner_recs":      scanner_recs[:6],
             "sentinel_catalysts": sentinel_catalysts[:5],
             "narrative":         narrative,
+        }
+
+    def get_live_data(
+        self,
+        agents: Dict,
+        prices: Dict[str, float],
+        market_status: str,
+        scanner_recs: Optional[List[Dict]] = None,
+        sentinel_catalysts: Optional[List[Dict]] = None,
+    ) -> Dict:
+        """
+        Instantly compute structured summary data from current agent state.
+        No Claude API call — suitable for inclusion in every WebSocket broadcast.
+        Returns the same shape as generate() except there is no 'narrative' field.
+        """
+        SKIP = {"EnsembleAgent", "ScannerPortfolioAgent"}
+        agent_summaries: Dict[str, Dict] = {}
+        ensemble_summary = None
+
+        for name, agent in agents.items():
+            if name == "EnsembleAgent":
+                try:
+                    m = agent.portfolio.calculate_metrics(prices)
+                    ensemble_summary = {
+                        "total_return_pct": round(m.get("total_return_pct", 0), 2),
+                        "win_rate":         round(m.get("win_rate", 0), 2),
+                        "regime":           getattr(agent, "_regime", "unknown"),
+                    }
+                except Exception:
+                    pass
+                continue
+            if name in SKIP:
+                continue
+            try:
+                agent_summaries[name] = _agent_signal_summary(agent, prices)
+            except Exception:
+                pass
+
+        consensus_map = _build_consensus_map(agents)
+
+        ranked = sorted(
+            [(name, s["total_return_pct"]) for name, s in agent_summaries.items()],
+            key=lambda x: x[1],
+            reverse=True,
+        )
+
+        all_trades_today: List[Dict] = []
+        for name, agent in agents.items():
+            try:
+                for t in _today_trades(agent):
+                    t["agent"] = name
+                    all_trades_today.append(t)
+            except Exception:
+                pass
+        all_trades_today.sort(key=lambda t: t["timestamp"])
+
+        return {
+            "status":             "ok",
+            "generated_at":       datetime.utcnow().isoformat(),
+            "date":               datetime.utcnow().strftime("%Y-%m-%d"),
+            "market_status":      market_status,
+            "agent_summaries":    agent_summaries,
+            "consensus":          consensus_map,
+            "leaderboard":        ranked,
+            "trades_today":       all_trades_today,
+            "ensemble":           ensemble_summary,
+            "scanner_recs":       (scanner_recs or [])[:6],
+            "sentinel_catalysts": (sentinel_catalysts or [])[:5],
         }
 
     async def _get_narrative(

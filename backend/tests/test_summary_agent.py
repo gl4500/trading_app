@@ -214,7 +214,8 @@ class TestDailySummaryServiceCache(unittest.IsolatedAsyncioTestCase):
         service = DailySummaryService()
         cached_result = {"status": "ok", "narrative": "cached", "generated_at": "2024-01-01T10:00:00"}
         service._cache = cached_result
-        service._cache_ts = time.time()  # just set
+        service._cache_ts = time.time()
+        service._generated_for_date = date.today()
 
         agents = {}
         result = await service.generate(agents, {}, "open", force=False)
@@ -244,15 +245,15 @@ class TestDailySummaryServiceCache(unittest.IsolatedAsyncioTestCase):
         # Should return the "generating" fallback dict
         self.assertIn("generating", result.get("status", "") + result.get("narrative", ""))
 
-    async def test_closed_market_has_longer_ttl(self):
-        """When market is closed, cached result is considered fresh for longer."""
+    async def test_closed_market_cache_fresh_when_generated_today(self):
+        """After EOD roll-up runs today, the cache is returned without regeneration."""
         service = DailySummaryService()
-        # Set cache timestamp to 10 minutes ago — within closed TTL (60 min), outside open TTL (5 min)
-        service._cache = {"status": "ok", "narrative": "hourly_cache"}
-        service._cache_ts = time.time() - 10 * 60  # 10 min ago
+        service._cache = {"status": "ok", "narrative": "eod_cache"}
+        service._cache_ts = time.time() - 10 * 60  # 10 min ago — doesn't matter anymore
+        service._generated_for_date = date.today()
 
         result = await service.generate({}, {}, "closed", force=False)
-        self.assertEqual(result["narrative"], "hourly_cache")
+        self.assertEqual(result["narrative"], "eod_cache")
 
     async def test_generate_with_no_anthropic_key_uses_fallback(self):
         """When ANTHROPIC_API_KEY is empty, fallback narrative is generated."""
@@ -341,6 +342,172 @@ class TestDailySummaryServiceBuildSummary(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsInstance(narrative, str)
         self.assertGreater(len(narrative), 0)
+
+
+class TestGetLiveData(unittest.TestCase):
+    """DailySummaryService.get_live_data() — fast, no API, near-real-time structured data."""
+
+    def _make_ensemble(self):
+        agent = _make_agent("EnsembleAgent")
+        agent.portfolio.calculate_metrics = MagicMock(return_value={
+            "total_return_pct": 3.5,
+            "win_rate": 0.6,
+        })
+        agent._regime = "trending"
+        return agent
+
+    def test_returns_required_keys(self):
+        service = DailySummaryService()
+        agents = {"MomentumAgent": _make_agent("MomentumAgent")}
+        result = service.get_live_data(agents, {}, "open")
+        for key in ("status", "generated_at", "date", "market_status",
+                    "agent_summaries", "consensus", "leaderboard",
+                    "trades_today", "ensemble", "scanner_recs", "sentinel_catalysts"):
+            self.assertIn(key, result, f"Missing key: {key}")
+
+    def test_has_no_narrative_key(self):
+        service = DailySummaryService()
+        result = service.get_live_data({}, {}, "closed")
+        self.assertNotIn("narrative", result)
+
+    def test_ensemble_placed_in_ensemble_field(self):
+        service = DailySummaryService()
+        ensemble = self._make_ensemble()
+        agents = {"EnsembleAgent": ensemble, "TechAgent": _make_agent("TechAgent")}
+        result = service.get_live_data(agents, {}, "open")
+        self.assertNotIn("EnsembleAgent", result["agent_summaries"])
+        self.assertIsNotNone(result["ensemble"])
+        self.assertEqual(result["ensemble"]["regime"], "trending")
+
+    def test_empty_agents_returns_empty_collections(self):
+        service = DailySummaryService()
+        result = service.get_live_data({}, {}, "closed")
+        self.assertEqual(result["agent_summaries"], {})
+        self.assertEqual(result["leaderboard"], [])
+        self.assertEqual(result["trades_today"], [])
+        self.assertIsNone(result["ensemble"])
+
+    def test_scanner_recs_capped_at_six(self):
+        service = DailySummaryService()
+        recs = [{"symbol": f"SYM{i}"} for i in range(10)]
+        result = service.get_live_data({}, {}, "open", scanner_recs=recs)
+        self.assertLessEqual(len(result["scanner_recs"]), 6)
+
+    def test_sentinel_catalysts_capped_at_five(self):
+        service = DailySummaryService()
+        cats = [{"headline": f"news {i}", "score": 1} for i in range(10)]
+        result = service.get_live_data({}, {}, "open", sentinel_catalysts=cats)
+        self.assertLessEqual(len(result["sentinel_catalysts"]), 5)
+
+    def test_status_is_ok(self):
+        service = DailySummaryService()
+        result = service.get_live_data({}, {}, "open")
+        self.assertEqual(result["status"], "ok")
+
+    def test_agent_signals_reflected_in_live_data(self):
+        service = DailySummaryService()
+        agent = _make_agent("TechAgent")
+        agent._last_signals = {
+            "AAPL": _make_signal("AAPL", "BUY", 0.8),
+            "MSFT": _make_signal("MSFT", "SELL", 0.7),
+        }
+        result = service.get_live_data({"TechAgent": agent}, {"AAPL": 150.0, "MSFT": 300.0}, "open")
+        self.assertIn("TechAgent", result["agent_summaries"])
+        self.assertEqual(result["agent_summaries"]["TechAgent"]["buy_count"], 1)
+        self.assertEqual(result["agent_summaries"]["TechAgent"]["sell_count"], 1)
+
+    def test_consensus_built_from_live_signals(self):
+        service = DailySummaryService()
+        a1 = _make_agent("AgentA")
+        a1._last_signals = {"AAPL": _make_signal("AAPL", "BUY", 0.9)}
+        a2 = _make_agent("AgentB")
+        a2._last_signals = {"AAPL": _make_signal("AAPL", "BUY", 0.8)}
+        result = service.get_live_data({"AgentA": a1, "AgentB": a2}, {}, "open")
+        self.assertIn("AAPL", result["consensus"])
+        self.assertEqual(result["consensus"]["AAPL"]["consensus"], "STRONG BUY")
+
+
+# ── EOD roll-up cache behaviour ───────────────────────────────────────────────
+
+class TestEodRollupCacheBehavior(unittest.IsolatedAsyncioTestCase):
+
+    def test_fresh_when_generated_today(self):
+        service = DailySummaryService()
+        service._cache = {"status": "ok", "narrative": "eod"}
+        service._cache_ts = time.time()
+        service._generated_for_date = date.today()
+        self.assertTrue(service._is_fresh("closed"))
+        self.assertTrue(service._is_fresh("open"))
+
+    def test_stale_when_generated_yesterday(self):
+        from datetime import timedelta
+        service = DailySummaryService()
+        service._cache = {"status": "ok", "narrative": "yesterday"}
+        service._cache_ts = time.time()
+        service._generated_for_date = date.today() - timedelta(days=1)
+        self.assertFalse(service._is_fresh("closed"))
+
+    def test_stale_when_no_date(self):
+        service = DailySummaryService()
+        service._cache = {"status": "ok", "narrative": "old"}
+        service._cache_ts = time.time()
+        service._generated_for_date = None
+        self.assertFalse(service._is_fresh("closed"))
+
+    def test_stale_when_no_cache(self):
+        service = DailySummaryService()
+        service._generated_for_date = date.today()
+        self.assertFalse(service._is_fresh("closed"))
+
+    async def test_generated_for_date_set_after_generate(self):
+        service = DailySummaryService()
+        agents = {"TestAgent": _make_agent("TestAgent")}
+
+        with patch.object(service, "_build_summary", new_callable=AsyncMock) as mock_build:
+            mock_build.return_value = {"status": "ok", "narrative": "fresh eod"}
+            await service.generate(agents, {}, "closed", force=True)
+
+        self.assertEqual(service._generated_for_date, date.today())
+
+    async def test_stale_cache_from_yesterday_is_regenerated(self):
+        from datetime import timedelta
+        service = DailySummaryService()
+        service._cache = {"status": "ok", "narrative": "stale_yesterday"}
+        service._cache_ts = time.time()
+        service._generated_for_date = date.today() - timedelta(days=1)
+        agents = {"TestAgent": _make_agent("TestAgent")}
+
+        with patch.object(service, "_build_summary", new_callable=AsyncMock) as mock_build:
+            mock_build.return_value = {"status": "ok", "narrative": "fresh_today"}
+            result = await service.generate(agents, {}, "closed", force=False)
+
+        mock_build.assert_called_once()
+        self.assertEqual(result["narrative"], "fresh_today")
+
+
+# ── EOD transition detection ───────────────────────────────────────────────────
+
+class TestDetectCloseTransition(unittest.TestCase):
+
+    def test_open_to_closed_is_transition(self):
+        from main import _detect_close_transition
+        self.assertTrue(_detect_close_transition("open", "closed"))
+
+    def test_open_test_to_closed_is_transition(self):
+        from main import _detect_close_transition
+        self.assertTrue(_detect_close_transition("open (test)", "closed"))
+
+    def test_closed_to_closed_is_not_transition(self):
+        from main import _detect_close_transition
+        self.assertFalse(_detect_close_transition("closed", "closed"))
+
+    def test_unknown_to_closed_is_not_transition(self):
+        from main import _detect_close_transition
+        self.assertFalse(_detect_close_transition("unknown", "closed"))
+
+    def test_open_to_open_is_not_transition(self):
+        from main import _detect_close_transition
+        self.assertFalse(_detect_close_transition("open", "open"))
 
 
 if __name__ == "__main__":
