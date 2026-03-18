@@ -201,5 +201,148 @@ class TestGeminiAgentValidResponse(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(result)
 
 
+# ── Token logging & hourly rate limit tests ──────────────────────────────────
+
+def _make_gemini_mock_response(prompt_tokens=7000, candidate_tokens=400):
+    mock_response = MagicMock()
+    mock_response.text = '{"decisions": [{"symbol": "AAPL", "action": "HOLD", "shares": 0, "confidence": 0.5, "reasoning": "test"}], "market_analysis": "ok"}'
+    mock_response.usage_metadata = MagicMock()
+    mock_response.usage_metadata.prompt_token_count = prompt_tokens
+    mock_response.usage_metadata.candidates_token_count = candidate_tokens
+    return mock_response
+
+
+def _patch_gemini_deps(mock_cfg):
+    mock_cfg.GEMINI_API_KEY = "key"
+    mock_cfg.MAX_POSITION_SIZE = 0.10
+
+
+class TestGeminiTokenLogging(unittest.IsolatedAsyncioTestCase):
+
+    def _make_agent(self, prompt_tokens=7000, candidate_tokens=400):
+        agent = GeminiAgent()
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(
+            return_value=_make_gemini_mock_response(prompt_tokens, candidate_tokens)
+        )
+        agent._client = mock_client
+        return agent, mock_client
+
+    async def test_token_usage_logged_after_api_call(self):
+        agent, _ = self._make_agent(prompt_tokens=7100, candidate_tokens=450)
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            _patch_gemini_deps(cfg)
+            mock_news.format_for_prompt.return_value = ""
+            with self.assertLogs("agents.gemini_agent", level="INFO") as cm:
+                await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        log_text = " ".join(cm.output)
+        self.assertIn("7100", log_text)
+        self.assertIn("450", log_text)
+
+    async def test_daily_token_counter_incremented(self):
+        agent, _ = self._make_agent(prompt_tokens=7000, candidate_tokens=400)
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            _patch_gemini_deps(cfg)
+            mock_news.format_for_prompt.return_value = ""
+            await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertEqual(agent._daily_tokens, 7400)
+
+
+class TestGeminiHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
+
+    def _make_agent(self):
+        agent = GeminiAgent()
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(
+            return_value=_make_gemini_mock_response()
+        )
+        agent._client = mock_client
+        return agent, mock_client
+
+    async def test_api_blocked_when_hourly_limit_reached(self):
+        agent, mock_client = self._make_agent()
+        agent._call_timestamps = [time.time() - 100, time.time() - 50]
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            _patch_gemini_deps(cfg)
+            mock_news.format_for_prompt.return_value = ""
+            result = await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        mock_client.aio.models.generate_content.assert_not_called()
+        self.assertIsNone(result)
+
+    async def test_api_allowed_when_under_hourly_limit(self):
+        agent, mock_client = self._make_agent()
+        agent._call_timestamps = [time.time() - 100]
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            _patch_gemini_deps(cfg)
+            mock_news.format_for_prompt.return_value = ""
+            result = await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        mock_client.aio.models.generate_content.assert_called_once()
+        self.assertIsNotNone(result)
+
+    async def test_old_timestamps_expire_from_window(self):
+        agent, mock_client = self._make_agent()
+        agent._call_timestamps = [time.time() - 3700, time.time() - 3601]
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            _patch_gemini_deps(cfg)
+            mock_news.format_for_prompt.return_value = ""
+            result = await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        mock_client.aio.models.generate_content.assert_called_once()
+
+    async def test_timestamp_recorded_after_successful_call(self):
+        agent, _ = self._make_agent()
+        before = time.time()
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            _patch_gemini_deps(cfg)
+            mock_news.format_for_prompt.return_value = ""
+            await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertEqual(len(agent._call_timestamps), 1)
+        self.assertGreaterEqual(agent._call_timestamps[0], before)
+
+    async def test_rate_limit_warning_logged(self):
+        agent, _ = self._make_agent()
+        agent._call_timestamps = [time.time() - 10, time.time() - 5]
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            _patch_gemini_deps(cfg)
+            mock_news.format_for_prompt.return_value = ""
+            with self.assertLogs("agents.gemini_agent", level="WARNING") as cm:
+                await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertTrue(any("rate limit" in line.lower() or "hourly" in line.lower() for line in cm.output))
+
+
 if __name__ == "__main__":
     unittest.main()

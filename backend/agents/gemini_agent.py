@@ -7,6 +7,7 @@ import json
 import logging
 import re
 import time
+from datetime import date
 from typing import Dict, List, Optional, Any
 
 from agents.base_agent import BaseAgent, Signal
@@ -16,6 +17,7 @@ from agents.agent_utils import (
     parse_ai_decisions,
     fill_missing_symbols,
     get_fallback_signals,
+    _is_market_hours,
 )
 from config import config
 from data.news_service import news_service
@@ -42,12 +44,18 @@ class GeminiAgent(BaseAgent):
             strategy_description="Google Gemini 2.0 Flash for fast, broad market analysis",
         )
         self._client: Optional[Any] = None
-        self._analysis_interval: int = 10  # analyze every 10th cycle to stay within free-tier quota
+        self._analysis_interval: int = 10  # overridden dynamically each cycle
+        self._open_interval: int = 10      # API call every N cycles during market hours (80% budget)
+        self._closed_interval: int = 50    # API call every N cycles during off hours  (20% budget)
         self._cycle_count: int = 0
         self._last_decisions: Dict = {}
         self._backoff_until: float = 0.0   # epoch seconds — skip API until this time
         self._backoff_seconds: float = 120.0  # current backoff duration (doubles on repeat 429s)
         self._api_lock = asyncio.Lock()  # prevents duplicate concurrent API calls (separate from base _lock)
+        self._call_timestamps: List[float] = []  # sliding window for hourly rate limit
+        self._hourly_call_limit: int = 2
+        self._daily_tokens: int = 0
+        self._token_reset_day: Optional[date] = None
 
     def _get_client(self):
         if not HAS_GEMINI or not config.GEMINI_API_KEY:
@@ -155,6 +163,17 @@ Include an entry for every symbol: {', '.join(watchlist)}
 
         prompt = self._build_prompt(market_context, watchlist)
 
+        # Sliding-window hourly rate limit (2 calls per hour)
+        now = time.time()
+        self._call_timestamps = [t for t in self._call_timestamps if now - t < 3600]
+        if len(self._call_timestamps) >= self._hourly_call_limit:
+            next_slot = self._call_timestamps[0] + 3600
+            logger.warning(
+                f"GeminiAgent: Hourly rate limit ({self._hourly_call_limit}/hr) reached — "
+                f"skipping API call, next slot in {int(next_slot - now)}s"
+            )
+            return None
+
         try:
             response = await client.aio.models.generate_content(
                 model="gemini-2.0-flash",
@@ -169,6 +188,24 @@ Include an entry for every symbol: {', '.join(watchlist)}
             if not text:
                 logger.warning("GeminiAgent: Empty response")
                 return None
+
+            # Record timestamp and log token usage
+            self._call_timestamps.append(time.time())
+            today = date.today()
+            if self._token_reset_day is None:
+                self._token_reset_day = today
+            elif self._token_reset_day != today:
+                self._daily_tokens = 0
+                self._token_reset_day = today
+            usage = response.usage_metadata
+            prompt_tok = usage.prompt_token_count
+            candidate_tok = usage.candidates_token_count
+            self._daily_tokens += prompt_tok + candidate_tok
+            logger.info(
+                f"GeminiAgent: tokens — in={prompt_tok} out={candidate_tok} "
+                f"daily_total={self._daily_tokens} | "
+                f"calls_this_hour={len(self._call_timestamps)}/{self._hourly_call_limit}"
+            )
 
             # Extract JSON from response
             json_match = re.search(r'\{[\s\S]*\}', text)
@@ -233,6 +270,7 @@ Include an entry for every symbol: {', '.join(watchlist)}
             return get_fallback_signals(market_context, "GeminiAgent")
 
         async with self._api_lock:
+            self._analysis_interval = self._open_interval if _is_market_hours() else self._closed_interval
             self._cycle_count += 1
 
             # Reuse cached decisions between intervals to save API costs

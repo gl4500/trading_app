@@ -277,5 +277,165 @@ class TestClaudeAgentBuildPrompt(unittest.TestCase):
         self.assertIn("Big news!", prompt)
 
 
+# ── Token logging & hourly rate limit tests ──────────────────────────────────
+
+def _make_claude_mock_response(input_tokens=8000, output_tokens=500):
+    mock_block = MagicMock()
+    mock_block.type = "text"
+    mock_block.text = '{"market_analysis": "ok", "decisions": [{"symbol": "AAPL", "action": "HOLD", "shares": 0, "confidence": 0.5, "reasoning": "test"}]}'
+    mock_usage = MagicMock()
+    mock_usage.input_tokens = input_tokens
+    mock_usage.output_tokens = output_tokens
+    mock_response = MagicMock()
+    mock_response.content = [mock_block]
+    mock_response.usage = mock_usage
+    return mock_response
+
+
+class TestClaudeTokenLogging(unittest.IsolatedAsyncioTestCase):
+
+    def _make_agent_with_client(self, input_tokens=8000, output_tokens=500):
+        agent = ClaudeAgent()
+        mock_client = MagicMock()
+        mock_client.messages.create = AsyncMock(
+            return_value=_make_claude_mock_response(input_tokens, output_tokens)
+        )
+        agent._client = mock_client
+        return agent, mock_client
+
+    async def test_token_usage_logged_after_api_call(self):
+        agent, _ = self._make_agent_with_client(input_tokens=8100, output_tokens=490)
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            with self.assertLogs("agents.claude_agent", level="INFO") as cm:
+                await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        log_text = " ".join(cm.output)
+        self.assertIn("8100", log_text)
+        self.assertIn("490", log_text)
+
+    async def test_daily_token_counter_incremented(self):
+        agent, _ = self._make_agent_with_client(input_tokens=8000, output_tokens=500)
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertEqual(agent._daily_tokens, 8500)
+
+
+class TestClaudeHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
+
+    def _make_agent_with_client(self):
+        agent = ClaudeAgent()
+        mock_client = MagicMock()
+        mock_client.messages.create = AsyncMock(
+            return_value=_make_claude_mock_response()
+        )
+        agent._client = mock_client
+        return agent, mock_client
+
+    async def test_api_blocked_when_hourly_limit_reached(self):
+        agent, mock_client = self._make_agent_with_client()
+        # Seed 2 calls made within the last hour
+        agent._call_timestamps = [time.time() - 100, time.time() - 50]
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            result = await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        mock_client.messages.create.assert_not_called()
+        self.assertIsNone(result)
+
+    async def test_api_allowed_when_under_hourly_limit(self):
+        agent, mock_client = self._make_agent_with_client()
+        # Only 1 call in the last hour
+        agent._call_timestamps = [time.time() - 100]
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            result = await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        mock_client.messages.create.assert_called_once()
+        self.assertIsNotNone(result)
+
+    async def test_old_timestamps_expire_from_window(self):
+        """Timestamps older than 1 hour must not count toward the limit."""
+        agent, mock_client = self._make_agent_with_client()
+        # 2 calls, but both > 1 hour ago → should not count
+        agent._call_timestamps = [time.time() - 3700, time.time() - 3601]
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            result = await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        mock_client.messages.create.assert_called_once()
+
+    async def test_timestamp_recorded_after_successful_call(self):
+        agent, _ = self._make_agent_with_client()
+        before = time.time()
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertEqual(len(agent._call_timestamps), 1)
+        self.assertGreaterEqual(agent._call_timestamps[0], before)
+
+    async def test_rate_limit_warning_logged(self):
+        agent, _ = self._make_agent_with_client()
+        agent._call_timestamps = [time.time() - 10, time.time() - 5]
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            with self.assertLogs("agents.claude_agent", level="WARNING") as cm:
+                await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertTrue(any("rate limit" in line.lower() or "hourly" in line.lower() for line in cm.output))
+
+
 if __name__ == "__main__":
     unittest.main()

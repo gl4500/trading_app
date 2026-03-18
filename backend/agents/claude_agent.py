@@ -8,6 +8,7 @@ import logging
 import math
 import re
 import time
+from datetime import date
 from typing import Dict, List, Optional, Any
 
 from agents.base_agent import BaseAgent, Signal
@@ -17,6 +18,7 @@ from agents.agent_utils import (
     parse_ai_decisions,
     fill_missing_symbols,
     get_fallback_signals,
+    _is_market_hours,
 )
 from config import config
 from data.learning_manager import get_learning_summary, record_trade
@@ -43,12 +45,18 @@ class ClaudeAgent(BaseAgent):
             strategy_description="Claude Opus 4.6 with adaptive thinking for deep market analysis",
         )
         self._client: Optional[Any] = None
-        self._analysis_interval: int = 5  # analyze every 5th cycle to manage API costs
+        self._analysis_interval: int = 5  # overridden dynamically each cycle
+        self._open_interval: int = 5      # API call every N cycles during market hours (80% budget)
+        self._closed_interval: int = 25   # API call every N cycles during off hours  (20% budget)
         self._cycle_count: int = 0
         self._last_decisions: Dict[str, Dict] = {}
         self._backoff_until: float = 0.0   # epoch seconds — skip API until this time
         self._backoff_seconds: float = 60.0  # current backoff duration (doubles on repeat errors)
         self._api_lock = asyncio.Lock()  # prevents duplicate concurrent API calls (separate from base _lock)
+        self._call_timestamps: List[float] = []  # sliding window for hourly rate limit
+        self._hourly_call_limit: int = 2
+        self._daily_tokens: int = 0
+        self._token_reset_day: Optional[date] = None
 
     def _get_client(self):
         if not HAS_ANTHROPIC:
@@ -165,6 +173,17 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
 
         prompt = self._build_market_prompt(market_context, watchlist)
 
+        # Sliding-window hourly rate limit (2 calls per hour)
+        now = time.time()
+        self._call_timestamps = [t for t in self._call_timestamps if now - t < 3600]
+        if len(self._call_timestamps) >= self._hourly_call_limit:
+            next_slot = self._call_timestamps[0] + 3600
+            logger.warning(
+                f"ClaudeAgent: Hourly rate limit ({self._hourly_call_limit}/hr) reached — "
+                f"skipping API call, next slot in {int(next_slot - now)}s"
+            )
+            return None
+
         try:
             response = await client.messages.create(
                 model="claude-opus-4-6",
@@ -190,6 +209,23 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
             if not text_content:
                 logger.warning("ClaudeAgent: No text content in response")
                 return None
+
+            # Record timestamp and log token usage
+            self._call_timestamps.append(time.time())
+            today = date.today()
+            if self._token_reset_day is None:
+                self._token_reset_day = today
+            elif self._token_reset_day != today:
+                self._daily_tokens = 0
+                self._token_reset_day = today
+            input_tok = response.usage.input_tokens
+            output_tok = response.usage.output_tokens
+            self._daily_tokens += input_tok + output_tok
+            logger.info(
+                f"ClaudeAgent: tokens — in={input_tok} out={output_tok} "
+                f"daily_total={self._daily_tokens} | "
+                f"calls_this_hour={len(self._call_timestamps)}/{self._hourly_call_limit}"
+            )
 
             # Try JSON block first, then direct parse
             json_match = re.search(r'\{[\s\S]*\}', text_content)
@@ -261,6 +297,7 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
             return get_fallback_signals(market_context, "ClaudeAgent")
 
         async with self._api_lock:
+            self._analysis_interval = self._open_interval if _is_market_hours() else self._closed_interval
             self._cycle_count += 1
 
             # Only call Claude API every N cycles to manage costs
