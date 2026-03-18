@@ -344,5 +344,51 @@ class TestGeminiHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any("rate limit" in line.lower() or "hourly" in line.lower() for line in cm.output))
 
 
+class TestGeminiRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
+    """When rate-limited on an API cycle, last decisions must be replayed not HOLDs."""
+
+    def _make_agent_rate_limited(self):
+        agent = GeminiAgent()
+        agent._call_timestamps = [time.time() - 100, time.time() - 50]
+        agent._last_decisions = {
+            "market_analysis": "bullish",
+            "decisions": [
+                {"symbol": "AAPL", "action": "HOLD", "shares": 0,
+                 "confidence": 0.7, "reasoning": "cached decision"}
+            ],
+            "_watchlist": ["AAPL"],
+        }
+        return agent
+
+    async def test_rate_limited_api_cycle_replays_cache_not_hold(self):
+        agent = self._make_agent_rate_limited()
+        agent._cycle_count = 0
+
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg:
+            cfg.GEMINI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            signals = await agent.analyze(_make_ctx(["AAPL"]))
+
+        self.assertTrue(len(signals) > 0)
+        aapl = next((s for s in signals if s.symbol == "AAPL"), None)
+        self.assertIsNotNone(aapl)
+        self.assertNotIn("API unavailable", aapl.reasoning)
+
+    async def test_rate_limited_no_cache_still_returns_hold(self):
+        agent = GeminiAgent()
+        agent._call_timestamps = [time.time() - 100, time.time() - 50]
+        agent._last_decisions = {}
+        agent._cycle_count = 0
+
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg:
+            cfg.GEMINI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            signals = await agent.analyze(_make_ctx(["AAPL"]))
+
+        self.assertTrue(all(s.action == "HOLD" for s in signals))
+
+
 if __name__ == "__main__":
     unittest.main()

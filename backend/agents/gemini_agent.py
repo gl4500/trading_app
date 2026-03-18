@@ -305,7 +305,17 @@ Include an entry for every symbol: {', '.join(watchlist)}
                 response = await self._get_gemini_decisions(market_context, watchlist)
 
                 if response is None:
-                    logger.warning("GeminiAgent: No response, using fallback")
+                    if self._last_decisions:
+                        logger.debug("GeminiAgent: No response (rate limit or error) — replaying last decisions")
+                        signals = parse_ai_decisions(
+                            self._last_decisions, market_context, prices,
+                            self.portfolio, config.MAX_POSITION_SIZE, "GEMINI ANALYSIS"
+                        )
+                        return fill_missing_symbols(
+                            signals, market_context, prices,
+                            self.portfolio, self._picks, config.MAX_POSITION_SIZE, "GeminiAgent"
+                        )
+                    logger.warning("GeminiAgent: No response and no cache — using fallback")
                     return get_fallback_signals(market_context, "GeminiAgent")
 
                 response["_watchlist"] = watchlist

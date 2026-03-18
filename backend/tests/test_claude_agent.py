@@ -437,5 +437,69 @@ class TestClaudeHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any("rate limit" in line.lower() or "hourly" in line.lower() for line in cm.output))
 
 
+class TestClaudeRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
+    """When rate-limited on an API cycle, last decisions must be replayed not HOLDs."""
+
+    def _make_agent_rate_limited(self):
+        agent = ClaudeAgent()
+        # Seed 2 recent timestamps so rate limit fires immediately
+        agent._call_timestamps = [time.time() - 100, time.time() - 50]
+        # Seed last good decisions
+        agent._last_decisions = {
+            "market_analysis": "bullish",
+            "decisions": [
+                {"symbol": "AAPL", "action": "HOLD", "shares": 0,
+                 "confidence": 0.7, "reasoning": "cached decision"}
+            ],
+            "_watchlist": ["AAPL"],
+        }
+        return agent
+
+    async def test_rate_limited_api_cycle_replays_cache_not_hold(self):
+        agent = self._make_agent_rate_limited()
+        # Force an API cycle by setting cycle_count so % interval == 0 (triggers fresh call)
+        agent._cycle_count = 0
+
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            signals = await agent.analyze(_make_ctx(["AAPL"]))
+
+        # Should have replayed the cached decision, not a blank fallback
+        self.assertTrue(len(signals) > 0)
+        aapl = next((s for s in signals if s.symbol == "AAPL"), None)
+        self.assertIsNotNone(aapl)
+        # Cached reasoning should appear, not the generic "API unavailable" fallback
+        self.assertNotIn("API unavailable", aapl.reasoning)
+
+    async def test_rate_limited_no_cache_still_returns_hold(self):
+        agent = ClaudeAgent()
+        agent._call_timestamps = [time.time() - 100, time.time() - 50]
+        # No last_decisions cached
+        agent._last_decisions = {}
+        agent._cycle_count = 0
+
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            signals = await agent.analyze(_make_ctx(["AAPL"]))
+
+        self.assertTrue(all(s.action == "HOLD" for s in signals))
+
+
 if __name__ == "__main__":
     unittest.main()
