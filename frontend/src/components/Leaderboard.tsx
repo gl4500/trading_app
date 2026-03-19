@@ -13,7 +13,6 @@ const STRATEGY_COLORS: Record<string, string> = {
   MeanReversionAgent: 'badge-yellow',
   SentimentAgent: 'badge-green',
   ClaudeAgent: 'badge-red',
-  GeminiAgent: 'badge-blue',
   EnsembleAgent: 'badge-gray',
   ScannerAgent: 'badge-purple',
 }
@@ -24,7 +23,6 @@ const AGENT_ICONS: Record<string, string> = {
   MeanReversionAgent: '🔄',
   SentimentAgent: '💭',
   ClaudeAgent: '🧠',
-  GeminiAgent: '💎',
   EnsembleAgent: '🎯',
   ScannerAgent: '⟁',
 }

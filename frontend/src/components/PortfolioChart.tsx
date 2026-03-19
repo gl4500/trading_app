@@ -23,7 +23,6 @@ const AGENT_COLORS: Record<string, string> = {
   MeanReversionAgent: '#eab308', // yellow
   SentimentAgent: '#22c55e',     // green
   ClaudeAgent: '#ef4444',        // red
-  GeminiAgent: '#06b6d4',        // cyan
   EnsembleAgent: '#94a3b8',      // slate
   ScannerAgent: '#8b5cf6',       // violet
 }

@@ -12,7 +12,6 @@ const AGENT_ICONS: Record<string, string> = {
   MeanReversionAgent: '🔄',
   SentimentAgent: '💭',
   ClaudeAgent: '🧠',
-  GeminiAgent: '💎',
   EnsembleAgent: '🎯',
   ScannerAgent: '⟁',
 }
@@ -23,7 +22,6 @@ const AGENT_COLORS: Record<string, string> = {
   MeanReversionAgent: 'yellow',
   SentimentAgent: 'green',
   ClaudeAgent: 'red',
-  GeminiAgent: 'cyan',
   EnsembleAgent: 'gray',
   ScannerAgent: 'purple',
 }
@@ -45,6 +43,11 @@ export default function AgentCard({ agent, prices }: AgentCardProps) {
 
   const returnColor = isPositive ? 'text-green-400' : 'text-red-400'
   const cashPct = agent.total_value > 0 ? (agent.cash / agent.total_value) * 100 : 100
+
+  const unrealizedGain = (agent.positions || []).reduce((sum, pos) => sum + pos.unrealized_pnl, 0)
+  const unrealizedPct = agent.total_value > 0 ? (unrealizedGain / (agent.total_value - unrealizedGain)) * 100 : 0
+  const realizedProfit = agent.total_return - unrealizedGain
+  const realizedPct = agent.total_value > 0 ? (realizedProfit / (agent.total_value - unrealizedGain)) * 100 : 0
 
   const signals = Object.entries(agent.last_signals || {})
   const displaySignals = showAllSignals ? signals : signals.slice(0, 3)
@@ -79,17 +82,24 @@ export default function AgentCard({ agent, prices }: AgentCardProps) {
         </div>
 
         {/* Key metrics grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <MetricTile
-            label="Total Value"
-            value={formatCurrency(agent.total_value)}
-            color="text-white"
-          />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
           <MetricTile
             label="Total Return"
             value={formatPct(agent.total_return_pct)}
             sub={`${agent.total_return >= 0 ? '+' : ''}${formatCurrency(agent.total_return)}`}
             color={returnColor}
+          />
+          <MetricTile
+            label="Unrealized Gain"
+            value={`${unrealizedGain >= 0 ? '+' : '-'}${formatCurrency(unrealizedGain)}`}
+            sub={formatPct(unrealizedPct)}
+            color={unrealizedGain >= 0 ? 'text-green-400' : 'text-red-400'}
+          />
+          <MetricTile
+            label="Realized Profit"
+            value={`${realizedProfit >= 0 ? '+' : '-'}${formatCurrency(realizedProfit)}`}
+            sub={formatPct(realizedPct)}
+            color={realizedProfit >= 0 ? 'text-green-400' : 'text-red-400'}
           />
           <MetricTile
             label="Win Rate"
