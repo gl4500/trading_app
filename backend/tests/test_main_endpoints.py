@@ -492,5 +492,170 @@ class TestMarketStatusHelpers(unittest.TestCase):
         self.assertEqual(result, "closed")
 
 
+class TestRunAgentCyclePositionCleanup(unittest.IsolatedAsyncioTestCase):
+    """run_agent_cycle must delete DB positions that were closed during a cycle."""
+
+    async def test_closed_position_deleted_from_db(self):
+        """When a cycle closes a position (removes from portfolio.positions),
+        upsert_portfolio_position must be called with shares=0 to delete it."""
+        from main import run_agent_cycle
+
+        agent = MagicMock()
+        agent.name = "TestAgent"
+        agent.agent_id = 1
+        # LYFT was open before the cycle
+        from trading.portfolio import Position
+        lyft_pos = Position(symbol="LYFT", shares=100.0, avg_cost=14.0)
+        agent.portfolio.positions = {"LYFT": lyft_pos}
+        agent.portfolio.trade_history = []
+
+        # After run_cycle, LYFT is sold (removed from positions)
+        async def mock_run_cycle(ctx, prices):
+            agent.portfolio.positions = {}   # position closed
+            return {}
+
+        agent.run_cycle = mock_run_cycle
+
+        with patch("main.save_trade", new_callable=AsyncMock), \
+             patch("main.upsert_portfolio_position", new_callable=AsyncMock) as mock_upsert:
+            await run_agent_cycle(agent, {}, {"LYFT": 13.90})
+
+        # upsert_portfolio_position must be called with shares=0 for LYFT
+        calls = mock_upsert.call_args_list
+        lyft_calls = [c for c in calls if c.kwargs.get("symbol") == "LYFT" or
+                      (c.args and "LYFT" in c.args)]
+        self.assertTrue(
+            any(
+                (c.kwargs.get("shares") == 0 or (len(c.args) > 2 and c.args[2] == 0))
+                for c in lyft_calls
+            ),
+            f"Expected upsert_portfolio_position called with shares=0 for LYFT, got: {calls}"
+        )
+
+    async def test_open_position_still_upserted(self):
+        """Positions that remain open after a cycle are still written to DB."""
+        from main import run_agent_cycle
+        from trading.portfolio import Position
+
+        agent = MagicMock()
+        agent.name = "TestAgent"
+        agent.agent_id = 1
+        nvda_pos = Position(symbol="NVDA", shares=10.0, avg_cost=200.0)
+        agent.portfolio.positions = {"NVDA": nvda_pos}
+        agent.portfolio.trade_history = []
+
+        async def mock_run_cycle(ctx, prices):
+            return {}  # NVDA position unchanged
+
+        agent.run_cycle = mock_run_cycle
+
+        with patch("main.save_trade", new_callable=AsyncMock), \
+             patch("main.upsert_portfolio_position", new_callable=AsyncMock) as mock_upsert:
+            await run_agent_cycle(agent, {}, {"NVDA": 210.0})
+
+        calls = mock_upsert.call_args_list
+        nvda_calls = [c for c in calls if c.kwargs.get("symbol") == "NVDA" or
+                      (c.args and "NVDA" in c.args)]
+        self.assertTrue(len(nvda_calls) > 0, "Expected upsert_portfolio_position called for NVDA")
+        # shares should be > 0
+        for c in nvda_calls:
+            shares = c.kwargs.get("shares") or (c.args[2] if len(c.args) > 2 else None)
+            self.assertGreater(shares, 0)
+
+
+class TestTokenUsageEndpoint(unittest.TestCase):
+    """GET /api/tokens returns per-agent token stats and grand totals."""
+
+    def _make_ai_agent(self, name, daily=1000, session=2500, calls_hour=1, limit=None):
+        import time
+        agent = MagicMock()
+        agent.name = name
+        agent._daily_tokens = daily
+        agent._session_tokens = session
+        agent._call_timestamps = [time.time() - 60]  # 1 call in last hour
+        agent._hourly_call_limit = 2
+        agent._daily_token_limit = limit  # None for Claude/Gemini, 10000 for Sentiment
+        return agent
+
+    def test_returns_200(self):
+        from main import app, app_state
+        claude = self._make_ai_agent("ClaudeAgent", daily=8000, session=16000)
+        sentiment = self._make_ai_agent("SentimentAgent", daily=300, session=900, limit=10000)
+        gemini = self._make_ai_agent("GeminiAgent", daily=7000, session=14000)
+
+        with patch.object(app_state, "agents", {"ClaudeAgent": claude, "SentimentAgent": sentiment}), \
+             patch.object(app_state, "gemini_news_agent", gemini):
+            client = TestClient(app)
+            resp = client.get("/api/tokens")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_response_has_required_keys(self):
+        from main import app, app_state
+        claude = self._make_ai_agent("ClaudeAgent", daily=8000, session=16000)
+        gemini = self._make_ai_agent("GeminiAgent", daily=7000, session=14000)
+
+        with patch.object(app_state, "agents", {"ClaudeAgent": claude}), \
+             patch.object(app_state, "gemini_news_agent", gemini):
+            client = TestClient(app)
+            data = client.get("/api/tokens").json()
+
+        self.assertIn("agents", data)
+        self.assertIn("totals", data)
+        self.assertIn("daily_tokens", data["totals"])
+        self.assertIn("session_tokens", data["totals"])
+
+    def test_agent_entry_has_expected_fields(self):
+        from main import app, app_state
+        claude = self._make_ai_agent("ClaudeAgent", daily=8500, session=17000)
+
+        with patch.object(app_state, "agents", {"ClaudeAgent": claude}), \
+             patch.object(app_state, "gemini_news_agent", None):
+            client = TestClient(app)
+            data = client.get("/api/tokens").json()
+
+        self.assertIn("ClaudeAgent", data["agents"])
+        entry = data["agents"]["ClaudeAgent"]
+        for field in ("daily_tokens", "session_tokens", "calls_this_hour", "hourly_call_limit"):
+            self.assertIn(field, entry)
+
+    def test_totals_sum_all_agents(self):
+        from main import app, app_state
+        claude = self._make_ai_agent("ClaudeAgent", daily=8000, session=16000)
+        sentiment = self._make_ai_agent("SentimentAgent", daily=300, session=900, limit=10000)
+        gemini = self._make_ai_agent("GeminiAgent", daily=7000, session=14000)
+
+        with patch.object(app_state, "agents", {"ClaudeAgent": claude, "SentimentAgent": sentiment}), \
+             patch.object(app_state, "gemini_news_agent", gemini):
+            client = TestClient(app)
+            data = client.get("/api/tokens").json()
+
+        self.assertEqual(data["totals"]["daily_tokens"], 8000 + 300 + 7000)
+        self.assertEqual(data["totals"]["session_tokens"], 16000 + 900 + 14000)
+
+    def test_daily_limit_included_for_sentiment(self):
+        from main import app, app_state
+        sentiment = self._make_ai_agent("SentimentAgent", daily=300, session=900, limit=10000)
+
+        with patch.object(app_state, "agents", {"SentimentAgent": sentiment}), \
+             patch.object(app_state, "gemini_news_agent", None):
+            client = TestClient(app)
+            data = client.get("/api/tokens").json()
+
+        entry = data["agents"]["SentimentAgent"]
+        self.assertEqual(entry.get("daily_limit"), 10000)
+        self.assertEqual(entry.get("daily_remaining"), 9700)
+
+    def test_gemini_included_from_news_agent(self):
+        from main import app, app_state
+        gemini = self._make_ai_agent("GeminiAgent", daily=7000, session=14000)
+
+        with patch.object(app_state, "agents", {}), \
+             patch.object(app_state, "gemini_news_agent", gemini):
+            client = TestClient(app)
+            data = client.get("/api/tokens").json()
+
+        self.assertIn("GeminiAgent", data["agents"])
+
+
 if __name__ == "__main__":
     unittest.main()

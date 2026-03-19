@@ -56,6 +56,7 @@ class ClaudeAgent(BaseAgent):
         self._call_timestamps: List[float] = []  # sliding window for hourly rate limit
         self._hourly_call_limit: int = 2
         self._daily_tokens: int = 0
+        self._session_tokens: int = 0
         self._token_reset_day: Optional[date] = None
 
     def _get_client(self):
@@ -226,6 +227,7 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
             input_tok = response.usage.input_tokens
             output_tok = response.usage.output_tokens
             self._daily_tokens += input_tok + output_tok
+            self._session_tokens += input_tok + output_tok
             logger.info(
                 f"ClaudeAgent: tokens — in={input_tok} out={output_tok} "
                 f"daily_total={self._daily_tokens} | "

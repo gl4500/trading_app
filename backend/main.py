@@ -1450,6 +1450,60 @@ async def get_news_impact():
     }
 
 
+@app.get("/api/tokens")
+async def get_token_usage():
+    """
+    Return AI token usage statistics for all agents.
+
+    Per-agent breakdown:
+    - daily_tokens: tokens consumed today (resets at midnight)
+    - session_tokens: tokens consumed since last app restart
+    - calls_this_hour: API calls made in the last 60 minutes
+    - hourly_call_limit: maximum calls allowed per hour
+    - daily_limit: daily token cap (only set for SentimentAgent)
+    - daily_remaining: tokens remaining today (only when daily_limit set)
+
+    Grand totals (daily and session) are summed across all agents.
+    """
+    import time as _time
+
+    _TOKEN_AGENTS = ["ClaudeAgent", "GeminiAgent", "SentimentAgent"]
+
+    def _agent_stats(agent) -> dict:
+        now = _time.time()
+        calls_this_hour = sum(1 for t in getattr(agent, "_call_timestamps", []) if now - t < 3600)
+        daily = getattr(agent, "_daily_tokens", 0)
+        limit = getattr(agent, "_daily_token_limit", None)
+        entry = {
+            "daily_tokens":       daily,
+            "session_tokens":     getattr(agent, "_session_tokens", 0),
+            "calls_this_hour":    calls_this_hour,
+            "hourly_call_limit":  getattr(agent, "_hourly_call_limit", None),
+        }
+        if limit is not None:
+            entry["daily_limit"]     = limit
+            entry["daily_remaining"] = max(0, limit - daily)
+        return entry
+
+    agents_out: dict = {}
+
+    # Trading agents that track tokens
+    for name, agent in app_state.agents.items():
+        if name in _TOKEN_AGENTS:
+            agents_out[name] = _agent_stats(agent)
+
+    # Gemini runs as news agent outside app_state.agents
+    if app_state.gemini_news_agent and "GeminiAgent" not in agents_out:
+        agents_out["GeminiAgent"] = _agent_stats(app_state.gemini_news_agent)
+
+    totals = {
+        "daily_tokens":   sum(v["daily_tokens"]   for v in agents_out.values()),
+        "session_tokens": sum(v["session_tokens"] for v in agents_out.values()),
+    }
+
+    return {"agents": agents_out, "totals": totals}
+
+
 # ─── WebSocket ─────────────────────────────────────────────────────────────────
 
 @app.websocket("/ws")

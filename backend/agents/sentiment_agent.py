@@ -118,6 +118,7 @@ class SentimentAgent(BaseAgent):
         self._open_interval: int = 5    # API call every N cycles during market hours (80% budget)
         self._closed_interval: int = 25  # API call every N cycles during off hours  (20% budget)
         self._daily_tokens: int = 0
+        self._session_tokens: int = 0
         self._token_reset_day: Optional[date] = None
         self._daily_token_limit: int = 10_000
 
@@ -189,6 +190,7 @@ Respond with ONLY valid JSON in this exact format:
             prompt_tok = usage.prompt_tokens
             completion_tok = usage.completion_tokens
             self._daily_tokens += prompt_tok + completion_tok
+            self._session_tokens += prompt_tok + completion_tok
             logger.info(
                 f"SentimentAgent: {symbol} tokens — "
                 f"in={prompt_tok} out={completion_tok} "

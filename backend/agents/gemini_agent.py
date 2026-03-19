@@ -55,6 +55,7 @@ class GeminiAgent(BaseAgent):
         self._call_timestamps: List[float] = []  # sliding window for hourly rate limit
         self._hourly_call_limit: int = 2
         self._daily_tokens: int = 0
+        self._session_tokens: int = 0
         self._token_reset_day: Optional[date] = None
 
     def _get_client(self):
@@ -201,6 +202,7 @@ Include an entry for every symbol: {', '.join(watchlist)}
             prompt_tok = usage.prompt_token_count
             candidate_tok = usage.candidates_token_count
             self._daily_tokens += prompt_tok + candidate_tok
+            self._session_tokens += prompt_tok + candidate_tok
             logger.info(
                 f"GeminiAgent: tokens — in={prompt_tok} out={candidate_tok} "
                 f"daily_total={self._daily_tokens} | "
