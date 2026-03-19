@@ -437,6 +437,35 @@ class TestClaudeHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any("rate limit" in line.lower() or "hourly" in line.lower() for line in cm.output))
 
 
+class TestClaudePromptGeminiView(unittest.TestCase):
+    """_build_market_prompt includes Gemini market view when present in context."""
+
+    def setUp(self):
+        self.agent = ClaudeAgent()
+
+    def _build(self, extra_ctx=None):
+        ctx = _make_ctx(["AAPL"])
+        if extra_ctx:
+            ctx.update(extra_ctx)
+        with patch("agents.claude_agent.build_portfolio_context", return_value="portfolio"), \
+             patch("agents.claude_agent.format_bars_for_prompt", return_value="bars"), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("agents.claude_agent.get_learning_summary", return_value=""):
+            mock_news.format_for_prompt.return_value = ""
+            return self.agent._build_market_prompt(ctx, ["AAPL"])
+
+    def test_gemini_view_included_when_present(self):
+        prompt = self._build({"__gemini_market_view__": "Gemini says: broad rally incoming."})
+        self.assertIn("Gemini", prompt)
+        self.assertIn("broad rally incoming", prompt)
+
+    def test_prompt_unaffected_when_no_gemini_view(self):
+        prompt = self._build()
+        self.assertNotIn("__gemini_market_view__", prompt)
+
+
 class TestClaudeRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
     """When rate-limited on an API cycle, last decisions must be replayed not HOLDs."""
 

@@ -390,5 +390,63 @@ class TestGeminiRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(s.action == "HOLD" for s in signals))
 
 
+# ── get_market_view tests ────────────────────────────────────────────────────
+
+class TestGeminiMarketView(unittest.IsolatedAsyncioTestCase):
+
+    def _make_agent_with_response(self, market_analysis="Broad market looks bullish."):
+        agent = GeminiAgent()
+        mock_response = MagicMock()
+        mock_response.text = (
+            f'{{"decisions": [], "market_analysis": "{market_analysis}"}}'
+        )
+        mock_response.usage_metadata = MagicMock()
+        mock_response.usage_metadata.prompt_token_count = 500
+        mock_response.usage_metadata.candidates_token_count = 100
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+        agent._client = mock_client
+        return agent
+
+    async def test_returns_market_analysis_string(self):
+        agent = self._make_agent_with_response("Markets look bullish overall.")
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            cfg.GEMINI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            result = await agent.get_market_view(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertIsNotNone(result)
+        self.assertIn("bullish", result.lower())
+
+    async def test_returns_none_when_rate_limited(self):
+        agent = self._make_agent_with_response()
+        agent._call_timestamps = [time.time() - 10, time.time() - 5]
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            cfg.GEMINI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            result = await agent.get_market_view(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertIsNone(result)
+
+    async def test_returns_none_when_not_configured(self):
+        agent = GeminiAgent()
+        with patch("agents.gemini_agent.HAS_GEMINI", False), \
+             patch("agents.gemini_agent.config") as cfg:
+            cfg.GEMINI_API_KEY = ""
+            cfg.MAX_POSITION_SIZE = 0.10
+            result = await agent.get_market_view(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertIsNone(result)
+
+
 if __name__ == "__main__":
     unittest.main()

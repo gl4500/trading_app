@@ -122,12 +122,17 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
 
         learning_ctx = get_learning_summary()
 
+        gemini_view = market_context.get("__gemini_market_view__")
+        gemini_section = (
+            f"\n## Gemini Market View\n{gemini_view}\n" if gemini_view else ""
+        )
+
         prompt = f"""You are an expert quantitative trader and portfolio manager competing in a trading competition. Your goal is to maximize risk-adjusted returns.
 
 ## Current Portfolio State
 {portfolio_ctx}
 {learning_ctx}
-{overnight_section}
+{gemini_section}{overnight_section}
 ## Market Data
 {market_data}
 

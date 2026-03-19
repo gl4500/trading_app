@@ -243,5 +243,29 @@ class TestAdaptiveWeights(unittest.TestCase):
         )
 
 
+class TestGeminiRemovedFromEnsemble(unittest.TestCase):
+    """GeminiAgent must not participate in ensemble trading signals."""
+
+    def test_gemini_not_in_regime_multipliers(self):
+        for regime, mults in REGIME_MULTIPLIERS.items():
+            self.assertNotIn(
+                "GeminiAgent", mults,
+                f"GeminiAgent still listed in REGIME_MULTIPLIERS['{regime}']"
+            )
+
+    def test_gemini_not_in_component_agents_by_default(self):
+        ensemble = EnsembleAgent()
+        self.assertNotIn("GeminiAgent", ensemble.component_agents)
+
+    def test_gemini_not_in_base_weights(self):
+        ensemble = EnsembleAgent()
+        self.assertNotIn("GeminiAgent", ensemble.base_weights)
+
+    def test_ensemble_weights_sum_to_one(self):
+        from config import config
+        total = sum(config.ENSEMBLE_WEIGHTS.values())
+        self.assertAlmostEqual(total, 1.0, places=5)
+
+
 if __name__ == "__main__":
     unittest.main()

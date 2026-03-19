@@ -56,12 +56,11 @@ class Config:
 
     # Ensemble voting weights
     ENSEMBLE_WEIGHTS = {
-        "ClaudeAgent": 0.25,
-        "GeminiAgent": 0.20,
-        "TechAgent": 0.20,
-        "SentimentAgent": 0.15,
-        "MomentumAgent": 0.12,
-        "MeanReversionAgent": 0.08,
+        "ClaudeAgent":        0.32,
+        "TechAgent":          0.25,
+        "SentimentAgent":     0.18,
+        "MomentumAgent":      0.15,
+        "MeanReversionAgent": 0.10,
     }
     ENSEMBLE_THRESHOLD: float = 0.35  # 35% weighted agreement required
 

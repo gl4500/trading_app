@@ -35,7 +35,6 @@ REGIME_MULTIPLIERS: Dict[str, Dict[str, float]] = {
         "MomentumAgent":      1.50,
         "TechAgent":          1.20,
         "ClaudeAgent":        1.10,
-        "GeminiAgent":        1.05,
         "SentimentAgent":     0.80,
         "MeanReversionAgent": 0.40,
     },
@@ -44,12 +43,10 @@ REGIME_MULTIPLIERS: Dict[str, Dict[str, float]] = {
         "SentimentAgent":     1.20,
         "TechAgent":          1.10,
         "ClaudeAgent":        1.00,
-        "GeminiAgent":        1.00,
         "MomentumAgent":      0.55,
     },
     "volatile": {
         "ClaudeAgent":        1.40,
-        "GeminiAgent":        1.25,
         "SentimentAgent":     1.20,
         "TechAgent":          0.80,
         "MomentumAgent":      0.65,
@@ -71,7 +68,6 @@ class EnsembleAgent(BaseAgent):
         mean_reversion_agent: "BaseAgent" = None,
         sentiment_agent: "BaseAgent" = None,
         claude_agent: "BaseAgent" = None,
-        gemini_agent: "BaseAgent" = None,
     ):
         super().__init__(
             name="EnsembleAgent",
@@ -96,15 +92,14 @@ class EnsembleAgent(BaseAgent):
             ("MeanReversionAgent", mean_reversion_agent),
             ("SentimentAgent", sentiment_agent),
             ("ClaudeAgent", claude_agent),
-            ("GeminiAgent", gemini_agent),
         ]:
             if agent is not None:
                 self.component_agents[name] = agent
 
     def set_agents(self, agents: Dict[str, "BaseAgent"]) -> None:
-        """Set component agents after initialization."""
+        """Set component agents after initialization (GeminiAgent excluded — news-only)."""
         for name, agent in agents.items():
-            if name != "EnsembleAgent":
+            if name not in ("EnsembleAgent", "GeminiAgent"):
                 self.component_agents[name] = agent
 
     # ── Regime detection ───────────────────────────────────────────────────────

@@ -238,6 +238,17 @@ Include an entry for every symbol: {', '.join(watchlist)}
                 logger.error(f"GeminiAgent: API error: {err[:200]}")
             return None
 
+    async def get_market_view(self, market_context: Dict, watchlist: List[str]) -> Optional[str]:
+        """
+        Return Gemini's market analysis as a plain-text string for use as
+        context by other agents.  No trading signals are produced.
+        Returns None when rate-limited or unconfigured.
+        """
+        response = await self._get_gemini_decisions(market_context, watchlist)
+        if response:
+            return response.get("market_analysis") or None
+        return None
+
     async def analyze(self, market_context: Dict) -> List[Signal]:
         prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
 

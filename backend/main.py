@@ -91,6 +91,7 @@ class AppState:
         self.start_time: Optional[datetime] = None
         self.market_status: str = "unknown"          # "open" | "closed"
         self._prev_market_status: str = "unknown"    # for EOD roll-up transition detection
+        self.gemini_news_agent = None                # GeminiAgent used as news source only
         self.force_trading: bool = False              # bypass market-hours gate for testing
         self.after_hours_catalysts: List[Dict] = []  # catalysts found by sentinel
         self.last_sentinel_poll: Optional[str] = None  # ISO timestamp of last sentinel poll
@@ -117,20 +118,21 @@ async def init_agents() -> None:
     claude = ClaudeAgent()
     gemini = GeminiAgent()
 
-    # Create ensemble with references to other agents
+    # Create ensemble (Gemini excluded — news/context source only, not a voter)
     ensemble = EnsembleAgent(
         tech_agent=tech,
         momentum_agent=momentum,
         mean_reversion_agent=mean_rev,
         sentiment_agent=sentiment,
         claude_agent=claude,
-        gemini_agent=gemini,
     )
 
     # Scanner portfolio: acts on cached scan results, no new API calls each cycle
     scanner_portfolio = ScannerPortfolioAgent()
 
-    all_agents = [tech, momentum, mean_rev, sentiment, claude, gemini, ensemble, scanner_portfolio]
+    # Gemini is a news/context source only — not registered as a trading agent
+    app_state.gemini_news_agent = gemini
+    all_agents = [tech, momentum, mean_rev, sentiment, claude, ensemble, scanner_portfolio]
 
     # Register agents in DB and restore full portfolio state for continuity across restarts
     for agent in all_agents:
@@ -294,6 +296,19 @@ async def trading_loop() -> None:
             # Inject overnight sentinel catalysts so agents see what happened after hours
             if app_state.after_hours_catalysts:
                 market_context["__overnight_catalysts__"] = app_state.after_hours_catalysts
+
+            # Fetch Gemini market view (rate-limited 2/hr) and inject as context
+            if app_state.gemini_news_agent:
+                try:
+                    watchlist = [s for s in market_context if isinstance(market_context[s], dict)]
+                    gemini_view = await app_state.gemini_news_agent.get_market_view(
+                        market_context, watchlist
+                    )
+                    if gemini_view:
+                        market_context["__gemini_market_view__"] = gemini_view
+                        logger.debug(f"Gemini market view injected: {gemini_view[:80]}")
+                except Exception as e:
+                    logger.warning(f"Gemini news fetch failed: {e}")
 
             app_state.last_prices = prices
             app_state.last_market_context = market_context
