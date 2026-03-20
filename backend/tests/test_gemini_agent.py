@@ -448,5 +448,56 @@ class TestGeminiMarketView(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(result)
 
 
+class TestGeminiSaveTokenLog(unittest.IsolatedAsyncioTestCase):
+    """save_token_log is called after each successful Gemini API call."""
+
+    def _make_agent_with_response(self, analysis="ok"):
+        agent = GeminiAgent()
+        mock_response = MagicMock()
+        mock_response.text = f'{{"market_analysis": "{analysis}", "decisions": [{{"symbol": "AAPL", "action": "HOLD", "shares": 0, "confidence": 0.5, "reasoning": "test"}}]}}'
+        mock_response.usage_metadata = MagicMock()
+        mock_response.usage_metadata.prompt_token_count = 500
+        mock_response.usage_metadata.candidates_token_count = 100
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
+        agent._client = mock_client
+        return agent
+
+    async def test_save_token_log_called_after_success(self):
+        agent = self._make_agent_with_response()
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.save_token_log", new_callable=AsyncMock) as mock_save:
+            cfg.GEMINI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        mock_save.assert_awaited_once()
+        all_args = list(mock_save.call_args[0]) + list((mock_save.call_args[1] or {}).values())
+        self.assertIn("GeminiAgent", all_args)
+        self.assertIn("gemini-2.0-flash", all_args)
+
+    async def test_save_token_log_limit_hit_false_on_success(self):
+        agent = self._make_agent_with_response()
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.save_token_log", new_callable=AsyncMock) as mock_save:
+            cfg.GEMINI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        call_kwargs = mock_save.call_args
+        limit_hit = call_kwargs[1].get("limit_hit") if call_kwargs[1] else call_kwargs[0][-1]
+        self.assertFalse(limit_hit)
+
+
 if __name__ == "__main__":
     unittest.main()

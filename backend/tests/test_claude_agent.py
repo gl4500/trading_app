@@ -530,5 +530,55 @@ class TestClaudeRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(s.action == "HOLD" for s in signals))
 
 
+class TestClaudeSaveTokenLog(unittest.IsolatedAsyncioTestCase):
+    """save_token_log is called after each successful Claude API call."""
+
+    def _make_agent_with_client(self, input_tokens=8000, output_tokens=500):
+        agent = ClaudeAgent()
+        mock_client = MagicMock()
+        mock_client.messages.create = AsyncMock(
+            return_value=_make_claude_mock_response(input_tokens, output_tokens)
+        )
+        agent._client = mock_client
+        return agent, mock_client
+
+    async def test_save_token_log_called_after_success(self):
+        agent, _ = self._make_agent_with_client(input_tokens=8000, output_tokens=500)
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("agents.claude_agent.save_token_log", new_callable=AsyncMock) as mock_save:
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        mock_save.assert_awaited_once()
+        all_args = list(mock_save.call_args[0]) + list((mock_save.call_args[1] or {}).values())
+        self.assertIn("ClaudeAgent", all_args)
+        self.assertIn("claude-opus-4-6", all_args)
+
+    async def test_save_token_log_limit_hit_false_on_success(self):
+        agent, _ = self._make_agent_with_client()
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("agents.claude_agent.save_token_log", new_callable=AsyncMock) as mock_save:
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        call_kwargs = mock_save.call_args
+        limit_hit = call_kwargs[1].get("limit_hit") if call_kwargs[1] else call_kwargs[0][-1]
+        self.assertFalse(limit_hit)
+
+
 if __name__ == "__main__":
     unittest.main()

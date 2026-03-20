@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Agent, Trade } from '../App'
+import { Agent, Trade, SummaryLive } from '../App'
 import Leaderboard from './Leaderboard'
 import AgentCard from './AgentCard'
 import PortfolioChart from './PortfolioChart'
@@ -9,26 +9,31 @@ import SignalsPanel from './SignalsPanel'
 import ScannerPanel from './ScannerPanel'
 import SummaryPanel from './SummaryPanel'
 import SentinelPanel from './SentinelPanel'
+import TokensPanel from './TokensPanel'
 
 interface DashboardProps {
   agents: Agent[]
   prices: Record<string, number>
+  priceChanges: Record<string, number>
   leaderboard: Agent[]
   trades: Trade[]
   watchlist: string[]
   isRunning: boolean
+  summaryLive?: SummaryLive
 }
 
 export default function Dashboard({
   agents,
   prices,
+  priceChanges,
   leaderboard,
   trades,
   watchlist,
   isRunning,
+  summaryLive,
 }: DashboardProps) {
   const [selectedAgentName, setSelectedAgentName] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'chart' | 'detail' | 'signals' | 'scanner' | 'summary' | 'sentinel' | 'trades'>('chart')
+  const [activeTab, setActiveTab] = useState<'chart' | 'detail' | 'signals' | 'scanner' | 'summary' | 'sentinel' | 'trades' | 'tokens'>('chart')
 
   function handleSelectAgent(name: string) {
     setSelectedAgentName(name)
@@ -43,7 +48,7 @@ export default function Dashboard({
   return (
     <div className="space-y-4">
       {/* Market Overview Ticker */}
-      <MarketOverview prices={prices} watchlist={watchlist} />
+      <MarketOverview prices={prices} priceChanges={priceChanges} watchlist={watchlist} />
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -130,7 +135,17 @@ export default function Dashboard({
             >
               📋 Trades
             </button>
-            {displayAgent && activeTab !== 'signals' && activeTab !== 'scanner' && activeTab !== 'summary' && activeTab !== 'sentinel' && activeTab !== 'trades' && (
+            <button
+              onClick={() => setActiveTab('tokens')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'tokens'
+                  ? 'bg-teal-700 text-white'
+                  : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              🔢 Tokens
+            </button>
+            {displayAgent && activeTab !== 'signals' && activeTab !== 'scanner' && activeTab !== 'summary' && activeTab !== 'sentinel' && activeTab !== 'trades' && activeTab !== 'tokens' && (
               <span className="ml-auto text-xs text-gray-400 self-center">
                 Viewing: <span className="text-blue-400 font-medium">{displayAgent.name}</span>
               </span>
@@ -138,10 +153,63 @@ export default function Dashboard({
           </div>
 
           {activeTab === 'chart' && (
-            <PortfolioChart
-              agents={agents}
-              selectedAgentName={selectedAgentName}
-            />
+            <div className="space-y-4">
+              <PortfolioChart
+                agents={agents}
+                selectedAgentName={selectedAgentName}
+              />
+
+              {/* Per-agent trade summary */}
+              {displayAgent && (() => {
+                const sells = displayAgent.recent_trades.filter(t => t.action === 'SELL')
+                const buys  = displayAgent.recent_trades.filter(t => t.action === 'BUY')
+                const realizedPnl = sells.reduce((s, t) => s + (t.pnl ?? 0), 0)
+                const pnlColor = realizedPnl >= 0 ? 'text-green-400' : 'text-red-400'
+                const pnlSign  = realizedPnl >= 0 ? '+$' : '-$'
+
+                return (
+                  <div className="card">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="card-header">Recent Trades — {displayAgent.name}</span>
+                      <div className="flex items-center gap-4 text-xs text-gray-400">
+                        <span><span className="text-green-400 font-medium">{buys.length}</span> buys</span>
+                        <span><span className="text-red-400 font-medium">{sells.length}</span> sells</span>
+                        <span>Realized P&L: <span className={`font-bold ${pnlColor}`}>{pnlSign}{Math.abs(realizedPnl).toFixed(2)}</span></span>
+                        <span>Win rate: <span className={`font-bold ${displayAgent.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}`}>{displayAgent.win_rate < 50 ? '-' : ''}{displayAgent.win_rate.toFixed(1)}%</span></span>
+                      </div>
+                    </div>
+
+                    {displayAgent.recent_trades.length === 0 ? (
+                      <p className="text-center text-gray-500 text-sm py-4">No trades recorded yet.</p>
+                    ) : (
+                      <div className="divide-y divide-gray-800/60">
+                        {displayAgent.recent_trades.map((t, i) => {
+                          const isSell = t.action === 'SELL'
+                          const pnl = t.pnl ?? 0
+                          return (
+                            <div key={i} className="flex items-center gap-3 px-1 py-1.5 text-xs">
+                              <span className="text-gray-500 w-16 shrink-0 font-mono">
+                                {new Date(t.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <span className={`font-bold w-8 shrink-0 ${t.action === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
+                                {t.action}
+                              </span>
+                              <span className="font-bold text-white w-14 shrink-0">{t.symbol}</span>
+                              <span className="text-gray-400">{t.shares.toFixed(2)} @ ${t.price.toFixed(2)}</span>
+                              {isSell && (
+                                <span className={`ml-auto font-bold ${pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {pnl >= 0 ? '+$' : '-$'}{Math.abs(pnl).toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
           )}
 
           {activeTab === 'detail' && displayAgent && (
@@ -158,11 +226,13 @@ export default function Dashboard({
 
           {activeTab === 'scanner' && <ScannerPanel />}
 
-          {activeTab === 'summary' && <SummaryPanel />}
+          {activeTab === 'summary' && <SummaryPanel liveData={summaryLive} />}
 
           {activeTab === 'sentinel' && <SentinelPanel />}
 
           {activeTab === 'trades' && <TradeLog trades={trades} agents={agents} />}
+
+          {activeTab === 'tokens' && <TokensPanel />}
         </div>
       </div>
     </div>

@@ -29,6 +29,8 @@ from database import (
     get_portfolio_positions,
     restore_value_history,
     reset_database,
+    get_token_log,
+    cleanup_token_log,
 )
 from trading.portfolio import Position, TradeRecord
 from data.market_data import market_data_service
@@ -144,7 +146,7 @@ async def init_agents() -> None:
         if cash is not None:
             agent.portfolio.cash = cash
 
-            # Restore open positions
+            # Restore open positions (including last known market price)
             db_positions = await get_portfolio_positions(agent_id)
             for pos in db_positions:
                 agent.portfolio.positions[pos["symbol"]] = Position(
@@ -152,6 +154,10 @@ async def init_agents() -> None:
                     shares=pos["shares"],
                     avg_cost=pos["avg_cost"],
                 )
+                # Seed last_prices so first WS broadcast uses closing price, not avg_cost
+                lp = pos.get("last_price", 0.0)
+                if lp and lp > 0:
+                    app_state.last_prices.setdefault(pos["symbol"], lp)
 
             # Restore trade history for win_rate / total_trades
             db_trades = await get_agent_trades(agent_id, limit=500)
@@ -853,6 +859,7 @@ async def run_agent_cycle(agent, market_context: Dict, prices: Dict[str, float])
                 avg_cost=pos.avg_cost,
                 current_value=pos.current_value(price),
                 unrealized_pnl=pos.unrealized_pnl(price),
+                last_price=price if sym in prices else 0.0,
             )
 
     except Exception as e:
@@ -941,6 +948,14 @@ async def build_ws_message() -> Dict:
     except Exception as e:
         logger.debug(f"build_ws_message: summary_live failed: {e}")
 
+    # Build 1-day change % per symbol from market context stats
+    price_changes: Dict[str, float] = {}
+    for sym, ctx in app_state.last_market_context.items():
+        if isinstance(ctx, dict):
+            pct = ctx.get("stats", {}).get("price_change_1d")
+            if pct is not None:
+                price_changes[sym] = round(pct, 2)
+
     return {
         "type": "update",
         "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -948,6 +963,7 @@ async def build_ws_message() -> Dict:
         "cycle_count": app_state.cycle_count,
         "agents": agents_state,
         "prices": prices,
+        "price_changes": price_changes,
         "leaderboard": leaderboard,
         "watchlist": watchlist_manager.get_active_watchlist(),
         "summary_live": summary_live,
@@ -962,6 +978,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting AI Trading Competition backend...")
     await init_db()
+    await cleanup_token_log(hours=24)
     await init_agents()
 
     # Bootstrap fluid watchlist from cached scan (if available)
@@ -1502,6 +1519,23 @@ async def get_token_usage():
     }
 
     return {"agents": agents_out, "totals": totals}
+
+
+@app.get("/api/token-log")
+async def get_token_log_endpoint(
+    agent: Optional[str] = Query(None, description="Filter by agent name"),
+    hours: int = Query(24, description="Time window in hours"),
+    limit_hit: bool = Query(False, description="Only return limit-hit events"),
+    limit: int = Query(500, description="Max entries to return"),
+):
+    """Return DB token usage log, newest first. Searchable by agent, time window, and limit_hit."""
+    entries = await get_token_log(
+        agent=agent,
+        hours=hours,
+        limit_hit_only=limit_hit,
+        limit=limit,
+    )
+    return {"entries": entries}
 
 
 # ─── WebSocket ─────────────────────────────────────────────────────────────────

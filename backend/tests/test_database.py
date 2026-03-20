@@ -117,6 +117,99 @@ class TestSaveTrade(TestDatabaseBase):
         self.assertEqual(len(trades), 1)
         self.assertEqual(trades[0]["symbol"], "AAPL")
 
+    def test_pnl_persisted_for_sell(self):
+        run(database.save_trade(self.aid, "AAPL", "SELL", 10, 160.0, "sold", pnl=100.0))
+        trades = run(database.get_agent_trades(self.aid))
+        self.assertAlmostEqual(trades[0]["pnl"], 100.0)
+
+    def test_pnl_defaults_to_zero_for_buy(self):
+        run(database.save_trade(self.aid, "AAPL", "BUY", 10, 150.0, "bought"))
+        trades = run(database.get_agent_trades(self.aid))
+        self.assertAlmostEqual(trades[0]["pnl"], 0.0)
+
+    def test_negative_pnl_persisted(self):
+        run(database.save_trade(self.aid, "AAPL", "SELL", 5, 140.0, "loss", pnl=-50.0))
+        trades = run(database.get_agent_trades(self.aid))
+        self.assertAlmostEqual(trades[0]["pnl"], -50.0)
+
+
+class TestRecalculateTradePnl(TestDatabaseBase):
+
+    def setUp(self):
+        super().setUp()
+        self.aid = run(database.upsert_agent("RecalcAgent", "recalc"))
+
+    def _save(self, action, shares, price, pnl=0.0):
+        run(database.save_trade(self.aid, "AAPL", action, shares, price, "", pnl))
+
+    def _trades(self):
+        return run(database.get_agent_trades(self.aid))
+
+    def test_simple_buy_then_sell_profit(self):
+        # Buy 10 @ $100, sell 10 @ $120 → pnl = $200
+        self._save("BUY", 10, 100.0)
+        self._save("SELL", 10, 120.0)
+        run(database.recalculate_trade_pnl())
+        trades = self._trades()  # returns DESC
+        sell = next(t for t in trades if t["action"] == "SELL")
+        self.assertAlmostEqual(sell["pnl"], 200.0)
+
+    def test_simple_buy_then_sell_loss(self):
+        # Buy 10 @ $100, sell 10 @ $90 → pnl = -$100
+        self._save("BUY", 10, 100.0)
+        self._save("SELL", 10, 90.0)
+        run(database.recalculate_trade_pnl())
+        sell = next(t for t in self._trades() if t["action"] == "SELL")
+        self.assertAlmostEqual(sell["pnl"], -100.0)
+
+    def test_partial_sell(self):
+        # Buy 10 @ $100, sell 4 @ $110 → pnl = 4 * $10 = $40
+        self._save("BUY", 10, 100.0)
+        self._save("SELL", 4, 110.0)
+        run(database.recalculate_trade_pnl())
+        sell = next(t for t in self._trades() if t["action"] == "SELL")
+        self.assertAlmostEqual(sell["pnl"], 40.0)
+
+    def test_averaged_cost_basis(self):
+        # Buy 10 @ $100, buy 10 @ $120 → avg = $110
+        # Sell 10 @ $130 → pnl = 10 * $20 = $200
+        self._save("BUY", 10, 100.0)
+        self._save("BUY", 10, 120.0)
+        self._save("SELL", 10, 130.0)
+        run(database.recalculate_trade_pnl())
+        sell = next(t for t in self._trades() if t["action"] == "SELL")
+        self.assertAlmostEqual(sell["pnl"], 200.0)
+
+    def test_buy_pnl_stays_zero(self):
+        self._save("BUY", 10, 100.0)
+        run(database.recalculate_trade_pnl())
+        buy = next(t for t in self._trades() if t["action"] == "BUY")
+        self.assertAlmostEqual(buy["pnl"], 0.0)
+
+    def test_multiple_agents_isolated(self):
+        aid2 = run(database.upsert_agent("OtherRecalc", "other"))
+        run(database.save_trade(self.aid, "AAPL", "BUY", 10, 100.0, ""))
+        run(database.save_trade(self.aid, "AAPL", "SELL", 10, 110.0, ""))
+        run(database.save_trade(aid2, "MSFT", "BUY", 5, 200.0, ""))
+        run(database.save_trade(aid2, "MSFT", "SELL", 5, 180.0, ""))
+        run(database.recalculate_trade_pnl())
+        agent1_sell = next(
+            t for t in run(database.get_agent_trades(self.aid)) if t["action"] == "SELL"
+        )
+        agent2_sell = next(
+            t for t in run(database.get_agent_trades(aid2)) if t["action"] == "SELL"
+        )
+        self.assertAlmostEqual(agent1_sell["pnl"], 100.0)
+        self.assertAlmostEqual(agent2_sell["pnl"], -100.0)
+
+    def test_idempotent(self):
+        self._save("BUY", 10, 100.0)
+        self._save("SELL", 10, 115.0)
+        run(database.recalculate_trade_pnl())
+        run(database.recalculate_trade_pnl())
+        sell = next(t for t in self._trades() if t["action"] == "SELL")
+        self.assertAlmostEqual(sell["pnl"], 150.0)
+
 
 class TestSavePerformance(TestDatabaseBase):
 
@@ -163,6 +256,265 @@ class TestUpsertPortfolioPosition(TestDatabaseBase):
         run(database.upsert_portfolio_position(self.aid, "AAPL", 10, 150.0, 1600.0, 100.0))
         # Selling all → shares=0 → should delete
         run(database.upsert_portfolio_position(self.aid, "AAPL", 0, 0, 0, 0))
+
+    def test_last_price_stored_and_returned(self):
+        """last_price is persisted and returned by get_portfolio_positions."""
+        run(database.upsert_portfolio_position(
+            self.aid, "AAPL", 10, 150.0, 1650.0, 150.0, last_price=165.0
+        ))
+        result = run(database.get_portfolio_positions(self.aid))
+        self.assertEqual(len(result), 1)
+        self.assertAlmostEqual(result[0]["last_price"], 165.0)
+
+    def test_last_price_defaults_to_zero(self):
+        """Omitting last_price defaults to 0 (backward-compatible callers)."""
+        run(database.upsert_portfolio_position(self.aid, "MSFT", 5, 300.0, 1550.0, 50.0))
+        result = run(database.get_portfolio_positions(self.aid))
+        self.assertAlmostEqual(result[0]["last_price"], 0.0)
+
+    def test_last_price_updated_on_upsert(self):
+        """Upserting an existing position updates last_price."""
+        run(database.upsert_portfolio_position(
+            self.aid, "AAPL", 10, 150.0, 1600.0, 100.0, last_price=160.0
+        ))
+        run(database.upsert_portfolio_position(
+            self.aid, "AAPL", 10, 150.0, 1750.0, 250.0, last_price=175.0
+        ))
+        result = run(database.get_portfolio_positions(self.aid))
+        self.assertAlmostEqual(result[0]["last_price"], 175.0)
+
+
+class TestGetLatestCash(TestDatabaseBase):
+
+    def setUp(self):
+        super().setUp()
+        self.aid = run(database.upsert_agent("CashAgent", "cash"))
+
+    def test_returns_none_when_no_data(self):
+        result = run(database.get_latest_cash(self.aid))
+        self.assertIsNone(result)
+
+    def test_returns_most_recent_cash(self):
+        run(database.save_performance(self.aid, 105_000.0, 60_000.0, 5.0, 1.2, 0.6))
+        run(database.save_performance(self.aid, 106_000.0, 55_000.0, 6.0, 1.3, 0.7))
+        result = run(database.get_latest_cash(self.aid))
+        self.assertAlmostEqual(result, 55_000.0)
+
+    def test_isolated_by_agent(self):
+        aid2 = run(database.upsert_agent("CashAgent2", "cash2"))
+        run(database.save_performance(self.aid, 100_000.0, 80_000.0, 0.0, 0.0, 0.0))
+        run(database.save_performance(aid2, 100_000.0, 70_000.0, 0.0, 0.0, 0.0))
+        result = run(database.get_latest_cash(self.aid))
+        self.assertAlmostEqual(result, 80_000.0)
+
+
+class TestGetPortfolioPositions(TestDatabaseBase):
+
+    def setUp(self):
+        super().setUp()
+        self.aid = run(database.upsert_agent("PosAgent", "positions"))
+
+    def test_returns_empty_when_no_positions(self):
+        result = run(database.get_portfolio_positions(self.aid))
+        self.assertEqual(result, [])
+
+    def test_returns_position_fields(self):
+        run(database.upsert_portfolio_position(
+            self.aid, "AAPL", 10, 150.0, 1600.0, 100.0, last_price=160.0
+        ))
+        result = run(database.get_portfolio_positions(self.aid))
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["symbol"], "AAPL")
+        self.assertAlmostEqual(result[0]["shares"], 10)
+        self.assertAlmostEqual(result[0]["avg_cost"], 150.0)
+        self.assertAlmostEqual(result[0]["last_price"], 160.0)
+
+    def test_multiple_positions(self):
+        run(database.upsert_portfolio_position(self.aid, "AAPL", 10, 150.0, 1600.0, 100.0))
+        run(database.upsert_portfolio_position(self.aid, "MSFT", 5, 300.0, 1550.0, 50.0))
+        result = run(database.get_portfolio_positions(self.aid))
+        symbols = {r["symbol"] for r in result}
+        self.assertEqual(symbols, {"AAPL", "MSFT"})
+
+    def test_isolated_by_agent(self):
+        aid2 = run(database.upsert_agent("PosAgent2", "p2"))
+        run(database.upsert_portfolio_position(self.aid, "AAPL", 10, 150.0, 1600.0, 100.0))
+        run(database.upsert_portfolio_position(aid2, "MSFT", 5, 300.0, 1550.0, 50.0))
+        result = run(database.get_portfolio_positions(self.aid))
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["symbol"], "AAPL")
+
+
+class TestCleanupStalePositions(TestDatabaseBase):
+
+    def setUp(self):
+        super().setUp()
+        self.aid = run(database.upsert_agent("CleanupAgent", "cleanup"))
+
+    def test_removes_fully_sold_position(self):
+        run(database.save_trade(self.aid, "LYFT", "BUY", 100, 14.0, ""))
+        run(database.save_trade(self.aid, "LYFT", "SELL", 100, 14.09, ""))
+        # Stale: DB still shows LYFT open
+        run(database.upsert_portfolio_position(self.aid, "LYFT", 100, 14.0, 1400.0, 0.0))
+        run(database.cleanup_stale_positions())
+        positions = run(database.get_portfolio_positions(self.aid))
+        symbols = [p["symbol"] for p in positions]
+        self.assertNotIn("LYFT", symbols)
+
+    def test_keeps_partially_open_position(self):
+        run(database.save_trade(self.aid, "NVDA", "BUY", 50, 200.0, ""))
+        run(database.save_trade(self.aid, "NVDA", "SELL", 20, 210.0, ""))
+        run(database.upsert_portfolio_position(self.aid, "NVDA", 30, 200.0, 6300.0, 300.0))
+        run(database.cleanup_stale_positions())
+        positions = run(database.get_portfolio_positions(self.aid))
+        symbols = [p["symbol"] for p in positions]
+        self.assertIn("NVDA", symbols)
+
+    def test_keeps_position_never_sold(self):
+        run(database.save_trade(self.aid, "AAPL", "BUY", 10, 150.0, ""))
+        run(database.upsert_portfolio_position(self.aid, "AAPL", 10, 150.0, 1600.0, 100.0))
+        run(database.cleanup_stale_positions())
+        positions = run(database.get_portfolio_positions(self.aid))
+        self.assertEqual(len(positions), 1)
+
+    def test_multiple_agents_isolated(self):
+        aid2 = run(database.upsert_agent("CleanupAgent2", "c2"))
+        # Agent1: sold LYFT (stale)
+        run(database.save_trade(self.aid, "LYFT", "BUY", 100, 14.0, ""))
+        run(database.save_trade(self.aid, "LYFT", "SELL", 100, 14.09, ""))
+        run(database.upsert_portfolio_position(self.aid, "LYFT", 100, 14.0, 1400.0, 0.0))
+        # Agent2: still holds MSFT
+        run(database.save_trade(aid2, "MSFT", "BUY", 5, 300.0, ""))
+        run(database.upsert_portfolio_position(aid2, "MSFT", 5, 300.0, 1550.0, 50.0))
+        run(database.cleanup_stale_positions())
+        self.assertEqual(run(database.get_portfolio_positions(self.aid)), [])
+        self.assertEqual(len(run(database.get_portfolio_positions(aid2))), 1)
+
+    def test_idempotent(self):
+        run(database.save_trade(self.aid, "LYFT", "BUY", 100, 14.0, ""))
+        run(database.save_trade(self.aid, "LYFT", "SELL", 100, 14.09, ""))
+        run(database.upsert_portfolio_position(self.aid, "LYFT", 100, 14.0, 1400.0, 0.0))
+        run(database.cleanup_stale_positions())
+        run(database.cleanup_stale_positions())
+        self.assertEqual(run(database.get_portfolio_positions(self.aid)), [])
+
+
+class TestRestoreValueHistory(TestDatabaseBase):
+
+    def setUp(self):
+        super().setUp()
+        self.aid = run(database.upsert_agent("HistAgent", "history"))
+
+    def test_empty_when_no_performance_data(self):
+        result = run(database.restore_value_history(self.aid))
+        self.assertEqual(result, [])
+
+    def test_returns_datetime_float_tuples(self):
+        from datetime import datetime
+        run(database.save_performance(self.aid, 105_000.0, 50_000.0, 5.0, 1.2, 0.6))
+        result = run(database.restore_value_history(self.aid))
+        self.assertEqual(len(result), 1)
+        ts, val = result[0]
+        self.assertIsInstance(ts, datetime)
+        self.assertAlmostEqual(val, 105_000.0)
+
+    def test_ordered_ascending(self):
+        for v in [100_000.0, 101_000.0, 102_000.0]:
+            run(database.save_performance(self.aid, v, 50_000.0, 0.0, 0.0, 0.0))
+        result = run(database.restore_value_history(self.aid))
+        values = [v for _, v in result]
+        self.assertEqual(values, sorted(values))
+
+    def test_limit_respected(self):
+        for i in range(10):
+            run(database.save_performance(self.aid, 100_000.0 + i, 50_000.0, 0.0, 0.0, 0.0))
+        result = run(database.restore_value_history(self.aid, limit=5))
+        self.assertEqual(len(result), 5)
+
+    def test_different_agents_isolated(self):
+        aid2 = run(database.upsert_agent("OtherHistAgent", "other"))
+        run(database.save_performance(self.aid, 110_000.0, 50_000.0, 10.0, 1.0, 0.5))
+        run(database.save_performance(aid2, 99_000.0, 50_000.0, -1.0, 0.0, 0.0))
+        result = run(database.restore_value_history(self.aid))
+        self.assertEqual(len(result), 1)
+        self.assertAlmostEqual(result[0][1], 110_000.0)
+
+
+class TestTokenLog(TestDatabaseBase):
+
+    def test_save_and_retrieve_basic(self):
+        run(database.save_token_log("SentimentAgent", "gpt-4o-mini", 120, 80, 200, 200, False, daily_limit=10_000))
+        rows = run(database.get_token_log())
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["agent"], "SentimentAgent")
+        self.assertEqual(rows[0]["model"], "gpt-4o-mini")
+        self.assertEqual(rows[0]["prompt_tokens"], 120)
+        self.assertEqual(rows[0]["completion_tokens"], 80)
+        self.assertEqual(rows[0]["total_tokens"], 200)
+        self.assertEqual(rows[0]["daily_total"], 200)
+        self.assertEqual(rows[0]["daily_limit"], 10_000)
+        self.assertFalse(rows[0]["limit_hit"])
+
+    def test_limit_hit_flagged(self):
+        run(database.save_token_log("SentimentAgent", "gpt-4o-mini", 0, 0, 0, 10_000, True))
+        rows = run(database.get_token_log())
+        self.assertTrue(rows[0]["limit_hit"])
+
+    def test_filter_by_agent(self):
+        run(database.save_token_log("ClaudeAgent", "claude-opus-4-6", 500, 200, 700, 5000, False))
+        run(database.save_token_log("SentimentAgent", "gpt-4o-mini", 100, 50, 150, 500, False))
+        rows = run(database.get_token_log(agent="ClaudeAgent"))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["agent"], "ClaudeAgent")
+
+    def test_filter_limit_hit_only(self):
+        run(database.save_token_log("SentimentAgent", "gpt-4o-mini", 100, 50, 150, 9000, False))
+        run(database.save_token_log("SentimentAgent", "gpt-4o-mini", 0, 0, 0, 10_000, True))
+        rows = run(database.get_token_log(limit_hit_only=True))
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(rows[0]["limit_hit"])
+
+    def test_multiple_agents_all_returned(self):
+        run(database.save_token_log("ClaudeAgent", "claude-opus-4-6", 500, 200, 700, 700, False))
+        run(database.save_token_log("GeminiAgent", "gemini-2.0-flash", 300, 100, 400, 400, False))
+        run(database.save_token_log("SentimentAgent", "gpt-4o-mini", 100, 50, 150, 150, False))
+        rows = run(database.get_token_log())
+        self.assertEqual(len(rows), 3)
+
+    def test_cleanup_removes_old_rows(self):
+        import aiosqlite
+        from datetime import datetime, timedelta
+
+        async def insert_old():
+            old_ts = (datetime.utcnow() - timedelta(hours=25)).isoformat()
+            async with aiosqlite.connect(database.DB_PATH) as db:
+                await db.execute(
+                    """INSERT INTO token_log
+                       (timestamp, agent, model, prompt_tokens, completion_tokens,
+                        total_tokens, daily_total, daily_limit, limit_hit)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (old_ts, "OldAgent", "old-model", 10, 5, 15, 15, None, 0)
+                )
+                await db.commit()
+
+        run(insert_old())
+        run(database.save_token_log("NewAgent", "new-model", 10, 5, 15, 15, False))
+        run(database.cleanup_token_log(hours=24))
+        rows = run(database.get_token_log())
+        agents = [r["agent"] for r in rows]
+        self.assertNotIn("OldAgent", agents)
+        self.assertIn("NewAgent", agents)
+
+    def test_rows_ordered_newest_first(self):
+        run(database.save_token_log("A", "m", 10, 5, 15, 15, False))
+        run(database.save_token_log("B", "m", 20, 10, 30, 30, False))
+        rows = run(database.get_token_log())
+        self.assertEqual(rows[0]["agent"], "B")
+
+    def test_daily_limit_none_stored(self):
+        run(database.save_token_log("GeminiAgent", "gemini-2.0-flash", 300, 100, 400, 400, False, daily_limit=None))
+        rows = run(database.get_token_log())
+        self.assertIsNone(rows[0]["daily_limit"])
 
 
 if __name__ == "__main__":

@@ -23,6 +23,7 @@ from config import config
 from data.news_service import news_service
 from data.technicals import format_for_prompt as format_technicals
 from data.signal_aggregator import format_for_prompt as format_composite
+from database import save_token_log
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +209,18 @@ Include an entry for every symbol: {', '.join(watchlist)}
                 f"daily_total={self._daily_tokens} | "
                 f"calls_this_hour={len(self._call_timestamps)}/{self._hourly_call_limit}"
             )
+            try:
+                await save_token_log(
+                    agent="GeminiAgent",
+                    model="gemini-2.0-flash",
+                    prompt_tokens=prompt_tok,
+                    completion_tokens=candidate_tok,
+                    total_tokens=prompt_tok + candidate_tok,
+                    daily_total=self._daily_tokens,
+                    limit_hit=False,
+                )
+            except Exception as _e:
+                logger.debug(f"GeminiAgent: token log save failed: {_e}")
 
             # Extract JSON from response
             json_match = re.search(r'\{[\s\S]*\}', text)

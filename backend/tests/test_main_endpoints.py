@@ -657,5 +657,90 @@ class TestTokenUsageEndpoint(unittest.TestCase):
         self.assertIn("GeminiAgent", data["agents"])
 
 
+class TestTokenLogEndpoint(unittest.TestCase):
+    """GET /api/token-log returns DB token log entries with filtering."""
+
+    def setUp(self):
+        self.patcher_db = patch("main.init_db", new_callable=AsyncMock)
+        self.patcher_agents = patch("main.init_agents", new_callable=AsyncMock)
+        self.patcher_db.start()
+        self.patcher_agents.start()
+
+    def tearDown(self):
+        self.patcher_db.stop()
+        self.patcher_agents.stop()
+
+    def _sample_entries(self):
+        return [
+            {
+                "id": 1,
+                "timestamp": "2026-03-20T10:00:00",
+                "agent": "SentimentAgent",
+                "model": "gpt-4o-mini",
+                "prompt_tokens": 200,
+                "completion_tokens": 100,
+                "total_tokens": 300,
+                "daily_total": 300,
+                "daily_limit": 10000,
+                "limit_hit": False,
+            }
+        ]
+
+    def test_returns_200(self):
+        from main import app
+        with patch("main.get_token_log", new_callable=AsyncMock, return_value=self._sample_entries()):
+            with TestClient(app) as client:
+                resp = client.get("/api/token-log")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_response_has_entries_key(self):
+        from main import app
+        with patch("main.get_token_log", new_callable=AsyncMock, return_value=self._sample_entries()):
+            with TestClient(app) as client:
+                data = client.get("/api/token-log").json()
+        self.assertIn("entries", data)
+        self.assertEqual(len(data["entries"]), 1)
+
+    def test_entry_has_expected_fields(self):
+        from main import app
+        with patch("main.get_token_log", new_callable=AsyncMock, return_value=self._sample_entries()):
+            with TestClient(app) as client:
+                data = client.get("/api/token-log").json()
+        entry = data["entries"][0]
+        for field in ("timestamp", "agent", "model", "prompt_tokens", "completion_tokens", "total_tokens", "limit_hit"):
+            self.assertIn(field, entry)
+
+    def test_agent_query_param_forwarded(self):
+        from main import app
+        with patch("main.get_token_log", new_callable=AsyncMock, return_value=[]) as mock_fn:
+            with TestClient(app) as client:
+                client.get("/api/token-log?agent=SentimentAgent")
+        call_kwargs = mock_fn.call_args[1]
+        self.assertEqual(call_kwargs.get("agent"), "SentimentAgent")
+
+    def test_hours_query_param_forwarded(self):
+        from main import app
+        with patch("main.get_token_log", new_callable=AsyncMock, return_value=[]) as mock_fn:
+            with TestClient(app) as client:
+                client.get("/api/token-log?hours=12")
+        call_kwargs = mock_fn.call_args[1]
+        self.assertEqual(call_kwargs.get("hours"), 12)
+
+    def test_limit_hit_filter_forwarded(self):
+        from main import app
+        with patch("main.get_token_log", new_callable=AsyncMock, return_value=[]) as mock_fn:
+            with TestClient(app) as client:
+                client.get("/api/token-log?limit_hit=true")
+        call_kwargs = mock_fn.call_args[1]
+        self.assertTrue(call_kwargs.get("limit_hit_only"))
+
+    def test_empty_returns_empty_list(self):
+        from main import app
+        with patch("main.get_token_log", new_callable=AsyncMock, return_value=[]):
+            with TestClient(app) as client:
+                data = client.get("/api/token-log").json()
+        self.assertEqual(data["entries"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

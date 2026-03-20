@@ -435,5 +435,66 @@ class TestDailyTokenLimit(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any("limit" in line.lower() for line in cm.output))
 
 
+class TestSentimentSaveTokenLog(unittest.IsolatedAsyncioTestCase):
+    """save_token_log is called after successful API calls and when limit is hit."""
+
+    def _make_agent_with_usage(self, prompt_tokens=200, completion_tokens=100):
+        agent = SentimentAgent()
+        mock_usage = MagicMock()
+        mock_usage.prompt_tokens = prompt_tokens
+        mock_usage.completion_tokens = completion_tokens
+        mock_message = MagicMock()
+        mock_message.content = '{"sentiment": "neutral", "confidence": 0.5, "strength": "weak", "reasoning": "flat", "key_signals": []}'
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+        mock_response.usage = mock_usage
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+        agent._openai_client = mock_client
+        return agent
+
+    async def test_save_token_log_called_after_success(self):
+        agent = self._make_agent_with_usage(prompt_tokens=200, completion_tokens=100)
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent.save_token_log", new_callable=AsyncMock) as mock_save:
+            cfg.OPENAI_API_KEY = "key"
+            await agent._get_sentiment("AAPL", "desc")
+        mock_save.assert_awaited_once()
+        call_kwargs = mock_save.call_args
+        args = call_kwargs[1] if call_kwargs[1] else {}
+        # Can be positional or keyword — check via args tuple
+        all_args = list(call_kwargs[0]) + list(args.values())
+        self.assertIn("SentimentAgent", all_args)
+        self.assertIn("gpt-4o-mini", all_args)
+
+    async def test_save_token_log_called_with_limit_hit_false_normally(self):
+        agent = self._make_agent_with_usage(prompt_tokens=100, completion_tokens=50)
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent.save_token_log", new_callable=AsyncMock) as mock_save:
+            cfg.OPENAI_API_KEY = "key"
+            await agent._get_sentiment("AAPL", "desc")
+        call_kwargs = mock_save.call_args
+        # limit_hit should be False for a normal successful call
+        limit_hit_val = call_kwargs[1].get("limit_hit") if call_kwargs[1] else call_kwargs[0][-1]
+        self.assertFalse(limit_hit_val)
+
+    async def test_save_token_log_called_with_limit_hit_true_when_blocked(self):
+        agent = SentimentAgent()
+        agent._daily_tokens = 10_000  # at limit
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent.save_token_log", new_callable=AsyncMock) as mock_save:
+            cfg.OPENAI_API_KEY = "key"
+            await agent._get_sentiment("AAPL", "desc")
+        mock_save.assert_awaited_once()
+        call_kwargs = mock_save.call_args
+        limit_hit_val = call_kwargs[1].get("limit_hit") if call_kwargs[1] else call_kwargs[0][-1]
+        self.assertTrue(limit_hit_val)
+
+
 if __name__ == "__main__":
     unittest.main()

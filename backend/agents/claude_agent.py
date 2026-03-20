@@ -25,6 +25,7 @@ from data.learning_manager import get_learning_summary, record_trade
 from data.news_service import news_service
 from data.technicals import format_for_prompt as format_technicals
 from data.signal_aggregator import format_for_prompt as format_composite
+from database import save_token_log
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +234,18 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
                 f"daily_total={self._daily_tokens} | "
                 f"calls_this_hour={len(self._call_timestamps)}/{self._hourly_call_limit}"
             )
+            try:
+                await save_token_log(
+                    agent="ClaudeAgent",
+                    model="claude-opus-4-6",
+                    prompt_tokens=input_tok,
+                    completion_tokens=output_tok,
+                    total_tokens=input_tok + output_tok,
+                    daily_total=self._daily_tokens,
+                    limit_hit=False,
+                )
+            except Exception as _e:
+                logger.debug(f"ClaudeAgent: token log save failed: {_e}")
 
             # Try JSON block first, then direct parse
             json_match = re.search(r'\{[\s\S]*\}', text_content)

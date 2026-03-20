@@ -13,6 +13,7 @@ import pandas as pd
 from agents.base_agent import BaseAgent, Signal
 from agents.agent_utils import _is_market_hours
 from config import config
+from database import save_token_log
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,19 @@ class SentimentAgent(BaseAgent):
                 f"SentimentAgent: Daily token limit ({self._daily_token_limit}) reached — "
                 f"skipping API call for {symbol}"
             )
+            try:
+                await save_token_log(
+                    agent="SentimentAgent",
+                    model="gpt-4o-mini",
+                    prompt_tokens=0,
+                    completion_tokens=0,
+                    total_tokens=0,
+                    daily_total=self._daily_tokens,
+                    limit_hit=True,
+                    daily_limit=self._daily_token_limit,
+                )
+            except Exception as _e:
+                logger.debug(f"SentimentAgent: token log save failed: {_e}")
             return {"sentiment": "neutral", "confidence": 0.5, "reasoning": "Daily token limit reached"}
 
         prompt = f"""You are a quantitative analyst. Analyze the following price action data and provide a market sentiment assessment.
@@ -196,6 +210,19 @@ Respond with ONLY valid JSON in this exact format:
                 f"in={prompt_tok} out={completion_tok} "
                 f"daily_total={self._daily_tokens}/{self._daily_token_limit}"
             )
+            try:
+                await save_token_log(
+                    agent="SentimentAgent",
+                    model="gpt-4o-mini",
+                    prompt_tokens=prompt_tok,
+                    completion_tokens=completion_tok,
+                    total_tokens=prompt_tok + completion_tok,
+                    daily_total=self._daily_tokens,
+                    limit_hit=False,
+                    daily_limit=self._daily_token_limit,
+                )
+            except Exception as _e:
+                logger.debug(f"SentimentAgent: token log save failed: {_e}")
 
             return result
 
