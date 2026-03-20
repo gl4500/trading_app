@@ -23,6 +23,11 @@ from agents.agent_utils import (
 from config import config
 from data.learning_manager import get_learning_summary, record_trade
 from data.news_service import news_service
+try:
+    from data.risk_assessor import get_assessment_context as _get_risk_assessment_context
+    _HAS_RISK_ASSESSOR = True
+except Exception:
+    _HAS_RISK_ASSESSOR = False
 from data.technicals import format_for_prompt as format_technicals
 from data.signal_aggregator import format_for_prompt as format_composite
 from database import save_token_log
@@ -124,6 +129,13 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
 
         learning_ctx = get_learning_summary()
 
+        assessment_ctx = ""
+        try:
+            if _HAS_RISK_ASSESSOR:
+                assessment_ctx = _get_risk_assessment_context()
+        except Exception:
+            pass
+
         gemini_view = market_context.get("__gemini_market_view__")
         gemini_section = (
             f"\n## Gemini Market View\n{gemini_view}\n" if gemini_view else ""
@@ -133,7 +145,7 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
 
 ## Current Portfolio State
 {portfolio_ctx}
-{learning_ctx}
+{learning_ctx}{assessment_ctx}
 {gemini_section}{overnight_section}
 ## Market Data
 {market_data}

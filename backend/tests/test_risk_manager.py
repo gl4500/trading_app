@@ -169,5 +169,67 @@ class TestGetMaxBuyShares(unittest.TestCase):
         self.assertEqual(shares, 0)
 
 
+from datetime import datetime, timedelta
+
+
+class TestChurnCooloff(unittest.TestCase):
+    """Churn prevention: re-entry within cooloff window is blocked."""
+
+    def setUp(self):
+        self.rm = RiskManager()
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_reentry_blocked_after_recent_sell(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.execute_sell("AAPL", 10, 105.0)
+        allowed, reason = self.rm.check_buy_allowed("AAPL", 5, 100.0, self.p, {"AAPL": 100.0})
+        self.assertFalse(allowed)
+        self.assertIn("Churn", reason)
+
+    def test_reentry_allowed_after_cooloff_expires(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.execute_sell("AAPL", 10, 105.0)
+        self.p._recent_exits["AAPL"] = datetime.utcnow() - timedelta(minutes=31)
+        allowed, _ = self.rm.check_buy_allowed("AAPL", 5, 100.0, self.p, {"AAPL": 100.0})
+        self.assertTrue(allowed)
+
+    def test_first_buy_not_blocked(self):
+        allowed, _ = self.rm.check_buy_allowed("AAPL", 5, 100.0, self.p, {"AAPL": 100.0})
+        self.assertTrue(allowed)
+
+    def test_different_symbol_not_affected_by_cooloff(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.execute_sell("AAPL", 10, 105.0)
+        allowed, _ = self.rm.check_buy_allowed("MSFT", 5, 100.0, self.p, {"MSFT": 100.0})
+        self.assertTrue(allowed)
+
+
+class TestSectorConcentration(unittest.TestCase):
+    """Sector concentration: no single sector > 35% of portfolio."""
+
+    def setUp(self):
+        self.rm = RiskManager()
+        self.p = Portfolio(starting_capital=100_000)
+        self.prices = {"MU": 100.0, "NVDA": 200.0, "AMD": 150.0, "LRCX": 300.0}
+
+    def test_sector_concentration_blocked(self):
+        # MU + NVDA = 30% in Technology already
+        self.p.execute_buy("MU", 150, 100.0)    # $15k = 15%
+        self.p.execute_buy("NVDA", 75, 200.0)   # $15k = 15% → sector=30%
+        # Adding LRCX (also Technology) would push sector to ~43%
+        allowed, reason = self.rm.check_buy_allowed("LRCX", 43, 300.0, self.p, self.prices)
+        self.assertFalse(allowed)
+        self.assertIn("Sector", reason)
+
+    def test_sector_concentration_allowed_below_limit(self):
+        self.p.execute_buy("MU", 100, 100.0)   # $10k = 10%
+        allowed, _ = self.rm.check_buy_allowed("NVDA", 50, 200.0, self.p, self.prices)
+        self.assertTrue(allowed)
+
+    def test_unknown_sector_not_blocked(self):
+        allowed, _ = self.rm.check_buy_allowed("ZZZZ", 5, 100.0, self.p, {"ZZZZ": 100.0})
+        self.assertTrue(allowed)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -142,7 +142,28 @@ class EnsembleAgent(BaseAgent):
 
             if atr_pct > 0.025:          # intraday swings > 2.5 % → volatile
                 return "volatile"
-            elif abs(sma_slope) > 0.004: # SMA moved > 0.4 % over 10 bars → trending
+
+            # 2-of-3 multi-signal check for trending
+            trending_signals = 0
+
+            # Signal 1: SMA slope
+            if abs(sma_slope) > 0.004:
+                trending_signals += 1
+
+            # Signal 2: trend consistency (pct of returns in same direction as slope)
+            if len(close) >= 11:
+                returns = close.pct_change().dropna().tail(10)
+                pct_positive = (returns > 0).sum() / len(returns)
+                if (sma_slope > 0 and pct_positive > 0.60) or (sma_slope < 0 and pct_positive < 0.40):
+                    trending_signals += 1
+
+            # Signal 3: volume expansion (recent 5-bar avg > 20-bar avg * 1.10)
+            if "volume" in bars.columns and len(bars) >= 20:
+                vol = bars["volume"].astype(float)
+                if vol.tail(5).mean() > vol.tail(20).mean() * 1.10:
+                    trending_signals += 1
+
+            if trending_signals >= 2:
                 return "trending"
             else:
                 return "ranging"
@@ -366,6 +387,11 @@ class EnsembleAgent(BaseAgent):
             self._log_weight_changes(new_weights, new_regime)
             self._regime          = new_regime
             self._adaptive_weights = new_weights
+            try:
+                from data.risk_assessor import record_regime
+                record_regime(new_regime, prices)
+            except Exception:
+                pass
 
         signals_by_symbol = await self._collect_signals(market_context)
 

@@ -38,6 +38,7 @@ from data.watchlist_manager import watchlist_manager
 from trading.alpaca_client import alpaca_client
 
 from data.drift_detector import check_all_agents
+from data.risk_assessor import record_trade as record_risk_trade, run_periodic_assessment
 from agents.tech_agent import TechAgent
 from agents.momentum_agent import MomentumAgent
 from agents.mean_reversion_agent import MeanReversionAgent
@@ -258,6 +259,11 @@ async def trading_loop() -> None:
             cycle_start = time.time()
             app_state.cycle_count += 1
             logger.info(f"=== Trading Cycle {app_state.cycle_count} ===")
+            if app_state.cycle_count % 30 == 0:
+                try:
+                    run_periodic_assessment(app_state.agents, app_state.last_prices or {})
+                except Exception as e:
+                    logger.debug(f"Risk assessment error: {e}")
 
             # Fetch market data once for all agents (fluid watchlist ranked by projected return)
             market_context = await market_data_service.get_market_context(
@@ -836,6 +842,10 @@ async def run_agent_cycle(agent, market_context: Dict, prices: Dict[str, float])
                 reasoning=trade.reasoning[:500],
                 pnl=trade.pnl,
             )
+            try:
+                record_risk_trade(agent.name, trade.symbol, trade.action)
+            except Exception:
+                pass
 
         # Delete positions that were fully closed this cycle
         positions_after = set(agent.portfolio.positions.keys())

@@ -267,5 +267,56 @@ class TestGeminiRemovedFromEnsemble(unittest.TestCase):
         self.assertAlmostEqual(total, 1.0, places=5)
 
 
+@unittest.skipUnless(HAS_PANDAS, "pandas not available")
+class TestDetectRegimeMultiSignal(unittest.TestCase):
+    """Regime detection requires 2-of-3 signals for TRENDING."""
+
+    def setUp(self):
+        self.ens = _make_ensemble()
+
+    def test_sma_slope_alone_insufficient_for_trending(self):
+        """Alternating returns: SMA slopes up but trend consistency is ~50% → ranging."""
+        import pandas as pd
+        close = [100.0]
+        for i in range(29):
+            close.append(close[-1] * 1.03 if i % 2 == 0 else close[-1] * 0.98)
+        bars = pd.DataFrame({
+            "close": close,
+            "high":  [c + 0.5 for c in close],
+            "low":   [c - 0.5 for c in close],
+        })
+        ctx = {"SPY": {"bars": bars}}
+        result = self.ens._detect_regime(ctx)
+        self.assertEqual(result, "ranging")
+
+    def test_consistent_uptrend_two_signals_returns_trending(self):
+        """Strong SMA slope + high trend consistency (no volume needed) → trending."""
+        import pandas as pd
+        close = [100 + i * 2.0 for i in range(30)]
+        bars = pd.DataFrame({
+            "close": close,
+            "high":  [c + 1 for c in close],
+            "low":   [c - 1 for c in close],
+        })
+        ctx = {"SPY": {"bars": bars}}
+        result = self.ens._detect_regime(ctx)
+        self.assertEqual(result, "trending")
+
+    def test_volume_expansion_counts_as_third_signal(self):
+        """Moderate trend + expanding volume → 2 signals → trending."""
+        import pandas as pd
+        close = [100 + i * 1.5 for i in range(30)]
+        vol   = [1_000_000] * 20 + [1_300_000] * 10
+        bars = pd.DataFrame({
+            "close":  close,
+            "high":   [c + 1 for c in close],
+            "low":    [c - 1 for c in close],
+            "volume": vol,
+        })
+        ctx = {"SPY": {"bars": bars}}
+        result = self.ens._detect_regime(ctx)
+        self.assertEqual(result, "trending")
+
+
 if __name__ == "__main__":
     unittest.main()

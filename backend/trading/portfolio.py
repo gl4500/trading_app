@@ -58,6 +58,7 @@ class Portfolio:
         self._value_history: List[Tuple[datetime, float]] = [
             (datetime.utcnow(), self.starting_capital)
         ]
+        self._recent_exits: Dict[str, datetime] = {}
 
     def get_total_value(self, prices: Dict[str, float]) -> float:
         """Calculate total portfolio value (cash + positions)."""
@@ -143,6 +144,7 @@ class Portfolio:
         )
         self.trade_history.append(record)
         self._value_history.append((datetime.utcnow(), self.cash))
+        self._recent_exits[symbol] = datetime.utcnow()
         return True
 
     def record_value(self, prices: Dict[str, float]) -> float:

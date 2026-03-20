@@ -3,9 +3,14 @@ Risk management: enforces position limits, concentration limits, and daily loss 
 """
 import logging
 import math
+from datetime import datetime
 from typing import Dict, Tuple
 
 from config import config
+from data.stock_universe import get_sector
+
+CHURN_COOLOFF_MINUTES = 30
+SECTOR_CONCENTRATION_LIMIT = 0.35
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +68,20 @@ class RiskManager:
         if not allowed:
             return False, reason
 
+        # Churn prevention: block re-entry within 30 minutes of selling
+        recent_exits = getattr(portfolio, '_recent_exits', {})
+        last_exit = recent_exits.get(symbol)
+        if last_exit is not None:
+            elapsed_seconds = (datetime.utcnow() - last_exit).total_seconds()
+            elapsed_minutes = elapsed_seconds / 60
+            if elapsed_minutes < CHURN_COOLOFF_MINUTES:
+                remaining = int(CHURN_COOLOFF_MINUTES - elapsed_minutes)
+                return (
+                    False,
+                    f"Churn prevention: {symbol} sold {elapsed_minutes:.0f}min ago, "
+                    f"cooloff {remaining}min remaining",
+                )
+
         total_value = portfolio.get_total_value(prices)
         if total_value == 0:
             return False, "Portfolio has no value"
@@ -95,6 +114,21 @@ class RiskManager:
         concentration = new_position_value / total_value
         if concentration > 0.15:
             return False, f"Concentration limit: {symbol} would be {concentration*100:.1f}% of portfolio"
+
+        # Check sector concentration: no single sector > 35% of portfolio
+        sector = get_sector(symbol)
+        if sector != "Unknown":
+            sector_value = trade_value
+            for sym, pos in portfolio.positions.items():
+                if get_sector(sym) == sector:
+                    sector_value += portfolio.get_position_value(sym, prices.get(sym, 0))
+            sector_pct = sector_value / total_value
+            if sector_pct > SECTOR_CONCENTRATION_LIMIT:
+                return (
+                    False,
+                    f"Sector concentration limit: {sector} would be {sector_pct*100:.1f}% of portfolio "
+                    f"(max {SECTOR_CONCENTRATION_LIMIT*100:.0f}%)",
+                )
 
         return True, ""
 
