@@ -333,13 +333,82 @@ class MassiveClient:
             return []
 
     async def get_news_multi(self, symbols: List[str], limit: int = 5) -> Dict[str, List[Dict]]:
-        """Get news for multiple symbols concurrently."""
-        tasks = [self.get_news(sym, limit) for sym in symbols]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        return {
-            sym: (res if isinstance(res, list) else [])
-            for sym, res in zip(symbols, results)
-        }
+        """Get news for multiple symbols in a single batched API call.
+
+        Uses ticker.any_of= to fetch news for all symbols at once, then
+        distributes results back to per-symbol dicts. This costs 1 API call
+        instead of N, which is essential on free-tier rate limits (~5/min).
+        """
+        if not self._is_available() or not symbols:
+            return {sym: [] for sym in symbols}
+
+        # Check per-symbol cache first — only fetch symbols with stale cache
+        result: Dict[str, List[Dict]] = {}
+        stale = []
+        for sym in symbols:
+            cached = self._cached(self._news_cache, sym, _TTL_NEWS)
+            if cached is not None:
+                result[sym] = cached
+            else:
+                stale.append(sym.upper())
+
+        if not stale:
+            return result
+
+        # Fetch all stale symbols in one request (up to 50 at a time)
+        BATCH = 50
+        for i in range(0, len(stale), BATCH):
+            batch = stale[i:i + BATCH]
+            url = f"{_BASE_URL}/v2/reference/news"
+            params = {
+                "ticker.any_of": ",".join(batch),
+                "limit":         min(limit * len(batch), 1000),
+                "order":         "desc",
+                "sort":          "published_utc",
+                **_auth_params(),
+            }
+            try:
+                async with self._semaphore:
+                    await self._throttle()
+                    async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
+                        resp = await client.get(url, params=params)
+                if resp.status_code != 200:
+                    logger.debug(f"MassiveClient news batch: HTTP {resp.status_code}")
+                    for sym in batch:
+                        result.setdefault(sym, [])
+                    continue
+                articles = resp.json().get("results", [])
+                # Distribute articles back to per-symbol buckets
+                buckets: Dict[str, List[Dict]] = {sym: [] for sym in batch}
+                for a in articles:
+                    tickers = a.get("tickers") or []
+                    if isinstance(tickers, str):
+                        tickers = [tickers]
+                    publisher = a.get("publisher", {})
+                    item = {
+                        "headline":     a.get("title") or "",
+                        "summary":      a.get("description") or "",
+                        "source":       publisher.get("name") if isinstance(publisher, dict) else "Massive News",
+                        "url":          a.get("article_url") or a.get("url") or "",
+                        "published_at": a.get("published_utc") or "",
+                    }
+                    for t in tickers:
+                        sym = t.upper()
+                        if sym in buckets:
+                            if len(buckets[sym]) < limit:
+                                buckets[sym].append(item)
+                for sym, items in buckets.items():
+                    self._store(self._news_cache, sym, items)
+                    result[sym] = items
+            except Exception as e:
+                logger.debug(f"MassiveClient news batch: {e}")
+                for sym in batch:
+                    result.setdefault(sym, [])
+
+        # Ensure every requested symbol has an entry
+        for sym in symbols:
+            result.setdefault(sym.upper(), [])
+        return result
 
     # ── REST: Options — Flow Alerts ───────────────────────────────────────────
 
