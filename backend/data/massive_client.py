@@ -83,6 +83,8 @@ class MassiveClient:
         self._news_cache:    Dict[str, tuple] = {}  # symbol → (ts, list)
         self._options_cache: Dict[str, tuple] = {}  # "flow" → (ts, list)
         self._economy_cache: Dict[str, tuple] = {}  # indicator → (ts, dict)
+        # Limit concurrent outbound requests to avoid 429s from Massive
+        self._semaphore = asyncio.Semaphore(5)
 
     # ── Internal ──────────────────────────────────────────────────────────────
 
@@ -131,45 +133,46 @@ class MassiveClient:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
-                resp = await client.get(url, params=params)
-                if resp.status_code == 401:
-                    logger.warning("MassiveClient: invalid API key (401)")
-                    return pd.DataFrame()
-                if resp.status_code != 200:
-                    logger.debug(f"MassiveClient bars {symbol}: HTTP {resp.status_code}")
-                    return pd.DataFrame()
+            async with self._semaphore:
+                async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
+                    resp = await client.get(url, params=params)
 
-                data = resp.json()
-                results = data.get("results", [])
-                if not results:
-                    return pd.DataFrame()
+            if resp.status_code == 401:
+                logger.warning("MassiveClient: invalid API key (401)")
+                return pd.DataFrame()
+            if resp.status_code != 200:
+                logger.debug(f"MassiveClient bars {symbol}: HTTP {resp.status_code}")
+                return pd.DataFrame()
 
-                df = pd.DataFrame(results)
-                # Massive/Polygon-style compact columns: t o h l c v vw
-                col_map = {
-                    "t": "timestamp", "o": "open", "h": "high",
-                    "l": "low",        "c": "close", "v": "volume",
-                    "vw": "vwap",
-                }
-                df.rename(columns={k: v for k, v in col_map.items() if k in df.columns}, inplace=True)
+            data = resp.json()
+            results = data.get("results", [])
+            if not results:
+                return pd.DataFrame()
 
-                required = {"open", "high", "low", "close"}
-                if not required.issubset(df.columns):
-                    logger.debug(f"MassiveClient: unexpected bars schema for {symbol}: {list(df.columns)}")
-                    return pd.DataFrame()
+            df = pd.DataFrame(results)
+            # Massive/Polygon-style compact columns: t o h l c v vw
+            col_map = {
+                "t": "timestamp", "o": "open", "h": "high",
+                "l": "low",       "c": "close", "v": "volume",
+                "vw": "vwap",
+            }
+            df.rename(columns={k: v for k, v in col_map.items() if k in df.columns}, inplace=True)
 
-                if "timestamp" in df.columns:
-                    # Convert millisecond epoch to date string if needed
-                    try:
-                        if pd.to_numeric(df["timestamp"].iloc[0], errors="coerce") > 1e10:
-                            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms").dt.strftime("%Y-%m-%d")
-                    except (TypeError, ValueError):
-                        pass
-                    df = df.sort_values("timestamp").reset_index(drop=True)
+            required = {"open", "high", "low", "close"}
+            if not required.issubset(df.columns):
+                logger.debug(f"MassiveClient: unexpected bars schema for {symbol}: {list(df.columns)}")
+                return pd.DataFrame()
 
-                self._store(self._bars_cache, key, df)
-                return df.copy()
+            if "timestamp" in df.columns:
+                try:
+                    if pd.to_numeric(df["timestamp"].iloc[0], errors="coerce") > 1e10:
+                        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms").dt.strftime("%Y-%m-%d")
+                except (TypeError, ValueError):
+                    pass
+                df = df.sort_values("timestamp").reset_index(drop=True)
+
+            self._store(self._bars_cache, key, df)
+            return df.copy()
 
         except _NET_ERRORS as e:
             logger.debug(f"MassiveClient bars {symbol}: {type(e).__name__}")
@@ -208,14 +211,15 @@ class MassiveClient:
 
         url = f"{_BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers/{symbol.upper()}"
         try:
-            async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
-                resp = await client.get(url, params=_auth_params())
-                if resp.status_code != 200:
-                    return {}
-                data = resp.json()
-                snap = data.get("ticker", data.get("results", data))
-                self._store(self._price_cache, symbol, snap)
-                return snap
+            async with self._semaphore:
+                async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
+                    resp = await client.get(url, params=_auth_params())
+            if resp.status_code != 200:
+                return {}
+            data = resp.json()
+            snap = data.get("ticker", data.get("results", data))
+            self._store(self._price_cache, symbol, snap)
+            return snap
         except Exception as e:
             logger.debug(f"MassiveClient snapshot {symbol}: {e}")
             return {}
@@ -232,24 +236,25 @@ class MassiveClient:
         url = f"{_BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers"
         params = {"tickers": ",".join(s.upper() for s in symbols), **_auth_params()}
         try:
-            async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
-                resp = await client.get(url, params=params)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    tickers = data.get("tickers", [])
-                    prices: Dict[str, float] = {}
-                    for snap in tickers:
-                        sym = (snap.get("ticker") or "").upper()
-                        day = snap.get("day", {})
-                        price = (
-                            snap.get("lastTrade", {}).get("p")
-                            or day.get("c")
-                            or snap.get("close")
-                            or 0
-                        )
-                        if sym and price:
-                            prices[sym] = float(price)
-                    return prices
+            async with self._semaphore:
+                async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
+                    resp = await client.get(url, params=params)
+            if resp.status_code == 200:
+                data = resp.json()
+                tickers = data.get("tickers", [])
+                prices: Dict[str, float] = {}
+                for snap in tickers:
+                    sym = (snap.get("ticker") or "").upper()
+                    day = snap.get("day", {})
+                    price = (
+                        snap.get("lastTrade", {}).get("p")
+                        or day.get("c")
+                        or snap.get("close")
+                        or 0
+                    )
+                    if sym and price:
+                        prices[sym] = float(price)
+                return prices
         except Exception as e:
             logger.debug(f"MassiveClient batch snapshot: {e}")
 
@@ -283,24 +288,25 @@ class MassiveClient:
         url = f"{_BASE_URL}/v2/reference/news"
         params = {"ticker": symbol.upper(), "limit": limit, "order": "desc", "sort": "published_utc", **_auth_params()}
         try:
-            async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
-                resp = await client.get(url, params=params)
-                if resp.status_code != 200:
-                    return []
-                data = resp.json()
-                articles = data.get("results", [])
-                news = []
-                for a in articles:
-                    publisher = a.get("publisher", {})
-                    news.append({
-                        "headline":     a.get("title") or "",
-                        "summary":      a.get("description") or "",
-                        "source":       publisher.get("name") if isinstance(publisher, dict) else "Massive News",
-                        "url":          a.get("article_url") or a.get("url") or "",
-                        "published_at": a.get("published_utc") or "",
-                    })
-                self._store(self._news_cache, symbol, news)
-                return news
+            async with self._semaphore:
+                async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
+                    resp = await client.get(url, params=params)
+            if resp.status_code != 200:
+                return []
+            data = resp.json()
+            articles = data.get("results", [])
+            news = []
+            for a in articles:
+                publisher = a.get("publisher", {})
+                news.append({
+                    "headline":     a.get("title") or "",
+                    "summary":      a.get("description") or "",
+                    "source":       publisher.get("name") if isinstance(publisher, dict) else "Massive News",
+                    "url":          a.get("article_url") or a.get("url") or "",
+                    "published_at": a.get("published_utc") or "",
+                })
+            self._store(self._news_cache, symbol, news)
+            return news
         except Exception as e:
             logger.debug(f"MassiveClient news {symbol}: {e}")
             return []
@@ -342,60 +348,61 @@ class MassiveClient:
 
         results = []
         try:
-            async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
-                resp = await client.get(url, params=params)
-                if resp.status_code != 200:
-                    return []
-                data = resp.json()
-                flows = data.get("results", [])
-                sym_set = {s.upper() for s in symbols} if symbols else None
+            async with self._semaphore:
+                async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
+                    resp = await client.get(url, params=params)
+            if resp.status_code != 200:
+                return []
+            data = resp.json()
+            flows = data.get("results", [])
+            sym_set = {s.upper() for s in symbols} if symbols else None
 
-                for f in flows:
-                    details  = f.get("details", {})
-                    day      = f.get("day", {})
-                    ticker   = (details.get("underlying_ticker") or f.get("underlying_ticker") or "").upper()
-                    if sym_set and ticker not in sym_set:
-                        continue
+            for f in flows:
+                details  = f.get("details", {})
+                day      = f.get("day", {})
+                ticker   = (details.get("underlying_ticker") or f.get("underlying_ticker") or "").upper()
+                if sym_set and ticker not in sym_set:
+                    continue
 
-                    opt_type = (details.get("contract_type") or "").upper()
-                    strike   = details.get("strike_price") or ""
-                    expiry   = details.get("expiration_date") or ""
-                    volume   = day.get("volume") or f.get("day", {}).get("volume") or 0
-                    vwap     = day.get("vwap") or 0
-                    premium  = round(float(volume) * float(vwap) * 100, 0) if volume and vwap else 0
+                opt_type = (details.get("contract_type") or "").upper()
+                strike   = details.get("strike_price") or ""
+                expiry   = details.get("expiration_date") or ""
+                volume   = day.get("volume") or f.get("day", {}).get("volume") or 0
+                vwap     = day.get("vwap") or 0
+                premium  = round(float(volume) * float(vwap) * 100, 0) if volume and vwap else 0
 
-                    side      = "CALL" if opt_type == "CALL" else "PUT" if opt_type == "PUT" else opt_type
-                    sentiment = "bullish" if side == "CALL" else "bearish" if side == "PUT" else "unusual"
-                    headline  = (
-                        f"Massive Options Flow: {ticker} {side} ${premium:,.0f} premium"
-                        if premium else
-                        f"Massive Options Flow: {ticker} {side} large block"
-                    )
-                    summary = (
-                        f"{ticker} {side} — strike ${strike}, expiry {expiry}. "
-                        f"Volume: {volume:,}. VWAP: ${vwap:.2f}."
-                    ).strip()
+                side      = "CALL" if opt_type == "CALL" else "PUT" if opt_type == "PUT" else opt_type
+                sentiment = "bullish" if side == "CALL" else "bearish" if side == "PUT" else "unusual"
+                headline  = (
+                    f"Massive Options Flow: {ticker} {side} ${premium:,.0f} premium"
+                    if premium else
+                    f"Massive Options Flow: {ticker} {side} large block"
+                )
+                summary = (
+                    f"{ticker} {side} — strike ${strike}, expiry {expiry}. "
+                    f"Volume: {volume:,}. VWAP: ${vwap:.2f}."
+                ).strip()
 
-                    try:
-                        from data.policy_monitor import score_headline
-                        scored = score_headline(headline, summary)
-                    except Exception:
-                        scored = {"score": 2, "category": "catalyst", "sectors": [], "reason": ""}
+                try:
+                    from data.policy_monitor import score_headline
+                    scored = score_headline(headline, summary)
+                except Exception:
+                    scored = {"score": 2, "category": "catalyst", "sectors": [], "reason": ""}
 
-                    results.append({
-                        "headline":    headline,
-                        "summary":     summary,
-                        "source":      "Massive / Options Flow",
-                        "date":        datetime.utcnow().isoformat(),
-                        "symbol":      ticker,
-                        "score":       max(scored.get("score", 0), 2),
-                        "category":    "catalyst",
-                        "sectors":     scored.get("sectors", []),
-                        "reason":      f"{sentiment} options flow",
-                        "detected_at": datetime.utcnow().isoformat(),
-                        "premium":     premium,
-                        "side":        side,
-                    })
+                results.append({
+                    "headline":    headline,
+                    "summary":     summary,
+                    "source":      "Massive / Options Flow",
+                    "date":        datetime.utcnow().isoformat(),
+                    "symbol":      ticker,
+                    "score":       max(scored.get("score", 0), 2),
+                    "category":    "catalyst",
+                    "sectors":     scored.get("sectors", []),
+                    "reason":      f"{sentiment} options flow",
+                    "detected_at": datetime.utcnow().isoformat(),
+                    "premium":     premium,
+                    "side":        side,
+                })
 
             self._store(self._options_cache, key, results)
             return results
@@ -434,16 +441,17 @@ class MassiveClient:
 
         url = f"{_BASE_URL}{path}"
         try:
-            async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
-                resp = await client.get(url, params={"limit": 1, "order": "desc", **_auth_params()})
-                if resp.status_code != 200:
-                    return {}
-                data = resp.json()
-                result = data.get("results", data.get("data", data))
-                if isinstance(result, list) and result:
-                    result = result[0]
-                self._store(self._economy_cache, indicator, result)
-                return result
+            async with self._semaphore:
+                async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
+                    resp = await client.get(url, params={"limit": 1, "order": "desc", **_auth_params()})
+            if resp.status_code != 200:
+                return {}
+            data = resp.json()
+            result = data.get("results", data.get("data", data))
+            if isinstance(result, list) and result:
+                result = result[0]
+            self._store(self._economy_cache, indicator, result)
+            return result
         except Exception as e:
             logger.debug(f"MassiveClient economy {indicator}: {e}")
             return {}
