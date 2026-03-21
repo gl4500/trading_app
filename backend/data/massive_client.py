@@ -82,6 +82,7 @@ class MassiveClient:
         self._price_cache:   Dict[str, tuple] = {}  # symbol → (ts, float)
         self._news_cache:    Dict[str, tuple] = {}  # symbol → (ts, list)
         self._options_cache: Dict[str, tuple] = {}  # "flow" → (ts, list)
+        self._options_forbidden: bool = False       # set True on first 403 to skip future calls
         self._economy_cache: Dict[str, tuple] = {}  # indicator → (ts, dict)
         # Rate limiter: serialize all outbound requests with a minimum gap.
         # Lock ensures only one coroutine reads/writes _last_request at a time,
@@ -417,6 +418,8 @@ class MassiveClient:
 
         Endpoint: GET /v3/snapshot/options/{underlyingAsset}
         """
+        if self._options_forbidden:
+            return []
         url = f"{_BASE_URL}/v3/snapshot/options/{symbol.upper()}"
         params = {"limit": per_sym_limit, "sort": "day.volume", "order": "desc", **_auth_params()}
         try:
@@ -424,6 +427,14 @@ class MassiveClient:
                 await self._throttle()
                 async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
                     resp = await client.get(url, params=params)
+            if resp.status_code == 403:
+                self._options_forbidden = True
+                logger.warning(
+                    "MassiveClient: options data returned 403 Forbidden — "
+                    "this endpoint requires a higher Massive.com plan tier. "
+                    "Options flow signals disabled."
+                )
+                return []
             if resp.status_code != 200:
                 return []
             return resp.json().get("results", [])
@@ -453,10 +464,14 @@ class MassiveClient:
         if not syms:
             return []
 
-        # Fetch top options per symbol concurrently (semaphore limits concurrency)
+        # Probe with the first symbol before launching all — avoids N×403 on free-tier accounts
         per_sym_limit = max(5, limit // max(len(syms), 1))
-        tasks = [self._fetch_options_for_symbol(sym, per_sym_limit) for sym in syms]
-        all_flows = await asyncio.gather(*tasks, return_exceptions=True)
+        probe = await self._fetch_options_for_symbol(syms[0], per_sym_limit)
+        if self._options_forbidden:
+            return []
+        remaining_tasks = [self._fetch_options_for_symbol(sym, per_sym_limit) for sym in syms[1:]]
+        rest = await asyncio.gather(*remaining_tasks, return_exceptions=True)
+        all_flows = [probe] + list(rest)
 
         results = []
         for sym, flows in zip(syms, all_flows):
