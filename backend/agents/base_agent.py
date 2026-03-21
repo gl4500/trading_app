@@ -284,6 +284,9 @@ class BaseAgent(ABC):
             "last_signals": last_signals,
             "picks": dict(self._picks),
             "value_history": self.portfolio.get_value_history(),
+            "avg_mae": metrics.get("avg_mae", 0.0),
+            "avg_mfe": metrics.get("avg_mfe", 0.0),
+            "avg_captured_pct": metrics.get("avg_captured_pct", 0.0),
         }
 
     def reset(self) -> None:

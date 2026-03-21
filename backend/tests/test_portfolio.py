@@ -206,6 +206,80 @@ class TestSharpeRatio(unittest.TestCase):
         self.assertLessEqual(result, 0.1)
 
 
+class TestMAEMFETracking(unittest.TestCase):
+    """Tests for Maximum Adverse/Favorable Excursion tracking."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_buy_initialises_trackers(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.assertIn("AAPL", self.p._position_high)
+        self.assertIn("AAPL", self.p._position_low)
+        self.assertEqual(self.p._position_high["AAPL"], 150.0)
+        self.assertEqual(self.p._position_low["AAPL"], 150.0)
+
+    def test_record_value_updates_high(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.p.record_value({"AAPL": 170.0})
+        self.assertEqual(self.p._position_high["AAPL"], 170.0)
+        self.assertEqual(self.p._position_low["AAPL"], 150.0)  # low unchanged
+
+    def test_record_value_updates_low(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.p.record_value({"AAPL": 130.0})
+        self.assertEqual(self.p._position_low["AAPL"], 130.0)
+        self.assertEqual(self.p._position_high["AAPL"], 150.0)  # high unchanged
+
+    def test_sell_records_mfe_on_trade(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 130.0})   # peak
+        self.p.execute_sell("AAPL", 10, 120.0)  # sell before peak
+        sell = [t for t in self.p.trade_history if t.action == "SELL"][0]
+        self.assertAlmostEqual(sell.mfe_pct, 30.0, places=1)  # peak was 30% above entry
+
+    def test_sell_records_mae_on_trade(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 85.0})    # dip
+        self.p.record_value({"AAPL": 110.0})   # recover
+        self.p.execute_sell("AAPL", 10, 110.0)
+        sell = [t for t in self.p.trade_history if t.action == "SELL"][0]
+        self.assertAlmostEqual(sell.mae_pct, 15.0, places=1)  # dipped 15% below entry
+
+    def test_sell_clears_trackers(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.execute_sell("AAPL", 10, 110.0)
+        self.assertNotIn("AAPL", self.p._position_high)
+        self.assertNotIn("AAPL", self.p._position_low)
+
+    def test_metrics_include_avg_mae_mfe(self):
+        # Trade 1: entry 100, peak 120 (MFE=20%), dip 90 (MAE=10%), exit 115
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 90.0})
+        self.p.record_value({"AAPL": 120.0})
+        self.p.execute_sell("AAPL", 10, 115.0)
+        m = self.p.calculate_metrics({"AAPL": 115.0})
+        self.assertIn("avg_mae", m)
+        self.assertIn("avg_mfe", m)
+        self.assertIn("avg_captured_pct", m)
+        self.assertAlmostEqual(m["avg_mae"], 10.0, places=1)
+        self.assertAlmostEqual(m["avg_mfe"], 20.0, places=1)
+
+    def test_avg_captured_pct(self):
+        # Entry 100, peak 120 (MFE=20%), exit 110 (gain=10%) → captured = 10/20 = 50%
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 120.0})
+        self.p.execute_sell("AAPL", 10, 110.0)
+        m = self.p.calculate_metrics({"AAPL": 110.0})
+        self.assertAlmostEqual(m["avg_captured_pct"], 50.0, places=0)
+
+    def test_metrics_zero_when_no_trades(self):
+        m = self.p.calculate_metrics(PRICES)
+        self.assertEqual(m["avg_mae"], 0.0)
+        self.assertEqual(m["avg_mfe"], 0.0)
+        self.assertEqual(m["avg_captured_pct"], 0.0)
+
+
 class TestMaxDrawdown(unittest.TestCase):
 
     def test_no_drawdown(self):

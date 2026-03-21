@@ -42,7 +42,9 @@ class TradeRecord:
     price: float
     timestamp: datetime
     reasoning: str = ""
-    pnl: float = 0.0  # realized P&L for SELL trades
+    pnl: float = 0.0    # realized P&L for SELL trades
+    mae_pct: float = 0.0  # Maximum Adverse Excursion: deepest drawdown % from entry before close
+    mfe_pct: float = 0.0  # Maximum Favorable Excursion: highest gain % from entry before close
 
 
 class Portfolio:
@@ -59,6 +61,8 @@ class Portfolio:
             (datetime.utcnow(), self.starting_capital)
         ]
         self._recent_exits: Dict[str, datetime] = {}
+        self._position_high: Dict[str, float] = {}  # MFE tracker: highest price seen since entry
+        self._position_low: Dict[str, float] = {}   # MAE tracker: lowest price seen since entry
 
     def get_total_value(self, prices: Dict[str, float]) -> float:
         """Calculate total portfolio value (cash + positions)."""
@@ -98,6 +102,9 @@ class Portfolio:
             pos.avg_cost = new_avg_cost
         else:
             self.positions[symbol] = Position(symbol=symbol, shares=shares, avg_cost=price)
+            # Initialise excursion trackers for new position
+            self._position_high[symbol] = price
+            self._position_low[symbol] = price
 
         record = TradeRecord(
             symbol=symbol,
@@ -127,11 +134,20 @@ class Portfolio:
         cost_basis = shares_to_sell * pos.avg_cost
         realized_pnl = proceeds - cost_basis
 
+        # Calculate MAE/MFE before clearing position
+        entry_price = pos.avg_cost
+        high = self._position_high.get(symbol, price)
+        low  = self._position_low.get(symbol, price)
+        mfe_pct = (high - entry_price) / entry_price * 100 if entry_price > 0 else 0.0
+        mae_pct = (entry_price - low)  / entry_price * 100 if entry_price > 0 else 0.0
+
         self.cash += proceeds
         pos.shares -= shares_to_sell
 
         if pos.shares < 0.001:
             del self.positions[symbol]
+            self._position_high.pop(symbol, None)
+            self._position_low.pop(symbol, None)
 
         record = TradeRecord(
             symbol=symbol,
@@ -141,6 +157,8 @@ class Portfolio:
             timestamp=datetime.utcnow(),
             reasoning=reasoning,
             pnl=realized_pnl,
+            mae_pct=max(0.0, mae_pct),
+            mfe_pct=max(0.0, mfe_pct),
         )
         self.trade_history.append(record)
         self._value_history.append((datetime.utcnow(), self.cash))
@@ -148,12 +166,21 @@ class Portfolio:
         return True
 
     def record_value(self, prices: Dict[str, float]) -> float:
-        """Record current portfolio value for history tracking."""
+        """Record current portfolio value and update MAE/MFE trackers for open positions."""
         total_value = self.get_total_value(prices)
         self._value_history.append((datetime.utcnow(), total_value))
-        # Keep only last 2000 records
         if len(self._value_history) > 2000:
             self._value_history = self._value_history[-2000:]
+
+        # Update excursion trackers for all open positions
+        for sym in self.positions:
+            price = prices.get(sym)
+            if price and price > 0:
+                if sym not in self._position_high or price > self._position_high[sym]:
+                    self._position_high[sym] = price
+                if sym not in self._position_low or price < self._position_low[sym]:
+                    self._position_low[sym] = price
+
         return total_value
 
     def reset_daily_tracking(self, prices: Dict[str, float]) -> None:
@@ -200,6 +227,22 @@ class Portfolio:
                 "unrealized_pnl_pct": pos.unrealized_pnl_pct(price),
             })
 
+        # MAE / MFE analysis — only trades that have excursion data (post-feature trades)
+        excursion_trades = [t for t in sell_trades if t.mfe_pct > 0 or t.mae_pct > 0]
+        avg_mae = sum(t.mae_pct for t in excursion_trades) / len(excursion_trades) if excursion_trades else 0.0
+        avg_mfe = sum(t.mfe_pct for t in excursion_trades) / len(excursion_trades) if excursion_trades else 0.0
+
+        # Captured %: of the maximum favorable move, how much did we actually keep at exit?
+        # exit_gain_pct = pnl / cost_basis; cost_basis = proceeds - pnl = price*shares - pnl
+        captured_pcts = []
+        for t in excursion_trades:
+            if t.mfe_pct > 0:
+                cost_basis = t.price * t.shares - t.pnl
+                if cost_basis > 0:
+                    exit_gain_pct = t.pnl / cost_basis * 100
+                    captured_pcts.append(exit_gain_pct / t.mfe_pct * 100)
+        avg_captured_pct = sum(captured_pcts) / len(captured_pcts) if captured_pcts else 0.0
+
         return {
             "total_value": total_value,
             "cash": self.cash,
@@ -213,6 +256,9 @@ class Portfolio:
             "winning_trades": len(winning_trades),
             "losing_trades": len(sell_trades) - len(winning_trades),
             "positions": positions_summary,
+            "avg_mae": avg_mae,
+            "avg_mfe": avg_mfe,
+            "avg_captured_pct": avg_captured_pct,
         }
 
     def _calculate_sharpe(self, risk_free_rate: float = 0.04) -> float:

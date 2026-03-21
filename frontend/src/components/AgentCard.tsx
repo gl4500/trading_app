@@ -115,6 +115,49 @@ export default function AgentCard({ agent, prices }: AgentCardProps) {
           />
         </div>
 
+        {/* Exit Quality — MAE/MFE (only shown once there's excursion data) */}
+        {(agent.avg_mfe ?? 0) > 0 && (
+          <div className="bg-gray-900/40 rounded-lg p-3 border border-gray-700/30 mb-4">
+            <div className="text-xs text-gray-400 font-semibold mb-2 uppercase tracking-wide">Exit Quality</div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <div className="text-sm font-bold text-red-400">
+                  {(agent.avg_mae ?? 0).toFixed(1)}%
+                </div>
+                <div className="text-xs text-gray-500">Avg MAE</div>
+                <div className="text-xs text-gray-600">deepest dip</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-green-400">
+                  {(agent.avg_mfe ?? 0).toFixed(1)}%
+                </div>
+                <div className="text-xs text-gray-500">Avg MFE</div>
+                <div className="text-xs text-gray-600">highest peak</div>
+              </div>
+              <div>
+                <div className={`text-sm font-bold ${(agent.avg_captured_pct ?? 0) >= 50 ? 'text-blue-400' : 'text-yellow-400'}`}>
+                  {(agent.avg_captured_pct ?? 0).toFixed(0)}%
+                </div>
+                <div className="text-xs text-gray-500">Captured</div>
+                <div className="text-xs text-gray-600">of peak kept</div>
+              </div>
+            </div>
+            {/* Visual bar: captured vs left on table */}
+            <div className="mt-2">
+              <div className="flex justify-between text-xs text-gray-600 mb-1">
+                <span>captured</span>
+                <span>left on table</span>
+              </div>
+              <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, Math.max(0, agent.avg_captured_pct ?? 0))}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Cash vs Position bar */}
         <div>
           <div className="flex justify-between text-xs text-gray-400 mb-1.5">

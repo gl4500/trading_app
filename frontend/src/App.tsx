@@ -51,6 +51,9 @@ export interface Agent {
   recent_trades: Trade[]
   last_signals: Record<string, Signal>
   value_history: Array<{ timestamp: string; value: number }>
+  avg_mae?: number
+  avg_mfe?: number
+  avg_captured_pct?: number
   rank?: number
 }
 
