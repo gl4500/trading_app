@@ -269,7 +269,7 @@ async def trading_loop() -> None:
             market_context = await market_data_service.get_market_context(
                 watchlist_manager.get_active_watchlist()
             )
-            prices = {sym: ctx.get("price", 0) for sym, ctx in market_context.items()}
+            prices = {sym: ctx.get("price", 0) for sym, ctx in market_context.items() if isinstance(ctx, dict)}
 
             # Augment context with fresh scanner recommendations so every agent
             # can apply its own strategy to scanner-identified symbols
