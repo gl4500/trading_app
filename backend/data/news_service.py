@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 NEWS_CACHE_TTL = 90
 # How many days back to look for news
 NEWS_LOOKBACK_DAYS = 1
-# Max articles per symbol to include in prompt
-MAX_ARTICLES_PER_SYMBOL = 5
+# Max articles per symbol to include in prompt (reduced from 5 to cut token count)
+MAX_ARTICLES_PER_SYMBOL = 3
 
 
 class NewsService:
@@ -53,7 +53,7 @@ class NewsService:
         return [
             {
                 "headline": a.headline,
-                "summary": (a.summary or "").strip()[:300],
+                "summary": (a.summary or "").strip()[:150],
                 "source": a.source,
                 "date": a.created_at.strftime("%Y-%m-%d %H:%M") if a.created_at else "",
             }

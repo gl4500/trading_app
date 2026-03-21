@@ -35,6 +35,7 @@ REGIME_MULTIPLIERS: Dict[str, Dict[str, float]] = {
         "MomentumAgent":      1.50,
         "TechAgent":          1.20,
         "ClaudeAgent":        1.10,
+        "OpenClawAgent":      1.00,
         "SentimentAgent":     0.80,
         "MeanReversionAgent": 0.40,
     },
@@ -43,11 +44,13 @@ REGIME_MULTIPLIERS: Dict[str, Dict[str, float]] = {
         "SentimentAgent":     1.20,
         "TechAgent":          1.10,
         "ClaudeAgent":        1.00,
+        "OpenClawAgent":      1.00,
         "MomentumAgent":      0.55,
     },
     "volatile": {
         "ClaudeAgent":        1.40,
         "SentimentAgent":     1.20,
+        "OpenClawAgent":      1.10,
         "TechAgent":          0.80,
         "MomentumAgent":      0.65,
         "MeanReversionAgent": 0.60,
@@ -99,7 +102,7 @@ class EnsembleAgent(BaseAgent):
     def set_agents(self, agents: Dict[str, "BaseAgent"]) -> None:
         """Set component agents after initialization (GeminiAgent excluded — news-only)."""
         for name, agent in agents.items():
-            if name not in ("EnsembleAgent", "GeminiAgent"):
+            if name not in ("EnsembleAgent", "GeminiAgent", "ScannerPortfolioAgent"):
                 self.component_agents[name] = agent
 
     # ── Regime detection ───────────────────────────────────────────────────────

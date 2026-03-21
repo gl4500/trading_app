@@ -20,6 +20,11 @@ class Config:
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
+    # OpenClaw local model gateway (OpenAI-compatible)
+    OPENCLAW_BASE_URL: str = os.getenv("OPENCLAW_BASE_URL", "http://127.0.0.1:18789/v1")
+    OPENCLAW_TOKEN: str    = os.getenv("OPENCLAW_TOKEN", "")
+    OPENCLAW_MODEL: str    = os.getenv("OPENCLAW_MODEL", "llama3.2")
+
     # Additional data source keys
     FINNHUB_API_KEY: str = os.getenv("FINNHUB_API_KEY", "")
     UNUSUAL_WHALES_API_KEY: str = os.getenv("UNUSUAL_WHALES_API_KEY", "")
@@ -63,11 +68,12 @@ class Config:
 
     # Ensemble voting weights
     ENSEMBLE_WEIGHTS = {
-        "ClaudeAgent":        0.32,
-        "TechAgent":          0.25,
-        "SentimentAgent":     0.18,
-        "MomentumAgent":      0.15,
-        "MeanReversionAgent": 0.10,
+        "ClaudeAgent":        0.28,
+        "TechAgent":          0.23,
+        "SentimentAgent":     0.17,
+        "MomentumAgent":      0.14,
+        "MeanReversionAgent": 0.09,
+        "OpenClawAgent":      0.09,
     }
     ENSEMBLE_THRESHOLD: float = 0.60  # raised from 0.35 — only enter on high conviction (post: 72% for Polymarket, 0.60 calibrated for 5-agent stock ensemble)
     MARGIN_OF_SAFETY: float = 2.0    # buy_score must be >= sell_score * this — blocks entry when opposing signal is too strong

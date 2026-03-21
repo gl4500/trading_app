@@ -81,7 +81,7 @@ class GeminiAgent(BaseAgent):
             stats = ctx.get("stats", {})
             price = ctx.get("price", 0)
 
-            bars_text      = format_bars_for_prompt(bars, limit=15) if bars is not None else "No data"
+            bars_text      = format_bars_for_prompt(bars, limit=5) if bars is not None else "No data"
             news_items     = ctx.get("news", [])
             news_text      = news_service.format_for_prompt(symbol, news_items)
             ind            = ctx.get("indicators")
