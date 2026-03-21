@@ -322,6 +322,24 @@ class MassiveClient:
 
     # ── REST: Options — Flow Alerts ───────────────────────────────────────────
 
+    async def _fetch_options_for_symbol(self, symbol: str, per_sym_limit: int) -> List[Dict]:
+        """Fetch top options by volume for one underlying symbol.
+
+        Endpoint: GET /v3/snapshot/options/{underlyingAsset}
+        """
+        url = f"{_BASE_URL}/v3/snapshot/options/{symbol.upper()}"
+        params = {"limit": per_sym_limit, "sort": "day.volume", "order": "desc", **_auth_params()}
+        try:
+            async with self._semaphore:
+                async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
+                    resp = await client.get(url, params=params)
+            if resp.status_code != 200:
+                return []
+            return resp.json().get("results", [])
+        except Exception as e:
+            logger.debug(f"MassiveClient options {symbol}: {e}")
+            return []
+
     async def get_options_flow(
         self,
         symbols: List[str] = None,
@@ -329,8 +347,7 @@ class MassiveClient:
     ) -> List[Dict]:
         """Fetch unusual options flow / large block trades.
 
-        Endpoint: GET /v3/trades/{optionsTicker} (per symbol) or
-                  GET /v2/snapshot/locale/us/markets/options/tickers (batch)
+        Endpoint: GET /v3/snapshot/options/{underlyingAsset}  (one per symbol)
         Returns list of catalyst-compatible dicts.
         """
         if not self._is_available():
@@ -341,33 +358,28 @@ class MassiveClient:
         if cached is not None:
             return cached
 
-        url = f"{_BASE_URL}/v3/snapshot/options"
-        params = {"limit": limit, "sort": "day.volume", "order": "desc", **_auth_params()}
-        if symbols:
-            params["underlying_asset"] = ",".join(s.upper() for s in symbols)
+        syms = [s.upper() for s in symbols] if symbols else []
+        if not syms:
+            return []
+
+        # Fetch top options per symbol concurrently (semaphore limits concurrency)
+        per_sym_limit = max(5, limit // max(len(syms), 1))
+        tasks = [self._fetch_options_for_symbol(sym, per_sym_limit) for sym in syms]
+        all_flows = await asyncio.gather(*tasks, return_exceptions=True)
 
         results = []
-        try:
-            async with self._semaphore:
-                async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
-                    resp = await client.get(url, params=params)
-            if resp.status_code != 200:
-                return []
-            data = resp.json()
-            flows = data.get("results", [])
-            sym_set = {s.upper() for s in symbols} if symbols else None
-
+        for sym, flows in zip(syms, all_flows):
+            if not isinstance(flows, list):
+                continue
             for f in flows:
                 details  = f.get("details", {})
                 day      = f.get("day", {})
-                ticker   = (details.get("underlying_ticker") or f.get("underlying_ticker") or "").upper()
-                if sym_set and ticker not in sym_set:
-                    continue
+                ticker   = (details.get("underlying_ticker") or sym).upper()
 
                 opt_type = (details.get("contract_type") or "").upper()
                 strike   = details.get("strike_price") or ""
                 expiry   = details.get("expiration_date") or ""
-                volume   = day.get("volume") or f.get("day", {}).get("volume") or 0
+                volume   = day.get("volume") or 0
                 vwap     = day.get("vwap") or 0
                 premium  = round(float(volume) * float(vwap) * 100, 0) if volume and vwap else 0
 
@@ -404,12 +416,8 @@ class MassiveClient:
                     "side":        side,
                 })
 
-            self._store(self._options_cache, key, results)
-            return results
-
-        except Exception as e:
-            logger.debug(f"MassiveClient options flow: {e}")
-            return []
+        self._store(self._options_cache, key, results)
+        return results
 
     # ── REST: Economy — Macro Context ─────────────────────────────────────────
 
