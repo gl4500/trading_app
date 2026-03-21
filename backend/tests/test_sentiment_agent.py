@@ -5,6 +5,7 @@ Covers: _describe_price_action(), _generate_signal(), analyze() with mocked Open
 import sys
 import os
 import asyncio
+import time
 import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 
@@ -248,36 +249,42 @@ class TestSentimentAgentThrottling(unittest.IsolatedAsyncioTestCase):
 
     def _make_agent_with_client(self, sentiment="bullish"):
         agent = SentimentAgent()
+        mock_usage = MagicMock()
+        mock_usage.prompt_tokens = 100
+        mock_usage.completion_tokens = 50
         mock_resp = MagicMock()
         mock_resp.choices = [MagicMock()]
         mock_resp.choices[0].message.content = (
             f'{{"sentiment": "{sentiment}", "confidence": 0.8, '
             f'"strength": "strong", "reasoning": "test", "key_signals": []}}'
         )
+        mock_resp.usage = mock_usage
         mock_client = MagicMock()
         mock_client.chat.completions.create = AsyncMock(return_value=mock_resp)
         agent._openai_client = mock_client
         return agent, mock_client
 
-    async def test_api_called_on_first_cycle(self):
+    async def test_api_called_on_first_call(self):
+        """_last_api_call_time=0.0 means interval always elapsed → API called."""
         agent, mock_client = self._make_agent_with_client()
         with patch("agents.sentiment_agent.HAS_OPENAI", True), \
              patch("agents.sentiment_agent.config") as cfg, \
-             patch("agents.sentiment_agent._is_market_hours", return_value=True):
+             patch("agents.sentiment_agent._is_market_hours", return_value=True), \
+             patch("agents.sentiment_agent.save_token_log", new_callable=AsyncMock):
             cfg.OPENAI_API_KEY = "key"
             cfg.MAX_POSITION_SIZE = 0.10
             cfg.STARTING_CAPITAL = 100_000
             await agent.analyze(self._mock_ctx())
         mock_client.chat.completions.create.assert_called_once()
 
-    async def test_api_skipped_on_non_api_cycle(self):
+    async def test_api_skipped_when_called_too_recently(self):
+        """If called within the min interval, replay cache instead of hitting API."""
         agent, mock_client = self._make_agent_with_client()
-        # Seed cache so replay is possible
         agent._sentiment_cache["AAPL"] = {
             "sentiment": "neutral", "confidence": 0.5,
             "strength": "weak", "reasoning": "cached", "key_signals": []
         }
-        agent._cycle_count = 2  # not on API cycle (interval=5, 2%5 != 1)
+        agent._last_api_call_time = time.time()  # just called — interval not elapsed
         with patch("agents.sentiment_agent.HAS_OPENAI", True), \
              patch("agents.sentiment_agent.config") as cfg, \
              patch("agents.sentiment_agent._is_market_hours", return_value=True):
@@ -288,15 +295,18 @@ class TestSentimentAgentThrottling(unittest.IsolatedAsyncioTestCase):
         mock_client.chat.completions.create.assert_not_called()
         self.assertTrue(len(signals) > 0)
 
-    async def test_off_hours_uses_closed_interval(self):
+    async def test_off_hours_uses_longer_interval(self):
+        """Off-hours min interval is longer than market-hours interval."""
+        agent = SentimentAgent()
+        self.assertGreater(agent._closed_min_call_interval, agent._open_min_call_interval)
+
+    async def test_off_hours_skips_api_when_recently_called(self):
         agent, mock_client = self._make_agent_with_client()
         agent._sentiment_cache["AAPL"] = {
             "sentiment": "neutral", "confidence": 0.5,
             "strength": "weak", "reasoning": "cached", "key_signals": []
         }
-        # cycle 2 would be an API cycle under open_interval=5 (2%5==2, not 1)
-        # but should also be non-API under closed_interval=25
-        agent._cycle_count = 2
+        agent._last_api_call_time = time.time()  # just called
         with patch("agents.sentiment_agent.HAS_OPENAI", True), \
              patch("agents.sentiment_agent.config") as cfg, \
              patch("agents.sentiment_agent._is_market_hours", return_value=False):
@@ -306,16 +316,128 @@ class TestSentimentAgentThrottling(unittest.IsolatedAsyncioTestCase):
             await agent.analyze(self._mock_ctx())
         mock_client.chat.completions.create.assert_not_called()
 
-    async def test_cache_populated_after_api_cycle(self):
+    async def test_cache_populated_after_api_call(self):
         agent, mock_client = self._make_agent_with_client("bullish")
         with patch("agents.sentiment_agent.HAS_OPENAI", True), \
              patch("agents.sentiment_agent.config") as cfg, \
-             patch("agents.sentiment_agent._is_market_hours", return_value=True):
+             patch("agents.sentiment_agent._is_market_hours", return_value=True), \
+             patch("agents.sentiment_agent.save_token_log", new_callable=AsyncMock):
             cfg.OPENAI_API_KEY = "key"
             cfg.MAX_POSITION_SIZE = 0.10
             cfg.STARTING_CAPITAL = 100_000
             await agent.analyze(self._mock_ctx())
         self.assertIn("AAPL", agent._sentiment_cache)
+
+    async def test_last_api_call_time_updated_after_batch(self):
+        agent, mock_client = self._make_agent_with_client()
+        before = time.time()
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent._is_market_hours", return_value=True), \
+             patch("agents.sentiment_agent.save_token_log", new_callable=AsyncMock):
+            cfg.OPENAI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            cfg.STARTING_CAPITAL = 100_000
+            await agent.analyze(self._mock_ctx())
+        self.assertGreaterEqual(agent._last_api_call_time, before)
+
+
+# ── Symbol prioritisation tests ───────────────────────────────────────────────
+
+class TestSymbolPrioritization(unittest.IsolatedAsyncioTestCase):
+
+    def _make_agent_with_client(self):
+        agent = SentimentAgent()
+        mock_usage = MagicMock()
+        mock_usage.prompt_tokens = 100
+        mock_usage.completion_tokens = 50
+        mock_resp = MagicMock()
+        mock_resp.choices = [MagicMock()]
+        mock_resp.choices[0].message.content = (
+            '{"sentiment": "neutral", "confidence": 0.5, '
+            '"strength": "weak", "reasoning": "test", "key_signals": []}'
+        )
+        mock_resp.usage = mock_usage
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_resp)
+        agent._openai_client = mock_client
+        return agent, mock_client
+
+    def _big_ctx(self, n=10):
+        return {f"SYM{i}": {"price": 100.0, "bars": None, "news": []} for i in range(n)}
+
+    async def test_symbols_capped_at_max_per_call(self):
+        """With 10 symbols, API is called at most _max_symbols_per_call times."""
+        agent, mock_client = self._make_agent_with_client()
+        # _last_api_call_time=0 → interval elapsed → API batch fires
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent._is_market_hours", return_value=True), \
+             patch("agents.sentiment_agent.save_token_log", new_callable=AsyncMock):
+            cfg.OPENAI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            await agent.analyze(self._big_ctx(10))
+        self.assertLessEqual(
+            mock_client.chat.completions.create.call_count,
+            agent._max_symbols_per_call,
+        )
+
+    async def test_held_positions_included_in_api_batch(self):
+        """Held positions are always sent to the API (needed for sell signals)."""
+        from trading.portfolio import Position
+        agent, _ = self._make_agent_with_client()
+        agent.portfolio.positions["SYM9"] = Position("SYM9", 10, 100.0)
+
+        called_symbols: list = []
+        orig_get_sentiment = agent._get_sentiment
+
+        async def track_sentiment(symbol, desc):
+            called_symbols.append(symbol)
+            return {"sentiment": "neutral", "confidence": 0.5,
+                    "strength": "weak", "reasoning": "t", "key_signals": []}
+
+        agent._get_sentiment = track_sentiment
+
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent._is_market_hours", return_value=True):
+            cfg.OPENAI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            await agent.analyze(self._big_ctx(10))
+
+        self.assertIn("SYM9", called_symbols)
+
+    async def test_non_api_symbols_served_from_cache(self):
+        """Symbols not in the API batch still get a signal via cache."""
+        agent, _ = self._make_agent_with_client()
+        ctx = self._big_ctx(10)
+        # Pre-populate cache for all symbols
+        for sym in ctx:
+            agent._sentiment_cache[sym] = {
+                "sentiment": "neutral", "confidence": 0.5,
+                "strength": "weak", "reasoning": "cached", "key_signals": []
+            }
+
+        called_symbols: list = []
+
+        async def track_sentiment(symbol, desc):
+            called_symbols.append(symbol)
+            return agent._sentiment_cache[symbol]
+
+        agent._get_sentiment = track_sentiment
+
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config") as cfg, \
+             patch("agents.sentiment_agent._is_market_hours", return_value=True):
+            cfg.OPENAI_API_KEY = "key"
+            cfg.MAX_POSITION_SIZE = 0.10
+            signals = await agent.analyze(ctx)
+
+        # All 10 symbols should have a signal, but only ≤ max were in API batch
+        returned_syms = {s.symbol for s in signals}
+        for sym in ctx:
+            self.assertIn(sym, returned_syms)
+        self.assertLessEqual(len(called_symbols), agent._max_symbols_per_call)
 
 
 # ── Token logging & daily limit tests ────────────────────────────────────────

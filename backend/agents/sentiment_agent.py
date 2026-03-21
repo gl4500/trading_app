@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import math
+import time
 from datetime import date
 from typing import Dict, List, Optional
 import pandas as pd
@@ -115,9 +116,12 @@ class SentimentAgent(BaseAgent):
         )
         self._openai_client: Optional["AsyncOpenAI"] = None
         self._sentiment_cache: Dict[str, Dict] = {}  # symbol -> last sentiment_data from API
-        self._cycle_count: int = 0
-        self._open_interval: int = 5    # API call every N cycles during market hours (80% budget)
-        self._closed_interval: int = 25  # API call every N cycles during off hours  (20% budget)
+        # Time-based throttle: spread 10 000-token daily budget over 24 h.
+        # ~8 batches/day × 5 symbols × ~250 tok ≈ 10 000 tokens.
+        self._open_min_call_interval: int = 90 * 60    # 90 min between batches during market hours
+        self._closed_min_call_interval: int = 4 * 60 * 60  # 4 h between batches off-hours
+        self._last_api_call_time: float = 0.0          # epoch seconds of last API batch
+        self._max_symbols_per_call: int = 5            # cap per batch (held positions first)
         self._daily_tokens: int = 0
         self._session_tokens: int = 0
         self._token_reset_day: Optional[date] = None
@@ -300,42 +304,62 @@ Respond with ONLY valid JSON in this exact format:
         )
 
     async def analyze(self, market_context: Dict) -> List[Signal]:
-        """Analyze sentiment for all symbols using OpenAI."""
-        interval = self._open_interval if _is_market_hours() else self._closed_interval
-        self._cycle_count += 1
-        use_cache = (self._cycle_count % interval != 1) and bool(self._sentiment_cache)
+        """Analyze sentiment for all symbols using OpenAI.
 
+        Time-based throttling spreads the 10,000-token daily budget evenly:
+        - Market hours: one batch every 90 minutes
+        - Off-hours: one batch every 4 hours
+        Each batch analyses at most _max_symbols_per_call symbols (held first).
+        All other symbols are served from cache.
+        """
         prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
-        items = [(s, ctx) for s, ctx in market_context.items() if isinstance(ctx, dict)]
+        all_items = [(s, ctx) for s, ctx in market_context.items() if isinstance(ctx, dict)]
 
-        # Replay cached sentiment on non-API cycles
-        if use_cache:
-            logger.debug(f"SentimentAgent: Replaying cached sentiment (cycle {self._cycle_count})")
+        # ── Time-based throttle gate ──────────────────────────────────────────
+        now = time.time()
+        min_interval = (
+            self._open_min_call_interval if _is_market_hours()
+            else self._closed_min_call_interval
+        )
+        time_since_last = now - self._last_api_call_time
+
+        if time_since_last < min_interval and self._sentiment_cache:
+            logger.debug(
+                f"SentimentAgent: Replaying cached sentiment "
+                f"(next batch in {int(min_interval - time_since_last)}s)"
+            )
             return [
                 self._generate_signal(sym, self._sentiment_cache[sym], prices)
-                for sym, _ in items
+                for sym, _ in all_items
                 if sym in self._sentiment_cache
             ]
 
-        # API cycle — fetch fresh sentiment for each symbol
-        signals = []
+        # ── Build priority batch ──────────────────────────────────────────────
+        held = set(self.portfolio.positions.keys())
+        priority = [s for s, _ in all_items if s in held]
+        others   = [s for s, _ in all_items if s not in held]
+        api_symbols = (priority + others)[:self._max_symbols_per_call]
+        api_set = set(api_symbols)
 
+        logger.info(
+            f"SentimentAgent: Requesting analysis for {len(api_symbols)}/{len(all_items)} symbols "
+            f"(held={len([s for s in api_symbols if s in held])}, "
+            f"interval={int(min_interval/60)}min)"
+        )
+
+        # ── Fetch fresh sentiment for the priority batch ──────────────────────
         async def analyze_symbol(symbol: str, ctx: Dict) -> Signal:
             try:
                 bars = ctx.get("bars")
                 current_price = prices.get(symbol, 0)
                 news_items = ctx.get("news", [])
-
                 description = _describe_price_action(bars, symbol, current_price)
-
                 if news_items:
                     headlines = " | ".join(a["headline"] for a in news_items[:3])
                     description += f" Recent news: {headlines}"
-
                 sentiment_data = await self._get_sentiment(symbol, description)
                 self._sentiment_cache[symbol] = sentiment_data
                 return self._generate_signal(symbol, sentiment_data, prices)
-
             except Exception as e:
                 logger.error(f"SentimentAgent: Error analyzing {symbol}: {e}")
                 return Signal(
@@ -343,20 +367,29 @@ Respond with ONLY valid JSON in this exact format:
                     reasoning=f"Analysis error: {str(e)[:100]}"
                 )
 
+        api_items = [(s, ctx) for s, ctx in all_items if s in api_set]
+        signals: List[Signal] = []
         batch_size = 3
-        for i in range(0, len(items), batch_size):
-            batch = items[i:i + batch_size]
+        for i in range(0, len(api_items), batch_size):
+            batch = api_items[i:i + batch_size]
             batch_signals = await asyncio.gather(
                 *[analyze_symbol(sym, ctx) for sym, ctx in batch],
-                return_exceptions=True
+                return_exceptions=True,
             )
             for result in batch_signals:
                 if isinstance(result, Exception):
                     logger.error(f"SentimentAgent batch error: {result}")
                 else:
                     signals.append(result)
-
-            if i + batch_size < len(items):
+            if i + batch_size < len(api_items):
                 await asyncio.sleep(0.5)
+
+        self._last_api_call_time = time.time()
+
+        # ── Fill remaining symbols from cache ─────────────────────────────────
+        api_syms_returned = {s.symbol for s in signals}
+        for sym, _ in all_items:
+            if sym not in api_syms_returned and sym in self._sentiment_cache:
+                signals.append(self._generate_signal(sym, self._sentiment_cache[sym], prices))
 
         return signals
