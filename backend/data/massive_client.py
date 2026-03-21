@@ -83,13 +83,24 @@ class MassiveClient:
         self._news_cache:    Dict[str, tuple] = {}  # symbol → (ts, list)
         self._options_cache: Dict[str, tuple] = {}  # "flow" → (ts, list)
         self._economy_cache: Dict[str, tuple] = {}  # indicator → (ts, dict)
-        # Limit concurrent outbound requests to avoid 429s from Massive
-        self._semaphore = asyncio.Semaphore(5)
+        # Rate limiter: max 3 requests/second to avoid 429s from Massive.
+        # The semaphore limits concurrency; the _last_request timestamp + sleep
+        # enforces a minimum gap so bursts of 50+ symbols don't all fire at once.
+        self._semaphore = asyncio.Semaphore(3)
+        self._last_request: float = 0.0
+        self._min_request_gap: float = 0.35  # seconds between requests (~3/sec)
 
     # ── Internal ──────────────────────────────────────────────────────────────
 
     def _is_available(self) -> bool:
         return bool(config.MASSIVE_API_KEY)
+
+    async def _throttle(self) -> None:
+        """Sleep long enough to honour the minimum inter-request gap."""
+        gap = self._min_request_gap - (time.time() - self._last_request)
+        if gap > 0:
+            await asyncio.sleep(gap)
+        self._last_request = time.time()
 
     def _cached(self, store: Dict, key: str, ttl: int):
         if key in store:
@@ -134,6 +145,7 @@ class MassiveClient:
 
         try:
             async with self._semaphore:
+                await self._throttle()
                 async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
                     resp = await client.get(url, params=params)
 
@@ -212,6 +224,7 @@ class MassiveClient:
         url = f"{_BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers/{symbol.upper()}"
         try:
             async with self._semaphore:
+                await self._throttle()
                 async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
                     resp = await client.get(url, params=_auth_params())
             if resp.status_code != 200:
@@ -237,6 +250,7 @@ class MassiveClient:
         params = {"tickers": ",".join(s.upper() for s in symbols), **_auth_params()}
         try:
             async with self._semaphore:
+                await self._throttle()
                 async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
                     resp = await client.get(url, params=params)
             if resp.status_code == 200:
@@ -289,6 +303,7 @@ class MassiveClient:
         params = {"ticker": symbol.upper(), "limit": limit, "order": "desc", "sort": "published_utc", **_auth_params()}
         try:
             async with self._semaphore:
+                await self._throttle()
                 async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
                     resp = await client.get(url, params=params)
             if resp.status_code != 200:
@@ -331,6 +346,7 @@ class MassiveClient:
         params = {"limit": per_sym_limit, "sort": "day.volume", "order": "desc", **_auth_params()}
         try:
             async with self._semaphore:
+                await self._throttle()
                 async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
                     resp = await client.get(url, params=params)
             if resp.status_code != 200:
@@ -450,6 +466,7 @@ class MassiveClient:
         url = f"{_BASE_URL}{path}"
         try:
             async with self._semaphore:
+                await self._throttle()
                 async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
                     resp = await client.get(url, params={"limit": 1, "order": "desc", **_auth_params()})
             if resp.status_code != 200:
