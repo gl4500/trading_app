@@ -146,6 +146,21 @@ class TestEnsembleVote(unittest.TestCase):
         signal = self.ens._vote("AAPL", sigs, current_price=100.0)
         self.assertIn(self.ens._regime.upper(), signal.reasoning)
 
+    def test_buy_blocked_by_margin_of_safety(self):
+        """buy_score passes threshold but conflicting SELL is too close — 2x margin of safety blocks entry."""
+        # A: weight=0.40, BUY  conf=0.90 → buy_wconf  = 0.36
+        # B: weight=0.25, BUY  conf=0.96 → buy_wconf  = 0.24  → buy_score  = 0.60
+        # C: weight=0.35, SELL conf=0.90 → sell_wconf = 0.315 → sell_score = 0.315
+        # margin check: 0.60 >= 0.315 * 2.0 = 0.63  →  FAIL  →  HOLD
+        sigs = [
+            ("A", 0.40, _signal("BUY",  confidence=0.90)),
+            ("B", 0.25, _signal("BUY",  confidence=0.96)),
+            ("C", 0.35, _signal("SELL", confidence=0.90)),
+        ]
+        signal = self.ens._vote("AAPL", sigs, current_price=100.0)
+        self.assertEqual(signal.action, "HOLD")
+        self.assertIn("margin of safety", signal.reasoning.lower())
+
 
 # ── _detect_regime() tests ────────────────────────────────────────────────────
 

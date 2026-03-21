@@ -175,7 +175,7 @@ class TestSharpeRatio(unittest.TestCase):
         self.assertIsInstance(result, float)
 
     def test_sharpe_constant_returns_zero(self):
-        # Flat portfolio → std_dev = 0 → Sharpe = 0
+        # Flat portfolio → log(1) = 0 every step → std_dev = 0 → Sharpe = 0
         p = Portfolio(starting_capital=100_000)
         base_time = datetime.utcnow() - timedelta(hours=2)
         p._value_history = [
@@ -183,6 +183,27 @@ class TestSharpeRatio(unittest.TestCase):
             for i in range(20)
         ]
         self.assertEqual(p._calculate_sharpe(), 0.0)
+
+    def test_sharpe_uses_log_returns_not_simple(self):
+        """Log returns are additive: ln(0.5) + ln(2.0) = 0 (true break-even).
+        Simple returns would give (-0.5 + 1.0)/2 = +0.25 — a false positive.
+        With log returns the mean ≈ 0, so Sharpe should be near 0 or negative
+        (after subtracting risk-free rate) for an alternating -50%/+100% cycle.
+        """
+        import math
+        p = Portfolio(starting_capital=100_000)
+        base_time = datetime.utcnow() - timedelta(hours=4)
+        # Alternating: 100k → 50k → 100k → 50k → ...
+        vals = []
+        for i in range(20):
+            vals.append(100_000 if i % 2 == 0 else 50_000)
+        p._value_history = [
+            (base_time + timedelta(minutes=i * 10), v) for i, v in enumerate(vals)
+        ]
+        result = p._calculate_sharpe()
+        self.assertIsInstance(result, float)
+        # Log mean return ≈ 0 → after subtracting risk-free rate, Sharpe should be <= 0
+        self.assertLessEqual(result, 0.1)
 
 
 class TestMaxDrawdown(unittest.TestCase):

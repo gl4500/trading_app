@@ -310,8 +310,17 @@ class EnsembleAgent(BaseAgent):
             f"buy={buy_score:.2f} sell={sell_score:.2f} threshold={self.consensus_threshold}"
         )
 
-        # BUY consensus
+        # BUY consensus — requires threshold AND 2x margin of safety over sell signal
         if buy_score >= self.consensus_threshold and not has_position:
+            # 2x margin of safety: buy must be at least 2x the opposing sell signal
+            if buy_score < sell_score * config.MARGIN_OF_SAFETY:
+                return Signal(action="HOLD", symbol=symbol, confidence=buy_score, shares=0,
+                              reasoning=(
+                                  f"ENSEMBLE HOLD [{self._regime.upper()}]: buy={buy_score:.0%} passes threshold "
+                                  f"but sell={sell_score:.0%} is too close — 2x margin of safety requires "
+                                  f"buy >= {sell_score * config.MARGIN_OF_SAFETY:.0%}. Conflicted signal."
+                              ))
+
             if current_price <= 0:
                 return Signal(action="HOLD", symbol=symbol, confidence=buy_score, shares=0,
                               reasoning="Cannot determine price")
@@ -332,6 +341,7 @@ class EnsembleAgent(BaseAgent):
                 shares=shares,
                 reasoning=(
                     f"ENSEMBLE BUY [{self._regime.upper()}]: {buy_score:.0%} consensus | "
+                    f"2x margin of safety: buy={buy_score:.0%} >= sell={sell_score:.0%}×2 | "
                     f"Agents: {', '.join(a for a, _ in buy_signals)} | "
                     + " | ".join(all_reasonings[:2])
                 ),

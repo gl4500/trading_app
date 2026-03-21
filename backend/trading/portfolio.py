@@ -223,8 +223,8 @@ class Portfolio:
         values = [v for _, v in self._value_history]
         returns = []
         for i in range(1, len(values)):
-            if values[i - 1] > 0:
-                ret = (values[i] - values[i - 1]) / values[i - 1]
+            if values[i - 1] > 0 and values[i] > 0:
+                ret = math.log(values[i] / values[i - 1])  # log returns: additive, symmetric, correct for large swings
                 returns.append(ret)
 
         if not returns:

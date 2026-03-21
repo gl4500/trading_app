@@ -62,7 +62,8 @@ class Config:
         "MomentumAgent":      0.15,
         "MeanReversionAgent": 0.10,
     }
-    ENSEMBLE_THRESHOLD: float = 0.35  # 35% weighted agreement required
+    ENSEMBLE_THRESHOLD: float = 0.60  # raised from 0.35 — only enter on high conviction (post: 72% for Polymarket, 0.60 calibrated for 5-agent stock ensemble)
+    MARGIN_OF_SAFETY: float = 2.0    # buy_score must be >= sell_score * this — blocks entry when opposing signal is too strong
 
     # Technical analysis parameters
     RSI_PERIOD: int = 14
