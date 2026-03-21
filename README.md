@@ -376,6 +376,8 @@ WATCHLIST=AAPL,MSFT,GOOGL,TSLA,AMZN,NVDA,META,SPY
 
 See [`agent_formulas.txt`](agent_formulas.txt) for a complete printout of every buy/sell formula, scoring weight, threshold, and position-sizing calculation used by each agent.
 
+See [`decision_tree.txt`](decision_tree.txt) for a full ASCII diagram of how data flows from market sources through each agent layer to final trade execution.
+
 ---
 
 ## Changelog
@@ -384,6 +386,7 @@ See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 | Date | Change |
 |---|---|
+| 2026-03-21 | **Decision flow diagram** — added `decision_tree.txt` with full ASCII diagram showing all 7 layers from data sources through ensemble voting to trade execution |
 | 2026-03-21 | **Agent formulas reference** — added `agent_formulas.txt` documenting every buy/sell formula, scoring weight, threshold, and position-sizing calculation for all agents |
 | 2026-03-20 | **Trade date display** — recent trades in Portfolio Chart tab now show date (e.g. "20 Mar") above the time |
 | 2026-03-20 | **SentimentAgent token throttling** — switched from cycle-based to time-based throttling (90 min market / 4 h off-hours); caps each batch to 5 symbols (held positions first); spreads 10,000-token daily budget evenly across 24 h |

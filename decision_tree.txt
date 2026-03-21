@@ -1,0 +1,318 @@
+================================================================================
+  AI TRADING APP — DECISION FLOW DIAGRAM
+================================================================================
+
+  Every 60 seconds (market hours only: 9:30–16:00 ET)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 1 — DATA SOURCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+  │  Alpaca Markets │  │  yfinance        │  │  News Sources    │
+  │  - OHLCV bars   │  │  - Analyst recs  │  │  - Alpaca News   │
+  │  - Live prices  │  │  - Earnings data │  │  - Yahoo RSS     │
+  │  - Volume       │  │  - 52W high/low  │  │  - CNBC/Reuters  │
+  └────────┬────────┘  └────────┬─────────┘  └────────┬─────────┘
+           │                    │                      │
+           │           ┌────────┴─────────┐            │
+           │           │  signal_         │            │
+           │           │  aggregator.py   │            │
+           │           │                  │            │
+           │           │  Analyst   35%   │            │
+           │           │  Earnings  22%   │            │
+           │           │  News      18%   │            │
+           │           │  Yahoo     12%   │            │
+           │           │  Congress  13%   │            │
+           │           └────────┬─────────┘            │
+           │                    │                      │
+  ┌────────┴──────────────────┬─┴──────────────────────┴──────┐
+  │           technicals.py   │   composite_signal             │
+  │  RSI / MACD / BB /        │   (weighted score + verdict)  │
+  │  SMA / ATR / volume ratio │                               │
+  └────────────────┬──────────┴───────────────────────────────┘
+                   │
+  ┌────────────────┴──────────────────────────────────────────┐
+  │               market_context  (per symbol dict)           │
+  │   price, bars, indicators, composite_signal, news,        │
+  │   overnight_catalysts, portfolio_state                    │
+  └────────────────────────────────┬──────────────────────────┘
+                                   │
+                     ┌─────────────┴──────────────┐
+                     │   Also injected:            │
+                     │  __overnight_catalysts__    │  ← Sentinel (24/7)
+                     │  __gemini_market_view__     │  ← GeminiAgent pre-pass
+                     └─────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 2 — OVERNIGHT SENTINEL  (runs 24/7, parallel to trading loop)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │  news_sentinel_loop  (every 5 min market hours / 15 min off-hours)      │
+  │                                                                          │
+  │  Sources: Alpaca · CNBC RSS · Reuters RSS · Yahoo Finance · yfinance    │
+  │           SEC EDGAR 8-K · Finnhub · Unusual Whales                     │
+  │                                                                          │
+  │  Scoring:  standard catalyst (earnings/M&A/FDA/upgrades)                │
+  │          + policy monitor   (EO / legislation / tariffs / Fed)          │
+  │                                                                          │
+  │  combined_score >= 2  →  triggers scanner run                           │
+  │  All catalysts stored in app_state.after_hours_catalysts (max 50)      │
+  │  Injected into ClaudeAgent + GeminiAgent prompts at next cycle          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 3 — GEMINI PRE-PASS  (every 3rd cycle)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  market_context
+       │
+       ▼
+  ┌────────────────────────────────────────────┐
+  │  GeminiAgent  (Gemini 2.0 Flash)           │
+  │                                            │
+  │  Input: price action, RSI/MACD/BB, news,   │
+  │         composite signal, overnight cats   │
+  │                                            │
+  │  Decision framework:                       │
+  │   STRONG BUY  → catalyst + RSI<65          │
+  │                  + MACD+ + price>SMA20     │
+  │   STRONG SELL → negative + RSI>65          │
+  │                  + MACD- + price<SMA20     │
+  │   HOLD        → mixed signals              │
+  │                                            │
+  │  Output: market_analysis string (2-3 sent) │
+  │          + per-symbol BUY/SELL/HOLD        │
+  └────────────────────┬───────────────────────┘
+                       │
+                       │  market_analysis → injected into
+                       │  ClaudeAgent prompt as
+                       │  "## Gemini Market View"
+                       ▼
+  market_context["__gemini_market_view__"] = "..."
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 4 — INDIVIDUAL AGENTS  (all run in parallel each cycle)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+                              market_context
+                                    │
+          ┌─────────────────────────┼──────────────────────────┐
+          │                         │                          │
+          ▼                         ▼                          ▼
+  ┌───────────────┐       ┌─────────────────┐        ┌────────────────────┐
+  │  TechAgent    │       │ MomentumAgent   │        │ MeanReversionAgent │
+  │               │       │                 │        │                    │
+  │  RSI(14)      │       │ mom_5d  → ×5   │        │ z = (price-mean)   │
+  │  MACD(12/26/9)│       │ mom_10d → ×3   │        │     / std (20d)    │
+  │  BB(20, 2σ)   │       │ mom_20d → ×2   │        │                    │
+  │  Vol SMA-20   │       │ trend_consist.  │        │ BUY:  z <= -1.5    │
+  │               │       │ acceleration    │        │ SELL: z >= +1.5    │
+  │  BUY: >=0.55  │       │ volume_ratio    │        │ EXIT: -0.3<=z<=0.5 │
+  │  SELL: >=0.55 │       │                 │        │  (if PnL > 1%)     │
+  │               │       │  BUY: >=0.30   │        │                    │
+  │  Sell entire  │       │  + vw_mom > 0  │        │ conf=min(0.95,     │
+  │  position     │       │  SELL: >=0.30  │        │   |z|/3)           │
+  │               │       │  or mom<-2%    │        │                    │
+  │               │       │                 │        │ Trailing stop also │
+  │               │       │  TRAILING STOP  │        │ NOT applicable     │
+  │               │       │  if drawdown    │        │ (exits at mean)    │
+  │               │       │  > 3%           │        │                    │
+  └───────┬───────┘       └────────┬────────┘        └─────────┬──────────┘
+          │                        │                            │
+          │               ┌────────┴──────┐                    │
+          │               │               │                    │
+          ▼               ▼               ▼                    ▼
+   Signal(BUY/            Signal(BUY/   Signal(SELL          Signal(BUY/
+   SELL/HOLD,             SELL/HOLD,    trailing,            SELL/HOLD,
+   conf, shares)          conf, shares) conf=0.90)           conf, shares)
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │  SentimentAgent  (GPT-4o-mini, throttled 90 min / batch ≤ 5 symbols)  │
+  │                                                                        │
+  │  Input: price action description (1D/5D/20D ret, vol, high/low dist,  │
+  │         daily vol std, consecutive days, news headlines)               │
+  │                                                                        │
+  │  LLM returns: { sentiment, confidence, strength }                     │
+  │  adjusted_conf = confidence × {strong:1.0, moderate:0.8, weak:0.6}   │
+  │                                                                        │
+  │  BUY:  bullish  + adjusted_conf >= 0.45                               │
+  │  SELL: bearish  + adjusted_conf >= 0.45                               │
+  └────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+                            Signal(BUY/SELL/HOLD, conf, shares)
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │  ClaudeAgent  (Claude Opus 4.6, every 3rd cycle, ≤ 2 calls/hr)       │
+  │                                                                        │
+  │  Input: everything — price, OHLCV(30d), RSI/MACD/BB/SMA/ATR,         │
+  │         composite signal, Alpaca news, overnight catalysts,           │
+  │         portfolio state, learning history, Gemini market view,        │
+  │         risk assessor findings (churn/regime/sector flags)            │
+  │                                                                        │
+  │  Decision framework:                                                   │
+  │   STRONG BUY  → bullish catalyst + RSI<65 + MACD+ + price>SMA20      │
+  │   STRONG SELL → negative + RSI>65 + MACD- + price<SMA20              │
+  │   CONFLICTED  → news vs technicals disagree →                         │
+  │                 use technicals for timing, news for direction         │
+  │                                                                        │
+  │  Output: per-symbol { action, shares, confidence, reasoning }         │
+  │          + market_analysis string                                     │
+  └────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+                            Signal(BUY/SELL/HOLD, conf, shares)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 5 — ENSEMBLE VOTING  (every cycle)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  All 5 agent signals arrive per symbol:
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                                                                     │
+  │  TechAgent ──────────── weight × confidence ─────────┐            │
+  │  MomentumAgent ───────── weight × confidence ─────────┤            │
+  │  MeanReversionAgent ──── weight × confidence ─────────┤  Σ        │
+  │  SentimentAgent ─────── weight × confidence ─────────┤            │
+  │  ClaudeAgent ────────── weight × confidence ─────────┘            │
+  │                                                                     │
+  │  buy_score  = Σ(weight × conf) for BUY  signals / total_weight    │
+  │  sell_score = Σ(weight × conf) for SELL signals / total_weight    │
+  │                                                                     │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  Every 5 cycles — weights are recalculated:
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  STEP 1 — Performance scoring                                        │
+  │                                                                      │
+  │  perf_score = 0.5 × win_rate + 0.5 × norm_sharpe                   │
+  │  norm_sharpe = (sharpe + 2) / 5    [clamped -2 to +3 → 0 to 1]     │
+  │  (if < 5 trades → perf_score = 1.0, neutral)                        │
+  │                                                                      │
+  │  STEP 2 — Regime detection  (SPY/QQQ bars, 2-of-3 signals required) │
+  │                                                                      │
+  │  Signal A: abs(SMA20 slope) > 0.4%  per price                       │
+  │  Signal B: >60% of last 10 days in slope direction                  │
+  │  Signal C: recent 5-bar volume > 20-bar avg × 1.10                 │
+  │                                                                      │
+  │  2+ of A/B/C true  →  TRENDING                                      │
+  │  ATR > 2.5% of price  →  VOLATILE   (checked first)                 │
+  │  otherwise  →  RANGING                                              │
+  │                                                                      │
+  │  STEP 3 — Build final weights                                        │
+  │                                                                      │
+  │  raw = base_weight × max(0.30, perf_score) × regime_multiplier      │
+  │  final = raw / Σ(all raw)                                            │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  Regime multipliers:
+
+  Agent               TRENDING    RANGING    VOLATILE
+  ─────────────────── ─────────   ────────   ────────
+  MomentumAgent         ×1.50      ×0.55      ×0.65
+  TechAgent             ×1.20      ×1.10      ×0.80
+  ClaudeAgent           ×1.10      ×1.00      ×1.40
+  SentimentAgent        ×0.80      ×1.20      ×1.20
+  MeanReversionAgent    ×0.40      ×1.60      ×0.60
+
+  Base weights (before adjustment):
+  ClaudeAgent 25% · TechAgent 20% · SentimentAgent 15%
+  MomentumAgent 12% · MeanReversionAgent 8%
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │  FINAL VOTE DECISION                                                │
+  │                                                                     │
+  │  buy_score  >= 0.35  AND  no existing position  →  BUY             │
+  │  sell_score >= 0.35  AND  holding position      →  SELL            │
+  │  neither clears threshold                        →  HOLD            │
+  │                                                                     │
+  │  Position size:                                                     │
+  │  target = portfolio_value × MAX_POSITION_SIZE × buy_score          │
+  │  target = min(target, available_cash × 0.95)                       │
+  │  shares = floor(target / price × 100) / 100                        │
+  └─────────────────────────────────────────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 6 — RISK MANAGER GATE  (before every trade)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Ensemble signal (BUY/SELL)
+          │
+          ▼
+  ┌───────────────────────────────────────────────────────────────────┐
+  │  RiskManager checks (any FAIL → signal blocked)                  │
+  │                                                                   │
+  │  ✓ Daily loss limit not breached  (default 5% of portfolio)      │
+  │  ✓ Position size <= MAX_POSITION_SIZE per symbol  (default 15%)  │
+  │  ✓ Sufficient cash available                                      │
+  │  ✓ No churn cooloff active  (30 min after selling a symbol)      │
+  │  ✓ Sector concentration <= 35% of portfolio value                │
+  └───────────────────────┬───────────────────────────────────────────┘
+                          │
+              ┌───────────┴───────────┐
+           PASS                     FAIL
+              │                       │
+              ▼                       ▼
+        Trade executed            Signal dropped
+        via Alpaca API            (logged as blocked)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 7 — SCANNER AGENT  (independent, every 30 min)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ~160 S&P 500 stocks (stock_universe.py)
+          │
+          ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Pre-screen  — price change + volume ratio filter           │
+  │  Top candidates → Claude agentic tool-use loop             │
+  │  Output: ranked BUY/SELL/WATCH + confidence + price target │
+  │  Persisted to data/scan_cache.json                         │
+  └─────────────────────┬───────────────────────────────────────┘
+                        │
+          ┌─────────────┴──────────────────┐
+          │                                │
+          ▼                                ▼
+  Scanner symbols injected           ScannerPortfolioAgent
+  into all agents'                   (runs every cycle)
+  market_context                            │
+                                    ┌───────┴──────────────────────────────┐
+                                    │  BUY:  conf >= 0.60, fresh scan only │
+                                    │  SELL: explicit SELL rec             │
+                                    │  SELL: not in BUY set + loss >= 5%  │
+                                    └──────────────────────────────────────┘
+                                            │
+                                    RiskManager gate (same as above)
+                                            │
+                                    Trade via Alpaca API
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FULL CYCLE SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [Every 60s, 9:30–16:00 ET]
+
+  1. Fetch market data (Alpaca) + build market_context
+  2. (Every 3rd cycle) GeminiAgent → market_analysis injected into context
+  3. Run 5 agents in parallel → each returns BUY/SELL/HOLD per symbol
+  4. EnsembleAgent collects all signals → weighted vote per symbol
+     └─ Every 5 cycles: recalculate regime + adaptive weights
+  5. For each signal: RiskManager gate
+  6. Passing signals → Alpaca paper trade execution
+  7. (Every 30 min) Scanner runs independently → scan_cache.json updated
+  8. ScannerPortfolioAgent reads cache → its own BUY/SELL signals
+     └─ Through same RiskManager gate → Alpaca execution
+  9. (24/7 background) Sentinel polls news → catalysts queued for next cycle
+
+================================================================================
