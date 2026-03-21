@@ -372,12 +372,19 @@ WATCHLIST=AAPL,MSFT,GOOGL,TSLA,AMZN,NVDA,META,SPY
 
 ---
 
+## Agent Formulas Reference
+
+See [`agent_formulas.txt`](agent_formulas.txt) for a complete printout of every buy/sell formula, scoring weight, threshold, and position-sizing calculation used by each agent.
+
+---
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 | Date | Change |
 |---|---|
+| 2026-03-21 | **Agent formulas reference** — added `agent_formulas.txt` documenting every buy/sell formula, scoring weight, threshold, and position-sizing calculation for all agents |
 | 2026-03-20 | **Trade date display** — recent trades in Portfolio Chart tab now show date (e.g. "20 Mar") above the time |
 | 2026-03-20 | **SentimentAgent token throttling** — switched from cycle-based to time-based throttling (90 min market / 4 h off-hours); caps each batch to 5 symbols (held positions first); spreads 10,000-token daily budget evenly across 24 h |
 | 2026-03-19 | **Risk assessor learning loop** — new `data/risk_assessor.py` persists trade/regime logs; detects churn, false TRENDING calls, sector overweight; injects findings into Claude and Gemini prompts every 30 cycles |
