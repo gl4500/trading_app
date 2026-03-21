@@ -14,6 +14,7 @@ from trading.alpaca_client import alpaca_client
 from data.news_service import news_service
 from data import technicals
 from data.signal_aggregator import get_composite_signal
+from data.massive_client import massive_client
 
 logger = logging.getLogger(__name__)
 
@@ -100,10 +101,22 @@ class MarketDataService:
             if df is not None and not df.empty:
                 self._bars_cache[cache_key] = df
                 self._last_bars_fetch[cache_key] = now
-            return df if df is not None else pd.DataFrame()
+                return df
         except Exception as e:
             logger.error(f"Error fetching bars for {symbol}: {e}")
-            return self._bars_cache.get(cache_key, pd.DataFrame()).copy()
+
+        # Fallback: try Massive.com bars
+        try:
+            df_massive = await massive_client.get_bars(symbol, days=days)
+            if df_massive is not None and not df_massive.empty:
+                logger.debug(f"MarketData: using Massive bars for {symbol}")
+                self._bars_cache[cache_key] = df_massive
+                self._last_bars_fetch[cache_key] = now
+                return df_massive
+        except Exception as e:
+            logger.debug(f"Massive bars fallback {symbol}: {e}")
+
+        return self._bars_cache.get(cache_key, pd.DataFrame()).copy()
 
     async def get_all_bars(
         self,
@@ -156,12 +169,21 @@ class MarketDataService:
         """
         syms = symbols or self.watchlist
 
-        # Fetch in parallel
-        prices_task = self.get_latest_prices(syms)
-        bars_task   = self.get_all_bars(syms)
-        news_task   = news_service.get_news_multi(syms)
+        # Fetch in parallel — Massive macro + news run alongside Alpaca
+        prices_task       = self.get_latest_prices(syms)
+        bars_task         = self.get_all_bars(syms)
+        news_task         = news_service.get_news_multi(syms)
+        macro_task        = massive_client.get_macro_context()
+        massive_news_task = massive_client.get_news_multi(syms, limit=5)
 
-        prices, all_bars, all_news = await asyncio.gather(prices_task, bars_task, news_task)
+        prices, all_bars, all_news, macro_ctx, massive_news = await asyncio.gather(
+            prices_task, bars_task, news_task, macro_task, massive_news_task,
+            return_exceptions=True,
+        )
+        if isinstance(macro_ctx, Exception):
+            macro_ctx = ""
+        if isinstance(massive_news, Exception):
+            massive_news = {}
 
         # Composite signals (yfinance is slow — run concurrently per symbol)
         composite_tasks = [get_composite_signal(sym, all_news.get(sym, [])) for sym in syms]
@@ -177,12 +199,15 @@ class MarketDataService:
             price = prices.get(sym)
 
             if bars.empty:
+                alpaca_news_empty = all_news.get(sym, [])
+                massive_news_empty = massive_news.get(sym, []) if isinstance(massive_news, dict) else []
+                existing_hl = {n.get("headline", "") for n in alpaca_news_empty}
                 context[sym] = {
                     "symbol": sym,
                     "price":  price or 0,
                     "bars":   pd.DataFrame(),
                     "stats":  {},
-                    "news":   all_news.get(sym, []),
+                    "news":   alpaca_news_empty + [n for n in massive_news_empty if n.get("headline", "") not in existing_hl],
                     "indicators": None,
                     "composite_signal": all_composite.get(sym, {}),
                 }
@@ -217,16 +242,30 @@ class MarketDataService:
                 recent_bars.append(bar_dict)
 
             ind = technicals.compute(bars)
+
+            # Merge Alpaca news + Massive news (deduplicate by headline)
+            alpaca_news   = all_news.get(sym, [])
+            massive_sym_news = massive_news.get(sym, []) if isinstance(massive_news, dict) else []
+            existing_headlines = {n.get("headline", "") for n in alpaca_news}
+            merged_news = alpaca_news + [
+                n for n in massive_sym_news
+                if n.get("headline", "") not in existing_headlines
+            ]
+
             context[sym] = {
-                "symbol":    sym,
-                "bars":      all_bars.get(sym, pd.DataFrame()),
-                "recent_bars": recent_bars,
-                "stats":     stats,
-                "price":     stats["current_price"],
-                "news":      all_news.get(sym, []),
-                "indicators": ind,
+                "symbol":           sym,
+                "bars":             all_bars.get(sym, pd.DataFrame()),
+                "recent_bars":      recent_bars,
+                "stats":            stats,
+                "price":            stats["current_price"],
+                "news":             merged_news,
+                "indicators":       ind,
                 "composite_signal": all_composite.get(sym, {}),
             }
+
+        # Attach macro context at the top level so agent prompts can access it
+        if macro_ctx:
+            context["__massive_macro__"] = macro_ctx
 
         return context
 

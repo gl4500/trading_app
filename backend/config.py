@@ -24,6 +24,13 @@ class Config:
     FINNHUB_API_KEY: str = os.getenv("FINNHUB_API_KEY", "")
     UNUSUAL_WHALES_API_KEY: str = os.getenv("UNUSUAL_WHALES_API_KEY", "")
 
+    # Massive.com financial data
+    MASSIVE_API_KEY: str = os.getenv("MASSIVE_API_KEY", "")
+    MASSIVE_S3_BUCKET: str = os.getenv("MASSIVE_S3_BUCKET", "")
+    MASSIVE_S3_ACCESS_KEY: str = os.getenv("MASSIVE_S3_ACCESS_KEY", "")
+    MASSIVE_S3_SECRET_KEY: str = os.getenv("MASSIVE_S3_SECRET_KEY", "")
+    MASSIVE_S3_REGION: str = os.getenv("MASSIVE_S3_REGION", "us-east-1")
+
     # Trading parameters
     STARTING_CAPITAL: float = float(os.getenv("STARTING_CAPITAL", "100000"))
     MAX_POSITION_SIZE: float = float(os.getenv("MAX_POSITION_SIZE", "0.15"))  # 15% max per position

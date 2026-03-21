@@ -390,6 +390,49 @@ async def fetch_unusual_whales(symbols: List[str]) -> List[Dict]:
     return results
 
 
+# ── Source 7: Massive.com — options flow + news ───────────────────────────────
+
+async def fetch_massive_signals(symbols: List[str]) -> List[Dict]:
+    """
+    Fetch options flow alerts and news from Massive.com.
+    Skipped silently if MASSIVE_API_KEY is not set.
+    """
+    from data.massive_client import massive_client
+    if not massive_client._is_available():
+        return []
+
+    results: List[Dict] = []
+    try:
+        flow_items, news_map = await asyncio.gather(
+            massive_client.get_options_flow(symbols, limit=50),
+            massive_client.get_news_multi(symbols, limit=5),
+            return_exceptions=True,
+        )
+
+        # Options flow → already catalyst-compatible dicts
+        if isinstance(flow_items, list):
+            results.extend(flow_items)
+            logger.debug(f"Massive options flow: {len(flow_items)} signals")
+
+        # News → convert to catalyst format
+        if isinstance(news_map, dict):
+            for sym, articles in news_map.items():
+                for a in articles:
+                    headline = a.get("headline", "")
+                    summary  = a.get("summary", "")
+                    if not headline:
+                        continue
+                    cat = _make_catalyst(headline, summary, "Massive News", a.get("published_at", ""), sym)
+                    if cat:
+                        results.append(cat)
+            logger.debug(f"Massive news: {len(results) - len(flow_items if isinstance(flow_items, list) else [])} catalysts")
+
+    except Exception as e:
+        logger.debug(f"Massive signals fetch: {e}")
+
+    return results
+
+
 # ── Aggregate entry point ─────────────────────────────────────────────────────
 
 async def fetch_all_sources(symbols: List[str]) -> List[Dict]:
@@ -404,6 +447,7 @@ async def fetch_all_sources(symbols: List[str]) -> List[Dict]:
         fetch_edgar_8k(symbols),
         fetch_finnhub_news(symbols),
         fetch_unusual_whales(symbols),
+        fetch_massive_signals(symbols),
     ]
 
     batches = await asyncio.gather(*tasks, return_exceptions=True)

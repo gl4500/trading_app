@@ -131,11 +131,14 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
         except Exception:
             pass
 
+        macro_ctx = market_context.get("__massive_macro__", "")
+        macro_section = f"\n{macro_ctx}\n" if macro_ctx else ""
+
         return f"""You are an expert quantitative trader competing in a paper trading competition. Maximize risk-adjusted returns.
 
 ## Portfolio State
 {portfolio_ctx}{assessment_ctx}
-{overnight_section}
+{macro_section}{overnight_section}
 ## Market Data
 {market_data}
 
