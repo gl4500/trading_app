@@ -96,10 +96,10 @@ class NewsService:
 
         lines = [f"{symbol} Recent News ({len(articles)} articles):"]
         for a in articles:
-            headline = a["headline"]
-            summary = a["summary"]
-            source = a["source"]
-            date = a["date"]
+            headline = a.get("headline", "")
+            summary = a.get("summary", "")
+            source = a.get("source", "")
+            date = a.get("date") or a.get("published_at", "")
             if summary:
                 lines.append(f"  [{date}] {headline} (via {source})\n    → {summary}")
             else:

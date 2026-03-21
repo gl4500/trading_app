@@ -284,7 +284,7 @@ async def trading_loop() -> None:
                     if scanner_syms:
                         scanner_ctx = await market_data_service.get_market_context(scanner_syms)
                         market_context.update(scanner_ctx)
-                        prices.update({s: c.get("price", 0) for s, c in scanner_ctx.items()})
+                        prices.update({s: c.get("price", 0) for s, c in scanner_ctx.items() if isinstance(c, dict)})
                         logger.info(f"Scanner: added {len(scanner_syms)} symbols to market context: {scanner_syms}")
             except Exception as e:
                 logger.warning(f"Could not augment market context with scanner symbols: {e}")
@@ -300,7 +300,7 @@ async def trading_loop() -> None:
                 if pick_syms:
                     picks_ctx = await market_data_service.get_market_context(list(pick_syms))
                     market_context.update(picks_ctx)
-                    prices.update({s: c.get("price", 0) for s, c in picks_ctx.items()})
+                    prices.update({s: c.get("price", 0) for s, c in picks_ctx.items() if isinstance(c, dict)})
                     logger.info(f"Agent picks: added {len(pick_syms)} retained symbols to context: {sorted(pick_syms)}")
             except Exception as e:
                 logger.warning(f"Could not augment market context with agent picks: {e}")
