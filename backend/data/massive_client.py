@@ -15,14 +15,6 @@ REST coverage:
 
 All methods degrade gracefully — if Massive is unavailable or the key is
 missing, they return empty results so the rest of the pipeline is unaffected.
-
-──────────────────────────────────────────────────────────────────────────────
-TODO (verify against your Massive dashboard before first run):
-  1. Confirm BASE_URL  — check API > Getting Started in your dashboard
-  2. Confirm auth header — likely "Authorization: Bearer {key}" or "X-Api-Key"
-  3. Confirm endpoint paths — e.g. /v1/stocks/{ticker}/aggregates vs /stocks/...
-  4. Set MASSIVE_S3_BUCKET to your assigned bucket name
-──────────────────────────────────────────────────────────────────────────────
 """
 import asyncio
 import io
@@ -40,8 +32,9 @@ logger = logging.getLogger(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-# TODO: confirm base URL from your Massive dashboard → API > Getting Started
-_BASE_URL = "https://api.massive.com/v1"
+_BASE_URL    = "https://api.massive.com"
+_S3_ENDPOINT = "https://files.massive.com"
+_S3_BUCKET   = "flatfiles"
 
 # Cache TTLs (seconds)
 _TTL_PRICE   = 10
@@ -64,14 +57,9 @@ _NET_ERRORS = (
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _auth_headers() -> Dict[str, str]:
-    """Return auth headers for Massive REST API.
-
-    TODO: if your dashboard shows a different header (e.g. 'X-Api-Key'),
-    change the key name below.
-    """
     return {
-        "Authorization": f"Bearer {config.MASSIVE_API_KEY}",
-        "Accept": "application/json",
+        "X-API-KEY":  config.MASSIVE_API_KEY,
+        "Accept":     "application/json",
         "User-Agent": "TradingApp/1.0",
     }
 
@@ -117,8 +105,7 @@ class MassiveClient:
     ) -> pd.DataFrame:
         """Fetch OHLCV bars for a single symbol.
 
-        TODO: adjust endpoint path to match your Massive plan:
-          /v1/stocks/{ticker}/aggregates?timespan=day&from=...&to=...
+        Endpoint: GET /v2/aggs/ticker/{symbol}/range/1/{timespan}/{from}/{to}
         """
         if not self._is_available():
             return pd.DataFrame()
@@ -131,14 +118,11 @@ class MassiveClient:
         from_date = _date_str(datetime.utcnow() - timedelta(days=days))
         to_date   = _date_str(datetime.utcnow())
 
-        # TODO: verify exact endpoint path from docs
-        url = f"{_BASE_URL}/stocks/{symbol.upper()}/aggregates"
+        url = f"{_BASE_URL}/v2/aggs/ticker/{symbol.upper()}/range/1/{timespan}/{from_date}/{to_date}"
         params = {
-            "timespan":  timespan,
-            "from":      from_date,
-            "to":        to_date,
-            "limit":     min(days, 500),
-            "adjusted":  "true",
+            "limit":    min(days, 500),
+            "adjusted": "true",
+            "sort":     "asc",
         }
 
         try:
@@ -152,13 +136,12 @@ class MassiveClient:
                     return pd.DataFrame()
 
                 data = resp.json()
-                # TODO: adjust key names if Massive uses different field names
-                results = data.get("results", data.get("bars", data.get("data", [])))
+                results = data.get("results", [])
                 if not results:
                     return pd.DataFrame()
 
                 df = pd.DataFrame(results)
-                # Normalise column names — Massive likely uses standard OHLCV names
+                # Massive/Polygon-style compact columns: t o h l c v vw
                 col_map = {
                     "t": "timestamp", "o": "open", "h": "high",
                     "l": "low",        "c": "close", "v": "volume",
@@ -171,7 +154,15 @@ class MassiveClient:
                     logger.debug(f"MassiveClient: unexpected bars schema for {symbol}: {list(df.columns)}")
                     return pd.DataFrame()
 
-                df = df.sort_values("timestamp").reset_index(drop=True) if "timestamp" in df.columns else df
+                if "timestamp" in df.columns:
+                    # Convert millisecond epoch to date string if needed
+                    try:
+                        if pd.to_numeric(df["timestamp"].iloc[0], errors="coerce") > 1e10:
+                            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms").dt.strftime("%Y-%m-%d")
+                    except (TypeError, ValueError):
+                        pass
+                    df = df.sort_values("timestamp").reset_index(drop=True)
+
                 self._store(self._bars_cache, key, df)
                 return df.copy()
 
@@ -201,7 +192,7 @@ class MassiveClient:
     async def get_snapshot(self, symbol: str) -> Dict:
         """Get latest price snapshot for a symbol.
 
-        TODO: verify endpoint — likely /v1/stocks/{ticker}/snapshot
+        Endpoint: GET /v2/snapshot/locale/us/markets/stocks/tickers/{ticker}
         """
         if not self._is_available():
             return {}
@@ -210,14 +201,14 @@ class MassiveClient:
         if cached is not None:
             return cached
 
-        url = f"{_BASE_URL}/stocks/{symbol.upper()}/snapshot"
+        url = f"{_BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers/{symbol.upper()}"
         try:
             async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
                 resp = await client.get(url)
                 if resp.status_code != 200:
                     return {}
                 data = resp.json()
-                snap = data.get("results", data.get("snapshot", data))
+                snap = data.get("ticker", data.get("results", data))
                 self._store(self._price_cache, symbol, snap)
                 return snap
         except Exception as e:
@@ -227,40 +218,32 @@ class MassiveClient:
     async def get_snapshots(self, symbols: List[str]) -> Dict[str, float]:
         """Get latest prices for multiple symbols.
 
+        Endpoint: GET /v2/snapshot/locale/us/markets/stocks/tickers?tickers=AAPL,MSFT
         Returns {symbol: price} dict — same format as alpaca_client.
-        TODO: Massive may offer a batch snapshot endpoint — check docs.
         """
         if not self._is_available():
             return {}
 
-        # Try batch endpoint first
-        url = f"{_BASE_URL}/stocks/snapshots"
+        url = f"{_BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers"
         params = {"tickers": ",".join(s.upper() for s in symbols)}
         try:
             async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
                 resp = await client.get(url, params=params)
                 if resp.status_code == 200:
                     data = resp.json()
-                    results = data.get("results", data.get("tickers", {}))
+                    tickers = data.get("tickers", [])
                     prices: Dict[str, float] = {}
-                    if isinstance(results, dict):
-                        for sym, snap in results.items():
-                            # TODO: adjust price field name if needed
-                            price = (
-                                snap.get("last_trade", {}).get("price")
-                                or snap.get("day", {}).get("close")
-                                or snap.get("close")
-                                or snap.get("price")
-                                or 0
-                            )
-                            if price:
-                                prices[sym.upper()] = float(price)
-                    elif isinstance(results, list):
-                        for snap in results:
-                            sym = (snap.get("ticker") or snap.get("symbol") or "").upper()
-                            price = snap.get("close") or snap.get("price") or 0
-                            if sym and price:
-                                prices[sym] = float(price)
+                    for snap in tickers:
+                        sym = (snap.get("ticker") or "").upper()
+                        day = snap.get("day", {})
+                        price = (
+                            snap.get("lastTrade", {}).get("p")
+                            or day.get("c")
+                            or snap.get("close")
+                            or 0
+                        )
+                        if sym and price:
+                            prices[sym] = float(price)
                     return prices
         except Exception as e:
             logger.debug(f"MassiveClient batch snapshot: {e}")
@@ -271,7 +254,8 @@ class MassiveClient:
         prices = {}
         for sym, snap in zip(symbols, snaps):
             if isinstance(snap, dict):
-                price = snap.get("close") or snap.get("price") or 0
+                day = snap.get("day", {})
+                price = day.get("c") or snap.get("close") or snap.get("price") or 0
                 if price:
                     prices[sym.upper()] = float(price)
         return prices
@@ -281,7 +265,7 @@ class MassiveClient:
     async def get_news(self, symbol: str, limit: int = 10) -> List[Dict]:
         """Get recent news articles for a symbol.
 
-        TODO: verify endpoint — likely /v1/stocks/{ticker}/news
+        Endpoint: GET /v2/reference/news?ticker={symbol}&limit={limit}
         Returns list of {headline, summary, source, url, published_at}.
         """
         if not self._is_available():
@@ -291,23 +275,24 @@ class MassiveClient:
         if cached is not None:
             return cached
 
-        url = f"{_BASE_URL}/stocks/{symbol.upper()}/news"
-        params = {"limit": limit}
+        url = f"{_BASE_URL}/v2/reference/news"
+        params = {"ticker": symbol.upper(), "limit": limit, "order": "desc", "sort": "published_utc"}
         try:
             async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
                 resp = await client.get(url, params=params)
                 if resp.status_code != 200:
                     return []
                 data = resp.json()
-                articles = data.get("results", data.get("news", data.get("articles", [])))
+                articles = data.get("results", [])
                 news = []
                 for a in articles:
+                    publisher = a.get("publisher", {})
                     news.append({
-                        "headline":     a.get("title") or a.get("headline") or "",
-                        "summary":      a.get("description") or a.get("summary") or "",
-                        "source":       a.get("publisher", {}).get("name") if isinstance(a.get("publisher"), dict) else a.get("source") or "Massive News",
+                        "headline":     a.get("title") or "",
+                        "summary":      a.get("description") or "",
+                        "source":       publisher.get("name") if isinstance(publisher, dict) else "Massive News",
                         "url":          a.get("article_url") or a.get("url") or "",
-                        "published_at": a.get("published_utc") or a.get("published_at") or "",
+                        "published_at": a.get("published_utc") or "",
                     })
                 self._store(self._news_cache, symbol, news)
                 return news
@@ -333,7 +318,8 @@ class MassiveClient:
     ) -> List[Dict]:
         """Fetch unusual options flow / large block trades.
 
-        TODO: verify endpoint — check Options > Trades & Quotes in docs.
+        Endpoint: GET /v3/trades/{optionsTicker} (per symbol) or
+                  GET /v2/snapshot/locale/us/markets/options/tickers (batch)
         Returns list of catalyst-compatible dicts.
         """
         if not self._is_available():
@@ -344,11 +330,10 @@ class MassiveClient:
         if cached is not None:
             return cached
 
-        # TODO: verify endpoint path
-        url = f"{_BASE_URL}/options/flow"
-        params = {"limit": limit}
+        url = f"{_BASE_URL}/v3/snapshot/options"
+        params = {"limit": limit, "sort": "day.volume", "order": "desc"}
         if symbols:
-            params["tickers"] = ",".join(s.upper() for s in symbols)
+            params["underlying_asset"] = ",".join(s.upper() for s in symbols)
 
         results = []
         try:
@@ -357,30 +342,34 @@ class MassiveClient:
                 if resp.status_code != 200:
                     return []
                 data = resp.json()
-                flows = data.get("results", data.get("flow", data.get("data", [])))
+                flows = data.get("results", [])
                 sym_set = {s.upper() for s in symbols} if symbols else None
 
                 for f in flows:
-                    ticker = (f.get("ticker") or f.get("symbol") or "").upper()
+                    details  = f.get("details", {})
+                    day      = f.get("day", {})
+                    ticker   = (details.get("underlying_ticker") or f.get("underlying_ticker") or "").upper()
                     if sym_set and ticker not in sym_set:
                         continue
 
-                    side    = (f.get("side") or f.get("sentiment") or "").upper()
-                    premium = f.get("premium") or f.get("total_premium") or f.get("value") or 0
-                    expiry  = f.get("expiry") or f.get("expiration_date") or ""
-                    strike  = f.get("strike_price") or f.get("strike") or ""
-                    oi_flag = f.get("open_interest_flag") or ""
+                    opt_type = (details.get("contract_type") or "").upper()
+                    strike   = details.get("strike_price") or ""
+                    expiry   = details.get("expiration_date") or ""
+                    volume   = day.get("volume") or f.get("day", {}).get("volume") or 0
+                    vwap     = day.get("vwap") or 0
+                    premium  = round(float(volume) * float(vwap) * 100, 0) if volume and vwap else 0
 
-                    sentiment = "bullish" if "CALL" in side else "bearish" if "PUT" in side else "unusual"
+                    side      = "CALL" if opt_type == "CALL" else "PUT" if opt_type == "PUT" else opt_type
+                    sentiment = "bullish" if side == "CALL" else "bearish" if side == "PUT" else "unusual"
                     headline  = (
                         f"Massive Options Flow: {ticker} {side} ${premium:,.0f} premium"
-                        if isinstance(premium, (int, float)) else
+                        if premium else
                         f"Massive Options Flow: {ticker} {side} large block"
                     )
                     summary = (
-                        f"{ticker} {side} sweep — strike ${strike}, expiry {expiry}. "
-                        f"Premium: ${premium:,.0f}. {oi_flag}".strip()
-                    )
+                        f"{ticker} {side} — strike ${strike}, expiry {expiry}. "
+                        f"Volume: {volume:,}. VWAP: ${vwap:.2f}."
+                    ).strip()
 
                     try:
                         from data.policy_monitor import score_headline
@@ -416,7 +405,11 @@ class MassiveClient:
         """Fetch a single economy indicator.
 
         indicator: 'treasury_yields' | 'inflation' | 'labor'
-        TODO: verify exact endpoint paths from Economy section in docs.
+
+        Endpoints:
+          /fed/v1/treasury-yields
+          /fed/v1/inflation
+          /fed/v1/labor-market
         """
         if not self._is_available():
             return {}
@@ -425,11 +418,10 @@ class MassiveClient:
         if cached is not None:
             return cached
 
-        # TODO: verify paths
         endpoint_map = {
-            "treasury_yields": "/economy/treasury-yields",
-            "inflation":       "/economy/inflation",
-            "labor":           "/economy/labor",
+            "treasury_yields": "/fed/v1/treasury-yields",
+            "inflation":       "/fed/v1/inflation",
+            "labor":           "/fed/v1/labor-market",
         }
         path = endpoint_map.get(indicator)
         if not path:
@@ -438,7 +430,7 @@ class MassiveClient:
         url = f"{_BASE_URL}{path}"
         try:
             async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
-                resp = await client.get(url, params={"limit": 1})
+                resp = await client.get(url, params={"limit": 1, "order": "desc"})
                 if resp.status_code != 200:
                     return {}
                 data = resp.json()
@@ -456,12 +448,11 @@ class MassiveClient:
         if not self._is_available():
             return ""
 
-        yields_task   = self.get_economy("treasury_yields")
-        inflation_task = self.get_economy("inflation")
-        labor_task    = self.get_economy("labor")
-
         yields, inflation, labor = await asyncio.gather(
-            yields_task, inflation_task, labor_task, return_exceptions=True
+            self.get_economy("treasury_yields"),
+            self.get_economy("inflation"),
+            self.get_economy("labor"),
+            return_exceptions=True,
         )
 
         lines = ["## Macro Context (Massive.com)"]
@@ -481,16 +472,16 @@ class MassiveClient:
         # Inflation
         if isinstance(inflation, dict) and inflation:
             rate = inflation.get("value") or inflation.get("rate") or inflation.get("cpi")
-            date = inflation.get("date") or inflation.get("period") or ""
+            period = inflation.get("date") or inflation.get("period") or ""
             if rate:
-                lines.append(f"Inflation (CPI): {float(rate):.1f}%  [{date}]")
+                lines.append(f"Inflation (CPI): {float(rate):.1f}%  [{period}]")
 
         # Labor
         if isinstance(labor, dict) and labor:
-            ue   = labor.get("unemployment_rate") or labor.get("value") or labor.get("rate")
-            date = labor.get("date") or labor.get("period") or ""
+            ue     = labor.get("unemployment_rate") or labor.get("value") or labor.get("rate")
+            period = labor.get("date") or labor.get("period") or ""
             if ue:
-                lines.append(f"Unemployment: {float(ue):.1f}%  [{date}]")
+                lines.append(f"Unemployment: {float(ue):.1f}%  [{period}]")
 
         if len(lines) == 1:
             return ""  # no data fetched
@@ -499,17 +490,17 @@ class MassiveClient:
     # ── S3 Flat File Access ───────────────────────────────────────────────────
 
     def _get_s3_client(self):
-        """Return a boto3 S3 client using Massive credentials.
+        """Return a boto3 S3 client pointing at https://files.massive.com.
 
         Requires boto3: pip install boto3
         Install in the self-contained runtime:
           runtime/python/python.exe -m pip install boto3 --target site-packages/
 
-        TODO: set in .env:
-          MASSIVE_S3_BUCKET      — your assigned bucket name (ask Massive support)
-          MASSIVE_S3_ACCESS_KEY  — AWS access key ID
-          MASSIVE_S3_SECRET_KEY  — AWS secret access key
-          MASSIVE_S3_REGION      — bucket region (default: us-east-1)
+        Credentials come from .env:
+          MASSIVE_S3_ACCESS_KEY  — access key ID from Massive dashboard
+          MASSIVE_S3_SECRET_KEY  — secret key from Massive dashboard
+          MASSIVE_S3_REGION      — default us-east-1
+        Bucket is always 'flatfiles' at https://files.massive.com.
         """
         try:
             import boto3
@@ -520,12 +511,13 @@ class MassiveClient:
             )
             return None
 
-        if not all([config.MASSIVE_S3_ACCESS_KEY, config.MASSIVE_S3_SECRET_KEY, config.MASSIVE_S3_BUCKET]):
-            logger.debug("MassiveClient S3: credentials not configured (MASSIVE_S3_* vars)")
+        if not all([config.MASSIVE_S3_ACCESS_KEY, config.MASSIVE_S3_SECRET_KEY]):
+            logger.debug("MassiveClient S3: credentials not configured (MASSIVE_S3_ACCESS_KEY / MASSIVE_S3_SECRET_KEY)")
             return None
 
         return boto3.client(
             "s3",
+            endpoint_url=_S3_ENDPOINT,
             region_name=config.MASSIVE_S3_REGION or "us-east-1",
             aws_access_key_id=config.MASSIVE_S3_ACCESS_KEY,
             aws_secret_access_key=config.MASSIVE_S3_SECRET_KEY,
@@ -537,14 +529,13 @@ class MassiveClient:
         symbol: str = None,
         prefix: str = None,
     ) -> List[str]:
-        """List available flat files in the Massive S3 bucket.
+        """List available flat files in the Massive S3 bucket (flatfiles).
 
         asset_class: 'stocks' | 'options' | 'futures' | 'indices' | 'forex' | 'crypto'
         symbol:      optional ticker to filter by (e.g. 'AAPL')
         prefix:      override auto-built prefix entirely
 
-        TODO: confirm S3 path format from Massive docs / support.
-        Assumed: {bucket}/{asset_class}/daily/{symbol}/
+        S3 path format: {asset_class}/daily/{symbol}/
         """
         s3 = await asyncio.to_thread(self._get_s3_client)
         if not s3:
@@ -558,9 +549,10 @@ class MassiveClient:
         try:
             paginator = s3.get_paginator("list_objects_v2")
             keys = []
-            async for page in asyncio.to_thread(
-                lambda: list(paginator.paginate(Bucket=config.MASSIVE_S3_BUCKET, Prefix=prefix))
-            ):
+            pages = await asyncio.to_thread(
+                lambda: list(paginator.paginate(Bucket=_S3_BUCKET, Prefix=prefix))
+            )
+            for page in pages:
                 for obj in page.get("Contents", []):
                     keys.append(obj["Key"])
             return keys
@@ -571,14 +563,12 @@ class MassiveClient:
     async def download_flat_file(
         self,
         s3_key: str,
-        file_format: str = "csv",
+        file_format: str = "parquet",
     ) -> pd.DataFrame:
         """Download a single flat file from S3 and return as DataFrame.
 
-        s3_key:      full S3 object key, e.g. 'stocks/daily/AAPL/2024-01-15.csv'
-        file_format: 'csv' | 'parquet'
-
-        TODO: confirm file format from Massive docs (CSV or Parquet).
+        s3_key:      full S3 object key, e.g. 'stocks/daily/AAPL/2024-01-15.parquet'
+        file_format: 'parquet' | 'csv'  (Massive uses Parquet by default)
         """
         s3 = await asyncio.to_thread(self._get_s3_client)
         if not s3:
@@ -586,9 +576,9 @@ class MassiveClient:
 
         try:
             def _download():
-                obj = s3.get_object(Bucket=config.MASSIVE_S3_BUCKET, Key=s3_key)
+                obj = s3.get_object(Bucket=_S3_BUCKET, Key=s3_key)
                 body = obj["Body"].read()
-                if file_format == "parquet":
+                if file_format == "parquet" or s3_key.endswith(".parquet"):
                     return pd.read_parquet(io.BytesIO(body))
                 else:
                     return pd.read_csv(io.BytesIO(body))
@@ -607,7 +597,7 @@ class MassiveClient:
         asset_class: str = "stocks",
         from_date: str = None,
         to_date: str = None,
-        file_format: str = "csv",
+        file_format: str = "parquet",
     ) -> pd.DataFrame:
         """Download and concatenate multiple daily flat files for a symbol.
 
@@ -634,8 +624,7 @@ class MassiveClient:
                     break
 
         if not filtered:
-            # Fall back to all keys if date parsing failed
-            filtered = all_keys
+            filtered = all_keys  # fall back to all keys if date parsing failed
 
         tasks = [self.download_flat_file(key, file_format) for key in filtered]
         frames = await asyncio.gather(*tasks, return_exceptions=True)
@@ -646,7 +635,6 @@ class MassiveClient:
 
         combined = pd.concat(valid, ignore_index=True)
 
-        # Normalise and sort
         for col in ("date", "timestamp", "t"):
             if col in combined.columns:
                 combined = combined.sort_values(col).reset_index(drop=True)
