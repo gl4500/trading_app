@@ -58,10 +58,14 @@ _NET_ERRORS = (
 
 def _auth_headers() -> Dict[str, str]:
     return {
-        "X-API-KEY":  config.MASSIVE_API_KEY,
         "Accept":     "application/json",
         "User-Agent": "TradingApp/1.0",
     }
+
+
+def _auth_params() -> Dict[str, str]:
+    """Massive uses apiKey as a query parameter (Polygon.io-style auth)."""
+    return {"apiKey": config.MASSIVE_API_KEY}
 
 
 def _date_str(dt: datetime) -> str:
@@ -123,6 +127,7 @@ class MassiveClient:
             "limit":    min(days, 500),
             "adjusted": "true",
             "sort":     "asc",
+            **_auth_params(),
         }
 
         try:
@@ -204,7 +209,7 @@ class MassiveClient:
         url = f"{_BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers/{symbol.upper()}"
         try:
             async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
-                resp = await client.get(url)
+                resp = await client.get(url, params=_auth_params())
                 if resp.status_code != 200:
                     return {}
                 data = resp.json()
@@ -225,7 +230,7 @@ class MassiveClient:
             return {}
 
         url = f"{_BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers"
-        params = {"tickers": ",".join(s.upper() for s in symbols)}
+        params = {"tickers": ",".join(s.upper() for s in symbols), **_auth_params()}
         try:
             async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
                 resp = await client.get(url, params=params)
@@ -276,7 +281,7 @@ class MassiveClient:
             return cached
 
         url = f"{_BASE_URL}/v2/reference/news"
-        params = {"ticker": symbol.upper(), "limit": limit, "order": "desc", "sort": "published_utc"}
+        params = {"ticker": symbol.upper(), "limit": limit, "order": "desc", "sort": "published_utc", **_auth_params()}
         try:
             async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
                 resp = await client.get(url, params=params)
@@ -331,7 +336,7 @@ class MassiveClient:
             return cached
 
         url = f"{_BASE_URL}/v3/snapshot/options"
-        params = {"limit": limit, "sort": "day.volume", "order": "desc"}
+        params = {"limit": limit, "sort": "day.volume", "order": "desc", **_auth_params()}
         if symbols:
             params["underlying_asset"] = ",".join(s.upper() for s in symbols)
 
@@ -430,7 +435,7 @@ class MassiveClient:
         url = f"{_BASE_URL}{path}"
         try:
             async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
-                resp = await client.get(url, params={"limit": 1, "order": "desc"})
+                resp = await client.get(url, params={"limit": 1, "order": "desc", **_auth_params()})
                 if resp.status_code != 200:
                     return {}
                 data = resp.json()
