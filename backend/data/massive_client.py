@@ -83,12 +83,13 @@ class MassiveClient:
         self._news_cache:    Dict[str, tuple] = {}  # symbol → (ts, list)
         self._options_cache: Dict[str, tuple] = {}  # "flow" → (ts, list)
         self._economy_cache: Dict[str, tuple] = {}  # indicator → (ts, dict)
-        # Rate limiter: max 3 requests/second to avoid 429s from Massive.
-        # The semaphore limits concurrency; the _last_request timestamp + sleep
-        # enforces a minimum gap so bursts of 50+ symbols don't all fire at once.
-        self._semaphore = asyncio.Semaphore(3)
+        # Rate limiter: serialize all outbound requests with a minimum gap.
+        # Lock ensures only one coroutine reads/writes _last_request at a time,
+        # so bursts of 50 queued tasks don't all fire simultaneously.
+        self._semaphore = asyncio.Semaphore(1)
+        self._rate_lock = asyncio.Lock()
         self._last_request: float = 0.0
-        self._min_request_gap: float = 0.35  # seconds between requests (~3/sec)
+        self._min_request_gap: float = 0.5  # 2 requests/second max
 
     # ── Internal ──────────────────────────────────────────────────────────────
 
@@ -96,11 +97,16 @@ class MassiveClient:
         return bool(config.MASSIVE_API_KEY)
 
     async def _throttle(self) -> None:
-        """Sleep long enough to honour the minimum inter-request gap."""
-        gap = self._min_request_gap - (time.time() - self._last_request)
-        if gap > 0:
-            await asyncio.sleep(gap)
-        self._last_request = time.time()
+        """Serialize requests and enforce the minimum inter-request gap.
+
+        The lock ensures only one coroutine can read/update _last_request
+        at a time, preventing simultaneous bursts from bypassing the delay.
+        """
+        async with self._rate_lock:
+            gap = self._min_request_gap - (time.time() - self._last_request)
+            if gap > 0:
+                await asyncio.sleep(gap)
+            self._last_request = time.time()
 
     def _cached(self, store: Dict, key: str, ttl: int):
         if key in store:
