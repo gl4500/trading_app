@@ -5,6 +5,7 @@ bar formatting, portfolio context, decision parsing, and fallback logic.
 """
 import math
 import logging
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List
 
 import pandas as pd
@@ -12,6 +13,28 @@ import pandas as pd
 from agents.base_agent import Signal
 
 logger = logging.getLogger(__name__)
+
+_ET = timezone(timedelta(hours=-5))   # EST (NYSE standard; close enough for open/close gates)
+_EDT = timezone(timedelta(hours=-4))  # EDT
+
+
+def _et_now() -> datetime:
+    """Return current time in US/Eastern (auto-adjusts for DST via UTC offset heuristic)."""
+    utc = datetime.now(timezone.utc)
+    # Simple DST heuristic: second Sunday in March → first Sunday in November
+    year = utc.year
+    dst_start = datetime(year, 3,  8, 2, tzinfo=timezone.utc) + timedelta(days=(6 - datetime(year, 3,  8).weekday()) % 7)
+    dst_end   = datetime(year, 11, 1, 2, tzinfo=timezone.utc) + timedelta(days=(6 - datetime(year, 11, 1).weekday()) % 7)
+    return utc.astimezone(_EDT if dst_start <= utc < dst_end else _ET)
+
+
+def _is_market_hours() -> bool:
+    """Return True during NYSE regular trading hours (09:30–15:59 ET, Mon–Fri)."""
+    now = _et_now()
+    if now.weekday() >= 5:
+        return False
+    h, m = now.hour, now.minute
+    return (h == 9 and m >= 30) or (10 <= h <= 15)
 
 
 def format_bars_for_prompt(bars: pd.DataFrame, limit: int = 30) -> str:

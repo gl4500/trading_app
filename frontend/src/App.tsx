@@ -57,6 +57,7 @@ export interface Agent {
 export interface AppData {
   agents: Agent[]
   prices: Record<string, number>
+  price_changes: Record<string, number>
   leaderboard: Agent[]
   is_running: boolean
   cycle_count: number
@@ -350,6 +351,7 @@ export default function App() {
         <Dashboard
           agents={appData.agents}
           prices={appData.prices}
+          priceChanges={appData.price_changes || {}}
           leaderboard={appData.leaderboard}
           trades={trades}
           watchlist={appData.watchlist}

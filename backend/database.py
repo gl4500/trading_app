@@ -7,7 +7,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 
 from config import config
 
@@ -86,8 +86,37 @@ async def init_db() -> None:
                 logger.warning(f"Database migration warning (add pnl column): {e}")
             # else: column already exists — expected on restart, not a bug
 
+        # Migration: add last_price column to portfolios if it doesn't exist yet
+        try:
+            await db.execute("ALTER TABLE portfolios ADD COLUMN last_price REAL DEFAULT 0")
+            await db.commit()
+            logger.info("Database migration: added last_price column to portfolios")
+        except Exception as e:
+            if "duplicate column" not in str(e).lower() and "already exists" not in str(e).lower():
+                logger.warning(f"Database migration warning (add last_price column): {e}")
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS token_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                agent TEXT NOT NULL,
+                model TEXT NOT NULL,
+                prompt_tokens INTEGER NOT NULL DEFAULT 0,
+                completion_tokens INTEGER NOT NULL DEFAULT 0,
+                total_tokens INTEGER NOT NULL DEFAULT 0,
+                daily_total INTEGER NOT NULL DEFAULT 0,
+                daily_limit INTEGER,
+                limit_hit INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_timestamp ON token_log(timestamp)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_agent ON token_log(agent)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_limit_hit ON token_log(limit_hit)")
+
         await db.commit()
     logger.info("Database initialized successfully")
+    await cleanup_stale_positions()
+    await recalculate_trade_pnl()
 
 
 async def upsert_agent(name: str, strategy: str) -> int:
@@ -109,14 +138,14 @@ async def upsert_agent(name: str, strategy: str) -> int:
 
 
 async def save_trade(agent_id: int, symbol: str, action: str, shares: float,
-                     price: float, reasoning: str = "") -> None:
+                     price: float, reasoning: str = "", pnl: float = 0.0) -> None:
     """Record a trade in the database."""
     async with aiosqlite.connect(DB_PATH) as db:
         now = datetime.utcnow().isoformat()
         await db.execute(
-            """INSERT INTO trades (agent_id, symbol, action, shares, price, timestamp, reasoning)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (agent_id, symbol, action, shares, price, now, reasoning)
+            """INSERT INTO trades (agent_id, symbol, action, shares, price, timestamp, reasoning, pnl)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (agent_id, symbol, action, shares, price, now, reasoning, pnl)
         )
         await db.commit()
 
@@ -135,7 +164,8 @@ async def save_performance(agent_id: int, total_value: float, cash: float,
 
 
 async def upsert_portfolio_position(agent_id: int, symbol: str, shares: float,
-                                    avg_cost: float, current_value: float, unrealized_pnl: float) -> None:
+                                    avg_cost: float, current_value: float, unrealized_pnl: float,
+                                    last_price: float = 0.0) -> None:
     """Update or insert a portfolio position."""
     async with aiosqlite.connect(DB_PATH) as db:
         if shares <= 0:
@@ -145,14 +175,15 @@ async def upsert_portfolio_position(agent_id: int, symbol: str, shares: float,
             )
         else:
             await db.execute(
-                """INSERT INTO portfolios (agent_id, symbol, shares, avg_cost, current_value, unrealized_pnl)
-                   VALUES (?, ?, ?, ?, ?, ?)
+                """INSERT INTO portfolios (agent_id, symbol, shares, avg_cost, current_value, unrealized_pnl, last_price)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(agent_id, symbol) DO UPDATE SET
                    shares = excluded.shares,
                    avg_cost = excluded.avg_cost,
                    current_value = excluded.current_value,
-                   unrealized_pnl = excluded.unrealized_pnl""",
-                (agent_id, symbol, shares, avg_cost, current_value, unrealized_pnl)
+                   unrealized_pnl = excluded.unrealized_pnl,
+                   last_price = excluded.last_price""",
+                (agent_id, symbol, shares, avg_cost, current_value, unrealized_pnl, last_price)
             )
         await db.commit()
 
@@ -193,6 +224,150 @@ async def get_performance_history(agent_id: int, limit: int = 200) -> List[Dict]
         return [dict(r) for r in rows]
 
 
+async def get_latest_cash(agent_id: int) -> Optional[float]:
+    """Get the most recent cash balance from performance snapshots."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT cash FROM performance WHERE agent_id = ? ORDER BY timestamp DESC LIMIT 1",
+            (agent_id,)
+        )
+        row = await cursor.fetchone()
+        return row["cash"] if row else None
+
+
+async def get_portfolio_positions(agent_id: int) -> List[Dict]:
+    """Get current portfolio positions for an agent."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT symbol, shares, avg_cost, last_price FROM portfolios WHERE agent_id = ?",
+            (agent_id,)
+        )
+        rows = await cursor.fetchall()
+        return [dict(r) for r in rows]
+
+
+async def restore_value_history(agent_id: int, limit: int = 2000) -> List[Tuple[datetime, float]]:
+    """Load portfolio value history from performance table for chart restoration on startup."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """SELECT timestamp, total_value FROM performance
+               WHERE agent_id = ? ORDER BY timestamp ASC LIMIT ?""",
+            (agent_id, limit)
+        )
+        rows = await cursor.fetchall()
+        result = []
+        for row in rows:
+            try:
+                ts = datetime.fromisoformat(row["timestamp"])
+            except ValueError:
+                continue
+            result.append((ts, row["total_value"]))
+        return result
+
+
+async def cleanup_stale_positions() -> None:
+    """Remove portfolios rows for positions that trade history shows are fully closed.
+
+    Replays each agent's trades to compute net shares per symbol. Any symbol
+    in the portfolios table with net shares <= 0 is deleted. Safe to run on
+    every startup (idempotent).
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        agent_cur = await db.execute("SELECT id FROM agents")
+        agents = await agent_cur.fetchall()
+
+        for agent_row in agents:
+            agent_id = agent_row["id"]
+
+            trade_cur = await db.execute(
+                "SELECT symbol, action, shares FROM trades WHERE agent_id = ? ORDER BY timestamp ASC",
+                (agent_id,)
+            )
+            trades = await trade_cur.fetchall()
+
+            # Compute net shares per symbol from trade history
+            net: Dict[str, float] = {}
+            for trade in trades:
+                sym = trade["symbol"]
+                if trade["action"] == "BUY":
+                    net[sym] = net.get(sym, 0.0) + trade["shares"]
+                elif trade["action"] == "SELL":
+                    net[sym] = net.get(sym, 0.0) - trade["shares"]
+
+            # Delete any DB position whose net shares are <= 0
+            for sym, shares in net.items():
+                if shares <= 0.001:
+                    await db.execute(
+                        "DELETE FROM portfolios WHERE agent_id = ? AND symbol = ?",
+                        (agent_id, sym)
+                    )
+
+        await db.commit()
+    logger.info("Stale position cleanup complete")
+
+
+async def recalculate_trade_pnl() -> None:
+    """Replay all trades per agent to recompute SELL pnl from cost basis.
+
+    Safe to run multiple times (idempotent). Corrects any trades where pnl
+    was stored as 0.0 due to the missing pnl parameter bug.
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        agent_cur = await db.execute("SELECT id FROM agents")
+        agents = await agent_cur.fetchall()
+
+        for agent_row in agents:
+            agent_id = agent_row["id"]
+
+            trade_cur = await db.execute(
+                """SELECT id, symbol, action, shares, price FROM trades
+                   WHERE agent_id = ? ORDER BY timestamp ASC""",
+                (agent_id,)
+            )
+            trades = await trade_cur.fetchall()
+
+            # positions: symbol -> (shares, avg_cost)
+            positions: Dict[str, Tuple[float, float]] = {}
+
+            for trade in trades:
+                symbol = trade["symbol"]
+                shares = trade["shares"]
+                price = trade["price"]
+
+                if trade["action"] == "BUY":
+                    if symbol in positions:
+                        held_shares, held_avg = positions[symbol]
+                        new_shares = held_shares + shares
+                        new_avg = (held_shares * held_avg + shares * price) / new_shares
+                        positions[symbol] = (new_shares, new_avg)
+                    else:
+                        positions[symbol] = (shares, price)
+
+                elif trade["action"] == "SELL" and symbol in positions:
+                    held_shares, avg_cost = positions[symbol]
+                    sold = min(shares, held_shares)
+                    pnl = sold * (price - avg_cost)
+                    await db.execute(
+                        "UPDATE trades SET pnl = ? WHERE id = ?",
+                        (pnl, trade["id"])
+                    )
+                    remaining = held_shares - sold
+                    if remaining < 0.001:
+                        del positions[symbol]
+                    else:
+                        positions[symbol] = (remaining, avg_cost)
+
+        await db.commit()
+    logger.info("Trade PnL recalculation complete")
+
+
 async def reset_database() -> None:
     """Clear all trading data (keep schema)."""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -202,3 +377,69 @@ async def reset_database() -> None:
         await db.execute("DELETE FROM agents")
         await db.commit()
     logger.info("Database reset complete")
+
+
+async def save_token_log(
+    agent: str,
+    model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    total_tokens: int,
+    daily_total: int,
+    limit_hit: bool,
+    daily_limit: Optional[int] = None,
+) -> None:
+    """Record a token usage event to the persistent log."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        now = datetime.utcnow().isoformat()
+        await db.execute(
+            """INSERT INTO token_log
+               (timestamp, agent, model, prompt_tokens, completion_tokens,
+                total_tokens, daily_total, daily_limit, limit_hit)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (now, agent, model, prompt_tokens, completion_tokens,
+             total_tokens, daily_total, daily_limit, 1 if limit_hit else 0)
+        )
+        await db.commit()
+
+
+async def get_token_log(
+    agent: Optional[str] = None,
+    hours: int = 24,
+    limit_hit_only: bool = False,
+    limit: int = 500,
+) -> List[Dict]:
+    """Retrieve token usage log, newest first. Filterable by agent, time window, limit_hit."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cutoff = (datetime.utcnow() - __import__("datetime").timedelta(hours=hours)).isoformat()
+
+        conditions = ["timestamp >= ?"]
+        params: List[Any] = [cutoff]
+
+        if agent:
+            conditions.append("agent = ?")
+            params.append(agent)
+        if limit_hit_only:
+            conditions.append("limit_hit = 1")
+
+        where = " AND ".join(conditions)
+        params.append(limit)
+        cursor = await db.execute(
+            f"SELECT * FROM token_log WHERE {where} ORDER BY timestamp DESC LIMIT ?",
+            params
+        )
+        rows = await cursor.fetchall()
+        return [
+            {**dict(r), "limit_hit": bool(r["limit_hit"])}
+            for r in rows
+        ]
+
+
+async def cleanup_token_log(hours: int = 24) -> None:
+    """Delete token log entries older than `hours` hours."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cutoff = (datetime.utcnow() - __import__("datetime").timedelta(hours=hours)).isoformat()
+        await db.execute("DELETE FROM token_log WHERE timestamp < ?", (cutoff,))
+        await db.commit()
+    logger.debug(f"Token log cleanup: removed entries older than {hours}h")

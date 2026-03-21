@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react'
 
 interface MarketOverviewProps {
   prices: Record<string, number>
+  priceChanges: Record<string, number>
   watchlist: string[]
 }
 
@@ -16,7 +17,7 @@ interface PriceData {
 // Color flash duration in ms
 const FLASH_DURATION = 1200
 
-export default function MarketOverview({ prices, watchlist }: MarketOverviewProps) {
+export default function MarketOverview({ prices, priceChanges, watchlist }: MarketOverviewProps) {
   const prevPricesRef = useRef<Record<string, number>>({})
   const [flashState, setFlashState] = useState<Record<string, 'up' | 'down' | null>>({})
   const displaySymbols = watchlist.length > 0 ? watchlist : Object.keys(prices)
@@ -56,7 +57,8 @@ export default function MarketOverview({ prices, watchlist }: MarketOverviewProp
     const price = prices[sym] || 0
     const prevPrice = prevPricesRef.current[sym] || price
     const change = price - prevPrice
-    const changePct = prevPrice > 0 ? (change / prevPrice) * 100 : 0
+    // Use backend 1D change if available, fall back to tick-to-tick
+    const changePct = priceChanges[sym] !== undefined ? priceChanges[sym] : (prevPrice > 0 ? (change / prevPrice) * 100 : 0)
 
     return { symbol: sym, price, prevPrice, change, changePct }
   }).filter(d => d.price > 0)

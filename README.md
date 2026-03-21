@@ -16,19 +16,19 @@ trading_app/
 │   ├── agents/               # Trading agents
 │   │   ├── base_agent.py               # Abstract base: portfolio, risk, picks persistence
 │   │   ├── claude_agent.py             # Claude Opus 4.6 with adaptive thinking
-│   │   ├── gemini_agent.py             # Google Gemini 2.0 Flash market analysis
+│   │   ├── gemini_agent.py             # Google Gemini 2.0 Flash — market view context provider
 │   │   ├── tech_agent.py               # RSI / MACD / Bollinger Bands technical agent
 │   │   ├── momentum_agent.py           # Price momentum / trailing stop agent
 │   │   ├── mean_reversion_agent.py     # Z-score mean reversion agent
-│   │   ├── sentiment_agent.py          # OpenAI GPT-4o-mini sentiment agent
-│   │   ├── ensemble_agent.py           # Adaptive performance-weighted voting
+│   │   ├── sentiment_agent.py          # OpenAI GPT-4o-mini sentiment agent (time-throttled)
+│   │   ├── ensemble_agent.py           # Adaptive performance-weighted voting + regime detection
 │   │   ├── scanner_agent.py            # Agentic Claude scanner — discovers opportunities
 │   │   ├── scanner_portfolio_agent.py  # Executes on cached scanner picks
 │   │   └── summary_agent.py            # Daily roll-up narrative via Claude
 │   ├── trading/
 │   │   ├── alpaca_client.py  # Alpaca Markets async wrapper
-│   │   ├── portfolio.py      # Position tracking, P&L, metrics
-│   │   └── risk_manager.py   # Daily loss limits, position size checks
+│   │   ├── portfolio.py      # Position tracking, P&L, metrics, churn cooloff tracking
+│   │   └── risk_manager.py   # Daily loss limits, position size, churn & sector concentration
 │   └── data/
 │       ├── market_data.py          # Central market context builder
 │       ├── news_service.py         # Alpaca News API — 90s cache, semaphore-limited
@@ -40,6 +40,7 @@ trading_app/
 │       ├── stock_universe.py       # ~160 curated S&P 500 stocks across 10 sectors
 │       ├── drift_detector.py       # Performance drift detection
 │       ├── learning_manager.py     # Persistent trade learning (learning.json)
+│       ├── risk_assessor.py        # Churn / regime / sector assessments → AI prompt injection
 │       ├── agent_picks.json        # Per-agent conviction picks (auto-managed)
 │       └── scan_cache.json         # Scanner results cache (auto-managed)
 ├── frontend/                 # React + Vite + Tailwind dashboard
@@ -53,7 +54,8 @@ trading_app/
 │       ├── SignalsPanel.tsx    # Multi-source composite signals
 │       ├── ScannerPanel.tsx    # Agentic scanner results
 │       ├── SentinelPanel.tsx   # Overnight catalyst feed + news→price impact
-│       └── SummaryPanel.tsx    # Daily roll-up narrative
+│       ├── SummaryPanel.tsx    # Daily roll-up narrative
+│       └── TokensPanel.tsx     # Live token usage stats + 24h searchable log
 ├── runtime/                  # Self-contained Python + Node runtimes
 ├── site-packages/            # All installed Python packages
 ├── .env                      # API keys (never commit)
@@ -72,15 +74,17 @@ trading_app/
 | Agent | Strategy | AI Model | Ensemble Weight |
 |---|---|---|---|
 | **ClaudeAgent** | Deep market analysis with adaptive thinking | Claude Opus 4.6 | 25% |
-| **GeminiAgent** | Fast, broad market analysis | Gemini 2.0 Flash | 20% |
 | **TechAgent** | RSI, MACD, Bollinger Bands, volume | Rule-based | 20% |
-| **SentimentAgent** | News sentiment scoring | GPT-4o-mini | 15% |
+| **SentimentAgent** | Price action + news sentiment | GPT-4o-mini | 15% |
 | **MomentumAgent** | Short/mid/long momentum + trailing stop | Rule-based | 12% |
 | **MeanReversionAgent** | Z-score deviation from 20-day mean | Rule-based | 8% |
 | **ScannerPortfolioAgent** | Executes on cached agentic scanner picks | Rule-based | — |
 | **EnsembleAgent** | Adaptive performance-weighted voting + regime detection | Combines all | — |
+| **GeminiAgent** | Market-view context provider (not an ensemble voter) | Gemini 2.0 Flash | — |
 
-**EnsembleAgent** weights shift automatically based on each agent's recent Sharpe ratio and win rate. Market regime (Trending / Ranging / Volatile) is detected every 5 cycles using SMA-20 slope + ATR.
+**EnsembleAgent** weights shift automatically based on each agent's recent Sharpe ratio and win rate. Market regime (Trending / Ranging / Volatile) is detected every 5 cycles using a **2-of-3 signal requirement**: SMA-20 slope + trend consistency (% positive days) + volume expansion. All three must align for a TRENDING call — single-signal false positives are suppressed.
+
+**GeminiAgent** runs alongside Claude as a second AI perspective. It does not vote in the ensemble — instead it contributes a `market_analysis` string (2-3 sentence market overview) that is injected into Claude's prompt under `## Gemini Market View` before Claude makes its own decisions.
 
 **Agent picks persistence** — each agent retains its own high-conviction BUY symbols across cycles and restarts (`data/agent_picks.json`). When a pick symbol falls outside the analysis window, stored conviction is replayed instead of defaulting to HOLD.
 
@@ -135,7 +139,7 @@ Viewable in the **⚡ Sentinel** tab → **News → Price Impact** view.
 
 ## AI Agent Decision Context
 
-Both ClaudeAgent and GeminiAgent receive per symbol each cycle:
+ClaudeAgent receives per symbol each cycle:
 
 - **Multi-source composite signal** — weighted validity score + verdict + confidence %
 - **Technical indicators** — RSI, MACD, BB position, SMA trend, ATR, volume ratio
@@ -143,7 +147,9 @@ Both ClaudeAgent and GeminiAgent receive per symbol each cycle:
 - **OHLCV data** — last 15 daily bars
 - **Overnight catalysts** — all sentinel-detected events injected at market open
 - **Portfolio state** — current cash, positions, cost basis
-- **Past trade learnings** — top profitable/loss patterns (ClaudeAgent only)
+- **Past trade learnings** — top profitable/loss patterns
+- **Gemini market view** — Gemini's 2-3 sentence overall market assessment
+- **Risk assessor findings** — churn alerts, false regime warnings, sector overweight flags (every 30 cycles)
 
 **Signal Correlation Framework:**
 - **STRONG BUY**: Bullish composite + RSI < 65 + MACD positive + price > SMA20
@@ -198,7 +204,7 @@ The EnsembleAgent is the final decision-maker. It does not trade on its own anal
 
 **2. Adaptive performance adjustment** — every 5 cycles, each agent's weight is scaled by its recent Sharpe ratio and win rate. Underperforming agents are reduced (minimum 30% of base weight preserved). Outperforming agents gain more influence automatically.
 
-**3. Regime multipliers** — market regime is detected from SMA-20 slope + ATR:
+**3. Regime multipliers** — market regime is detected using a 2-of-3 signal requirement (SMA-20 slope, trend consistency, volume expansion). Single-signal false TRENDING calls are suppressed:
 
 | Regime | Who gets boosted | Who gets reduced |
 |---|---|---|
@@ -222,12 +228,13 @@ In calm trending markets, momentum and technical signals can outvote the AI agen
 
 | Tab | Description |
 |---|---|
-| **Portfolio Chart** | Value history for all agents over time |
+| **Portfolio Chart** | Value history for all agents + recent trades with date and time |
 | **Agent Detail** | Full breakdown of selected agent — positions, signals, trades |
 | **Signals ✦** | Multi-source composite signal board (analyst, earnings, news, congress) |
 | **⟁ Scanner** | Agentic Claude scanner recommendations with confidence and catalysts |
 | **◈ Daily Roll-Up** | Claude-authored narrative summary of all agent decisions |
 | **⚡ Sentinel** | Overnight catalyst feed grouped by category + news→price impact tracker |
+| **🔢 Tokens** | Live token usage per agent (daily total, calls/hr) + searchable 24h log with limit-hit alerts |
 
 ---
 
@@ -276,6 +283,8 @@ Discovers high-conviction opportunities outside the core watchlist.
 | `GET /api/summary` | Daily roll-up narrative (`?force=true` to regenerate) |
 | `GET /api/drift` | Performance drift report per agent |
 | `GET /api/performance/{agent_name}` | Full performance history |
+| `GET /api/tokens` | Live token usage stats per agent + session/daily totals |
+| `GET /api/token-log` | 24h token log (`?agent=`, `?hours=`, `?limit_hit=true`) |
 | `GET /api/status` | App status (running, market_status, cycle count) |
 | `POST /api/start` | Start trading |
 | `POST /api/stop` | Stop trading |
@@ -369,6 +378,14 @@ See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 | Date | Change |
 |---|---|
+| 2026-03-20 | **Trade date display** — recent trades in Portfolio Chart tab now show date (e.g. "20 Mar") above the time |
+| 2026-03-20 | **SentimentAgent token throttling** — switched from cycle-based to time-based throttling (90 min market / 4 h off-hours); caps each batch to 5 symbols (held positions first); spreads 10,000-token daily budget evenly across 24 h |
+| 2026-03-19 | **Risk assessor learning loop** — new `data/risk_assessor.py` persists trade/regime logs; detects churn, false TRENDING calls, sector overweight; injects findings into Claude and Gemini prompts every 30 cycles |
+| 2026-03-19 | **Churn prevention** — 30-minute cooloff after selling a symbol; `Portfolio._recent_exits` tracks last sell time; `RiskManager.check_buy_allowed()` enforces the gate |
+| 2026-03-19 | **Sector concentration limit** — `RiskManager` blocks buys that would put any single sector above 35% of portfolio value; sector lookup via `stock_universe.get_sector()` |
+| 2026-03-19 | **Multi-signal regime detection** — `EnsembleAgent._detect_regime()` now requires 2-of-3 signals (SMA slope + trend consistency + volume expansion) to call TRENDING; single-signal false positives suppressed |
+| 2026-03-19 | **24h token usage log** — `token_log` SQLite table; `save_token_log()` called after every AI API call; `GET /api/token-log` REST endpoint; 🔢 Tokens dashboard tab with live stats cards, alert banner on limit events, filterable log table |
+| 2026-03-19 | **GeminiAgent repurposed** — removed from ensemble voting; now runs as a market-view context provider, injecting a 2-3 sentence `market_analysis` into Claude's prompt |
 | 2026-03-16 | **Multi-source sentinel** — added RSS (CNBC, Reuters), Yahoo Finance, SEC EDGAR 8-K, Finnhub, Unusual Whales (congress trades + options flow) |
 | 2026-03-16 | **Sentinel tab** — new ⚡ Sentinel dashboard tab with catalyst feed grouped by category and news→price correlation tracker |
 | 2026-03-16 | **Sentinel runs during market hours** — polls every 5 min intraday (was closed-only) |

@@ -188,8 +188,9 @@ export default function Dashboard({
                           const pnl = t.pnl ?? 0
                           return (
                             <div key={i} className="flex items-center gap-3 px-1 py-1.5 text-xs">
-                              <span className="text-gray-500 w-16 shrink-0 font-mono">
-                                {new Date(t.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                              <span className="text-gray-500 w-20 shrink-0 font-mono leading-tight">
+                                <span className="block">{new Date(t.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                                <span className="block text-gray-600">{new Date(t.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
                               </span>
                               <span className={`font-bold w-8 shrink-0 ${t.action === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
                                 {t.action}

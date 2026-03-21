@@ -285,5 +285,41 @@ class TestFillMissingSymbols(unittest.TestCase):
         self.assertEqual(len(result), 0)
 
 
+class TestIsMarketHours(unittest.TestCase):
+
+    def _check(self, weekday, hour, minute, expected):
+        from unittest.mock import patch
+        from datetime import timezone, timedelta
+        from agents.agent_utils import _is_market_hours
+        et = timezone(timedelta(hours=-4))  # EDT
+        dt = datetime(2026, 3, 18, hour, minute, tzinfo=et)  # Wednesday
+        # Adjust weekday: 2026-03-18 is Wednesday (weekday=2). Shift by (weekday - 2) days.
+        from datetime import timedelta as td
+        dt = dt + td(days=weekday - 2)
+        with patch("agents.agent_utils._et_now", return_value=dt):
+            self.assertEqual(_is_market_hours(), expected)
+
+    def test_open_at_930(self):
+        self._check(weekday=2, hour=9, minute=30, expected=True)
+
+    def test_open_at_1200(self):
+        self._check(weekday=2, hour=12, minute=0, expected=True)
+
+    def test_open_at_1559(self):
+        self._check(weekday=2, hour=15, minute=59, expected=True)
+
+    def test_closed_at_1600(self):
+        self._check(weekday=2, hour=16, minute=0, expected=False)
+
+    def test_closed_before_930(self):
+        self._check(weekday=2, hour=9, minute=29, expected=False)
+
+    def test_closed_on_saturday(self):
+        self._check(weekday=5, hour=11, minute=0, expected=False)
+
+    def test_closed_on_sunday(self):
+        self._check(weekday=6, hour=11, minute=0, expected=False)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -103,7 +103,7 @@ export default function AgentCard({ agent, prices }: AgentCardProps) {
           />
           <MetricTile
             label="Win Rate"
-            value={`${agent.win_rate.toFixed(1)}%`}
+            value={`${agent.win_rate < 50 ? '-' : ''}${agent.win_rate.toFixed(1)}%`}
             sub={`${agent.total_trades} trades`}
             color={agent.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}
           />
@@ -143,23 +143,33 @@ export default function AgentCard({ agent, prices }: AgentCardProps) {
                   <th className="table-header text-right">Avg Cost</th>
                   <th className="table-header text-right">Current</th>
                   <th className="table-header text-right">Value</th>
-                  <th className="table-header text-right">P&L</th>
+                  <th className="table-header text-right">P&L ($)</th>
+                  <th className="table-header text-right">P&L (%)</th>
                 </tr>
               </thead>
               <tbody>
-                {agent.positions.map(pos => (
-                  <tr key={pos.symbol} className="table-row">
-                    <td className="table-cell font-bold text-blue-400">{pos.symbol}</td>
-                    <td className="table-cell text-right text-gray-300">{pos.shares.toFixed(2)}</td>
-                    <td className="table-cell text-right text-gray-400">${pos.avg_cost.toFixed(2)}</td>
-                    <td className="table-cell text-right text-gray-300">${pos.current_price.toFixed(2)}</td>
-                    <td className="table-cell text-right font-medium">{formatCurrency(pos.current_value)}</td>
-                    <td className={`table-cell text-right font-bold ${pos.unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {pos.unrealized_pnl >= 0 ? '+' : ''}{formatCurrency(pos.unrealized_pnl)}
-                      <span className="text-xs ml-1">({formatPct(pos.unrealized_pnl_pct)})</span>
-                    </td>
-                  </tr>
-                ))}
+                {agent.positions.map(pos => {
+                  const pnlColor = pos.unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400'
+                  const pnlSign = pos.unrealized_pnl >= 0 ? '+' : '-'
+                  const pnlAbs = Math.abs(pos.unrealized_pnl)
+                  const pctSign = pos.unrealized_pnl_pct >= 0 ? '+' : '-'
+                  const pctAbs = Math.abs(pos.unrealized_pnl_pct)
+                  return (
+                    <tr key={pos.symbol} className="table-row">
+                      <td className="table-cell font-bold text-blue-400">{pos.symbol}</td>
+                      <td className="table-cell text-right text-gray-300">{pos.shares.toFixed(2)}</td>
+                      <td className="table-cell text-right text-gray-400">${pos.avg_cost.toFixed(2)}</td>
+                      <td className="table-cell text-right text-gray-300">${pos.current_price.toFixed(2)}</td>
+                      <td className="table-cell text-right font-medium">{formatCurrency(pos.current_value)}</td>
+                      <td className={`table-cell text-right font-bold ${pnlColor}`}>
+                        {pnlSign}${pnlAbs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className={`table-cell text-right font-bold ${pnlColor}`}>
+                        {pctSign}{pctAbs.toFixed(2)}%
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
