@@ -58,6 +58,7 @@ class Config:
 
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "trading.db")
+    TOKEN_LOG_RETENTION_DAYS: int = int(os.getenv("TOKEN_LOG_RETENTION_DAYS", "365"))
 
     # Server
     HOST: str = os.getenv("HOST", "0.0.0.0")

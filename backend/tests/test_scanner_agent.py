@@ -292,5 +292,80 @@ class TestPreScreenMocked(unittest.IsolatedAsyncioTestCase):
         self.assertIn("MSFT", syms)
 
 
+class TestScannerTokenLogging(unittest.IsolatedAsyncioTestCase):
+    """Scanner runners call save_token_log after completing the agentic loop."""
+
+    async def test_claude_scanner_logs_tokens(self):
+        """_run_claude_scanner calls save_token_log with accumulated token counts."""
+        from agents.scanner_agent import _run_claude_scanner
+
+        usage = MagicMock()
+        usage.input_tokens = 800
+        usage.output_tokens = 200
+
+        fake_response = MagicMock()
+        fake_response.usage = usage
+        fake_response.content = []
+        fake_response.stop_reason = "end_turn"
+
+        mock_client = MagicMock()
+        mock_client.messages.create = AsyncMock(return_value=fake_response)
+
+        mock_config = MagicMock()
+        mock_config.ANTHROPIC_API_KEY = "test-key"
+
+        with patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock) as mock_save, \
+             patch("config.config", mock_config), \
+             patch("anthropic.AsyncAnthropic", return_value=mock_client):
+            candidates = [{"symbol": "AAPL", "pct_change": 2.0, "vol_ratio": 1.5,
+                           "momentum_score": 0.7, "price": 180.0}]
+            await _run_claude_scanner(candidates)
+
+        mock_save.assert_called_once()
+        call_kwargs = mock_save.call_args[1]
+        self.assertEqual(call_kwargs["agent"], "ScannerAgent/Claude")
+        self.assertEqual(call_kwargs["model"], "claude-opus-4-6")
+        self.assertGreater(call_kwargs["prompt_tokens"], 0)
+        self.assertGreater(call_kwargs["completion_tokens"], 0)
+
+    async def test_openai_scanner_logs_tokens(self):
+        """_run_openai_scanner calls save_token_log with accumulated token counts."""
+        from agents.scanner_agent import _run_openai_scanner
+
+        usage = MagicMock()
+        usage.prompt_tokens = 600
+        usage.completion_tokens = 150
+
+        fake_msg = MagicMock()
+        fake_msg.tool_calls = []
+        fake_msg.content = "done"
+        fake_choice = MagicMock()
+        fake_choice.message = fake_msg
+        fake_choice.finish_reason = "stop"
+
+        fake_response = MagicMock()
+        fake_response.choices = [fake_choice]
+        fake_response.usage = usage
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=fake_response)
+
+        mock_config = MagicMock()
+        mock_config.OPENAI_API_KEY = "test-key"
+
+        with patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock) as mock_save, \
+             patch("config.config", mock_config), \
+             patch("agents.scanner_agent.HAS_OPENAI", True), \
+             patch("agents.scanner_agent._AsyncOpenAI", return_value=mock_client):
+            candidates = [{"symbol": "MSFT", "pct_change": 1.0, "vol_ratio": 1.2,
+                           "momentum_score": 0.5, "price": 400.0}]
+            await _run_openai_scanner(candidates)
+
+        mock_save.assert_called_once()
+        call_kwargs = mock_save.call_args[1]
+        self.assertEqual(call_kwargs["agent"], "ScannerAgent/OpenAI")
+        self.assertEqual(call_kwargs["model"], "gpt-4o-mini")
+
+
 if __name__ == "__main__":
     unittest.main()

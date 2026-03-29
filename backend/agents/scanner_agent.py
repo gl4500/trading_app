@@ -28,6 +28,8 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from database import save_token_log
+
 logger = logging.getLogger(__name__)
 
 SCAN_CACHE_TTL = 30 * 60   # 30 minutes (in-memory freshness for trading)
@@ -455,6 +457,8 @@ async def _run_claude_scanner(candidates: List[Dict]) -> List[Dict]:
     messages = [{"role": "user", "content": _build_user_message(candidates)}]
     recommendations: List[Dict] = []
     rounds = 0
+    total_input_tokens = 0
+    total_output_tokens = 0
 
     logger.info(f"Scanner/Claude: starting agentic loop ({len(candidates)} candidates)")
 
@@ -471,6 +475,9 @@ async def _run_claude_scanner(candidates: List[Dict]) -> List[Dict]:
         except Exception as e:
             logger.error(f"Scanner/Claude: API error round {rounds}: {e}")
             break
+
+        total_input_tokens += response.usage.input_tokens
+        total_output_tokens += response.usage.output_tokens
 
         tool_uses = []
         for block in response.content:
@@ -500,6 +507,19 @@ async def _run_claude_scanner(candidates: List[Dict]) -> List[Dict]:
                 "content":     result_str,
             })
         messages.append({"role": "user", "content": tool_results})
+
+    try:
+        await save_token_log(
+            agent="ScannerAgent/Claude",
+            model="claude-opus-4-6",
+            prompt_tokens=total_input_tokens,
+            completion_tokens=total_output_tokens,
+            total_tokens=total_input_tokens + total_output_tokens,
+            daily_total=total_input_tokens + total_output_tokens,
+            limit_hit=False,
+        )
+    except Exception as _e:
+        logger.debug(f"Scanner/Claude: token log save failed: {_e}")
 
     return recommendations
 
@@ -559,6 +579,8 @@ async def _run_gemini_scanner(candidates: List[Dict]) -> List[Dict]:
     ]
     recommendations: List[Dict] = []
     rounds = 0
+    total_prompt_tokens = 0
+    total_candidate_tokens = 0
 
     logger.info(f"Scanner/Gemini: starting agentic loop ({len(candidates)} candidates)")
 
@@ -573,6 +595,11 @@ async def _run_gemini_scanner(candidates: List[Dict]) -> List[Dict]:
         except Exception as e:
             logger.error(f"Scanner/Gemini: API error round {rounds}: {e}")
             break
+
+        usage = getattr(response, "usage_metadata", None)
+        if usage:
+            total_prompt_tokens += getattr(usage, "prompt_token_count", 0) or 0
+            total_candidate_tokens += getattr(usage, "candidates_token_count", 0) or 0
 
         if not response.candidates:
             break
@@ -610,6 +637,19 @@ async def _run_gemini_scanner(candidates: List[Dict]) -> List[Dict]:
             )
         contents.append(_genai_types.Content(role="user", parts=result_parts))
 
+    try:
+        await save_token_log(
+            agent="ScannerAgent/Gemini",
+            model="gemini-2.0-flash",
+            prompt_tokens=total_prompt_tokens,
+            completion_tokens=total_candidate_tokens,
+            total_tokens=total_prompt_tokens + total_candidate_tokens,
+            daily_total=total_prompt_tokens + total_candidate_tokens,
+            limit_hit=False,
+        )
+    except Exception as _e:
+        logger.debug(f"Scanner/Gemini: token log save failed: {_e}")
+
     return recommendations
 
 
@@ -643,6 +683,8 @@ async def _run_openai_scanner(candidates: List[Dict]) -> List[Dict]:
     ]
     recommendations: List[Dict] = []
     rounds = 0
+    total_prompt_tokens = 0
+    total_completion_tokens = 0
 
     logger.info(f"Scanner/OpenAI: starting agentic loop ({len(candidates)} candidates)")
 
@@ -658,6 +700,10 @@ async def _run_openai_scanner(candidates: List[Dict]) -> List[Dict]:
         except Exception as e:
             logger.error(f"Scanner/OpenAI: API error round {rounds}: {e}")
             break
+
+        if response.usage:
+            total_prompt_tokens += response.usage.prompt_tokens or 0
+            total_completion_tokens += response.usage.completion_tokens or 0
 
         choice = response.choices[0]
         msg = choice.message
@@ -709,6 +755,19 @@ async def _run_openai_scanner(candidates: List[Dict]) -> List[Dict]:
                 "tool_call_id": tc.id,
                 "content":      result_str,
             })
+
+    try:
+        await save_token_log(
+            agent="ScannerAgent/OpenAI",
+            model="gpt-4o-mini",
+            prompt_tokens=total_prompt_tokens,
+            completion_tokens=total_completion_tokens,
+            total_tokens=total_prompt_tokens + total_completion_tokens,
+            daily_total=total_prompt_tokens + total_completion_tokens,
+            limit_hit=False,
+        )
+    except Exception as _e:
+        logger.debug(f"Scanner/OpenAI: token log save failed: {_e}")
 
     return recommendations
 

@@ -516,6 +516,62 @@ class TestTokenLog(TestDatabaseBase):
         rows = run(database.get_token_log())
         self.assertIsNone(rows[0]["daily_limit"])
 
+    def test_hours_zero_returns_all_entries(self):
+        """hours=0 means all-time — entries older than 24h should be included."""
+        import aiosqlite
+        from datetime import datetime, timedelta
+
+        async def insert_old():
+            old_ts = (datetime.utcnow() - timedelta(hours=48)).isoformat()
+            async with aiosqlite.connect(database.DB_PATH) as db:
+                await db.execute(
+                    """INSERT INTO token_log
+                       (timestamp, agent, model, prompt_tokens, completion_tokens,
+                        total_tokens, daily_total, daily_limit, limit_hit)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (old_ts, "OldAgent", "old-model", 10, 5, 15, 15, None, 0)
+                )
+                await db.commit()
+
+        run(insert_old())
+        run(database.save_token_log("NewAgent", "new-model", 10, 5, 15, 15, False))
+
+        # Default hours=24 should NOT return the 48h-old entry
+        rows_24h = run(database.get_token_log(hours=24))
+        agents_24h = [r["agent"] for r in rows_24h]
+        self.assertNotIn("OldAgent", agents_24h)
+        self.assertIn("NewAgent", agents_24h)
+
+        # hours=0 should return ALL entries including the old one
+        rows_all = run(database.get_token_log(hours=0))
+        agents_all = [r["agent"] for r in rows_all]
+        self.assertIn("OldAgent", agents_all)
+        self.assertIn("NewAgent", agents_all)
+
+    def test_hours_zero_with_agent_filter(self):
+        """hours=0 + agent filter returns only matching agent across all time."""
+        import aiosqlite
+        from datetime import datetime, timedelta
+
+        async def insert_old():
+            old_ts = (datetime.utcnow() - timedelta(hours=48)).isoformat()
+            async with aiosqlite.connect(database.DB_PATH) as db:
+                await db.execute(
+                    """INSERT INTO token_log
+                       (timestamp, agent, model, prompt_tokens, completion_tokens,
+                        total_tokens, daily_total, daily_limit, limit_hit)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (old_ts, "ClaudeAgent", "claude-opus-4-6", 500, 200, 700, 700, None, 0)
+                )
+                await db.commit()
+
+        run(insert_old())
+        run(database.save_token_log("SentimentAgent", "gpt-4o-mini", 100, 50, 150, 150, False))
+
+        rows = run(database.get_token_log(hours=0, agent="ClaudeAgent"))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["agent"], "ClaudeAgent")
+
 
 if __name__ == "__main__":
     unittest.main()

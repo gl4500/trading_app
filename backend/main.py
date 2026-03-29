@@ -991,7 +991,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting AI Trading Competition backend...")
     await init_db()
-    await cleanup_token_log(hours=24)
+    await cleanup_token_log(hours=config.TOKEN_LOG_RETENTION_DAYS * 24)
     await init_agents()
 
     # Bootstrap fluid watchlist from cached scan (if available)

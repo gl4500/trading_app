@@ -741,6 +741,15 @@ class TestTokenLogEndpoint(unittest.TestCase):
                 data = client.get("/api/token-log").json()
         self.assertEqual(data["entries"], [])
 
+    def test_hours_zero_forwarded_as_all_time(self):
+        """hours=0 is forwarded to get_token_log — signals all-time query."""
+        from main import app
+        with patch("main.get_token_log", new_callable=AsyncMock, return_value=[]) as mock_fn:
+            with TestClient(app) as client:
+                client.get("/api/token-log?hours=0")
+        call_kwargs = mock_fn.call_args[1]
+        self.assertEqual(call_kwargs.get("hours"), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

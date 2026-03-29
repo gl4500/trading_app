@@ -30,9 +30,13 @@ interface TokenStatsData {
 }
 
 const AGENT_COLORS: Record<string, string> = {
-  SentimentAgent: 'text-green-400',
-  ClaudeAgent:    'text-red-400',
-  GeminiAgent:    'text-blue-400',
+  SentimentAgent:       'text-green-400',
+  ClaudeAgent:          'text-red-400',
+  GeminiAgent:          'text-blue-400',
+  SummaryAgent:         'text-amber-400',
+  'ScannerAgent/Claude':'text-red-300',
+  'ScannerAgent/Gemini':'text-blue-300',
+  'ScannerAgent/OpenAI':'text-green-300',
 }
 
 function agentBadge(agent: string) {
@@ -48,10 +52,12 @@ export default function TokensPanel() {
   const [limitHitOnly, setLimitHitOnly] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [offline, setOffline] = useState(false)
 
   const fetchLog = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setOffline(false)
     try {
       const params = new URLSearchParams()
       if (agentFilter) params.set('agent', agentFilter)
@@ -62,7 +68,11 @@ export default function TokensPanel() {
       const data = await resp.json()
       setEntries(data.entries || [])
     } catch (e: any) {
-      setError(e.message)
+      if (e instanceof TypeError) {
+        setOffline(true)
+      } else {
+        setError(e.message)
+      }
     } finally {
       setLoading(false)
     }
@@ -158,6 +168,10 @@ export default function TokensPanel() {
               <option value="SentimentAgent">SentimentAgent</option>
               <option value="ClaudeAgent">ClaudeAgent</option>
               <option value="GeminiAgent">GeminiAgent</option>
+              <option value="SummaryAgent">SummaryAgent</option>
+              <option value="ScannerAgent/Claude">ScannerAgent/Claude</option>
+              <option value="ScannerAgent/Gemini">ScannerAgent/Gemini</option>
+              <option value="ScannerAgent/OpenAI">ScannerAgent/OpenAI</option>
             </select>
           </div>
 
@@ -172,6 +186,9 @@ export default function TokensPanel() {
               <option value={6}>Last 6h</option>
               <option value={12}>Last 12h</option>
               <option value={24}>Last 24h</option>
+              <option value={168}>Last 7 days</option>
+              <option value={720}>Last 30 days</option>
+              <option value={0}>All time</option>
             </select>
           </div>
 
@@ -201,13 +218,20 @@ export default function TokensPanel() {
           <span className="text-xs text-gray-500">{entries.length} entries</span>
         </div>
 
-        {error && (
-          <div className="text-red-400 text-sm py-2">{error}</div>
+        {offline && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded bg-red-900/40 border border-red-700 text-red-300 text-sm">
+            <span>⚠</span>
+            <span>Backend offline — start the app and try again.</span>
+          </div>
         )}
 
-        {entries.length === 0 && !loading && !error ? (
+        {error && !offline && (
+          <div className="text-red-400 text-sm py-2">API error: {error}</div>
+        )}
+
+        {!offline && entries.length === 0 && !loading && !error ? (
           <p className="text-center text-gray-500 text-sm py-6">No token log entries found.</p>
-        ) : (
+        ) : !offline && (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
@@ -226,7 +250,9 @@ export default function TokensPanel() {
                 {entries.map(entry => (
                   <tr key={entry.id} className={`hover:bg-gray-800/30 ${entry.limit_hit ? 'bg-orange-900/20' : ''}`}>
                     <td className="py-1.5 pr-3 text-gray-500 font-mono whitespace-nowrap">
-                      {new Date(entry.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {hoursFilter > 24 || hoursFilter === 0
+                        ? new Date(entry.timestamp).toLocaleString('en-GB', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                        : new Date(entry.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>
                     <td className="py-1.5 pr-3">{agentBadge(entry.agent)}</td>
                     <td className="py-1.5 pr-3 text-gray-400">{entry.model}</td>

@@ -409,13 +409,20 @@ async def get_token_log(
     limit_hit_only: bool = False,
     limit: int = 500,
 ) -> List[Dict]:
-    """Retrieve token usage log, newest first. Filterable by agent, time window, limit_hit."""
+    """Retrieve token usage log, newest first. Filterable by agent, time window, limit_hit.
+
+    hours=0 means all-time (no time filter applied).
+    """
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        cutoff = (datetime.utcnow() - __import__("datetime").timedelta(hours=hours)).isoformat()
 
-        conditions = ["timestamp >= ?"]
-        params: List[Any] = [cutoff]
+        conditions: List[str] = []
+        params: List[Any] = []
+
+        if hours > 0:
+            cutoff = (datetime.utcnow() - __import__("datetime").timedelta(hours=hours)).isoformat()
+            conditions.append("timestamp >= ?")
+            params.append(cutoff)
 
         if agent:
             conditions.append("agent = ?")
@@ -423,10 +430,10 @@ async def get_token_log(
         if limit_hit_only:
             conditions.append("limit_hit = 1")
 
-        where = " AND ".join(conditions)
+        where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
         params.append(limit)
         cursor = await db.execute(
-            f"SELECT * FROM token_log WHERE {where} ORDER BY timestamp DESC LIMIT ?",
+            f"SELECT * FROM token_log {where_clause} ORDER BY timestamp DESC LIMIT ?",
             params
         )
         rows = await cursor.fetchall()

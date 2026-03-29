@@ -510,5 +510,62 @@ class TestDetectCloseTransition(unittest.TestCase):
         self.assertFalse(_detect_close_transition("open", "open"))
 
 
+class TestSummaryAgentTokenLogging(unittest.IsolatedAsyncioTestCase):
+    """DailySummaryService._get_narrative calls save_token_log after Claude API call."""
+
+    async def test_narrative_logs_tokens_on_success(self):
+        """save_token_log is called when Claude returns a successful narrative."""
+        from agents.summary_agent import DailySummaryService
+
+        usage = MagicMock()
+        usage.input_tokens = 900
+        usage.output_tokens = 300
+
+        text_block = MagicMock()
+        text_block.type = "text"
+        text_block.text = "Today the agents were active."
+
+        fake_response = MagicMock()
+        fake_response.content = [text_block]
+        fake_response.usage = usage
+
+        mock_client = MagicMock()
+        mock_client.messages.create = AsyncMock(return_value=fake_response)
+
+        mock_config = MagicMock()
+        mock_config.ANTHROPIC_API_KEY = "test-key"
+
+        service = DailySummaryService()
+        with patch("agents.summary_agent.save_token_log", new_callable=AsyncMock) as mock_save, \
+             patch("config.config", mock_config), \
+             patch("anthropic.AsyncAnthropic", return_value=mock_client):
+            narrative = await service._get_narrative({}, {}, None, [], [], {}, "open")
+
+        mock_save.assert_called_once()
+        call_kwargs = mock_save.call_args[1]
+        self.assertEqual(call_kwargs["agent"], "SummaryAgent")
+        self.assertEqual(call_kwargs["model"], "claude-opus-4-6")
+        self.assertEqual(call_kwargs["prompt_tokens"], 900)
+        self.assertEqual(call_kwargs["completion_tokens"], 300)
+        self.assertEqual(narrative, "Today the agents were active.")
+
+    async def test_narrative_no_log_on_failure(self):
+        """save_token_log is NOT called when Claude raises an exception."""
+        from agents.summary_agent import DailySummaryService
+
+        mock_config = MagicMock()
+        mock_config.ANTHROPIC_API_KEY = "test-key"
+
+        service = DailySummaryService()
+        with patch("agents.summary_agent.save_token_log", new_callable=AsyncMock) as mock_save, \
+             patch("config.config", mock_config), \
+             patch("anthropic.AsyncAnthropic", side_effect=RuntimeError("API down")):
+            narrative = await service._get_narrative({}, {}, None, [], [], {}, "open")
+
+        mock_save.assert_not_called()
+        # Should fall back to structured text
+        self.assertIn("Daily Roll-Up", narrative)
+
+
 if __name__ == "__main__":
     unittest.main()

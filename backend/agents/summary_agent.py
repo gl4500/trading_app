@@ -18,6 +18,8 @@ import time
 from datetime import datetime, date, timezone
 from typing import Dict, List, Optional, Any
 
+from database import save_token_log
+
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_MARKET_OPEN   = 5 * 60    # refresh every 5 min during active sessions
@@ -450,6 +452,18 @@ class DailySummaryService:
                 max_tokens=1200,
                 messages=[{"role": "user", "content": prompt}],
             )
+            try:
+                await save_token_log(
+                    agent="SummaryAgent",
+                    model="claude-opus-4-6",
+                    prompt_tokens=response.usage.input_tokens,
+                    completion_tokens=response.usage.output_tokens,
+                    total_tokens=response.usage.input_tokens + response.usage.output_tokens,
+                    daily_total=response.usage.input_tokens + response.usage.output_tokens,
+                    limit_hit=False,
+                )
+            except Exception as _log_e:
+                logger.debug(f"DailySummary: token log save failed: {_log_e}")
             for block in response.content:
                 if block.type == "text":
                     return block.text.strip()
