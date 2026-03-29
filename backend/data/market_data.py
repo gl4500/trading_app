@@ -15,6 +15,7 @@ from data.news_service import news_service
 from data import technicals
 from data.signal_aggregator import get_composite_signal
 from data.massive_client import massive_client
+from data.stooq_client import stooq_client
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +106,7 @@ class MarketDataService:
         except Exception as e:
             logger.error(f"Error fetching bars for {symbol}: {e}")
 
-        # Fallback: try Massive.com bars
+        # Fallback 1: try Massive.com bars
         try:
             df_massive = await massive_client.get_bars(symbol, days=days)
             if df_massive is not None and not df_massive.empty:
@@ -116,7 +117,56 @@ class MarketDataService:
         except Exception as e:
             logger.debug(f"Massive bars fallback {symbol}: {e}")
 
+        # Fallback 2: try Stooq free historical data
+        try:
+            df_stooq = await stooq_client.get_bars(symbol, days=days)
+            if df_stooq is not None and not df_stooq.empty:
+                logger.debug(f"MarketData: using Stooq bars for {symbol}")
+                self._bars_cache[cache_key] = df_stooq
+                self._last_bars_fetch[cache_key] = now
+                return df_stooq
+        except Exception as e:
+            logger.debug(f"Stooq bars fallback {symbol}: {e}")
+
         return self._bars_cache.get(cache_key, pd.DataFrame()).copy()
+
+    async def get_long_term_bars(
+        self,
+        symbols: List[str] = None,
+        days: int = None,
+    ) -> Dict[str, pd.DataFrame]:
+        """
+        Fetch multi-year OHLCV from Stooq for extended historical analysis.
+        Uses a separate long-TTL cache key so it doesn't evict short-term bars.
+        Primarily used by HistoricalTrendsAgent.
+        """
+        from config import config as _config
+        syms = symbols or self.watchlist
+        days = days or _config.STOOQ_LONG_TERM_DAYS
+
+        now = time.time()
+        stooq_ttl = 4 * 3600  # 4-hour cache for long-term bars
+        fresh: Dict[str, pd.DataFrame] = {}
+        stale: List[str] = []
+
+        for sym in syms:
+            key = f"{sym}|lt|{days}"
+            last_fetch = self._last_bars_fetch.get(key, 0)
+            if now - last_fetch < stooq_ttl and key in self._bars_cache:
+                fresh[sym] = self._bars_cache[key].copy()
+            else:
+                stale.append(sym)
+
+        if stale:
+            fetched = await stooq_client.get_bars_multi(stale, days=days)
+            for sym, df in fetched.items():
+                key = f"{sym}|lt|{days}"
+                if df is not None and not df.empty:
+                    self._bars_cache[key] = df
+                    self._last_bars_fetch[key] = now
+                fresh[sym] = df if df is not None else pd.DataFrame()
+
+        return fresh
 
     async def get_all_bars(
         self,
@@ -169,17 +219,20 @@ class MarketDataService:
         """
         syms = symbols or self.watchlist
 
-        # Fetch in parallel — Massive macro + news run alongside Alpaca
-        prices_task       = self.get_latest_prices(syms)
-        bars_task         = self.get_all_bars(syms)
-        news_task         = news_service.get_news_multi(syms)
-        macro_task        = massive_client.get_macro_context()
-        massive_news_task = massive_client.get_news_multi(syms, limit=5)
+        # Fetch in parallel — Massive macro + news run alongside Alpaca + Stooq long-term
+        prices_task        = self.get_latest_prices(syms)
+        bars_task          = self.get_all_bars(syms)
+        news_task          = news_service.get_news_multi(syms)
+        macro_task         = massive_client.get_macro_context()
+        massive_news_task  = massive_client.get_news_multi(syms, limit=5)
+        long_term_bars_task = self.get_long_term_bars(syms)
 
-        prices, all_bars, all_news, macro_ctx, massive_news = await asyncio.gather(
-            prices_task, bars_task, news_task, macro_task, massive_news_task,
+        prices, all_bars, all_news, macro_ctx, massive_news, all_long_term_bars = await asyncio.gather(
+            prices_task, bars_task, news_task, macro_task, massive_news_task, long_term_bars_task,
             return_exceptions=True,
         )
+        if isinstance(all_long_term_bars, Exception):
+            all_long_term_bars = {}
         if isinstance(macro_ctx, Exception):
             macro_ctx = ""
         if isinstance(massive_news, Exception):
@@ -202,13 +255,16 @@ class MarketDataService:
                 alpaca_news_empty = all_news.get(sym, [])
                 massive_news_empty = massive_news.get(sym, []) if isinstance(massive_news, dict) else []
                 existing_hl = {n.get("headline", "") for n in alpaca_news_empty}
+                lt_bars_empty = all_long_term_bars.get(sym, pd.DataFrame()) \
+                    if isinstance(all_long_term_bars, dict) else pd.DataFrame()
                 context[sym] = {
-                    "symbol": sym,
-                    "price":  price or 0,
-                    "bars":   pd.DataFrame(),
-                    "stats":  {},
-                    "news":   alpaca_news_empty + [n for n in massive_news_empty if n.get("headline", "") not in existing_hl],
-                    "indicators": None,
+                    "symbol":          sym,
+                    "price":           price or 0,
+                    "bars":            pd.DataFrame(),
+                    "long_term_bars":  lt_bars_empty,
+                    "stats":           {},
+                    "news":            alpaca_news_empty + [n for n in massive_news_empty if n.get("headline", "") not in existing_hl],
+                    "indicators":      None,
                     "composite_signal": all_composite.get(sym, {}),
                 }
                 continue
@@ -252,9 +308,13 @@ class MarketDataService:
                 if n.get("headline", "") not in existing_headlines
             ]
 
+            lt_bars = all_long_term_bars.get(sym, pd.DataFrame()) \
+                if isinstance(all_long_term_bars, dict) else pd.DataFrame()
+
             context[sym] = {
                 "symbol":           sym,
                 "bars":             all_bars.get(sym, pd.DataFrame()),
+                "long_term_bars":   lt_bars,
                 "recent_bars":      recent_bars,
                 "stats":            stats,
                 "price":            stats["current_price"],

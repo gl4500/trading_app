@@ -1,0 +1,2702 @@
+{
+  "regime_log": [
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T19:35:01.061036",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "MDB": 261.05
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T19:40:07.621725",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "MDB": 261.05
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T19:45:01.689616",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T19:50:03.434506",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T19:55:09.717190",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:00:01.832369",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:05:04.077760",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:10:03.728234",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:15:02.059273",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:20:06.960913",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "SAP": 175.78,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:25:07.256053",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "SAP": 175.78,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:30:04.547638",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "SAP": 175.78,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:35:02.237433",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "SAP": 175.78,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:40:07.554452",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "SAP": 175.78,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:45:05.327088",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "SAP": 175.78,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:50:02.435693",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "SAP": 175.78,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T20:55:01.821643",
+      "prices": {
+        "SPY": 649.43,
+        "ORCL": 149.58,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:00:02.857734",
+      "prices": {
+        "SPY": 649.43,
+        "ORCL": 149.58,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:05:02.259105",
+      "prices": {
+        "SPY": 649.43,
+        "ORCL": 149.58,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:10:02.971151",
+      "prices": {
+        "SPY": 649.43,
+        "ORCL": 149.58,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:15:02.469695",
+      "prices": {
+        "SPY": 649.43,
+        "ORCL": 149.58,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:20:03.045304",
+      "prices": {
+        "SPY": 649.43,
+        "ORCL": 149.58,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:25:02.289472",
+      "prices": {
+        "SPY": 649.43,
+        "ORCL": 149.58,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:30:10.645834",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:35:02.744923",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:40:02.641182",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:45:10.752888",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:50:03.010195",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T21:55:02.762880",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:00:05.084078",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:05:02.691362",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "INTC": 43.94,
+        "SAP": 175.78
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:10:05.432926",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "INTC": 43.94,
+        "SAP": 175.78
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:15:03.761365",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "INTC": 43.94,
+        "SAP": 175.78
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:20:05.721719",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "INTC": 43.94,
+        "SAP": 175.78
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:25:07.012984",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "INTC": 43.94,
+        "SAP": 175.78
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:30:07.925259",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "INTC": 43.94,
+        "SAP": 175.78
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:35:02.576926",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "INTC": 43.94,
+        "SAP": 175.78
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:40:04.776158",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "LRCX": 228.38,
+        "HON": 221.57,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:45:02.173492",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "LRCX": 228.38,
+        "HON": 221.57,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:50:03.462287",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "LRCX": 228.38,
+        "HON": 221.57,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T22:55:02.027272",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "LRCX": 228.38,
+        "HON": 221.57,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:00:03.405070",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "LRCX": 228.38,
+        "HON": 221.57,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:05:02.056129",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "LRCX": 228.38,
+        "HON": 221.57,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:10:05.443941",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "LRCX": 228.38,
+        "HON": 221.57,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:15:01.977759",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "LRCX": 228.38,
+        "HON": 221.57,
+        "INTC": 43.94
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:20:10.340898",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LLY": 906.63
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:25:04.071462",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LLY": 906.63
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:30:09.236697",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LLY": 906.63
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:35:02.187084",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LLY": 906.63
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:40:05.320650",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LLY": 906.63
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:45:01.988113",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LLY": 906.63
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:50:04.817105",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LLY": 906.63
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-21T23:55:02.151407",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "AVGO": 312.35,
+        "INTC": 43.94,
+        "RIVN": 14.91
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:00:04.424838",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "AVGO": 312.35,
+        "INTC": 43.94,
+        "RIVN": 14.91
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:05:07.789065",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "AVGO": 312.35,
+        "INTC": 43.94,
+        "RIVN": 14.91
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:10:03.407139",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "AVGO": 312.35,
+        "INTC": 43.94,
+        "RIVN": 14.91
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:15:09.849141",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "AVGO": 312.35,
+        "INTC": 43.94,
+        "RIVN": 14.91
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:20:05.620924",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "AVGO": 312.35,
+        "INTC": 43.94,
+        "RIVN": 14.91
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:25:02.552462",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "AVGO": 312.35,
+        "INTC": 43.94,
+        "RIVN": 14.91
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:30:07.668892",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:35:02.233193",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:40:03.403771",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:45:04.860768",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:50:03.576132",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T00:55:02.188609",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:00:07.850391",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:05:02.195817",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "PLTR": 150.75
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:10:10.466129",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "PLTR": 150.75
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:15:02.409387",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "PLTR": 150.75
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:20:03.831866",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "PLTR": 150.75
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:25:02.400254",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "PLTR": 150.75
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:30:03.838983",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "PLTR": 150.75
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:35:02.823899",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "PLTR": 150.75
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:40:08.361724",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:45:03.881831",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:50:08.131534",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T01:55:03.058827",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:00:03.882108",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:05:03.090622",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:10:03.597762",
+      "prices": {
+        "SPY": 649.43,
+        "NVDA": 174.14,
+        "MU": 421.61,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:15:03.729069",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "RIVN": 14.91,
+        "TSLA": 368.1
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:20:04.096680",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "RIVN": 14.91,
+        "TSLA": 368.1
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:25:03.081580",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "RIVN": 14.91,
+        "TSLA": 368.1
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:30:45.127220",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "RIVN": 14.91,
+        "TSLA": 368.1
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:35:45.875256",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "RIVN": 14.91,
+        "TSLA": 368.1
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:41:36.447661",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "RIVN": 14.91,
+        "TSLA": 368.1
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:46:31.878765",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "HON": 221.57,
+        "RIVN": 14.91,
+        "TSLA": 368.1
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:51:32.841752",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T02:56:32.072329",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:01:44.192696",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:06:33.357121",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:11:36.857222",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:16:31.670882",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:21:32.584709",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:26:32.194807",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:31:35.451094",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:36:31.956662",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:41:33.336050",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:46:34.037746",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:51:35.311505",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T03:56:31.989774",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:01:35.294125",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "GILD": 137.26,
+        "DDOG": 125.11
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:06:31.948399",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:11:36.905942",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:16:38.334451",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:21:36.706853",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:26:37.439959",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:31:39.516426",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:36:32.144669",
+      "prices": {
+        "SPY": 649.43,
+        "DDOG": 125.11,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "FCX": 52.09
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:41:35.853149",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:46:40.372878",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:51:36.059996",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T04:56:33.034779",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T05:01:33.724356",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T05:06:35.708005",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T05:11:33.198452",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "GOOGL": 301.32,
+        "DDOG": 125.11,
+        "HON": 221.57
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T05:16:32.725031",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LRCX": 228.38,
+        "INTC": 43.94
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T05:21:35.277645",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LRCX": 228.38,
+        "INTC": 43.94
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T05:26:32.740556",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LRCX": 228.38,
+        "INTC": 43.94
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T05:31:36.042487",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LRCX": 228.38,
+        "INTC": 43.94
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T05:36:32.826459",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LRCX": 228.38,
+        "INTC": 43.94
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "trending",
+      "timestamp": "2026-03-22T05:41:33.753006",
+      "prices": {
+        "SPY": 649.43,
+        "MU": 421.61,
+        "PLTR": 150.75,
+        "LRCX": 228.38,
+        "INTC": 43.94
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T13:30:29.193950",
+      "prices": {
+        "SPY": 642.3,
+        "RBLX": 53.87,
+        "COR": 318.0,
+        "SNAP": 3.95,
+        "AMAT": 336.77
+      },
+      "outcome_pct": -1.21
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T13:36:52.413431",
+      "prices": {
+        "SPY": 639.86,
+        "RBLX": 52.85,
+        "COR": 314.91,
+        "SNAP": 3.85,
+        "AMAT": 339.42
+      },
+      "outcome_pct": 0.14
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T13:41:53.356958",
+      "prices": {
+        "SPY": 640.69,
+        "RBLX": 52.55,
+        "COR": 314.38,
+        "SNAP": 3.88,
+        "AMAT": 343.48
+      },
+      "outcome_pct": -0.11
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T13:46:52.160130",
+      "prices": {
+        "SPY": 641.95,
+        "SNOW": 155.64,
+        "DDOG": 116.37,
+        "REGN": 756.94,
+        "BIIB": 191.02
+      },
+      "outcome_pct": -1.09
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T13:51:53.529473",
+      "prices": {
+        "SPY": 640.65,
+        "SNOW": 154.23,
+        "DDOG": 115.59,
+        "REGN": 757.68,
+        "BIIB": 191.02
+      },
+      "outcome_pct": -0.76
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T13:56:54.406490",
+      "prices": {
+        "SPY": 638.92,
+        "SNOW": 154.1,
+        "DDOG": 115.15,
+        "REGN": 757.53,
+        "BIIB": 191.02
+      },
+      "outcome_pct": -0.61
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:02:07.512466",
+      "prices": {
+        "SPY": 638.99,
+        "SNOW": 154.24,
+        "DDOG": 114.83,
+        "REGN": 753.57,
+        "BIIB": 191.02
+      },
+      "outcome_pct": -0.25
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:06:52.347489",
+      "prices": {
+        "SPY": 639.29,
+        "SNOW": 154.31,
+        "DDOG": 114.78,
+        "REGN": 753.57,
+        "BIIB": 188.89
+      },
+      "outcome_pct": -0.04
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:11:53.446489",
+      "prices": {
+        "SPY": 639.41,
+        "SNOW": 153.08,
+        "DDOG": 113.84,
+        "REGN": 752.8,
+        "BIIB": 188.62
+      },
+      "outcome_pct": 0.33
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:16:53.977042",
+      "prices": {
+        "SPY": 640.47,
+        "SNOW": 153.38,
+        "DDOG": 114.29,
+        "REGN": 752.8,
+        "BIIB": 188.68
+      },
+      "outcome_pct": 0.17
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:21:53.708803",
+      "prices": {
+        "SPY": 640.27,
+        "CCL": 24.59,
+        "MU": 362.32,
+        "SNOW": 153.94,
+        "DDOG": 114.45
+      },
+      "outcome_pct": 0.12
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:26:53.107122",
+      "prices": {
+        "SPY": 639.52,
+        "CCL": 24.28,
+        "MU": 361.1,
+        "SNOW": 152.92,
+        "DDOG": 114.15
+      },
+      "outcome_pct": 0.65
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:31:57.070024",
+      "prices": {
+        "SPY": 639.56,
+        "CCL": 24.34,
+        "MU": 360.98,
+        "SNOW": 153.04,
+        "DDOG": 113.86
+      },
+      "outcome_pct": 0.75
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:36:54.700049",
+      "prices": {
+        "SPY": 639.31,
+        "CCL": 24.21,
+        "MU": 360.87,
+        "SNOW": 152.84,
+        "DDOG": 114.0
+      },
+      "outcome_pct": 0.88
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:41:57.133060",
+      "prices": {
+        "SPY": 638.84,
+        "CCL": 24.21,
+        "MU": 360.2,
+        "SNOW": 152.74,
+        "DDOG": 113.55
+      },
+      "outcome_pct": 1.02
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:46:56.702194",
+      "prices": {
+        "SPY": 638.81,
+        "CCL": 24.24,
+        "MU": 360.3,
+        "SNOW": 153.2,
+        "DDOG": 113.5
+      },
+      "outcome_pct": 0.94
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:51:53.287530",
+      "prices": {
+        "SPY": 640.15,
+        "CCL": 24.38,
+        "MU": 363.18,
+        "SNOW": 153.58,
+        "DDOG": 113.97
+      },
+      "outcome_pct": 0.49
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T14:56:54.170308",
+      "prices": {
+        "SPY": 640.07,
+        "NVDA": 168.41,
+        "SNOW": 153.33,
+        "DDOG": 114.18,
+        "MU": 363.44
+      },
+      "outcome_pct": 0.5
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:02:00.060484",
+      "prices": {
+        "SPY": 640.18,
+        "NVDA": 168.7,
+        "SNOW": 152.95,
+        "DDOG": 113.83,
+        "MU": 363.96
+      },
+      "outcome_pct": 0.07
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:07:25.375111",
+      "prices": {
+        "SPY": 640.59,
+        "NVDA": 168.87,
+        "SNOW": 153.36,
+        "DDOG": 114.58,
+        "MU": 364.18
+      },
+      "outcome_pct": -0.19
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:11:55.378357",
+      "prices": {
+        "SPY": 639.94,
+        "NVDA": 168.71,
+        "SNOW": 153.24,
+        "DDOG": 114.71,
+        "MU": 365.5
+      },
+      "outcome_pct": -0.26
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:16:52.697280",
+      "prices": {
+        "SPY": 639.61,
+        "NVDA": 168.34,
+        "SNOW": 152.56,
+        "DDOG": 115.36,
+        "MU": 363.67
+      },
+      "outcome_pct": -0.16
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:21:55.386961",
+      "prices": {
+        "SPY": 639.15,
+        "NVDA": 168.44,
+        "SNOW": 152.14,
+        "DDOG": 115.05,
+        "MU": 363.07
+      },
+      "outcome_pct": 0.04
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:26:54.876212",
+      "prices": {
+        "SPY": 640.57,
+        "SNOW": 152.77,
+        "DDOG": 116.08,
+        "REGN": 751.15,
+        "AVGO": 304.23
+      },
+      "outcome_pct": -0.37
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:31:54.004285",
+      "prices": {
+        "SPY": 641.57,
+        "SNOW": 152.91,
+        "DDOG": 116.03,
+        "REGN": 750.43,
+        "AVGO": 305.32
+      },
+      "outcome_pct": -0.81
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:36:54.924382",
+      "prices": {
+        "SPY": 641.63,
+        "SNOW": 152.85,
+        "DDOG": 117.06,
+        "REGN": 750.41,
+        "AVGO": 304.76
+      },
+      "outcome_pct": -0.94
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:41:55.484873",
+      "prices": {
+        "SPY": 640.17,
+        "SNOW": 152.31,
+        "DDOG": 116.8,
+        "REGN": 750.13,
+        "AVGO": 303.47
+      },
+      "outcome_pct": -0.69
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:46:59.767757",
+      "prices": {
+        "SPY": 640.75,
+        "SNOW": 152.12,
+        "DDOG": 115.88,
+        "REGN": 750.99,
+        "AVGO": 303.82
+      },
+      "outcome_pct": -0.58
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:51:55.873506",
+      "prices": {
+        "SPY": 641.22,
+        "SNOW": 152.63,
+        "DDOG": 116.08,
+        "REGN": 750.99,
+        "AVGO": 304.34
+      },
+      "outcome_pct": -0.73
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T15:56:57.260658",
+      "prices": {
+        "SPY": 640.54,
+        "SNOW": 152.64,
+        "DDOG": 116.05,
+        "REGN": 749.83,
+        "AVGO": 304.11
+      },
+      "outcome_pct": -0.65
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:01:53.940396",
+      "prices": {
+        "SPY": 639.81,
+        "DDOG": 116.46,
+        "NEM": 102.19,
+        "BKNG": 4088.61,
+        "MU": 365.58
+      },
+      "outcome_pct": -0.74
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:07:04.304969",
+      "prices": {
+        "SPY": 639.8,
+        "DDOG": 116.46,
+        "NEM": 102.54,
+        "BKNG": 4090.66,
+        "MU": 365.89
+      },
+      "outcome_pct": -0.84
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:11:55.149578",
+      "prices": {
+        "SPY": 639.12,
+        "DDOG": 115.48,
+        "NEM": 102.39,
+        "BKNG": 4078.01,
+        "MU": 364.7
+      },
+      "outcome_pct": -0.49
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:16:57.537470",
+      "prices": {
+        "SPY": 639.25,
+        "DDOG": 115.44,
+        "NEM": 102.4,
+        "BKNG": 4088.53,
+        "MU": 364.45
+      },
+      "outcome_pct": -0.53
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:22:00.402869",
+      "prices": {
+        "SPY": 639.33,
+        "DDOG": 115.52,
+        "NEM": 102.68,
+        "BKNG": 4099.16,
+        "MU": 363.93
+      },
+      "outcome_pct": -0.62
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:26:55.420497",
+      "prices": {
+        "SPY": 638.69,
+        "DDOG": 115.23,
+        "NEM": 102.55,
+        "BKNG": 4089.76,
+        "MU": 363.6
+      },
+      "outcome_pct": -0.47
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:31:54.083582",
+      "prices": {
+        "SPY": 638.89,
+        "DDOG": 115.33,
+        "NEM": 102.49,
+        "BKNG": 4088.84,
+        "MU": 363.77
+      },
+      "outcome_pct": -0.82
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:37:05.650841",
+      "prices": {
+        "SPY": 638.79,
+        "NVDA": 168.69,
+        "DDOG": 114.44,
+        "MDB": 233.74,
+        "SNOW": 152.32
+      },
+      "outcome_pct": -0.62
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:41:55.336229",
+      "prices": {
+        "SPY": 638.54,
+        "NVDA": 168.76,
+        "DDOG": 113.18,
+        "MDB": 232.54,
+        "SNOW": 150.78
+      },
+      "outcome_pct": 0.1
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:47:00.498675",
+      "prices": {
+        "SPY": 639.06,
+        "NVDA": 169.01,
+        "DDOG": 113.47,
+        "MDB": 233.39,
+        "SNOW": 151.83
+      },
+      "outcome_pct": -0.24
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:51:54.593779",
+      "prices": {
+        "SPY": 639.2,
+        "NVDA": 169.0,
+        "DDOG": 113.59,
+        "MDB": 233.27,
+        "SNOW": 151.65
+      },
+      "outcome_pct": -0.25
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T16:56:58.245271",
+      "prices": {
+        "SPY": 638.82,
+        "NVDA": 168.91,
+        "DDOG": 113.24,
+        "MDB": 233.08,
+        "SNOW": 151.65
+      },
+      "outcome_pct": -0.13
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:01:54.456863",
+      "prices": {
+        "SPY": 638.29,
+        "NVDA": 168.67,
+        "DDOG": 113.38,
+        "MDB": 232.65,
+        "SNOW": 151.89
+      },
+      "outcome_pct": -0.15
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:06:59.977610",
+      "prices": {
+        "SPY": 638.21,
+        "NVDA": 168.65,
+        "DDOG": 113.5,
+        "MDB": 232.8,
+        "SNOW": 151.91
+      },
+      "outcome_pct": -0.18
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:11:54.503966",
+      "prices": {
+        "SPY": 638.42,
+        "NVDA": 168.84,
+        "DDOG": 113.56,
+        "MDB": 233.47,
+        "SNOW": 152.49
+      },
+      "outcome_pct": -0.35
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:16:53.834439",
+      "prices": {
+        "SPY": 638.17,
+        "DDOG": 113.41,
+        "MDB": 233.47,
+        "TGT": 121.14,
+        "MRNA": 50.75
+      },
+      "outcome_pct": -0.3
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:21:57.028942",
+      "prices": {
+        "SPY": 637.55,
+        "DDOG": 113.34,
+        "MDB": 232.7,
+        "TGT": 121.03,
+        "MRNA": 50.84
+      },
+      "outcome_pct": -0.22
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:26:57.198387",
+      "prices": {
+        "SPY": 637.17,
+        "DDOG": 113.38,
+        "MDB": 232.7,
+        "TGT": 121.28,
+        "MRNA": 50.6
+      },
+      "outcome_pct": -0.16
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:31:54.696430",
+      "prices": {
+        "SPY": 636.81,
+        "DDOG": 113.32,
+        "MDB": 232.27,
+        "TGT": 121.18,
+        "MRNA": 50.56
+      },
+      "outcome_pct": -0.01
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:36:54.323293",
+      "prices": {
+        "SPY": 637.04,
+        "DDOG": 113.61,
+        "MDB": 232.12,
+        "TGT": 121.33,
+        "MRNA": 50.7
+      },
+      "outcome_pct": -0.13
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:41:54.870124",
+      "prices": {
+        "SPY": 636.72,
+        "DDOG": 113.55,
+        "MDB": 231.41,
+        "TGT": 121.34,
+        "MRNA": 51.0
+      },
+      "outcome_pct": -0.17
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:46:53.980184",
+      "prices": {
+        "SPY": 636.47,
+        "DDOG": 113.51,
+        "MDB": 231.37,
+        "TGT": 120.88,
+        "MRNA": 50.97
+      },
+      "outcome_pct": -0.07
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:51:57.599910",
+      "prices": {
+        "SPY": 636.42,
+        "DDOG": 113.21,
+        "SNOW": 151.79,
+        "PFE": 27.28,
+        "UNH": 256.92
+      },
+      "outcome_pct": 0.2
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T17:56:54.339861",
+      "prices": {
+        "SPY": 636.16,
+        "DDOG": 113.39,
+        "SNOW": 151.54,
+        "PFE": 27.29,
+        "UNH": 257.29
+      },
+      "outcome_pct": 0.17
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:01:56.660376",
+      "prices": {
+        "SPY": 636.17,
+        "DDOG": 113.36,
+        "SNOW": 151.37,
+        "PFE": 27.27,
+        "UNH": 256.9
+      },
+      "outcome_pct": 0.24
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:06:57.087920",
+      "prices": {
+        "SPY": 635.74,
+        "DDOG": 112.99,
+        "SNOW": 151.26,
+        "PFE": 27.26,
+        "UNH": 256.33
+      },
+      "outcome_pct": 0.39
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:12:05.206472",
+      "prices": {
+        "SPY": 635.4,
+        "DDOG": 112.75,
+        "SNOW": 151.24,
+        "PFE": 27.23,
+        "UNH": 256.36
+      },
+      "outcome_pct": 0.47
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:16:56.236541",
+      "prices": {
+        "SPY": 635.65,
+        "DDOG": 113.55,
+        "SNOW": 151.7,
+        "PFE": 27.24,
+        "UNH": 256.92
+      },
+      "outcome_pct": 0.2
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:21:55.665540",
+      "prices": {
+        "SPY": 636.06,
+        "DDOG": 113.79,
+        "SNOW": 152.24,
+        "PFE": 27.26,
+        "UNH": 257.68
+      },
+      "outcome_pct": 0.0
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:26:54.326860",
+      "prices": {
+        "SPY": 635.62,
+        "DDOG": 113.62,
+        "MDB": 232.73,
+        "NVDA": 167.97,
+        "SNOW": 151.94
+      },
+      "outcome_pct": 0.09
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:31:57.417703",
+      "prices": {
+        "SPY": 635.83,
+        "DDOG": 113.72,
+        "MDB": 232.62,
+        "NVDA": 167.9,
+        "SNOW": 151.96
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:36:57.923527",
+      "prices": {
+        "SPY": 635.69,
+        "DDOG": 113.69,
+        "MDB": 232.69,
+        "NVDA": 167.81,
+        "SNOW": 152.47
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:41:58.167591",
+      "prices": {
+        "SPY": 635.87,
+        "DDOG": 114.45,
+        "MDB": 233.01,
+        "NVDA": 167.97,
+        "SNOW": 152.71
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:46:54.537886",
+      "prices": {
+        "SPY": 635.77,
+        "DDOG": 114.35,
+        "MDB": 232.91,
+        "NVDA": 167.75,
+        "SNOW": 152.77
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:51:59.576049",
+      "prices": {
+        "SPY": 635.73,
+        "DDOG": 113.97,
+        "MDB": 232.71,
+        "NVDA": 167.63,
+        "SNOW": 152.17
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T18:56:55.239329",
+      "prices": {
+        "SPY": 635.37,
+        "DDOG": 113.91,
+        "MDB": 232.52,
+        "NVDA": 167.4,
+        "SNOW": 151.75
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:01:56.929989",
+      "prices": {
+        "SPY": 635.15,
+        "CCL": 23.73,
+        "DDOG": 113.73,
+        "COF": 176.11,
+        "REGN": 741.75
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:06:55.294686",
+      "prices": {
+        "SPY": 634.73,
+        "CCL": 23.71,
+        "DDOG": 113.32,
+        "COF": 176.18,
+        "REGN": 741.96
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:11:55.073191",
+      "prices": {
+        "SPY": 634.76,
+        "CCL": 23.7,
+        "DDOG": 113.49,
+        "COF": 176.2,
+        "REGN": 740.7
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:16:54.469903",
+      "prices": {
+        "SPY": 635.13,
+        "CCL": 23.81,
+        "DDOG": 113.86,
+        "COF": 176.4,
+        "REGN": 741.27
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:21:55.271708",
+      "prices": {
+        "SPY": 635.02,
+        "CCL": 23.82,
+        "DDOG": 113.54,
+        "COF": 176.21,
+        "REGN": 742.35
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:26:54.567323",
+      "prices": {
+        "SPY": 634.81,
+        "CCL": 23.77,
+        "DDOG": 113.67,
+        "COF": 176.25,
+        "REGN": 742.2
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:31:55.902837",
+      "prices": {
+        "SPY": 635.04,
+        "CCL": 23.84,
+        "DDOG": 113.97,
+        "COF": 176.44,
+        "REGN": 742.55
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:36:58.427705",
+      "prices": {
+        "SPY": 634.83,
+        "DDOG": 113.75,
+        "UBER": 69.14,
+        "SNOW": 153.07,
+        "LLY": 880.44
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:41:58.431647",
+      "prices": {
+        "SPY": 634.18,
+        "DDOG": 113.42,
+        "UBER": 69.17,
+        "SNOW": 152.91,
+        "LLY": 880.2
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:47:02.582583",
+      "prices": {
+        "SPY": 633.42,
+        "DDOG": 113.26,
+        "UBER": 69.06,
+        "SNOW": 152.83,
+        "LLY": 877.62
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:51:55.860161",
+      "prices": {
+        "SPY": 633.2,
+        "DDOG": 113.3,
+        "UBER": 68.97,
+        "SNOW": 152.74,
+        "LLY": 877.89
+      },
+      "outcome_pct": null
+    },
+    {
+      "regime": "ranging",
+      "timestamp": "2026-03-27T19:56:54.849194",
+      "prices": {
+        "SPY": 634.35,
+        "DDOG": 114.5,
+        "UBER": 69.08,
+        "SNOW": 153.17,
+        "LLY": 878.23
+      },
+      "outcome_pct": null
+    }
+  ],
+  "trade_log": {
+    "SentimentAgent:MU": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-20T23:54:48.508079"
+      }
+    ],
+    "ClaudeAgent:NVDA": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-21T00:03:18.168691"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-21T00:03:22.782855"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-21T00:04:21.990925"
+      }
+    ],
+    "EnsembleAgent:NVDA": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-21T00:03:18.214691"
+      }
+    ],
+    "TechAgent:GILD": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-21T13:54:12.886050"
+      }
+    ],
+    "ClaudeAgent:SNOW": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-21T13:55:39.746279"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-21T13:55:45.191626"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-21T13:56:44.841238"
+      }
+    ],
+    "ClaudeAgent:MSFT": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-21T15:04:05.080710"
+      },
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-21T15:04:10.301815"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-22T02:27:49.486851"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-22T02:28:50.740851"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-22T02:29:51.949827"
+      }
+    ],
+    "ClaudeAgent:WFC": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-22T02:41:29.248438"
+      }
+    ],
+    "MomentumAgent:KLAC": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-22T02:51:34.200424"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:30:30.635016"
+      }
+    ],
+    "MomentumAgent:LRCX": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:30:30.316095"
+      }
+    ],
+    "TechAgent:SNAP": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:30:30.335133"
+      }
+    ],
+    "MeanReversionAgent:SNAP": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:30:30.369639"
+      }
+    ],
+    "MomentumAgent:LCID": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:30:30.714568"
+      }
+    ],
+    "MomentumAgent:ON": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:30:30.870546"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T14:43:55.378445"
+      }
+    ],
+    "MomentumAgent:WFC": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:30:30.919546"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T19:47:57.504544"
+      }
+    ],
+    "MomentumAgent:DDOG": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:30:30.938314"
+      }
+    ],
+    "MomentumAgent:BKNG": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:30:30.958829"
+      }
+    ],
+    "MomentumAgent:LYFT": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:30:30.978645"
+      }
+    ],
+    "MomentumAgent:CF": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:30:30.998675"
+      }
+    ],
+    "SentimentAgent:LCID": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:30:39.780257"
+      }
+    ],
+    "SentimentAgent:UBER": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:30:39.797784"
+      }
+    ],
+    "ClaudeAgent:UBER": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:32:04.193206"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:32:13.249993"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:33:09.048191"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:35:49.439317"
+      }
+    ],
+    "MomentumAgent:MS": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:32:12.825016"
+      }
+    ],
+    "MomentumAgent:CLF": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:32:13.329403"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:57:55.502681"
+      },
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T14:28:55.682623"
+      },
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T17:45:58.008712"
+      }
+    ],
+    "MomentumAgent:FCX": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:34:10.416222"
+      }
+    ],
+    "MomentumAgent:MDLZ": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:37:54.386090"
+      }
+    ],
+    "MeanReversionAgent:CHTR": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:37:54.449427"
+      }
+    ],
+    "MeanReversionAgent:SPY": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:38:54.618576"
+      }
+    ],
+    "MeanReversionAgent:SMH": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:39:54.254836"
+      }
+    ],
+    "MeanReversionAgent:UBER": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:40:57.022667"
+      }
+    ],
+    "MeanReversionAgent:LYFT": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:41:54.542115"
+      }
+    ],
+    "MomentumAgent:BIIB": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T13:42:58.088063"
+      }
+    ],
+    "MomentumAgent:AMD": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T13:55:58.601394"
+      }
+    ],
+    "MomentumAgent:NEM": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T14:18:03.595903"
+      }
+    ],
+    "MomentumAgent:FOXA": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T14:40:54.929455"
+      }
+    ],
+    "MomentumAgent:TGT": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T14:52:54.983738"
+      }
+    ],
+    "SentimentAgent:AMZN": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T15:01:01.293388"
+      }
+    ],
+    "SentimentAgent:BKNG": [
+      {
+        "action": "SELL",
+        "timestamp": "2026-03-27T15:01:01.315060"
+      }
+    ],
+    "MomentumAgent:CPB": [
+      {
+        "action": "BUY",
+        "timestamp": "2026-03-27T16:24:58.782235"
+      }
+    ]
+  }
+}

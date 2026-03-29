@@ -45,7 +45,7 @@ from agents.mean_reversion_agent import MeanReversionAgent
 from agents.sentiment_agent import SentimentAgent
 from agents.claude_agent import ClaudeAgent
 from agents.gemini_agent import GeminiAgent
-from agents.openclaw_agent import OpenClawAgent
+from agents.historical_trends_agent import HistoricalTrendsAgent
 from agents.ensemble_agent import EnsembleAgent
 from agents.scanner_portfolio_agent import ScannerPortfolioAgent
 from agents.summary_agent import daily_summary
@@ -121,7 +121,7 @@ async def init_agents() -> None:
     sentiment = SentimentAgent()
     claude = ClaudeAgent()
     gemini = GeminiAgent()
-    openclaw = OpenClawAgent()
+    historical_trends = HistoricalTrendsAgent()
 
     # Create ensemble (Gemini excluded — news/context source only, not a voter)
     ensemble = EnsembleAgent(
@@ -131,14 +131,14 @@ async def init_agents() -> None:
         sentiment_agent=sentiment,
         claude_agent=claude,
     )
-    ensemble.component_agents["OpenClawAgent"] = openclaw
+    ensemble.component_agents["HistoricalTrendsAgent"] = historical_trends
 
     # Scanner portfolio: acts on cached scan results, no new API calls each cycle
     scanner_portfolio = ScannerPortfolioAgent()
 
     # Gemini is a news/context source only — not registered as a trading agent
     app_state.gemini_news_agent = gemini
-    all_agents = [tech, momentum, mean_rev, sentiment, claude, openclaw, ensemble, scanner_portfolio]
+    all_agents = [tech, momentum, mean_rev, sentiment, claude, historical_trends, ensemble, scanner_portfolio]
 
     # Register agents in DB and restore full portfolio state for continuity across restarts
     for agent in all_agents:

@@ -68,12 +68,12 @@ class Config:
 
     # Ensemble voting weights
     ENSEMBLE_WEIGHTS = {
-        "ClaudeAgent":        0.28,
-        "TechAgent":          0.23,
-        "SentimentAgent":     0.17,
-        "MomentumAgent":      0.14,
-        "MeanReversionAgent": 0.09,
-        "OpenClawAgent":      0.09,
+        "ClaudeAgent":            0.29,
+        "TechAgent":              0.23,
+        "SentimentAgent":         0.17,
+        "MomentumAgent":          0.14,
+        "MeanReversionAgent":     0.09,
+        "HistoricalTrendsAgent":  0.08,
     }
     ENSEMBLE_THRESHOLD: float = 0.60  # raised from 0.35 — only enter on high conviction (post: 72% for Polymarket, 0.60 calibrated for 5-agent stock ensemble)
     MARGIN_OF_SAFETY: float = 2.0    # buy_score must be >= sell_score * this — blocks entry when opposing signal is too strong
@@ -103,6 +103,9 @@ class Config:
     # Historical data
     HISTORICAL_DAYS: int = 60
     DATA_CACHE_SECONDS: int = 60  # cache market data for 60 seconds
+
+    # Stooq long-term historical data (used by HistoricalTrendsAgent)
+    STOOQ_LONG_TERM_DAYS: int = 1250  # ~5 years of trading days
 
 
 config = Config()

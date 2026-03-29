@@ -32,28 +32,28 @@ WEIGHT_FLOOR = 0.30
 # Regime-specific multipliers applied on top of performance weights
 REGIME_MULTIPLIERS: Dict[str, Dict[str, float]] = {
     "trending": {
-        "MomentumAgent":      1.50,
-        "TechAgent":          1.20,
-        "ClaudeAgent":        1.10,
-        "OpenClawAgent":      1.00,
-        "SentimentAgent":     0.80,
-        "MeanReversionAgent": 0.40,
+        "MomentumAgent":          1.50,
+        "TechAgent":              1.20,
+        "HistoricalTrendsAgent":  1.20,  # seasonal + multi-period momentum shines in trends
+        "ClaudeAgent":            1.10,
+        "SentimentAgent":         0.80,
+        "MeanReversionAgent":     0.40,
     },
     "ranging": {
-        "MeanReversionAgent": 1.60,
-        "SentimentAgent":     1.20,
-        "TechAgent":          1.10,
-        "ClaudeAgent":        1.00,
-        "OpenClawAgent":      1.00,
-        "MomentumAgent":      0.55,
+        "MeanReversionAgent":     1.60,
+        "HistoricalTrendsAgent":  1.30,  # channel analysis works well in range-bound markets
+        "SentimentAgent":         1.20,
+        "TechAgent":              1.10,
+        "ClaudeAgent":            1.00,
+        "MomentumAgent":          0.55,
     },
     "volatile": {
-        "ClaudeAgent":        1.40,
-        "SentimentAgent":     1.20,
-        "OpenClawAgent":      1.10,
-        "TechAgent":          0.80,
-        "MomentumAgent":      0.65,
-        "MeanReversionAgent": 0.60,
+        "ClaudeAgent":            1.40,
+        "SentimentAgent":         1.20,
+        "TechAgent":              0.80,
+        "MomentumAgent":          0.65,
+        "MeanReversionAgent":     0.60,
+        "HistoricalTrendsAgent":  0.80,  # seasonal patterns less reliable in volatile regimes
     },
 }
 

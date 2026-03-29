@@ -24,6 +24,7 @@ trading_app/
 │   │   ├── ensemble_agent.py           # Adaptive performance-weighted voting + regime detection
 │   │   ├── scanner_agent.py            # Agentic Claude scanner — discovers opportunities
 │   │   ├── scanner_portfolio_agent.py  # Executes on cached scanner picks
+│   │   ├── historical_trends_agent.py  # Seasonal patterns, channel, multi-period momentum
 │   │   └── summary_agent.py            # Daily roll-up narrative via Claude
 │   ├── trading/
 │   │   ├── alpaca_client.py  # Alpaca Markets async wrapper
@@ -41,6 +42,7 @@ trading_app/
 │       ├── drift_detector.py       # Performance drift detection
 │       ├── learning_manager.py     # Persistent trade learning (learning.json)
 │       ├── risk_assessor.py        # Churn / regime / sector assessments → AI prompt injection
+│       ├── stooq_client.py         # Free 5-year historical OHLCV from stooq.com (no key needed)
 │       ├── agent_picks.json        # Per-agent conviction picks (auto-managed)
 │       └── scan_cache.json         # Scanner results cache (auto-managed)
 ├── frontend/                 # React + Vite + Tailwind dashboard
@@ -73,11 +75,12 @@ trading_app/
 
 | Agent | Strategy | AI Model | Ensemble Weight |
 |---|---|---|---|
-| **ClaudeAgent** | Deep market analysis with adaptive thinking | Claude Opus 4.6 | 25% |
-| **TechAgent** | RSI, MACD, Bollinger Bands, volume | Rule-based | 20% |
-| **SentimentAgent** | Price action + news sentiment | GPT-4o-mini | 15% |
-| **MomentumAgent** | Short/mid/long momentum + trailing stop | Rule-based | 12% |
-| **MeanReversionAgent** | Z-score deviation from 20-day mean | Rule-based | 8% |
+| **ClaudeAgent** | Deep market analysis with adaptive thinking | Claude Opus 4.6 | 29% |
+| **TechAgent** | RSI, MACD, Bollinger Bands, volume | Rule-based | 23% |
+| **SentimentAgent** | Price action + news sentiment | GPT-4o-mini | 17% |
+| **MomentumAgent** | Short/mid/long momentum + trailing stop | Rule-based | 14% |
+| **MeanReversionAgent** | Z-score deviation from 20-day mean | Rule-based | 9% |
+| **HistoricalTrendsAgent** | Seasonal calendar patterns, channel positioning, multi-period momentum | Rule-based | 8% |
 | **ScannerPortfolioAgent** | Executes on cached agentic scanner picks | Rule-based | — |
 | **EnsembleAgent** | Adaptive performance-weighted voting + regime detection | Combines all | — |
 | **GeminiAgent** | Market-view context provider (not an ensemble voter) | Gemini 2.0 Flash | — |
@@ -85,6 +88,8 @@ trading_app/
 **EnsembleAgent** weights shift automatically based on each agent's recent Sharpe ratio and win rate. Market regime (Trending / Ranging / Volatile) is detected every 5 cycles using a **2-of-3 signal requirement**: SMA-20 slope + trend consistency (% positive days) + volume expansion. All three must align for a TRENDING call — single-signal false positives are suppressed.
 
 **GeminiAgent** runs alongside Claude as a second AI perspective. It does not vote in the ensemble — instead it contributes a `market_analysis` string (2-3 sentence market overview) that is injected into Claude's prompt under `## Gemini Market View` before Claude makes its own decisions.
+
+**HistoricalTrendsAgent** is a pure rule-based agent with three analytical pillars: (1) **seasonal bias** — month-of-year and quarter-position effects based on long-run S&P 500 seasonality research; (2) **channel analysis** — where the current price sits in its historical high-low range, SMA-slope adjusted; (3) **multi-period momentum** — trend persistence across 5/10/20/40-day windows with an alignment bonus when all timeframes agree. It uses up to 5 years of free daily OHLCV data from Stooq.com, falling back to Alpaca bars when Stooq is unavailable. Regime multipliers: boosted in trending (×1.20) and ranging (×1.30) regimes, reduced in volatile markets (×0.80).
 
 **Agent picks persistence** — each agent retains its own high-conviction BUY symbols across cycles and restarts (`data/agent_picks.json`). When a pick symbol falls outside the analysis window, stored conviction is replayed instead of defaulting to HOLD.
 
@@ -195,12 +200,12 @@ The EnsembleAgent is the final decision-maker. It does not trade on its own anal
 
 | Agent | Base Weight |
 |---|---|
-| ClaudeAgent | 25% |
-| GeminiAgent | 20% |
-| TechAgent | 20% |
-| SentimentAgent | 15% |
-| MomentumAgent | 12% |
-| MeanReversionAgent | 8% |
+| ClaudeAgent | 29% |
+| TechAgent | 23% |
+| SentimentAgent | 17% |
+| MomentumAgent | 14% |
+| MeanReversionAgent | 9% |
+| HistoricalTrendsAgent | 8% |
 
 **2. Adaptive performance adjustment** — every 5 cycles, each agent's weight is scaled by its recent Sharpe ratio and win rate. Underperforming agents are reduced (minimum 30% of base weight preserved). Outperforming agents gain more influence automatically.
 
@@ -208,9 +213,9 @@ The EnsembleAgent is the final decision-maker. It does not trade on its own anal
 
 | Regime | Who gets boosted | Who gets reduced |
 |---|---|---|
-| **Trending** | MomentumAgent (1.5×), TechAgent (1.2×) | MeanReversionAgent (0.4×) |
-| **Ranging** | MeanReversionAgent (1.6×), SentimentAgent (1.2×) | MomentumAgent (0.55×) |
-| **Volatile** | ClaudeAgent (1.4×), GeminiAgent (1.25×), SentimentAgent (1.2×) | TechAgent (0.8×), MomentumAgent (0.65×) |
+| **Trending** | MomentumAgent (1.5×), TechAgent (1.2×), HistoricalTrendsAgent (1.2×) | MeanReversionAgent (0.4×) |
+| **Ranging** | MeanReversionAgent (1.6×), HistoricalTrendsAgent (1.3×), SentimentAgent (1.2×) | MomentumAgent (0.55×) |
+| **Volatile** | ClaudeAgent (1.4×), SentimentAgent (1.2×) | TechAgent (0.8×), MomentumAgent (0.65×), HistoricalTrendsAgent (0.8×) |
 
 **Consensus threshold:** 35% weighted agreement required to execute a BUY or SELL. If no combination of agents clears that bar, the Ensemble HOLDs. Trade reasoning records which agents voted and the regime, e.g.:
 
@@ -386,6 +391,7 @@ See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 | Date | Change |
 |---|---|
+| 2026-03-29 | **HistoricalTrendsAgent** — replaced OpenClawAgent with a pure rule-based seasonal/channel/momentum agent; added free 5-year Stooq historical data (`data/stooq_client.py`); Stooq added as bar fallback in `market_data.py`; ensemble weights rebalanced |
 | 2026-03-21 | **Decision flow diagram** — added `decision_tree.txt` with full ASCII diagram showing all 7 layers from data sources through ensemble voting to trade execution |
 | 2026-03-21 | **Agent formulas reference** — added `agent_formulas.txt` documenting every buy/sell formula, scoring weight, threshold, and position-sizing calculation for all agents |
 | 2026-03-20 | **Trade date display** — recent trades in Portfolio Chart tab now show date (e.g. "20 Mar") above the time |

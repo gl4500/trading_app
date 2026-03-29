@@ -9,6 +9,60 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2026-03-29] — HistoricalTrendsAgent + Stooq Free Historical Data
+
+### Added
+
+- **HistoricalTrendsAgent** (`agents/historical_trends_agent.py`)
+  - Pure rule-based agent with three analytical pillars:
+    1. **Seasonal bias** — month-of-year calendar effect (January effect, Sell-in-May, September weakness, Santa rally, etc.) combined with quarter-position bias for window-dressing effects; scores −1 to +1
+    2. **Channel analysis** — price position within the full historical high-low range, SMA-20 slope adjusted so a strong uptrend moderates the bearish penalty for being near the high
+    3. **Multi-period momentum** — weighted rate-of-change across 5/10/20/40-day windows; alignment bonus applied when all timeframes agree on direction
+    4. **Volume confirmation** — small (≤0.15) confirmation score based on whether recent volume is heavier on up-days vs down-days
+  - Composite weights: seasonal 20%, channel 30%, momentum 40%, volume 10%
+  - BUY threshold: composite > +0.25; SELL threshold: composite < −0.25
+  - Prefers Stooq long-term bars (up to 5 years) for richer seasonality analysis; falls back to Alpaca short-term bars
+  - Replaces OpenClawAgent as the 6th ensemble voter
+
+- **StooqClient** (`data/stooq_client.py`)
+  - Free daily OHLCV data from stooq.com — no API key required
+  - Returns up to 5 years (1250 trading days) of history per symbol
+  - 4-hour in-memory cache — historical bars update once per day at most
+  - Graceful degradation: returns empty DataFrame on any network/parse error
+  - `get_bars(symbol, days)` — single symbol async fetch
+  - `get_bars_multi(symbols, days)` — concurrent multi-symbol fetch via `asyncio.gather`
+
+- **`get_long_term_bars()` in `market_data.py`**
+  - New `MarketData` method that fetches multi-year OHLCV from Stooq for the whole watchlist
+  - Uses a separate 4-hour cache key (`{sym}|lt|{days}`) so long-term data doesn't evict short-term bars
+  - Called in the main market context build loop; injects `long_term_bars` into each symbol's context dict
+  - Used by `HistoricalTrendsAgent.analyze()` — falls back to standard bars when Stooq returns no data
+
+- **Stooq as bar fallback in `market_data.get_all_bars()`**
+  - Alpaca → Massive (Fallback 1) → Stooq (Fallback 2)
+  - Stooq fallback fires silently when Alpaca and Massive both fail to return bars for a symbol
+
+- **`STOOQ_LONG_TERM_DAYS = 1250`** in `config.py` — controls default depth for long-term historical fetches
+
+### Changed
+
+- **Ensemble base weights** (`config.py`) — rebalanced after removing OpenClawAgent:
+  - ClaudeAgent: 28% → 29%
+  - HistoricalTrendsAgent: 8% (replaces OpenClawAgent's 9%)
+  - All other agents unchanged
+
+- **Regime multipliers** (`ensemble_agent.py`) — updated for HistoricalTrendsAgent:
+  - `trending`: HistoricalTrendsAgent ×1.20 (seasonal + multi-period momentum shine in trends)
+  - `ranging`: HistoricalTrendsAgent ×1.30 (channel analysis works well range-bound)
+  - `volatile`: HistoricalTrendsAgent ×0.80 (seasonal patterns less reliable when volatility spikes)
+
+### Removed
+
+- **OpenClawAgent** (`agents/openclaw_agent.py`) — local-model processing agent removed; replaced by HistoricalTrendsAgent
+- **`test_openclaw_agent.py`** — test file removed alongside its agent
+
+---
+
 ## [2026-03-15] — Sentinel, Policy Monitor, Adaptive Ensemble, Market Hours
 
 ### Added

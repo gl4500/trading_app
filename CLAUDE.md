@@ -126,6 +126,8 @@ Co-Authored-By line required (added automatically by implementation agent).
 | `agents/scanner_agent.py` | `test_scanner_agent.py` | ✅ covered |
 | `agents/scanner_portfolio_agent.py` | `test_scanner_portfolio_agent.py` | ✅ covered |
 | `agents/summary_agent.py` | `test_summary_agent.py` | ✅ covered |
+| `agents/historical_trends_agent.py` | `test_historical_trends_agent.py` | ✅ covered |
+| `data/stooq_client.py` | `test_stooq_client.py` | ✅ covered |
 | `main.py` endpoints | `test_main_endpoints.py` | ✅ covered |
 
 ---
