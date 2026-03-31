@@ -751,5 +751,97 @@ class TestTokenLogEndpoint(unittest.TestCase):
         self.assertEqual(call_kwargs.get("hours"), 0)
 
 
+class TestUpdateNewsPriceSnapshots(unittest.TestCase):
+    """Unit tests for _update_news_price_snapshots — price_open / price_1h logic."""
+
+    def _make_snap(self, symbol="AAPL", price_at=100.0):
+        return {
+            "symbol":            symbol,
+            "headline":          "Test headline",
+            "score":             3,
+            "category":          "catalyst",
+            "price_at":          price_at,
+            "detected_at":       "2024-01-01T00:00:00Z",
+            "price_open":        None,
+            "price_1h":          None,
+            "change_open":       None,
+            "change_1h":         None,
+            "open_recorded_at":  None,
+        }
+
+    def _call(self, snaps, prices, now=None):
+        import main
+        from unittest.mock import patch as _patch
+        import datetime as dt
+        fixed = now or dt.datetime(2024, 1, 2, 10, 0, 0)
+        with _patch("main.datetime") as mock_dt:
+            mock_dt.utcnow.return_value = fixed
+            mock_dt.side_effect = lambda *a, **kw: dt.datetime(*a, **kw)
+            old = main.app_state.news_price_snapshots
+            main.app_state.news_price_snapshots = snaps
+            main._update_news_price_snapshots(prices)
+            result = list(main.app_state.news_price_snapshots)
+            main.app_state.news_price_snapshots = old
+        return result
+
+    def test_price_open_set_on_first_call(self):
+        snap = self._make_snap(price_at=100.0)
+        result = self._call([snap], {"AAPL": 102.0})
+        self.assertAlmostEqual(result[0]["price_open"], 102.0)
+        self.assertAlmostEqual(result[0]["change_open"], 2.0)
+        self.assertIsNotNone(result[0]["open_recorded_at"])
+
+    def test_price_1h_not_set_before_60_minutes(self):
+        """price_1h must stay None if fewer than 60 min have elapsed since price_open."""
+        import datetime as dt
+        snap = self._make_snap(price_at=100.0)
+        snap["price_open"] = 102.0
+        snap["change_open"] = 2.0
+        snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 10, 0, 0)  # exactly now
+        # Call 30 minutes later — should not set price_1h
+        later = dt.datetime(2024, 1, 2, 10, 30, 0)
+        result = self._call([snap], {"AAPL": 105.0}, now=later)
+        self.assertIsNone(result[0]["price_1h"])
+        self.assertIsNone(result[0]["change_1h"])
+
+    def test_price_1h_set_after_60_minutes(self):
+        """price_1h is set once >= 60 min have elapsed since price_open."""
+        import datetime as dt
+        snap = self._make_snap(price_at=100.0)
+        snap["price_open"] = 102.0
+        snap["change_open"] = 2.0
+        snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 9, 0, 0)
+        # Call 61 minutes later
+        later = dt.datetime(2024, 1, 2, 10, 1, 0)
+        result = self._call([snap], {"AAPL": 103.0}, now=later)
+        self.assertAlmostEqual(result[0]["price_1h"], 103.0)
+        self.assertAlmostEqual(result[0]["change_1h"], 3.0)
+
+    def test_price_1h_frozen_after_first_set(self):
+        """Once price_1h is set it must not be overwritten on subsequent cycles."""
+        import datetime as dt
+        snap = self._make_snap(price_at=100.0)
+        snap["price_open"] = 102.0
+        snap["change_open"] = 2.0
+        snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 9, 0, 0)
+        snap["price_1h"] = 103.0
+        snap["change_1h"] = 3.0
+        # Call again with a different price — should not change price_1h
+        later = dt.datetime(2024, 1, 2, 12, 0, 0)
+        result = self._call([snap], {"AAPL": 110.0}, now=later)
+        self.assertAlmostEqual(result[0]["price_1h"], 103.0)
+        self.assertAlmostEqual(result[0]["change_1h"], 3.0)
+
+    def test_symbol_not_in_prices_skipped(self):
+        snap = self._make_snap(symbol="TSLA", price_at=200.0)
+        result = self._call([snap], {"AAPL": 150.0})  # TSLA not in prices
+        self.assertIsNone(result[0]["price_open"])
+
+    def test_snapshots_trimmed_to_100(self):
+        snaps = [self._make_snap(price_at=100.0) for _ in range(110)]
+        result = self._call(snaps, {"AAPL": 102.0})
+        self.assertEqual(len(result), 100)
+
+
 if __name__ == "__main__":
     unittest.main()

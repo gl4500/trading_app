@@ -195,24 +195,36 @@ async def init_agents() -> None:
 # ─── News-Price Correlation ──────────────────────────────────────────────────
 
 def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
-    """Fill price_open / price_1h fields on correlation snapshots as trading progresses."""
-    now_iso = datetime.utcnow().isoformat() + "Z"
+    """Fill price_open / price_1h fields on correlation snapshots as trading progresses.
+
+    price_open  — captured once on the first price read after catalyst detection.
+    price_1h    — captured once, >= 60 minutes after price_open was recorded, then frozen.
+                  Never overwritten after being set, so the UI shows a stable outcome.
+    """
+    now = datetime.utcnow()
     for snap in app_state.news_price_snapshots:
         sym = snap["symbol"]
         if sym not in prices:
             continue
         current = prices[sym]
         base = snap["price_at"]
-        if base and base > 0:
-            pct = (current - base) / base * 100
-            # First cycle after detection → price_open
-            if snap["price_open"] is None:
-                snap["price_open"] = current
-                snap["change_open"] = round(pct, 2)
-            # After price_open is set, keep updating price_1h with the latest
-            else:
+        if not base or base <= 0:
+            continue
+        pct = (current - base) / base * 100
+
+        if snap["price_open"] is None:
+            # First price read after detection — record the open price
+            snap["price_open"] = current
+            snap["change_open"] = round(pct, 2)
+            snap["open_recorded_at"] = now
+        elif snap["price_1h"] is None:
+            # Wait until >= 60 min have elapsed since price_open was recorded
+            recorded_at = snap.get("open_recorded_at")
+            if recorded_at and (now - recorded_at).total_seconds() >= 3600:
                 snap["price_1h"] = current
                 snap["change_1h"] = round(pct, 2)
+        # price_1h already set — leave it frozen, no further updates
+
     # Keep only the 100 most recent
     app_state.news_price_snapshots = app_state.news_price_snapshots[-100:]
 
@@ -765,10 +777,11 @@ async def news_sentinel_loop() -> None:
                             "category":     cat.get("category", "news"),
                             "price_at":     app_state.last_prices[sym],
                             "detected_at":  cat.get("detected_at", datetime.utcnow().isoformat() + "Z"),
-                            "price_open":   None,   # filled at next market open
-                            "price_1h":     None,   # filled 1h after open
-                            "change_open":  None,
-                            "change_1h":    None,
+                            "price_open":        None,   # filled on first price read
+                            "price_1h":          None,   # filled once, >= 60 min after open
+                            "change_open":       None,
+                            "change_1h":         None,
+                            "open_recorded_at":  None,   # datetime when price_open was set
                         })
             # Trim to most recent 50
             app_state.after_hours_catalysts = sorted(

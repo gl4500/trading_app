@@ -141,7 +141,19 @@ function CatalystCard({ cat }: { cat: Catalyst }) {
 // ── ImpactRow ─────────────────────────────────────────────────────────────────
 
 function ImpactRow({ snap }: { snap: PriceSnap }) {
-  const confirmed = snap.change_1h !== null
+  const MOVE_THRESHOLD = 0.05  // % — below this is considered flat
+  const hasMeasurement = snap.change_1h !== null
+  const hasMoved = hasMeasurement && Math.abs(snap.change_1h!) >= MOVE_THRESHOLD
+
+  let statusEl: JSX.Element
+  if (!hasMeasurement) {
+    statusEl = <span className="text-xs text-yellow-600" title="Waiting for 1h price reading">…</span>
+  } else if (hasMoved) {
+    statusEl = <span className="text-xs text-emerald-500" title="Price moved after catalyst">✓</span>
+  } else {
+    statusEl = <span className="text-xs text-gray-500" title="Data captured — no meaningful move">~</span>
+  }
+
   return (
     <div className="grid grid-cols-12 gap-2 items-center py-2 border-b border-gray-800 text-sm">
       <div className="col-span-1 font-bold text-white">{snap.symbol}</div>
@@ -163,9 +175,7 @@ function ImpactRow({ snap }: { snap: PriceSnap }) {
         {changePill(snap.change_1h)}
       </div>
       <div className="col-span-1 text-center">
-        {confirmed
-          ? <span className="text-xs text-emerald-500">✓</span>
-          : <span className="text-xs text-yellow-600">…</span>}
+        {statusEl}
       </div>
     </div>
   )
