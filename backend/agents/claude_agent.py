@@ -8,8 +8,8 @@ import logging
 import math
 import re
 import time
-from datetime import date
-from typing import Dict, List, Optional, Any
+from collections import deque
+from typing import Deque, Dict, List, Optional, Any, Tuple
 
 from agents.base_agent import BaseAgent, Signal
 from agents.agent_utils import (
@@ -30,7 +30,7 @@ except Exception:
     _HAS_RISK_ASSESSOR = False
 from data.technicals import format_for_prompt as format_technicals
 from data.signal_aggregator import format_for_prompt as format_composite
-from database import save_token_log
+from database import save_token_log, get_daily_token_total
 
 logger = logging.getLogger(__name__)
 
@@ -61,9 +61,31 @@ class ClaudeAgent(BaseAgent):
         self._api_lock = asyncio.Lock()  # prevents duplicate concurrent API calls (separate from base _lock)
         self._call_timestamps: List[float] = []  # sliding window for hourly rate limit
         self._hourly_call_limit: int = 2
-        self._daily_tokens: int = 0
+        self._token_window: Deque[Tuple[float, int]] = deque()  # (epoch_secs, tokens) rolling 24h
         self._session_tokens: int = 0
-        self._token_reset_day: Optional[date] = None
+
+    @property
+    def _daily_tokens(self) -> int:
+        """Tokens used in the rolling 24-hour window."""
+        cutoff = time.time() - 86400
+        while self._token_window and self._token_window[0][0] < cutoff:
+            self._token_window.popleft()
+        return sum(tok for _, tok in self._token_window)
+
+    @_daily_tokens.setter
+    def _daily_tokens(self, value: int) -> None:
+        self._token_window.clear()
+        if value > 0:
+            self._token_window.append((time.time(), value))
+
+    async def seed_from_history(self) -> None:
+        """Restore rolling 24h token window from DB after a restart."""
+        try:
+            prior = await get_daily_token_total("ClaudeAgent", hours=24)
+            if prior > 0:
+                self._token_window.append((time.time(), prior))
+        except Exception:
+            pass
 
     def _get_client(self):
         if not HAS_ANTHROPIC:
@@ -91,6 +113,9 @@ class ClaudeAgent(BaseAgent):
             tech_text      = format_technicals(symbol, ind, price)
             composite_sig  = ctx.get("composite_signal", {})
             composite_text = format_composite(composite_sig)
+            greeks_text    = ctx.get("greeks_text", "")
+
+            greeks_section = f"\n{greeks_text}\n" if greeks_text else ""
 
             section = f"""
 ## {symbol} - Current Price: ${price:.2f}
@@ -102,7 +127,7 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
 
 ### Technical Indicators
 {tech_text}
-
+{greeks_section}
 ### News — Alpaca (last 24h)
 {news_text}
 
@@ -232,17 +257,11 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
                 logger.warning("ClaudeAgent: No text content in response")
                 return None
 
-            # Record timestamp and log token usage
+            # Record timestamp and accumulate rolling 24h window
             self._call_timestamps.append(time.time())
-            today = date.today()
-            if self._token_reset_day is None:
-                self._token_reset_day = today
-            elif self._token_reset_day != today:
-                self._daily_tokens = 0
-                self._token_reset_day = today
             input_tok = response.usage.input_tokens
             output_tok = response.usage.output_tokens
-            self._daily_tokens += input_tok + output_tok
+            self._token_window.append((time.time(), input_tok + output_tok))
             self._session_tokens += input_tok + output_tok
             logger.info(
                 f"ClaudeAgent: tokens — in={input_tok} out={output_tok} "

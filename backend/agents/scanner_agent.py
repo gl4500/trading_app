@@ -28,7 +28,7 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from database import save_token_log
+from database import save_token_log, get_daily_token_total
 
 logger = logging.getLogger(__name__)
 
@@ -509,13 +509,18 @@ async def _run_claude_scanner(candidates: List[Dict]) -> List[Dict]:
         messages.append({"role": "user", "content": tool_results})
 
     try:
+        _call_total = total_input_tokens + total_output_tokens
+        try:
+            _prior_24h = await get_daily_token_total("ScannerAgent/Claude", hours=24)
+        except Exception:
+            _prior_24h = 0
         await save_token_log(
             agent="ScannerAgent/Claude",
             model="claude-opus-4-6",
             prompt_tokens=total_input_tokens,
             completion_tokens=total_output_tokens,
-            total_tokens=total_input_tokens + total_output_tokens,
-            daily_total=total_input_tokens + total_output_tokens,
+            total_tokens=_call_total,
+            daily_total=_prior_24h + _call_total,
             limit_hit=False,
         )
     except Exception as _e:
@@ -638,13 +643,18 @@ async def _run_gemini_scanner(candidates: List[Dict]) -> List[Dict]:
         contents.append(_genai_types.Content(role="user", parts=result_parts))
 
     try:
+        _call_total = total_prompt_tokens + total_candidate_tokens
+        try:
+            _prior_24h = await get_daily_token_total("ScannerAgent/Gemini", hours=24)
+        except Exception:
+            _prior_24h = 0
         await save_token_log(
             agent="ScannerAgent/Gemini",
             model="gemini-2.0-flash",
             prompt_tokens=total_prompt_tokens,
             completion_tokens=total_candidate_tokens,
-            total_tokens=total_prompt_tokens + total_candidate_tokens,
-            daily_total=total_prompt_tokens + total_candidate_tokens,
+            total_tokens=_call_total,
+            daily_total=_prior_24h + _call_total,
             limit_hit=False,
         )
     except Exception as _e:
@@ -757,13 +767,18 @@ async def _run_openai_scanner(candidates: List[Dict]) -> List[Dict]:
             })
 
     try:
+        _call_total = total_prompt_tokens + total_completion_tokens
+        try:
+            _prior_24h = await get_daily_token_total("ScannerAgent/OpenAI", hours=24)
+        except Exception:
+            _prior_24h = 0
         await save_token_log(
             agent="ScannerAgent/OpenAI",
             model="gpt-4o-mini",
             prompt_tokens=total_prompt_tokens,
             completion_tokens=total_completion_tokens,
-            total_tokens=total_prompt_tokens + total_completion_tokens,
-            daily_total=total_prompt_tokens + total_completion_tokens,
+            total_tokens=_call_total,
+            daily_total=_prior_24h + _call_total,
             limit_hit=False,
         )
     except Exception as _e:

@@ -34,8 +34,9 @@
                    │
   ┌────────────────┴──────────────────────────────────────────┐
   │               market_context  (per symbol dict)           │
-  │   price, bars, indicators, composite_signal, news,        │
-  │   overnight_catalysts, portfolio_state                    │
+  │   price, bars, long_term_bars, indicators,                │
+  │   composite_signal, news, overnight_catalysts,            │
+  │   portfolio_state                                         │
   └────────────────────────────────┬──────────────────────────┘
                                    │
                      ┌─────────────┴──────────────┐
@@ -73,6 +74,7 @@
        ▼
   ┌────────────────────────────────────────────┐
   │  GeminiAgent  (Gemini 2.0 Flash)           │
+  │  [NEWS-ONLY — does NOT vote in ensemble]   │
   │                                            │
   │  Input: price action, RSI/MACD/BB, news,   │
   │         composite signal, overnight cats   │
@@ -148,6 +150,28 @@
                             Signal(BUY/SELL/HOLD, conf, shares)
 
   ┌────────────────────────────────────────────────────────────────────────┐
+  │  HistoricalTrendsAgent  (rule-based, seasonal + channel + momentum)   │
+  │                                                                        │
+  │  Data: Stooq 5-year bars (preferred) or 60-day Alpaca bars            │
+  │                                                                        │
+  │  composite = seasonal×0.20 + channel×0.30 + momentum×0.40            │
+  │            + volume_trend×0.10                                        │
+  │                                                                        │
+  │  Seasonal:   month-of-year bias + quarter-position effect             │
+  │  Channel:    price position in historical high-low range              │
+  │              adjusted for SMA-20 slope                                │
+  │  Momentum:   weighted RoC across 5/10/20/40d windows                 │
+  │              alignment bonus ±0.20 when timeframes agree              │
+  │                                                                        │
+  │  BUY:  composite > +0.25, no position                                 │
+  │  SELL: composite < -0.25, has position                                │
+  │  conf = min(0.95, |composite|)                                        │
+  └────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+                            Signal(BUY/SELL/HOLD, conf, shares)
+
+  ┌────────────────────────────────────────────────────────────────────────┐
   │  ClaudeAgent  (Claude Opus 4.6, every 3rd cycle, ≤ 2 calls/hr)       │
   │                                                                        │
   │  Input: everything — price, OHLCV(30d), RSI/MACD/BB/SMA/ATR,         │
@@ -173,7 +197,7 @@
   LAYER 5 — ENSEMBLE VOTING  (every cycle)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  All 5 agent signals arrive per symbol:
+  6 agent signals arrive per symbol (GeminiAgent excluded from vote):
 
   ┌─────────────────────────────────────────────────────────────────────┐
   │                                                                     │
@@ -181,6 +205,7 @@
   │  MomentumAgent ───────── weight × confidence ─────────┤            │
   │  MeanReversionAgent ──── weight × confidence ─────────┤  Σ        │
   │  SentimentAgent ─────── weight × confidence ─────────┤            │
+  │  HistoricalTrendsAgent ── weight × confidence ────────┤            │
   │  ClaudeAgent ────────── weight × confidence ─────────┘            │
   │                                                                     │
   │  buy_score  = Σ(weight × conf) for BUY  signals / total_weight    │
@@ -215,24 +240,27 @@
 
   Regime multipliers:
 
-  Agent               TRENDING    RANGING    VOLATILE
-  ─────────────────── ─────────   ────────   ────────
-  MomentumAgent         ×1.50      ×0.55      ×0.65
-  TechAgent             ×1.20      ×1.10      ×0.80
-  ClaudeAgent           ×1.10      ×1.00      ×1.40
-  SentimentAgent        ×0.80      ×1.20      ×1.20
-  MeanReversionAgent    ×0.40      ×1.60      ×0.60
+  Agent                   TRENDING    RANGING    VOLATILE
+  ──────────────────────  ─────────   ────────   ────────
+  MomentumAgent             ×1.50      ×0.55      ×0.65
+  TechAgent                 ×1.20      ×1.10      ×0.80
+  HistoricalTrendsAgent     ×1.20      ×1.30      ×0.80
+  ClaudeAgent               ×1.10      ×1.00      ×1.40
+  SentimentAgent            ×0.80      ×1.20      ×1.20
+  MeanReversionAgent        ×0.40      ×1.60      ×0.60
 
   Base weights (before adjustment):
-  ClaudeAgent 25% · TechAgent 20% · SentimentAgent 15%
-  MomentumAgent 12% · MeanReversionAgent 8%
+  ClaudeAgent 29% · TechAgent 23% · SentimentAgent 17%
+  MomentumAgent 14% · MeanReversionAgent 9% · HistoricalTrendsAgent 8%
 
   ┌─────────────────────────────────────────────────────────────────────┐
   │  FINAL VOTE DECISION                                                │
   │                                                                     │
-  │  buy_score  >= 0.35  AND  no existing position  →  BUY             │
-  │  sell_score >= 0.35  AND  holding position      →  SELL            │
-  │  neither clears threshold                        →  HOLD            │
+  │  buy_score  >= 0.60  AND  no existing position                      │
+  │           AND  buy_score >= sell_score × 2.0 (margin of safety)    │
+  │                                             →  BUY                 │
+  │  sell_score >= 0.60  AND  holding position  →  SELL                │
+  │  neither clears threshold, or MoS fails     →  HOLD                │
   │                                                                     │
   │  Position size:                                                     │
   │  target = portfolio_value × MAX_POSITION_SIZE × buy_score          │
@@ -303,11 +331,14 @@
 
   [Every 60s, 9:30–16:00 ET]
 
-  1. Fetch market data (Alpaca) + build market_context
+  1. Fetch market data (Alpaca + Stooq long-term) + build market_context
   2. (Every 3rd cycle) GeminiAgent → market_analysis injected into context
-  3. Run 5 agents in parallel → each returns BUY/SELL/HOLD per symbol
+  3. Run 6 agents in parallel → each returns BUY/SELL/HOLD per symbol
+     (TechAgent, MomentumAgent, MeanReversionAgent, SentimentAgent,
+      HistoricalTrendsAgent, ClaudeAgent)
   4. EnsembleAgent collects all signals → weighted vote per symbol
      └─ Every 5 cycles: recalculate regime + adaptive weights
+     └─ BUY gate: threshold 0.60 AND margin-of-safety 2× vs sell signal
   5. For each signal: RiskManager gate
   6. Passing signals → Alpaca paper trade execution
   7. (Every 30 min) Scanner runs independently → scan_cache.json updated

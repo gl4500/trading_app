@@ -443,6 +443,23 @@ async def get_token_log(
         ]
 
 
+async def get_daily_token_total(agent: str, hours: int = 24) -> int:
+    """Return the total tokens used by an agent in the past `hours` hours.
+
+    Excludes limit-hit events (which log total_tokens=0).
+    Used by agents on startup to seed their rolling 24h window after a restart.
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        cutoff = (datetime.utcnow() - __import__("datetime").timedelta(hours=hours)).isoformat()
+        cursor = await db.execute(
+            "SELECT COALESCE(SUM(total_tokens), 0) FROM token_log "
+            "WHERE agent = ? AND timestamp >= ? AND limit_hit = 0",
+            (agent, cutoff),
+        )
+        row = await cursor.fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+
+
 async def cleanup_token_log(hours: int = 24) -> None:
     """Delete token log entries older than `hours` hours."""
     async with aiosqlite.connect(DB_PATH) as db:

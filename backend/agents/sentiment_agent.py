@@ -7,14 +7,14 @@ import json
 import logging
 import math
 import time
-from datetime import date
-from typing import Dict, List, Optional
+from collections import deque
+from typing import Deque, Dict, List, Optional, Tuple
 import pandas as pd
 
 from agents.base_agent import BaseAgent, Signal
 from agents.agent_utils import _is_market_hours
 from config import config
-from database import save_token_log
+from database import save_token_log, get_daily_token_total
 
 logger = logging.getLogger(__name__)
 
@@ -122,10 +122,35 @@ class SentimentAgent(BaseAgent):
         self._closed_min_call_interval: int = 4 * 60 * 60  # 4 h between batches off-hours
         self._last_api_call_time: float = 0.0          # epoch seconds of last API batch
         self._max_symbols_per_call: int = 5            # cap per batch (held positions first)
-        self._daily_tokens: int = 0
+        self._token_window: Deque[Tuple[float, int]] = deque()  # (epoch_secs, tokens) rolling 24h
         self._session_tokens: int = 0
-        self._token_reset_day: Optional[date] = None
         self._daily_token_limit: int = 10_000
+
+    @property
+    def _daily_tokens(self) -> int:
+        """Tokens used in the rolling 24-hour window."""
+        cutoff = time.time() - 86400
+        while self._token_window and self._token_window[0][0] < cutoff:
+            self._token_window.popleft()
+        return sum(tok for _, tok in self._token_window)
+
+    @_daily_tokens.setter
+    def _daily_tokens(self, value: int) -> None:
+        """Replace window with a single entry at current time.
+        Used in tests to seed the counter to a known value."""
+        self._token_window.clear()
+        if value > 0:
+            self._token_window.append((time.time(), value))
+
+    async def seed_from_history(self) -> None:
+        """Restore rolling 24h token window from DB after a restart.
+        Called once by main.py init_agents() — never called in tests."""
+        try:
+            prior = await get_daily_token_total("SentimentAgent", hours=24)
+            if prior > 0:
+                self._token_window.append((time.time(), prior))
+        except Exception:
+            pass
 
     def _get_client(self):
         if not HAS_OPENAI:
@@ -143,15 +168,7 @@ class SentimentAgent(BaseAgent):
         if not config.OPENAI_API_KEY:
             return {"sentiment": "neutral", "confidence": 0.5, "reasoning": "No OpenAI API key configured"}
 
-        # Reset daily counter on a new calendar day
-        today = date.today()
-        if self._token_reset_day is None:
-            self._token_reset_day = today  # first call: record the day, keep existing counter
-        elif self._token_reset_day != today:
-            self._daily_tokens = 0
-            self._token_reset_day = today
-
-        # Enforce daily token budget
+        # Enforce rolling 24h token budget
         if self._daily_tokens >= self._daily_token_limit:
             logger.warning(
                 f"SentimentAgent: Daily token limit ({self._daily_token_limit}) reached — "
@@ -207,7 +224,7 @@ Respond with ONLY valid JSON in this exact format:
             usage = response.usage
             prompt_tok = usage.prompt_tokens
             completion_tok = usage.completion_tokens
-            self._daily_tokens += prompt_tok + completion_tok
+            self._token_window.append((time.time(), prompt_tok + completion_tok))
             self._session_tokens += prompt_tok + completion_tok
             logger.info(
                 f"SentimentAgent: {symbol} tokens — "

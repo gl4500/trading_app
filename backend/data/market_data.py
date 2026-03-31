@@ -14,7 +14,7 @@ from trading.alpaca_client import alpaca_client
 from data.news_service import news_service
 from data import technicals
 from data.signal_aggregator import get_composite_signal
-from data.massive_client import massive_client
+from data.massive_client import massive_client, format_greeks_for_prompt
 from data.stooq_client import stooq_client
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class MarketDataService:
         self._last_bars_fetch: Dict[str, float] = {}
 
     async def get_latest_prices(self, symbols: List[str] = None) -> Dict[str, float]:
-        """Get latest prices with caching."""
+        """Get latest prices with caching. Massive.com is primary; Alpaca is fallback."""
         syms = symbols or self.watchlist
         now = time.time()
 
@@ -72,6 +72,17 @@ class MarketDataService:
             # Return cached subset
             return {s: self._price_cache[s] for s in syms if s in self._price_cache}
 
+        # Primary: Massive.com snapshots
+        try:
+            prices = await massive_client.get_snapshots(syms)
+            if prices:
+                self._price_cache.update(prices)
+                self._last_price_fetch = now
+                return prices
+        except Exception as e:
+            logger.debug(f"Massive snapshots failed, falling back to Alpaca: {e}")
+
+        # Fallback: Alpaca
         try:
             prices = await alpaca_client.get_latest_prices(syms)
             if prices:
@@ -97,27 +108,28 @@ class MarketDataService:
         if now - last_fetch < self._bars_cache_ttl and cache_key in self._bars_cache:
             return self._bars_cache[cache_key].copy()
 
-        try:
-            df = await alpaca_client.get_bars(symbol, timeframe=timeframe, limit=days)
-            if df is not None and not df.empty:
-                self._bars_cache[cache_key] = df
-                self._last_bars_fetch[cache_key] = now
-                return df
-        except Exception as e:
-            logger.error(f"Error fetching bars for {symbol}: {e}")
-
-        # Fallback 1: try Massive.com bars
+        # Primary: Massive.com bars
         try:
             df_massive = await massive_client.get_bars(symbol, days=days)
             if df_massive is not None and not df_massive.empty:
-                logger.debug(f"MarketData: using Massive bars for {symbol}")
                 self._bars_cache[cache_key] = df_massive
                 self._last_bars_fetch[cache_key] = now
                 return df_massive
         except Exception as e:
-            logger.debug(f"Massive bars fallback {symbol}: {e}")
+            logger.debug(f"Massive bars primary failed for {symbol}: {e}")
 
-        # Fallback 2: try Stooq free historical data
+        # Fallback 1: Alpaca
+        try:
+            df = await alpaca_client.get_bars(symbol, timeframe=timeframe, limit=days)
+            if df is not None and not df.empty:
+                logger.debug(f"MarketData: using Alpaca bars for {symbol}")
+                self._bars_cache[cache_key] = df
+                self._last_bars_fetch[cache_key] = now
+                return df
+        except Exception as e:
+            logger.error(f"Error fetching Alpaca bars for {symbol}: {e}")
+
+        # Fallback 2: Stooq free historical data
         try:
             df_stooq = await stooq_client.get_bars(symbol, days=days)
             if df_stooq is not None and not df_stooq.empty:
@@ -194,20 +206,48 @@ class MarketDataService:
                 stale.append(sym)
 
         if stale:
+            remaining = list(stale)
+
+            # Primary: Massive.com batch
             try:
-                # Single API call for all stale symbols
-                fetched = await alpaca_client.get_bars_multi(stale, timeframe=timeframe, limit=days)
-                for sym, df in fetched.items():
-                    key = f"{sym}|{timeframe}|{days}"
+                fetched = await massive_client.get_bars_multi(remaining, days=days)
+                still_missing = []
+                for sym in remaining:
+                    df = fetched.get(sym)
                     if df is not None and not df.empty:
+                        key = f"{sym}|{timeframe}|{days}"
                         self._bars_cache[key] = df
                         self._last_bars_fetch[key] = now
-                    fresh[sym] = df if df is not None else pd.DataFrame()
+                        fresh[sym] = df
+                    else:
+                        still_missing.append(sym)
+                remaining = still_missing
             except Exception as exc:
-                logger.error("Batch bars fetch failed, falling back to per-symbol: %s", exc)
-                tasks = [self.get_historical_bars(sym, days, timeframe) for sym in stale]
+                logger.debug("Massive batch bars failed, falling back to Alpaca: %s", exc)
+
+            # Fallback: Alpaca batch for symbols Massive didn't cover
+            if remaining:
+                try:
+                    fetched = await alpaca_client.get_bars_multi(remaining, timeframe=timeframe, limit=days)
+                    still_missing = []
+                    for sym in remaining:
+                        df = fetched.get(sym)
+                        if df is not None and not df.empty:
+                            key = f"{sym}|{timeframe}|{days}"
+                            self._bars_cache[key] = df
+                            self._last_bars_fetch[key] = now
+                            fresh[sym] = df
+                        else:
+                            still_missing.append(sym)
+                    remaining = still_missing
+                except Exception as exc:
+                    logger.error("Alpaca batch bars fetch failed, falling back to per-symbol: %s", exc)
+
+            # Last resort: per-symbol fetch for anything still missing
+            if remaining:
+                tasks = [self.get_historical_bars(sym, days, timeframe) for sym in remaining]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
-                for sym, result in zip(stale, results):
+                for sym, result in zip(remaining, results):
                     fresh[sym] = result if not isinstance(result, Exception) else pd.DataFrame()
 
         return fresh
@@ -219,16 +259,17 @@ class MarketDataService:
         """
         syms = symbols or self.watchlist
 
-        # Fetch in parallel — Massive macro + news run alongside Alpaca + Stooq long-term
-        prices_task        = self.get_latest_prices(syms)
-        bars_task          = self.get_all_bars(syms)
-        news_task          = news_service.get_news_multi(syms)
-        macro_task         = massive_client.get_macro_context()
-        massive_news_task  = massive_client.get_news_multi(syms, limit=5)
+        # Fetch in parallel — Massive macro + news + Greeks alongside Alpaca + Stooq long-term
+        prices_task         = self.get_latest_prices(syms)
+        bars_task           = self.get_all_bars(syms)
+        news_task           = news_service.get_news_multi(syms)
+        macro_task          = massive_client.get_macro_context()
+        massive_news_task   = massive_client.get_news_multi(syms, limit=5)
         long_term_bars_task = self.get_long_term_bars(syms)
+        greeks_task         = massive_client.get_greeks_summary(syms)
 
-        prices, all_bars, all_news, macro_ctx, massive_news, all_long_term_bars = await asyncio.gather(
-            prices_task, bars_task, news_task, macro_task, massive_news_task, long_term_bars_task,
+        prices, all_bars, all_news, macro_ctx, massive_news, all_long_term_bars, all_greeks = await asyncio.gather(
+            prices_task, bars_task, news_task, macro_task, massive_news_task, long_term_bars_task, greeks_task,
             return_exceptions=True,
         )
         if isinstance(all_long_term_bars, Exception):
@@ -237,6 +278,8 @@ class MarketDataService:
             macro_ctx = ""
         if isinstance(massive_news, Exception):
             massive_news = {}
+        if isinstance(all_greeks, Exception):
+            all_greeks = {}
 
         # Composite signals (yfinance is slow — run concurrently per symbol)
         composite_tasks = [get_composite_signal(sym, all_news.get(sym, [])) for sym in syms]
@@ -257,6 +300,7 @@ class MarketDataService:
                 existing_hl = {n.get("headline", "") for n in alpaca_news_empty}
                 lt_bars_empty = all_long_term_bars.get(sym, pd.DataFrame()) \
                     if isinstance(all_long_term_bars, dict) else pd.DataFrame()
+                greeks_sym = all_greeks.get(sym, {}) if isinstance(all_greeks, dict) else {}
                 context[sym] = {
                     "symbol":          sym,
                     "price":           price or 0,
@@ -266,6 +310,8 @@ class MarketDataService:
                     "news":            alpaca_news_empty + [n for n in massive_news_empty if n.get("headline", "") not in existing_hl],
                     "indicators":      None,
                     "composite_signal": all_composite.get(sym, {}),
+                    "greeks":          greeks_sym,
+                    "greeks_text":     format_greeks_for_prompt(sym, greeks_sym),
                 }
                 continue
 
@@ -310,6 +356,7 @@ class MarketDataService:
 
             lt_bars = all_long_term_bars.get(sym, pd.DataFrame()) \
                 if isinstance(all_long_term_bars, dict) else pd.DataFrame()
+            greeks_sym = all_greeks.get(sym, {}) if isinstance(all_greeks, dict) else {}
 
             context[sym] = {
                 "symbol":           sym,
@@ -321,6 +368,8 @@ class MarketDataService:
                 "news":             merged_news,
                 "indicators":       ind,
                 "composite_signal": all_composite.get(sym, {}),
+                "greeks":           greeks_sym,
+                "greeks_text":      format_greeks_for_prompt(sym, greeks_sym),
             }
 
         # Attach macro context at the top level so agent prompts can access it

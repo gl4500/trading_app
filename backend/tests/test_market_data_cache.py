@@ -1,13 +1,13 @@
 """
-Unit tests for data/market_data.py — MarketDataCache only.
-MarketDataService is not unit-tested here because it depends on
-alpaca_client, news_service, and signal_aggregator; those require
-integration-style tests with mocked I/O.
+Unit tests for data/market_data.py — MarketDataCache and MarketDataService.
+MarketDataService tests use mocked I/O to verify Massive-primary data flow.
 """
 import sys
 import os
 import asyncio
 import unittest
+from unittest.mock import AsyncMock, patch, MagicMock
+import pandas as pd
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -73,6 +73,166 @@ class TestMarketDataCache(unittest.TestCase):
     def test_make_key_separates_args(self):
         key = self.cache._make_key("AAPL", "bars", 60)
         self.assertEqual(key, "AAPL|bars|60")
+
+
+def _make_bars(n=5) -> pd.DataFrame:
+    """Return a minimal OHLCV DataFrame with n rows."""
+    return pd.DataFrame({
+        "timestamp": pd.date_range("2024-01-01", periods=n),
+        "open":  [100.0] * n,
+        "high":  [105.0] * n,
+        "low":   [95.0]  * n,
+        "close": [102.0] * n,
+        "volume": [1_000_000] * n,
+    })
+
+
+class TestMarketDataServicePrimarySource(unittest.IsolatedAsyncioTestCase):
+    """Verify that Massive.com is used as the primary data source."""
+
+    # ── get_latest_prices ──────────────────────────────────────────────────────
+
+    async def test_get_latest_prices_uses_massive_as_primary(self):
+        """When Massive returns prices, Alpaca should not be called."""
+        from data.market_data import MarketDataService
+        svc = MarketDataService()
+        svc._last_price_fetch = 0  # force cache miss
+
+        with patch("data.market_data.massive_client") as mock_massive, \
+             patch("data.market_data.alpaca_client") as mock_alpaca:
+            mock_massive.get_snapshots = AsyncMock(return_value={"AAPL": 175.0, "MSFT": 420.0})
+            mock_alpaca.get_latest_prices = AsyncMock(return_value={})
+
+            prices = await svc.get_latest_prices(["AAPL", "MSFT"])
+
+        self.assertEqual(prices["AAPL"], 175.0)
+        self.assertEqual(prices["MSFT"], 420.0)
+        mock_massive.get_snapshots.assert_called_once()
+        mock_alpaca.get_latest_prices.assert_not_called()
+
+    async def test_get_latest_prices_falls_back_to_alpaca(self):
+        """When Massive returns empty, Alpaca should be used."""
+        from data.market_data import MarketDataService
+        svc = MarketDataService()
+        svc._last_price_fetch = 0
+
+        with patch("data.market_data.massive_client") as mock_massive, \
+             patch("data.market_data.alpaca_client") as mock_alpaca:
+            mock_massive.get_snapshots = AsyncMock(return_value={})
+            mock_alpaca.get_latest_prices = AsyncMock(return_value={"AAPL": 170.0})
+
+            prices = await svc.get_latest_prices(["AAPL"])
+
+        self.assertEqual(prices["AAPL"], 170.0)
+        mock_alpaca.get_latest_prices.assert_called_once()
+
+    async def test_get_latest_prices_falls_back_when_massive_raises(self):
+        """When Massive raises, Alpaca should be used."""
+        from data.market_data import MarketDataService
+        svc = MarketDataService()
+        svc._last_price_fetch = 0
+
+        with patch("data.market_data.massive_client") as mock_massive, \
+             patch("data.market_data.alpaca_client") as mock_alpaca:
+            mock_massive.get_snapshots = AsyncMock(side_effect=Exception("network error"))
+            mock_alpaca.get_latest_prices = AsyncMock(return_value={"AAPL": 168.0})
+
+            prices = await svc.get_latest_prices(["AAPL"])
+
+        self.assertEqual(prices["AAPL"], 168.0)
+        mock_alpaca.get_latest_prices.assert_called_once()
+
+    # ── get_historical_bars ────────────────────────────────────────────────────
+
+    async def test_get_historical_bars_uses_massive_as_primary(self):
+        """When Massive returns bars, Alpaca should not be called."""
+        from data.market_data import MarketDataService
+        svc = MarketDataService()
+        bars = _make_bars(30)
+
+        with patch("data.market_data.massive_client") as mock_massive, \
+             patch("data.market_data.alpaca_client") as mock_alpaca:
+            mock_massive.get_bars = AsyncMock(return_value=bars)
+            mock_alpaca.get_bars = AsyncMock(return_value=pd.DataFrame())
+
+            result = await svc.get_historical_bars("AAPL", days=30)
+
+        self.assertFalse(result.empty)
+        self.assertEqual(len(result), 30)
+        mock_massive.get_bars.assert_called_once()
+        mock_alpaca.get_bars.assert_not_called()
+
+    async def test_get_historical_bars_falls_back_to_alpaca(self):
+        """When Massive returns empty, Alpaca should be called."""
+        from data.market_data import MarketDataService
+        svc = MarketDataService()
+        bars = _make_bars(10)
+
+        with patch("data.market_data.massive_client") as mock_massive, \
+             patch("data.market_data.alpaca_client") as mock_alpaca, \
+             patch("data.market_data.stooq_client") as mock_stooq:
+            mock_massive.get_bars = AsyncMock(return_value=pd.DataFrame())
+            mock_alpaca.get_bars = AsyncMock(return_value=bars)
+            mock_stooq.get_bars = AsyncMock(return_value=pd.DataFrame())
+
+            result = await svc.get_historical_bars("AAPL", days=10)
+
+        self.assertFalse(result.empty)
+        mock_alpaca.get_bars.assert_called_once()
+
+    async def test_get_historical_bars_falls_back_to_stooq(self):
+        """When both Massive and Alpaca fail, Stooq should be tried."""
+        from data.market_data import MarketDataService
+        svc = MarketDataService()
+        bars = _make_bars(10)
+
+        with patch("data.market_data.massive_client") as mock_massive, \
+             patch("data.market_data.alpaca_client") as mock_alpaca, \
+             patch("data.market_data.stooq_client") as mock_stooq:
+            mock_massive.get_bars = AsyncMock(return_value=pd.DataFrame())
+            mock_alpaca.get_bars = AsyncMock(return_value=pd.DataFrame())
+            mock_stooq.get_bars = AsyncMock(return_value=bars)
+
+            result = await svc.get_historical_bars("AAPL", days=10)
+
+        self.assertFalse(result.empty)
+        mock_stooq.get_bars.assert_called_once()
+
+    # ── get_all_bars ───────────────────────────────────────────────────────────
+
+    async def test_get_all_bars_uses_massive_batch_as_primary(self):
+        """When Massive batch returns bars, Alpaca should not be called."""
+        from data.market_data import MarketDataService
+        svc = MarketDataService()
+        bars = _make_bars(30)
+
+        with patch("data.market_data.massive_client") as mock_massive, \
+             patch("data.market_data.alpaca_client") as mock_alpaca:
+            mock_massive.get_bars_multi = AsyncMock(return_value={"AAPL": bars, "MSFT": bars})
+            mock_alpaca.get_bars_multi = AsyncMock(return_value={})
+
+            result = await svc.get_all_bars(["AAPL", "MSFT"], days=30)
+
+        self.assertIn("AAPL", result)
+        self.assertFalse(result["AAPL"].empty)
+        mock_massive.get_bars_multi.assert_called_once()
+        mock_alpaca.get_bars_multi.assert_not_called()
+
+    async def test_get_all_bars_falls_back_to_alpaca(self):
+        """When Massive batch returns empty, Alpaca batch should be called."""
+        from data.market_data import MarketDataService
+        svc = MarketDataService()
+        bars = _make_bars(10)
+
+        with patch("data.market_data.massive_client") as mock_massive, \
+             patch("data.market_data.alpaca_client") as mock_alpaca:
+            mock_massive.get_bars_multi = AsyncMock(return_value={})
+            mock_alpaca.get_bars_multi = AsyncMock(return_value={"AAPL": bars})
+
+            result = await svc.get_all_bars(["AAPL"], days=10)
+
+        self.assertIn("AAPL", result)
+        mock_alpaca.get_bars_multi.assert_called_once()
 
 
 if __name__ == "__main__":

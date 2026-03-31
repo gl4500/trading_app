@@ -533,18 +533,16 @@ class TestDailyTokenLimit(unittest.IsolatedAsyncioTestCase):
             await agent._get_sentiment("AAPL", "desc")
         mock_client.chat.completions.create.assert_called_once()
 
-    async def test_counter_resets_on_new_day(self):
-        from datetime import date
-        agent, mock_client = self._make_agent_at_limit(tokens_used=10_000)
-        # Simulate that the stored reset day is yesterday
-        from datetime import timedelta
-        agent._token_reset_day = date.today() - timedelta(days=1)
+    async def test_counter_resets_after_24_hours(self):
+        agent, mock_client = self._make_agent_at_limit(tokens_used=0)
+        # Inject 10,000 tokens with a timestamp older than 24 hours to simulate yesterday's usage
+        agent._token_window.append((time.time() - 86401, 10_000))
 
         with patch("agents.sentiment_agent.HAS_OPENAI", True), \
              patch("agents.sentiment_agent.config") as cfg:
             cfg.OPENAI_API_KEY = "key"
             await agent._get_sentiment("AAPL", "desc")
-        # After reset, API should have been called
+        # Entries older than 24h are pruned by the property getter → budget cleared → API proceeds
         mock_client.chat.completions.create.assert_called_once()
 
     async def test_limit_warning_logged(self):

@@ -496,34 +496,131 @@ class MassiveClient:
                     if premium else
                     f"Massive Options Flow: {ticker} {side} large block"
                 )
-                summary = (
+                flow_summary = (
                     f"{ticker} {side} — strike ${strike}, expiry {expiry}. "
                     f"Volume: {volume:,}. VWAP: ${vwap:.2f}."
                 ).strip()
 
                 try:
                     from data.policy_monitor import score_headline
-                    scored = score_headline(headline, summary)
+                    scored = score_headline(headline, flow_summary)
                 except Exception:
                     scored = {"score": 2, "category": "catalyst", "sectors": [], "reason": ""}
 
+                # Extract Greeks and IV from this contract
+                greeks_raw = f.get("greeks") or {}
+                delta = greeks_raw.get("delta")
+                gamma = greeks_raw.get("gamma")
+                theta = greeks_raw.get("theta")
+                vega  = greeks_raw.get("vega")
+                iv    = f.get("implied_volatility")
+                oi    = f.get("open_interest") or 0
+
                 results.append({
-                    "headline":    headline,
-                    "summary":     summary,
-                    "source":      "Massive / Options Flow",
-                    "date":        datetime.utcnow().isoformat(),
-                    "symbol":      ticker,
-                    "score":       max(scored.get("score", 0), 2),
-                    "category":    "catalyst",
-                    "sectors":     scored.get("sectors", []),
-                    "reason":      f"{sentiment} options flow",
-                    "detected_at": datetime.utcnow().isoformat(),
-                    "premium":     premium,
-                    "side":        side,
+                    "headline":      headline,
+                    "summary":       flow_summary,
+                    "source":        "Massive / Options Flow",
+                    "date":          datetime.utcnow().isoformat(),
+                    "symbol":        ticker,
+                    "score":         max(scored.get("score", 0), 2),
+                    "category":      "catalyst",
+                    "sectors":       scored.get("sectors", []),
+                    "reason":        f"{sentiment} options flow",
+                    "detected_at":   datetime.utcnow().isoformat(),
+                    "premium":       premium,
+                    "side":          side,
+                    # Greeks — None when not provided by the API
+                    "delta":         float(delta) if delta is not None else None,
+                    "gamma":         float(gamma) if gamma is not None else None,
+                    "theta":         float(theta) if theta is not None else None,
+                    "vega":          float(vega)  if vega  is not None else None,
+                    "iv":            float(iv)    if iv    is not None else None,
+                    "open_interest": int(oi),
+                    # Raw fields needed by get_greeks_summary
+                    "details":       details,
+                    "day":           day,
                 })
 
         self._store(self._options_cache, key, results)
         return results
+
+    async def get_greeks_summary(self, symbols: List[str]) -> Dict[str, Dict]:
+        """Aggregate Greeks and IV per symbol from options flow data.
+
+        Returns a dict keyed by symbol, each value containing:
+          avg_iv          — volume-weighted average implied volatility (0-1 float)
+          delta_bias      — net directional signal: sum(delta × volume) with PUTs negated
+          put_call_ratio  — total PUT volume / total CALL volume (None if no CALLs)
+          high_oi_strike  — strike price with the highest open interest
+          call_volume     — total CALL day volume
+          put_volume      — total PUT day volume
+        """
+        if not self._is_available():
+            return {}
+
+        flows = await self.get_options_flow(symbols)
+        if not flows:
+            return {}
+
+        # Group by symbol
+        by_sym: Dict[str, list] = {}
+        for item in flows:
+            sym = item.get("symbol", "")
+            if sym:
+                by_sym.setdefault(sym, []).append(item)
+
+        summary: Dict[str, Dict] = {}
+        for sym, items in by_sym.items():
+            call_vol = put_vol = 0
+            weighted_iv = total_vol_iv = 0.0
+            delta_bias = 0.0
+            best_oi = -1
+            best_oi_strike = None
+
+            for it in items:
+                side   = it.get("side", "").upper()
+                day    = it.get("day") or {}
+                vol    = float(day.get("volume") or 0)
+                iv     = it.get("iv")
+                delta  = it.get("delta")
+                det    = it.get("details") or {}
+                strike = det.get("strike_price")
+                oi     = it.get("open_interest") or 0
+
+                if side == "CALL":
+                    call_vol += vol
+                elif side == "PUT":
+                    put_vol += vol
+
+                if iv is not None and vol > 0:
+                    weighted_iv  += float(iv) * vol
+                    total_vol_iv += vol
+
+                if delta is not None and vol > 0:
+                    # CALLs: positive contribution; PUTs: negative contribution
+                    sign = 1 if side == "CALL" else -1
+                    delta_bias += sign * abs(float(delta)) * vol
+
+                if oi > best_oi and strike is not None:
+                    best_oi = oi
+                    best_oi_strike = strike
+
+            avg_iv = weighted_iv / total_vol_iv if total_vol_iv > 0 else None
+            pc_ratio = put_vol / call_vol if call_vol > 0 else None
+            # Normalise delta_bias by total volume so it stays in a readable range
+            total = call_vol + put_vol
+            delta_bias_norm = delta_bias / total if total > 0 else 0.0
+
+            summary[sym] = {
+                "avg_iv":         avg_iv,
+                "delta_bias":     round(delta_bias_norm, 4),
+                "put_call_ratio": round(pc_ratio, 4) if pc_ratio is not None else None,
+                "high_oi_strike": best_oi_strike,
+                "call_volume":    int(call_vol),
+                "put_volume":     int(put_vol),
+            }
+
+        return summary
 
     # ── REST: Economy — Macro Context ─────────────────────────────────────────
 
@@ -585,11 +682,11 @@ class MassiveClient:
 
         lines = ["## Macro Context (Massive.com)"]
 
-        # Treasury yields
+        # Treasury yields — API returns yield_2_year / yield_10_year / yield_30_year
         if isinstance(yields, dict) and yields:
-            y2  = yields.get("year_2")  or yields.get("2y")  or yields.get("2_year")
-            y10 = yields.get("year_10") or yields.get("10y") or yields.get("10_year")
-            y30 = yields.get("year_30") or yields.get("30y") or yields.get("30_year")
+            y2  = yields.get("yield_2_year")  or yields.get("year_2")  or yields.get("2y")
+            y10 = yields.get("yield_10_year") or yields.get("year_10") or yields.get("10y")
+            y30 = yields.get("yield_30_year") or yields.get("year_30") or yields.get("30y")
             parts = []
             if y2:  parts.append(f"2Y={float(y2):.2f}%")
             if y10: parts.append(f"10Y={float(y10):.2f}%")
@@ -775,3 +872,37 @@ class MassiveClient:
 # ── Module-level singleton ────────────────────────────────────────────────────
 
 massive_client = MassiveClient()
+
+
+# ── Prompt helpers ────────────────────────────────────────────────────────────
+
+def format_greeks_for_prompt(symbol: str, summary: Dict) -> str:
+    """Format a per-symbol Greeks summary dict into a compact prompt string.
+
+    Example output:
+      ### Options Greeks — AAPL
+      IV: 30.5% | Delta Bias: +0.18 (bullish) | P/C Ratio: 0.29 | High OI Strike: $185
+      Call Vol: 350 | Put Vol: 100
+    """
+    if not summary:
+        return ""
+
+    avg_iv  = summary.get("avg_iv")
+    bias    = summary.get("delta_bias", 0.0)
+    pc      = summary.get("put_call_ratio")
+    strike  = summary.get("high_oi_strike")
+    cv      = summary.get("call_volume", 0)
+    pv      = summary.get("put_volume", 0)
+
+    iv_str     = f"{avg_iv * 100:.1f}%" if avg_iv is not None else "n/a"
+    bias_label = "bullish" if bias > 0.05 else "bearish" if bias < -0.05 else "neutral"
+    bias_str   = f"{bias:+.2f} ({bias_label})"
+    pc_str     = f"{pc:.2f}" if pc is not None else "n/a"
+    strike_str = f"${strike}" if strike is not None else "n/a"
+
+    lines = [
+        f"### Options Greeks — {symbol}",
+        f"IV: {iv_str} | Delta Bias: {bias_str} | P/C Ratio: {pc_str} | High OI Strike: {strike_str}",
+        f"Call Vol: {cv:,} | Put Vol: {pv:,}",
+    ]
+    return "\n".join(lines)

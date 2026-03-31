@@ -7,8 +7,8 @@ import json
 import logging
 import re
 import time
-from datetime import date
-from typing import Dict, List, Optional, Any
+from collections import deque
+from typing import Deque, Dict, List, Optional, Any, Tuple
 
 from agents.base_agent import BaseAgent, Signal
 from agents.agent_utils import (
@@ -28,7 +28,7 @@ try:
 except Exception:
     _HAS_RISK_ASSESSOR = False
 from data.signal_aggregator import format_for_prompt as format_composite
-from database import save_token_log
+from database import save_token_log, get_daily_token_total
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +60,31 @@ class GeminiAgent(BaseAgent):
         self._api_lock = asyncio.Lock()  # prevents duplicate concurrent API calls (separate from base _lock)
         self._call_timestamps: List[float] = []  # sliding window for hourly rate limit
         self._hourly_call_limit: int = 2
-        self._daily_tokens: int = 0
+        self._token_window: Deque[Tuple[float, int]] = deque()  # (epoch_secs, tokens) rolling 24h
         self._session_tokens: int = 0
-        self._token_reset_day: Optional[date] = None
+
+    @property
+    def _daily_tokens(self) -> int:
+        """Tokens used in the rolling 24-hour window."""
+        cutoff = time.time() - 86400
+        while self._token_window and self._token_window[0][0] < cutoff:
+            self._token_window.popleft()
+        return sum(tok for _, tok in self._token_window)
+
+    @_daily_tokens.setter
+    def _daily_tokens(self, value: int) -> None:
+        self._token_window.clear()
+        if value > 0:
+            self._token_window.append((time.time(), value))
+
+    async def seed_from_history(self) -> None:
+        """Restore rolling 24h token window from DB after a restart."""
+        try:
+            prior = await get_daily_token_total("GeminiAgent", hours=24)
+            if prior > 0:
+                self._token_window.append((time.time(), prior))
+        except Exception:
+            pass
 
     def _get_client(self):
         if not HAS_GEMINI or not config.GEMINI_API_KEY:
@@ -88,6 +110,9 @@ class GeminiAgent(BaseAgent):
             tech_text      = format_technicals(symbol, ind, price)
             composite_sig  = ctx.get("composite_signal", {})
             composite_text = format_composite(composite_sig)
+            greeks_text    = ctx.get("greeks_text", "")
+
+            greeks_section = f"\n{greeks_text}\n" if greeks_text else ""
 
             section = f"""
 ## {symbol} - Current Price: ${price:.2f}
@@ -99,7 +124,7 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
 
 ### Technical Indicators
 {tech_text}
-
+{greeks_section}
 ### Recent News
 {news_text}
 
@@ -206,18 +231,12 @@ Include an entry for every symbol: {', '.join(watchlist)}
                 logger.warning("GeminiAgent: Empty response")
                 return None
 
-            # Record timestamp and log token usage
+            # Record timestamp and accumulate rolling 24h window
             self._call_timestamps.append(time.time())
-            today = date.today()
-            if self._token_reset_day is None:
-                self._token_reset_day = today
-            elif self._token_reset_day != today:
-                self._daily_tokens = 0
-                self._token_reset_day = today
             usage = response.usage_metadata
             prompt_tok = usage.prompt_token_count
             candidate_tok = usage.candidates_token_count
-            self._daily_tokens += prompt_tok + candidate_tok
+            self._token_window.append((time.time(), prompt_tok + candidate_tok))
             self._session_tokens += prompt_tok + candidate_tok
             logger.info(
                 f"GeminiAgent: tokens — in={prompt_tok} out={candidate_tok} "

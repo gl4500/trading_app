@@ -9,14 +9,14 @@ Indicators: RSI (14-period), MACD (12/26/9), Bollinger Bands (20-period, 2σ),
             Volume SMA-20
 
 BUY score (threshold >= 0.55, no existing position):
-  RSI < RSI_OVERSOLD (default 30)                          +0.35
+  RSI < RSI_OVERSOLD (default 35)                          +0.35
   Price <= lower Bollinger Band                             +0.30
   MACD bullish crossover (histogram flips negative to 0)   +0.25
   MACD histogram just positive (no cross)                  +0.10
   Volume > 1.2x 20-day avg                                 +0.10
 
 SELL score (threshold >= 0.55, must hold position):
-  RSI > RSI_OVERBOUGHT (default 70)                        +0.35
+  RSI > RSI_OVERBOUGHT (default 65)                        +0.35
   Price >= upper Bollinger Band                            +0.30
   MACD bearish crossover                                   +0.25
   MACD histogram just negative                             +0.10
@@ -126,33 +126,86 @@ Rate limit: 2 API calls per hour (sliding window).
 
 
 --------------------------------------------------------------------------------
-GEMINIAGENT — Gemini 2.0 Flash LLM
+GEMINIAGENT — Gemini 2.0 Flash LLM  [NEWS-ONLY — excluded from ensemble vote]
 --------------------------------------------------------------------------------
-Receives same market data as ClaudeAgent (minus learning history and
-cross-agent views). Slightly simpler prompt.
+Receives same market data as ClaudeAgent (minus learning history).
+Runs every 3rd cycle as a pre-pass; its market_analysis string is injected
+into ClaudeAgent's prompt as "## Gemini Market View".
 
 Decision framework (instructed in prompt):
   STRONG BUY:  Bullish catalyst + RSI < 65 + positive MACD + price > SMA20
   STRONG SELL: Negative catalyst + RSI > 65 + negative MACD + price < SMA20
   HOLD:        Mixed signals or already at target allocation
 
-Rules: only BUY if confidence >= 0.6, never risk more than MAX_POSITION_SIZE per position.
+GeminiAgent produces its own BUY/SELL/HOLD signals for display purposes but
+does NOT participate in EnsembleAgent voting — it functions as a research
+assistant that informs ClaudeAgent.
 Rate limit: 2 API calls per hour (sliding window).
+
+
+--------------------------------------------------------------------------------
+HISTORICALTRENDSAGENT — Seasonal + channel + multi-period momentum
+--------------------------------------------------------------------------------
+Four sub-scores combined into a composite:
+  composite = seasonal×0.20 + channel×0.30 + momentum×0.40 + volume×0.10
+
+1. Seasonal score (month-of-year bias, research-based):
+   Jan +0.40 · Feb +0.10 · Mar +0.10 · Apr +0.20 · May -0.20 · Jun -0.15
+   Jul +0.05 · Aug -0.15 · Sep -0.30 · Oct +0.10 · Nov +0.35 · Dec +0.40
+   Plus quarter-position bias:
+     last ~6 weeks of quarter (window dressing)  +0.15
+     first 2 weeks of new quarter                +0.10
+   Combined: month_bias×0.70 + quarter_bias×0.30
+
+2. Channel analysis (price position within historical high-low range):
+   position = (price - period_low) / (period_high - period_low)
+   raw      = (0.5 - position) × 2.0      (near low=+1, near high=−1)
+   adjusted = raw + SMA_slope × 5.0       (uptrend moderates bearish reading)
+   score clamped to [-1, +1]
+
+3. Multi-period momentum (5/10/20/40-day windows):
+   weights: 5d=15%, 10d=20%, 20d=30%, 40d=35%
+   weighted_roc = sum(roc × weight) / total_weight
+   score = weighted_roc × 5.0
+   Alignment bonus:  >75% timeframes agree → +0.20
+   Alignment penalty: <25% timeframes agree → -0.20
+
+4. Volume trend confirmation (small signal ±0.15):
+   vol_ratio = (up_day_vol - down_day_vol) / (up_day_vol + down_day_vol)
+   score = vol_ratio × 0.15
+
+BUY:  composite > +0.25 and no existing position
+SELL: composite < -0.25 and holding position
+
+Confidence = min(0.95, max(0.05, |composite|))
+
+Data source: prefers Stooq 5-year bars (STOOQ_LONG_TERM_DAYS=1250),
+             falls back to 60-day Alpaca bars.
+Minimum 30 bars required.
+
+Position sizing:
+  target_alloc = portfolio_value × MAX_POSITION_SIZE × confidence
+  target_alloc = min(target_alloc, cash × 0.95)
+  shares = floor(target_alloc / price × 100) / 100
 
 
 --------------------------------------------------------------------------------
 ENSEMBLEAGENT — Adaptive weighted voting
 --------------------------------------------------------------------------------
 Aggregates signals from TechAgent, MomentumAgent, MeanReversionAgent,
-SentimentAgent, and ClaudeAgent.
+SentimentAgent, HistoricalTrendsAgent, and ClaudeAgent.
+GeminiAgent is excluded from the vote (news-only role).
 
 Vote scoring:
   buy_score  = sum(weight x confidence) for BUY  signals / total_weight
   sell_score = sum(weight x confidence) for SELL signals / total_weight
 
 Decision:
-  BUY  if buy_score  >= ENSEMBLE_THRESHOLD (0.35), no existing position
-  SELL if sell_score >= ENSEMBLE_THRESHOLD (0.35), must hold position
+  BUY  if buy_score  >= ENSEMBLE_THRESHOLD (0.60)
+       AND no existing position
+       AND buy_score >= sell_score × MARGIN_OF_SAFETY (2.0)
+  SELL if sell_score >= ENSEMBLE_THRESHOLD (0.60), must hold position
+  HOLD if neither condition met, or margin-of-safety fails
 
 Adaptive weights (recomputed every 5 cycles):
   perf_score   = 0.5 x win_rate + 0.5 x norm_sharpe
@@ -161,20 +214,23 @@ Adaptive weights (recomputed every 5 cycles):
   final_weight = raw_weight / sum(all raw_weights)
 
 Base weights:
-  ClaudeAgent:        25%
-  GeminiAgent:        20%
-  TechAgent:          20%
-  SentimentAgent:     15%
-  MomentumAgent:      12%
-  MeanReversionAgent:  8%
+  ClaudeAgent:           29%
+  TechAgent:             23%
+  SentimentAgent:        17%
+  MomentumAgent:         14%
+  MeanReversionAgent:     9%
+  HistoricalTrendsAgent:  8%
 
 Regime detection (every 5 cycles, using SPY/QQQ bars):
   Volatile  (ATR > 2.5%):
-    Claude x1.40, Sentiment x1.20, Tech x0.80, Momentum x0.65, MeanRev x0.60
+    Claude ×1.40, Sentiment ×1.20, HistTrends ×0.80, Tech ×0.80,
+    Momentum ×0.65, MeanRev ×0.60
   Trending  (2-of-3: SMA slope, consistency >60%, volume expansion):
-    Momentum x1.50, Tech x1.20, Claude x1.10, Sentiment x0.80, MeanRev x0.40
+    Momentum ×1.50, Tech ×1.20, HistTrends ×1.20, Claude ×1.10,
+    Sentiment ×0.80, MeanRev ×0.40
   Ranging   (default):
-    MeanRev x1.60, Sentiment x1.20, Tech x1.10, Claude x1.00, Momentum x0.55
+    MeanRev ×1.60, HistTrends ×1.30, Sentiment ×1.20, Tech ×1.10,
+    Claude ×1.00, Momentum ×0.55
 
 Regime signals:
   SMA slope  = (SMA20[-1] - SMA20[-10]) / current_price  (threshold abs > 0.004)

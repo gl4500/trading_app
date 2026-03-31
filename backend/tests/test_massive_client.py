@@ -162,7 +162,8 @@ class TestMacroContext(unittest.TestCase):
 
     def test_formats_treasury_yields(self):
         c = MassiveClient()
-        c._economy_cache["treasury_yields"] = (1e15, {"year_2": "4.80", "year_10": "4.25", "year_30": "4.50"})
+        # API returns yield_2_year / yield_10_year / yield_30_year field names
+        c._economy_cache["treasury_yields"] = (1e15, {"yield_2_year": "4.80", "yield_10_year": "4.25", "yield_30_year": "4.50"})
         c._economy_cache["inflation"] = (1e15, {})
         c._economy_cache["labor"]     = (1e15, {})
         with patch("data.massive_client.config") as cfg:
@@ -245,6 +246,140 @@ class TestOptionsFlow(unittest.TestCase):
                     result = _run(c.get_options_flow(["AAPL"]))  # only AAPL
         tickers = [r["symbol"] for r in result]
         self.assertNotIn("MSFT", tickers)
+
+    def test_flow_items_include_greeks(self):
+        """Each flow result dict must expose delta, gamma, theta, vega, iv, open_interest."""
+        c = MassiveClient()
+        # Realistic Polygon.io options snapshot response with greeks
+        api_result = {
+            "details": {
+                "contract_type": "call",
+                "expiration_date": "2024-06-21",
+                "strike_price": 190,
+                "underlying_ticker": "AAPL",
+            },
+            "day": {"volume": 500, "vwap": 3.50},
+            "greeks": {"delta": 0.55, "gamma": 0.012, "theta": -0.08, "vega": 0.18},
+            "implied_volatility": 0.32,
+            "open_interest": 8750,
+        }
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"results": [api_result]}
+        with patch("data.massive_client.config") as cfg:
+            cfg.MASSIVE_API_KEY = "key"
+            with patch("httpx.AsyncClient") as MockClient:
+                mock_ctx = AsyncMock()
+                mock_ctx.__aenter__ = AsyncMock(return_value=mock_ctx)
+                mock_ctx.__aexit__ = AsyncMock(return_value=False)
+                mock_ctx.get = AsyncMock(return_value=mock_resp)
+                MockClient.return_value = mock_ctx
+                with patch("data.massive_client.MassiveClient._is_available", return_value=True):
+                    result = _run(c.get_options_flow(["AAPL"]))
+        self.assertEqual(len(result), 1)
+        item = result[0]
+        self.assertAlmostEqual(item["delta"], 0.55)
+        self.assertAlmostEqual(item["gamma"], 0.012)
+        self.assertAlmostEqual(item["theta"], -0.08)
+        self.assertAlmostEqual(item["vega"], 0.18)
+        self.assertAlmostEqual(item["iv"], 0.32)
+        self.assertEqual(item["open_interest"], 8750)
+
+
+# ── Greeks summary ─────────────────────────────────────────────────────────────
+
+class TestGreeksSummary(unittest.TestCase):
+
+    def _make_flow_items(self):
+        """Two CALL and one PUT for AAPL with greeks."""
+        return [
+            {
+                "symbol": "AAPL", "side": "CALL",
+                "delta": 0.60, "gamma": 0.01, "theta": -0.05, "vega": 0.20,
+                "iv": 0.30, "open_interest": 5000, "premium": 150000,
+                "details": {"strike_price": 185}, "day": {"volume": 200},
+            },
+            {
+                "symbol": "AAPL", "side": "CALL",
+                "delta": 0.45, "gamma": 0.015, "theta": -0.04, "vega": 0.15,
+                "iv": 0.28, "open_interest": 3000, "premium": 90000,
+                "details": {"strike_price": 190}, "day": {"volume": 150},
+            },
+            {
+                "symbol": "AAPL", "side": "PUT",
+                "delta": -0.35, "gamma": 0.01, "theta": -0.03, "vega": 0.12,
+                "iv": 0.34, "open_interest": 2000, "premium": 50000,
+                "details": {"strike_price": 180}, "day": {"volume": 100},
+            },
+        ]
+
+    def test_get_greeks_summary_returns_per_symbol(self):
+        c = MassiveClient()
+        with patch.object(c, "get_options_flow", return_value=self._make_flow_items()):
+            with patch("data.massive_client.MassiveClient._is_available", return_value=True):
+                result = _run(c.get_greeks_summary(["AAPL"]))
+        self.assertIn("AAPL", result)
+
+    def test_greeks_summary_empty_without_key(self):
+        c = MassiveClient()
+        with patch("data.massive_client.config") as cfg:
+            cfg.MASSIVE_API_KEY = ""
+            result = _run(c.get_greeks_summary(["AAPL"]))
+        self.assertEqual(result, {})
+
+    def test_greeks_summary_avg_iv(self):
+        """avg_iv should be volume-weighted average of iv across all contracts."""
+        c = MassiveClient()
+        items = self._make_flow_items()  # volumes: 200, 150, 100; ivs: 0.30, 0.28, 0.34
+        expected_iv = (0.30 * 200 + 0.28 * 150 + 0.34 * 100) / (200 + 150 + 100)
+        with patch.object(c, "get_options_flow", return_value=items):
+            with patch("data.massive_client.MassiveClient._is_available", return_value=True):
+                result = _run(c.get_greeks_summary(["AAPL"]))
+        self.assertAlmostEqual(result["AAPL"]["avg_iv"], expected_iv, places=4)
+
+    def test_greeks_summary_put_call_ratio(self):
+        """put_call_ratio = total PUT volume / total CALL volume."""
+        c = MassiveClient()
+        items = self._make_flow_items()  # PUT vol=100, CALL vol=200+150=350
+        with patch.object(c, "get_options_flow", return_value=items):
+            with patch("data.massive_client.MassiveClient._is_available", return_value=True):
+                result = _run(c.get_greeks_summary(["AAPL"]))
+        self.assertAlmostEqual(result["AAPL"]["put_call_ratio"], 100 / 350, places=4)
+
+    def test_greeks_summary_delta_bias_bullish(self):
+        """delta_bias > 0 when CALL volume dominates with positive delta."""
+        c = MassiveClient()
+        items = self._make_flow_items()
+        with patch.object(c, "get_options_flow", return_value=items):
+            with patch("data.massive_client.MassiveClient._is_available", return_value=True):
+                result = _run(c.get_greeks_summary(["AAPL"]))
+        self.assertGreater(result["AAPL"]["delta_bias"], 0)
+
+    def test_greeks_summary_high_oi_strike(self):
+        """high_oi_strike should be the strike with the highest open_interest."""
+        c = MassiveClient()
+        items = self._make_flow_items()  # OIs: 5000@185, 3000@190, 2000@180 → max at 185
+        with patch.object(c, "get_options_flow", return_value=items):
+            with patch("data.massive_client.MassiveClient._is_available", return_value=True):
+                result = _run(c.get_greeks_summary(["AAPL"]))
+        self.assertEqual(result["AAPL"]["high_oi_strike"], 185)
+
+    def test_format_greeks_for_prompt(self):
+        """format_greeks_for_prompt returns a non-empty string with IV and P/C ratio."""
+        from data.massive_client import format_greeks_for_prompt
+        summary = {
+            "avg_iv": 0.305,
+            "delta_bias": 0.18,
+            "put_call_ratio": 0.29,
+            "high_oi_strike": 185,
+            "call_volume": 350,
+            "put_volume": 100,
+        }
+        text = format_greeks_for_prompt("AAPL", summary)
+        self.assertIn("IV", text)
+        self.assertIn("30.5%", text)
+        self.assertIn("P/C", text)
+        self.assertIn("bullish", text.lower())
 
 
 # ── S3 ────────────────────────────────────────────────────────────────────────

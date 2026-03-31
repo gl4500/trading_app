@@ -140,6 +140,10 @@ async def init_agents() -> None:
     app_state.gemini_news_agent = gemini
     all_agents = [tech, momentum, mean_rev, sentiment, claude, historical_trends, ensemble, scanner_portfolio]
 
+    # Restore rolling 24h token windows from DB (so budgets survive restarts)
+    for _token_agent in [sentiment, claude, gemini]:
+        await _token_agent.seed_from_history()
+
     # Register agents in DB and restore full portfolio state for continuity across restarts
     for agent in all_agents:
         agent_id = await upsert_agent(agent.name, agent.strategy_description)
