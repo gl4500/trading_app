@@ -31,6 +31,9 @@ from database import (
     reset_database,
     get_token_log,
     cleanup_token_log,
+    save_price_snapshot,
+    update_price_snapshot,
+    get_price_snapshots,
 )
 from trading.portfolio import Position, TradeRecord
 from data.market_data import market_data_service
@@ -141,10 +144,6 @@ async def init_agents() -> None:
     app_state.gemini_news_agent = gemini
     all_agents = [tech, momentum, mean_rev, sentiment, claude, historical_trends, ensemble, scanner_portfolio]
 
-    # Restore rolling 24h token windows from DB (so budgets survive restarts)
-    for _token_agent in [sentiment, claude, gemini]:
-        await _token_agent.seed_from_history()
-
     # Register agents in DB and restore full portfolio state for continuity across restarts
     for agent in all_agents:
         agent_id = await upsert_agent(agent.name, agent.strategy_description)
@@ -192,13 +191,38 @@ async def init_agents() -> None:
 
     logger.info(f"Initialized {len(all_agents)} agents")
 
+    # Restore news-price snapshots from DB so in-progress tracking
+    # survives restarts (price_open / price_1h continue filling in)
+    try:
+        restored = await get_price_snapshots(limit=100)
+        import datetime as _dt
+        for snap in restored:
+            # Re-parse open_recorded_at back to datetime for elapsed-time math
+            raw = snap.get("open_recorded_at")
+            if raw and isinstance(raw, str):
+                try:
+                    snap["open_recorded_at"] = _dt.datetime.fromisoformat(raw)
+                except Exception:
+                    snap["open_recorded_at"] = None
+            snap["_db_id"] = snap.pop("id", None)
+            # Only restore snapshots that still need work (price_1h not yet set)
+            if snap.get("price_1h") is None:
+                app_state.news_price_snapshots.append(snap)
+        logger.info(f"Restored {len(app_state.news_price_snapshots)} pending price snapshots from DB")
+    except Exception as _e:
+        logger.warning(f"Could not restore price snapshots from DB: {_e}")
+
+    # Seed rolling 24h token windows from DB after restart
+    for _token_agent in [sentiment, claude, gemini]:
+        await _token_agent.seed_from_history()
+
 
 # ─── News-Price Correlation ──────────────────────────────────────────────────
 
 _REACTION_WINDOW_SECS = 300   # 5 min initial reaction window for intraday catalysts
 _SUSTAINED_WINDOW_SECS = 3600  # 60 min for the sustained (price_1h) reading
 
-def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
+async def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
     """Fill price_open / price_1h fields on correlation snapshots as trading progresses.
 
     After-hours catalysts (during_session=False):
@@ -237,6 +261,16 @@ def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
                 snap["price_open"] = current
                 snap["change_open"] = round(pct, 2)
                 snap["open_recorded_at"] = now
+                if snap.get("_db_id"):
+                    try:
+                        await update_price_snapshot(
+                            snap["_db_id"],
+                            price_open=current,
+                            change_open=snap["change_open"],
+                            open_recorded_at=now,
+                        )
+                    except Exception as _e:
+                        logger.debug(f"DB update price_open failed: {_e}")
 
         elif snap["price_1h"] is None:
             # Wait until >= 60 min have elapsed since price_open was recorded
@@ -245,6 +279,15 @@ def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
                 change_1h = round(pct, 2)
                 snap["price_1h"] = current
                 snap["change_1h"] = change_1h
+                if snap.get("_db_id"):
+                    try:
+                        await update_price_snapshot(
+                            snap["_db_id"],
+                            price_1h=current,
+                            change_1h=change_1h,
+                        )
+                    except Exception as _e:
+                        logger.debug(f"DB update price_1h failed: {_e}")
                 # Record the confirmed outcome to learning.json so agents can
                 # learn which catalyst types actually move prices
                 try:
@@ -383,7 +426,7 @@ async def trading_loop() -> None:
             app_state.last_market_context = market_context
 
             # Update news-price correlation snapshots with live prices
-            _update_news_price_snapshots(prices)
+            await _update_news_price_snapshots(prices)
 
             # Filter out agents that are ensemble (it runs sub-agents internally)
             # Run all agents concurrently (excluding ensemble's sub-agents which it runs itself)
@@ -822,6 +865,13 @@ async def news_sentinel_loop() -> None:
                             "change_1h":         None,
                             "open_recorded_at":  None,   # datetime when price_open was set
                         })
+                        # Persist to DB so it survives restarts
+                        try:
+                            new_snap = app_state.news_price_snapshots[-1]
+                            db_id = await save_price_snapshot(new_snap)
+                            new_snap["_db_id"] = db_id
+                        except Exception as _e:
+                            logger.debug(f"save_price_snapshot failed: {_e}")
             # Trim to most recent 50
             app_state.after_hours_catalysts = sorted(
                 app_state.after_hours_catalysts,

@@ -113,6 +113,28 @@ async def init_db() -> None:
         await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_agent ON token_log(agent)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_limit_hit ON token_log(limit_hit)")
 
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS news_price_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL,
+                headline TEXT,
+                score INTEGER DEFAULT 0,
+                category TEXT DEFAULT 'catalyst',
+                price_at REAL DEFAULT 0,
+                detected_at TEXT,
+                during_session INTEGER DEFAULT 0,
+                price_open REAL,
+                price_1h REAL,
+                change_open REAL,
+                change_1h REAL,
+                open_recorded_at TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_nps_created ON news_price_snapshots(created_at)"
+        )
+
         await db.commit()
     logger.info("Database initialized successfully")
     await cleanup_stale_positions()
@@ -458,6 +480,78 @@ async def get_daily_token_total(agent: str, hours: int = 24) -> int:
         )
         row = await cursor.fetchone()
         return int(row[0]) if row and row[0] is not None else 0
+
+
+async def save_price_snapshot(snap: Dict) -> int:
+    """Insert a new news-price snapshot row and return its DB id."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        now = datetime.utcnow().isoformat()
+        cursor = await db.execute(
+            """INSERT INTO news_price_snapshots
+               (symbol, headline, score, category, price_at, detected_at,
+                during_session, price_open, price_1h, change_open, change_1h,
+                open_recorded_at, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                snap.get("symbol", ""),
+                snap.get("headline", "")[:200],
+                snap.get("score", 0),
+                snap.get("category", "catalyst"),
+                snap.get("price_at", 0),
+                snap.get("detected_at", now),
+                1 if snap.get("during_session") else 0,
+                snap.get("price_open"),
+                snap.get("price_1h"),
+                snap.get("change_open"),
+                snap.get("change_1h"),
+                snap.get("open_recorded_at").isoformat()
+                    if snap.get("open_recorded_at") and hasattr(snap["open_recorded_at"], "isoformat")
+                    else snap.get("open_recorded_at"),
+                now,
+            ),
+        )
+        await db.commit()
+        return cursor.lastrowid
+
+
+async def update_price_snapshot(snap_id: int, **fields) -> None:
+    """Update specific fields on an existing snapshot row.
+
+    Accepted keyword args: price_open, change_open, open_recorded_at,
+                           price_1h, change_1h.
+    open_recorded_at may be a datetime object or ISO string.
+    """
+    allowed = {"price_open", "change_open", "open_recorded_at", "price_1h", "change_1h"}
+    updates = {k: v for k, v in fields.items() if k in allowed}
+    if not updates:
+        return
+    # Serialise datetime objects
+    if "open_recorded_at" in updates and hasattr(updates["open_recorded_at"], "isoformat"):
+        updates["open_recorded_at"] = updates["open_recorded_at"].isoformat()
+    set_clause = ", ".join(f"{k} = ?" for k in updates)
+    params = list(updates.values()) + [snap_id]
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            f"UPDATE news_price_snapshots SET {set_clause} WHERE id = ?", params
+        )
+        await db.commit()
+
+
+async def get_price_snapshots(limit: int = 100) -> List[Dict]:
+    """Return the most recent `limit` news-price snapshots, newest first."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            "SELECT * FROM news_price_snapshots ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+        rows = await cursor.fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            d["during_session"] = bool(d.get("during_session"))
+            result.append(d)
+        return result
 
 
 async def cleanup_token_log(hours: int = 24) -> None:

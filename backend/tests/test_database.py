@@ -573,5 +573,87 @@ class TestTokenLog(TestDatabaseBase):
         self.assertEqual(rows[0]["agent"], "ClaudeAgent")
 
 
+class TestNewsPriceSnapshots(TestDatabaseBase):
+    """Tests for save_price_snapshot / update_price_snapshot / get_price_snapshots."""
+
+    def _snap(self, symbol="AAPL", score=3, category="macro",
+              during_session=False, price_at=150.0,
+              detected_at="2024-01-02T00:00:00Z"):
+        return {
+            "symbol":           symbol,
+            "headline":         "Test catalyst headline",
+            "score":            score,
+            "category":         category,
+            "price_at":         price_at,
+            "detected_at":      detected_at,
+            "during_session":   during_session,
+            "price_open":       None,
+            "price_1h":         None,
+            "change_open":      None,
+            "change_1h":        None,
+            "open_recorded_at": None,
+        }
+
+    def test_save_returns_integer_id(self):
+        snap_id = run(database.save_price_snapshot(self._snap()))
+        self.assertIsInstance(snap_id, int)
+        self.assertGreater(snap_id, 0)
+
+    def test_save_persists_core_fields(self):
+        run(database.save_price_snapshot(self._snap(symbol="MSFT", score=4, category="policy")))
+        rows = run(database.get_price_snapshots())
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["symbol"], "MSFT")
+        self.assertEqual(rows[0]["score"], 4)
+        self.assertEqual(rows[0]["category"], "policy")
+
+    def test_save_persists_during_session_flag(self):
+        run(database.save_price_snapshot(self._snap(during_session=True)))
+        rows = run(database.get_price_snapshots())
+        self.assertTrue(rows[0]["during_session"])
+
+    def test_update_sets_price_open(self):
+        snap_id = run(database.save_price_snapshot(self._snap()))
+        run(database.update_price_snapshot(snap_id, price_open=155.0, change_open=3.33))
+        rows = run(database.get_price_snapshots())
+        self.assertAlmostEqual(rows[0]["price_open"], 155.0)
+        self.assertAlmostEqual(rows[0]["change_open"], 3.33)
+
+    def test_update_sets_price_1h(self):
+        snap_id = run(database.save_price_snapshot(self._snap()))
+        run(database.update_price_snapshot(snap_id, price_1h=158.0, change_1h=5.33))
+        rows = run(database.get_price_snapshots())
+        self.assertAlmostEqual(rows[0]["price_1h"], 158.0)
+        self.assertAlmostEqual(rows[0]["change_1h"], 5.33)
+
+    def test_update_sets_open_recorded_at(self):
+        snap_id = run(database.save_price_snapshot(self._snap()))
+        run(database.update_price_snapshot(snap_id, open_recorded_at="2024-01-02T09:35:00"))
+        rows = run(database.get_price_snapshots())
+        self.assertEqual(rows[0]["open_recorded_at"], "2024-01-02T09:35:00")
+
+    def test_get_returns_newest_first(self):
+        run(database.save_price_snapshot(self._snap(symbol="AAPL", detected_at="2024-01-01T00:00:00Z")))
+        run(database.save_price_snapshot(self._snap(symbol="MSFT", detected_at="2024-01-02T00:00:00Z")))
+        rows = run(database.get_price_snapshots())
+        self.assertEqual(rows[0]["symbol"], "MSFT")
+
+    def test_get_limited_to_100(self):
+        for i in range(110):
+            run(database.save_price_snapshot(self._snap(symbol=f"S{i:03d}")))
+        rows = run(database.get_price_snapshots())
+        self.assertEqual(len(rows), 100)
+
+    def test_get_returns_empty_list_when_none(self):
+        rows = run(database.get_price_snapshots())
+        self.assertEqual(rows, [])
+
+    def test_multiple_snapshots_same_symbol(self):
+        run(database.save_price_snapshot(self._snap(symbol="AAPL", detected_at="2024-01-01T00:00:00Z")))
+        run(database.save_price_snapshot(self._snap(symbol="AAPL", detected_at="2024-01-02T00:00:00Z")))
+        rows = run(database.get_price_snapshots())
+        self.assertEqual(len(rows), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

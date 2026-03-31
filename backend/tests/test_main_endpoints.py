@@ -751,12 +751,12 @@ class TestTokenLogEndpoint(unittest.TestCase):
         self.assertEqual(call_kwargs.get("hours"), 0)
 
 
-class TestUpdateNewsPriceSnapshots(unittest.TestCase):
-    """Unit tests for _update_news_price_snapshots — price_open / price_1h logic."""
+class TestUpdateNewsPriceSnapshots(unittest.IsolatedAsyncioTestCase):
+    """Unit tests for _update_news_price_snapshots — price_open / price_1h / DB persistence."""
 
     def _make_snap(self, symbol="AAPL", price_at=100.0, during_session=False,
-                   detected_at="2024-01-02T09:30:00Z"):
-        return {
+                   detected_at="2024-01-02T09:30:00Z", db_id=None):
+        snap = {
             "symbol":            symbol,
             "headline":          "Test headline",
             "score":             3,
@@ -770,85 +770,85 @@ class TestUpdateNewsPriceSnapshots(unittest.TestCase):
             "change_1h":         None,
             "open_recorded_at":  None,
         }
+        if db_id is not None:
+            snap["_db_id"] = db_id
+        return snap
 
-    def _call(self, snaps, prices, now=None):
+    async def _call(self, snaps, prices, now=None):
         import main
-        from unittest.mock import patch as _patch
+        from unittest.mock import patch as _patch, AsyncMock
         import datetime as dt
         fixed = now or dt.datetime(2024, 1, 2, 10, 0, 0)
-        with _patch("main.datetime") as mock_dt:
+        with _patch("main.datetime") as mock_dt, \
+             _patch("main.update_price_snapshot", new_callable=AsyncMock), \
+             _patch("main.record_catalyst_outcome"):
             mock_dt.utcnow.return_value = fixed
             mock_dt.fromisoformat = dt.datetime.fromisoformat
             mock_dt.side_effect = lambda *a, **kw: dt.datetime(*a, **kw)
             old = main.app_state.news_price_snapshots
             main.app_state.news_price_snapshots = snaps
-            main._update_news_price_snapshots(prices)
+            await main._update_news_price_snapshots(prices)
             result = list(main.app_state.news_price_snapshots)
             main.app_state.news_price_snapshots = old
         return result
 
     # ── After-hours catalysts ──────────────────────────────────────────────────
 
-    def test_afterhours_price_open_set_on_first_cycle(self):
+    async def test_afterhours_price_open_set_on_first_cycle(self):
         """After-hours catalysts: price_open captured immediately at market open."""
         snap = self._make_snap(price_at=100.0, during_session=False)
-        result = self._call([snap], {"AAPL": 102.0})
+        result = await self._call([snap], {"AAPL": 102.0})
         self.assertAlmostEqual(result[0]["price_open"], 102.0)
         self.assertAlmostEqual(result[0]["change_open"], 2.0)
         self.assertIsNotNone(result[0]["open_recorded_at"])
 
     # ── Intraday catalysts ─────────────────────────────────────────────────────
 
-    def test_intraday_price_open_not_set_before_5_minutes(self):
+    async def test_intraday_price_open_not_set_before_5_minutes(self):
         """Intraday catalysts: price_open NOT set until >= 5 min after detection."""
         import datetime as dt
         detected = "2024-01-02T10:00:00Z"
         snap = self._make_snap(price_at=100.0, during_session=True, detected_at=detected)
-        # Call 3 minutes after detection — too soon
         three_min_later = dt.datetime(2024, 1, 2, 10, 3, 0)
-        result = self._call([snap], {"AAPL": 102.0}, now=three_min_later)
+        result = await self._call([snap], {"AAPL": 102.0}, now=three_min_later)
         self.assertIsNone(result[0]["price_open"])
 
-    def test_intraday_price_open_set_after_5_minutes(self):
+    async def test_intraday_price_open_set_after_5_minutes(self):
         """Intraday catalysts: price_open captured once >= 5 min have elapsed."""
         import datetime as dt
         detected = "2024-01-02T10:00:00Z"
         snap = self._make_snap(price_at=100.0, during_session=True, detected_at=detected)
-        # Call 6 minutes after detection
         six_min_later = dt.datetime(2024, 1, 2, 10, 6, 0)
-        result = self._call([snap], {"AAPL": 103.0}, now=six_min_later)
+        result = await self._call([snap], {"AAPL": 103.0}, now=six_min_later)
         self.assertAlmostEqual(result[0]["price_open"], 103.0)
         self.assertAlmostEqual(result[0]["change_open"], 3.0)
         self.assertIsNotNone(result[0]["open_recorded_at"])
 
     # ── Shared 1h freeze logic ─────────────────────────────────────────────────
 
-    def test_price_1h_not_set_before_60_minutes(self):
-        """price_1h must stay None if fewer than 60 min have elapsed since price_open."""
+    async def test_price_1h_not_set_before_60_minutes(self):
         import datetime as dt
         snap = self._make_snap(price_at=100.0)
         snap["price_open"] = 102.0
         snap["change_open"] = 2.0
         snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 10, 0, 0)
         later = dt.datetime(2024, 1, 2, 10, 30, 0)
-        result = self._call([snap], {"AAPL": 105.0}, now=later)
+        result = await self._call([snap], {"AAPL": 105.0}, now=later)
         self.assertIsNone(result[0]["price_1h"])
         self.assertIsNone(result[0]["change_1h"])
 
-    def test_price_1h_set_after_60_minutes(self):
-        """price_1h is set once >= 60 min have elapsed since price_open."""
+    async def test_price_1h_set_after_60_minutes(self):
         import datetime as dt
         snap = self._make_snap(price_at=100.0)
         snap["price_open"] = 102.0
         snap["change_open"] = 2.0
         snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 9, 0, 0)
         later = dt.datetime(2024, 1, 2, 10, 1, 0)
-        result = self._call([snap], {"AAPL": 103.0}, now=later)
+        result = await self._call([snap], {"AAPL": 103.0}, now=later)
         self.assertAlmostEqual(result[0]["price_1h"], 103.0)
         self.assertAlmostEqual(result[0]["change_1h"], 3.0)
 
-    def test_price_1h_frozen_after_first_set(self):
-        """Once price_1h is set it must not be overwritten on subsequent cycles."""
+    async def test_price_1h_frozen_after_first_set(self):
         import datetime as dt
         snap = self._make_snap(price_at=100.0)
         snap["price_open"] = 102.0
@@ -857,51 +857,106 @@ class TestUpdateNewsPriceSnapshots(unittest.TestCase):
         snap["price_1h"] = 103.0
         snap["change_1h"] = 3.0
         later = dt.datetime(2024, 1, 2, 12, 0, 0)
-        result = self._call([snap], {"AAPL": 110.0}, now=later)
+        result = await self._call([snap], {"AAPL": 110.0}, now=later)
         self.assertAlmostEqual(result[0]["price_1h"], 103.0)
         self.assertAlmostEqual(result[0]["change_1h"], 3.0)
 
-    def test_symbol_not_in_prices_skipped(self):
+    async def test_symbol_not_in_prices_skipped(self):
         snap = self._make_snap(symbol="TSLA", price_at=200.0)
-        result = self._call([snap], {"AAPL": 150.0})
+        result = await self._call([snap], {"AAPL": 150.0})
         self.assertIsNone(result[0]["price_open"])
 
-    def test_snapshots_trimmed_to_100(self):
+    async def test_snapshots_trimmed_to_100(self):
         snaps = [self._make_snap(price_at=100.0) for _ in range(110)]
-        result = self._call(snaps, {"AAPL": 102.0})
+        result = await self._call(snaps, {"AAPL": 102.0})
         self.assertEqual(len(result), 100)
 
-    def test_record_catalyst_outcome_called_when_price_1h_frozen(self):
-        """When price_1h is set for the first time, record_catalyst_outcome is called."""
+    async def test_update_price_snapshot_called_when_price_open_set(self):
+        """DB update is called when price_open is first recorded."""
+        import main
         import datetime as dt
+        from unittest.mock import AsyncMock
+        snap = self._make_snap(price_at=100.0, db_id=42)
+        fixed = dt.datetime(2024, 1, 2, 10, 0, 0)
+        with patch("main.datetime") as mock_dt, \
+             patch("main.update_price_snapshot", new_callable=AsyncMock) as mock_upd, \
+             patch("main.record_catalyst_outcome"):
+            mock_dt.utcnow.return_value = fixed
+            mock_dt.fromisoformat = dt.datetime.fromisoformat
+            old = main.app_state.news_price_snapshots
+            main.app_state.news_price_snapshots = [snap]
+            await main._update_news_price_snapshots({"AAPL": 102.0})
+            main.app_state.news_price_snapshots = old
+        mock_upd.assert_called_once()
+        call_kwargs = mock_upd.call_args[1]
+        self.assertAlmostEqual(call_kwargs["price_open"], 102.0)
+
+    async def test_update_price_snapshot_called_when_price_1h_set(self):
+        """DB update is called when price_1h is frozen."""
+        import main
+        import datetime as dt
+        from unittest.mock import AsyncMock
+        snap = self._make_snap(price_at=100.0, db_id=7)
+        snap["price_open"] = 102.0
+        snap["change_open"] = 2.0
+        snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 9, 0, 0)
+        later = dt.datetime(2024, 1, 2, 10, 1, 0)
+        with patch("main.datetime") as mock_dt, \
+             patch("main.update_price_snapshot", new_callable=AsyncMock) as mock_upd, \
+             patch("main.record_catalyst_outcome"):
+            mock_dt.utcnow.return_value = later
+            mock_dt.fromisoformat = dt.datetime.fromisoformat
+            old = main.app_state.news_price_snapshots
+            main.app_state.news_price_snapshots = [snap]
+            await main._update_news_price_snapshots({"AAPL": 103.0})
+            main.app_state.news_price_snapshots = old
+        mock_upd.assert_called_once()
+        call_kwargs = mock_upd.call_args[1]
+        self.assertAlmostEqual(call_kwargs["price_1h"], 103.0)
+
+    async def test_record_catalyst_outcome_called_when_price_1h_frozen(self):
+        import main
+        import datetime as dt
+        from unittest.mock import AsyncMock
         snap = self._make_snap(price_at=100.0)
         snap["price_open"] = 102.0
         snap["change_open"] = 2.0
         snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 9, 0, 0)
-        later = dt.datetime(2024, 1, 2, 10, 1, 0)  # 61 min later
-
-        with patch("main.record_catalyst_outcome") as mock_record:
-            self._call([snap], {"AAPL": 103.0}, now=later)
-
+        later = dt.datetime(2024, 1, 2, 10, 1, 0)
+        with patch("main.datetime") as mock_dt, \
+             patch("main.update_price_snapshot", new_callable=AsyncMock), \
+             patch("main.record_catalyst_outcome") as mock_record:
+            mock_dt.utcnow.return_value = later
+            mock_dt.fromisoformat = dt.datetime.fromisoformat
+            old = main.app_state.news_price_snapshots
+            main.app_state.news_price_snapshots = [snap]
+            await main._update_news_price_snapshots({"AAPL": 103.0})
+            main.app_state.news_price_snapshots = old
         mock_record.assert_called_once()
         call_kwargs = mock_record.call_args[1]
         self.assertEqual(call_kwargs["symbol"], "AAPL")
         self.assertAlmostEqual(call_kwargs["change_1h"], 3.0)
 
-    def test_record_catalyst_outcome_not_called_if_already_set(self):
-        """If price_1h was already set (frozen), record_catalyst_outcome must NOT be called again."""
+    async def test_record_catalyst_outcome_not_called_if_already_set(self):
+        import main
         import datetime as dt
+        from unittest.mock import AsyncMock
         snap = self._make_snap(price_at=100.0)
         snap["price_open"] = 102.0
         snap["change_open"] = 2.0
         snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 9, 0, 0)
-        snap["price_1h"] = 103.0   # already frozen
+        snap["price_1h"] = 103.0
         snap["change_1h"] = 3.0
         later = dt.datetime(2024, 1, 2, 12, 0, 0)
-
-        with patch("main.record_catalyst_outcome") as mock_record:
-            self._call([snap], {"AAPL": 107.0}, now=later)
-
+        with patch("main.datetime") as mock_dt, \
+             patch("main.update_price_snapshot", new_callable=AsyncMock), \
+             patch("main.record_catalyst_outcome") as mock_record:
+            mock_dt.utcnow.return_value = later
+            mock_dt.fromisoformat = dt.datetime.fromisoformat
+            old = main.app_state.news_price_snapshots
+            main.app_state.news_price_snapshots = [snap]
+            await main._update_news_price_snapshots({"AAPL": 107.0})
+            main.app_state.news_price_snapshots = old
         mock_record.assert_not_called()
 
 
