@@ -31,6 +31,7 @@ interface PriceSnap {
   category: string
   price_at: number
   detected_at: string
+  during_session: boolean
   price_open: number | null
   price_1h: number | null
   change_open: number | null
@@ -145,11 +146,16 @@ function ImpactRow({ snap }: { snap: PriceSnap }) {
   const hasMeasurement = snap.change_1h !== null
   const hasMoved = hasMeasurement && Math.abs(snap.change_1h!) >= MOVE_THRESHOLD
 
+  const openLabel    = snap.during_session ? '5m React' : 'At Open'
+  const openTitle    = snap.during_session
+    ? 'Price 5 minutes after intraday catalyst'
+    : 'Price at market open vs detection price'
+
   let statusEl: JSX.Element
   if (!hasMeasurement) {
     statusEl = <span className="text-xs text-yellow-600" title="Waiting for 1h price reading">…</span>
   } else if (hasMoved) {
-    statusEl = <span className="text-xs text-emerald-500" title="Price moved after catalyst">✓</span>
+    statusEl = <span className="text-xs text-emerald-500" title="Confirmed move (≥0.05%)">✓</span>
   } else {
     statusEl = <span className="text-xs text-gray-500" title="Data captured — no meaningful move">~</span>
   }
@@ -167,11 +173,11 @@ function ImpactRow({ snap }: { snap: PriceSnap }) {
         ${snap.price_at.toFixed(2)}
       </div>
       <div className="col-span-2 text-center">
-        <div className="text-xs text-gray-500">At open</div>
+        <div className="text-xs text-gray-500" title={openTitle}>{openLabel}</div>
         {changePill(snap.change_open)}
       </div>
       <div className="col-span-2 text-center">
-        <div className="text-xs text-gray-500">Sustained</div>
+        <div className="text-xs text-gray-500">1h Sustained</div>
         {changePill(snap.change_1h)}
       </div>
       <div className="col-span-1 text-center">
@@ -369,8 +375,8 @@ export default function SentinelPanel() {
                         <div className="col-span-4">Catalyst</div>
                         <div className="col-span-1">Cat</div>
                         <div className="col-span-1">Price@</div>
-                        <div className="col-span-2 text-center">At Open</div>
-                        <div className="col-span-2 text-center">Sustained</div>
+                        <div className="col-span-2 text-center" title="'At Open' for overnight catalysts, '5m React' for intraday">Initial</div>
+                        <div className="col-span-2 text-center">1h Sustained</div>
                         <div className="col-span-1 text-center">Status</div>
                       </div>
                       <div className="px-3">
@@ -392,8 +398,8 @@ export default function SentinelPanel() {
                         <div className="col-span-4">Catalyst</div>
                         <div className="col-span-1">Cat</div>
                         <div className="col-span-1">Price@</div>
-                        <div className="col-span-2 text-center">At Open</div>
-                        <div className="col-span-2 text-center">Sustained</div>
+                        <div className="col-span-2 text-center" title="'At Open' for overnight catalysts, '5m React' for intraday">Initial</div>
+                        <div className="col-span-2 text-center">1h Sustained</div>
                         <div className="col-span-1 text-center">Status</div>
                       </div>
                       <div className="px-3">

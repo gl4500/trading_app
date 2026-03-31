@@ -194,12 +194,23 @@ async def init_agents() -> None:
 
 # ─── News-Price Correlation ──────────────────────────────────────────────────
 
+_REACTION_WINDOW_SECS = 300   # 5 min initial reaction window for intraday catalysts
+_SUSTAINED_WINDOW_SECS = 3600  # 60 min for the sustained (price_1h) reading
+
 def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
     """Fill price_open / price_1h fields on correlation snapshots as trading progresses.
 
-    price_open  — captured once on the first price read after catalyst detection.
-    price_1h    — captured once, >= 60 minutes after price_open was recorded, then frozen.
-                  Never overwritten after being set, so the UI shows a stable outcome.
+    After-hours catalysts (during_session=False):
+      price_open  — captured immediately on the first trading-cycle price read
+                    (i.e. at market open the next morning).
+
+    Intraday catalysts (during_session=True):
+      price_open  — captured once >= 5 min have elapsed since detection
+                    (gives the market time to react before we record).
+
+    Both types:
+      price_1h    — captured once, >= 60 min after price_open was recorded, then
+                    frozen permanently so the UI shows a stable 1-hour outcome.
     """
     now = datetime.utcnow()
     for snap in app_state.news_price_snapshots:
@@ -213,14 +224,23 @@ def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
         pct = (current - base) / base * 100
 
         if snap["price_open"] is None:
-            # First price read after detection — record the open price
-            snap["price_open"] = current
-            snap["change_open"] = round(pct, 2)
-            snap["open_recorded_at"] = now
+            ready = True
+            if snap.get("during_session"):
+                # Intraday: wait for the 5-min reaction window to elapse
+                try:
+                    det = datetime.fromisoformat(snap["detected_at"].replace("Z", ""))
+                    ready = (now - det).total_seconds() >= _REACTION_WINDOW_SECS
+                except Exception:
+                    ready = True
+            if ready:
+                snap["price_open"] = current
+                snap["change_open"] = round(pct, 2)
+                snap["open_recorded_at"] = now
+
         elif snap["price_1h"] is None:
             # Wait until >= 60 min have elapsed since price_open was recorded
             recorded_at = snap.get("open_recorded_at")
-            if recorded_at and (now - recorded_at).total_seconds() >= 3600:
+            if recorded_at and (now - recorded_at).total_seconds() >= _SUSTAINED_WINDOW_SECS:
                 snap["price_1h"] = current
                 snap["change_1h"] = round(pct, 2)
         # price_1h already set — leave it frozen, no further updates
@@ -777,6 +797,7 @@ async def news_sentinel_loop() -> None:
                             "category":     cat.get("category", "news"),
                             "price_at":     app_state.last_prices[sym],
                             "detected_at":  cat.get("detected_at", datetime.utcnow().isoformat() + "Z"),
+                            "during_session":    _market_is_open(),   # True = intraday catalyst
                             "price_open":        None,   # filled on first price read
                             "price_1h":          None,   # filled once, >= 60 min after open
                             "change_open":       None,

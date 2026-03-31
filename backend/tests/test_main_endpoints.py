@@ -754,14 +754,16 @@ class TestTokenLogEndpoint(unittest.TestCase):
 class TestUpdateNewsPriceSnapshots(unittest.TestCase):
     """Unit tests for _update_news_price_snapshots — price_open / price_1h logic."""
 
-    def _make_snap(self, symbol="AAPL", price_at=100.0):
+    def _make_snap(self, symbol="AAPL", price_at=100.0, during_session=False,
+                   detected_at="2024-01-02T09:30:00Z"):
         return {
             "symbol":            symbol,
             "headline":          "Test headline",
             "score":             3,
             "category":          "catalyst",
             "price_at":          price_at,
-            "detected_at":       "2024-01-01T00:00:00Z",
+            "detected_at":       detected_at,
+            "during_session":    during_session,
             "price_open":        None,
             "price_1h":          None,
             "change_open":       None,
@@ -776,6 +778,7 @@ class TestUpdateNewsPriceSnapshots(unittest.TestCase):
         fixed = now or dt.datetime(2024, 1, 2, 10, 0, 0)
         with _patch("main.datetime") as mock_dt:
             mock_dt.utcnow.return_value = fixed
+            mock_dt.fromisoformat = dt.datetime.fromisoformat
             mock_dt.side_effect = lambda *a, **kw: dt.datetime(*a, **kw)
             old = main.app_state.news_price_snapshots
             main.app_state.news_price_snapshots = snaps
@@ -784,12 +787,41 @@ class TestUpdateNewsPriceSnapshots(unittest.TestCase):
             main.app_state.news_price_snapshots = old
         return result
 
-    def test_price_open_set_on_first_call(self):
-        snap = self._make_snap(price_at=100.0)
+    # ── After-hours catalysts ──────────────────────────────────────────────────
+
+    def test_afterhours_price_open_set_on_first_cycle(self):
+        """After-hours catalysts: price_open captured immediately at market open."""
+        snap = self._make_snap(price_at=100.0, during_session=False)
         result = self._call([snap], {"AAPL": 102.0})
         self.assertAlmostEqual(result[0]["price_open"], 102.0)
         self.assertAlmostEqual(result[0]["change_open"], 2.0)
         self.assertIsNotNone(result[0]["open_recorded_at"])
+
+    # ── Intraday catalysts ─────────────────────────────────────────────────────
+
+    def test_intraday_price_open_not_set_before_5_minutes(self):
+        """Intraday catalysts: price_open NOT set until >= 5 min after detection."""
+        import datetime as dt
+        detected = "2024-01-02T10:00:00Z"
+        snap = self._make_snap(price_at=100.0, during_session=True, detected_at=detected)
+        # Call 3 minutes after detection — too soon
+        three_min_later = dt.datetime(2024, 1, 2, 10, 3, 0)
+        result = self._call([snap], {"AAPL": 102.0}, now=three_min_later)
+        self.assertIsNone(result[0]["price_open"])
+
+    def test_intraday_price_open_set_after_5_minutes(self):
+        """Intraday catalysts: price_open captured once >= 5 min have elapsed."""
+        import datetime as dt
+        detected = "2024-01-02T10:00:00Z"
+        snap = self._make_snap(price_at=100.0, during_session=True, detected_at=detected)
+        # Call 6 minutes after detection
+        six_min_later = dt.datetime(2024, 1, 2, 10, 6, 0)
+        result = self._call([snap], {"AAPL": 103.0}, now=six_min_later)
+        self.assertAlmostEqual(result[0]["price_open"], 103.0)
+        self.assertAlmostEqual(result[0]["change_open"], 3.0)
+        self.assertIsNotNone(result[0]["open_recorded_at"])
+
+    # ── Shared 1h freeze logic ─────────────────────────────────────────────────
 
     def test_price_1h_not_set_before_60_minutes(self):
         """price_1h must stay None if fewer than 60 min have elapsed since price_open."""
@@ -797,8 +829,7 @@ class TestUpdateNewsPriceSnapshots(unittest.TestCase):
         snap = self._make_snap(price_at=100.0)
         snap["price_open"] = 102.0
         snap["change_open"] = 2.0
-        snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 10, 0, 0)  # exactly now
-        # Call 30 minutes later — should not set price_1h
+        snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 10, 0, 0)
         later = dt.datetime(2024, 1, 2, 10, 30, 0)
         result = self._call([snap], {"AAPL": 105.0}, now=later)
         self.assertIsNone(result[0]["price_1h"])
@@ -811,7 +842,6 @@ class TestUpdateNewsPriceSnapshots(unittest.TestCase):
         snap["price_open"] = 102.0
         snap["change_open"] = 2.0
         snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 9, 0, 0)
-        # Call 61 minutes later
         later = dt.datetime(2024, 1, 2, 10, 1, 0)
         result = self._call([snap], {"AAPL": 103.0}, now=later)
         self.assertAlmostEqual(result[0]["price_1h"], 103.0)
@@ -826,7 +856,6 @@ class TestUpdateNewsPriceSnapshots(unittest.TestCase):
         snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 9, 0, 0)
         snap["price_1h"] = 103.0
         snap["change_1h"] = 3.0
-        # Call again with a different price — should not change price_1h
         later = dt.datetime(2024, 1, 2, 12, 0, 0)
         result = self._call([snap], {"AAPL": 110.0}, now=later)
         self.assertAlmostEqual(result[0]["price_1h"], 103.0)
@@ -834,7 +863,7 @@ class TestUpdateNewsPriceSnapshots(unittest.TestCase):
 
     def test_symbol_not_in_prices_skipped(self):
         snap = self._make_snap(symbol="TSLA", price_at=200.0)
-        result = self._call([snap], {"AAPL": 150.0})  # TSLA not in prices
+        result = self._call([snap], {"AAPL": 150.0})
         self.assertIsNone(result[0]["price_open"])
 
     def test_snapshots_trimmed_to_100(self):
