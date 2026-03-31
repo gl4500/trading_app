@@ -22,6 +22,7 @@ from agents.agent_utils import (
 )
 from config import config
 from data.learning_manager import get_learning_summary, record_trade
+from data.sector_analysis import format_sector_summary
 from data.news_service import news_service
 try:
     from data.risk_assessor import get_assessment_context as _get_risk_assessment_context
@@ -113,15 +114,17 @@ class ClaudeAgent(BaseAgent):
             tech_text      = format_technicals(symbol, ind, price)
             composite_sig  = ctx.get("composite_signal", {})
             composite_text = format_composite(composite_sig)
-            greeks_text    = ctx.get("greeks_text", "")
+            greeks_text       = ctx.get("greeks_text", "")
+            sector_ctx_text   = ctx.get("sector_context_text", "")
 
             greeks_section = f"\n{greeks_text}\n" if greeks_text else ""
+            sector_line    = f"\n### Sector Context\n{sector_ctx_text}\n" if sector_ctx_text else ""
 
             section = f"""
 ## {symbol} - Current Price: ${price:.2f}
 Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change_5d', 0):+.1f}%, 20D: {stats.get('price_change_20d', 0):+.1f}%
 52W High: ${stats.get('high_52w', 0):.2f} | 52W Low: ${stats.get('low_52w', 0):.2f}
-
+{sector_line}
 ### Multi-Source Composite Signal (weighted validity score)
 {composite_text}
 
@@ -169,12 +172,16 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
         macro_ctx = market_context.get("__massive_macro__", "")
         macro_section = f"\n{macro_ctx}\n" if macro_ctx else ""
 
+        sector_perf = market_context.get("__sector_context__", {})
+        sector_summary = format_sector_summary(sector_perf)
+        sector_section = f"\n## Macro → Sector Context\n{sector_summary}\n" if sector_summary else ""
+
         prompt = f"""You are an expert quantitative trader and portfolio manager competing in a trading competition. Your goal is to maximize risk-adjusted returns.
 
 ## Current Portfolio State
 {portfolio_ctx}
 {learning_ctx}{assessment_ctx}
-{gemini_section}{macro_section}{overnight_section}
+{gemini_section}{macro_section}{sector_section}{overnight_section}
 ## Market Data
 {market_data}
 

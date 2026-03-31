@@ -28,6 +28,7 @@ try:
 except Exception:
     _HAS_RISK_ASSESSOR = False
 from data.signal_aggregator import format_for_prompt as format_composite
+from data.sector_analysis import format_sector_summary
 from database import save_token_log, get_daily_token_total
 
 logger = logging.getLogger(__name__)
@@ -110,15 +111,17 @@ class GeminiAgent(BaseAgent):
             tech_text      = format_technicals(symbol, ind, price)
             composite_sig  = ctx.get("composite_signal", {})
             composite_text = format_composite(composite_sig)
-            greeks_text    = ctx.get("greeks_text", "")
+            greeks_text     = ctx.get("greeks_text", "")
+            sector_ctx_text = ctx.get("sector_context_text", "")
 
             greeks_section = f"\n{greeks_text}\n" if greeks_text else ""
+            sector_line    = f"\n### Sector Context\n{sector_ctx_text}\n" if sector_ctx_text else ""
 
             section = f"""
 ## {symbol} - Current Price: ${price:.2f}
 Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change_5d', 0):+.1f}%, 20D: {stats.get('price_change_20d', 0):+.1f}%
 52W High: ${stats.get('high_52w', 0):.2f} | 52W Low: ${stats.get('low_52w', 0):.2f}
-
+{sector_line}
 ### Multi-Source Composite Signal
 {composite_text}
 
@@ -159,11 +162,15 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
         macro_ctx = market_context.get("__massive_macro__", "")
         macro_section = f"\n{macro_ctx}\n" if macro_ctx else ""
 
+        sector_perf = market_context.get("__sector_context__", {})
+        sector_summary = format_sector_summary(sector_perf)
+        sector_section = f"\n## Macro → Sector Context\n{sector_summary}\n" if sector_summary else ""
+
         return f"""You are an expert quantitative trader competing in a paper trading competition. Maximize risk-adjusted returns.
 
 ## Portfolio State
 {portfolio_ctx}{assessment_ctx}
-{macro_section}{overnight_section}
+{macro_section}{sector_section}{overnight_section}
 ## Market Data
 {market_data}
 

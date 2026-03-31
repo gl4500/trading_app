@@ -16,6 +16,7 @@ from data import technicals
 from data.signal_aggregator import get_composite_signal
 from data.massive_client import massive_client, format_greeks_for_prompt
 from data.stooq_client import stooq_client
+from data import sector_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -267,9 +268,10 @@ class MarketDataService:
         massive_news_task   = massive_client.get_news_multi(syms, limit=5)
         long_term_bars_task = self.get_long_term_bars(syms)
         greeks_task         = massive_client.get_greeks_summary(syms)
+        sector_task         = sector_analysis.get_sector_performance()
 
-        prices, all_bars, all_news, macro_ctx, massive_news, all_long_term_bars, all_greeks = await asyncio.gather(
-            prices_task, bars_task, news_task, macro_task, massive_news_task, long_term_bars_task, greeks_task,
+        prices, all_bars, all_news, macro_ctx, massive_news, all_long_term_bars, all_greeks, sector_perf = await asyncio.gather(
+            prices_task, bars_task, news_task, macro_task, massive_news_task, long_term_bars_task, greeks_task, sector_task,
             return_exceptions=True,
         )
         if isinstance(all_long_term_bars, Exception):
@@ -280,6 +282,8 @@ class MarketDataService:
             massive_news = {}
         if isinstance(all_greeks, Exception):
             all_greeks = {}
+        if isinstance(sector_perf, Exception):
+            sector_perf = {}
 
         # Composite signals (yfinance is slow — run concurrently per symbol)
         composite_tasks = [get_composite_signal(sym, all_news.get(sym, [])) for sym in syms]
@@ -301,6 +305,7 @@ class MarketDataService:
                 lt_bars_empty = all_long_term_bars.get(sym, pd.DataFrame()) \
                     if isinstance(all_long_term_bars, dict) else pd.DataFrame()
                 greeks_sym = all_greeks.get(sym, {}) if isinstance(all_greeks, dict) else {}
+                svs = sector_analysis.get_stock_vs_sector(sym, None, sector_perf)
                 context[sym] = {
                     "symbol":          sym,
                     "price":           price or 0,
@@ -312,6 +317,8 @@ class MarketDataService:
                     "composite_signal": all_composite.get(sym, {}),
                     "greeks":          greeks_sym,
                     "greeks_text":     format_greeks_for_prompt(sym, greeks_sym),
+                    "sector_vs_market": svs,
+                    "sector_context_text": sector_analysis.format_stock_sector_context(sym, svs),
                 }
                 continue
 
@@ -357,6 +364,8 @@ class MarketDataService:
             lt_bars = all_long_term_bars.get(sym, pd.DataFrame()) \
                 if isinstance(all_long_term_bars, dict) else pd.DataFrame()
             greeks_sym = all_greeks.get(sym, {}) if isinstance(all_greeks, dict) else {}
+            stock_1d = stats.get("price_change_1d")
+            svs = sector_analysis.get_stock_vs_sector(sym, stock_1d, sector_perf)
 
             context[sym] = {
                 "symbol":           sym,
@@ -370,11 +379,15 @@ class MarketDataService:
                 "composite_signal": all_composite.get(sym, {}),
                 "greeks":           greeks_sym,
                 "greeks_text":      format_greeks_for_prompt(sym, greeks_sym),
+                "sector_vs_market": svs,
+                "sector_context_text": sector_analysis.format_stock_sector_context(sym, svs),
             }
 
-        # Attach macro context at the top level so agent prompts can access it
+        # Attach macro and sector context at the top level
         if macro_ctx:
             context["__massive_macro__"] = macro_ctx
+        if sector_perf:
+            context["__sector_context__"] = sector_perf
 
         return context
 

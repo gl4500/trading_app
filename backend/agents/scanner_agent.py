@@ -217,16 +217,19 @@ Process:
 Always check composite score, RSI, MACD, and volume confirmation before recommending."""
 
 
-def _build_user_message(candidates: List[Dict]) -> str:
+def _build_user_message(candidates: List[Dict], sector_summary: str = "") -> str:
     summary = "\n".join(
         f"  {c['symbol']:6s}  {c['pct_change']:+.2f}%  vol\u00d7{c['vol_ratio']:.1f}  "
         f"momentum={c['momentum_score']:.2f}"
         for c in candidates
     )
+    sector_block = f"\n## Sector Performance\n{sector_summary}\n" if sector_summary else ""
     return (
+        f"{sector_block}"
         f"Today's pre-screened momentum leaders (top movers by price \u00d7 volume):\n\n"
         f"{summary}\n\n"
         "Analyse these candidates and any additional stocks you want to investigate. "
+        "Use get_sector_leaders to explore sectors that are leading the market. "
         "Use your tools to get full analysis, then submit your recommendations. "
         "Focus on finding high-conviction opportunities with clear catalysts."
     )
@@ -445,7 +448,7 @@ def _split_candidates(candidates: List[Dict], n: int) -> List[List[Dict]]:
 
 # ── Claude scanner ─────────────────────────────────────────────────────────────
 
-async def _run_claude_scanner(candidates: List[Dict]) -> List[Dict]:
+async def _run_claude_scanner(candidates: List[Dict], sector_summary: str = "") -> List[Dict]:
     """Agentic Claude tool-use loop over a candidate subset."""
     from config import config
     import anthropic
@@ -454,7 +457,7 @@ async def _run_claude_scanner(candidates: List[Dict]) -> List[Dict]:
         return []
 
     client = anthropic.AsyncAnthropic(api_key=config.ANTHROPIC_API_KEY)
-    messages = [{"role": "user", "content": _build_user_message(candidates)}]
+    messages = [{"role": "user", "content": _build_user_message(candidates, sector_summary)}]
     recommendations: List[Dict] = []
     rounds = 0
     total_input_tokens = 0
@@ -564,7 +567,7 @@ def _build_gemini_tools():
     return [_genai_types.Tool(function_declarations=decls)]
 
 
-async def _run_gemini_scanner(candidates: List[Dict]) -> List[Dict]:
+async def _run_gemini_scanner(candidates: List[Dict], sector_summary: str = "") -> List[Dict]:
     """Agentic Gemini tool-use loop over a candidate subset."""
     from config import config
 
@@ -578,7 +581,7 @@ async def _run_gemini_scanner(candidates: List[Dict]) -> List[Dict]:
         _genai_types.Content(
             role="user",
             parts=[_genai_types.Part.from_text(
-                f"{_SYSTEM_PROMPT}\n\n{_build_user_message(candidates)}"
+                f"{_SYSTEM_PROMPT}\n\n{_build_user_message(candidates, sector_summary)}"
             )],
         )
     ]
@@ -679,7 +682,7 @@ _OPENAI_TOOLS = [
 ]
 
 
-async def _run_openai_scanner(candidates: List[Dict]) -> List[Dict]:
+async def _run_openai_scanner(candidates: List[Dict], sector_summary: str = "") -> List[Dict]:
     """Agentic OpenAI tool-use loop over a candidate subset."""
     from config import config
 
@@ -689,7 +692,7 @@ async def _run_openai_scanner(candidates: List[Dict]) -> List[Dict]:
     client = _AsyncOpenAI(api_key=config.OPENAI_API_KEY)
     messages: List[Dict] = [
         {"role": "system", "content": _SYSTEM_PROMPT},
-        {"role": "user", "content": _build_user_message(candidates)},
+        {"role": "user", "content": _build_user_message(candidates, sector_summary)},
     ]
     recommendations: List[Dict] = []
     rounds = 0
@@ -864,6 +867,15 @@ async def _run_scan_inner() -> Dict:
         }
         return result
 
+    # Fetch sector performance for context-aware scanning
+    sector_summary = ""
+    try:
+        from data.sector_analysis import get_sector_performance, format_sector_summary
+        sector_perf = await get_sector_performance()
+        sector_summary = format_sector_summary(sector_perf)
+    except Exception as e:
+        logger.debug(f"Scanner: sector performance fetch failed: {e}")
+
     # Determine which AI scanners are available
     from config import config
     scanners = []
@@ -892,7 +904,7 @@ async def _run_scan_inner() -> Dict:
         + ", ".join(f"{name}({len(s)} candidates)" for name, s in zip(agent_names, splits))
     )
 
-    tasks = [fn(split) for (_, fn), split in zip(scanners, splits)]
+    tasks = [fn(split, sector_summary) for (_, fn), split in zip(scanners, splits)]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     recommendations = _merge_recommendations(results)
