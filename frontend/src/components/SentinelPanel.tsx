@@ -179,6 +179,7 @@ export default function SentinelPanel() {
   const [loading, setLoading]     = useState(true)
   const [lastUpdated, setLU]      = useState<string | null>(null)
   const [activeView, setView]     = useState<'feed' | 'impact'>('feed')
+  const [symFilter, setSymFilter] = useState<string>('')
 
   const fetchAll = async () => {
     try {
@@ -316,55 +317,91 @@ export default function SentinelPanel() {
             <div className="flex items-center justify-center h-40 text-gray-500 bg-gray-900 rounded-xl border border-gray-800">
               No price snapshots yet — impact data builds once catalysts are detected and the market opens.
             </div>
-          ) : (
-            <>
-              {/* confirmed moves */}
-              {(impact?.confirmed.length ?? 0) > 0 && (
-                <div>
-                  <div className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2">
-                    Confirmed Moves ({impact!.confirmed.length})
-                  </div>
-                  <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
-                    <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-800 text-xs text-gray-500 font-semibold">
-                      <div className="col-span-1">SYM</div>
-                      <div className="col-span-4">Catalyst</div>
-                      <div className="col-span-1">Cat</div>
-                      <div className="col-span-1">Price@</div>
-                      <div className="col-span-2 text-center">At Open</div>
-                      <div className="col-span-2 text-center">Sustained</div>
-                      <div className="col-span-1 text-center">Status</div>
-                    </div>
-                    <div className="px-3">
-                      {impact!.confirmed.map((s, i) => <ImpactRow key={i} snap={s} />)}
-                    </div>
-                  </div>
-                </div>
-              )}
+          ) : (() => {
+            // Collect unique symbols across confirmed + pending
+            const allSymbols = Array.from(new Set(
+              [...(impact?.confirmed ?? []), ...(impact?.pending ?? [])]
+                .map(s => s.symbol)
+                .filter(Boolean)
+            )).sort()
 
-              {/* pending */}
-              {(impact?.pending.length ?? 0) > 0 && (
-                <div>
-                  <div className="text-xs font-bold text-yellow-500 uppercase tracking-widest mb-2">
-                    Pending ({impact!.pending.length})
+            const confirmed = (impact?.confirmed ?? []).filter(s => !symFilter || s.symbol === symFilter)
+            const pending   = (impact?.pending   ?? []).filter(s => !symFilter || s.symbol === symFilter)
+
+            return (
+              <>
+                {/* Symbol filter dropdown */}
+                {allSymbols.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500">Symbol</label>
+                    <select
+                      value={symFilter}
+                      onChange={e => setSymFilter(e.target.value)}
+                      className="text-xs bg-gray-800 border border-gray-700 text-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-cyan-600"
+                    >
+                      <option value="">All Symbols</option>
+                      {allSymbols.map(sym => (
+                        <option key={sym} value={sym}>{sym}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
-                    <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-800 text-xs text-gray-500 font-semibold">
-                      <div className="col-span-1">SYM</div>
-                      <div className="col-span-4">Catalyst</div>
-                      <div className="col-span-1">Cat</div>
-                      <div className="col-span-1">Price@</div>
-                      <div className="col-span-2 text-center">At Open</div>
-                      <div className="col-span-2 text-center">Sustained</div>
-                      <div className="col-span-1 text-center">Status</div>
+                )}
+
+                {/* confirmed moves */}
+                {confirmed.length > 0 && (
+                  <div>
+                    <div className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2">
+                      Confirmed Moves ({confirmed.length})
                     </div>
-                    <div className="px-3">
-                      {impact!.pending.map((s, i) => <ImpactRow key={i} snap={s} />)}
+                    <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
+                      <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-800 text-xs text-gray-500 font-semibold">
+                        <div className="col-span-1">SYM</div>
+                        <div className="col-span-4">Catalyst</div>
+                        <div className="col-span-1">Cat</div>
+                        <div className="col-span-1">Price@</div>
+                        <div className="col-span-2 text-center">At Open</div>
+                        <div className="col-span-2 text-center">Sustained</div>
+                        <div className="col-span-1 text-center">Status</div>
+                      </div>
+                      <div className="px-3">
+                        {confirmed.map((s, i) => <ImpactRow key={i} snap={s} />)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
+                )}
+
+                {/* pending */}
+                {pending.length > 0 && (
+                  <div>
+                    <div className="text-xs font-bold text-yellow-500 uppercase tracking-widest mb-2">
+                      Pending ({pending.length})
+                    </div>
+                    <div className="bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
+                      <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-800 text-xs text-gray-500 font-semibold">
+                        <div className="col-span-1">SYM</div>
+                        <div className="col-span-4">Catalyst</div>
+                        <div className="col-span-1">Cat</div>
+                        <div className="col-span-1">Price@</div>
+                        <div className="col-span-2 text-center">At Open</div>
+                        <div className="col-span-2 text-center">Sustained</div>
+                        <div className="col-span-1 text-center">Status</div>
+                      </div>
+                      <div className="px-3">
+                        {pending.map((s, i) => <ImpactRow key={i} snap={s} />)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* empty state after filtering */}
+                {confirmed.length === 0 && pending.length === 0 && symFilter && (
+                  <div className="flex items-center justify-center h-24 text-gray-500 bg-gray-900 rounded-xl border border-gray-800">
+                    No impact data for {symFilter}.
+                  </div>
+                )}
+              </>
+            )
+          })()}
         </div>
       )}
     </div>
