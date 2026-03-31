@@ -52,13 +52,22 @@ def manual_bollinger(close: pd.Series, period: int = 20, std: float = 2.0):
     return upper, sma, lower
 
 
+def manual_stoch(df: pd.DataFrame, k_period: int = 14, d_period: int = 3):
+    """Calculate Stochastic %K and %D manually. Returns (k_series, d_series)."""
+    low_min = df["low"].rolling(k_period).min()
+    high_max = df["high"].rolling(k_period).max()
+    k = 100.0 * (df["close"] - low_min) / (high_max - low_min).replace(0, np.nan)
+    d = k.rolling(d_period).mean()
+    return k, d
+
+
 class TechAgent(BaseAgent):
     """Technical analysis agent using RSI, MACD, Bollinger Bands, and volume."""
 
     def __init__(self):
         super().__init__(
             name="TechAgent",
-            strategy_description="Technical analysis: RSI, MACD, Bollinger Bands, Volume SMA",
+            strategy_description="Technical analysis: RSI, MACD, Bollinger Bands, Stochastic, OBV, Volume",
         )
         self.rsi_period = config.RSI_PERIOD
         self.rsi_oversold = config.RSI_OVERSOLD
@@ -112,6 +121,29 @@ class TechAgent(BaseAgent):
             # Volume SMA
             df["vol_sma"] = df["volume"].rolling(window=20).mean() if "volume" in df.columns else pd.Series(1, index=df.index)
 
+            # Stochastic oscillator
+            if "high" in df.columns and "low" in df.columns:
+                if HAS_PANDAS_TA:
+                    df.ta.stoch(k=14, d=3, smooth_k=1, append=True)
+                    sk_col, sd_col = "STOCHk_14_3_1", "STOCHd_14_3_1"
+                    if sk_col in df.columns and sd_col in df.columns:
+                        df["stoch_k"] = df[sk_col]
+                        df["stoch_d"] = df[sd_col]
+                    else:
+                        df["stoch_k"], df["stoch_d"] = manual_stoch(df)
+                else:
+                    df["stoch_k"], df["stoch_d"] = manual_stoch(df)
+            else:
+                df["stoch_k"] = np.nan
+                df["stoch_d"] = np.nan
+
+            # OBV (On-Balance Volume)
+            if "volume" in df.columns:
+                direction = np.sign(df["close"].diff()).fillna(0)
+                df["obv"] = (direction * df["volume"]).cumsum()
+            else:
+                df["obv"] = 0.0
+
             return df
 
         except Exception as e:
@@ -150,6 +182,28 @@ class TechAgent(BaseAgent):
         macd_bearish_cross = macd_hist < 0 and prev_macd_hist >= 0
         volume_spike = volume > vol_sma * 1.2 if vol_sma > 0 else False
 
+        # Stochastic values
+        stoch_k = latest.get("stoch_k", 50)
+        stoch_d = latest.get("stoch_d", 50)
+        prev_stoch_k = prev.get("stoch_k", 50)
+        if isinstance(stoch_k, float) and math.isnan(stoch_k):
+            stoch_k = 50
+        if isinstance(stoch_d, float) and math.isnan(stoch_d):
+            stoch_d = 50
+        if isinstance(prev_stoch_k, float) and math.isnan(prev_stoch_k):
+            prev_stoch_k = 50
+
+        # OBV direction vs price direction over last 5 bars
+        obv_col = df["obv"] if "obv" in df.columns else None
+        obv_rising = False
+        obv_falling = False
+        price_rising_5bars = False
+        if obv_col is not None and len(df) >= 6:
+            price_5ago = float(df["close"].iloc[-6])
+            obv_rising = float(obv_col.iloc[-1]) > float(obv_col.iloc[-6])
+            obv_falling = not obv_rising
+            price_rising_5bars = current_price > price_5ago
+
         # Composite scoring for BUY
         buy_score = 0.0
         buy_reasons = []
@@ -171,6 +225,23 @@ class TechAgent(BaseAgent):
             buy_score += 0.10
             buy_reasons.append(f"Volume spike ({volume/vol_sma:.1f}x avg)")
 
+        # Stochastic: oversold zone entry timing
+        if stoch_k < 20 and stoch_k > prev_stoch_k:
+            buy_score += 0.15
+            buy_reasons.append(f"Stoch %K={stoch_k:.1f} oversold+rising (entry trigger)")
+        elif stoch_k < 20:
+            buy_score += 0.08
+            buy_reasons.append(f"Stoch %K={stoch_k:.1f} oversold")
+
+        # OBV confirmation / divergence
+        if obv_col is not None and len(df) >= 6:
+            if price_rising_5bars and obv_rising:
+                buy_score += 0.10
+                buy_reasons.append("OBV confirming upward pressure")
+            elif not price_rising_5bars and obv_rising:
+                buy_score += 0.08
+                buy_reasons.append("OBV divergence: accumulation despite price weakness")
+
         # Composite scoring for SELL
         sell_score = 0.0
         sell_reasons = []
@@ -191,6 +262,23 @@ class TechAgent(BaseAgent):
         if volume_spike and sell_score > 0:
             sell_score += 0.10
             sell_reasons.append("Volume confirmation")
+
+        # Stochastic: overbought zone exit timing
+        if stoch_k > 80 and stoch_k < prev_stoch_k:
+            sell_score += 0.15
+            sell_reasons.append(f"Stoch %K={stoch_k:.1f} overbought+falling (exit trigger)")
+        elif stoch_k > 80:
+            sell_score += 0.08
+            sell_reasons.append(f"Stoch %K={stoch_k:.1f} overbought")
+
+        # OBV divergence: smart money distributing into strength
+        if obv_col is not None and len(df) >= 6:
+            if price_rising_5bars and obv_falling:
+                sell_score += 0.12
+                sell_reasons.append("OBV divergence: distribution (price up, volume leaving)")
+            elif not price_rising_5bars and obv_falling:
+                sell_score += 0.08
+                sell_reasons.append("OBV confirming downward pressure")
 
         # Check existing position for sell
         has_position = symbol in self.portfolio.positions
@@ -229,7 +317,8 @@ class TechAgent(BaseAgent):
 
         # Hold
         best_score = max(buy_score, sell_score)
-        context = f"RSI={rsi:.1f}, MACD={macd_hist:.3f}, BB_pos={(current_price-bb_lower)/(bb_upper-bb_lower):.2f}"
+        bb_pos = (current_price - bb_lower) / (bb_upper - bb_lower) if (bb_upper - bb_lower) > 0 else 0.5
+        context = f"RSI={rsi:.1f}, MACD={macd_hist:.3f}, Stoch%K={stoch_k:.1f}, BB_pos={bb_pos:.2f}"
         return Signal(
             action="HOLD",
             symbol=symbol,

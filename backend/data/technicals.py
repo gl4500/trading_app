@@ -56,6 +56,21 @@ def _manual_atr(df: pd.DataFrame, period=14) -> pd.Series:
     return tr.rolling(window=period).mean()
 
 
+def _manual_stoch(df: pd.DataFrame, k_period: int = 14, d_period: int = 3):
+    """Compute Stochastic %K and %D. Returns (k_series, d_series)."""
+    low_min = df["low"].rolling(k_period).min()
+    high_max = df["high"].rolling(k_period).max()
+    k = 100.0 * (df["close"] - low_min) / (high_max - low_min).replace(0, np.nan)
+    d = k.rolling(d_period).mean()
+    return k, d
+
+
+def _manual_obv(df: pd.DataFrame) -> pd.Series:
+    """Compute On-Balance Volume."""
+    direction = np.sign(df["close"].diff()).fillna(0)
+    return (direction * df["volume"]).cumsum()
+
+
 def compute(df: pd.DataFrame) -> Optional[Dict]:
     """
     Compute technical indicators from a bars DataFrame.
@@ -115,6 +130,34 @@ def compute(df: pd.DataFrame) -> Optional[Dict]:
         bb_range = bb_upper - bb_lower
         bb_position = (float(close.iloc[-1]) - bb_lower) / bb_range if bb_range > 0 else 0.5
 
+        # Stochastic oscillator (%K / %D)
+        stoch_k = stoch_d = stoch_k_prev = stoch_d_prev = None
+        if "high" in df.columns and "low" in df.columns:
+            if HAS_TA:
+                df.ta.stoch(k=14, d=3, smooth_k=1, append=True)
+                sk_col = "STOCHk_14_3_1"
+                sd_col = "STOCHd_14_3_1"
+                if sk_col in df.columns and sd_col in df.columns:
+                    stoch_k = df[sk_col].iloc[-1]
+                    stoch_d = df[sd_col].iloc[-1]
+                    stoch_k_prev = df[sk_col].iloc[-2] if len(df) > 1 else stoch_k
+                    stoch_d_prev = df[sd_col].iloc[-2] if len(df) > 1 else stoch_d
+            if stoch_k is None:
+                sk_s, sd_s = _manual_stoch(df)
+                stoch_k = sk_s.iloc[-1]
+                stoch_d = sd_s.iloc[-1]
+                stoch_k_prev = sk_s.iloc[-2] if len(sk_s) > 1 else stoch_k
+                stoch_d_prev = sd_s.iloc[-2] if len(sd_s) > 1 else stoch_d
+
+        # OBV (On-Balance Volume)
+        obv_val = obv_trend = None
+        if "volume" in df.columns:
+            obv_series = _manual_obv(df)
+            obv_val = float(obv_series.iloc[-1])
+            lookback = min(5, len(obv_series) - 1)
+            if lookback > 0:
+                obv_trend = 1 if obv_series.iloc[-1] > obv_series.iloc[-1 - lookback] else -1
+
         def _f(v):
             """Return float or None, treating NaN as None."""
             if v is None:
@@ -139,6 +182,12 @@ def compute(df: pd.DataFrame) -> Optional[Dict]:
             "volume":       round(vol_now),
             "volume_sma20": round(vol_sma20),
             "volume_ratio": _f(vol_ratio),
+            "stoch_k":      _f(stoch_k),        # 0–100, < 20 oversold, > 80 overbought
+            "stoch_d":      _f(stoch_d),        # 3-period signal line
+            "stoch_k_prev": _f(stoch_k_prev),   # previous bar %K (crossover detection)
+            "stoch_d_prev": _f(stoch_d_prev),
+            "obv":          _f(obv_val),         # cumulative on-balance volume
+            "obv_trend":    obv_trend,           # 1=rising, -1=falling over last 5 bars
         }
 
     except Exception as e:
@@ -199,12 +248,31 @@ def format_for_prompt(symbol: str, ind: Optional[Dict], price: float) -> str:
 
     vol_note = f"{vol_ratio:.1f}x avg volume" if vol_ratio else ""
 
+    # Stochastic interpretation
+    stoch_k   = ind.get("stoch_k")
+    stoch_d   = ind.get("stoch_d")
+    stoch_note = ""
+    if stoch_k is not None:
+        if stoch_k > 80:   stoch_zone = "OVERBOUGHT"
+        elif stoch_k < 20: stoch_zone = "OVERSOLD"
+        else:              stoch_zone = "neutral"
+        stoch_note = f"  Stochastic: %K={stoch_k:.1f} / %D={stoch_d:.1f} [{stoch_zone}]" if stoch_d is not None else f"  Stochastic: %K={stoch_k:.1f} [{stoch_zone}]"
+
+    # OBV interpretation
+    obv_trend = ind.get("obv_trend")
+    obv_note = ""
+    if obv_trend is not None:
+        obv_dir = "rising (accumulation)" if obv_trend == 1 else "falling (distribution)"
+        obv_note = f"  OBV: {obv_dir}"
+
     lines = [
         f"  RSI({14}): {rsi:.1f} [{rsi_note}]" if rsi else "  RSI: N/A",
         f"  MACD Histogram: {macd_hist:+.4f} [{macd_note}]" if macd_hist is not None else "  MACD: N/A",
+        stoch_note,
         f"  Bollinger Bands: ${bb_lower:.2f} / ${bb_upper:.2f} — {bb_note}" if bb_lower and bb_upper else "  BB: N/A",
         f"  SMA20: ${sma20:.2f} | SMA50: ${sma50:.2f} | {trend_note}" if sma20 and sma50 else "",
         f"  ATR(14): ${atr:.2f} (daily volatility range)" if atr else "",
         f"  Volume: {vol_note}" if vol_note else "",
+        obv_note,
     ]
     return "\n".join(l for l in lines if l)

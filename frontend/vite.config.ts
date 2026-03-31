@@ -14,7 +14,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    // No https: — serve plain HTTP to avoid browser cert warnings on localhost
+    host: '0.0.0.0',   // listen on all interfaces (required for Tailscale access)
+    https: hasCerts ? { key: fs.readFileSync(path.join(certsDir, 'key.pem')), cert: fs.readFileSync(certFile) } : false,
     proxy: {
       '/api': {
         target: backendBase,

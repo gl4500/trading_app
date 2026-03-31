@@ -35,7 +35,7 @@ trading_app/
 │       ├── news_service.py         # Alpaca News API — 90s cache, semaphore-limited
 │       ├── sentinel_sources.py     # Multi-source sentinel: RSS, EDGAR, Yahoo, Finnhub, Unusual Whales
 │       ├── policy_monitor.py       # Congressional & executive order catalyst scorer
-│       ├── technicals.py           # RSI/MACD/BB/ATR/SMA calculator
+│       ├── technicals.py           # RSI/MACD/BB/ATR/SMA/Stochastic/OBV calculator
 │       ├── signal_aggregator.py    # Multi-source composite signal
 │       ├── congressional_trading.py # SEC EDGAR Form 4 signals
 │       ├── stock_universe.py       # ~160 curated S&P 500 stocks across 10 sectors
@@ -76,7 +76,7 @@ trading_app/
 | Agent | Strategy | AI Model | Ensemble Weight |
 |---|---|---|---|
 | **ClaudeAgent** | Deep market analysis with adaptive thinking | Claude Opus 4.6 | 29% |
-| **TechAgent** | RSI, MACD, Bollinger Bands, volume | Rule-based | 23% |
+| **TechAgent** | RSI, MACD, Bollinger Bands, Stochastic, OBV, volume | Rule-based | 23% |
 | **SentimentAgent** | Price action + news sentiment | GPT-4o-mini | 17% |
 | **MomentumAgent** | Short/mid/long momentum + trailing stop | Rule-based | 14% |
 | **MeanReversionAgent** | Z-score deviation from 20-day mean | Rule-based | 9% |
@@ -147,7 +147,7 @@ Viewable in the **⚡ Sentinel** tab → **News → Price Impact** view.
 ClaudeAgent receives per symbol each cycle:
 
 - **Multi-source composite signal** — weighted validity score + verdict + confidence %
-- **Technical indicators** — RSI, MACD, BB position, SMA trend, ATR, volume ratio
+- **Technical indicators** — RSI, MACD, BB position, SMA trend, ATR, Stochastic %K/%D, OBV trend, volume ratio
 - **Alpaca news** — top 5 headlines + summaries (last 24h)
 - **OHLCV data** — last 15 daily bars
 - **Overnight catalysts** — all sentinel-detected events injected at market open
@@ -183,7 +183,7 @@ Every agent receives the same `market_context` dict each cycle:
 | Data | Agents that use it |
 |---|---|
 | Price + OHLCV bars (30 days) | All |
-| RSI, MACD, Bollinger Bands, SMA, ATR | All |
+| RSI, MACD, Bollinger Bands, SMA, ATR, Stochastic, OBV | All |
 | Multi-source composite signal | ClaudeAgent, GeminiAgent, SentimentAgent |
 | Alpaca news headlines (last 24h) | ClaudeAgent, GeminiAgent, SentimentAgent |
 | **Overnight sentinel catalysts** | ClaudeAgent, GeminiAgent |
@@ -321,9 +321,33 @@ cd C:\Users\gl450\trading_app
 > If PowerShell blocks scripts: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
 
 ### URLs
-- **Dashboard:** http://localhost:5173
-- **Backend API:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
+- **Dashboard:** https://localhost:5173
+- **Backend API:** https://localhost:8000
+- **API Docs:** https://localhost:8000/docs
+
+> On first visit your browser will show a self-signed cert warning. Click **Advanced → Proceed** to trust it. You only need to do this once per browser.
+
+### Remote Access via Tailscale
+
+The app supports remote access over [Tailscale](https://tailscale.com) with no port-forwarding or VPN config required.
+
+**One-time setup:**
+1. Install Tailscale on the Windows machine and connect it to your tailnet
+2. Delete old certs if they exist: `certs\cert.pem` and `certs\key.pem`
+3. Regenerate the cert (auto-detects your Tailscale IP):
+   ```powershell
+   cd C:\Users\gl450\trading_app
+   runtime\python\python.exe gen_certs.py
+   ```
+4. Restart the trading app
+
+**Access from any Tailscale-connected device:**
+```
+https://<your-tailscale-ip>:5173
+```
+The Tailscale IP is printed at the end of `gen_certs.py` output. Accept the cert warning once and it persists.
+
+The cert is valid for 825 days. Tailscale IPs are stable — you only need to redo this if you reinstall Tailscale or the machine's Tailscale IP changes.
 
 ---
 
@@ -391,6 +415,9 @@ See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 | Date | Change |
 |---|---|
+| 2026-03-31 | **Stochastic + OBV indicators** — added Stochastic %K/%D (14/3) and On-Balance Volume to `data/technicals.py` and `TechAgent`; Stochastic scores entry timing (oversold/overbought zones + %K crossover); OBV detects confirmation vs divergence (distribution/accumulation); both injected into AI agent prompts via `format_for_prompt()` |
+| 2026-03-31 | **Tailscale remote access** — `gen_certs.py` now auto-detects Tailscale IP (`tailscale ip -4`) and includes it in the cert's SANs; Vite updated to bind on `0.0.0.0` and serve HTTPS; access dashboard remotely at `https://<tailscale-ip>:5173` |
+| 2026-03-31 | **HTTPS on frontend** — Vite now serves HTTPS (was plain HTTP); use `https://localhost:5173` |
 | 2026-03-29 | **HistoricalTrendsAgent** — replaced OpenClawAgent with a pure rule-based seasonal/channel/momentum agent; added free 5-year Stooq historical data (`data/stooq_client.py`); Stooq added as bar fallback in `market_data.py`; ensemble weights rebalanced |
 | 2026-03-21 | **Decision flow diagram** — added `decision_tree.txt` with full ASCII diagram showing all 7 layers from data sources through ensemble voting to trade execution |
 | 2026-03-21 | **Agent formulas reference** — added `agent_formulas.txt` documenting every buy/sell formula, scoring weight, threshold, and position-sizing calculation for all agents |

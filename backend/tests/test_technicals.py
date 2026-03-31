@@ -27,6 +27,14 @@ from data.technicals import (
     _manual_rsi, _manual_macd, _manual_bb, _manual_atr,
 )
 
+try:
+    from data.technicals import _manual_stoch, _manual_obv
+    HAS_STOCH_OBV = True
+except ImportError:
+    HAS_STOCH_OBV = False
+    _manual_stoch = None
+    _manual_obv = None
+
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -84,8 +92,25 @@ class TestCompute(unittest.TestCase):
         result = compute(bars)
         for key in ("rsi", "macd", "macd_signal", "macd_hist",
                     "bb_upper", "bb_mid", "bb_lower", "bb_position",
-                    "sma20", "volume_ratio"):
+                    "sma20", "volume_ratio",
+                    "stoch_k", "stoch_d", "obv", "obv_trend"):
             self.assertIn(key, result, f"Missing key: {key}")
+
+    def test_stoch_k_in_valid_range(self):
+        bars = _make_bars(n=60)
+        result = compute(bars)
+        stoch_k = result.get("stoch_k")
+        if stoch_k is not None:
+            self.assertGreaterEqual(stoch_k, 0)
+            self.assertLessEqual(stoch_k, 100)
+
+    def test_obv_trend_is_int_or_none(self):
+        bars = _make_bars(n=60)
+        result = compute(bars)
+        obv_trend = result.get("obv_trend")
+        if obv_trend is not None:
+            self.assertIsInstance(obv_trend, int)
+            self.assertIn(obv_trend, (1, -1))
 
     def test_rsi_in_valid_range(self):
         bars = _make_bars(n=60)
@@ -242,6 +267,109 @@ class TestFormatForPrompt(unittest.TestCase):
         # price (155) > sma20 (145) > sma50 (140) → Uptrend
         result = format_for_prompt("AAPL", ind, 155.0)
         self.assertIn("Uptrend", result)
+
+
+# ── Stochastic oscillator tests ───────────────────────────────────────────────
+
+@unittest.skipUnless(HAS_PANDAS and HAS_STOCH_OBV, "pandas or _manual_stoch not available")
+class TestManualStoch(unittest.TestCase):
+
+    def _make_downtrend_df(self, n=60):
+        close = [100.0 - i * 1.5 for i in range(n)]
+        close = [max(c, 1.0) for c in close]
+        return pd.DataFrame({
+            "high":  [c + 0.3 for c in close],
+            "low":   [c - 0.3 for c in close],
+            "close": close,
+        })
+
+    def _make_uptrend_df(self, n=60):
+        close = [50.0 + i * 1.5 for i in range(n)]
+        return pd.DataFrame({
+            "high":  [c + 0.3 for c in close],
+            "low":   [c - 0.3 for c in close],
+            "close": close,
+        })
+
+    def test_returns_two_series(self):
+        df = _make_bars(n=60)
+        result = _manual_stoch(df)
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
+        k, d = result
+        self.assertIsInstance(k, pd.Series)
+        self.assertIsInstance(d, pd.Series)
+
+    def test_k_in_range_0_to_100(self):
+        df = _make_bars(n=60)
+        k, _ = _manual_stoch(df)
+        valid = k.dropna()
+        self.assertTrue((valid >= 0).all(), "Some %K values are below 0")
+        self.assertTrue((valid <= 100).all(), "Some %K values are above 100")
+
+    def test_d_is_rolling_mean_of_k(self):
+        df = _make_bars(n=60)
+        k, d = _manual_stoch(df)
+        # %D should equal 3-period rolling mean of %K for the last 10 non-NaN values
+        d_expected = k.rolling(3).mean()
+        valid_idx = d.dropna().index[-10:]
+        for i in valid_idx:
+            self.assertAlmostEqual(d[i], d_expected[i], places=6,
+                                   msg=f"D[{i}] != rolling_mean(K, 3)[{i}]")
+
+    def test_k_low_in_downtrend(self):
+        df = self._make_downtrend_df(n=60)
+        k, _ = _manual_stoch(df)
+        last_k = k.dropna().iloc[-1]
+        self.assertLess(last_k, 30, f"Expected %K < 30 in downtrend, got {last_k}")
+
+    def test_k_high_in_uptrend(self):
+        df = self._make_uptrend_df(n=60)
+        k, _ = _manual_stoch(df)
+        last_k = k.dropna().iloc[-1]
+        self.assertGreater(last_k, 70, f"Expected %K > 70 in uptrend, got {last_k}")
+
+
+# ── OBV tests ─────────────────────────────────────────────────────────────────
+
+@unittest.skipUnless(HAS_PANDAS and HAS_STOCH_OBV, "pandas or _manual_obv not available")
+class TestManualObv(unittest.TestCase):
+
+    def _two_bar_df(self, close_0, close_1, volume_0=1_000_000, volume_1=1_000_000):
+        return pd.DataFrame({
+            "close":  [close_0, close_1],
+            "volume": [volume_0, volume_1],
+        })
+
+    def test_obv_increases_on_up_day(self):
+        df = self._two_bar_df(close_0=100.0, close_1=101.0)
+        obv = _manual_obv(df)
+        self.assertIsInstance(obv, pd.Series)
+        self.assertGreater(obv.iloc[1], obv.iloc[0],
+                           "OBV should increase when close rises")
+
+    def test_obv_decreases_on_down_day(self):
+        df = self._two_bar_df(close_0=100.0, close_1=99.0)
+        obv = _manual_obv(df)
+        self.assertLess(obv.iloc[1], obv.iloc[0],
+                        "OBV should decrease when close falls")
+
+    def test_obv_flat_on_unchanged_close(self):
+        df = self._two_bar_df(close_0=100.0, close_1=100.0)
+        obv = _manual_obv(df)
+        self.assertEqual(obv.iloc[1], obv.iloc[0],
+                         "OBV should not change when close is unchanged")
+
+    def test_obv_rising_trend_in_uptrend(self):
+        n = 20
+        close = [50.0 + i for i in range(n)]
+        df = pd.DataFrame({
+            "close":  close,
+            "volume": [1_000_000] * n,
+        })
+        obv = _manual_obv(df)
+        self.assertGreater(obv.iloc[-1], obv.iloc[0],
+                           "OBV should rise over a 20-bar uptrend")
 
 
 if __name__ == "__main__":

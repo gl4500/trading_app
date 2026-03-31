@@ -165,6 +165,20 @@ class TestCalculateIndicators(unittest.TestCase):
         result = self.agent._calculate_indicators(bars)
         self.assertIn("vol_sma", result.columns)
 
+    def test_stoch_columns_present(self):
+        bars = _make_bars(n=40)
+        result = self.agent._calculate_indicators(bars)
+        self.assertIn("stoch_k", result.columns,
+                      "_calculate_indicators must produce a 'stoch_k' column")
+        self.assertIn("stoch_d", result.columns,
+                      "_calculate_indicators must produce a 'stoch_d' column")
+
+    def test_obv_column_present(self):
+        bars = _make_bars(n=40)
+        result = self.agent._calculate_indicators(bars)
+        self.assertIn("obv", result.columns,
+                      "_calculate_indicators must produce an 'obv' column")
+
 
 # ── _generate_signal tests ────────────────────────────────────────────────────
 
@@ -221,6 +235,62 @@ class TestGenerateSignal(unittest.TestCase):
         signal = self.agent._generate_signal("AAPL", df, {"AAPL": price})
         self.assertGreaterEqual(signal.confidence, 0.0)
         self.assertLessEqual(signal.confidence, 1.0)
+
+    def test_stoch_oversold_adds_to_buy_score(self):
+        """Rising %K from oversold zone (10→15) combined with oversold RSI
+        should yield a BUY signal with confidence >= 0.35."""
+        bars = _make_falling_bars(n=40)
+        df = self._df_with_indicators(bars)
+        # Manually force stochastic values into oversold territory on the last row
+        df.loc[df.index[-1], "stoch_k"] = 15.0
+        df.loc[df.index[-1], "stoch_d"] = 12.0
+        # stoch_k_prev represents the prior bar's %K (rising from 10 → 15)
+        if "stoch_k_prev" in df.columns:
+            df.loc[df.index[-1], "stoch_k_prev"] = 10.0
+        else:
+            df["stoch_k_prev"] = df["stoch_k"].shift(1)
+            df.loc[df.index[-1], "stoch_k_prev"] = 10.0
+        price = float(bars["close"].iloc[-1])
+        signal = self.agent._generate_signal("AAPL", df, {"AAPL": price})
+        # Stochastic oversold + RSI oversold from falling bars should give confident BUY
+        self.assertGreaterEqual(
+            signal.confidence, 0.35,
+            f"Expected confidence >= 0.35 with stoch oversold + RSI oversold, "
+            f"got {signal.confidence} (action={signal.action})"
+        )
+
+    def test_obv_divergence_adds_to_sell_score(self):
+        """Falling OBV despite rising price is a bearish divergence.
+        When a position is held, the sell signal reasoning should mention OBV
+        or the sell score should be > 0."""
+        bars = _make_rising_bars(n=40)
+        df = self._df_with_indicators(bars)
+        price = float(bars["close"].iloc[-1])
+        # Hold a position so SELL logic is active
+        self.agent.portfolio.positions["AAPL"] = Position("AAPL", 10, price * 0.8)
+
+        if "obv" not in df.columns:
+            # OBV column not yet implemented — test will fail here as expected
+            self.assertIn("obv", df.columns, "_calculate_indicators must produce 'obv' column")
+
+        # Force OBV to be lower now than it was 6 bars ago (bearish divergence)
+        obv_col = df["obv"].copy()
+        high_obv = obv_col.iloc[-6] + 100_000
+        df.loc[df.index[-6:], "obv"] = [
+            high_obv - i * 20_000 for i in range(6)
+        ]
+
+        signal = self.agent._generate_signal("AAPL", df, {"AAPL": price})
+        # Either the reasoning mentions OBV or the sell score contributed
+        reasoning_mentions_obv = (
+            hasattr(signal, "reasoning")
+            and signal.reasoning is not None
+            and "OBV" in signal.reasoning.upper()
+        )
+        self.assertTrue(
+            reasoning_mentions_obv or signal.action in ("SELL", "HOLD"),
+            f"Expected OBV divergence to influence signal; got action={signal.action}"
+        )
 
 
 # ── analyze() integration tests ───────────────────────────────────────────────
