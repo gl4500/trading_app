@@ -871,6 +871,39 @@ class TestUpdateNewsPriceSnapshots(unittest.TestCase):
         result = self._call(snaps, {"AAPL": 102.0})
         self.assertEqual(len(result), 100)
 
+    def test_record_catalyst_outcome_called_when_price_1h_frozen(self):
+        """When price_1h is set for the first time, record_catalyst_outcome is called."""
+        import datetime as dt
+        snap = self._make_snap(price_at=100.0)
+        snap["price_open"] = 102.0
+        snap["change_open"] = 2.0
+        snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 9, 0, 0)
+        later = dt.datetime(2024, 1, 2, 10, 1, 0)  # 61 min later
+
+        with patch("main.record_catalyst_outcome") as mock_record:
+            self._call([snap], {"AAPL": 103.0}, now=later)
+
+        mock_record.assert_called_once()
+        call_kwargs = mock_record.call_args[1]
+        self.assertEqual(call_kwargs["symbol"], "AAPL")
+        self.assertAlmostEqual(call_kwargs["change_1h"], 3.0)
+
+    def test_record_catalyst_outcome_not_called_if_already_set(self):
+        """If price_1h was already set (frozen), record_catalyst_outcome must NOT be called again."""
+        import datetime as dt
+        snap = self._make_snap(price_at=100.0)
+        snap["price_open"] = 102.0
+        snap["change_open"] = 2.0
+        snap["open_recorded_at"] = dt.datetime(2024, 1, 2, 9, 0, 0)
+        snap["price_1h"] = 103.0   # already frozen
+        snap["change_1h"] = 3.0
+        later = dt.datetime(2024, 1, 2, 12, 0, 0)
+
+        with patch("main.record_catalyst_outcome") as mock_record:
+            self._call([snap], {"AAPL": 107.0}, now=later)
+
+        mock_record.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

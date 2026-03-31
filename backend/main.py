@@ -39,6 +39,7 @@ from trading.alpaca_client import alpaca_client
 
 from data.drift_detector import check_all_agents
 from data.risk_assessor import record_trade as record_risk_trade, run_periodic_assessment
+from data.learning_manager import record_catalyst_outcome
 from agents.tech_agent import TechAgent
 from agents.momentum_agent import MomentumAgent
 from agents.mean_reversion_agent import MeanReversionAgent
@@ -241,8 +242,25 @@ def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
             # Wait until >= 60 min have elapsed since price_open was recorded
             recorded_at = snap.get("open_recorded_at")
             if recorded_at and (now - recorded_at).total_seconds() >= _SUSTAINED_WINDOW_SECS:
+                change_1h = round(pct, 2)
                 snap["price_1h"] = current
-                snap["change_1h"] = round(pct, 2)
+                snap["change_1h"] = change_1h
+                # Record the confirmed outcome to learning.json so agents can
+                # learn which catalyst types actually move prices
+                try:
+                    confirmed = abs(change_1h) >= 0.05
+                    record_catalyst_outcome(
+                        symbol=sym,
+                        category=snap.get("category", "catalyst"),
+                        score=snap.get("score", 0),
+                        headline=snap.get("headline", ""),
+                        change_open=snap.get("change_open") or 0.0,
+                        change_1h=change_1h,
+                        during_session=snap.get("during_session", False),
+                        confirmed=confirmed,
+                    )
+                except Exception as _e:
+                    logger.debug(f"catalyst outcome record failed: {_e}")
         # price_1h already set — leave it frozen, no further updates
 
     # Keep only the 100 most recent

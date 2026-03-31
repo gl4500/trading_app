@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 LEARNING_FILE = os.path.join(os.path.dirname(__file__), '..', 'learning.json')
 MAX_PROFITABLE = 20
 MAX_LOSSES = 10
+MAX_CATALYST_OUTCOMES = 50
 
 
 def _load() -> Dict:
@@ -26,7 +27,7 @@ def _load() -> Dict:
                 return json.load(f)
         except Exception as e:
             logger.warning(f"LearningManager: could not read learning file: {e}")
-    return {"profitable_trades": [], "loss_trades": []}
+    return {"profitable_trades": [], "loss_trades": [], "catalyst_outcomes": []}
 
 
 def _save(data: Dict) -> None:
@@ -80,13 +81,97 @@ def record_trade(
                 f"{symbol} pnl={pnl:+.2f} ({pnl_pct:+.1f}%)")
 
 
+def record_catalyst_outcome(
+    symbol: str,
+    category: str,
+    score: int,
+    headline: str,
+    change_open: float,
+    change_1h: float,
+    during_session: bool,
+    confirmed: bool,
+) -> None:
+    """Record a confirmed news catalyst → price outcome to the learning file.
+
+    Called once per snapshot when price_1h is frozen (1 hour after the initial
+    reaction).  Builds a rolling history the AI agents can learn from — e.g.
+    'macro catalysts with score >= 3 confirmed moves 70% of the time'.
+    """
+    data = _load()
+    data.setdefault("catalyst_outcomes", [])
+
+    entry = {
+        "symbol":         symbol,
+        "category":       category,
+        "score":          score,
+        "headline":       headline[:150],
+        "change_open":    round(change_open, 2) if change_open is not None else None,
+        "change_1h":      round(change_1h, 2)   if change_1h   is not None else None,
+        "during_session": during_session,
+        "confirmed":      confirmed,
+        "date":           datetime.utcnow().strftime("%Y-%m-%d"),
+    }
+
+    data["catalyst_outcomes"].append(entry)
+    # Keep only the most recent MAX_CATALYST_OUTCOMES entries
+    data["catalyst_outcomes"] = data["catalyst_outcomes"][-MAX_CATALYST_OUTCOMES:]
+
+    _save(data)
+    logger.info(
+        f"LearningManager: catalyst outcome recorded — {symbol} {category} "
+        f"score={score} change_1h={change_1h:+.2f}% confirmed={confirmed}"
+    )
+
+
+def get_catalyst_summary() -> str:
+    """Return a formatted string of catalyst→price outcome patterns for AI prompts.
+
+    Groups by category, shows confirmation rate and average move size so agents
+    can calibrate how much weight to give different catalyst types.
+    """
+    data = _load()
+    outcomes = data.get("catalyst_outcomes", [])
+    if not outcomes:
+        return ""
+
+    # Group by category
+    from collections import defaultdict
+    by_cat: Dict[str, list] = defaultdict(list)
+    for o in outcomes:
+        by_cat[o["category"]].append(o)
+
+    lines = ["## Catalyst → Price Outcome History (last 50 catalysts)\n"]
+    for cat, items in sorted(by_cat.items()):
+        total = len(items)
+        confirmed = sum(1 for o in items if o["confirmed"])
+        conf_rate = confirmed / total * 100
+        confirmed_items = [o for o in items if o["confirmed"] and o["change_1h"] is not None]
+        avg_move = (sum(o["change_1h"] for o in confirmed_items) / len(confirmed_items)) if confirmed_items else 0.0
+        recent = items[-2:]  # two most recent examples
+
+        lines.append(
+            f"### {cat.upper()} ({total} events, {conf_rate:.0f}% confirmed moves, avg +{avg_move:.1f}% when confirmed)"
+        )
+        for o in recent:
+            tag = "intraday" if o.get("during_session") else "overnight"
+            lines.append(
+                f"  - [{tag}] {o['symbol']} score={o['score']}: "
+                f"\"{o['headline'][:80]}\" → open={o['change_open']:+.2f}% 1h={o['change_1h']:+.2f}%"
+                if o["change_1h"] is not None else
+                f"  - [{tag}] {o['symbol']} score={o['score']}: \"{o['headline'][:80]}\""
+            )
+
+    return "\n".join(lines)
+
+
 def get_learning_summary() -> str:
     """Return a formatted string of past learnings for injection into Claude's prompt."""
     data = _load()
     profitable = data.get("profitable_trades", [])
     losses = data.get("loss_trades", [])
+    catalyst_section = get_catalyst_summary()
 
-    if not profitable and not losses:
+    if not profitable and not losses and not catalyst_section:
         return ""
 
     lines = ["## Past Trade Learnings (use these to inform your decisions)\n"]
@@ -108,5 +193,9 @@ def get_learning_summary() -> str:
                 f"BUY reason: {t['buy_reasoning'][:120]} | "
                 f"SELL reason: {t['sell_reasoning'][:120]}"
             )
+
+    catalyst_section = get_catalyst_summary()
+    if catalyst_section:
+        lines.append("\n" + catalyst_section)
 
     return "\n".join(lines)

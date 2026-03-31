@@ -144,5 +144,95 @@ class TestGetLearningSummary(LearningManagerBase):
         self.assertIn("Avoid", result)
 
 
+# ── record_catalyst_outcome tests ────────────────────────────────────────────
+
+class TestRecordCatalystOutcome(LearningManagerBase):
+
+    def _record(self, symbol="AAPL", category="macro", score=3,
+                headline="Fed cuts rates", change_open=1.2, change_1h=0.8,
+                during_session=False, confirmed=True):
+        lm.record_catalyst_outcome(
+            symbol=symbol, category=category, score=score,
+            headline=headline, change_open=change_open, change_1h=change_1h,
+            during_session=during_session, confirmed=confirmed,
+        )
+
+    def test_outcome_saved_to_file(self):
+        self._record()
+        with open(lm.LEARNING_FILE) as f:
+            data = json.load(f)
+        self.assertEqual(len(data["catalyst_outcomes"]), 1)
+
+    def test_entry_has_expected_fields(self):
+        self._record()
+        with open(lm.LEARNING_FILE) as f:
+            entry = json.load(f)["catalyst_outcomes"][0]
+        for field in ("symbol", "category", "score", "headline",
+                      "change_open", "change_1h", "during_session",
+                      "confirmed", "date"):
+            self.assertIn(field, entry)
+
+    def test_outcomes_capped_at_max(self):
+        for i in range(lm.MAX_CATALYST_OUTCOMES + 5):
+            self._record(symbol=f"SYM{i}")
+        with open(lm.LEARNING_FILE) as f:
+            data = json.load(f)
+        self.assertLessEqual(len(data["catalyst_outcomes"]), lm.MAX_CATALYST_OUTCOMES)
+
+    def test_most_recent_kept_when_capped(self):
+        """When capped, the most recent entries are retained."""
+        for i in range(lm.MAX_CATALYST_OUTCOMES + 3):
+            self._record(symbol=f"SYM{i:03d}")
+        with open(lm.LEARNING_FILE) as f:
+            outcomes = json.load(f)["catalyst_outcomes"]
+        symbols = [o["symbol"] for o in outcomes]
+        # The last entry recorded should still be present
+        self.assertIn(f"SYM{lm.MAX_CATALYST_OUTCOMES + 2:03d}", symbols)
+
+    def test_flat_outcome_stored_as_not_confirmed(self):
+        self._record(change_1h=0.01, confirmed=False)
+        with open(lm.LEARNING_FILE) as f:
+            entry = json.load(f)["catalyst_outcomes"][0]
+        self.assertFalse(entry["confirmed"])
+
+    def test_does_not_overwrite_trade_data(self):
+        """record_catalyst_outcome must not disturb existing trade entries."""
+        lm.record_trade("AAPL", 100.0, 110.0, 1000.0, 10.0, "buy", "sell", "Agent")
+        self._record()
+        with open(lm.LEARNING_FILE) as f:
+            data = json.load(f)
+        self.assertEqual(len(data["profitable_trades"]), 1)
+        self.assertEqual(len(data["catalyst_outcomes"]), 1)
+
+
+# ── get_catalyst_summary tests ────────────────────────────────────────────────
+
+class TestGetCatalystSummary(LearningManagerBase):
+
+    def test_empty_returns_empty_string(self):
+        result = lm.get_catalyst_summary()
+        self.assertEqual(result, "")
+
+    def test_summary_contains_category(self):
+        lm.record_catalyst_outcome("AAPL", "macro", 3, "Fed cuts rates",
+                                   1.2, 0.8, False, True)
+        result = lm.get_catalyst_summary()
+        self.assertIn("MACRO", result)
+
+    def test_summary_shows_confirmation_rate(self):
+        # 2 confirmed, 1 not
+        lm.record_catalyst_outcome("AAPL", "macro", 3, "H1", 1.0, 0.8, False, True)
+        lm.record_catalyst_outcome("MSFT", "macro", 3, "H2", 0.5, 0.4, False, True)
+        lm.record_catalyst_outcome("GOOGL", "macro", 2, "H3", 0.0, 0.0, False, False)
+        result = lm.get_catalyst_summary()
+        self.assertIn("67%", result)   # 2/3 confirmed = 66.7% → formatted as 67%
+
+    def test_summary_included_in_get_learning_summary(self):
+        lm.record_catalyst_outcome("AAPL", "catalyst", 3, "Earnings beat",
+                                   2.0, 1.5, True, True)
+        result = lm.get_learning_summary()
+        self.assertIn("CATALYST", result)
+
+
 if __name__ == "__main__":
     unittest.main()
