@@ -663,9 +663,10 @@ async def auto_scan_loop() -> None:
         except Exception as e:
             logger.error(f"Auto-scan error: {e}")
 
-    # Run once at startup if cache is missing or stale
+    # Run once at startup if cache is missing or stale — but only during market
+    # hours or the pre-market warmup window to avoid expensive off-hours scans.
     cached = get_cached_scan(require_fresh=True)
-    if not cached:
+    if not cached and (_market_is_open() or _minutes_until_open() <= PRE_MARKET_WARMUP_MIN):
         await _do_scan("startup — no fresh cache")
 
     last_scan_triggered: float = time.time()

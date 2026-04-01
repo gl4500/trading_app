@@ -960,5 +960,59 @@ class TestUpdateNewsPriceSnapshots(unittest.IsolatedAsyncioTestCase):
         mock_record.assert_not_called()
 
 
+class TestAutoScanLoopStartup(unittest.IsolatedAsyncioTestCase):
+    """auto_scan_loop startup scan must respect market hours."""
+
+    async def _run_startup_only(self, market_open: bool, mins_to_open: float):
+        """Run auto_scan_loop with is_running=False so only startup code executes."""
+        import main
+        mock_run_scan = AsyncMock(return_value=None)
+        with patch("agents.scanner_agent.get_cached_scan", return_value=None), \
+             patch("agents.scanner_agent.run_scan", mock_run_scan), \
+             patch("agents.scanner_agent.is_scan_in_progress", return_value=False), \
+             patch("main._market_is_open", return_value=market_open), \
+             patch("main._minutes_until_open", return_value=mins_to_open), \
+             patch("main.watchlist_manager"):
+            prev = main.app_state.is_running
+            main.app_state.is_running = False
+            try:
+                await main.auto_scan_loop()
+            finally:
+                main.app_state.is_running = prev
+        return mock_run_scan
+
+    async def test_startup_scan_skipped_when_market_closed_and_not_near_open(self):
+        """No scan when market is closed and open is > 10 min away."""
+        mock_run_scan = await self._run_startup_only(market_open=False, mins_to_open=60.0)
+        mock_run_scan.assert_not_called()
+
+    async def test_startup_scan_runs_when_market_is_open(self):
+        """Scan fires at startup when market is open and cache is empty."""
+        mock_run_scan = await self._run_startup_only(market_open=True, mins_to_open=0.0)
+        mock_run_scan.assert_called_once()
+
+    async def test_startup_scan_runs_during_pre_market_warmup(self):
+        """Scan fires when market opens in <= 10 min (pre-market warmup window)."""
+        mock_run_scan = await self._run_startup_only(market_open=False, mins_to_open=5.0)
+        mock_run_scan.assert_called_once()
+
+    async def test_startup_scan_skipped_when_cache_is_fresh(self):
+        """No scan at startup when a fresh cached scan already exists."""
+        import main
+        mock_run_scan = AsyncMock(return_value=None)
+        with patch("agents.scanner_agent.get_cached_scan", return_value={"results": []}), \
+             patch("agents.scanner_agent.run_scan", mock_run_scan), \
+             patch("agents.scanner_agent.is_scan_in_progress", return_value=False), \
+             patch("main._market_is_open", return_value=True), \
+             patch("main.watchlist_manager"):
+            prev = main.app_state.is_running
+            main.app_state.is_running = False
+            try:
+                await main.auto_scan_loop()
+            finally:
+                main.app_state.is_running = prev
+        mock_run_scan.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

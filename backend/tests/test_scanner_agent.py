@@ -25,6 +25,7 @@ from agents.scanner_agent import (
     get_cached_scan,
     SCAN_CACHE_TTL,
     MAX_RECOMMENDATIONS,
+    MAX_TOOL_ROUNDS,
 )
 
 
@@ -411,6 +412,13 @@ class TestScannerPromptCaching(unittest.IsolatedAsyncioTestCase):
         last_tool = kwargs["tools"][-1]
         self.assertIn("cache_control", last_tool)
         self.assertEqual(last_tool["cache_control"]["type"], "ephemeral")
+
+
+class TestMaxToolRounds(unittest.TestCase):
+    """MAX_TOOL_ROUNDS must be 6 to limit per-scan token cost."""
+
+    def test_max_tool_rounds_is_6(self):
+        self.assertEqual(MAX_TOOL_ROUNDS, 6)
 
 
 if __name__ == "__main__":

@@ -310,7 +310,8 @@ class TestClaudeTokenLogging(unittest.IsolatedAsyncioTestCase):
              patch("agents.claude_agent.get_learning_summary", return_value=""), \
              patch("agents.claude_agent.news_service") as mock_news, \
              patch("agents.claude_agent.format_technicals", return_value=""), \
-             patch("agents.claude_agent.format_composite", return_value=""):
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("agents.claude_agent.save_token_log", new_callable=AsyncMock):
             cfg.ANTHROPIC_API_KEY = "key"
             cfg.WATCHLIST = ["AAPL"]
             cfg.MAX_POSITION_SIZE = 0.10
@@ -328,7 +329,8 @@ class TestClaudeTokenLogging(unittest.IsolatedAsyncioTestCase):
              patch("agents.claude_agent.get_learning_summary", return_value=""), \
              patch("agents.claude_agent.news_service") as mock_news, \
              patch("agents.claude_agent.format_technicals", return_value=""), \
-             patch("agents.claude_agent.format_composite", return_value=""):
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("agents.claude_agent.save_token_log", new_callable=AsyncMock):
             cfg.ANTHROPIC_API_KEY = "key"
             cfg.WATCHLIST = ["AAPL"]
             cfg.MAX_POSITION_SIZE = 0.10
@@ -375,7 +377,8 @@ class TestClaudeHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
              patch("agents.claude_agent.get_learning_summary", return_value=""), \
              patch("agents.claude_agent.news_service") as mock_news, \
              patch("agents.claude_agent.format_technicals", return_value=""), \
-             patch("agents.claude_agent.format_composite", return_value=""):
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("agents.claude_agent.save_token_log", new_callable=AsyncMock):
             cfg.ANTHROPIC_API_KEY = "key"
             cfg.WATCHLIST = ["AAPL"]
             cfg.MAX_POSITION_SIZE = 0.10
@@ -394,7 +397,8 @@ class TestClaudeHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
              patch("agents.claude_agent.get_learning_summary", return_value=""), \
              patch("agents.claude_agent.news_service") as mock_news, \
              patch("agents.claude_agent.format_technicals", return_value=""), \
-             patch("agents.claude_agent.format_composite", return_value=""):
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("agents.claude_agent.save_token_log", new_callable=AsyncMock):
             cfg.ANTHROPIC_API_KEY = "key"
             cfg.WATCHLIST = ["AAPL"]
             cfg.MAX_POSITION_SIZE = 0.10
@@ -410,7 +414,8 @@ class TestClaudeHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
              patch("agents.claude_agent.get_learning_summary", return_value=""), \
              patch("agents.claude_agent.news_service") as mock_news, \
              patch("agents.claude_agent.format_technicals", return_value=""), \
-             patch("agents.claude_agent.format_composite", return_value=""):
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("agents.claude_agent.save_token_log", new_callable=AsyncMock):
             cfg.ANTHROPIC_API_KEY = "key"
             cfg.WATCHLIST = ["AAPL"]
             cfg.MAX_POSITION_SIZE = 0.10

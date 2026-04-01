@@ -33,7 +33,7 @@ from database import save_token_log, get_daily_token_total
 logger = logging.getLogger(__name__)
 
 SCAN_CACHE_TTL = 30 * 60   # 30 minutes (in-memory freshness for trading)
-MAX_TOOL_ROUNDS = 12        # safety ceiling per agent
+MAX_TOOL_ROUNDS = 6         # safety ceiling per agent
 MAX_RECOMMENDATIONS = 8     # final output limit after merge
 
 # Persist scans here so results survive restarts
