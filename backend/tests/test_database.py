@@ -484,9 +484,11 @@ class TestTokenLog(TestDatabaseBase):
     def test_cleanup_removes_old_rows(self):
         import aiosqlite
         from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+        _ET = ZoneInfo("America/New_York")
 
         async def insert_old():
-            old_ts = (datetime.utcnow() - timedelta(hours=25)).isoformat()
+            old_ts = (datetime.now(_ET) - timedelta(hours=25)).isoformat()
             async with aiosqlite.connect(database.DB_PATH) as db:
                 await db.execute(
                     """INSERT INTO token_log
@@ -653,6 +655,29 @@ class TestNewsPriceSnapshots(TestDatabaseBase):
         run(database.save_price_snapshot(self._snap(symbol="AAPL", detected_at="2024-01-02T00:00:00Z")))
         rows = run(database.get_price_snapshots())
         self.assertEqual(len(rows), 2)
+
+
+class TestTokenLogTimezone(TestDatabaseBase):
+    """Timestamps written by save_token_log must be in Eastern Time."""
+
+    def test_timestamp_has_eastern_offset(self):
+        """Saved timestamp must include a -05:00 or -04:00 UTC offset (EST/EDT)."""
+        run(database.save_token_log("ClaudeAgent", "claude-opus-4-6", 100, 50, 150, 150, False))
+        rows = run(database.get_token_log())
+        ts = rows[0]["timestamp"]
+        # Must contain an Eastern offset: -05:00 (EST) or -04:00 (EDT)
+        self.assertTrue(
+            ts.endswith("-05:00") or ts.endswith("-04:00"),
+            f"Expected Eastern offset in timestamp, got: {ts}"
+        )
+
+    def test_timestamp_is_not_utc(self):
+        """Timestamp must not be a bare UTC value (no +00:00 or Z suffix)."""
+        run(database.save_token_log("ClaudeAgent", "claude-opus-4-6", 100, 50, 150, 150, False))
+        rows = run(database.get_token_log())
+        ts = rows[0]["timestamp"]
+        self.assertFalse(ts.endswith("+00:00"), f"Timestamp is UTC: {ts}")
+        self.assertFalse(ts.endswith("Z"), f"Timestamp is UTC: {ts}")
 
 
 if __name__ == "__main__":

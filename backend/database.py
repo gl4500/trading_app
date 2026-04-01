@@ -6,7 +6,10 @@ import aiosqlite
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+_EASTERN = ZoneInfo("America/New_York")
 from typing import List, Dict, Optional, Any, Tuple
 
 from config import config
@@ -413,7 +416,7 @@ async def save_token_log(
 ) -> None:
     """Record a token usage event to the persistent log."""
     async with aiosqlite.connect(DB_PATH) as db:
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(_EASTERN).isoformat()
         await db.execute(
             """INSERT INTO token_log
                (timestamp, agent, model, prompt_tokens, completion_tokens,
@@ -442,7 +445,7 @@ async def get_token_log(
         params: List[Any] = []
 
         if hours > 0:
-            cutoff = (datetime.utcnow() - __import__("datetime").timedelta(hours=hours)).isoformat()
+            cutoff = (datetime.now(_EASTERN) - timedelta(hours=hours)).isoformat()
             conditions.append("timestamp >= ?")
             params.append(cutoff)
 
@@ -472,7 +475,7 @@ async def get_daily_token_total(agent: str, hours: int = 24) -> int:
     Used by agents on startup to seed their rolling 24h window after a restart.
     """
     async with aiosqlite.connect(DB_PATH) as db:
-        cutoff = (datetime.utcnow() - __import__("datetime").timedelta(hours=hours)).isoformat()
+        cutoff = (datetime.now(_EASTERN) - timedelta(hours=hours)).isoformat()
         cursor = await db.execute(
             "SELECT COALESCE(SUM(total_tokens), 0) FROM token_log "
             "WHERE agent = ? AND timestamp >= ? AND limit_hit = 0",
@@ -557,7 +560,7 @@ async def get_price_snapshots(limit: int = 100) -> List[Dict]:
 async def cleanup_token_log(hours: int = 24) -> None:
     """Delete token log entries older than `hours` hours."""
     async with aiosqlite.connect(DB_PATH) as db:
-        cutoff = (datetime.utcnow() - __import__("datetime").timedelta(hours=hours)).isoformat()
+        cutoff = (datetime.now(_EASTERN) - timedelta(hours=hours)).isoformat()
         await db.execute("DELETE FROM token_log WHERE timestamp < ?", (cutoff,))
         await db.commit()
     logger.debug(f"Token log cleanup: removed entries older than {hours}h")
