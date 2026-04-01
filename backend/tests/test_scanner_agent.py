@@ -421,5 +421,93 @@ class TestMaxToolRounds(unittest.TestCase):
         self.assertEqual(MAX_TOOL_ROUNDS, 6)
 
 
+class TestToolGetStockAnalysisBarsLimit(unittest.IsolatedAsyncioTestCase):
+    """_tool_get_stock_analysis must fetch only 10 bars, not 60."""
+
+    async def test_get_bars_called_with_limit_10(self):
+        from agents.scanner_agent import _tool_get_stock_analysis
+        import pandas as pd
+
+        fake_bars = pd.DataFrame({
+            "close":  [150.0] * 10,
+            "volume": [1_000_000] * 10,
+        })
+
+        mock_news = []
+        with patch("data.news_service.news_service.get_news", new_callable=AsyncMock, return_value=mock_news), \
+             patch("trading.alpaca_client.alpaca_client.get_bars", new_callable=AsyncMock, return_value=fake_bars) as mock_bars, \
+             patch("data.signal_aggregator.get_composite_signal", new_callable=AsyncMock, return_value={}), \
+             patch("data.technicals.compute", return_value={}):
+            await _tool_get_stock_analysis("AAPL")
+
+        mock_bars.assert_called_once_with("AAPL", limit=10)
+
+
+class TestClaudeScannerMessagePruning(unittest.IsolatedAsyncioTestCase):
+    """After each round, consumed tool results must be replaced with a short summary."""
+
+    def _make_two_round_client(self):
+        """Round 1 calls get_stock_analysis, round 2 ends cleanly."""
+        tool_block = MagicMock()
+        tool_block.type = "tool_use"
+        tool_block.id = "tu_1"
+        tool_block.name = "get_stock_analysis"
+        tool_block.input = {"symbol": "AAPL"}
+
+        r1 = MagicMock()
+        r1.usage.input_tokens = 500
+        r1.usage.output_tokens = 50
+        r1.content = [tool_block]
+        r1.stop_reason = "tool_use"
+
+        r2 = MagicMock()
+        r2.usage.input_tokens = 400
+        r2.usage.output_tokens = 30
+        r2.content = []
+        r2.stop_reason = "end_turn"
+
+        mock_client = MagicMock()
+        mock_client.messages.create = AsyncMock(side_effect=[r1, r2])
+        return mock_client
+
+    async def test_tool_result_pruned_before_round2(self):
+        """Tool result appended in round 1 must be a short summary by the time round 2 fires."""
+        from agents.scanner_agent import _run_claude_scanner
+
+        mock_client = self._make_two_round_client()
+        mock_config = MagicMock()
+        mock_config.ANTHROPIC_API_KEY = "key"
+
+        # _dispatch_tool returns a realistic-sized JSON blob (~200 chars)
+        big_result = '{"symbol":"AAPL","price":150.0,"composite_score":0.72,"confidence":0.8,' \
+                     '"verdict":"BUY","indicators":{"rsi":55.1,"macd":1.2,"bb_position":0.6},' \
+                     '"recent_news_count":3}'
+
+        with patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock), \
+             patch("agents.scanner_agent.get_daily_token_total", new_callable=AsyncMock, return_value=0), \
+             patch("config.config", mock_config), \
+             patch("anthropic.AsyncAnthropic", return_value=mock_client), \
+             patch("agents.scanner_agent._dispatch_tool",
+                   new_callable=AsyncMock, return_value=big_result):
+            candidates = [{"symbol": "AAPL", "pct_change": 2.0, "vol_ratio": 1.5,
+                           "momentum_score": 0.7, "price": 150.0}]
+            await _run_claude_scanner(candidates)
+
+        # Inspect the messages argument sent in round 2
+        round2_kwargs = mock_client.messages.create.call_args_list[1][1]
+        tool_result_content = None
+        for msg in round2_kwargs["messages"]:
+            if msg.get("role") == "user" and isinstance(msg.get("content"), list):
+                for item in msg["content"]:
+                    if isinstance(item, dict) and item.get("type") == "tool_result":
+                        tool_result_content = item["content"]
+
+        self.assertIsNotNone(tool_result_content, "No tool_result found in round 2 messages")
+        self.assertIsInstance(tool_result_content, str)
+        # Pruned summary must be much shorter than the original ~200-char blob
+        self.assertLess(len(tool_result_content), 120,
+                        f"Tool result not pruned — {len(tool_result_content)} chars: {tool_result_content[:80]}")
+
+
 if __name__ == "__main__":
     unittest.main()

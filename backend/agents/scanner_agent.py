@@ -259,7 +259,7 @@ async def _tool_get_stock_analysis(symbol: str) -> Dict:
     symbol = symbol.upper().strip()
     try:
         news_task   = news_service.get_news(symbol)
-        bars_task   = alpaca_client.get_bars(symbol, limit=60)
+        bars_task   = alpaca_client.get_bars(symbol, limit=10)
         news, bars  = await asyncio.gather(news_task, bars_task, return_exceptions=False)
 
         sig = await get_composite_signal(symbol, news if isinstance(news, list) else [])
@@ -479,6 +479,25 @@ async def _run_claude_scanner(candidates: List[Dict], sector_summary: str = "") 
 
     while rounds < MAX_TOOL_ROUNDS:
         rounds += 1
+
+        # Prune any prior tool results before sending to keep conversation history small.
+        # Replaces full JSON blobs with a one-line summary once they've been consumed.
+        if rounds > 1:
+            for msg in messages:
+                if msg.get("role") == "user" and isinstance(msg.get("content"), list):
+                    for item in msg["content"]:
+                        if isinstance(item, dict) and item.get("type") == "tool_result":
+                            raw = item.get("content", "")
+                            if isinstance(raw, str) and len(raw) > 100:
+                                try:
+                                    data  = json.loads(raw)
+                                    sym   = data.get("symbol", "?")
+                                    score = data.get("composite_score", "?")
+                                    conf  = data.get("confidence", "?")
+                                    item["content"] = f"[seen] {sym} score={score} conf={conf}"
+                                except Exception:
+                                    item["content"] = raw[:80] + "…"
+
         try:
             response = await client.messages.create(
                 model="claude-opus-4-6",
@@ -521,6 +540,7 @@ async def _run_claude_scanner(candidates: List[Dict], sector_summary: str = "") 
                 "tool_use_id": tu.id,
                 "content":     result_str,
             })
+
         messages.append({"role": "user", "content": tool_results})
 
     try:
