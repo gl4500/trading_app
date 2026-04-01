@@ -158,6 +158,8 @@ class TestGeminiAgentValidResponse(unittest.IsolatedAsyncioTestCase):
 
         mock_response = MagicMock()
         mock_response.text = '{"decisions": [{"symbol": "AAPL", "action": "HOLD", "shares": 0, "confidence": 0.5, "reasoning": "test"}], "market_analysis": "ok"}'
+        mock_response.usage_metadata.prompt_token_count = 100
+        mock_response.usage_metadata.candidates_token_count = 50
 
         mock_client = MagicMock()
         mock_client.aio.models.generate_content = AsyncMock(return_value=mock_response)
@@ -168,7 +170,8 @@ class TestGeminiAgentValidResponse(unittest.IsolatedAsyncioTestCase):
              patch("agents.gemini_agent.news_service") as mock_news, \
              patch("agents.gemini_agent.format_technicals", return_value=""), \
              patch("agents.gemini_agent.format_composite", return_value=""), \
-             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.save_token_log", new_callable=AsyncMock):
             mock_cfg.GEMINI_API_KEY = "fake"
             mock_cfg.MAX_POSITION_SIZE = 0.10
             mock_news.format_for_prompt.return_value = ""
@@ -235,7 +238,8 @@ class TestGeminiTokenLogging(unittest.IsolatedAsyncioTestCase):
              patch("agents.gemini_agent.news_service") as mock_news, \
              patch("agents.gemini_agent.format_technicals", return_value=""), \
              patch("agents.gemini_agent.format_composite", return_value=""), \
-             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.save_token_log", new_callable=AsyncMock):
             _patch_gemini_deps(cfg)
             mock_news.format_for_prompt.return_value = ""
             with self.assertLogs("agents.gemini_agent", level="INFO") as cm:
@@ -251,7 +255,8 @@ class TestGeminiTokenLogging(unittest.IsolatedAsyncioTestCase):
              patch("agents.gemini_agent.news_service") as mock_news, \
              patch("agents.gemini_agent.format_technicals", return_value=""), \
              patch("agents.gemini_agent.format_composite", return_value=""), \
-             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.save_token_log", new_callable=AsyncMock):
             _patch_gemini_deps(cfg)
             mock_news.format_for_prompt.return_value = ""
             await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
@@ -292,7 +297,8 @@ class TestGeminiHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
              patch("agents.gemini_agent.news_service") as mock_news, \
              patch("agents.gemini_agent.format_technicals", return_value=""), \
              patch("agents.gemini_agent.format_composite", return_value=""), \
-             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.save_token_log", new_callable=AsyncMock):
             _patch_gemini_deps(cfg)
             mock_news.format_for_prompt.return_value = ""
             result = await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
@@ -307,7 +313,8 @@ class TestGeminiHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
              patch("agents.gemini_agent.news_service") as mock_news, \
              patch("agents.gemini_agent.format_technicals", return_value=""), \
              patch("agents.gemini_agent.format_composite", return_value=""), \
-             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.save_token_log", new_callable=AsyncMock):
             _patch_gemini_deps(cfg)
             mock_news.format_for_prompt.return_value = ""
             result = await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
@@ -321,7 +328,8 @@ class TestGeminiHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
              patch("agents.gemini_agent.news_service") as mock_news, \
              patch("agents.gemini_agent.format_technicals", return_value=""), \
              patch("agents.gemini_agent.format_composite", return_value=""), \
-             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.save_token_log", new_callable=AsyncMock):
             _patch_gemini_deps(cfg)
             mock_news.format_for_prompt.return_value = ""
             await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
@@ -415,7 +423,8 @@ class TestGeminiMarketView(unittest.IsolatedAsyncioTestCase):
              patch("agents.gemini_agent.news_service") as mock_news, \
              patch("agents.gemini_agent.format_technicals", return_value=""), \
              patch("agents.gemini_agent.format_composite", return_value=""), \
-             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.save_token_log", new_callable=AsyncMock):
             cfg.GEMINI_API_KEY = "key"
             cfg.MAX_POSITION_SIZE = 0.10
             mock_news.format_for_prompt.return_value = ""
