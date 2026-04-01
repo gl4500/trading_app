@@ -95,11 +95,60 @@ class ClaudeAgent(BaseAgent):
             self._client = anthropic.AsyncAnthropic(api_key=config.ANTHROPIC_API_KEY)
         return self._client
 
-    def _build_market_prompt(self, market_context: Dict, watchlist: List[str]) -> str:
-        """Build comprehensive market analysis prompt for Claude."""
-        portfolio_ctx = build_portfolio_context(self.portfolio)
+    # ── Static system text (cached across every call) ──────────────────────────
 
-        # Build market data section
+    _SYSTEM_TEXT: str = (
+        "You are an expert quantitative trader and portfolio manager competing in a "
+        "trading competition. Your goal is to maximize risk-adjusted returns.\n\n"
+        "## Your Task\n"
+        "Analyze each stock using ALL three lenses together and make trading decisions:\n\n"
+        "**Signal Correlation Framework:**\n"
+        "- STRONG BUY: Bullish news catalyst + RSI not overbought (<65) + MACD positive/crossing + price above SMA20\n"
+        "- STRONG SELL: Negative news + RSI overbought (>65) + MACD negative/crossing + price below SMA20\n"
+        "- CONFLICTED (proceed cautiously): News and technicals disagree — e.g. positive news but RSI=80, "
+        "or negative news but RSI=25 (oversold bounce possible)\n"
+        "- When signals diverge, prefer the technical picture for timing and news for direction\n\n"
+        "Additional considerations:\n"
+        "1. Risk management — don't over-concentrate, preserve capital\n"
+        "2. Correlation between current holdings\n"
+        "3. Portfolio cash available vs. target allocation\n\n"
+        "## Response Format\n"
+        'You must respond with ONLY a valid JSON object in this exact format:\n'
+        "{\n"
+        '  "market_analysis": "<brief overall market assessment in 2-3 sentences>",\n'
+        '  "decisions": [\n'
+        "    {\n"
+        '      "symbol": "<TICKER>",\n'
+        '      "action": "BUY" | "SELL" | "HOLD",\n'
+        '      "shares": <number, 0 for HOLD>,\n'
+        '      "confidence": <float 0.0-1.0>,\n'
+        '      "reasoning": "<specific reasoning for this stock in 1-2 sentences>"\n'
+        "    }\n"
+        "  ]\n"
+        "}\n\n"
+        "Only recommend BUY if you have strong conviction. Manage risk carefully."
+    )
+
+    def _build_stable_context(self, market_context: Dict) -> str:
+        """
+        Portfolio state + learning summary.
+        Changes only when a trade executes or learning data updates — worth caching.
+        """
+        portfolio_ctx = build_portfolio_context(self.portfolio)
+        learning_ctx  = get_learning_summary()
+        assessment_ctx = ""
+        try:
+            if _HAS_RISK_ASSESSOR:
+                assessment_ctx = _get_risk_assessment_context()
+        except Exception:
+            pass
+        return f"## Current Portfolio State\n{portfolio_ctx}\n{learning_ctx}{assessment_ctx}"
+
+    def _build_dynamic_context(self, market_context: Dict, watchlist: List[str]) -> str:
+        """
+        Market data, prices, news, macro, sector context.
+        Changes every trading cycle — never cached.
+        """
         market_sections = []
         for symbol in watchlist:
             ctx = market_context.get(symbol, {})
@@ -107,15 +156,15 @@ class ClaudeAgent(BaseAgent):
             stats = ctx.get("stats", {})
             price = ctx.get("price", 0)
 
-            bars_text      = format_bars_for_prompt(bars, limit=5) if bars is not None else "No data"
-            news_items     = ctx.get("news", [])
-            news_text      = news_service.format_for_prompt(symbol, news_items)
-            ind            = ctx.get("indicators")
-            tech_text      = format_technicals(symbol, ind, price)
-            composite_sig  = ctx.get("composite_signal", {})
-            composite_text = format_composite(composite_sig)
-            greeks_text       = ctx.get("greeks_text", "")
-            sector_ctx_text   = ctx.get("sector_context_text", "")
+            bars_text       = format_bars_for_prompt(bars, limit=5) if bars is not None else "No data"
+            news_items      = ctx.get("news", [])
+            news_text       = news_service.format_for_prompt(symbol, news_items)
+            ind             = ctx.get("indicators")
+            tech_text       = format_technicals(symbol, ind, price)
+            composite_sig   = ctx.get("composite_signal", {})
+            composite_text  = format_composite(composite_sig)
+            greeks_text     = ctx.get("greeks_text", "")
+            sector_ctx_text = ctx.get("sector_context_text", "")
 
             greeks_section = f"\n{greeks_text}\n" if greeks_text else ""
             sector_line    = f"\n### Sector Context\n{sector_ctx_text}\n" if sector_ctx_text else ""
@@ -141,7 +190,6 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
 
         market_data = "\n".join(market_sections)
 
-        # Overnight / after-hours catalysts from the news sentinel
         overnight = market_context.get("__overnight_catalysts__", [])
         if overnight:
             overnight_lines = []
@@ -155,19 +203,8 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
         else:
             overnight_section = ""
 
-        learning_ctx = get_learning_summary()
-
-        assessment_ctx = ""
-        try:
-            if _HAS_RISK_ASSESSOR:
-                assessment_ctx = _get_risk_assessment_context()
-        except Exception:
-            pass
-
         gemini_view = market_context.get("__gemini_market_view__")
-        gemini_section = (
-            f"\n## Gemini Market View\n{gemini_view}\n" if gemini_view else ""
-        )
+        gemini_section = f"\n## Gemini Market View\n{gemini_view}\n" if gemini_view else ""
 
         macro_ctx = market_context.get("__massive_macro__", "")
         macro_section = f"\n{macro_ctx}\n" if macro_ctx else ""
@@ -176,56 +213,26 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
         sector_summary = format_sector_summary(sector_perf)
         sector_section = f"\n## Macro → Sector Context\n{sector_summary}\n" if sector_summary else ""
 
-        prompt = f"""You are an expert quantitative trader and portfolio manager competing in a trading competition. Your goal is to maximize risk-adjusted returns.
+        return (
+            f"{gemini_section}{macro_section}{sector_section}{overnight_section}"
+            f"\n## Market Data\n{market_data}\n"
+            f"\nInclude an entry for each symbol: {', '.join(watchlist)}"
+        )
 
-## Current Portfolio State
-{portfolio_ctx}
-{learning_ctx}{assessment_ctx}
-{gemini_section}{macro_section}{sector_section}{overnight_section}
-## Market Data
-{market_data}
-
-## Your Task
-Analyze each stock using ALL three lenses together and make trading decisions:
-
-**Signal Correlation Framework:**
-- STRONG BUY: Bullish news catalyst + RSI not overbought (<65) + MACD positive/crossing + price above SMA20
-- STRONG SELL: Negative news + RSI overbought (>65) + MACD negative/crossing + price below SMA20
-- CONFLICTED (proceed cautiously): News and technicals disagree — e.g. positive news but RSI=80, or negative news but RSI=25 (oversold bounce possible)
-- When signals diverge, prefer the technical picture for timing and news for direction
-
-Additional considerations:
-1. Risk management — don't over-concentrate, preserve capital
-2. Correlation between current holdings
-3. Portfolio cash available vs. target allocation
-
-## Response Format
-You must respond with ONLY a valid JSON object in this exact format:
-{{
-  "market_analysis": "<brief overall market assessment in 2-3 sentences>",
-  "decisions": [
-    {{
-      "symbol": "<TICKER>",
-      "action": "BUY" | "SELL" | "HOLD",
-      "shares": <number, 0 for HOLD>,
-      "confidence": <float 0.0-1.0>,
-      "reasoning": "<specific reasoning for this stock in 1-2 sentences>"
-    }}
-  ]
-}}
-
-Include an entry for each symbol: {', '.join(watchlist)}
-Only recommend BUY if you have strong conviction. Manage risk carefully.
-"""
-        return prompt
+    def _build_market_prompt(self, market_context: Dict, watchlist: List[str]) -> str:
+        """Full prompt as one string — used by existing tests and fallback logging."""
+        stable  = self._build_stable_context(market_context)
+        dynamic = self._build_dynamic_context(market_context, watchlist)
+        return f"{self._SYSTEM_TEXT}\n\n{stable}\n{dynamic}"
 
     async def _get_claude_decisions(self, market_context: Dict, watchlist: List[str]) -> Optional[Dict]:
-        """Get trading decisions from Claude with adaptive thinking."""
+        """Get trading decisions from Claude with adaptive thinking and prompt caching."""
         client = self._get_client()
         if client is None or not config.ANTHROPIC_API_KEY:
             return None
 
-        prompt = self._build_market_prompt(market_context, watchlist)
+        stable  = self._build_stable_context(market_context)
+        dynamic = self._build_dynamic_context(market_context, watchlist)
 
         # Sliding-window hourly rate limit (2 calls per hour)
         now = time.time()
@@ -242,13 +249,22 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
             response = await client.messages.create(
                 model="claude-opus-4-6",
                 max_tokens=5000,
-                thinking={
-                    "type": "adaptive",
-                },
+                thinking={"type": "adaptive"},
+                # Cached system prompt — static instructions, never changes
+                system=[
+                    {"type": "text", "text": self._SYSTEM_TEXT,
+                     "cache_control": {"type": "ephemeral"}}
+                ],
                 messages=[
                     {
                         "role": "user",
-                        "content": prompt,
+                        "content": [
+                            # Block 1 — stable: portfolio + learning (cache hit after first call)
+                            {"type": "text", "text": stable,
+                             "cache_control": {"type": "ephemeral"}},
+                            # Block 2 — dynamic: market data, prices, news (never cached)
+                            {"type": "text", "text": dynamic},
+                        ],
                     }
                 ],
             )
@@ -266,12 +282,15 @@ Only recommend BUY if you have strong conviction. Manage risk carefully.
 
             # Record timestamp and accumulate rolling 24h window
             self._call_timestamps.append(time.time())
-            input_tok = response.usage.input_tokens
-            output_tok = response.usage.output_tokens
+            input_tok      = response.usage.input_tokens
+            output_tok     = response.usage.output_tokens
+            cache_create   = getattr(response.usage, "cache_creation_input_tokens", 0) or 0
+            cache_read     = getattr(response.usage, "cache_read_input_tokens", 0) or 0
             self._token_window.append((time.time(), input_tok + output_tok))
             self._session_tokens += input_tok + output_tok
             logger.info(
                 f"ClaudeAgent: tokens — in={input_tok} out={output_tok} "
+                f"cache_write={cache_create} cache_read={cache_read} "
                 f"daily_total={self._daily_tokens} | "
                 f"calls_this_hour={len(self._call_timestamps)}/{self._hourly_call_limit}"
             )

@@ -195,7 +195,7 @@ TOOLS = [
     },
 ]
 
-# ── Shared prompt ──────────────────────────────────────────────────────────────
+# ── Shared prompt & cached API structures ────────────────────────────────────
 
 _SYSTEM_PROMPT = """You are an elite quantitative stock scanner AI with access to real-time market data tools.
 
@@ -215,6 +215,18 @@ Process:
 5. Prioritise quality over quantity — only recommend when you have clear conviction
 
 Always check composite score, RSI, MACD, and volume confirmation before recommending."""
+
+# Cached system block — sent once; subsequent rounds hit the cache at 0.1× cost
+_CACHED_SYSTEM = [
+    {"type": "text", "text": _SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}
+]
+
+# Tools list with cache_control on the last entry — tool definitions are fully
+# static and expensive to re-encode on every tool-use round (up to 12 rounds/scan)
+_TOOLS_WITH_CACHE: List[Dict] = [
+    {**tool, **({"cache_control": {"type": "ephemeral"}} if i == len(TOOLS) - 1 else {})}
+    for i, tool in enumerate(TOOLS)
+]
 
 
 def _build_user_message(candidates: List[Dict], sector_summary: str = "") -> str:
@@ -471,8 +483,8 @@ async def _run_claude_scanner(candidates: List[Dict], sector_summary: str = "") 
             response = await client.messages.create(
                 model="claude-opus-4-6",
                 max_tokens=4096,
-                system=_SYSTEM_PROMPT,
-                tools=TOOLS,
+                system=_CACHED_SYSTEM,      # cached: same every round
+                tools=_TOOLS_WITH_CACHE,    # cached: tool defs never change
                 messages=messages,
             )
         except Exception as e:

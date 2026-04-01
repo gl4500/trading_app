@@ -367,5 +367,51 @@ class TestScannerTokenLogging(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(call_kwargs["model"], "gpt-4o-mini")
 
 
+# ── Prompt caching tests ─────────────────────────────────────────────────────
+
+class TestScannerPromptCaching(unittest.IsolatedAsyncioTestCase):
+    """Claude scanner API calls must use cached system prompt and tools."""
+
+    def _make_mock_client(self):
+        mock_resp = MagicMock()
+        mock_resp.stop_reason = "end_turn"
+        mock_resp.content = []
+        mock_resp.usage.input_tokens = 500
+        mock_resp.usage.output_tokens = 50
+        mock_client = MagicMock()
+        mock_client.messages.create = AsyncMock(return_value=mock_resp)
+        return mock_client
+
+    async def _call_scanner(self, mock_client):
+        from agents.scanner_agent import _run_claude_scanner
+        mock_config = MagicMock()
+        mock_config.ANTHROPIC_API_KEY = "key"
+        candidates = [{"symbol": "AAPL", "pct_change": 1.5, "vol_ratio": 2.0,
+                       "momentum_score": 3.0, "price": 150.0}]
+        # anthropic is imported locally inside _run_claude_scanner, so patch at package level
+        with patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock), \
+             patch("agents.scanner_agent.get_daily_token_total", new_callable=AsyncMock, return_value=0), \
+             patch("config.config", mock_config), \
+             patch("anthropic.AsyncAnthropic", return_value=mock_client):
+            await _run_claude_scanner(candidates)
+        return mock_client.messages.create.call_args[1]
+
+    async def test_claude_scanner_system_is_list(self):
+        kwargs = await self._call_scanner(self._make_mock_client())
+        self.assertIsInstance(kwargs["system"], list)
+
+    async def test_claude_scanner_system_has_cache_control(self):
+        kwargs = await self._call_scanner(self._make_mock_client())
+        last_block = kwargs["system"][-1]
+        self.assertIn("cache_control", last_block)
+        self.assertEqual(last_block["cache_control"]["type"], "ephemeral")
+
+    async def test_claude_scanner_last_tool_has_cache_control(self):
+        kwargs = await self._call_scanner(self._make_mock_client())
+        last_tool = kwargs["tools"][-1]
+        self.assertIn("cache_control", last_tool)
+        self.assertEqual(last_tool["cache_control"]["type"], "ephemeral")
+
+
 if __name__ == "__main__":
     unittest.main()

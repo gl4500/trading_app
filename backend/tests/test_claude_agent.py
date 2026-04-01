@@ -580,5 +580,133 @@ class TestClaudeSaveTokenLog(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(limit_hit)
 
 
+# ── Prompt caching structure tests ───────────────────────────────────────────
+
+def _make_cache_mock_response(input_tokens=8000, output_tokens=500,
+                               cache_creation=800, cache_read=0):
+    """Mock response that includes cache token fields."""
+    mock_block = MagicMock()
+    mock_block.type = "text"
+    mock_block.text = (
+        '{"market_analysis": "ok", "decisions": '
+        '[{"symbol": "AAPL", "action": "HOLD", "shares": 0, '
+        '"confidence": 0.5, "reasoning": "test"}]}'
+    )
+    mock_usage = MagicMock()
+    mock_usage.input_tokens = input_tokens
+    mock_usage.output_tokens = output_tokens
+    mock_usage.cache_creation_input_tokens = cache_creation
+    mock_usage.cache_read_input_tokens = cache_read
+    mock_resp = MagicMock()
+    mock_resp.content = [mock_block]
+    mock_resp.usage = mock_usage
+    return mock_resp
+
+
+class TestClaudeAgentPromptCaching(unittest.IsolatedAsyncioTestCase):
+    """API call must use prompt caching: system list + split user content blocks."""
+
+    def _make_agent(self, input_tokens=8000, output_tokens=500):
+        agent = ClaudeAgent()
+        mock_client = MagicMock()
+        mock_client.messages.create = AsyncMock(
+            return_value=_make_cache_mock_response(input_tokens, output_tokens)
+        )
+        agent._client = mock_client
+        return agent, mock_client
+
+    async def _call_and_capture(self, agent, mock_client, ctx=None):
+        ctx = ctx or _make_ctx(["AAPL"])
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("agents.claude_agent.save_token_log", new_callable=AsyncMock):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            await agent._get_claude_decisions(ctx, ["AAPL"])
+        return mock_client.messages.create.call_args[1]
+
+    async def test_system_parameter_is_a_list(self):
+        agent, mock_client = self._make_agent()
+        kwargs = await self._call_and_capture(agent, mock_client)
+        self.assertIsInstance(kwargs["system"], list)
+
+    async def test_system_last_block_has_cache_control_ephemeral(self):
+        agent, mock_client = self._make_agent()
+        kwargs = await self._call_and_capture(agent, mock_client)
+        last_block = kwargs["system"][-1]
+        self.assertIn("cache_control", last_block)
+        self.assertEqual(last_block["cache_control"]["type"], "ephemeral")
+
+    async def test_user_message_content_is_a_list(self):
+        agent, mock_client = self._make_agent()
+        kwargs = await self._call_and_capture(agent, mock_client)
+        content = kwargs["messages"][0]["content"]
+        self.assertIsInstance(content, list)
+        self.assertGreaterEqual(len(content), 2)
+
+    async def test_first_user_block_has_cache_control(self):
+        """Stable context (portfolio + learning) must be marked cacheable."""
+        agent, mock_client = self._make_agent()
+        kwargs = await self._call_and_capture(agent, mock_client)
+        first_block = kwargs["messages"][0]["content"][0]
+        self.assertIn("cache_control", first_block)
+        self.assertEqual(first_block["cache_control"]["type"], "ephemeral")
+
+    async def test_last_user_block_has_no_cache_control(self):
+        """Dynamic market data must NOT be cached."""
+        agent, mock_client = self._make_agent()
+        kwargs = await self._call_and_capture(agent, mock_client)
+        last_block = kwargs["messages"][0]["content"][-1]
+        self.assertNotIn("cache_control", last_block)
+
+    async def test_stable_context_contains_portfolio(self):
+        agent = ClaudeAgent()
+        with patch("agents.claude_agent.build_portfolio_context", return_value="MY_PORTFOLIO"), \
+             patch("agents.claude_agent.get_learning_summary", return_value=""):
+            stable = agent._build_stable_context({})
+        self.assertIn("MY_PORTFOLIO", stable)
+
+    async def test_dynamic_context_contains_symbol_prices(self):
+        agent = ClaudeAgent()
+        ctx = {"AAPL": {"price": 199.0, "bars": None, "news": [], "stats": {}}}
+        with patch("agents.claude_agent.build_portfolio_context", return_value=""), \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""):
+            mock_news.format_for_prompt.return_value = ""
+            dynamic = agent._build_dynamic_context(ctx, ["AAPL"])
+        self.assertIn("AAPL", dynamic)
+
+    async def test_cache_token_counts_logged(self):
+        """cache_creation and cache_read token counts must appear in the log."""
+        agent, _ = self._make_agent()
+        agent._client.messages.create = AsyncMock(
+            return_value=_make_cache_mock_response(cache_creation=750, cache_read=250)
+        )
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("agents.claude_agent.save_token_log", new_callable=AsyncMock):
+            cfg.ANTHROPIC_API_KEY = "key"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            with self.assertLogs("agents.claude_agent", level="INFO") as cm:
+                await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        log_text = " ".join(cm.output)
+        self.assertIn("750", log_text)   # cache_creation
+        self.assertIn("250", log_text)   # cache_read
+
+
 if __name__ == "__main__":
     unittest.main()
