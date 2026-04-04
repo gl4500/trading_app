@@ -65,7 +65,7 @@ class MarketDataService:
         self._last_bars_fetch: Dict[str, float] = {}
 
     async def get_latest_prices(self, symbols: List[str] = None) -> Dict[str, float]:
-        """Get latest prices with caching. Massive.com is primary; Alpaca is fallback."""
+        """Get latest prices with caching. Alpaca is primary; Massive is fallback."""
         syms = symbols or self.watchlist
         now = time.time()
 
@@ -73,19 +73,19 @@ class MarketDataService:
             # Return cached subset
             return {s: self._price_cache[s] for s in syms if s in self._price_cache}
 
-        # Primary: Massive.com snapshots
+        # Primary: Alpaca
         try:
-            prices = await massive_client.get_snapshots(syms)
+            prices = await alpaca_client.get_latest_prices(syms)
             if prices:
                 self._price_cache.update(prices)
                 self._last_price_fetch = now
                 return prices
         except Exception as e:
-            logger.debug(f"Massive snapshots failed, falling back to Alpaca: {e}")
+            logger.debug(f"Alpaca prices failed, falling back to Massive: {e}")
 
-        # Fallback: Alpaca
+        # Fallback: Massive.com snapshots
         try:
-            prices = await alpaca_client.get_latest_prices(syms)
+            prices = await massive_client.get_snapshots(syms)
             if prices:
                 self._price_cache.update(prices)
                 self._last_price_fetch = now
@@ -109,28 +109,17 @@ class MarketDataService:
         if now - last_fetch < self._bars_cache_ttl and cache_key in self._bars_cache:
             return self._bars_cache[cache_key].copy()
 
-        # Primary: Massive.com bars
-        try:
-            df_massive = await massive_client.get_bars(symbol, days=days)
-            if df_massive is not None and not df_massive.empty:
-                self._bars_cache[cache_key] = df_massive
-                self._last_bars_fetch[cache_key] = now
-                return df_massive
-        except Exception as e:
-            logger.debug(f"Massive bars primary failed for {symbol}: {e}")
-
-        # Fallback 1: Alpaca
+        # Primary: Alpaca
         try:
             df = await alpaca_client.get_bars(symbol, timeframe=timeframe, limit=days)
             if df is not None and not df.empty:
-                logger.debug(f"MarketData: using Alpaca bars for {symbol}")
                 self._bars_cache[cache_key] = df
                 self._last_bars_fetch[cache_key] = now
                 return df
         except Exception as e:
-            logger.error(f"Error fetching Alpaca bars for {symbol}: {e}")
+            logger.debug(f"Alpaca bars failed for {symbol}: {e}")
 
-        # Fallback 2: Stooq free historical data
+        # Fallback 1: Stooq free historical data
         try:
             df_stooq = await stooq_client.get_bars(symbol, days=days)
             if df_stooq is not None and not df_stooq.empty:
@@ -140,6 +129,17 @@ class MarketDataService:
                 return df_stooq
         except Exception as e:
             logger.debug(f"Stooq bars fallback {symbol}: {e}")
+
+        # Fallback 2: Massive.com (last resort — rate-limited on free tier)
+        try:
+            df_massive = await massive_client.get_bars(symbol, days=days)
+            if df_massive is not None and not df_massive.empty:
+                logger.debug(f"MarketData: using Massive bars for {symbol}")
+                self._bars_cache[cache_key] = df_massive
+                self._last_bars_fetch[cache_key] = now
+                return df_massive
+        except Exception as e:
+            logger.debug(f"Massive bars fallback failed for {symbol}: {e}")
 
         return self._bars_cache.get(cache_key, pd.DataFrame()).copy()
 
@@ -209,9 +209,9 @@ class MarketDataService:
         if stale:
             remaining = list(stale)
 
-            # Primary: Massive.com batch
+            # Primary: Alpaca batch
             try:
-                fetched = await massive_client.get_bars_multi(remaining, days=days)
+                fetched = await alpaca_client.get_bars_multi(remaining, timeframe=timeframe, limit=days)
                 still_missing = []
                 for sym in remaining:
                     df = fetched.get(sym)
@@ -224,12 +224,12 @@ class MarketDataService:
                         still_missing.append(sym)
                 remaining = still_missing
             except Exception as exc:
-                logger.debug("Massive batch bars failed, falling back to Alpaca: %s", exc)
+                logger.debug("Alpaca batch bars failed, falling back to Stooq: %s", exc)
 
-            # Fallback: Alpaca batch for symbols Massive didn't cover
+            # Fallback 1: Stooq batch for symbols Alpaca didn't cover
             if remaining:
                 try:
-                    fetched = await alpaca_client.get_bars_multi(remaining, timeframe=timeframe, limit=days)
+                    fetched = await stooq_client.get_bars_multi(remaining, days=days)
                     still_missing = []
                     for sym in remaining:
                         df = fetched.get(sym)
@@ -242,7 +242,25 @@ class MarketDataService:
                             still_missing.append(sym)
                     remaining = still_missing
                 except Exception as exc:
-                    logger.error("Alpaca batch bars fetch failed, falling back to per-symbol: %s", exc)
+                    logger.debug("Stooq batch bars failed, falling back to Massive: %s", exc)
+
+            # Fallback 2: Massive batch (last resort — rate-limited on free tier)
+            if remaining:
+                try:
+                    fetched = await massive_client.get_bars_multi(remaining, days=days)
+                    still_missing = []
+                    for sym in remaining:
+                        df = fetched.get(sym)
+                        if df is not None and not df.empty:
+                            key = f"{sym}|{timeframe}|{days}"
+                            self._bars_cache[key] = df
+                            self._last_bars_fetch[key] = now
+                            fresh[sym] = df
+                        else:
+                            still_missing.append(sym)
+                    remaining = still_missing
+                except Exception as exc:
+                    logger.debug("Massive batch bars failed: %s", exc)
 
             # Last resort: per-symbol fetch for anything still missing
             if remaining:

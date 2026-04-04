@@ -83,6 +83,7 @@ class MassiveClient:
         self._news_cache:    Dict[str, tuple] = {}  # symbol → (ts, list)
         self._options_cache: Dict[str, tuple] = {}  # "flow" → (ts, list)
         self._options_forbidden: bool = False       # set True on first 403 to skip future calls
+        self._snapshot_forbidden: bool = False      # set True on first snapshot 403 to stop cascading
         self._economy_cache: Dict[str, tuple] = {}  # indicator → (ts, dict)
         # Rate limiter: serialize all outbound requests with a minimum gap.
         # Lock ensures only one coroutine reads/writes _last_request at a time,
@@ -221,7 +222,7 @@ class MassiveClient:
 
         Endpoint: GET /v2/snapshot/locale/us/markets/stocks/tickers/{ticker}
         """
-        if not self._is_available():
+        if not self._is_available() or self._snapshot_forbidden:
             return {}
 
         cached = self._cached(self._price_cache, symbol, _TTL_PRICE)
@@ -234,6 +235,10 @@ class MassiveClient:
                 await self._throttle()
                 async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
                     resp = await client.get(url, params=_auth_params())
+            if resp.status_code == 403:
+                self._snapshot_forbidden = True
+                logger.warning("MassiveClient: snapshot 403 — disabling snapshot calls for this session")
+                return {}
             if resp.status_code != 200:
                 return {}
             data = resp.json()
@@ -250,7 +255,7 @@ class MassiveClient:
         Endpoint: GET /v2/snapshot/locale/us/markets/stocks/tickers?tickers=AAPL,MSFT
         Returns {symbol: price} dict — same format as alpaca_client.
         """
-        if not self._is_available():
+        if not self._is_available() or self._snapshot_forbidden:
             return {}
 
         url = f"{_BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers"
@@ -260,6 +265,10 @@ class MassiveClient:
                 await self._throttle()
                 async with httpx.AsyncClient(timeout=15, headers=_auth_headers()) as client:
                     resp = await client.get(url, params=params)
+            if resp.status_code == 403:
+                self._snapshot_forbidden = True
+                logger.warning("MassiveClient: batch snapshot 403 — disabling snapshot calls for this session")
+                return {}
             if resp.status_code == 200:
                 data = resp.json()
                 tickers = data.get("tickers", [])
