@@ -49,7 +49,9 @@ class Config:
     TRADE_INTERVAL_SECONDS: int = int(os.getenv("TRADE_INTERVAL_SECONDS", "60"))
     DAILY_LOSS_LIMIT: float = float(os.getenv("DAILY_LOSS_LIMIT", "0.05"))  # 5% daily loss stops trading
 
-    # Watchlist — seeds used as fallback when scanner pool is small
+    # Watchlist — static seed symbols used as fallback when the scanner pool is small.
+    # Set WATCHLIST=* to disable static seeds entirely — the watchlist is then built
+    # solely from scanner recommendations and momentum candidates (agent-driven).
     WATCHLIST_STR: str = os.getenv("WATCHLIST", "AAPL,MSFT,GOOGL,TSLA,AMZN,NVDA,META,SPY")
     # Fluid watchlist settings
     WATCHLIST_SIZE: int = int(os.getenv("WATCHLIST_SIZE", "15"))
@@ -57,7 +59,14 @@ class Config:
 
     @property
     def WATCHLIST(self) -> List[str]:
-        return [s.strip() for s in self.WATCHLIST_STR.split(",") if s.strip()]
+        raw = self.WATCHLIST_STR.strip()
+        # "*" means no static seeds — let agents drive the watchlist entirely
+        if not raw or raw == "*":
+            return []
+        # Only keep values that look like valid tickers (letters, digits, dots, hyphens)
+        import re as _re
+        return [s for s in (t.strip().upper() for t in raw.split(","))
+                if s and _re.match(r'^[A-Z0-9][A-Z0-9.\-]{0,9}$', s)]
 
     @property
     def WATCHLIST_ANCHORS(self) -> List[str]:

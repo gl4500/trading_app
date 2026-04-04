@@ -57,7 +57,7 @@ class GeminiAgent(BaseAgent):
         self._cycle_count: int = 0
         self._last_decisions: Dict = {}
         self._backoff_until: float = 0.0   # epoch seconds — skip API until this time
-        self._backoff_seconds: float = 120.0  # current backoff duration (doubles on repeat 429s)
+        self._backoff_seconds: float = 30.0   # current backoff duration (doubles on repeat 429s, capped at 60s)
         self._api_lock = asyncio.Lock()  # prevents duplicate concurrent API calls (separate from base _lock)
         self._call_timestamps: List[float] = []  # sliding window for hourly rate limit
         self._hourly_call_limit: int = 2
@@ -287,7 +287,7 @@ Include an entry for every symbol: {', '.join(watchlist)}
                 logger.warning(
                     f"GeminiAgent: Rate limited (429) — backing off for {self._backoff_seconds:.0f}s"
                 )
-                self._backoff_seconds = min(self._backoff_seconds * 2, 600)  # cap at 10 min
+                self._backoff_seconds = min(self._backoff_seconds * 2, 60)  # cap at 60s
             elif "PERMISSION_DENIED" in err:
                 logger.warning(f"GeminiAgent: Permission denied: {err[:120]}")
             else:
@@ -387,7 +387,7 @@ Include an entry for every symbol: {', '.join(watchlist)}
 
                 response["_watchlist"] = watchlist
                 self._last_decisions = response
-                self._backoff_seconds = 120.0  # reset backoff on success
+                self._backoff_seconds = 30.0  # reset backoff on success
 
                 signals = parse_ai_decisions(
                     response, market_context, prices,

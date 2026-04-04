@@ -663,6 +663,56 @@ class TestRunOllamaScanner(unittest.IsolatedAsyncioTestCase):
         self.assertIn("LEARNING JOURNAL", system_content)
         self.assertIn("NVDA gaps up", system_content)
 
+    async def test_round_1_uses_required_tool_choice(self):
+        """Ollama round 1 must use tool_choice='required' to force tool use on llama-class models."""
+        from agents.scanner_agent import _run_ollama_scanner
+
+        # Two rounds: first returns a tool call (get_stock_analysis), second returns stop
+        tool_call_response = MagicMock()
+        tool_call_response.usage = MagicMock(prompt_tokens=50, completion_tokens=20)
+        tc = MagicMock()
+        tc.id = "tc1"
+        tc.function = MagicMock(name="get_stock_analysis", arguments='{"symbol": "AAPL"}')
+        tc.function.name = "get_stock_analysis"
+        tc.function.arguments = '{"symbol": "AAPL"}'
+        choice1 = MagicMock()
+        choice1.finish_reason = "tool_calls"
+        choice1.message = MagicMock(content=None, tool_calls=[tc])
+        tool_call_response.choices = [choice1]
+
+        stop_response = MagicMock()
+        stop_response.usage = MagicMock(prompt_tokens=30, completion_tokens=10)
+        choice2 = MagicMock()
+        choice2.finish_reason = "stop"
+        choice2.message = MagicMock(content="done", tool_calls=None)
+        stop_response.choices = [choice2]
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(
+            side_effect=[tool_call_response, stop_response]
+        )
+
+        mock_cfg = MagicMock()
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        with patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock), \
+             patch("agents.scanner_agent.get_daily_token_total",
+                   new_callable=AsyncMock, return_value=0), \
+             patch("agents.scanner_agent._dispatch_tool",
+                   new_callable=AsyncMock, return_value='{"data_available": true, "composite_score": 0.5}'), \
+             patch("config.config", mock_cfg), \
+             patch("openai.AsyncOpenAI", return_value=mock_client):
+            await _run_ollama_scanner(self._make_candidates())
+
+        calls = mock_client.chat.completions.create.call_args_list
+        self.assertGreaterEqual(len(calls), 1)
+        # Round 1 must use tool_choice="required"
+        self.assertEqual(calls[0][1]["tool_choice"], "required")
+        # Round 2 must use tool_choice="auto"
+        if len(calls) >= 2:
+            self.assertEqual(calls[1][1]["tool_choice"], "auto")
+
 
 class TestOllamaOnlyModeScanner(unittest.IsolatedAsyncioTestCase):
     """When OLLAMA_ONLY_MODE=1, _run_scan_inner must only use the Ollama scanner leg."""
@@ -867,6 +917,214 @@ class TestAutoScanLoopInterval(unittest.IsolatedAsyncioTestCase):
         """Without Ollama-only mode, 30+ elapsed minutes should trigger a scan."""
         triggered = await self._run_one_loop_tick(ollama_mode=False, elapsed_min=31.0)
         self.assertTrue(triggered)
+
+
+# ── Pull tracking & adaptive batching ────────────────────────────────────────
+
+class TestPullTracking(unittest.IsolatedAsyncioTestCase):
+    """
+    Scanner should track data-pull hits/misses per symbol and include
+    pull_stats in the scan result.
+    """
+
+    async def test_tool_get_stock_analysis_sets_data_available_true_on_success(self):
+        """Successful bar fetch → data_available: True in returned dict."""
+        import pandas as pd
+        fake_bars = pd.DataFrame({
+            "close":  [100.0, 101.0],
+            "volume": [1000, 1100],
+            "open":   [99.0, 100.5],
+            "high":   [102.0, 103.0],
+            "low":    [98.0, 99.5],
+        })
+        with patch("data.news_service.news_service.get_news",
+                   new_callable=AsyncMock, return_value=[]), \
+             patch("trading.alpaca_client.alpaca_client.get_bars",
+                   new_callable=AsyncMock, return_value=fake_bars), \
+             patch("data.signal_aggregator.get_composite_signal",
+                   new_callable=AsyncMock,
+                   return_value={"composite_score": 0.3, "confidence": 0.6,
+                                 "verdict": "MILDLY BULLISH", "sources": {}}), \
+             patch("data.technicals.compute", return_value={"rsi": 55}):
+            from agents.scanner_agent import _tool_get_stock_analysis
+            result = await _tool_get_stock_analysis("AAPL")
+        self.assertTrue(result.get("data_available"), msg=f"Expected data_available=True, got: {result}")
+
+    async def test_tool_get_stock_analysis_sets_data_available_false_on_empty_bars(self):
+        """Empty bars response → data_available: False so AI knows to skip."""
+        import pandas as pd
+        with patch("data.news_service.news_service.get_news",
+                   new_callable=AsyncMock, return_value=[]), \
+             patch("trading.alpaca_client.alpaca_client.get_bars",
+                   new_callable=AsyncMock, return_value=pd.DataFrame()), \
+             patch("data.signal_aggregator.get_composite_signal",
+                   new_callable=AsyncMock,
+                   return_value={"composite_score": None, "confidence": 0,
+                                 "verdict": "", "sources": {}}), \
+             patch("data.technicals.compute", return_value={}):
+            from agents.scanner_agent import _tool_get_stock_analysis
+            result = await _tool_get_stock_analysis("FAKE")
+        self.assertFalse(result.get("data_available"), msg=f"Expected data_available=False, got: {result}")
+
+    async def test_tool_get_stock_analysis_sets_data_available_false_on_exception(self):
+        """Exception in bars fetch → data_available: False (not an unhandled crash)."""
+        with patch("data.news_service.news_service.get_news",
+                   new_callable=AsyncMock, side_effect=Exception("timeout")), \
+             patch("trading.alpaca_client.alpaca_client.get_bars",
+                   new_callable=AsyncMock, side_effect=Exception("timeout")):
+            from agents.scanner_agent import _tool_get_stock_analysis
+            result = await _tool_get_stock_analysis("AAPL")
+        self.assertFalse(result.get("data_available"), msg=f"Expected data_available=False on exception, got: {result}")
+        self.assertIn("error", result)
+
+    def test_scan_result_includes_pull_stats(self):
+        """run_scan result must contain pull_stats with hits and misses keys."""
+        import pandas as pd
+        fake_bars = pd.DataFrame({
+            "close":  [100.0, 101.0],
+            "volume": [1000, 1100],
+            "open":   [99.0, 100.5],
+            "high":   [102.0, 103.0],
+            "low":    [98.0, 99.5],
+        })
+
+        async def _run():
+            candidates = [
+                {"symbol": "AAPL", "price": 150.0, "pct_change": 1.2,
+                 "vol_ratio": 1.5, "momentum_score": 1.8},
+            ]
+            with patch("agents.scanner_agent._pre_screen",
+                       new_callable=AsyncMock, return_value=candidates), \
+                 patch("agents.scanner_agent._ollama_is_available",
+                       new_callable=AsyncMock, return_value=False), \
+                 patch("agents.scanner_agent._run_claude_scanner",
+                       new_callable=AsyncMock, return_value=[]), \
+                 patch("agents.scanner_agent._run_gemini_scanner",
+                       new_callable=AsyncMock, return_value=[]), \
+                 patch("data.sector_analysis.get_sector_performance",
+                       new_callable=AsyncMock, return_value={}), \
+                 patch("data.sector_analysis.format_sector_summary",
+                       return_value=""), \
+                 patch("config.config") as mock_cfg:
+                mock_cfg.ANTHROPIC_API_KEY = "sk-test"
+                mock_cfg.GEMINI_API_KEY = None
+                mock_cfg.OPENAI_API_KEY = None
+                import agents.scanner_agent as sm
+                sm._cache = None
+                sm._cache_ts = 0
+                result = await sm.run_scan(force=True)
+            return result
+
+        result = asyncio.get_event_loop().run_until_complete(_run())
+        self.assertIn("pull_stats", result, msg="Scan result missing pull_stats key")
+        ps = result["pull_stats"]
+        self.assertIn("hits", ps)
+        self.assertIn("misses", ps)
+        self.assertIn("total", ps)
+
+
+class TestExpandedCandidatePool(unittest.TestCase):
+    """
+    Pre-screen pool should be 50 symbols by default (60 in Ollama-only mode)
+    so agents have fallback candidates when primary pulls fail.
+    """
+
+    def test_pre_screen_default_top_n_is_50(self):
+        """_pre_screen should request 50 candidates by default, not 20."""
+        import inspect, agents.scanner_agent as sm
+        sig = inspect.signature(sm._pre_screen)
+        default_top_n = sig.parameters["top_n"].default
+        self.assertEqual(default_top_n, 50,
+                         msg=f"_pre_screen default top_n is {default_top_n}, expected 50")
+
+    def test_ollama_only_mode_uses_larger_pool(self):
+        """Ollama-only mode should use top_n=60 (more scans = bigger pool per scan)."""
+        async def _run():
+            import os
+            candidates = [
+                {"symbol": f"S{i}", "price": 100.0, "pct_change": float(i),
+                 "vol_ratio": 1.0, "momentum_score": float(i)}
+                for i in range(60)
+            ]
+            captured = {}
+
+            async def fake_pre_screen(top_n=50):
+                captured["top_n"] = top_n
+                return candidates[:top_n]
+
+            with patch("agents.scanner_agent._pre_screen", side_effect=fake_pre_screen), \
+                 patch("agents.scanner_agent._ollama_is_available",
+                       new_callable=AsyncMock, return_value=True), \
+                 patch("agents.scanner_agent._run_ollama_scanner",
+                       new_callable=AsyncMock, return_value=[]), \
+                 patch("data.sector_analysis.get_sector_performance",
+                       new_callable=AsyncMock, return_value={}), \
+                 patch("data.sector_analysis.format_sector_summary", return_value=""), \
+                 patch.dict(os.environ, {"OLLAMA_ONLY_MODE": "1"}):
+                import agents.scanner_agent as sm
+                sm._cache = None
+                sm._cache_ts = 0
+                await sm.run_scan(force=True)
+            return captured.get("top_n")
+
+        import os
+        top_n = asyncio.run(_run())
+        self.assertEqual(top_n, 60, msg=f"Ollama-only mode used top_n={top_n}, expected 60")
+
+    def test_each_scanner_receives_fallback_candidates(self):
+        """
+        When multiple scanners are active, each scanner call should receive
+        both a primary slice AND fallback candidates from the remaining pool.
+        The combined set seen by each scanner must cover more than its raw split.
+        """
+        async def _run():
+            # 50 ranked candidates
+            candidates = [
+                {"symbol": f"S{i:02d}", "price": 100.0, "pct_change": float(50 - i),
+                 "vol_ratio": 1.0, "momentum_score": float(50 - i)}
+                for i in range(50)
+            ]
+            claude_call_args = {}
+            gemini_call_args = {}
+
+            async def fake_claude(cands, sector=""):
+                claude_call_args["cands"] = cands
+                return []
+
+            async def fake_gemini(cands, sector=""):
+                gemini_call_args["cands"] = cands
+                return []
+
+            with patch("agents.scanner_agent._pre_screen",
+                       new_callable=AsyncMock, return_value=candidates), \
+                 patch("agents.scanner_agent._ollama_is_available",
+                       new_callable=AsyncMock, return_value=False), \
+                 patch("agents.scanner_agent._run_claude_scanner",
+                       side_effect=fake_claude), \
+                 patch("agents.scanner_agent._run_gemini_scanner",
+                       side_effect=fake_gemini), \
+                 patch("data.sector_analysis.get_sector_performance",
+                       new_callable=AsyncMock, return_value={}), \
+                 patch("data.sector_analysis.format_sector_summary", return_value=""), \
+                 patch("config.config") as mock_cfg:
+                mock_cfg.ANTHROPIC_API_KEY = "sk-test"
+                mock_cfg.GEMINI_API_KEY = "gm-test"
+                mock_cfg.OPENAI_API_KEY = None
+                import agents.scanner_agent as sm
+                sm._cache = None
+                sm._cache_ts = 0
+                await sm.run_scan(force=True)
+
+            # Each scanner should see more than just its raw equal split (25 each)
+            # because it also gets the fallback pool
+            claude_count = len(claude_call_args.get("cands", []))
+            gemini_count = len(gemini_call_args.get("cands", []))
+            return claude_count, gemini_count
+
+        c, g = asyncio.run(_run())
+        # Raw split = 25 each. With fallback, each should see > 25.
+        self.assertGreater(c, 25, msg=f"Claude only received {c} candidates, expected >25 with fallback")
+        self.assertGreater(g, 25, msg=f"Gemini only received {g} candidates, expected >25 with fallback")
 
 
 if __name__ == "__main__":

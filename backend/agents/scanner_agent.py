@@ -49,6 +49,31 @@ _scan_lock = asyncio.Lock()  # prevents duplicate concurrent scans wasting API q
 from collections import deque as _deque
 _scan_history: _deque = _deque(maxlen=20)
 
+# Per-scan pull tracking — reset at the start of each scan, read at the end
+_pull_hits:   int = 0
+_pull_misses: int = 0
+
+
+def _reset_pull_stats() -> None:
+    global _pull_hits, _pull_misses
+    _pull_hits   = 0
+    _pull_misses = 0
+
+
+def _record_pull(symbol: str, success: bool) -> None:
+    global _pull_hits, _pull_misses
+    if success:
+        _pull_hits += 1
+    else:
+        _pull_misses += 1
+        logger.debug(f"Scanner pull miss: {symbol} — no bars/composite data")
+
+
+def _get_pull_stats() -> Dict:
+    total = _pull_hits + _pull_misses
+    pct   = round((_pull_hits / total * 100) if total else 0.0, 1)
+    return {"hits": _pull_hits, "misses": _pull_misses, "total": total, "success_pct": pct}
+
 
 def _save_cache_to_disk(data: Dict) -> None:
     """Write scan result to disk so it survives restarts."""
@@ -213,11 +238,15 @@ Decision framework:
 - SKIP: insufficient signal, conflicting data, or no edge
 
 Process:
-1. Review the pre-screened momentum candidates below
-2. Use get_stock_analysis to deep-dive into the most promising ones
-3. Use get_sector_leaders if you want to explore a sector for additional ideas
-4. Call add_recommendation for each high-conviction pick (max 8 total)
-5. Prioritise quality over quantity — only recommend when you have clear conviction
+1. Review the pre-screened momentum candidates below (primary + fallback pool)
+2. Start with your PRIMARY candidates — these are the highest-momentum symbols assigned to you
+3. Use get_stock_analysis to deep-dive into each candidate in order
+4. IMPORTANT: If get_stock_analysis returns data_available=false or an error field, SKIP that symbol
+   immediately and move to the next candidate in the list — do not waste a recommendation on bad data
+5. Once you exhaust primary candidates, continue with FALLBACK candidates if you need more picks
+6. Use get_sector_leaders if you want to explore a sector for additional ideas
+7. Call add_recommendation for each high-conviction pick (max 8 total)
+8. Prioritise quality over quantity — only recommend when you have clear conviction
 
 Always check composite score, RSI, MACD, and volume confirmation before recommending."""
 
@@ -234,28 +263,48 @@ _TOOLS_WITH_CACHE: List[Dict] = [
 ]
 
 
-def _build_user_message(candidates: List[Dict], sector_summary: str = "") -> str:
-    summary = "\n".join(
-        f"  {c['symbol']:6s}  {c['pct_change']:+.2f}%  vol\u00d7{c['vol_ratio']:.1f}  "
-        f"momentum={c['momentum_score']:.2f}"
-        for c in candidates
-    )
-    sector_block = f"\n## Sector Performance\n{sector_summary}\n" if sector_summary else ""
+def _build_user_message(
+    primary: List[Dict],
+    fallback: List[Dict] = None,
+    sector_summary: str = "",
+) -> str:
+    def _fmt(c: Dict) -> str:
+        return (
+            f"  {c['symbol']:6s}  {c['pct_change']:+.2f}%  vol\u00d7{c['vol_ratio']:.1f}  "
+            f"momentum={c['momentum_score']:.2f}"
+        )
+
+    primary_block = "\n".join(_fmt(c) for c in primary)
+    sector_block  = f"\n## Sector Performance\n{sector_summary}\n" if sector_summary else ""
+
+    fallback_block = ""
+    if fallback:
+        fallback_lines = "\n".join(_fmt(c) for c in fallback)
+        fallback_block = (
+            f"\n\n## FALLBACK candidates (use if primary data pulls fail):\n{fallback_lines}"
+        )
+
     return (
         f"{sector_block}"
-        f"Today's pre-screened momentum leaders (top movers by price \u00d7 volume):\n\n"
-        f"{summary}\n\n"
-        "Analyse these candidates and any additional stocks you want to investigate. "
-        "Use get_sector_leaders to explore sectors that are leading the market. "
-        "Use your tools to get full analysis, then submit your recommendations. "
-        "Focus on finding high-conviction opportunities with clear catalysts."
+        f"## PRIMARY candidates — analyse these first (highest momentum, assigned to you):\n\n"
+        f"{primary_block}"
+        f"{fallback_block}\n\n"
+        "Work through PRIMARY candidates in order using get_stock_analysis. "
+        "If a symbol returns data_available=false or an error, skip it and move to the next. "
+        "Use FALLBACK candidates if you need more picks after exhausting primary. "
+        "Use get_sector_leaders to explore sectors that are outperforming. "
+        "Submit recommendations only for high-conviction picks with clear catalysts."
     )
 
 
 # ── Tool execution ─────────────────────────────────────────────────────────────
 
 async def _tool_get_stock_analysis(symbol: str) -> Dict:
-    """Execute get_stock_analysis tool: pull composite signal + technicals."""
+    """Execute get_stock_analysis tool: pull composite signal + technicals.
+
+    Always returns a dict with ``data_available`` (bool) so AI agents can
+    skip symbols with no usable data without wasting a recommendation slot.
+    """
     from data.signal_aggregator import get_composite_signal
     from data.news_service import news_service
     from data import technicals
@@ -269,19 +318,26 @@ async def _tool_get_stock_analysis(symbol: str) -> Dict:
 
         sig = await get_composite_signal(symbol, news if isinstance(news, list) else [])
 
-        ind = {}
+        ind   = {}
         price = None
-        if bars is not None and not bars.empty:
-            ind = technicals.compute(bars)
+        has_bars = bars is not None and not bars.empty and len(bars) >= 1
+        if has_bars:
+            ind   = technicals.compute(bars)
             price = float(bars["close"].iloc[-1]) if "close" in bars.columns else None
 
+        # A pull is considered successful when we have bars or a non-null composite score
+        data_available = has_bars or sig.get("composite_score") is not None
+
+        _record_pull(symbol, success=data_available)
+
         return {
-            "symbol":          symbol,
-            "price":           price,
-            "composite_score": sig.get("composite_score"),
-            "confidence":      sig.get("confidence"),
-            "verdict":         sig.get("verdict"),
-            "sources":         sig.get("sources", {}),
+            "symbol":            symbol,
+            "data_available":    data_available,
+            "price":             price,
+            "composite_score":   sig.get("composite_score"),
+            "confidence":        sig.get("confidence"),
+            "verdict":           sig.get("verdict"),
+            "sources":           sig.get("sources", {}),
             "indicators": {
                 "rsi":          ind.get("rsi"),
                 "macd":         ind.get("macd"),
@@ -296,7 +352,8 @@ async def _tool_get_stock_analysis(symbol: str) -> Dict:
         }
     except Exception as e:
         logger.warning(f"scanner tool get_stock_analysis({symbol}): {e}")
-        return {"symbol": symbol, "error": str(e)}
+        _record_pull(symbol, success=False)
+        return {"symbol": symbol, "data_available": False, "error": str(e)}
 
 
 def _extract_snapshot_fields(snap: Dict):
@@ -403,11 +460,14 @@ def _coerce_rec(rec: Dict) -> Dict:
 
 # ── Pre-screener ───────────────────────────────────────────────────────────────
 
-async def _pre_screen(top_n: int = 20) -> List[Dict]:
+async def _pre_screen(top_n: int = 50) -> List[Dict]:
     """
     Fast pre-screen using daily bars (more reliable than snapshots on IEX feed).
     Fetches last 5 bars for the full universe in batches of 40, ranks by
     |1-day pct change| x volume ratio, returns top_n candidates.
+
+    Default pool is 50 (up from 20) so each AI scanner has a meaningful
+    fallback set of ranked candidates when primary data pulls fail.
     """
     from data.stock_universe import ALL_SYMBOLS
     from trading.alpaca_client import alpaca_client
@@ -474,7 +534,7 @@ async def _run_claude_scanner(candidates: List[Dict], sector_summary: str = "") 
         return []
 
     client = anthropic.AsyncAnthropic(api_key=config.ANTHROPIC_API_KEY)
-    messages = [{"role": "user", "content": _build_user_message(candidates, sector_summary)}]
+    messages = [{"role": "user", "content": _build_user_message(candidates, sector_summary=sector_summary)}]
     recommendations: List[Dict] = []
     rounds = 0
     total_input_tokens = 0
@@ -618,7 +678,7 @@ async def _run_gemini_scanner(candidates: List[Dict], sector_summary: str = "") 
         _genai_types.Content(
             role="user",
             parts=[_genai_types.Part.from_text(
-                f"{_SYSTEM_PROMPT}\n\n{_build_user_message(candidates, sector_summary)}"
+                f"{_SYSTEM_PROMPT}\n\n{_build_user_message(candidates, sector_summary=sector_summary)}"
             )],
         )
     ]
@@ -729,7 +789,7 @@ async def _run_openai_scanner(candidates: List[Dict], sector_summary: str = "") 
     client = _AsyncOpenAI(api_key=config.OPENAI_API_KEY)
     messages: List[Dict] = [
         {"role": "system", "content": _SYSTEM_PROMPT},
-        {"role": "user", "content": _build_user_message(candidates, sector_summary)},
+        {"role": "user", "content": _build_user_message(candidates, sector_summary=sector_summary)},
     ]
     recommendations: List[Dict] = []
     rounds = 0
@@ -876,7 +936,7 @@ async def _run_ollama_scanner(candidates: List[Dict], sector_summary: str = "") 
     system_prompt = _SYSTEM_PROMPT + _load_ollama_learning()
     messages: List[Dict] = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": _build_user_message(candidates, sector_summary)},
+        {"role": "user", "content": _build_user_message(candidates, sector_summary=sector_summary)},
     ]
     recommendations: List[Dict] = []
     rounds = 0
@@ -887,12 +947,15 @@ async def _run_ollama_scanner(candidates: List[Dict], sector_summary: str = "") 
 
     while rounds < MAX_TOOL_ROUNDS:
         rounds += 1
+        # Force a tool call on round 1 so llama3/mistral-class models don't
+        # return a plain-text response and exit with 0 recommendations.
+        _tool_choice = "required" if rounds == 1 else "auto"
         try:
             response = await client.chat.completions.create(
                 model=config.OLLAMA_MODEL,
                 messages=messages,
                 tools=_OPENAI_TOOLS,
-                tool_choice="auto",
+                tool_choice=_tool_choice,
             )
         except Exception as e:
             logger.error(f"Scanner/Ollama: API error round {rounds}: {e}")
@@ -1041,8 +1104,10 @@ async def _run_scan_inner() -> Dict:
 
     _t0 = time.time()
     started = datetime.utcnow().isoformat()
+    _reset_pull_stats()
+
     import os as _os_inner
-    _top_n = 30 if _os_inner.environ.get("OLLAMA_ONLY_MODE") == "1" else 20
+    _top_n = 60 if _os_inner.environ.get("OLLAMA_ONLY_MODE") == "1" else 50
     candidates = await _pre_screen(top_n=_top_n)
 
     if not candidates:
@@ -1051,6 +1116,7 @@ async def _run_scan_inner() -> Dict:
             "error":           "Pre-screen returned no candidates (Alpaca unavailable?)",
             "recommendations": [],
             "candidates":      [],
+            "pull_stats":      _get_pull_stats(),
             "scanned_at":      started,
         }
         return result
@@ -1086,28 +1152,50 @@ async def _run_scan_inner() -> Dict:
             "error":           "No AI providers available (configure ANTHROPIC_API_KEY, GEMINI_API_KEY, or start Ollama at localhost:11434)",
             "recommendations": [],
             "candidates":      candidates,
+            "pull_stats":      _get_pull_stats(),
             "scanned_at":      started,
         }
         return result
 
-    # Split candidates: first scanner (Claude) gets top-ranked batch
+    # Split primary slice per scanner; each scanner also receives the rest of the
+    # ranked pool as a fallback so it can continue if its primary pulls fail.
     splits = _split_candidates(candidates, len(scanners))
     agent_names = [name for name, _ in scanners]
+
+    # Build (primary, fallback) pairs: fallback = every candidate NOT in this agent's slice
+    primary_symbols_per = [set(c["symbol"] for c in s) for s in splits]
+    fallback_per = [
+        [c for c in candidates if c["symbol"] not in primary_syms]
+        for primary_syms in primary_symbols_per
+    ]
+
     logger.info(
         f"Scanner: running {len(scanners)} agents in parallel — "
-        + ", ".join(f"{name}({len(s)} candidates)" for name, s in zip(agent_names, splits))
+        + ", ".join(
+            f"{name}({len(s)} primary + {len(fb)} fallback)"
+            for name, s, fb in zip(agent_names, splits, fallback_per)
+        )
     )
 
-    tasks = [fn(split, sector_summary) for (_, fn), split in zip(scanners, splits)]
+    # Merge primary + fallback into a single ordered list per scanner
+    # (primary first so agents always start with their highest-momentum symbols)
+    combined = [primary + fb for primary, fb in zip(splits, fallback_per)]
+    tasks = [fn(cands, sector_summary) for (_, fn), cands in zip(scanners, combined)]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     recommendations = _merge_recommendations(results)
-    logger.info(f"Scanner: merged {len(recommendations)} unique recommendations from {len(scanners)} agents")
+    pull_stats = _get_pull_stats()
+    logger.info(
+        f"Scanner: merged {len(recommendations)} unique recommendations from {len(scanners)} agents — "
+        f"data pulls: {pull_stats['hits']}/{pull_stats['total']} succeeded "
+        f"({pull_stats['success_pct']}%)"
+    )
 
     result = {
         "status":           "ok",
         "recommendations":  recommendations,
         "candidates":       candidates,
+        "pull_stats":       pull_stats,
         "scanned_at":       started,
         "completed_at":     datetime.utcnow().isoformat(),
         "cache_expires_in": SCAN_CACHE_TTL,

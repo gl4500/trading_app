@@ -110,7 +110,35 @@ class TestGeminiAgentBackoff(unittest.IsolatedAsyncioTestCase):
             second_backoff = agent._backoff_seconds
 
         self.assertGreater(first_backoff, initial_backoff)
-        self.assertGreater(second_backoff, first_backoff)
+        # After hitting the 60s cap, second backoff should equal first (not exceed it)
+        self.assertGreaterEqual(second_backoff, first_backoff)
+        self.assertLessEqual(second_backoff, 60)
+
+    async def test_backoff_capped_at_60_seconds(self):
+        """Backoff must never exceed 60s regardless of how many 429s occur."""
+        agent = GeminiAgent()
+
+        async def raise_quota(*args, **kwargs):
+            raise Exception("429 RESOURCE_EXHAUSTED: quota exceeded")
+
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = raise_quota
+        agent._client = mock_client
+
+        with patch("agents.gemini_agent.HAS_GEMINI", True), \
+             patch("agents.gemini_agent.config") as mock_cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            mock_cfg.GEMINI_API_KEY = "fake"
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            for _ in range(5):
+                agent._backoff_until = 0.0
+                await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+
+        self.assertLessEqual(agent._backoff_seconds, 60)
 
     async def test_in_backoff_returns_fallback_hold(self):
         agent = GeminiAgent()
