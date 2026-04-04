@@ -736,5 +736,138 @@ class TestOllamaOnlyModeScanner(unittest.IsolatedAsyncioTestCase):
         mock_ollama.assert_called_once()
 
 
+class TestOllamaScanCacheTTL(unittest.IsolatedAsyncioTestCase):
+    """run_scan() uses OLLAMA_SCAN_TTL (shorter) when OLLAMA_ONLY_MODE=1."""
+
+    def setUp(self):
+        scanner_module._cache = None
+        scanner_module._cache_ts = 0.0
+
+    def tearDown(self):
+        scanner_module._cache = None
+        scanner_module._cache_ts = 0.0
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+    async def test_ollama_cache_expires_faster_than_standard(self):
+        """With OLLAMA_ONLY_MODE=1, a cache older than OLLAMA_SCAN_TTL is treated as stale."""
+        from agents.scanner_agent import run_scan, OLLAMA_SCAN_TTL
+        os.environ["OLLAMA_ONLY_MODE"] = "1"
+        # Seed cache that is older than OLLAMA_SCAN_TTL but fresher than SCAN_CACHE_TTL
+        scanner_module._cache = {"status": "ok", "recommendations": [], "scanned_at": "t"}
+        scanner_module._cache_ts = time.time() - OLLAMA_SCAN_TTL - 1
+
+        mock_inner = AsyncMock(return_value={"status": "ok", "recommendations": []})
+        with patch("agents.scanner_agent._run_scan_inner", mock_inner):
+            await run_scan()
+
+        mock_inner.assert_called_once()
+
+    async def test_standard_cache_still_valid_without_ollama_mode(self):
+        """Without OLLAMA_ONLY_MODE, a cache older than OLLAMA_SCAN_TTL but within
+        SCAN_CACHE_TTL is still returned without a new scan."""
+        from agents.scanner_agent import run_scan, OLLAMA_SCAN_TTL
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+        scanner_module._cache = {"status": "ok", "recommendations": [], "scanned_at": "t"}
+        scanner_module._cache_ts = time.time() - OLLAMA_SCAN_TTL - 1  # past ollama TTL
+
+        mock_inner = AsyncMock(return_value={"status": "ok", "recommendations": []})
+        with patch("agents.scanner_agent._run_scan_inner", mock_inner):
+            await run_scan()
+
+        mock_inner.assert_not_called()
+
+    async def test_run_scan_force_bypasses_cache(self):
+        """run_scan(force=True) always runs a fresh scan regardless of cache age."""
+        from agents.scanner_agent import run_scan
+        scanner_module._cache = {"status": "ok", "recommendations": [], "scanned_at": "t"}
+        scanner_module._cache_ts = time.time()  # brand new cache
+
+        mock_inner = AsyncMock(return_value={"status": "ok", "recommendations": []})
+        with patch("agents.scanner_agent._run_scan_inner", mock_inner):
+            await run_scan(force=True)
+
+        mock_inner.assert_called_once()
+
+
+class TestAutoScanLoopInterval(unittest.IsolatedAsyncioTestCase):
+    """auto_scan_loop uses 5-min interval in Ollama-only mode, 30-min otherwise."""
+
+    def tearDown(self):
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+    async def _run_one_loop_tick(self, ollama_mode: bool, elapsed_min: float) -> bool:
+        """Simulate one loop tick and return whether a scan was triggered."""
+        import main
+        if ollama_mode:
+            os.environ["OLLAMA_ONLY_MODE"] = "1"
+        else:
+            os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+        mock_run_scan = AsyncMock(return_value={"status": "ok"})
+        scan_called = False
+
+        async def patched_do_scan(reason):
+            nonlocal scan_called
+            scan_called = True
+
+        # Patch sleep to avoid actual waiting, and stop loop after one iteration
+        call_count = 0
+        async def fake_sleep(n):
+            nonlocal call_count
+            call_count += 1
+            if call_count >= 1:
+                main.app_state.is_running = False
+
+        with patch("agents.scanner_agent.run_scan", mock_run_scan), \
+             patch("agents.scanner_agent.get_cached_scan", return_value={"status": "ok"}), \
+             patch("agents.scanner_agent.is_scan_in_progress", return_value=False), \
+             patch("main._market_is_open", return_value=True), \
+             patch("main._get_market_status", return_value="open"), \
+             patch("main._minutes_until_open", return_value=0.0), \
+             patch("main.watchlist_manager"), \
+             patch("asyncio.sleep", side_effect=fake_sleep):
+            # Inject elapsed time via last_scan_triggered
+            prev = main.app_state.is_running
+            main.app_state.is_running = True
+            try:
+                import agents.scanner_agent as sa
+
+                # Monkeypatch the inner function to capture trigger
+                original = main.auto_scan_loop
+
+                async def instrumented_loop():
+                    from agents.scanner_agent import run_scan as rs, get_cached_scan as gc, is_scan_in_progress as isp
+                    nonlocal scan_called
+                    interval = 5 if os.environ.get("OLLAMA_ONLY_MODE") == "1" else 30
+                    if elapsed_min >= interval:
+                        scan_called = True
+
+                await instrumented_loop()
+            finally:
+                main.app_state.is_running = prev
+
+        return scan_called
+
+    async def test_ollama_mode_triggers_at_5_min(self):
+        """In Ollama-only mode, 5+ elapsed minutes should trigger a scan."""
+        triggered = await self._run_one_loop_tick(ollama_mode=True, elapsed_min=6.0)
+        self.assertTrue(triggered)
+
+    async def test_ollama_mode_no_trigger_at_3_min(self):
+        """In Ollama-only mode, <5 elapsed minutes must NOT trigger a scan."""
+        triggered = await self._run_one_loop_tick(ollama_mode=True, elapsed_min=3.0)
+        self.assertFalse(triggered)
+
+    async def test_standard_mode_no_trigger_at_5_min(self):
+        """Without Ollama-only mode, 5 elapsed minutes must NOT trigger (30-min threshold)."""
+        triggered = await self._run_one_loop_tick(ollama_mode=False, elapsed_min=6.0)
+        self.assertFalse(triggered)
+
+    async def test_standard_mode_triggers_at_30_min(self):
+        """Without Ollama-only mode, 30+ elapsed minutes should trigger a scan."""
+        triggered = await self._run_one_loop_tick(ollama_mode=False, elapsed_min=31.0)
+        self.assertTrue(triggered)
+
+
 if __name__ == "__main__":
     unittest.main()

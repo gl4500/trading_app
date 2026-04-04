@@ -767,7 +767,8 @@ async def auto_scan_loop() -> None:
     """
     from agents.scanner_agent import run_scan, get_cached_scan, is_scan_in_progress
 
-    AUTO_SCAN_INTERVAL_MIN = 30          # scan every 30 min during market hours
+    OLLAMA_SCAN_INTERVAL_MIN = 5         # scan every 5 min when Ollama-only (free, local)
+    STANDARD_SCAN_INTERVAL_MIN = 30     # scan every 30 min with tokenized agents
     PRE_MARKET_WARMUP_MIN  = 10         # run N minutes before open
     POLL_SLEEP_SEC         = 60         # how often to wake up and check the schedule
 
@@ -803,17 +804,23 @@ async def auto_scan_loop() -> None:
             now_ts = time.time()
             elapsed_min = (now_ts - last_scan_triggered) / 60
 
+            interval_min = (
+                OLLAMA_SCAN_INTERVAL_MIN
+                if os.environ.get("OLLAMA_ONLY_MODE") == "1"
+                else STANDARD_SCAN_INTERVAL_MIN
+            )
+
             session = _get_market_status()
             if session == "open":
                 # Regular interval scan during market hours
-                if elapsed_min >= AUTO_SCAN_INTERVAL_MIN:
-                    await _do_scan(f"scheduled every {AUTO_SCAN_INTERVAL_MIN} min")
+                if elapsed_min >= interval_min:
+                    await _do_scan(f"scheduled every {interval_min} min")
                     last_scan_triggered = now_ts
             else:
                 # Market closed: fire a warmup scan before the open
                 mins_to_open = _minutes_until_open()
                 if 0 < mins_to_open <= PRE_MARKET_WARMUP_MIN:
-                    if elapsed_min >= AUTO_SCAN_INTERVAL_MIN:
+                    if elapsed_min >= interval_min:
                         await _do_scan(
                             f"pre-open warmup ({mins_to_open:.0f} min before 9:30 AM)"
                         )
@@ -1738,7 +1745,9 @@ async def trigger_scanner(request: Request):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait before scanning again.")
     from agents.scanner_agent import run_scan
     try:
-        result = await run_scan()
+        # In Ollama-only mode manual triggers always run fresh (no 30-min cache block)
+        force = os.environ.get("OLLAMA_ONLY_MODE") == "1"
+        result = await run_scan(force=force)
         if result and result.get("status") == "ok":
             watchlist_manager.update_from_scan(result)
         return result

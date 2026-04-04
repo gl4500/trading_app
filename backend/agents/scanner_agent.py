@@ -32,7 +32,8 @@ from database import save_token_log, get_daily_token_total
 
 logger = logging.getLogger(__name__)
 
-SCAN_CACHE_TTL = 30 * 60   # 30 minutes (in-memory freshness for trading)
+SCAN_CACHE_TTL  = 30 * 60  # 30 minutes — default TTL for tokenized agents (Claude/Gemini/OpenAI)
+OLLAMA_SCAN_TTL =  5 * 60  # 5 minutes — shorter TTL for free local Ollama scans
 MAX_TOOL_ROUNDS = 6         # safety ceiling per agent
 MAX_RECOMMENDATIONS = 8     # final output limit after merge
 
@@ -993,27 +994,34 @@ def _merge_recommendations(results: List[Any]) -> List[Dict]:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-async def run_scan() -> Dict:
+async def run_scan(force: bool = False) -> Dict:
     """
     Full scan pipeline: pre-screen → parallel AI analysis → merged recommendations.
-    Results cached for SCAN_CACHE_TTL seconds.
+
+    Cache TTL:
+      - Ollama-only mode: OLLAMA_SCAN_TTL (5 min) — free local model, scan often
+      - Tokenized agents:  SCAN_CACHE_TTL  (30 min) — conserve API quota
+      - force=True:        always run a fresh scan, ignoring cache age
 
     A module-level asyncio.Lock prevents multiple concurrent callers from
     all launching expensive AI scans simultaneously — the second caller waits,
     then returns the result the first caller just produced.
     """
+    import os as _os
     global _cache, _cache_ts, _scan_in_progress
+
+    ttl = OLLAMA_SCAN_TTL if _os.environ.get("OLLAMA_ONLY_MODE") == "1" else SCAN_CACHE_TTL
 
     # Fast path: return cache without acquiring the lock
     now = time.time()
-    if _cache and (now - _cache_ts) < SCAN_CACHE_TTL:
+    if not force and _cache and (now - _cache_ts) < ttl:
         logger.info("Scanner: returning cached results")
         return _cache
 
     async with _scan_lock:
         # Re-check after acquiring lock: a concurrent caller may have just finished
         now = time.time()
-        if _cache and (now - _cache_ts) < SCAN_CACHE_TTL:
+        if not force and _cache and (now - _cache_ts) < ttl:
             logger.info("Scanner: returning results from concurrent scan")
             return _cache
 
