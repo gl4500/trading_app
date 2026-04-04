@@ -509,5 +509,160 @@ class TestClaudeScannerMessagePruning(unittest.IsolatedAsyncioTestCase):
                         f"Tool result not pruned — {len(tool_result_content)} chars: {tool_result_content[:80]}")
 
 
+class TestOllamaAvailability(unittest.IsolatedAsyncioTestCase):
+    """_ollama_is_available() returns True only when Ollama server responds."""
+
+    async def test_returns_true_when_server_responds_200(self):
+        from agents.scanner_agent import _ollama_is_available
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+
+        with patch("httpx.AsyncClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_cls.return_value = mock_client
+            result = await _ollama_is_available()
+
+        self.assertTrue(result)
+
+    async def test_returns_false_when_connection_refused(self):
+        from agents.scanner_agent import _ollama_is_available
+        import httpx
+
+        with patch("httpx.AsyncClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client.get = AsyncMock(side_effect=httpx.ConnectError("refused"))
+            mock_cls.return_value = mock_client
+            result = await _ollama_is_available()
+
+        self.assertFalse(result)
+
+    async def test_returns_false_on_timeout(self):
+        from agents.scanner_agent import _ollama_is_available
+        import httpx
+
+        with patch("httpx.AsyncClient") as mock_cls:
+            mock_client = AsyncMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client.get = AsyncMock(side_effect=httpx.TimeoutException("timeout"))
+            mock_cls.return_value = mock_client
+            result = await _ollama_is_available()
+
+        self.assertFalse(result)
+
+
+class TestRunOllamaScanner(unittest.IsolatedAsyncioTestCase):
+    """_run_ollama_scanner() drives Ollama via the OpenAI-compatible API."""
+
+    def _make_candidates(self, n=1):
+        return [
+            {"symbol": f"SYM{i}", "pct_change": 1.0, "vol_ratio": 1.5,
+             "momentum_score": 0.5, "price": 100.0}
+            for i in range(n)
+        ]
+
+    def _make_mock_openai_client(self, finish="stop"):
+        """Return a mock OpenAI async client that returns a no-tool-call response."""
+        mock_response = MagicMock()
+        mock_response.usage = MagicMock(prompt_tokens=50, completion_tokens=20)
+        mock_choice = MagicMock()
+        mock_choice.finish_reason = finish
+        mock_choice.message = MagicMock(content="done", tool_calls=None)
+        mock_response.choices = [mock_choice]
+
+        mock_client = MagicMock()
+        mock_client.chat = MagicMock()
+        mock_client.chat.completions = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+        return mock_client
+
+    async def test_returns_empty_for_empty_candidates(self):
+        from agents.scanner_agent import _run_ollama_scanner
+
+        with patch("agents.scanner_agent._ollama_is_available", new_callable=AsyncMock, return_value=True):
+            result = await _run_ollama_scanner([])
+
+        self.assertEqual(result, [])
+
+    async def test_calls_openai_client_with_ollama_base_url(self):
+        from agents.scanner_agent import _run_ollama_scanner
+
+        mock_client = self._make_mock_openai_client()
+        mock_cfg = MagicMock()
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        with patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock), \
+             patch("agents.scanner_agent.get_daily_token_total",
+                   new_callable=AsyncMock, return_value=0), \
+             patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, return_value=True), \
+             patch("config.config", mock_cfg), \
+             patch("openai.AsyncOpenAI", return_value=mock_client) as mock_ctor:
+            await _run_ollama_scanner(self._make_candidates())
+
+        call_kwargs = mock_ctor.call_args[1]
+        self.assertEqual(call_kwargs["base_url"], "http://localhost:11434/v1")
+        self.assertEqual(call_kwargs["api_key"], "ollama")
+
+    async def test_token_log_uses_ollama_agent_name(self):
+        from agents.scanner_agent import _run_ollama_scanner
+
+        mock_client = self._make_mock_openai_client()
+        mock_cfg = MagicMock()
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        with patch("agents.scanner_agent.save_token_log",
+                   new_callable=AsyncMock) as mock_save, \
+             patch("agents.scanner_agent.get_daily_token_total",
+                   new_callable=AsyncMock, return_value=0), \
+             patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, return_value=True), \
+             patch("config.config", mock_cfg), \
+             patch("openai.AsyncOpenAI", return_value=mock_client):
+            await _run_ollama_scanner(self._make_candidates())
+
+        mock_save.assert_called_once()
+        call_kwargs = mock_save.call_args[1]
+        self.assertEqual(call_kwargs["agent"], "ScannerAgent/Ollama")
+        self.assertEqual(call_kwargs["model"], "llama3.1:8b")
+
+    async def test_learning_journal_loaded_into_system_prompt(self):
+        from agents.scanner_agent import _run_ollama_scanner
+
+        mock_client = self._make_mock_openai_client()
+        mock_cfg = MagicMock()
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        journal_content = "## Observed: NVDA gaps up on volume spikes reliably"
+
+        with patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock), \
+             patch("agents.scanner_agent.get_daily_token_total",
+                   new_callable=AsyncMock, return_value=0), \
+             patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, return_value=True), \
+             patch("agents.scanner_agent._load_ollama_learning",
+                   return_value=f"\n\n--- LEARNING JOURNAL ---\n{journal_content}"), \
+             patch("config.config", mock_cfg), \
+             patch("openai.AsyncOpenAI", return_value=mock_client):
+            await _run_ollama_scanner(self._make_candidates())
+
+        # System message should contain the learning journal
+        call_messages = mock_client.chat.completions.create.call_args[1]["messages"]
+        system_content = next(
+            (m["content"] for m in call_messages if m.get("role") == "system"), ""
+        )
+        self.assertIn("LEARNING JOURNAL", system_content)
+        self.assertIn("NVDA gaps up", system_content)
+
+
 if __name__ == "__main__":
     unittest.main()

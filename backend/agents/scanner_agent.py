@@ -1,14 +1,14 @@
 """
-ScannerAgent — Multi-agent parallel stock scanner powered by Claude, Gemini, and OpenAI.
+ScannerAgent — Multi-agent parallel stock scanner powered by Claude, Gemini, and Ollama.
 
 How it works:
   1. Pre-screener: fetches daily bars for ~160 universe symbols from Alpaca,
      ranks by 1-day momentum + volume surge → picks top 20 candidates.
   2. Parallel AI scan: splits candidates across available AI providers and
      runs all agentic tool-use loops concurrently via asyncio.gather.
-     - Claude Opus   → top candidates  (highest conviction analysis)
-     - Gemini Flash  → middle tier     (cheap, fast)
-     - OpenAI GPT-4o → lower tier      (moderate cost)
+     - Claude Opus   → top candidates  (highest conviction, second-opinion quality)
+     - Gemini Flash  → middle tier     (cheap, fast, free tier available)
+     - Ollama local  → lower tier      (zero token cost, runs on local GPU/CPU)
   3. Recommendations are merged, deduplicated by symbol (highest confidence
      wins), capped at MAX_RECOMMENDATIONS, cached for 30 minutes.
 
@@ -822,6 +822,147 @@ async def _run_openai_scanner(candidates: List[Dict], sector_summary: str = "") 
     return recommendations
 
 
+# ── Ollama scanner ─────────────────────────────────────────────────────────────
+
+async def _ollama_is_available() -> bool:
+    """Return True if the Ollama server is reachable at the configured base URL."""
+    import httpx
+    from config import config
+    base = config.OLLAMA_BASE_URL.rstrip("/")
+    health = (base[:-3] if base.endswith("/v1") else base) + "/api/tags"
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            r = await client.get(health)
+            return r.status_code == 200
+    except Exception:
+        return False
+
+
+def _load_ollama_learning() -> str:
+    """Load the Ollama scanner learning journal and return it as extra system context."""
+    learning_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "ollama_scanner_learning.md"
+    )
+    try:
+        with open(learning_path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+        if content:
+            return f"\n\n--- LEARNING JOURNAL ---\n{content}\n--- END LEARNING JOURNAL ---"
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        logger.debug(f"Ollama: could not load learning journal: {e}")
+    return ""
+
+
+async def _run_ollama_scanner(candidates: List[Dict], sector_summary: str = "") -> List[Dict]:
+    """Agentic Ollama tool-use loop over a candidate subset (OpenAI-compatible API)."""
+    from config import config
+    from openai import AsyncOpenAI as _OllamaClient
+
+    if not candidates:
+        return []
+
+    client = _OllamaClient(
+        api_key="ollama",
+        base_url=config.OLLAMA_BASE_URL,
+    )
+
+    system_prompt = _SYSTEM_PROMPT + _load_ollama_learning()
+    messages: List[Dict] = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": _build_user_message(candidates, sector_summary)},
+    ]
+    recommendations: List[Dict] = []
+    rounds = 0
+    total_prompt_tokens = 0
+    total_completion_tokens = 0
+
+    logger.info(f"Scanner/Ollama: starting agentic loop ({len(candidates)} candidates, model={config.OLLAMA_MODEL})")
+
+    while rounds < MAX_TOOL_ROUNDS:
+        rounds += 1
+        try:
+            response = await client.chat.completions.create(
+                model=config.OLLAMA_MODEL,
+                messages=messages,
+                tools=_OPENAI_TOOLS,
+                tool_choice="auto",
+            )
+        except Exception as e:
+            logger.error(f"Scanner/Ollama: API error round {rounds}: {e}")
+            break
+
+        if response.usage:
+            total_prompt_tokens += response.usage.prompt_tokens or 0
+            total_completion_tokens += response.usage.completion_tokens or 0
+
+        choice = response.choices[0]
+        msg = choice.message
+        tool_calls = msg.tool_calls or []
+
+        for tc in tool_calls:
+            if tc.function.name == "add_recommendation":
+                try:
+                    rec = _coerce_rec(json.loads(tc.function.arguments))
+                    rec["timestamp"] = datetime.utcnow().isoformat()
+                    recommendations.append(rec)
+                    logger.info(
+                        f"Scanner/Ollama: {rec.get('symbol')} {rec.get('action')} "
+                        f"conf={rec.get('confidence', 0):.2f}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Scanner/Ollama: failed to parse recommendation: {e}")
+
+        assistant_msg: Dict[str, Any] = {"role": "assistant", "content": msg.content}
+        if tool_calls:
+            assistant_msg["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
+                for tc in tool_calls
+            ]
+        messages.append(assistant_msg)
+
+        if choice.finish_reason != "tool_calls" or not tool_calls:
+            logger.info(f"Scanner/Ollama: done after {rounds} rounds, {len(recommendations)} recs")
+            break
+
+        for tc in tool_calls:
+            try:
+                args = json.loads(tc.function.arguments)
+            except Exception:
+                args = {}
+            result_str = await _dispatch_tool(tc.function.name, args)
+            messages.append({
+                "role":         "tool",
+                "tool_call_id": tc.id,
+                "content":      result_str,
+            })
+
+    try:
+        _call_total = total_prompt_tokens + total_completion_tokens
+        try:
+            _prior_24h = await get_daily_token_total("ScannerAgent/Ollama", hours=24)
+        except Exception:
+            _prior_24h = 0
+        await save_token_log(
+            agent="ScannerAgent/Ollama",
+            model=config.OLLAMA_MODEL,
+            prompt_tokens=total_prompt_tokens,
+            completion_tokens=total_completion_tokens,
+            total_tokens=_call_total,
+            daily_total=_prior_24h + _call_total,
+            limit_hit=False,
+        )
+    except Exception as _e:
+        logger.debug(f"Scanner/Ollama: token log save failed: {_e}")
+
+    return recommendations
+
+
 # ── Merge ──────────────────────────────────────────────────────────────────────
 
 def _merge_recommendations(results: List[Any]) -> List[Dict]:
@@ -915,13 +1056,16 @@ async def _run_scan_inner() -> Dict:
         scanners.append(("Claude",  _run_claude_scanner))
     if HAS_GEMINI and config.GEMINI_API_KEY:
         scanners.append(("Gemini",  _run_gemini_scanner))
-    if HAS_OPENAI and config.OPENAI_API_KEY:
-        scanners.append(("OpenAI",  _run_openai_scanner))
+    # Ollama (local, free) takes priority; fall back to OpenAI if Ollama isn't running
+    if await _ollama_is_available():
+        scanners.append(("Ollama", _run_ollama_scanner))
+    elif HAS_OPENAI and config.OPENAI_API_KEY:
+        scanners.append(("OpenAI", _run_openai_scanner))
 
     if not scanners:
         result = {
             "status":          "error",
-            "error":           "No AI API keys configured (ANTHROPIC_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY required)",
+            "error":           "No AI providers available (configure ANTHROPIC_API_KEY, GEMINI_API_KEY, or start Ollama at localhost:11434)",
             "recommendations": [],
             "candidates":      candidates,
             "scanned_at":      started,

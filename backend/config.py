@@ -25,6 +25,10 @@ class Config:
     OPENCLAW_TOKEN: str    = os.getenv("OPENCLAW_TOKEN", "")
     OPENCLAW_MODEL: str    = os.getenv("OPENCLAW_MODEL", "llama3.2")
 
+    # Ollama local model (OpenAI-compatible, zero token cost)
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    OLLAMA_MODEL: str    = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+
     # Additional data source keys
     FINNHUB_API_KEY: str = os.getenv("FINNHUB_API_KEY", "")
     UNUSUAL_WHALES_API_KEY: str = os.getenv("UNUSUAL_WHALES_API_KEY", "")
