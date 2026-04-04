@@ -1180,6 +1180,79 @@ class TestRecordCatalysts(unittest.IsolatedAsyncioTestCase):
         self.assertLessEqual(len(main.app_state.after_hours_catalysts), 50)
 
 
+class TestEnsureOllamaRunning(unittest.IsolatedAsyncioTestCase):
+    """_ensure_ollama_running() starts Ollama when needed and pulls the model if missing."""
+
+    async def test_does_nothing_when_already_running(self):
+        """No subprocess calls when Ollama is already up."""
+        import main
+        with patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, return_value=True) as mock_avail, \
+             patch("subprocess.Popen") as mock_popen, \
+             patch("subprocess.run") as mock_run:
+            await main._ensure_ollama_running()
+
+        mock_popen.assert_not_called()
+        mock_run.assert_not_called()
+
+    async def test_warns_and_returns_when_ollama_not_installed(self):
+        """Logs a warning and returns cleanly if 'ollama' binary is not in PATH."""
+        import main
+        with patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, return_value=False), \
+             patch("subprocess.run", side_effect=FileNotFoundError("ollama not found")), \
+             patch("subprocess.Popen") as mock_popen:
+            await main._ensure_ollama_running()
+
+        mock_popen.assert_not_called()
+
+    async def test_starts_server_when_not_running_but_installed(self):
+        """Popen called with 'ollama serve' when Ollama is installed but not running."""
+        import main
+
+        version_result = MagicMock(returncode=0)
+        list_result    = MagicMock(returncode=0, stdout="llama3.1:8b  ...")
+
+        with patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, side_effect=[False, True]) as mock_avail, \
+             patch("subprocess.run", return_value=version_result) as mock_run, \
+             patch("subprocess.Popen") as mock_popen, \
+             patch("asyncio.sleep", new_callable=AsyncMock):
+            # Second call to subprocess.run is for 'ollama list'
+            mock_run.side_effect = [version_result, list_result]
+            with patch("main.config") as mock_cfg:
+                mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+                mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+                await main._ensure_ollama_running()
+
+        mock_popen.assert_called_once()
+        popen_args = mock_popen.call_args[0][0]
+        self.assertEqual(popen_args[0], "ollama")
+        self.assertEqual(popen_args[1], "serve")
+
+    async def test_pulls_model_when_not_in_list(self):
+        """Schedules _pull_ollama_model when model is absent from 'ollama list' output."""
+        import main
+
+        version_result = MagicMock(returncode=0)
+        # Model is NOT in the list output
+        list_result = MagicMock(returncode=0, stdout="some_other_model:latest  ...")
+
+        with patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, side_effect=[False, True]), \
+             patch("subprocess.run") as mock_run, \
+             patch("subprocess.Popen"), \
+             patch("asyncio.sleep", new_callable=AsyncMock), \
+             patch("asyncio.create_task") as mock_create_task:
+            mock_run.side_effect = [version_result, list_result]
+            with patch("main.config") as mock_cfg:
+                mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+                mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+                await main._ensure_ollama_running()
+
+        mock_create_task.assert_called_once()
+
+
 class TestErrorLogEndpoint(unittest.TestCase):
     """GET /api/errors returns structured log entries parsed from the error log file."""
 

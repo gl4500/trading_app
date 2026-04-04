@@ -1166,6 +1166,105 @@ async def build_ws_message() -> Dict:
 
 # ─── Lifespan ─────────────────────────────────────────────────────────────────
 
+async def _pull_ollama_model() -> None:
+    """Pull the configured Ollama model in the background (runs as an asyncio task)."""
+    logger.info(
+        f"Ollama: pulling model '{config.OLLAMA_MODEL}' — this may take several minutes..."
+    )
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ollama", "pull", config.OLLAMA_MODEL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await proc.communicate()
+        if proc.returncode == 0:
+            logger.info(f"Ollama: model '{config.OLLAMA_MODEL}' pulled successfully.")
+        else:
+            logger.warning(f"Ollama: pull failed — {stderr.decode()[:200]}")
+    except Exception as e:
+        logger.warning(f"Ollama: pull error: {e}")
+
+
+async def _ensure_ollama_running() -> None:
+    """
+    Ensure the Ollama local model server is running at startup.
+
+    Steps:
+      1. If already reachable — do nothing.
+      2. Check that the 'ollama' binary is installed; warn and return if not.
+      3. Start 'ollama serve' as a detached background process.
+      4. Wait up to 10 s for the server to become reachable.
+      5. If the configured model is not yet downloaded, pull it in the background.
+    """
+    import subprocess
+    from agents.scanner_agent import _ollama_is_available
+
+    if await _ollama_is_available():
+        logger.info("Ollama: server already running.")
+        return
+
+    # Verify the binary exists
+    try:
+        result = subprocess.run(
+            ["ollama", "--version"],
+            capture_output=True,
+            timeout=5,
+        )
+        if result.returncode != 0:
+            logger.warning("Ollama: binary found but returned non-zero — skipping auto-start.")
+            return
+    except FileNotFoundError:
+        logger.warning(
+            "Ollama: not found in PATH. Install from https://ollama.com to enable "
+            "zero-cost local scanning."
+        )
+        return
+    except Exception as e:
+        logger.warning(f"Ollama: could not verify installation: {e}")
+        return
+
+    # Start the server as a detached process so it outlives any parent shell
+    logger.info("Ollama: starting server (ollama serve)...")
+    try:
+        kwargs: dict = {
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+        }
+        if os.name == "nt":
+            kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        subprocess.Popen(["ollama", "serve"], **kwargs)
+    except Exception as e:
+        logger.warning(f"Ollama: failed to start server: {e}")
+        return
+
+    # Wait up to 10 s for the server to come up
+    for _ in range(10):
+        await asyncio.sleep(1)
+        if await _ollama_is_available():
+            logger.info("Ollama: server is up.")
+            break
+    else:
+        logger.warning("Ollama: server started but did not respond within 10 s.")
+        return
+
+    # Pull the model if it hasn't been downloaded yet
+    try:
+        list_result = subprocess.run(
+            ["ollama", "list"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if config.OLLAMA_MODEL not in list_result.stdout:
+            logger.info(f"Ollama: model '{config.OLLAMA_MODEL}' not found locally — pulling...")
+            asyncio.create_task(_pull_ollama_model())
+        else:
+            logger.info(f"Ollama: model '{config.OLLAMA_MODEL}' already available.")
+    except Exception as e:
+        logger.debug(f"Ollama: could not check model list: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown."""
@@ -1186,6 +1285,9 @@ async def lifespan(app: FastAPI):
             logger.info("No cached scan — fluid watchlist will use seed symbols until first scan.")
     except Exception as e:
         logger.warning(f"Could not bootstrap fluid watchlist: {e}")
+
+    # Ensure Ollama local model server is running before scans begin
+    await _ensure_ollama_running()
 
     # Start WebSocket broadcast task
     app_state.ws_task = asyncio.create_task(ws_broadcast_loop())
