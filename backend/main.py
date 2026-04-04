@@ -1166,6 +1166,36 @@ async def build_ws_message() -> Dict:
 
 # ─── Lifespan ─────────────────────────────────────────────────────────────────
 
+def _add_ollama_to_path() -> None:
+    """
+    Inject the Ollama binary directory into os.environ['PATH'] so that
+    subprocess calls to 'ollama' work even when the shell PATH was not
+    updated at install time (common on Windows).
+
+    Checks (in order):
+      1. %LOCALAPPDATA%\\Programs\\Ollama  — default Windows install location
+      2. config.OLLAMA_PATH               — user-defined override via .env
+    """
+    candidates: list = []
+
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+    if local_app_data:
+        candidates.append(os.path.join(local_app_data, "Programs", "Ollama"))
+
+    if getattr(config, "OLLAMA_PATH", ""):
+        candidates.append(config.OLLAMA_PATH)
+
+    current_path = os.environ.get("PATH", "")
+    additions = [
+        d for d in candidates
+        if os.path.isdir(d) and d not in current_path
+    ]
+
+    if additions:
+        os.environ["PATH"] = os.pathsep.join(additions) + os.pathsep + current_path
+        logger.info(f"Ollama: added to PATH → {', '.join(additions)}")
+
+
 async def _pull_ollama_model() -> None:
     """Pull the configured Ollama model in the background (runs as an asyncio task)."""
     logger.info(
@@ -1199,6 +1229,9 @@ async def _ensure_ollama_running() -> None:
     """
     import subprocess
     from agents.scanner_agent import _ollama_is_available
+
+    # Ensure the Ollama binary is findable before any subprocess calls
+    _add_ollama_to_path()
 
     if await _ollama_is_available():
         logger.info("Ollama: server already running.")

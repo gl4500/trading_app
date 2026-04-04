@@ -1180,6 +1180,70 @@ class TestRecordCatalysts(unittest.IsolatedAsyncioTestCase):
         self.assertLessEqual(len(main.app_state.after_hours_catalysts), 50)
 
 
+class TestAddOllamaToPath(unittest.TestCase):
+    """_add_ollama_to_path() injects the Ollama install dir into os.environ['PATH']."""
+
+    def setUp(self):
+        self._original_path = os.environ.get("PATH", "")
+
+    def tearDown(self):
+        os.environ["PATH"] = self._original_path
+
+    def test_adds_ollama_dir_when_not_in_path(self):
+        """Ollama install dir is appended to PATH when absent."""
+        import main
+        fake_local = "/fake/localappdata"
+        ollama_dir = os.path.join(fake_local, "Programs", "Ollama")
+        os.environ["PATH"] = "/some/other/dir"
+
+        with patch.dict(os.environ, {"LOCALAPPDATA": fake_local}), \
+             patch("os.path.isdir", return_value=True):
+            main._add_ollama_to_path()
+            self.assertIn(ollama_dir, os.environ["PATH"])
+
+    def test_does_not_duplicate_when_already_present(self):
+        """No duplicate entry added when Ollama dir is already in PATH."""
+        import main
+        fake_local = "/fake/localappdata"
+        ollama_dir = os.path.join(fake_local, "Programs", "Ollama")
+        os.environ["PATH"] = ollama_dir + os.pathsep + "/other"
+
+        with patch.dict(os.environ, {"LOCALAPPDATA": fake_local}), \
+             patch("os.path.isdir", return_value=True):
+            main._add_ollama_to_path()
+
+        # Count occurrences — must be exactly 1
+        path_entries = os.environ["PATH"].split(os.pathsep)
+        self.assertEqual(path_entries.count(ollama_dir), 1)
+
+    def test_custom_ollama_path_from_config_added(self):
+        """A custom OLLAMA_PATH in config is added to PATH."""
+        import main
+        custom = "/custom/ollama/bin"
+        os.environ["PATH"] = "/some/dir"
+
+        with patch("main.config") as mock_cfg, \
+             patch("os.path.isdir", return_value=True):
+            mock_cfg.OLLAMA_PATH = custom
+            mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+            with patch.dict(os.environ, {"LOCALAPPDATA": ""}):
+                main._add_ollama_to_path()
+                self.assertIn(custom, os.environ["PATH"])
+
+    def test_skips_nonexistent_directory(self):
+        """Directories that don't exist on disk are not added to PATH."""
+        import main
+        fake_local = "/nonexistent/appdata"
+        os.environ["PATH"] = "/some/dir"
+
+        with patch.dict(os.environ, {"LOCALAPPDATA": fake_local}), \
+             patch("os.path.isdir", return_value=False):
+            main._add_ollama_to_path()
+
+        ollama_dir = os.path.join(fake_local, "Programs", "Ollama")
+        self.assertNotIn(ollama_dir, os.environ["PATH"])
+
+
 class TestEnsureOllamaRunning(unittest.IsolatedAsyncioTestCase):
     """_ensure_ollama_running() starts Ollama when needed and pulls the model if missing."""
 

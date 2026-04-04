@@ -28,6 +28,9 @@ class Config:
     # Ollama local model (OpenAI-compatible, zero token cost)
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
     OLLAMA_MODEL: str    = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+    # Optional: override the Ollama binary directory added to PATH on startup.
+    # Defaults to %LOCALAPPDATA%\Programs\Ollama on Windows (auto-detected).
+    OLLAMA_PATH: str     = os.getenv("OLLAMA_PATH", "")
 
     # Additional data source keys
     FINNHUB_API_KEY: str = os.getenv("FINNHUB_API_KEY", "")
