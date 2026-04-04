@@ -132,7 +132,7 @@ function SignalCard({ sig }: { sig: CompositeSignal }) {
   const confPct = Math.round((sig.confidence ?? 0) * 100)
 
   // strip parenthetical suffix from verdict for badge
-  const verdictLabel = sig.verdict.replace(/ \(.*\)$/, '')
+  const verdictLabel = (sig.verdict ?? '').replace(/ \(.*\)$/, '')
   const verdictColor  = score >= 0.15 ? 'bg-emerald-900 text-emerald-300 border border-emerald-700'
                       : score <= -0.15 ? 'bg-red-900 text-red-300 border border-red-700'
                       : 'bg-yellow-900 text-yellow-300 border border-yellow-700'
@@ -310,7 +310,7 @@ function SignalCard({ sig }: { sig: CompositeSignal }) {
       </div>
 
       {/* ── Headlines toggle ── */}
-      {sig.yahoo_news_headlines.length > 0 && (
+      {(sig.yahoo_news_headlines ?? []).length > 0 && (
         <div className="border-t border-gray-700">
           <button
             onClick={() => setExpanded(e => !e)}
@@ -321,7 +321,7 @@ function SignalCard({ sig }: { sig: CompositeSignal }) {
           </button>
           {expanded && (
             <div className="px-4 pb-3 space-y-1.5">
-              {sig.yahoo_news_headlines.map((h, i) => (
+              {(sig.yahoo_news_headlines ?? []).map((h, i) => (
                 <div key={i} className="text-xs text-gray-400 leading-snug border-l-2 border-gray-700 pl-2">
                   {h}
                 </div>

@@ -1723,7 +1723,13 @@ async def get_composite_signals():
     from data.news_service import news_service
     ctx = app_state.last_market_context
     if ctx:
-        signals = {sym: ctx[sym].get("composite_signal", {}) for sym in ctx if isinstance(ctx[sym], dict)}
+        signals = {
+            sym: sig
+            for sym in ctx
+            if isinstance(ctx[sym], dict)
+            for sig in [ctx[sym].get("composite_signal", {})]
+            if sig.get("verdict")  # skip empty/failed signals
+        }
     else:
         active_wl = watchlist_manager.get_active_watchlist()
         news = await news_service.get_news_multi(active_wl)
