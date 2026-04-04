@@ -67,6 +67,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Ollama is the default primary model — always active unless explicitly disabled.
+# Set before any agent or scanner code runs so the flag is visible to all modules.
+os.environ.setdefault("OLLAMA_ONLY_MODE", "1")
+
 
 # Suppress the Windows-specific "connection forcibly closed" asyncio noise.
 # This fires whenever a browser tab closes/refreshes mid-connection and is harmless.
@@ -1211,14 +1215,24 @@ def _add_ollama_to_path() -> None:
     updated at install time (common on Windows).
 
     Checks (in order):
-      1. %LOCALAPPDATA%\\Programs\\Ollama  — default Windows install location
-      2. config.OLLAMA_PATH               — user-defined override via .env
+      1. shutil.which — already on PATH, nothing to do
+      2. %LOCALAPPDATA%\\Programs\\Ollama  — default Windows install location
+      3. config.OLLAMA_PATH               — user-defined override via .env
     """
+    import shutil
+    if shutil.which("ollama"):
+        return  # already findable — nothing to inject
+
     candidates: list = []
 
     local_app_data = os.environ.get("LOCALAPPDATA", "")
     if local_app_data:
         candidates.append(os.path.join(local_app_data, "Programs", "Ollama"))
+
+    # Also try the USERPROFILE-derived path in case LOCALAPPDATA isn't set
+    user_profile = os.environ.get("USERPROFILE", "")
+    if user_profile:
+        candidates.append(os.path.join(user_profile, "AppData", "Local", "Programs", "Ollama"))
 
     if getattr(config, "OLLAMA_PATH", ""):
         candidates.append(config.OLLAMA_PATH)

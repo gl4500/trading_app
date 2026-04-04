@@ -151,7 +151,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [forceTrading, setForceTrading] = useState(false)
-  const [ollamaOnlyMode, setOllamaOnlyMode] = useState(false)
+  const [ollamaOnlyMode, setOllamaOnlyMode] = useState(true)  // default: always on
   const [ollamaOnlyExpiry, setOllamaOnlyExpiry] = useState<string | null>(null)
 
   const handleWsMessage = useCallback((data: AppData) => {
@@ -340,14 +340,14 @@ export default function App() {
             {/* Ollama-only mode toggle */}
             <button
               onClick={handleOllamaMode}
-              title={ollamaOnlyMode ? `Ollama-only active until ${ollamaOnlyExpiry ? new Date(ollamaOnlyExpiry).toLocaleTimeString() : '?'}` : 'Run on local Ollama only for 24h (no Claude/OpenAI tokens)'}
+              title={ollamaOnlyMode ? 'Ollama is the primary model (click to temporarily enable Claude/OpenAI)' : 'Claude/OpenAI active — click to switch back to Ollama-only'}
               className={`text-xs px-3 py-1.5 rounded border transition-colors ${
                 ollamaOnlyMode
                   ? 'bg-purple-700 border-purple-500 text-white hover:bg-purple-600'
                   : 'bg-gray-800 border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400'
               }`}
             >
-              {ollamaOnlyMode ? '🦙 Ollama Only' : '🦙 Ollama Off'}
+              {ollamaOnlyMode ? '🦙 Local AI' : '☁ Cloud AI'}
             </button>
 
             {/* Control buttons */}
