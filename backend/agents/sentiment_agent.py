@@ -155,6 +155,10 @@ class SentimentAgent(BaseAgent):
     def _get_client(self):
         if not HAS_OPENAI:
             return None
+        import os as _os
+        if _os.environ.get("OLLAMA_ONLY_MODE") == "1":
+            # Redirect to local Ollama (OpenAI-compatible) — zero token cost
+            return AsyncOpenAI(api_key="ollama", base_url=config.OLLAMA_BASE_URL)
         if self._openai_client is None:
             self._openai_client = AsyncOpenAI(api_key=config.OPENAI_API_KEY)
         return self._openai_client

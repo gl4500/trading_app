@@ -342,6 +342,11 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
 
     async def analyze(self, market_context: Dict) -> List[Signal]:
         """Analyze market using Claude with extended thinking."""
+        import os as _os
+        if _os.environ.get("OLLAMA_ONLY_MODE") == "1":
+            logger.debug("ClaudeAgent: Ollama-only mode active — skipping Claude API call")
+            return []
+
         prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
 
         # Build watchlist: core symbols + held positions + own picks + scanner extras,

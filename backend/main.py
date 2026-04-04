@@ -171,6 +171,7 @@ class AppState:
         self.after_hours_catalysts: List[Dict] = []  # catalysts found by sentinel
         self.last_sentinel_poll: Optional[str] = None  # ISO timestamp of last sentinel poll
         self.news_price_snapshots: List[Dict] = []    # price at catalyst detection + later change
+        self.ollama_only_until: Optional[datetime] = None  # expiry of Ollama-only mode
 
     def get_agents_list(self) -> list:
         return list(self.agents.values())
@@ -1921,6 +1922,35 @@ async def get_token_log_endpoint(
 async def get_error_log_endpoint(limit: int = Query(100, description="Max entries to return")):
     """Return recent WARNING/ERROR entries from the persistent error log file, newest first."""
     return {"entries": _parse_error_log(limit=limit)}
+
+
+@app.post("/api/ollama-mode")
+async def set_ollama_mode(
+    enabled: bool = Query(..., description="true to activate, false to deactivate"),
+    hours: float = Query(24.0, description="Duration in hours (default 24)"),
+):
+    """Enable or disable Ollama-only mode. While active, Claude, Gemini and OpenAI
+    sentiment calls are skipped — only the local Ollama model is used."""
+    from datetime import timedelta
+    if enabled:
+        app_state.ollama_only_until = datetime.utcnow() + timedelta(hours=hours)
+        os.environ["OLLAMA_ONLY_MODE"] = "1"
+        expires_iso = app_state.ollama_only_until.isoformat() + "Z"
+        logger.info(f"Ollama-only mode ENABLED for {hours}h — expires {expires_iso}")
+        return {
+            "enabled": True,
+            "expires_at": expires_iso,
+            "message": f"Ollama-only mode active for {hours} hours. Claude, OpenAI and Gemini calls are paused.",
+        }
+    else:
+        app_state.ollama_only_until = None
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+        logger.info("Ollama-only mode DISABLED")
+        return {
+            "enabled": False,
+            "expires_at": None,
+            "message": "Ollama-only mode disabled. All AI providers restored.",
+        }
 
 
 @app.get("/api/errors/analyze")

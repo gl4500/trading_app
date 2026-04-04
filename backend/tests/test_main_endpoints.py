@@ -1570,5 +1570,63 @@ class TestErrorAnalyzeEndpoint(unittest.TestCase):
         self.assertEqual(len(data["errors"]), 1)
 
 
+class TestOllamaModeEndpoint(unittest.TestCase):
+    """POST /api/ollama-mode — enable/disable 24-hour Ollama-only mode."""
+
+    def setUp(self):
+        self.patcher_db = patch("main.init_db", new_callable=AsyncMock)
+        self.patcher_agents = patch("main.init_agents", new_callable=AsyncMock)
+        self.patcher_db.start()
+        self.patcher_agents.start()
+
+    def tearDown(self):
+        self.patcher_db.stop()
+        self.patcher_agents.stop()
+        # Restore env after each test
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+    def test_enable_sets_env_flag(self):
+        """POST enabled=true must set OLLAMA_ONLY_MODE=1 in os.environ."""
+        from main import app
+        with TestClient(app) as client:
+            resp = client.post("/api/ollama-mode?enabled=true&hours=24")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(os.environ.get("OLLAMA_ONLY_MODE"), "1")
+
+    def test_enable_response_has_expected_fields(self):
+        """Response must include enabled, message, and expires_at."""
+        from main import app
+        with TestClient(app) as client:
+            data = client.post("/api/ollama-mode?enabled=true&hours=24").json()
+        self.assertTrue(data["enabled"])
+        self.assertIn("expires_at", data)
+        self.assertIn("message", data)
+
+    def test_disable_clears_env_flag(self):
+        """POST enabled=false must remove OLLAMA_ONLY_MODE from os.environ."""
+        os.environ["OLLAMA_ONLY_MODE"] = "1"
+        from main import app
+        with TestClient(app) as client:
+            resp = client.post("/api/ollama-mode?enabled=false")
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotIn("OLLAMA_ONLY_MODE", os.environ)
+
+    def test_disable_response_shows_not_enabled(self):
+        """Response on disable must show enabled=False and no expiry."""
+        from main import app
+        with TestClient(app) as client:
+            data = client.post("/api/ollama-mode?enabled=false").json()
+        self.assertFalse(data["enabled"])
+        self.assertIsNone(data["expires_at"])
+
+    def test_custom_hours(self):
+        """hours parameter controls expiry window (default 24 if omitted)."""
+        from main import app
+        with TestClient(app) as client:
+            data = client.post("/api/ollama-mode?enabled=true&hours=4").json()
+        self.assertTrue(data["enabled"])
+        self.assertIsNotNone(data["expires_at"])
+
+
 if __name__ == "__main__":
     unittest.main()

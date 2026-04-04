@@ -151,6 +151,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [forceTrading, setForceTrading] = useState(false)
+  const [ollamaOnlyMode, setOllamaOnlyMode] = useState(false)
+  const [ollamaOnlyExpiry, setOllamaOnlyExpiry] = useState<string | null>(null)
 
   const handleWsMessage = useCallback((data: AppData) => {
     setAppData(data)
@@ -219,6 +221,23 @@ export default function App() {
       }
     } catch (e) {
       setStatusMessage('Failed to toggle force-trading')
+      setTimeout(() => setStatusMessage(''), 3000)
+    }
+  }
+
+  async function handleOllamaMode() {
+    const next = !ollamaOnlyMode
+    try {
+      const res = await fetch(`${API_BASE}/api/ollama-mode?enabled=${next}&hours=24`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        setOllamaOnlyMode(next)
+        setOllamaOnlyExpiry(next ? data.expires_at : null)
+        setStatusMessage(next ? 'Ollama-only mode ON (24h)' : 'Ollama-only mode OFF')
+        setTimeout(() => setStatusMessage(''), 4000)
+      }
+    } catch (e) {
+      setStatusMessage('Failed to toggle Ollama-only mode')
       setTimeout(() => setStatusMessage(''), 3000)
     }
   }
@@ -316,6 +335,19 @@ export default function App() {
               }`}
             >
               {forceTrading ? '⚡ Force ON' : '⚡ Force OFF'}
+            </button>
+
+            {/* Ollama-only mode toggle */}
+            <button
+              onClick={handleOllamaMode}
+              title={ollamaOnlyMode ? `Ollama-only active until ${ollamaOnlyExpiry ? new Date(ollamaOnlyExpiry).toLocaleTimeString() : '?'}` : 'Run on local Ollama only for 24h (no Claude/OpenAI tokens)'}
+              className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                ollamaOnlyMode
+                  ? 'bg-purple-700 border-purple-500 text-white hover:bg-purple-600'
+                  : 'bg-gray-800 border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-400'
+              }`}
+            >
+              {ollamaOnlyMode ? '🦙 Ollama Only' : '🦙 Ollama Off'}
             </button>
 
             {/* Control buttons */}

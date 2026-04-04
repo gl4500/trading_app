@@ -713,5 +713,39 @@ class TestClaudeAgentPromptCaching(unittest.IsolatedAsyncioTestCase):
         self.assertIn("250", log_text)   # cache_read
 
 
+class TestOllamaOnlyModeClaude(unittest.IsolatedAsyncioTestCase):
+    """When OLLAMA_ONLY_MODE=1, ClaudeAgent.analyze() must return empty signals (no API call)."""
+
+    def setUp(self):
+        os.environ["OLLAMA_ONLY_MODE"] = "1"
+
+    def tearDown(self):
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+    async def test_analyze_returns_empty_when_ollama_only_mode(self):
+        """analyze() must skip Claude API and return [] when OLLAMA_ONLY_MODE=1."""
+        agent = ClaudeAgent()
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as mock_cfg:
+            mock_cfg.ANTHROPIC_API_KEY = "real-key"
+            mock_cfg.WATCHLIST = ["AAPL"]
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            signals = await agent.analyze(_make_ctx(["AAPL"]))
+        self.assertEqual(signals, [])
+
+    async def test_no_anthropic_call_when_ollama_only_mode(self):
+        """Anthropic API must NOT be called when OLLAMA_ONLY_MODE=1."""
+        agent = ClaudeAgent()
+        mock_api = MagicMock()
+        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as mock_cfg, \
+             patch("anthropic.AsyncAnthropic", return_value=mock_api):
+            mock_cfg.ANTHROPIC_API_KEY = "real-key"
+            mock_cfg.WATCHLIST = ["AAPL"]
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            await agent.analyze(_make_ctx(["AAPL"]))
+        mock_api.messages.create.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

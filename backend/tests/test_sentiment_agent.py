@@ -616,5 +616,64 @@ class TestSentimentSaveTokenLog(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(limit_hit_val)
 
 
+class TestOllamaOnlyModeSentiment(unittest.IsolatedAsyncioTestCase):
+    """When OLLAMA_ONLY_MODE=1, SentimentAgent must use the Ollama base URL."""
+
+    def setUp(self):
+        os.environ["OLLAMA_ONLY_MODE"] = "1"
+
+    def tearDown(self):
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+    async def test_uses_ollama_base_url_when_flag_set(self):
+        """_get_client() must return an AsyncOpenAI client pointing at Ollama URL."""
+        from unittest.mock import patch, MagicMock
+        agent = SentimentAgent()
+        agent._openai_client = None  # ensure fresh client creation
+
+        mock_cfg = MagicMock()
+        mock_cfg.OPENAI_API_KEY = ""
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+
+        captured = {}
+
+        def mock_openai_constructor(**kwargs):
+            captured.update(kwargs)
+            return MagicMock()
+
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config", mock_cfg), \
+             patch("agents.sentiment_agent.AsyncOpenAI", side_effect=mock_openai_constructor):
+            agent._get_client()
+
+        self.assertEqual(captured.get("base_url"), "http://localhost:11434/v1")
+        self.assertEqual(captured.get("api_key"), "ollama")
+
+    async def test_does_not_use_ollama_url_when_flag_off(self):
+        """Without OLLAMA_ONLY_MODE, _get_client() uses OpenAI base URL (default)."""
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+        from unittest.mock import patch, MagicMock
+        agent = SentimentAgent()
+        agent._openai_client = None
+
+        mock_cfg = MagicMock()
+        mock_cfg.OPENAI_API_KEY = "openai-key"
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+
+        captured = {}
+
+        def mock_openai_constructor(**kwargs):
+            captured.update(kwargs)
+            return MagicMock()
+
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config", mock_cfg), \
+             patch("agents.sentiment_agent.AsyncOpenAI", side_effect=mock_openai_constructor):
+            agent._get_client()
+
+        # Standard OpenAI constructor — no base_url override
+        self.assertNotEqual(captured.get("base_url", ""), "http://localhost:11434/v1")
+
+
 if __name__ == "__main__":
     unittest.main()

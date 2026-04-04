@@ -664,5 +664,77 @@ class TestRunOllamaScanner(unittest.IsolatedAsyncioTestCase):
         self.assertIn("NVDA gaps up", system_content)
 
 
+class TestOllamaOnlyModeScanner(unittest.IsolatedAsyncioTestCase):
+    """When OLLAMA_ONLY_MODE=1, _run_scan_inner must only use the Ollama scanner leg."""
+
+    def setUp(self):
+        os.environ["OLLAMA_ONLY_MODE"] = "1"
+
+    def tearDown(self):
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+    async def test_claude_leg_skipped_in_ollama_only_mode(self):
+        """Claude scanner must NOT be added when OLLAMA_ONLY_MODE=1, even if API key present."""
+        mock_cfg = MagicMock()
+        mock_cfg.ANTHROPIC_API_KEY = "real-key"
+        mock_cfg.GEMINI_API_KEY = "real-key"
+        mock_cfg.OPENAI_API_KEY = ""
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        candidates = [{"symbol": "AAPL", "pct_change": 2.0, "vol_ratio": 2.0,
+                       "momentum_score": 4.0, "price": 150.0}]
+
+        mock_ollama_result = [{"symbol": "AAPL", "action": "BUY", "confidence": 0.8,
+                               "composite_score": 0.7, "reasoning": "bullish"}]
+
+        with patch("agents.scanner_agent._pre_screen",
+                   new_callable=AsyncMock, return_value=candidates), \
+             patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, return_value=True), \
+             patch("agents.scanner_agent._run_claude_scanner",
+                   new_callable=AsyncMock, return_value=mock_ollama_result) as mock_claude, \
+             patch("agents.scanner_agent._run_gemini_scanner",
+                   new_callable=AsyncMock, return_value=mock_ollama_result) as mock_gemini, \
+             patch("agents.scanner_agent._run_ollama_scanner",
+                   new_callable=AsyncMock, return_value=mock_ollama_result), \
+             patch("config.config", mock_cfg):
+            from agents.scanner_agent import _run_scan_inner
+            await _run_scan_inner()
+
+        mock_claude.assert_not_called()
+        mock_gemini.assert_not_called()
+
+    async def test_ollama_leg_runs_in_ollama_only_mode(self):
+        """Ollama scanner IS called when OLLAMA_ONLY_MODE=1 and Ollama is available."""
+        mock_cfg = MagicMock()
+        mock_cfg.ANTHROPIC_API_KEY = "real-key"
+        mock_cfg.GEMINI_API_KEY = "real-key"
+        mock_cfg.OPENAI_API_KEY = ""
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        candidates = [{"symbol": "AAPL", "pct_change": 2.0, "vol_ratio": 2.0,
+                       "momentum_score": 4.0, "price": 150.0}]
+        mock_result = [{"symbol": "AAPL", "action": "BUY", "confidence": 0.8,
+                        "composite_score": 0.7, "reasoning": "bullish"}]
+
+        with patch("agents.scanner_agent._pre_screen",
+                   new_callable=AsyncMock, return_value=candidates), \
+             patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, return_value=True), \
+             patch("agents.scanner_agent._run_claude_scanner",
+                   new_callable=AsyncMock, return_value=mock_result), \
+             patch("agents.scanner_agent._run_gemini_scanner",
+                   new_callable=AsyncMock, return_value=mock_result), \
+             patch("agents.scanner_agent._run_ollama_scanner",
+                   new_callable=AsyncMock, return_value=mock_result) as mock_ollama, \
+             patch("config.config", mock_cfg):
+            from agents.scanner_agent import _run_scan_inner
+            await _run_scan_inner()
+
+        mock_ollama.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

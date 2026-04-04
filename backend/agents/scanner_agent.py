@@ -1050,16 +1050,19 @@ async def _run_scan_inner() -> Dict:
         logger.debug(f"Scanner: sector performance fetch failed: {e}")
 
     # Determine which AI scanners are available
+    import os as _os
     from config import config
+    _ollama_only = _os.environ.get("OLLAMA_ONLY_MODE") == "1"
     scanners = []
-    if config.ANTHROPIC_API_KEY:
-        scanners.append(("Claude",  _run_claude_scanner))
-    if HAS_GEMINI and config.GEMINI_API_KEY:
-        scanners.append(("Gemini",  _run_gemini_scanner))
+    if not _ollama_only:
+        if config.ANTHROPIC_API_KEY:
+            scanners.append(("Claude",  _run_claude_scanner))
+        if HAS_GEMINI and config.GEMINI_API_KEY:
+            scanners.append(("Gemini",  _run_gemini_scanner))
     # Ollama (local, free) takes priority; fall back to OpenAI if Ollama isn't running
     if await _ollama_is_available():
         scanners.append(("Ollama", _run_ollama_scanner))
-    elif HAS_OPENAI and config.OPENAI_API_KEY:
+    elif not _ollama_only and HAS_OPENAI and config.OPENAI_API_KEY:
         scanners.append(("OpenAI", _run_openai_scanner))
 
     if not scanners:
