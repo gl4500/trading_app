@@ -15,6 +15,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '0.0.0.0',   // listen on all interfaces (required for Tailscale access)
+    open: true,         // auto-open browser when Vite is ready
     https: hasCerts ? { key: fs.readFileSync(path.join(certsDir, 'key.pem')), cert: fs.readFileSync(certFile) } : false,
     proxy: {
       '/api': {
