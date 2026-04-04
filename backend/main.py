@@ -181,6 +181,7 @@ class AppState:
         self.last_sentinel_poll: Optional[str] = None  # ISO timestamp of last sentinel poll
         self.news_price_snapshots: List[Dict] = []    # price at catalyst detection + later change
         self.ollama_only_until: Optional[datetime] = None  # expiry of Ollama-only mode
+        self.pull_task: Optional[asyncio.Task] = None      # background Ollama model pull task
 
     def get_agents_list(self) -> list:
         return list(self.agents.values())
@@ -1265,17 +1266,25 @@ async def _pull_ollama_model() -> None:
     logger.info(
         f"Ollama: pulling model '{config.OLLAMA_MODEL}' — this may take several minutes..."
     )
+    proc = None
     try:
         proc = await asyncio.create_subprocess_exec(
             "ollama", "pull", config.OLLAMA_MODEL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        _, stderr = await proc.communicate()
+        try:
+            _, stderr = await proc.communicate()
+        except asyncio.CancelledError:
+            proc.kill()
+            await proc.wait()
+            raise
         if proc.returncode == 0:
             logger.info(f"Ollama: model '{config.OLLAMA_MODEL}' pulled successfully.")
         else:
             logger.warning(f"Ollama: pull failed — {stderr.decode()[:200]}")
+    except asyncio.CancelledError:
+        raise
     except Exception as e:
         logger.warning(f"Ollama: pull error: {e}")
 
@@ -1307,7 +1316,7 @@ async def _ensure_ollama_running() -> None:
             )
             if config.OLLAMA_MODEL not in list_result.stdout:
                 logger.info(f"Ollama: model '{config.OLLAMA_MODEL}' not found locally — pulling...")
-                asyncio.create_task(_pull_ollama_model())
+                app_state.pull_task = asyncio.create_task(_pull_ollama_model())
             else:
                 logger.info(f"Ollama: model '{config.OLLAMA_MODEL}' already available.")
         except Exception as e:
@@ -1368,7 +1377,7 @@ async def _ensure_ollama_running() -> None:
         )
         if config.OLLAMA_MODEL not in list_result.stdout:
             logger.info(f"Ollama: model '{config.OLLAMA_MODEL}' not found locally — pulling...")
-            asyncio.create_task(_pull_ollama_model())
+            app_state.pull_task = asyncio.create_task(_pull_ollama_model())
         else:
             logger.info(f"Ollama: model '{config.OLLAMA_MODEL}' already available.")
     except Exception as e:
@@ -1418,7 +1427,8 @@ async def lifespan(app: FastAPI):
     app_state.is_running = False
 
     for task in (app_state.trading_task, app_state.scan_task,
-                 app_state.sentinel_task, app_state.ws_task):
+                 app_state.sentinel_task, app_state.ws_task,
+                 app_state.pull_task):
         if task and not task.done():
             task.cancel()
             try:

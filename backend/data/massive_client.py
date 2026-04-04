@@ -429,7 +429,7 @@ class MassiveClient:
                     resp = await client.get(url, params=params)
             if resp.status_code == 403:
                 self._options_forbidden = True
-                logger.warning(
+                logger.info(
                     "MassiveClient: options data returned 403 Forbidden — "
                     "this endpoint requires a higher Massive.com plan tier. "
                     "Options flow signals disabled."

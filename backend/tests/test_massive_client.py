@@ -433,5 +433,57 @@ class TestSentinelIntegration(unittest.TestCase):
         self.assertTrue(hasattr(sentinel_sources, "fetch_massive_signals"))
 
 
+class TestOptions403LogLevel(unittest.TestCase):
+    """403 Forbidden on options endpoint must log at INFO, not WARNING."""
+
+    def test_403_logs_info_not_warning(self):
+        """First 403 response must use logger.info, not logger.warning."""
+        import logging
+        c = MassiveClient()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 403
+
+        with patch("data.massive_client.config") as cfg, \
+             patch("httpx.AsyncClient") as MockClient, \
+             patch("data.massive_client.MassiveClient._is_available", return_value=True):
+            cfg.MASSIVE_API_KEY = "key"
+            mock_ctx = AsyncMock()
+            mock_ctx.__aenter__ = AsyncMock(return_value=mock_ctx)
+            mock_ctx.__aexit__ = AsyncMock(return_value=False)
+            mock_ctx.get = AsyncMock(return_value=mock_resp)
+            MockClient.return_value = mock_ctx
+
+            with self.assertLogs("data.massive_client", level="INFO") as log_ctx:
+                _run(c._fetch_options_for_symbol("AAPL", 10))
+
+        # Must have logged something
+        self.assertTrue(len(log_ctx.records) > 0)
+        # None of those records should be WARNING or above
+        for record in log_ctx.records:
+            self.assertLess(
+                record.levelno, logging.WARNING,
+                f"Expected INFO/DEBUG but got {record.levelname}: {record.message}"
+            )
+
+    def test_403_sets_options_forbidden_flag(self):
+        """After a 403, _options_forbidden must be True so no further calls are made."""
+        c = MassiveClient()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 403
+
+        with patch("data.massive_client.config") as cfg, \
+             patch("httpx.AsyncClient") as MockClient, \
+             patch("data.massive_client.MassiveClient._is_available", return_value=True):
+            cfg.MASSIVE_API_KEY = "key"
+            mock_ctx = AsyncMock()
+            mock_ctx.__aenter__ = AsyncMock(return_value=mock_ctx)
+            mock_ctx.__aexit__ = AsyncMock(return_value=False)
+            mock_ctx.get = AsyncMock(return_value=mock_resp)
+            MockClient.return_value = mock_ctx
+            _run(c._fetch_options_for_symbol("AAPL", 10))
+
+        self.assertTrue(c._options_forbidden)
+
+
 if __name__ == "__main__":
     unittest.main()

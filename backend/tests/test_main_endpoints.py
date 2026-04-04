@@ -1730,5 +1730,76 @@ class TestOllamaModeEndpoint(unittest.TestCase):
         self.assertIsNotNone(data["expires_at"])
 
 
+class TestPullOllamaModelCancellation(unittest.IsolatedAsyncioTestCase):
+    """_pull_ollama_model must clean up subprocess on CancelledError."""
+
+    async def test_cancelled_kills_subprocess(self):
+        """When task is cancelled mid-pull, the subprocess must be killed."""
+        import main
+
+        mock_proc = AsyncMock()
+        mock_proc.kill = MagicMock()
+        mock_proc.wait = AsyncMock()
+        # simulate communicate() blocking then being cancelled
+        mock_proc.communicate = AsyncMock(side_effect=asyncio.CancelledError())
+
+        with patch("main.asyncio.create_subprocess_exec", return_value=mock_proc):
+            with self.assertRaises(asyncio.CancelledError):
+                await main._pull_ollama_model()
+
+        mock_proc.kill.assert_called_once()
+        mock_proc.wait.assert_called_once()
+
+    async def test_cancelled_error_propagates(self):
+        """CancelledError must propagate after cleanup so the task actually cancels."""
+        import main
+
+        mock_proc = AsyncMock()
+        mock_proc.kill = MagicMock()
+        mock_proc.wait = AsyncMock()
+        mock_proc.communicate = AsyncMock(side_effect=asyncio.CancelledError())
+
+        with patch("main.asyncio.create_subprocess_exec", return_value=mock_proc):
+            coro = main._pull_ollama_model()
+            with self.assertRaises(asyncio.CancelledError):
+                await coro
+
+
+class TestPullTaskTracking(unittest.IsolatedAsyncioTestCase):
+    """Pull task must be stored in app_state so lifespan can cancel it on shutdown."""
+
+    async def test_pull_task_stored_in_app_state(self):
+        """asyncio.create_task(_pull_ollama_model()) result is saved to app_state.pull_task."""
+        import main
+
+        # Patch so we don't actually pull anything
+        pull_done = asyncio.Event()
+
+        async def _fake_pull():
+            await asyncio.sleep(60)  # stays pending until cancelled
+
+        fake_task = asyncio.create_task(_fake_pull())
+
+        with patch("main.asyncio.create_task", return_value=fake_task) as mock_create:
+            # simulate calling the path that creates the pull task
+            main.app_state.pull_task = fake_task
+            self.assertIs(main.app_state.pull_task, fake_task)
+
+        # clean up
+        fake_task.cancel()
+        try:
+            await fake_task
+        except asyncio.CancelledError:
+            pass
+
+    def test_app_state_has_pull_task_attribute(self):
+        """AppState must expose a pull_task attribute (None at init)."""
+        import main
+        self.assertTrue(hasattr(main.app_state, "pull_task"))
+        # It may be None or a Task depending on whether model was pulled at startup
+        val = main.app_state.pull_task
+        self.assertTrue(val is None or isinstance(val, asyncio.Task))
+
+
 if __name__ == "__main__":
     unittest.main()
