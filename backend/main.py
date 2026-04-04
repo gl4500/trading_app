@@ -103,7 +103,17 @@ try:
         datefmt="%Y-%m-%d %H:%M:%S",
     ))
     _file_handler.addFilter(_win10054_filter)
-    logging.root.addHandler(_file_handler)
+    # Guard against duplicate handlers on uvicorn hot-reload: only add if no
+    # RotatingFileHandler already points at the same path on the root logger.
+    _handler_already_added = any(
+        isinstance(h, RotatingFileHandler)
+        and os.path.abspath(getattr(h, "baseFilename", "")) == os.path.abspath(_ERROR_LOG_PATH)
+        for h in logging.root.handlers
+    )
+    if not _handler_already_added:
+        logging.root.addHandler(_file_handler)
+    else:
+        _file_handler.close()
 except OSError:
     pass  # Non-fatal: log to console only if file logging fails
 
@@ -815,6 +825,36 @@ async def auto_scan_loop() -> None:
 
 # ─── After-Hours News & Policy Sentinel ───────────────────────────────────────
 
+def _sentinel_log_catalysts(
+    catalysts: list,
+    max_standard: int,
+    max_policy: int,
+    trigger: int,
+) -> None:
+    """
+    Log sentinel detection results at the appropriate level.
+
+    - WARNING: at least one score meets or exceeds the trigger threshold (actionable).
+    - INFO:    catalysts found but none scored high enough to trigger a scan (noise).
+    - Silent:  no catalysts detected.
+    """
+    if not catalysts:
+        return
+    combined_max = max(max_standard, max_policy)
+    if combined_max >= trigger:
+        logger.warning(
+            f"Sentinel: {len(catalysts)} catalyst(s) detected — "
+            f"score={combined_max} meets trigger ({trigger}). "
+            f"Top: {catalysts[0]['headline'][:100]}"
+        )
+    else:
+        logger.info(
+            f"Sentinel: {len(catalysts)} low-score item(s) found "
+            f"(max standard={max_standard}, policy={max_policy}) — "
+            f"below trigger threshold ({trigger}), no scan triggered."
+        )
+
+
 async def news_sentinel_loop() -> None:
     """
     After-hours sentinel that monitors news for major market catalysts
@@ -955,12 +995,9 @@ async def news_sentinel_loop() -> None:
             await _record_catalysts(new_catalysts)
 
             # Log notable finds
-            if new_catalysts:
-                logger.warning(
-                    f"Sentinel: {len(new_catalysts)} catalysts detected "
-                    f"(max standard={max_standard_score}, policy={max_policy_score}). "
-                    f"Top: {new_catalysts[0]['headline'][:100]}"
-                )
+            _sentinel_log_catalysts(
+                new_catalysts, max_standard_score, max_policy_score, TRIGGER_SCORE
+            )
 
             # Trigger scanner if any catalyst exceeds threshold
             combined_max = max(max_standard_score, max_policy_score)

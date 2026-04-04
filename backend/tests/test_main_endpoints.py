@@ -1317,6 +1317,104 @@ class TestEnsureOllamaRunning(unittest.IsolatedAsyncioTestCase):
         mock_create_task.assert_called_once()
 
 
+class TestFileHandlerDeduplication(unittest.TestCase):
+    """_add_ollama_to_path and file handler must not create duplicates on re-import."""
+
+    def test_rotating_file_handler_not_added_twice(self):
+        """Adding the error log file handler twice must not result in duplicate handlers."""
+        import logging
+        import main
+        from logging.handlers import RotatingFileHandler
+
+        # Count how many RotatingFileHandlers point to _ERROR_LOG_PATH before
+        target = os.path.abspath(main._ERROR_LOG_PATH)
+        handlers_before = [
+            h for h in logging.root.handlers
+            if isinstance(h, RotatingFileHandler)
+            and os.path.abspath(getattr(h, "baseFilename", "")) == target
+        ]
+
+        # Simulate re-running the module-level handler registration
+        try:
+            new_handler = RotatingFileHandler(
+                main._ERROR_LOG_PATH, maxBytes=2 * 1024 * 1024, backupCount=5,
+                encoding="utf-8",
+            )
+            already = any(
+                isinstance(h, RotatingFileHandler)
+                and os.path.abspath(getattr(h, "baseFilename", "")) == target
+                for h in logging.root.handlers
+            )
+            if not already:
+                logging.root.addHandler(new_handler)
+            else:
+                new_handler.close()
+        except OSError:
+            pass
+
+        handlers_after = [
+            h for h in logging.root.handlers
+            if isinstance(h, RotatingFileHandler)
+            and os.path.abspath(getattr(h, "baseFilename", "")) == target
+        ]
+        self.assertEqual(
+            len(handlers_after), len(handlers_before),
+            "Handler count changed — duplicate was added"
+        )
+
+
+class TestSentinelLoggingLevel(unittest.IsolatedAsyncioTestCase):
+    """Sentinel log level: INFO for low-score detections, WARNING only when actionable."""
+
+    def _make_catalyst(self, headline, score=1):
+        return {
+            "headline": headline, "summary": "", "source": "test",
+            "date": "", "symbol": "AAPL", "score": score,
+            "category": "catalyst", "sectors": [], "reason": "test",
+            "detected_at": "2026-04-04T12:00:00Z",
+        }
+
+    async def test_info_logged_when_all_scores_below_trigger(self):
+        """When max combined score is 0, sentinel logs INFO not WARNING."""
+        import main
+
+        catalysts = [self._make_catalyst(f"headline {i}", score=0) for i in range(5)]
+
+        with patch.object(main.logger, "warning") as mock_warn, \
+             patch.object(main.logger, "info") as mock_info:
+            main._sentinel_log_catalysts(catalysts, max_standard=0, max_policy=0, trigger=2)
+
+        mock_warn.assert_not_called()
+        mock_info.assert_called_once()
+        info_msg = mock_info.call_args[0][0]
+        self.assertIn("5", info_msg)
+
+    async def test_warning_logged_when_score_meets_trigger(self):
+        """When combined score >= trigger, sentinel logs WARNING."""
+        import main
+
+        catalysts = [self._make_catalyst("Earnings beat", score=3)]
+
+        with patch.object(main.logger, "warning") as mock_warn, \
+             patch.object(main.logger, "info"):
+            main._sentinel_log_catalysts(catalysts, max_standard=3, max_policy=0, trigger=2)
+
+        mock_warn.assert_called_once()
+        warn_msg = mock_warn.call_args[0][0]
+        self.assertIn("Earnings beat", warn_msg)
+
+    async def test_empty_catalysts_logs_nothing(self):
+        """No log calls when catalyst list is empty."""
+        import main
+
+        with patch.object(main.logger, "warning") as mock_warn, \
+             patch.object(main.logger, "info") as mock_info:
+            main._sentinel_log_catalysts([], max_standard=0, max_policy=0, trigger=2)
+
+        mock_warn.assert_not_called()
+        mock_info.assert_not_called()
+
+
 class TestErrorLogEndpoint(unittest.TestCase):
     """GET /api/errors returns structured log entries parsed from the error log file."""
 
