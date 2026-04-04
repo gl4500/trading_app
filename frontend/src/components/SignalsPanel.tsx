@@ -120,13 +120,12 @@ function ConfRing({ pct }: { pct: number }) {
 
 function SignalCard({ sig }: { sig: CompositeSignal }) {
   const [expanded, setExpanded] = useState(false)
-  const { sources } = sig
-  const analyst  = sources.analyst_consensus
-  const earnings = sources.earnings_surprise
-  const alpaca   = sources.alpaca_news
-  const yahoo    = sources.yahoo_news
-
-  const congress = sources.congressional_trades
+  const sources  = sig.sources ?? ({} as CompositeSignal['sources'])
+  const analyst  = sources.analyst_consensus  ?? ({} as SourceDetail)
+  const earnings = sources.earnings_surprise  ?? ({} as SourceDetail)
+  const alpaca   = sources.alpaca_news        ?? ({} as SourceDetail)
+  const yahoo    = sources.yahoo_news         ?? ({} as SourceDetail)
+  const congress = sources.congressional_trades ?? ({} as SourceDetail)
 
   const score   = sig.composite_score ?? 0
   const confPct = Math.round((sig.confidence ?? 0) * 100)

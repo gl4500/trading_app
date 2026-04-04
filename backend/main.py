@@ -1736,7 +1736,7 @@ async def get_composite_signals():
         tasks = [get_composite_signal(sym, news.get(sym, [])) for sym in active_wl]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         signals = {sym: r for sym, r in zip(active_wl, results)
-                   if not isinstance(r, Exception)}
+                   if not isinstance(r, Exception) and isinstance(r, dict) and r.get("verdict")}
     return {"signals": signals}
 
 
