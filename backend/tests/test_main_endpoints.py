@@ -566,6 +566,17 @@ class TestRunAgentCyclePositionCleanup(unittest.IsolatedAsyncioTestCase):
 class TestTokenUsageEndpoint(unittest.TestCase):
     """GET /api/tokens returns per-agent token stats and grand totals."""
 
+    def setUp(self):
+        # Scanner agents query the DB; default to zero so existing tests are unaffected.
+        self._p_daily = patch("main.get_daily_token_total", new_callable=AsyncMock, return_value=0)
+        self._p_calls = patch("main.get_agent_calls_this_hour", new_callable=AsyncMock, return_value=0)
+        self._p_daily.start()
+        self._p_calls.start()
+
+    def tearDown(self):
+        self._p_daily.stop()
+        self._p_calls.stop()
+
     def _make_ai_agent(self, name, daily=1000, session=2500, calls_hour=1, limit=None):
         import time
         agent = MagicMock()
@@ -655,6 +666,51 @@ class TestTokenUsageEndpoint(unittest.TestCase):
             data = client.get("/api/tokens").json()
 
         self.assertIn("GeminiAgent", data["agents"])
+
+    def test_scanner_agents_included(self):
+        """ScannerAgent/Claude, /Gemini, /OpenAI must appear in /api/tokens."""
+        from main import app, app_state
+
+        with patch.object(app_state, "agents", {}), \
+             patch.object(app_state, "gemini_news_agent", None), \
+             patch("main.get_daily_token_total", new_callable=AsyncMock, return_value=50000), \
+             patch("main.get_agent_calls_this_hour", new_callable=AsyncMock, return_value=2):
+            client = TestClient(app)
+            data = client.get("/api/tokens").json()
+
+        for name in ("ScannerAgent/Claude", "ScannerAgent/Gemini", "ScannerAgent/OpenAI"):
+            self.assertIn(name, data["agents"], f"{name} missing from agents")
+
+    def test_scanner_agent_fields(self):
+        """Each scanner agent entry has daily_tokens, calls_this_hour, and hourly_call_limit."""
+        from main import app, app_state
+
+        with patch.object(app_state, "agents", {}), \
+             patch.object(app_state, "gemini_news_agent", None), \
+             patch("main.get_daily_token_total", new_callable=AsyncMock, return_value=123000), \
+             patch("main.get_agent_calls_this_hour", new_callable=AsyncMock, return_value=3):
+            client = TestClient(app)
+            data = client.get("/api/tokens").json()
+
+        entry = data["agents"]["ScannerAgent/Claude"]
+        self.assertEqual(entry["daily_tokens"], 123000)
+        self.assertEqual(entry["calls_this_hour"], 3)
+        self.assertIsNone(entry["hourly_call_limit"])
+
+    def test_scanner_tokens_included_in_totals(self):
+        """Scanner daily_tokens must be included in totals.daily_tokens."""
+        from main import app, app_state
+        claude = self._make_ai_agent("ClaudeAgent", daily=10000, session=20000)
+
+        with patch.object(app_state, "agents", {"ClaudeAgent": claude}), \
+             patch.object(app_state, "gemini_news_agent", None), \
+             patch("main.get_daily_token_total", new_callable=AsyncMock, return_value=5000), \
+             patch("main.get_agent_calls_this_hour", new_callable=AsyncMock, return_value=1):
+            client = TestClient(app)
+            data = client.get("/api/tokens").json()
+
+        # 10000 (Claude) + 3 × 5000 (three scanner agents)
+        self.assertEqual(data["totals"]["daily_tokens"], 10000 + 3 * 5000)
 
 
 class TestTokenLogEndpoint(unittest.TestCase):
@@ -1012,6 +1068,271 @@ class TestAutoScanLoopStartup(unittest.IsolatedAsyncioTestCase):
             finally:
                 main.app_state.is_running = prev
         mock_run_scan.assert_not_called()
+
+
+class TestRecordCatalysts(unittest.IsolatedAsyncioTestCase):
+    """_record_catalysts deduplicates against both after_hours_catalysts and news_price_snapshots."""
+
+    def _make_catalyst(self, headline, symbol="XOM", score=2):
+        return {
+            "headline":    headline,
+            "summary":     "",
+            "symbol":      symbol,
+            "score":       score,
+            "category":    "catalyst",
+            "sectors":     [],
+            "reason":      "",
+            "detected_at": "2026-04-03T06:00:00Z",
+        }
+
+    async def test_new_catalyst_added_to_after_hours(self):
+        """A brand-new catalyst is added to after_hours_catalysts."""
+        import main
+        main.app_state.after_hours_catalysts = []
+        main.app_state.news_price_snapshots = []
+        main.app_state.last_prices = {}
+
+        with patch("main.save_price_snapshot", new_callable=AsyncMock):
+            await main._record_catalysts([self._make_catalyst("Big earnings beat")])
+
+        headlines = [c["headline"] for c in main.app_state.after_hours_catalysts]
+        self.assertIn("Big earnings beat", headlines)
+
+    async def test_duplicate_in_after_hours_not_re_added(self):
+        """A catalyst already in after_hours_catalysts is not added again."""
+        import main
+        main.app_state.after_hours_catalysts = [self._make_catalyst("Old headline")]
+        main.app_state.news_price_snapshots = []
+        main.app_state.last_prices = {}
+
+        with patch("main.save_price_snapshot", new_callable=AsyncMock):
+            await main._record_catalysts([self._make_catalyst("Old headline")])
+
+        count = sum(1 for c in main.app_state.after_hours_catalysts if c["headline"] == "Old headline")
+        self.assertEqual(count, 1)
+
+    async def test_catalyst_in_snapshots_not_re_added_after_restart(self):
+        """If a headline is already in news_price_snapshots (DB-restored), don't re-add it.
+        This is the post-restart duplicate bug: after_hours_catalysts is empty but the
+        snapshot for this headline was already created in a prior session."""
+        import main
+        main.app_state.after_hours_catalysts = []   # reset on restart
+        main.app_state.news_price_snapshots = [     # restored from DB
+            {"headline": "XOM earnings beat", "symbol": "XOM", "price_at": 110.0,
+             "change_1h": None, "change_open": None, "score": 2, "category": "catalyst",
+             "detected_at": "2026-04-03T01:00:00Z", "during_session": False,
+             "price_open": None, "price_1h": None, "open_recorded_at": None}
+        ]
+        main.app_state.last_prices = {"XOM": 111.0}
+
+        with patch("main.save_price_snapshot", new_callable=AsyncMock) as mock_save:
+            await main._record_catalysts([self._make_catalyst("XOM earnings beat")])
+
+        # Must NOT create a new price snapshot
+        mock_save.assert_not_called()
+        # Must NOT add to after_hours_catalysts (or adds but does not create another snapshot)
+        snap_count = sum(1 for s in main.app_state.news_price_snapshots
+                         if s["headline"] == "XOM earnings beat")
+        self.assertEqual(snap_count, 1)
+
+    async def test_new_catalyst_snapshot_created_with_price(self):
+        """When a new catalyst has a matching symbol price, a snapshot is saved to DB."""
+        import main
+        main.app_state.after_hours_catalysts = []
+        main.app_state.news_price_snapshots = []
+        main.app_state.last_prices = {"XOM": 115.0}
+
+        with patch("main.save_price_snapshot", new_callable=AsyncMock, return_value=99) as mock_save:
+            await main._record_catalysts([self._make_catalyst("FDA approval", symbol="XOM")])
+
+        mock_save.assert_called_once()
+        self.assertEqual(len(main.app_state.news_price_snapshots), 1)
+        self.assertEqual(main.app_state.news_price_snapshots[0]["price_at"], 115.0)
+
+    async def test_catalyst_without_symbol_price_no_snapshot(self):
+        """A catalyst whose symbol has no current price does not create a snapshot."""
+        import main
+        main.app_state.after_hours_catalysts = []
+        main.app_state.news_price_snapshots = []
+        main.app_state.last_prices = {}   # XOM not in prices
+
+        with patch("main.save_price_snapshot", new_callable=AsyncMock) as mock_save:
+            await main._record_catalysts([self._make_catalyst("Some news", symbol="XOM")])
+
+        mock_save.assert_not_called()
+        self.assertEqual(len(main.app_state.news_price_snapshots), 0)
+
+    async def test_after_hours_catalysts_trimmed_to_50(self):
+        """after_hours_catalysts must not exceed 50 entries."""
+        import main
+        # Pre-load 49 existing catalysts
+        main.app_state.after_hours_catalysts = [
+            self._make_catalyst(f"headline {i}", symbol=None, score=1)
+            for i in range(49)
+        ]
+        main.app_state.news_price_snapshots = []
+        main.app_state.last_prices = {}
+
+        new_cats = [self._make_catalyst(f"new headline {i}", symbol=None, score=3) for i in range(10)]
+        with patch("main.save_price_snapshot", new_callable=AsyncMock):
+            await main._record_catalysts(new_cats)
+
+        self.assertLessEqual(len(main.app_state.after_hours_catalysts), 50)
+
+
+class TestErrorLogEndpoint(unittest.TestCase):
+    """GET /api/errors returns structured log entries parsed from the error log file."""
+
+    def _write_tmp_log(self, content: str) -> str:
+        import tempfile
+        f = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".log", delete=False, encoding="utf-8"
+        )
+        f.write(content)
+        f.close()
+        return f.name
+
+    def test_returns_empty_when_no_log_file(self):
+        """Returns empty list when the log file does not exist."""
+        from main import app
+        import tempfile
+
+        nonexistent = os.path.join(tempfile.gettempdir(), "nonexistent_trading_error.log")
+        if os.path.exists(nonexistent):
+            os.remove(nonexistent)
+
+        with TestClient(app, raise_server_exceptions=True) as client:
+            with patch("main._ERROR_LOG_PATH", nonexistent):
+                response = client.get("/api/errors")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"entries": []})
+
+    def test_returns_parsed_entries(self):
+        """Log lines are parsed into timestamp/level/logger/message dicts."""
+        from main import app
+
+        log_content = (
+            "2026-04-04 10:00:01 [ERROR] agents.scanner_agent: Connection failed\n"
+            "2026-04-04 10:00:02 [WARNING] main: Market data timeout\n"
+        )
+        tmp = self._write_tmp_log(log_content)
+        try:
+            with TestClient(app, raise_server_exceptions=True) as client:
+                with patch("main._ERROR_LOG_PATH", tmp):
+                    response = client.get("/api/errors")
+        finally:
+            os.unlink(tmp)
+
+        self.assertEqual(response.status_code, 200)
+        entries = response.json()["entries"]
+        self.assertEqual(len(entries), 2)
+        # newest first
+        self.assertEqual(entries[0]["timestamp"], "2026-04-04 10:00:02")
+        self.assertEqual(entries[0]["level"], "WARNING")
+        self.assertEqual(entries[0]["logger"], "main")
+        self.assertEqual(entries[0]["message"], "Market data timeout")
+
+    def test_returns_newest_first(self):
+        """Entries are returned newest-first regardless of file order."""
+        from main import app
+
+        log_content = (
+            "2026-04-04 09:00:00 [ERROR] main: Old error\n"
+            "2026-04-04 11:00:00 [ERROR] main: New error\n"
+        )
+        tmp = self._write_tmp_log(log_content)
+        try:
+            with TestClient(app, raise_server_exceptions=True) as client:
+                with patch("main._ERROR_LOG_PATH", tmp):
+                    response = client.get("/api/errors")
+        finally:
+            os.unlink(tmp)
+
+        entries = response.json()["entries"]
+        self.assertEqual(entries[0]["message"], "New error")
+        self.assertEqual(entries[1]["message"], "Old error")
+
+    def test_limit_parameter_respected(self):
+        """?limit=N caps the number of entries returned."""
+        from main import app
+
+        log_content = "\n".join(
+            f"2026-04-04 10:00:0{i} [ERROR] main: Error {i}"
+            for i in range(5)
+        ) + "\n"
+        tmp = self._write_tmp_log(log_content)
+        try:
+            with TestClient(app, raise_server_exceptions=True) as client:
+                with patch("main._ERROR_LOG_PATH", tmp):
+                    response = client.get("/api/errors?limit=2")
+        finally:
+            os.unlink(tmp)
+
+        entries = response.json()["entries"]
+        self.assertEqual(len(entries), 2)
+
+
+class TestErrorAnalyzeEndpoint(unittest.TestCase):
+    """GET /api/errors/analyze returns AI analysis of recent errors."""
+
+    def _write_tmp_log(self, content: str) -> str:
+        import tempfile
+        f = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".log", delete=False, encoding="utf-8"
+        )
+        f.write(content)
+        f.close()
+        return f.name
+
+    def test_returns_no_errors_message_when_no_error_level_entries(self):
+        """Returns 'No errors' when log contains only WARNING entries."""
+        from main import app
+
+        log_content = "2026-04-04 10:00:01 [WARNING] main: Minor warning\n"
+        tmp = self._write_tmp_log(log_content)
+        try:
+            with TestClient(app, raise_server_exceptions=True) as client:
+                with patch("main._ERROR_LOG_PATH", tmp):
+                    response = client.get("/api/errors/analyze")
+        finally:
+            os.unlink(tmp)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["errors"], [])
+        self.assertIn("No errors", data["analysis"])
+
+    def test_calls_anthropic_and_returns_analysis(self):
+        """Sends ERROR entries to Anthropic and returns the analysis text."""
+        import anthropic
+        from main import app
+
+        log_content = (
+            "2026-04-04 10:00:01 [ERROR] agents.scanner_agent: Connection refused\n"
+        )
+        tmp = self._write_tmp_log(log_content)
+
+        mock_msg = MagicMock()
+        mock_msg.content = [MagicMock(text="Check your network connection.")]
+
+        try:
+            with TestClient(app, raise_server_exceptions=True) as client:
+                with patch("main._ERROR_LOG_PATH", tmp):
+                    with patch("main.config") as mock_cfg:
+                        mock_cfg.ANTHROPIC_API_KEY = "fake-key"
+                        with patch("anthropic.AsyncAnthropic") as mock_cls:
+                            mock_instance = AsyncMock()
+                            mock_instance.messages.create = AsyncMock(return_value=mock_msg)
+                            mock_cls.return_value = mock_instance
+                            response = client.get("/api/errors/analyze")
+        finally:
+            os.unlink(tmp)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("Check your network connection.", data["analysis"])
+        self.assertEqual(len(data["errors"]), 1)
 
 
 if __name__ == "__main__":

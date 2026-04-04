@@ -5,10 +5,13 @@ Manages agents, trading loop, WebSocket broadcasts, and REST API.
 import asyncio
 import json
 import logging
+import os
+import re
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from typing import Dict, List, Optional, Set
 
 import uvicorn
@@ -31,6 +34,8 @@ from database import (
     reset_database,
     get_token_log,
     cleanup_token_log,
+    get_daily_token_total,
+    get_agent_calls_this_hour,
     save_price_snapshot,
     update_price_snapshot,
     get_price_snapshots,
@@ -78,6 +83,58 @@ logging.getLogger("asyncio").addFilter(_win10054_filter)
 logging.getLogger("uvicorn.error").addFilter(_win10054_filter)
 logging.getLogger("uvicorn.access").addFilter(_win10054_filter)
 logging.root.addFilter(_win10054_filter)
+
+# ─── Persistent Error Log File ──────────────────────────────────────────────
+
+_LOG_DIR = os.path.join(os.path.dirname(__file__), "logs")
+_ERROR_LOG_PATH = os.path.join(_LOG_DIR, "error.log")
+
+try:
+    os.makedirs(_LOG_DIR, exist_ok=True)
+    _file_handler = RotatingFileHandler(
+        _ERROR_LOG_PATH,
+        maxBytes=2 * 1024 * 1024,   # 2 MB per file
+        backupCount=5,
+        encoding="utf-8",
+    )
+    _file_handler.setLevel(logging.WARNING)
+    _file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    ))
+    _file_handler.addFilter(_win10054_filter)
+    logging.root.addHandler(_file_handler)
+except OSError:
+    pass  # Non-fatal: log to console only if file logging fails
+
+_LOG_LINE_RE = re.compile(
+    r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(\w+)\] ([^:]+): (.+)$"
+)
+
+
+def _parse_error_log(limit: int = 100) -> list:
+    """Read and parse the error log file, returning entries newest-first."""
+    if not os.path.exists(_ERROR_LOG_PATH):
+        return []
+    try:
+        with open(_ERROR_LOG_PATH, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+    except OSError:
+        return []
+
+    entries = []
+    for line in reversed(lines):
+        m = _LOG_LINE_RE.match(line.rstrip())
+        if m:
+            entries.append({
+                "timestamp": m.group(1),
+                "level":     m.group(2),
+                "logger":    m.group(3).strip(),
+                "message":   m.group(4),
+            })
+        if len(entries) >= limit:
+            break
+    return entries
 
 
 # ─── Application State ──────────────────────────────────────────────────────
@@ -221,6 +278,56 @@ async def init_agents() -> None:
 
 _REACTION_WINDOW_SECS = 300   # 5 min initial reaction window for intraday catalysts
 _SUSTAINED_WINDOW_SECS = 3600  # 60 min for the sustained (price_1h) reading
+
+
+async def _record_catalysts(new_catalysts: List[Dict]) -> None:
+    """Deduplicate and persist new sentinel catalysts into app_state.
+
+    Deduplicates against BOTH after_hours_catalysts (in-memory) AND
+    news_price_snapshots (DB-restored on startup) so that post-restart
+    re-detection of already-seen headlines does not create duplicate entries.
+    """
+    # Build the full set of known headlines from both sources
+    all_headlines: Set[str] = (
+        {c["headline"] for c in app_state.after_hours_catalysts} |
+        {s["headline"] for s in app_state.news_price_snapshots}
+    )
+    for cat in new_catalysts:
+        headline = cat["headline"]
+        if headline in all_headlines:
+            continue
+        app_state.after_hours_catalysts.append(cat)
+        all_headlines.add(headline)
+        # Record price snapshot for news-price correlation tracking
+        sym = cat.get("symbol")
+        if sym and sym in app_state.last_prices:
+            app_state.news_price_snapshots.append({
+                "symbol":         sym,
+                "headline":       headline[:120],
+                "score":          cat.get("score", 0),
+                "category":       cat.get("category", "news"),
+                "price_at":       app_state.last_prices[sym],
+                "detected_at":    cat.get("detected_at", datetime.utcnow().isoformat() + "Z"),
+                "during_session": _market_is_open(),
+                "price_open":     None,
+                "price_1h":       None,
+                "change_open":    None,
+                "change_1h":      None,
+                "open_recorded_at": None,
+            })
+            try:
+                new_snap = app_state.news_price_snapshots[-1]
+                db_id = await save_price_snapshot(new_snap)
+                new_snap["_db_id"] = db_id
+            except Exception as _e:
+                logger.debug(f"save_price_snapshot failed: {_e}")
+
+    # Trim to top 50 by score
+    app_state.after_hours_catalysts = sorted(
+        app_state.after_hours_catalysts,
+        key=lambda c: c.get("score", 0),
+        reverse=True,
+    )[:50]
 
 async def _update_news_price_snapshots(prices: Dict[str, float]) -> None:
     """Fill price_open / price_1h fields on correlation snapshots as trading progresses.
@@ -843,42 +950,9 @@ async def news_sentinel_loop() -> None:
             except Exception as e:
                 logger.warning(f"Sentinel: additional sources failed: {e}")
 
-            # Persist (keep only latest 50, deduplicate by headline)
-            all_headlines = {c["headline"] for c in app_state.after_hours_catalysts}
-            for cat in new_catalysts:
-                if cat["headline"] not in all_headlines:
-                    app_state.after_hours_catalysts.append(cat)
-                    all_headlines.add(cat["headline"])
-                    # Record price snapshot for news-price correlation tracking
-                    sym = cat.get("symbol")
-                    if sym and sym in app_state.last_prices:
-                        app_state.news_price_snapshots.append({
-                            "symbol":       sym,
-                            "headline":     cat["headline"][:120],
-                            "score":        cat.get("score", 0),
-                            "category":     cat.get("category", "news"),
-                            "price_at":     app_state.last_prices[sym],
-                            "detected_at":  cat.get("detected_at", datetime.utcnow().isoformat() + "Z"),
-                            "during_session":    _market_is_open(),   # True = intraday catalyst
-                            "price_open":        None,   # filled on first price read
-                            "price_1h":          None,   # filled once, >= 60 min after open
-                            "change_open":       None,
-                            "change_1h":         None,
-                            "open_recorded_at":  None,   # datetime when price_open was set
-                        })
-                        # Persist to DB so it survives restarts
-                        try:
-                            new_snap = app_state.news_price_snapshots[-1]
-                            db_id = await save_price_snapshot(new_snap)
-                            new_snap["_db_id"] = db_id
-                        except Exception as _e:
-                            logger.debug(f"save_price_snapshot failed: {_e}")
-            # Trim to most recent 50
-            app_state.after_hours_catalysts = sorted(
-                app_state.after_hours_catalysts,
-                key=lambda c: c.get("score", 0),
-                reverse=True,
-            )[:50]
+            # Deduplicate and persist — also checks news_price_snapshots (DB-restored)
+            # to prevent re-adding catalysts seen in prior sessions after a restart
+            await _record_catalysts(new_catalysts)
 
             # Log notable finds
             if new_catalysts:
@@ -1633,6 +1707,17 @@ async def get_token_usage():
     if app_state.gemini_news_agent and "GeminiAgent" not in agents_out:
         agents_out["GeminiAgent"] = _agent_stats(app_state.gemini_news_agent)
 
+    # Scanner agents are standalone functions with no in-memory state — query the DB
+    for scanner_name in ("ScannerAgent/Claude", "ScannerAgent/Gemini", "ScannerAgent/OpenAI"):
+        daily = await get_daily_token_total(scanner_name, hours=24)
+        calls_hr = await get_agent_calls_this_hour(scanner_name)
+        agents_out[scanner_name] = {
+            "daily_tokens":      daily,
+            "session_tokens":    daily,
+            "calls_this_hour":   calls_hr,
+            "hourly_call_limit": None,
+        }
+
     totals = {
         "daily_tokens":   sum(v["daily_tokens"]   for v in agents_out.values()),
         "session_tokens": sum(v["session_tokens"] for v in agents_out.values()),
@@ -1656,6 +1741,66 @@ async def get_token_log_endpoint(
         limit=limit,
     )
     return {"entries": entries}
+
+
+# ─── Error Log Endpoints ───────────────────────────────────────────────────────
+
+@app.get("/api/errors")
+async def get_error_log_endpoint(limit: int = Query(100, description="Max entries to return")):
+    """Return recent WARNING/ERROR entries from the persistent error log file, newest first."""
+    return {"entries": _parse_error_log(limit=limit)}
+
+
+@app.get("/api/errors/analyze")
+async def analyze_error_log():
+    """Send recent ERROR/CRITICAL entries to Claude Haiku and return root-cause analysis."""
+    import anthropic
+
+    entries = _parse_error_log(limit=30)
+    error_entries = [e for e in entries if e["level"] in ("ERROR", "CRITICAL")]
+
+    if not error_entries:
+        return {"errors": [], "analysis": "No errors found in the log."}
+
+    if not config.ANTHROPIC_API_KEY:
+        return {
+            "errors": [f"{e['timestamp']} [{e['level']}] {e['logger']}: {e['message']}" for e in error_entries],
+            "analysis": "Anthropic API key not configured — cannot analyze.",
+        }
+
+    # Build chronological error text for the prompt
+    error_text = "\n".join(
+        f"{e['timestamp']} [{e['level']}] {e['logger']}: {e['message']}"
+        for e in reversed(error_entries)
+    )
+
+    client = anthropic.AsyncAnthropic(api_key=config.ANTHROPIC_API_KEY)
+    response = await client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1024,
+        messages=[{
+            "role": "user",
+            "content": (
+                "Analyze these error log entries from an AI trading application "
+                "and suggest specific fixes:\n\n"
+                f"{error_text}\n\n"
+                "Respond with:\n"
+                "1. Root cause for each distinct error type\n"
+                "2. Specific code or config change to fix it\n"
+                "3. Priority: Critical / High / Medium\n\n"
+                "Be concise and actionable."
+            ),
+        }],
+    )
+
+    analysis = response.content[0].text if response.content else "Analysis unavailable."
+    return {
+        "errors": [
+            f"{e['timestamp']} [{e['level']}] {e['logger']}: {e['message']}"
+            for e in error_entries
+        ],
+        "analysis": analysis,
+    }
 
 
 # ─── WebSocket ─────────────────────────────────────────────────────────────────

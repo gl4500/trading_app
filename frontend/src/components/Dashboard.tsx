@@ -10,6 +10,7 @@ import ScannerPanel from './ScannerPanel'
 import SummaryPanel from './SummaryPanel'
 import SentinelPanel from './SentinelPanel'
 import TokensPanel from './TokensPanel'
+import ErrorLogPanel from './ErrorLogPanel'
 
 interface DashboardProps {
   agents: Agent[]
@@ -33,7 +34,7 @@ export default function Dashboard({
   summaryLive,
 }: DashboardProps) {
   const [selectedAgentName, setSelectedAgentName] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'chart' | 'detail' | 'signals' | 'scanner' | 'summary' | 'sentinel' | 'trades' | 'tokens'>('chart')
+  const [activeTab, setActiveTab] = useState<'chart' | 'detail' | 'signals' | 'scanner' | 'summary' | 'sentinel' | 'trades' | 'tokens' | 'errors'>('chart')
 
   function handleSelectAgent(name: string) {
     setSelectedAgentName(name)
@@ -145,7 +146,17 @@ export default function Dashboard({
             >
               🔢 Tokens
             </button>
-            {displayAgent && activeTab !== 'signals' && activeTab !== 'scanner' && activeTab !== 'summary' && activeTab !== 'sentinel' && activeTab !== 'trades' && activeTab !== 'tokens' && (
+            <button
+              onClick={() => setActiveTab('errors')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'errors'
+                  ? 'bg-red-800 text-white'
+                  : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              ⚠ Errors
+            </button>
+            {displayAgent && activeTab !== 'signals' && activeTab !== 'scanner' && activeTab !== 'summary' && activeTab !== 'sentinel' && activeTab !== 'trades' && activeTab !== 'tokens' && activeTab !== 'errors' && (
               <span className="ml-auto text-xs text-gray-400 self-center">
                 Viewing: <span className="text-blue-400 font-medium">{displayAgent.name}</span>
               </span>
@@ -234,6 +245,8 @@ export default function Dashboard({
           {activeTab === 'trades' && <TradeLog trades={trades} agents={agents} />}
 
           {activeTab === 'tokens' && <TokensPanel />}
+
+          {activeTab === 'errors' && <ErrorLogPanel />}
         </div>
       </div>
     </div>
