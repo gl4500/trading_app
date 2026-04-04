@@ -45,6 +45,10 @@ _cache_ts: float = 0.0
 _scan_in_progress: bool = False
 _scan_lock = asyncio.Lock()  # prevents duplicate concurrent scans wasting API quota
 
+# Ring buffer of recent scan durations (seconds) for telemetry
+from collections import deque as _deque
+_scan_history: _deque = _deque(maxlen=20)
+
 
 def _save_cache_to_disk(data: Dict) -> None:
     """Write scan result to disk so it survives restarts."""
@@ -1035,8 +1039,11 @@ async def run_scan(force: bool = False) -> Dict:
 async def _run_scan_inner() -> Dict:
     global _cache, _cache_ts
 
+    _t0 = time.time()
     started = datetime.utcnow().isoformat()
-    candidates = await _pre_screen(top_n=20)
+    import os as _os_inner
+    _top_n = 30 if _os_inner.environ.get("OLLAMA_ONLY_MODE") == "1" else 20
+    candidates = await _pre_screen(top_n=_top_n)
 
     if not candidates:
         result = {
@@ -1107,6 +1114,7 @@ async def _run_scan_inner() -> Dict:
     }
     _cache    = result
     _cache_ts = time.time()
+    _scan_history.append(round(time.time() - _t0, 1))
     _save_cache_to_disk(result)
     return result
 

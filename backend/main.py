@@ -14,7 +14,12 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from typing import Dict, List, Optional, Set
 
+import httpx
 import uvicorn
+try:
+    import psutil
+except ImportError:
+    psutil = None  # type: ignore[assignment]
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -1292,8 +1297,21 @@ async def _ensure_ollama_running() -> None:
     # Ensure the Ollama binary is findable before any subprocess calls
     _add_ollama_to_path()
 
-    if await _ollama_is_available():
+    server_was_running = await _ollama_is_available()
+    if server_was_running:
         logger.info("Ollama: server already running.")
+        # Still check the model — it may not have been pulled yet
+        try:
+            list_result = subprocess.run(
+                ["ollama", "list"], capture_output=True, text=True, timeout=10
+            )
+            if config.OLLAMA_MODEL not in list_result.stdout:
+                logger.info(f"Ollama: model '{config.OLLAMA_MODEL}' not found locally — pulling...")
+                asyncio.create_task(_pull_ollama_model())
+            else:
+                logger.info(f"Ollama: model '{config.OLLAMA_MODEL}' already available.")
+        except Exception as e:
+            logger.debug(f"Ollama: could not check model list: {e}")
         return
 
     # Verify the binary exists
@@ -2025,6 +2043,80 @@ async def analyze_error_log():
             for e in error_entries
         ],
         "analysis": analysis,
+    }
+
+
+# ─── Telemetry ────────────────────────────────────────────────────────────────
+
+@app.get("/api/telemetry")
+async def get_telemetry():
+    """Return system resource usage, Ollama model status, and scanner timing history."""
+    from agents.scanner_agent import _scan_history, _ollama_is_available
+
+    # ── System metrics ────────────────────────────────────────────────────────
+    cpu_pct = 0.0
+    mem_total_gb = 0.0
+    mem_available_gb = 0.0
+    mem_pct = 0.0
+    process_memory_mb = 0.0
+
+    if psutil is not None:
+        try:
+            cpu_pct = float(psutil.cpu_percent(interval=0.2))
+            vm = psutil.virtual_memory()
+            mem_total_gb    = round(vm.total    / 1024**3, 1)
+            mem_available_gb = round(vm.available / 1024**3, 1)
+            mem_pct          = float(vm.percent)
+            proc = psutil.Process()
+            process_memory_mb = round(proc.memory_info().rss / 1024**2, 1)
+        except Exception as e:
+            logger.debug(f"Telemetry: psutil error: {e}")
+
+    # ── Ollama model info ─────────────────────────────────────────────────────
+    ollama_models = []
+    ollama_online = False
+    try:
+        base = config.OLLAMA_BASE_URL.rstrip("/")
+        ps_url = (base[:-3] if base.endswith("/v1") else base) + "/api/ps"
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            r = await client.get(ps_url)
+            if r.status_code == 200:
+                ollama_online = True
+                for m in r.json().get("models", []):
+                    size_gb = round(m.get("size", 0) / 1024**3, 2)
+                    vram    = m.get("size_vram", 0)
+                    processor = "GPU" if vram and vram > 0 else "CPU"
+                    ollama_models.append({
+                        "name":       m.get("name", ""),
+                        "size_gb":    size_gb,
+                        "processor":  processor,
+                        "expires_at": m.get("expires_at", ""),
+                    })
+    except Exception:
+        pass
+
+    # ── Scan history ──────────────────────────────────────────────────────────
+    scan_durations = list(_scan_history)
+    avg_scan_sec   = round(sum(scan_durations) / len(scan_durations), 1) if scan_durations else 0.0
+
+    return {
+        "cpu_pct":           cpu_pct,
+        "memory": {
+            "total_gb":     mem_total_gb,
+            "available_gb": mem_available_gb,
+            "used_pct":     mem_pct,
+        },
+        "process_memory_mb": process_memory_mb,
+        "ollama": {
+            "online":  ollama_online,
+            "mode":    "local" if os.environ.get("OLLAMA_ONLY_MODE") == "1" else "off",
+            "models":  ollama_models,
+        },
+        "scan_history": {
+            "durations_sec": scan_durations,
+            "avg_sec":       avg_scan_sec,
+            "count":         len(scan_durations),
+        },
     }
 
 

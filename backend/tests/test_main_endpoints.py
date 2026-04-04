@@ -1570,6 +1570,108 @@ class TestErrorAnalyzeEndpoint(unittest.TestCase):
         self.assertEqual(len(data["errors"]), 1)
 
 
+class TestTelemetryEndpoint(unittest.TestCase):
+    """GET /api/telemetry returns system + Ollama + scanner metrics."""
+
+    def setUp(self):
+        self.patcher_db = patch("main.init_db", new_callable=AsyncMock)
+        self.patcher_agents = patch("main.init_agents", new_callable=AsyncMock)
+        self.patcher_db.start()
+        self.patcher_agents.start()
+
+    def tearDown(self):
+        self.patcher_db.stop()
+        self.patcher_agents.stop()
+
+    def _get(self, mock_ollama_ps=None):
+        from main import app
+        fake_ps = mock_ollama_ps or {"models": []}
+        with patch("main.psutil") as mock_ps, \
+             patch("main.httpx") as mock_httpx:
+            mock_ps.cpu_percent.return_value = 42.5
+            mock_ps.virtual_memory.return_value = MagicMock(
+                total=8 * 1024**3, available=4 * 1024**3, percent=50.0
+            )
+            mock_ps.Process.return_value = MagicMock(
+                memory_info=MagicMock(return_value=MagicMock(rss=200 * 1024**2))
+            )
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = fake_ps
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client.get = AsyncMock(return_value=mock_resp)
+            mock_httpx.AsyncClient.return_value = mock_client
+            with TestClient(app) as client:
+                return client.get("/api/telemetry").json()
+
+    def test_returns_200(self):
+        from main import app
+        with patch("main.psutil") as mock_ps, \
+             patch("main.httpx") as mock_httpx:
+            mock_ps.cpu_percent.return_value = 10.0
+            mock_ps.virtual_memory.return_value = MagicMock(total=8*1024**3, available=4*1024**3, percent=50.0)
+            mock_ps.Process.return_value = MagicMock(memory_info=MagicMock(return_value=MagicMock(rss=100*1024**2)))
+            mock_resp = MagicMock(status_code=200)
+            mock_resp.json.return_value = {"models": []}
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client.get = AsyncMock(return_value=mock_resp)
+            mock_httpx.AsyncClient.return_value = mock_client
+            with TestClient(app) as client:
+                resp = client.get("/api/telemetry")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_has_system_fields(self):
+        data = self._get()
+        self.assertIn("cpu_pct", data)
+        self.assertIn("memory", data)
+        self.assertIn("process_memory_mb", data)
+
+    def test_cpu_pct_is_float(self):
+        data = self._get()
+        self.assertIsInstance(data["cpu_pct"], float)
+        self.assertAlmostEqual(data["cpu_pct"], 42.5)
+
+    def test_has_ollama_section(self):
+        data = self._get()
+        self.assertIn("ollama", data)
+
+    def test_ollama_model_info_included(self):
+        fake_ps = {"models": [{"name": "llama3.1:8b", "size": 4700000000, "size_vram": 0}]}
+        data = self._get(mock_ollama_ps=fake_ps)
+        self.assertEqual(len(data["ollama"]["models"]), 1)
+        self.assertEqual(data["ollama"]["models"][0]["name"], "llama3.1:8b")
+
+    def test_has_scan_history(self):
+        data = self._get()
+        self.assertIn("scan_history", data)
+        sh = data["scan_history"]
+        self.assertIn("durations_sec", sh)
+        self.assertIn("avg_sec", sh)
+        self.assertIn("count", sh)
+        self.assertIsInstance(sh["durations_sec"], list)
+
+    def test_ollama_unavailable_returns_empty_models(self):
+        """If Ollama /api/ps fails, ollama section shows empty models gracefully."""
+        from main import app
+        with patch("main.psutil") as mock_ps, \
+             patch("main.httpx") as mock_httpx:
+            mock_ps.cpu_percent.return_value = 5.0
+            mock_ps.virtual_memory.return_value = MagicMock(total=8*1024**3, available=4*1024**3, percent=50.0)
+            mock_ps.Process.return_value = MagicMock(memory_info=MagicMock(return_value=MagicMock(rss=100*1024**2)))
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client.get = AsyncMock(side_effect=Exception("connection refused"))
+            mock_httpx.AsyncClient.return_value = mock_client
+            with TestClient(app) as client:
+                data = client.get("/api/telemetry").json()
+        self.assertEqual(data["ollama"]["models"], [])
+
+
 class TestOllamaModeEndpoint(unittest.TestCase):
     """POST /api/ollama-mode — enable/disable 24-hour Ollama-only mode."""
 
