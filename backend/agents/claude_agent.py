@@ -213,8 +213,13 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
         sector_summary = format_sector_summary(sector_perf)
         sector_section = f"\n## Macro → Sector Context\n{sector_summary}\n" if sector_summary else ""
 
+        stooq_macro = market_context.get("__stooq_macro__", {})
+        from data.stooq_client import format_macro_for_prompt as _fmt_macro
+        stooq_macro_text = _fmt_macro(stooq_macro)
+        stooq_section = f"\n## Market Indicators (VIX / Rates / Gold / DXY)\n{stooq_macro_text}\n" if stooq_macro_text else ""
+
         return (
-            f"{gemini_section}{macro_section}{sector_section}{overnight_section}"
+            f"{gemini_section}{macro_section}{sector_section}{stooq_section}{overnight_section}"
             f"\n## Market Data\n{market_data}\n"
             f"\nInclude an entry for each symbol: {', '.join(watchlist)}"
         )

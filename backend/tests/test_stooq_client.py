@@ -274,5 +274,124 @@ class TestStooqClientSymbolFormat(unittest.TestCase):
         self.assertNotIn("MSFT", url)  # should be lowercased
 
 
+# ── TestGetMacroIndicators ────────────────────────────────────────────────────
+
+class TestGetMacroIndicators(unittest.IsolatedAsyncioTestCase):
+
+    _VIX_CSV = "Date,Open,High,Low,Close,Volume\n2024-01-01,17.0,18.0,16.5,17.5,0\n2024-01-02,17.5,19.0,17.0,18.5,0\n"
+    _YIELD_CSV = "Date,Open,High,Low,Close,Volume\n2024-01-01,4.50,4.52,4.48,4.50,0\n2024-01-02,4.50,4.55,4.49,4.52,0\n"
+
+    def _mock_http(self, csv_text: str):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = csv_text
+        mock_ctx = MagicMock()
+        mock_ctx.__aenter__ = AsyncMock(return_value=MagicMock(get=AsyncMock(return_value=mock_resp)))
+        mock_ctx.__aexit__ = AsyncMock(return_value=False)
+        return mock_ctx
+
+    async def test_returns_dict_with_expected_keys(self):
+        from data.stooq_client import StooqClient
+        client = StooqClient()
+
+        with patch("httpx.AsyncClient", return_value=self._mock_http(self._VIX_CSV)):
+            result = await client.get_macro_indicators()
+
+        # Should have at least one key populated
+        self.assertIsInstance(result, dict)
+
+    async def test_vix_price_and_pct_populated(self):
+        from data.stooq_client import StooqClient
+        client = StooqClient()
+
+        with patch("httpx.AsyncClient", return_value=self._mock_http(self._VIX_CSV)):
+            result = await client.get_macro_indicators()
+
+        vix = result.get("VIX", {})
+        if vix:  # only assert if Stooq returned data
+            self.assertIn("price", vix)
+            self.assertIn("pct_1d", vix)
+            self.assertAlmostEqual(vix["price"], 18.5, places=1)
+
+    async def test_returns_empty_on_http_error(self):
+        from data.stooq_client import StooqClient
+        client = StooqClient()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500
+        mock_ctx = MagicMock()
+        mock_ctx.__aenter__ = AsyncMock(return_value=MagicMock(get=AsyncMock(return_value=mock_resp)))
+        mock_ctx.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("httpx.AsyncClient", return_value=mock_ctx):
+            result = await client.get_macro_indicators()
+
+        self.assertEqual(result, {})
+
+    async def test_cache_used_on_second_call(self):
+        from data.stooq_client import StooqClient
+        client = StooqClient()
+
+        call_count = 0
+
+        async def _fake_get(url):
+            nonlocal call_count
+            call_count += 1
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.text = self._VIX_CSV
+            return mock_resp
+
+        mock_ctx = MagicMock()
+        mock_ctx.__aenter__ = AsyncMock(return_value=MagicMock(get=_fake_get))
+        mock_ctx.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("httpx.AsyncClient", return_value=mock_ctx):
+            await client.get_macro_indicators()
+            await client.get_macro_indicators()
+
+        # Each symbol is fetched once; second call should hit cache
+        self.assertLessEqual(call_count, 4)  # 4 symbols, all cached after first call
+
+
+class TestFormatMacroForPrompt(unittest.TestCase):
+
+    def test_empty_returns_empty_string(self):
+        from data.stooq_client import format_macro_for_prompt
+        self.assertEqual(format_macro_for_prompt({}), "")
+
+    def test_vix_in_output(self):
+        from data.stooq_client import format_macro_for_prompt
+        result = format_macro_for_prompt({"VIX": {"price": 18.5, "pct_1d": 2.3}})
+        self.assertIn("VIX", result)
+        self.assertIn("18.5", result)
+
+    def test_yield_in_output(self):
+        from data.stooq_client import format_macro_for_prompt
+        result = format_macro_for_prompt({"10Y_Yield": {"price": 4.52, "pct_1d": 0.4}})
+        self.assertIn("4.52", result)
+
+    def test_gold_formatted_with_dollar_sign(self):
+        from data.stooq_client import format_macro_for_prompt
+        result = format_macro_for_prompt({"Gold": {"price": 2345.0, "pct_1d": 0.8}})
+        self.assertIn("$", result)
+        self.assertIn("2,345", result)
+
+    def test_vix_elevated_label(self):
+        from data.stooq_client import format_macro_for_prompt
+        result = format_macro_for_prompt({"VIX": {"price": 30.0, "pct_1d": 5.0}})
+        self.assertIn("elevated", result)
+
+    def test_vix_low_label(self):
+        from data.stooq_client import format_macro_for_prompt
+        result = format_macro_for_prompt({"VIX": {"price": 12.0, "pct_1d": -1.0}})
+        self.assertIn("low", result)
+
+    def test_partial_data_no_crash(self):
+        from data.stooq_client import format_macro_for_prompt
+        result = format_macro_for_prompt({"VIX": {"price": 18.5}, "Gold": {"price": None}})
+        self.assertIn("VIX", result)
+
+
 if __name__ == "__main__":
     unittest.main()

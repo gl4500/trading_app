@@ -169,5 +169,107 @@ class StooqClient:
         }
 
 
+    async def get_macro_indicators(self) -> Dict:
+        """
+        Fetch key macro indicators from Stooq (no API key required).
+
+        Returns a dict shaped::
+
+            {
+                "VIX":       {"price": 18.5, "pct_1d": 2.3},
+                "10Y_Yield": {"price": 4.52, "pct_1d": 0.7},
+                "Gold":      {"price": 2345.0, "pct_1d": 0.8},
+                "DXY":       {"price": 104.2, "pct_1d": -0.2},
+            }
+        """
+        symbols = {
+            "VIX":       "^vix",
+            "10Y_Yield": "ust10y.b",
+            "Gold":      "gc.f",
+            "DXY":       "usdx.f",
+        }
+        result: Dict = {}
+        for label, sym in symbols.items():
+            cache_key = f"macro|{sym}"
+            cached = self._cached(cache_key)
+            if cached is not None and not cached.empty:
+                df = cached
+            else:
+                url = f"{_BASE_URL}?s={sym.lower()}&i=d"
+                try:
+                    async with httpx.AsyncClient(timeout=15) as client:
+                        resp = await client.get(url)
+                    if resp.status_code != 200:
+                        continue
+                    df = self._parse_csv(resp.text)
+                    if df.empty:
+                        continue
+                    df = df.tail(5).reset_index(drop=True)
+                    self._store(cache_key, df)
+                except _NET_ERRORS as e:
+                    logger.debug(f"StooqClient macro {label}: network error: {type(e).__name__}")
+                    continue
+                except Exception as e:
+                    logger.debug(f"StooqClient macro {label}: error: {e}")
+                    continue
+
+            if df.empty or "close" not in df.columns:
+                continue
+            close = df["close"].values
+            price = float(close[-1]) if len(close) >= 1 else None
+            pct_1d = float((close[-1] - close[-2]) / close[-2] * 100) \
+                if len(close) >= 2 and close[-2] != 0 else None
+            if price is not None:
+                result[label] = {
+                    "price":  round(price, 4),
+                    "pct_1d": round(pct_1d, 2) if pct_1d is not None else None,
+                }
+        return result
+
+
+def format_macro_for_prompt(macro: Dict) -> str:
+    """
+    Format macro indicator dict into a compact prompt string.
+
+    Example::
+
+        VIX: 18.5 (+2.3%)  10Y Yield: 4.52% (+0.07%)  Gold: $2,345 (+0.8%)  DXY: 104.2 (-0.2%)
+    """
+    if not macro:
+        return ""
+
+    parts = []
+    vix = macro.get("VIX", {})
+    if vix.get("price") is not None:
+        p = vix["price"]
+        d = vix.get("pct_1d")
+        chg = f" ({'+' if d >= 0 else ''}{d:.1f}%)" if d is not None else ""
+        level = "elevated" if p > 25 else ("low" if p < 15 else "moderate")
+        parts.append(f"VIX: {p:.1f}{chg} [{level} vol]")
+
+    y10 = macro.get("10Y_Yield", {})
+    if y10.get("price") is not None:
+        p = y10["price"]
+        d = y10.get("pct_1d")
+        chg = f" ({'+' if d >= 0 else ''}{d:.2f}%)" if d is not None else ""
+        parts.append(f"10Y Yield: {p:.2f}%{chg}")
+
+    gold = macro.get("Gold", {})
+    if gold.get("price") is not None:
+        p = gold["price"]
+        d = gold.get("pct_1d")
+        chg = f" ({'+' if d >= 0 else ''}{d:.1f}%)" if d is not None else ""
+        parts.append(f"Gold: ${p:,.0f}{chg}")
+
+    dxy = macro.get("DXY", {})
+    if dxy.get("price") is not None:
+        p = dxy["price"]
+        d = dxy.get("pct_1d")
+        chg = f" ({'+' if d >= 0 else ''}{d:.1f}%)" if d is not None else ""
+        parts.append(f"DXY: {p:.1f}{chg}")
+
+    return "  ".join(parts)
+
+
 # Module-level singleton
 stooq_client = StooqClient()

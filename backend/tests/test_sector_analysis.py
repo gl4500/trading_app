@@ -123,6 +123,74 @@ class TestGetSectorPerformance(unittest.IsolatedAsyncioTestCase):
         expected_vs_spy = round(tech["pct_1d"] - result["benchmark_1d"], 2)
         self.assertAlmostEqual(tech["vs_spy_1d"], expected_vs_spy, places=2)
 
+    async def test_market_regime_key_present(self):
+        """Result must include market_regime key."""
+        result = await self._call()
+        self.assertIn("market_regime", result)
+
+    async def test_market_regime_bull_when_spy_up_20d(self):
+        """SPY +5% over 20 days → regime='bull'."""
+        # Build 22-bar series with +5% 20D move: first bar 100, bar[-21] 100, last bar 105
+        closes = [100.0] * 21 + [105.0]  # 22 bars; 20D change = +5%
+        bars = _make_bars_dict({"SPY": _make_bars(closes)})
+        with patch("data.sector_analysis._fetch_bars", new_callable=AsyncMock) as m:
+            m.return_value = bars
+            sa._cache = None
+            result = await sa.get_sector_performance()
+        self.assertEqual(result["market_regime"], "bull")
+
+    async def test_market_regime_correction_when_spy_down_20d(self):
+        """SPY -4% over 20 days → regime='correction'."""
+        closes = [100.0] * 21 + [96.0]
+        bars = _make_bars_dict({"SPY": _make_bars(closes)})
+        with patch("data.sector_analysis._fetch_bars", new_callable=AsyncMock) as m:
+            m.return_value = bars
+            sa._cache = None
+            result = await sa.get_sector_performance()
+        self.assertEqual(result["market_regime"], "correction")
+
+    async def test_broad_pct_20d_computed_from_22_bars(self):
+        """pct_20d is populated when 22 bars are available."""
+        closes = [100.0] * 21 + [103.0]   # 20D change = +3%
+        bars = _make_bars_dict({"SPY": _make_bars(closes)})
+        with patch("data.sector_analysis._fetch_bars", new_callable=AsyncMock) as m:
+            m.return_value = bars
+            sa._cache = None
+            result = await sa.get_sector_performance()
+        spy = result["broad"].get("SPY", {})
+        self.assertIsNotNone(spy.get("pct_20d"))
+        self.assertAlmostEqual(spy["pct_20d"], 3.0, places=1)
+
+    async def test_broad_pct_20d_none_when_insufficient_bars(self):
+        """pct_20d is None when only 2 bars are available."""
+        result = await self._call()   # uses 2-bar _make_bars_dict
+        spy = result["broad"].get("SPY", {})
+        self.assertIsNone(spy.get("pct_20d"))
+
+    async def test_market_regime_unknown_when_insufficient_bars(self):
+        """market_regime is 'unknown' when pct_20d can't be computed (< 22 bars)."""
+        result = await self._call()   # uses 2-bar _make_bars_dict
+        self.assertEqual(result["market_regime"], "unknown")
+
+
+class TestMarketRegimeClassifier(unittest.TestCase):
+    """Unit tests for the _market_regime() helper."""
+
+    def test_bull(self):
+        self.assertEqual(sa._market_regime(5.0), "bull")
+
+    def test_rally(self):
+        self.assertEqual(sa._market_regime(1.0), "rally")
+
+    def test_correction(self):
+        self.assertEqual(sa._market_regime(-3.0), "correction")
+
+    def test_bear(self):
+        self.assertEqual(sa._market_regime(-12.0), "bear")
+
+    def test_unknown_when_none(self):
+        self.assertEqual(sa._market_regime(None), "unknown")
+
 
 # ── TestGetStockVsSector ──────────────────────────────────────────────────────
 

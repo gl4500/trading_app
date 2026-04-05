@@ -15,7 +15,7 @@ from data.news_service import news_service
 from data import technicals
 from data.signal_aggregator import get_composite_signal
 from data.massive_client import massive_client, format_greeks_for_prompt
-from data.stooq_client import stooq_client
+from data.stooq_client import stooq_client, format_macro_for_prompt as format_stooq_macro
 from data import sector_analysis
 
 logger = logging.getLogger(__name__)
@@ -287,9 +287,10 @@ class MarketDataService:
         long_term_bars_task = self.get_long_term_bars(syms)
         greeks_task         = massive_client.get_greeks_summary(syms)
         sector_task         = sector_analysis.get_sector_performance()
+        stooq_macro_task    = stooq_client.get_macro_indicators()
 
-        prices, all_bars, all_news, macro_ctx, massive_news, all_long_term_bars, all_greeks, sector_perf = await asyncio.gather(
-            prices_task, bars_task, news_task, macro_task, massive_news_task, long_term_bars_task, greeks_task, sector_task,
+        prices, all_bars, all_news, macro_ctx, massive_news, all_long_term_bars, all_greeks, sector_perf, stooq_macro = await asyncio.gather(
+            prices_task, bars_task, news_task, macro_task, massive_news_task, long_term_bars_task, greeks_task, sector_task, stooq_macro_task,
             return_exceptions=True,
         )
         if isinstance(all_long_term_bars, Exception):
@@ -302,6 +303,8 @@ class MarketDataService:
             all_greeks = {}
         if isinstance(sector_perf, Exception):
             sector_perf = {}
+        if isinstance(stooq_macro, Exception):
+            stooq_macro = {}
 
         # Composite signals (yfinance is slow — run concurrently per symbol)
         composite_tasks = [get_composite_signal(sym, all_news.get(sym, [])) for sym in syms]
@@ -406,6 +409,8 @@ class MarketDataService:
             context["__massive_macro__"] = macro_ctx
         if sector_perf:
             context["__sector_context__"] = sector_perf
+        if stooq_macro:
+            context["__stooq_macro__"] = stooq_macro
 
         return context
 
