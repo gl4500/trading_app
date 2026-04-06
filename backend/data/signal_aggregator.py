@@ -25,6 +25,11 @@ logger = logging.getLogger(__name__)
 # Suppress yfinance's verbose HTTP error logging — we handle errors ourselves
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
+# Limit concurrent yfinance threads. Without this, asyncio.gather over 60 symbols
+# spawns 60 simultaneous threads, each doing HTTP + pandas CPU work → 90%+ CPU.
+# 8 concurrent fetches keeps throughput high while leaving headroom for Ollama + UI.
+_YF_SEMAPHORE: asyncio.Semaphore = asyncio.Semaphore(8)
+
 # ETFs and funds that have no analyst/earnings fundamentals
 _ETF_SYMBOLS = {
     "SPY", "QQQ", "IWM", "DIA", "VTI", "VOO", "GLD", "SLV",
@@ -144,14 +149,19 @@ def _fetch_yf_data_sync(symbol: str) -> Dict:
 
 
 async def _get_yf_data(symbol: str) -> Dict:
-    """Return cached yfinance data, refreshing if stale."""
+    """Return cached yfinance data, refreshing if stale.
+
+    Guarded by _YF_SEMAPHORE so at most 8 yfinance threads run simultaneously,
+    preventing CPU saturation when the scanner gathers 60 symbols at once.
+    """
     now = time.time()
     if symbol in _yf_cache:
         ts, data = _yf_cache[symbol]
         if now - ts < YF_CACHE_TTL:
             return data
     try:
-        data = await asyncio.to_thread(_fetch_yf_data_sync, symbol)
+        async with _YF_SEMAPHORE:
+            data = await asyncio.to_thread(_fetch_yf_data_sync, symbol)
         _yf_cache[symbol] = (now, data)
         return data
     except Exception as e:

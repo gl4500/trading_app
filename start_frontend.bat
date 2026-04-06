@@ -1,20 +1,27 @@
 @echo off
 echo ==========================================
-echo  AI Trading Competition - Frontend Startup
+echo  AI Trading App - Frontend Startup
 echo ==========================================
 
-set CONDA_BIN=C:\Users\gl450\radioconda\envs\trading
-set PATH=%CONDA_BIN%;%PATH%
+set ROOT=%~dp0
+set NODE=%ROOT%runtime\node\node.exe
+set NPM=%ROOT%runtime\node\npm.cmd
 
-cd /d "%~dp0frontend"
+cd /d "%ROOT%frontend"
+
+if not exist "%NODE%" (
+    echo [ERROR] Bundled Node not found at %NODE%
+    pause
+    exit /b 1
+)
 
 if not exist "node_modules" (
     echo [INFO] Installing npm dependencies...
-    npm install
+    "%NPM%" install
 )
 
 echo [INFO] Starting React frontend on http://localhost:5173
 echo.
-npm run dev
+"%NPM%" run dev
 
 pause

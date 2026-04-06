@@ -41,6 +41,11 @@ except ImportError:
     HAS_GEMINI = False
     logger.warning("google-genai package not available")
 
+try:
+    from openai import AsyncOpenAI
+except ImportError:
+    AsyncOpenAI = None  # type: ignore[assignment,misc]
+
 
 class GeminiAgent(BaseAgent):
     """AI trading agent using Google Gemini for market analysis."""
@@ -210,6 +215,50 @@ Respond ONLY with a valid JSON object:
 Include an entry for every symbol: {', '.join(watchlist)}
 """
 
+    async def _get_ollama_decisions(self, market_context: Dict, watchlist: List[str]) -> Optional[Dict]:
+        """Get trading decisions from local Ollama OLLAMA_MODEL via OpenAI-compatible API."""
+        if AsyncOpenAI is None:
+            logger.warning("GeminiAgent(Ollama): openai package not available")
+            return None
+        if not config.OLLAMA_MODEL:
+            return None
+        try:
+            client  = AsyncOpenAI(base_url=config.OLLAMA_BASE_URL, api_key="ollama")
+            prompt  = self._build_prompt(market_context, watchlist)
+            response = await asyncio.wait_for(
+                client.chat.completions.create(
+                    model=config.OLLAMA_MODEL,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.2,
+                    max_tokens=4096,
+                ),
+                timeout=120.0,
+            )
+            text = (response.choices[0].message.content or "").strip()
+            if not text:
+                logger.warning("GeminiAgent(Ollama): empty response")
+                return None
+            logger.info(f"GeminiAgent: received response from local model '{config.OLLAMA_MODEL}'")
+            json_match = re.search(r'\{[\s\S]*\}', text)
+            if json_match:
+                try:
+                    return json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    pass
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                logger.error(f"GeminiAgent(Ollama): JSON parse failed: {text[:200]}")
+                return None
+        except asyncio.TimeoutError:
+            logger.warning(
+                f"GeminiAgent: Ollama request timed out (model='{config.OLLAMA_MODEL}')"
+            )
+            return None
+        except Exception as e:
+            logger.error(f"GeminiAgent: Ollama error: {e}")
+            return None
+
     async def _get_gemini_decisions(self, market_context: Dict, watchlist: List[str]) -> Optional[Dict]:
         client = self._get_client()
         if client is None:
@@ -301,16 +350,22 @@ Include an entry for every symbol: {', '.join(watchlist)}
 
     async def get_market_view(self, market_context: Dict, watchlist: List[str]) -> Optional[str]:
         """
-        Return Gemini's market analysis as a plain-text string for use as
-        context by other agents.  No trading signals are produced.
+        Return market analysis as a plain-text string for use as context by other agents.
+        Routes through local Ollama when OLLAMA_ONLY_MODE=1, otherwise Gemini.
         Returns None when rate-limited or unconfigured.
         """
-        response = await self._get_gemini_decisions(market_context, watchlist)
+        import os as _os
+        if _os.environ.get("OLLAMA_ONLY_MODE") == "1":
+            response = await self._get_ollama_decisions(market_context, watchlist)
+        else:
+            response = await self._get_gemini_decisions(market_context, watchlist)
         if response:
             return response.get("market_analysis") or None
         return None
 
     async def analyze(self, market_context: Dict) -> List[Signal]:
+        import os as _os
+        _ollama_mode = _os.environ.get("OLLAMA_ONLY_MODE") == "1"
         prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
 
         # Build watchlist prioritising held positions and own picks so they always
@@ -357,28 +412,34 @@ Include an entry for every symbol: {', '.join(watchlist)}
                     self.portfolio, self._picks, config.MAX_POSITION_SIZE, "GeminiAgent"
                 )
 
-            if not HAS_GEMINI or not config.GEMINI_API_KEY:
-                logger.warning("GeminiAgent: Not configured, using fallback")
-                return get_fallback_signals(market_context, "GeminiAgent")
+            if _ollama_mode:
+                logger.info(
+                    f"GeminiAgent: Using local model '{config.OLLAMA_MODEL}' "
+                    f"(cycle {self._cycle_count})"
+                )
+                response = await self._get_ollama_decisions(market_context, watchlist)
+            else:
+                if not HAS_GEMINI or not config.GEMINI_API_KEY:
+                    logger.warning("GeminiAgent: Not configured, using fallback")
+                    return get_fallback_signals(market_context, "GeminiAgent")
 
-            if time.time() < self._backoff_until:
-                remaining = int(self._backoff_until - time.time())
-                logger.debug(f"GeminiAgent: In backoff, {remaining}s remaining — reusing last decisions")
-                if self._last_decisions:
-                    return parse_ai_decisions(
-                        self._last_decisions, market_context, prices,
-                        self.portfolio, config.MAX_POSITION_SIZE, "GEMINI ANALYSIS"
-                    )
-                return get_fallback_signals(market_context, "GeminiAgent")
+                if time.time() < self._backoff_until:
+                    remaining = int(self._backoff_until - time.time())
+                    logger.debug(f"GeminiAgent: In backoff, {remaining}s remaining — reusing last decisions")
+                    if self._last_decisions:
+                        return parse_ai_decisions(
+                            self._last_decisions, market_context, prices,
+                            self.portfolio, config.MAX_POSITION_SIZE, "GEMINI ANALYSIS"
+                        )
+                    return get_fallback_signals(market_context, "GeminiAgent")
 
-            logger.info(f"GeminiAgent: Requesting analysis from Gemini (cycle {self._cycle_count})")
-
-            try:
+                logger.info(f"GeminiAgent: Requesting analysis from Gemini (cycle {self._cycle_count})")
                 response = await self._get_gemini_decisions(market_context, watchlist)
 
+            try:
                 if response is None:
                     if self._last_decisions:
-                        logger.debug("GeminiAgent: No response (rate limit or error) — replaying last decisions")
+                        logger.debug("GeminiAgent: No response — replaying last decisions")
                         signals = parse_ai_decisions(
                             self._last_decisions, market_context, prices,
                             self.portfolio, config.MAX_POSITION_SIZE, "GEMINI ANALYSIS"

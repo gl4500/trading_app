@@ -2,11 +2,20 @@
 FastAPI backend for the AI Trading Competition.
 Manages agents, trading loop, WebSocket broadcasts, and REST API.
 """
+import sys
+import os
+# Self-bootstrap: ensure site-packages is on sys.path regardless of how the
+# script is launched (launcher.py, start_backend.ps1, or direct invocation).
+_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_site_packages = os.path.join(_root, "site-packages")
+if os.path.isdir(_site_packages) and _site_packages not in sys.path:
+    sys.path.insert(0, _site_packages)
+
 import asyncio
 import json
 import logging
-import os
 import re
+import subprocess
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -25,6 +34,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import config
+from data.agent_performance_tracker import agent_performance_tracker
+from data.signal_history import signal_history
 from database import (
     init_db,
     upsert_agent,
@@ -44,6 +55,8 @@ from database import (
     save_price_snapshot,
     update_price_snapshot,
     get_price_snapshots,
+    prune_performance_table,
+    prune_news_price_snapshots,
 )
 from trading.portfolio import Position, TradeRecord
 from data.market_data import market_data_service
@@ -62,6 +75,7 @@ from agents.gemini_agent import GeminiAgent
 from agents.historical_trends_agent import HistoricalTrendsAgent
 from agents.ensemble_agent import EnsembleAgent
 from agents.scanner_portfolio_agent import ScannerPortfolioAgent
+from agents.cnn_reasoning_agent import CNNReasoningAgent
 from agents.summary_agent import daily_summary
 
 # Configure logging
@@ -204,6 +218,7 @@ async def init_agents() -> None:
     claude = ClaudeAgent()
     gemini = GeminiAgent()
     historical_trends = HistoricalTrendsAgent()
+    cnn_agent = CNNReasoningAgent()
 
     # Create ensemble (Gemini excluded — news/context source only, not a voter)
     ensemble = EnsembleAgent(
@@ -212,6 +227,7 @@ async def init_agents() -> None:
         mean_reversion_agent=mean_rev,
         sentiment_agent=sentiment,
         claude_agent=claude,
+        cnn_reasoning_agent=cnn_agent,
     )
     ensemble.component_agents["HistoricalTrendsAgent"] = historical_trends
 
@@ -220,7 +236,7 @@ async def init_agents() -> None:
 
     # Gemini is a news/context source only — not registered as a trading agent
     app_state.gemini_news_agent = gemini
-    all_agents = [tech, momentum, mean_rev, sentiment, claude, historical_trends, ensemble, scanner_portfolio]
+    all_agents = [tech, momentum, mean_rev, sentiment, claude, historical_trends, cnn_agent, ensemble, scanner_portfolio]
 
     # Register agents in DB and restore full portfolio state for continuity across restarts
     for agent in all_agents:
@@ -493,6 +509,14 @@ async def trading_loop() -> None:
                 except Exception as e:
                     logger.debug(f"Risk assessment error: {e}")
 
+            # Daily DB prune — every 1440 cycles (~24 h at 60 s intervals)
+            if app_state.cycle_count % 1440 == 0:
+                try:
+                    await prune_performance_table(days=3)
+                    await prune_news_price_snapshots(days=14)
+                except Exception as e:
+                    logger.warning(f"DB prune error: {e}")
+
             # Fetch market data once for all agents (fluid watchlist ranked by projected return)
             market_context = await market_data_service.get_market_context(
                 watchlist_manager.get_active_watchlist()
@@ -575,6 +599,40 @@ async def trading_loop() -> None:
                 agent_tasks.append(run_agent_cycle(ensemble_agent, market_context, prices))
 
             await asyncio.gather(*agent_tasks, return_exceptions=True)
+
+            # Collect per-symbol agent signals and inject into signal_history
+            # (enables CNN training with agent consensus features)
+            try:
+                # Build {symbol: {agent_name: (action, confidence)}} from all non-ensemble agents
+                sym_agent_sigs: Dict[str, Dict[str, tuple]] = {}
+                for agent in non_ensemble_agents:
+                    if agent.name in ("EnsembleAgent", "GeminiAgent"):
+                        continue
+                    for sym, sig in (agent._last_signals or {}).items():
+                        if not isinstance(market_context.get(sym), dict):
+                            continue
+                        if sym not in sym_agent_sigs:
+                            sym_agent_sigs[sym] = {}
+                        sym_agent_sigs[sym][agent.name] = (sig.action, sig.confidence)
+
+                if sym_agent_sigs:
+                    # Refresh agent performance scores from DB (rate-limited to every 5 min)
+                    await agent_performance_tracker.get_scores()
+
+                    for sym, sigs in sym_agent_sigs.items():
+                        consensus = agent_performance_tracker.consensus_score(sigs)
+                        agreement = agent_performance_tracker.agreement_fraction(sigs)
+                        asyncio.create_task(
+                            signal_history.record_agent_signals(sym, consensus, agreement)
+                        )
+                        asyncio.create_task(
+                            signal_history.update_top_agent_correct(sym, prices.get(sym, 0))
+                        )
+
+                    # Make current agent signals available to CNNReasoningAgent next cycle
+                    market_context["__agent_signals__"] = sym_agent_sigs
+            except Exception as _exc:
+                logger.warning(f"Agent signal recording failed: {_exc}")
 
             # Save performance snapshots
             await save_performance_snapshots(prices)
@@ -1391,6 +1449,8 @@ async def lifespan(app: FastAPI):
     logger.info("Starting AI Trading Competition backend...")
     await init_db()
     await cleanup_token_log(hours=config.TOKEN_LOG_RETENTION_DAYS * 24)
+    await prune_performance_table(days=3)
+    await prune_news_price_snapshots(days=14)
     await init_agents()
 
     # Bootstrap fluid watchlist from cached scan (if available)
@@ -1937,11 +1997,18 @@ async def get_token_usage():
     if app_state.gemini_news_agent and "GeminiAgent" not in agents_out:
         agents_out["GeminiAgent"] = _agent_stats(app_state.gemini_news_agent)
 
-    # Scanner agents are standalone functions with no in-memory state — query the DB
-    for scanner_name in ("ScannerAgent/Claude", "ScannerAgent/Gemini", "ScannerAgent/OpenAI"):
-        daily = await get_daily_token_total(scanner_name, hours=24)
-        calls_hr = await get_agent_calls_this_hour(scanner_name)
-        agents_out[scanner_name] = {
+    # Agents that are standalone functions with no in-memory state — query the DB
+    _DB_AGENTS = (
+        "ScannerAgent/Claude",
+        "ScannerAgent/Gemini",
+        "ScannerAgent/OpenAI",
+        "ScannerAgent/Ollama",
+        "SummaryAgent",
+    )
+    for db_agent in _DB_AGENTS:
+        daily = await get_daily_token_total(db_agent, hours=24)
+        calls_hr = await get_agent_calls_this_hour(db_agent)
+        agents_out[db_agent] = {
             "daily_tokens":      daily,
             "session_tokens":    daily,
             "calls_this_hour":   calls_hr,
@@ -2088,6 +2155,34 @@ async def get_telemetry():
         except Exception as e:
             logger.debug(f"Telemetry: psutil error: {e}")
 
+    # ── GPU metrics (nvidia-smi) ──────────────────────────────────────────────
+    gpu_list: list = []
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+        if result.returncode == 0:
+            for line in result.stdout.strip().splitlines():
+                parts = [p.strip() for p in line.split(",")]
+                if len(parts) == 5:
+                    name, util, mem_used, mem_total, temp = parts
+                    gpu_list.append({
+                        "name":          name,
+                        "util_pct":      float(util),
+                        "vram_used_mb":  float(mem_used),
+                        "vram_total_mb": float(mem_total),
+                        "temp_c":        float(temp),
+                    })
+    except Exception:
+        pass  # No NVIDIA GPU or nvidia-smi not on PATH — degrade gracefully
+
     # ── Ollama model info ─────────────────────────────────────────────────────
     ollama_models = []
     ollama_online = False
@@ -2123,6 +2218,7 @@ async def get_telemetry():
             "used_pct":     mem_pct,
         },
         "process_memory_mb": process_memory_mb,
+        "gpu":               gpu_list,
         "ollama": {
             "online":  ollama_online,
             "mode":    "local" if os.environ.get("OLLAMA_ONLY_MODE") == "1" else "off",

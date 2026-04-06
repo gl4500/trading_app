@@ -164,16 +164,21 @@ class SentimentAgent(BaseAgent):
         return self._openai_client
 
     async def _get_sentiment(self, symbol: str, description: str) -> Dict:
-        """Query OpenAI for sentiment analysis."""
+        """Query OpenAI (or Ollama when OLLAMA_ONLY_MODE=1) for sentiment analysis."""
+        import os as _os
+        _ollama_mode = _os.environ.get("OLLAMA_ONLY_MODE") == "1"
+        model_name   = config.OLLAMA_MODEL if _ollama_mode else "gpt-4o-mini"
+
         client = self._get_client()
         if client is None:
             return {"sentiment": "neutral", "confidence": 0.5, "reasoning": "OpenAI not available"}
 
-        if not config.OPENAI_API_KEY:
+        # API key is only required when calling the real OpenAI endpoint
+        if not _ollama_mode and not config.OPENAI_API_KEY:
             return {"sentiment": "neutral", "confidence": 0.5, "reasoning": "No OpenAI API key configured"}
 
-        # Enforce rolling 24h token budget
-        if self._daily_tokens >= self._daily_token_limit:
+        # Enforce rolling 24h token budget (skip in Ollama mode — zero cost)
+        if not _ollama_mode and self._daily_tokens >= self._daily_token_limit:
             logger.warning(
                 f"SentimentAgent: Daily token limit ({self._daily_token_limit}) reached — "
                 f"skipping API call for {symbol}"
@@ -181,7 +186,7 @@ class SentimentAgent(BaseAgent):
             try:
                 await save_token_log(
                     agent="SentimentAgent",
-                    model="gpt-4o-mini",
+                    model=model_name,
                     prompt_tokens=0,
                     completion_tokens=0,
                     total_tokens=0,
@@ -211,7 +216,7 @@ Respond with ONLY valid JSON in this exact format:
 
         try:
             response = await client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=model_name,
                 messages=[
                     {"role": "system", "content": "You are a quantitative market analyst. Respond only with valid JSON."},
                     {"role": "user", "content": prompt},
@@ -224,30 +229,31 @@ Respond with ONLY valid JSON in this exact format:
             content = response.choices[0].message.content
             result = json.loads(content)
 
-            # Log and accumulate token usage
-            usage = response.usage
-            prompt_tok = usage.prompt_tokens
-            completion_tok = usage.completion_tokens
-            self._token_window.append((time.time(), prompt_tok + completion_tok))
-            self._session_tokens += prompt_tok + completion_tok
-            logger.info(
-                f"SentimentAgent: {symbol} tokens — "
-                f"in={prompt_tok} out={completion_tok} "
-                f"daily_total={self._daily_tokens}/{self._daily_token_limit}"
-            )
-            try:
-                await save_token_log(
-                    agent="SentimentAgent",
-                    model="gpt-4o-mini",
-                    prompt_tokens=prompt_tok,
-                    completion_tokens=completion_tok,
-                    total_tokens=prompt_tok + completion_tok,
-                    daily_total=self._daily_tokens,
-                    limit_hit=False,
-                    daily_limit=self._daily_token_limit,
+            # Log and accumulate token usage (skip in Ollama mode — zero cost, no quota)
+            if not _ollama_mode:
+                usage = response.usage
+                prompt_tok = usage.prompt_tokens
+                completion_tok = usage.completion_tokens
+                self._token_window.append((time.time(), prompt_tok + completion_tok))
+                self._session_tokens += prompt_tok + completion_tok
+                logger.info(
+                    f"SentimentAgent: {symbol} tokens — "
+                    f"in={prompt_tok} out={completion_tok} "
+                    f"daily_total={self._daily_tokens}/{self._daily_token_limit}"
                 )
-            except Exception as _e:
-                logger.debug(f"SentimentAgent: token log save failed: {_e}")
+                try:
+                    await save_token_log(
+                        agent="SentimentAgent",
+                        model=model_name,
+                        prompt_tokens=prompt_tok,
+                        completion_tokens=completion_tok,
+                        total_tokens=prompt_tok + completion_tok,
+                        daily_total=self._daily_tokens,
+                        limit_hit=False,
+                        daily_limit=self._daily_token_limit,
+                    )
+                except Exception as _e:
+                    logger.debug(f"SentimentAgent: token log save failed: {_e}")
 
             return result
 

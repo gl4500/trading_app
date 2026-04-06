@@ -680,5 +680,188 @@ class TestTokenLogTimezone(TestDatabaseBase):
         self.assertFalse(ts.endswith("Z"), f"Timestamp is UTC: {ts}")
 
 
+class TestGetAgentCallsThisHour(TestDatabaseBase):
+    """get_agent_calls_this_hour returns count of non-limit-hit calls in the last 60 min."""
+
+    def test_counts_recent_calls(self):
+        run(database.save_token_log("ScannerAgent/Claude", "claude-opus-4-6", 10000, 1500, 11500, 11500, False))
+        run(database.save_token_log("ScannerAgent/Claude", "claude-opus-4-6", 10000, 1500, 11500, 23000, False))
+        result = run(database.get_agent_calls_this_hour("ScannerAgent/Claude"))
+        self.assertEqual(result, 2)
+
+    def test_excludes_other_agents(self):
+        run(database.save_token_log("ScannerAgent/Claude", "claude-opus-4-6", 10000, 1500, 11500, 11500, False))
+        run(database.save_token_log("ScannerAgent/Gemini", "gemini-2.0-flash", 8000, 1000, 9000, 9000, False))
+        result = run(database.get_agent_calls_this_hour("ScannerAgent/Claude"))
+        self.assertEqual(result, 1)
+
+    def test_excludes_limit_hit_rows(self):
+        run(database.save_token_log("ScannerAgent/Claude", "claude-opus-4-6", 10000, 1500, 11500, 11500, False))
+        run(database.save_token_log("ScannerAgent/Claude", "claude-opus-4-6", 0, 0, 0, 11500, True))
+        result = run(database.get_agent_calls_this_hour("ScannerAgent/Claude"))
+        self.assertEqual(result, 1)
+
+    def test_excludes_old_entries(self):
+        import aiosqlite
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+        _ET = ZoneInfo("America/New_York")
+
+        async def insert_old():
+            old_ts = (datetime.now(_ET) - timedelta(hours=2)).isoformat()
+            async with aiosqlite.connect(database.DB_PATH) as db:
+                await db.execute(
+                    """INSERT INTO token_log
+                       (timestamp, agent, model, prompt_tokens, completion_tokens,
+                        total_tokens, daily_total, daily_limit, limit_hit)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (old_ts, "ScannerAgent/Claude", "claude-opus-4-6", 10000, 1500, 11500, 11500, None, 0)
+                )
+                await db.commit()
+
+        run(insert_old())
+        result = run(database.get_agent_calls_this_hour("ScannerAgent/Claude"))
+        self.assertEqual(result, 0)
+
+    def test_returns_zero_when_no_calls(self):
+        result = run(database.get_agent_calls_this_hour("ScannerAgent/OpenAI"))
+        self.assertEqual(result, 0)
+
+
+class TestPrunePerformanceTable(TestDatabaseBase):
+    """Tests for database.prune_performance_table."""
+
+    def _insert_performance(self, agent_id: int, timestamp: str, value: float = 1000.0):
+        """Helper: insert a single performance row with an explicit timestamp."""
+        import aiosqlite
+
+        async def _do():
+            async with aiosqlite.connect(database.DB_PATH) as db:
+                await db.execute(
+                    """INSERT INTO performance
+                       (agent_id, timestamp, total_value, cash, total_return_pct, sharpe_ratio, win_rate)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (agent_id, timestamp, value, 500.0, 0.0, 0.0, 0.5),
+                )
+                await db.commit()
+
+        run(_do())
+
+    def _count_performance(self) -> int:
+        import aiosqlite
+
+        async def _do():
+            async with aiosqlite.connect(database.DB_PATH) as db:
+                cursor = await db.execute("SELECT COUNT(*) FROM performance")
+                row = await cursor.fetchone()
+                return row[0]
+
+        return run(_do())
+
+    def test_deletes_old_rows(self):
+        from datetime import datetime, timedelta
+        aid = run(database.upsert_agent("TestAgent", "test strategy"))
+        old_ts = (datetime.utcnow() - timedelta(days=10)).isoformat()
+        self._insert_performance(aid, old_ts)
+        deleted = run(database.prune_performance_table(days=3))
+        self.assertEqual(deleted, 1)
+        self.assertEqual(self._count_performance(), 0)
+
+    def test_keeps_recent_rows(self):
+        from datetime import datetime, timedelta
+        aid = run(database.upsert_agent("TestAgent", "test strategy"))
+        recent_ts = (datetime.utcnow() - timedelta(hours=1)).isoformat()
+        self._insert_performance(aid, recent_ts)
+        deleted = run(database.prune_performance_table(days=3))
+        self.assertEqual(deleted, 0)
+        self.assertEqual(self._count_performance(), 1)
+
+    def test_returns_zero_when_table_empty(self):
+        deleted = run(database.prune_performance_table(days=3))
+        self.assertEqual(deleted, 0)
+
+    def test_mixed_old_and_recent(self):
+        from datetime import datetime, timedelta
+        aid = run(database.upsert_agent("TestAgent", "test strategy"))
+        old_ts = (datetime.utcnow() - timedelta(days=5)).isoformat()
+        recent_ts = (datetime.utcnow() - timedelta(hours=2)).isoformat()
+        self._insert_performance(aid, old_ts)
+        self._insert_performance(aid, recent_ts)
+        deleted = run(database.prune_performance_table(days=3))
+        self.assertEqual(deleted, 1)
+        self.assertEqual(self._count_performance(), 1)
+
+
+class TestPruneNewsPriceSnapshots(TestDatabaseBase):
+    """Tests for database.prune_news_price_snapshots."""
+
+    def _insert_snapshot(self, created_at: str, price_1h=None):
+        """Helper: insert a news_price_snapshot row with explicit timestamps."""
+        import aiosqlite
+
+        async def _do():
+            async with aiosqlite.connect(database.DB_PATH) as db:
+                await db.execute(
+                    """INSERT INTO news_price_snapshots
+                       (symbol, headline, score, category, price_at, detected_at,
+                        during_session, price_open, price_1h, change_open, change_1h,
+                        open_recorded_at, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    ("AAPL", "Test headline", 0.5, "positive", 150.0, created_at,
+                     1, None, price_1h, None, None, None, created_at),
+                )
+                await db.commit()
+
+        run(_do())
+
+    def _count_snapshots(self) -> int:
+        import aiosqlite
+
+        async def _do():
+            async with aiosqlite.connect(database.DB_PATH) as db:
+                cursor = await db.execute("SELECT COUNT(*) FROM news_price_snapshots")
+                row = await cursor.fetchone()
+                return row[0]
+
+        return run(_do())
+
+    def test_deletes_old_completed_rows(self):
+        from datetime import datetime, timedelta
+        old_ts = (datetime.utcnow() - timedelta(days=20)).isoformat()
+        self._insert_snapshot(old_ts, price_1h=155.0)  # completed
+        deleted = run(database.prune_news_price_snapshots(days=14))
+        self.assertEqual(deleted, 1)
+        self.assertEqual(self._count_snapshots(), 0)
+
+    def test_keeps_pending_rows_within_cutoff(self):
+        """Pending rows (price_1h IS NULL) within 3× window are preserved."""
+        from datetime import datetime, timedelta
+        old_ts = (datetime.utcnow() - timedelta(days=20)).isoformat()
+        self._insert_snapshot(old_ts, price_1h=None)  # pending
+        deleted = run(database.prune_news_price_snapshots(days=14))
+        self.assertEqual(deleted, 0)
+        self.assertEqual(self._count_snapshots(), 1)
+
+    def test_deletes_very_old_pending_rows(self):
+        """Pending rows older than 3× the window (>42 days) are cleaned up."""
+        from datetime import datetime, timedelta
+        ancient_ts = (datetime.utcnow() - timedelta(days=50)).isoformat()
+        self._insert_snapshot(ancient_ts, price_1h=None)  # pending but ancient
+        deleted = run(database.prune_news_price_snapshots(days=14))
+        self.assertEqual(deleted, 1)
+
+    def test_keeps_recent_rows(self):
+        from datetime import datetime, timedelta
+        recent_ts = (datetime.utcnow() - timedelta(days=3)).isoformat()
+        self._insert_snapshot(recent_ts, price_1h=155.0)
+        deleted = run(database.prune_news_price_snapshots(days=14))
+        self.assertEqual(deleted, 0)
+        self.assertEqual(self._count_snapshots(), 1)
+
+    def test_returns_zero_when_table_empty(self):
+        deleted = run(database.prune_news_price_snapshots(days=14))
+        self.assertEqual(deleted, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

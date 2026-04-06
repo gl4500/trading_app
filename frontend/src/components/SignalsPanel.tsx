@@ -1,6 +1,33 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Component, ErrorInfo, ReactNode } from 'react'
 
 const API_BASE = ''  // always use Vite proxy — supports both HTTP and HTTPS
+
+// ── Error boundary ────────────────────────────────────────────────────────────
+
+interface EBState { error: Error | null }
+class SignalErrorBoundary extends Component<{ children: ReactNode }, EBState> {
+  state: EBState = { error: null }
+  static getDerivedStateFromError(e: Error): EBState { return { error: e } }
+  componentDidCatch(e: Error, info: ErrorInfo) {
+    console.error('[SignalsPanel] render crash:', e, info.componentStack)
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="p-6 bg-red-950 border border-red-700 rounded-xl text-red-300 space-y-2">
+          <div className="font-bold text-red-400">Signals panel crashed during render</div>
+          <div className="font-mono text-xs whitespace-pre-wrap break-all">
+            {this.state.error.message}
+          </div>
+          <div className="font-mono text-xs text-red-500 whitespace-pre-wrap break-all">
+            {this.state.error.stack}
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 interface SourceDetail {
   score: number | null
@@ -116,230 +143,227 @@ function ConfRing({ pct }: { pct: number }) {
   )
 }
 
-// ── SignalCard ────────────────────────────────────────────────────────────────
+// ── SignalRow ─────────────────────────────────────────────────────────────────
 
-function SignalCard({ sig }: { sig: CompositeSignal }) {
+function SignalRow({ sig }: { sig: CompositeSignal }) {
   const [expanded, setExpanded] = useState(false)
   const sources  = sig.sources ?? ({} as CompositeSignal['sources'])
-  const analyst  = sources.analyst_consensus  ?? ({} as SourceDetail)
-  const earnings = sources.earnings_surprise  ?? ({} as SourceDetail)
-  const alpaca   = sources.alpaca_news        ?? ({} as SourceDetail)
-  const yahoo    = sources.yahoo_news         ?? ({} as SourceDetail)
+  const analyst  = sources.analyst_consensus    ?? ({} as SourceDetail)
+  const earnings = sources.earnings_surprise    ?? ({} as SourceDetail)
+  const alpaca   = sources.alpaca_news          ?? ({} as SourceDetail)
+  const yahoo    = sources.yahoo_news           ?? ({} as SourceDetail)
   const congress = sources.congressional_trades ?? ({} as SourceDetail)
 
   const score   = sig.composite_score ?? 0
   const confPct = Math.round((sig.confidence ?? 0) * 100)
 
-  // strip parenthetical suffix from verdict for badge
   const verdictLabel = (sig.verdict ?? '').replace(/ \(.*\)$/, '')
-  const verdictColor  = score >= 0.15 ? 'bg-emerald-900 text-emerald-300 border border-emerald-700'
-                      : score <= -0.15 ? 'bg-red-900 text-red-300 border border-red-700'
-                      : 'bg-yellow-900 text-yellow-300 border border-yellow-700'
+  const verdictColor = score >= 0.15  ? 'bg-emerald-900 text-emerald-300 border border-emerald-700'
+                     : score <= -0.15 ? 'bg-red-900 text-red-300 border border-red-700'
+                     : 'bg-yellow-900 text-yellow-300 border border-yellow-700'
 
   const analystTotal = analyst.total ?? 0
-  const bullPct  = analystTotal > 0 ? Math.round(((analyst.bull ?? 0) / analystTotal) * 100) : null
-  const bearPct  = analystTotal > 0 ? Math.round(((analyst.bear ?? 0) / analystTotal) * 100) : null
-  const holdPct  = analystTotal > 0 ? Math.round(((analyst.hold ?? 0) / analystTotal) * 100) : null
 
   return (
-    <div className={`bg-gray-900 border-l-4 ${borderAccent(score)} border border-gray-700 rounded-xl overflow-hidden`}>
+    <>
+      <tr className={`border-b border-gray-800 hover:bg-gray-800/30 transition-colors border-l-4 ${borderAccent(score)}`}>
 
-      {/* ── Top strip: symbol + score + confidence ── */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-2 bg-gray-800">
-        <div className="flex items-center gap-3">
-          <span className="text-white font-extrabold text-lg tracking-wide">{sig.symbol}</span>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${verdictColor}`}>
+        {/* Symbol + verdict */}
+        <td className="px-3 py-2.5 whitespace-nowrap">
+          <div className="font-extrabold text-white text-sm tracking-wide">{sig.symbol}</div>
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${verdictColor}`}>
             {verdictLabel}
           </span>
-        </div>
-        <div className="flex items-center gap-2">
+        </td>
+
+        {/* Composite score + gauge */}
+        <td className="px-3 py-2.5 w-36">
+          <div className={`text-xl font-black font-mono ${scoreColor(score)} leading-tight mb-1`}>
+            {score >= 0 ? '+' : ''}{score.toFixed(2)}
+          </div>
+          <Gauge score={score} />
+        </td>
+
+        {/* Confidence ring */}
+        <td className="px-3 py-2.5 text-center">
           <ConfRing pct={confPct} />
-        </div>
-      </div>
-
-      {/* ── Composite score big number + gauge ── */}
-      <div className="px-4 py-3 border-b border-gray-700">
-        <div className="flex items-end justify-between mb-1.5">
-          <div>
-            <span className="text-xs text-gray-500 uppercase tracking-wide">Composite</span>
-            <div className={`text-3xl font-black font-mono ${scoreColor(score)}`}>
-              {score >= 0 ? '+' : ''}{score.toFixed(2)}
-            </div>
-          </div>
-          <div className="text-right text-xs text-gray-500">
-            <div>−1 bearish</div>
-            <div>+1 bullish</div>
-          </div>
-        </div>
-        <Gauge score={score} />
-      </div>
-
-      {/* ── Source rows ── */}
-      <div className="px-4 py-3 space-y-3">
+        </td>
 
         {/* Analyst consensus */}
-        <div>
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-gray-400 font-semibold">Analyst Consensus</span>
-            <span className="text-xs text-gray-600">wt 40%</span>
+        <td className="px-3 py-2.5 w-44">
+          <div className={`text-sm font-bold font-mono ${scoreColor(analyst.score ?? null)} mb-1`}>
+            {fmt(analyst.score, 2, true)}
           </div>
-          <div className="flex items-center gap-2 mb-1">
-            <Gauge score={analyst.score ?? null} />
-            <span className={`text-sm font-bold font-mono ${scoreColor(analyst.score ?? null)}`}>
-              {fmt(analyst.score, 2, true)}
-            </span>
-          </div>
+          <Gauge score={analyst.score ?? null} />
           {analystTotal > 0 && (
-            <div className="flex gap-1 text-xs">
-              {/* buy bar */}
-              <div
-                className="h-5 bg-emerald-600 rounded flex items-center justify-center text-white font-bold text-xs px-1"
-                style={{ width: `${bullPct}%`, minWidth: 28 }}
-              >
+            <div className="flex gap-0.5 mt-1.5">
+              <span className="px-1.5 py-0.5 bg-emerald-900 text-emerald-300 text-xs rounded font-bold">
                 {analyst.bull}▲
-              </div>
-              {/* hold bar */}
-              <div
-                className="h-5 bg-gray-600 rounded flex items-center justify-center text-gray-200 font-bold text-xs px-1"
-                style={{ width: `${holdPct}%`, minWidth: 28 }}
-              >
+              </span>
+              <span className="px-1.5 py-0.5 bg-gray-700 text-gray-300 text-xs rounded font-bold">
                 {analyst.hold}–
-              </div>
-              {/* sell bar */}
-              <div
-                className="h-5 bg-red-700 rounded flex items-center justify-center text-white font-bold text-xs px-1"
-                style={{ width: `${bearPct}%`, minWidth: 28 }}
-              >
+              </span>
+              <span className="px-1.5 py-0.5 bg-red-900 text-red-300 text-xs rounded font-bold">
                 {analyst.bear}▼
-              </div>
+              </span>
             </div>
           )}
           {analyst.price_target != null && (
-            <div className="mt-1 text-xs">
-              <span className="text-gray-500">Price target: </span>
-              <span className="text-blue-400 font-bold font-mono">${analyst.price_target.toFixed(2)}</span>
+            <div className="text-xs text-blue-400 font-mono mt-0.5">
+              PT ${analyst.price_target.toFixed(0)}
             </div>
           )}
-        </div>
+        </td>
 
         {/* Earnings surprise */}
-        <div>
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-gray-400 font-semibold">Earnings Surprise</span>
-            <span className="text-xs text-gray-600">wt 25%</span>
+        <td className="px-3 py-2.5 w-32">
+          <div className={`text-sm font-bold font-mono ${scoreColor(earnings.score ?? null)} mb-1`}>
+            {fmt(earnings.score, 2, true)}
           </div>
-          <div className="flex items-center gap-2 mb-1">
-            <Gauge score={earnings.score ?? null} />
-            <span className={`text-sm font-bold font-mono ${scoreColor(earnings.score ?? null)}`}>
-              {fmt(earnings.score, 2, true)}
-            </span>
-          </div>
+          <Gauge score={earnings.score ?? null} />
           {earnings.surprise_pct != null && (
-            <div className={`text-xs font-semibold ${earnings.surprise_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              EPS beat/miss: {earnings.surprise_pct >= 0 ? '+' : ''}{earnings.surprise_pct.toFixed(2)}%
+            <div className={`text-xs font-semibold mt-1 ${earnings.surprise_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {earnings.surprise_pct >= 0 ? '+' : ''}{earnings.surprise_pct.toFixed(1)}% EPS
             </div>
           )}
-        </div>
+        </td>
 
-        {/* News scores side by side */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-xs text-gray-400 font-semibold">Alpaca News</span>
-              <span className="text-xs text-gray-600">wt 18%</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className={`text-lg font-black font-mono ${scoreColor(alpaca.score ?? null)}`}>
-                {fmt(alpaca.score, 2, true)}
-              </span>
-            </div>
-            <div className="text-xs text-gray-600">{alpaca.articles ?? 0} articles</div>
+        {/* Alpaca news */}
+        <td className="px-3 py-2.5 w-24">
+          <div className={`text-sm font-bold font-mono ${scoreColor(alpaca.score ?? null)}`}>
+            {fmt(alpaca.score, 2, true)}
           </div>
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-xs text-gray-400 font-semibold">Yahoo News</span>
-              <span className="text-xs text-gray-600">wt 12%</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className={`text-lg font-black font-mono ${scoreColor(yahoo.score ?? null)}`}>
-                {fmt(yahoo.score, 2, true)}
-              </span>
-            </div>
-            <div className="text-xs text-gray-600">{yahoo.articles ?? 0} articles</div>
-          </div>
-        </div>
+          <div className="text-xs text-gray-600 mt-0.5">{alpaca.articles ?? 0} art.</div>
+        </td>
 
-        {/* Congressional / Insider trades */}
-        <div className="border-t border-gray-800 pt-3">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-gray-400 font-semibold">Congressional Trades</span>
-            <span className="text-xs text-gray-600">wt 13% · SEC EDGAR 90d</span>
+        {/* Yahoo news */}
+        <td className="px-3 py-2.5 w-24">
+          <div className={`text-sm font-bold font-mono ${scoreColor(yahoo.score ?? null)}`}>
+            {fmt(yahoo.score, 2, true)}
           </div>
+          <div className="text-xs text-gray-600 mt-0.5">{yahoo.articles ?? 0} art.</div>
+        </td>
+
+        {/* Congressional trades */}
+        <td className="px-3 py-2.5 w-32">
           {congress.score != null ? (
-            <div className="flex items-center gap-3">
-              <span className={`text-lg font-black font-mono ${scoreColor(congress.score)}`}>
+            <>
+              <div className={`text-sm font-bold font-mono ${scoreColor(congress.score)} mb-0.5`}>
                 {fmt(congress.score, 2, true)}
-              </span>
-              <div className="flex gap-1.5 text-xs">
+              </div>
+              <div className="flex flex-wrap gap-0.5">
                 {(congress.congress_buys ?? 0) > 0 && (
-                  <span className="px-1.5 py-0.5 bg-emerald-900 text-emerald-300 rounded font-bold">
+                  <span className="px-1.5 py-0.5 bg-emerald-900 text-emerald-300 text-xs rounded font-bold">
                     {congress.congress_buys} BUY
                   </span>
                 )}
                 {(congress.congress_sells ?? 0) > 0 && (
-                  <span className="px-1.5 py-0.5 bg-red-900 text-red-300 rounded font-bold">
+                  <span className="px-1.5 py-0.5 bg-red-900 text-red-300 text-xs rounded font-bold">
                     {congress.congress_sells} SELL
                   </span>
                 )}
                 {(congress.total_filings ?? 0) > 0 && (
-                  <span className="px-1.5 py-0.5 bg-gray-800 text-gray-400 rounded">
+                  <span className="px-1.5 py-0.5 bg-gray-800 text-gray-400 text-xs rounded">
                     {congress.total_filings} Form4
                   </span>
                 )}
               </div>
-            </div>
+            </>
           ) : (
             <div className="text-xs text-gray-600">
               {(congress.total_filings ?? 0) > 0
-                ? `${congress.total_filings} Form 4 filings — direction unclear`
-                : 'No filings in past 90 days'}
+                ? `${congress.total_filings} filings`
+                : '—'}
             </div>
           )}
-        </div>
-      </div>
+        </td>
 
-      {/* ── Headlines toggle ── */}
-      {(sig.yahoo_news_headlines ?? []).length > 0 && (
-        <div className="border-t border-gray-700">
-          <button
-            onClick={() => setExpanded(e => !e)}
-            className="w-full text-left px-4 py-2 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors flex justify-between"
-          >
-            <span>Headlines ({sig.yahoo_news_headlines.length})</span>
-            <span>{expanded ? '▲' : '▼'}</span>
-          </button>
-          {expanded && (
-            <div className="px-4 pb-3 space-y-1.5">
+        {/* Headlines toggle */}
+        <td className="px-3 py-2.5 text-center whitespace-nowrap">
+          {(sig.yahoo_news_headlines ?? []).length > 0 ? (
+            <button
+              onClick={() => setExpanded(e => !e)}
+              className="text-xs px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-gray-200 rounded transition-colors"
+            >
+              {expanded ? '▲' : '▼'} {sig.yahoo_news_headlines.length}
+            </button>
+          ) : (
+            <span className="text-xs text-gray-700">—</span>
+          )}
+        </td>
+      </tr>
+
+      {/* Expanded headlines row */}
+      {expanded && (
+        <tr className="bg-gray-900/60">
+          <td colSpan={9} className="px-5 py-2.5 border-b border-gray-800">
+            <div className="space-y-1">
               {(sig.yahoo_news_headlines ?? []).map((h, i) => (
                 <div key={i} className="text-xs text-gray-400 leading-snug border-l-2 border-gray-700 pl-2">
                   {h}
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </td>
+        </tr>
       )}
-    </div>
+    </>
   )
 }
 
 // ── SignalsPanel ──────────────────────────────────────────────────────────────
 
+type SortCol = 'composite' | 'confidence' | 'analyst' | 'earnings' | 'alpaca' | 'yahoo' | 'congress'
+type VerdictFilter = 'all' | 'bull' | 'neutral' | 'bear'
+
+function colScore(sig: CompositeSignal, col: SortCol): number {
+  const s = sig.sources ?? ({} as CompositeSignal['sources'])
+  switch (col) {
+    case 'composite':  return sig.composite_score ?? 0
+    case 'confidence': return sig.confidence ?? 0
+    case 'analyst':    return s.analyst_consensus?.score   ?? -9
+    case 'earnings':   return s.earnings_surprise?.score   ?? -9
+    case 'alpaca':     return s.alpaca_news?.score         ?? -9
+    case 'yahoo':      return s.yahoo_news?.score          ?? -9
+    case 'congress':   return s.congressional_trades?.score ?? -9
+  }
+}
+
+function SortTh({
+  col, label, sub, center,
+  current, dir,
+  onSort,
+}: {
+  col: SortCol; label: string; sub?: string; center?: boolean
+  current: SortCol; dir: 'asc' | 'desc'
+  onSort: (c: SortCol) => void
+}) {
+  const active = current === col
+  return (
+    <th
+      onClick={() => onSort(col)}
+      className={`px-3 py-2 cursor-pointer select-none group hover:bg-gray-700 transition-colors ${center ? 'text-center' : 'text-left'}`}
+    >
+      <div className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-wide ${active ? 'text-blue-400' : 'text-gray-400 group-hover:text-gray-200'} ${center ? 'justify-center' : ''}`}>
+        {label}
+        {sub && <span className="text-gray-600 normal-case font-normal">{sub}</span>}
+        <span className={`text-xs ${active ? 'text-blue-400' : 'text-gray-700 group-hover:text-gray-500'}`}>
+          {active ? (dir === 'desc' ? '▼' : '▲') : '⇅'}
+        </span>
+      </div>
+    </th>
+  )
+}
+
 export default function SignalsPanel() {
-  const [signals, setSignals]       = useState<Record<string, CompositeSignal>>({})
-  const [loading, setLoading]       = useState(true)
+  const [signals, setSignals]         = useState<Record<string, CompositeSignal>>({})
+  const [loading, setLoading]         = useState(true)
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
-  const [error, setError]           = useState<string | null>(null)
+  const [error, setError]             = useState<string | null>(null)
+  const [sortCol, setSortCol]         = useState<SortCol>('composite')
+  const [sortDir, setSortDir]         = useState<'desc' | 'asc'>('desc')
+  const [verdictFilter, setVerdictFilter] = useState<VerdictFilter>('all')
+  const [symbolSearch, setSymbolSearch]   = useState('')
 
   const fetchSignals = async () => {
     try {
@@ -362,17 +386,34 @@ export default function SignalsPanel() {
     return () => clearInterval(interval)
   }, [])
 
-  const sorted = Object.values(signals).sort(
-    (a, b) => (b.composite_score ?? 0) - (a.composite_score ?? 0)
-  )
+  const handleSort = (col: SortCol) => {
+    if (col === sortCol) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    else { setSortCol(col); setSortDir('desc') }
+  }
 
-  // Summary stats
-  const bullish = sorted.filter(s => s.composite_score >= 0.15).length
-  const bearish = sorted.filter(s => s.composite_score <= -0.15).length
-  const neutral = sorted.length - bullish - bearish
-  const avgScore = sorted.length
-    ? sorted.reduce((s, x) => s + x.composite_score, 0) / sorted.length
+  const allSignals = Object.values(signals)
+
+  // Summary counts (always over full set)
+  const bullish = allSignals.filter(s => (s.composite_score ?? 0) >= 0.15).length
+  const bearish = allSignals.filter(s => (s.composite_score ?? 0) <= -0.15).length
+  const neutral = allSignals.length - bullish - bearish
+  const avgScore = allSignals.length
+    ? allSignals.reduce((s, x) => s + (x.composite_score ?? 0), 0) / allSignals.length
     : null
+
+  // Filter then sort
+  const filtered = allSignals.filter(sig => {
+    if (symbolSearch && !sig.symbol.includes(symbolSearch.toUpperCase())) return false
+    const sc = sig.composite_score ?? 0
+    if (verdictFilter === 'bull')    return sc >= 0.15
+    if (verdictFilter === 'bear')    return sc <= -0.15
+    if (verdictFilter === 'neutral') return sc > -0.15 && sc < 0.15
+    return true
+  })
+  const sorted = [...filtered].sort((a, b) => {
+    const diff = colScore(b, sortCol) - colScore(a, sortCol)
+    return sortDir === 'desc' ? diff : -diff
+  })
 
   if (loading) return (
     <div className="flex items-center justify-center h-48 text-gray-500">
@@ -386,21 +427,21 @@ export default function SignalsPanel() {
     </div>
   )
 
+  const pillBase = 'px-2.5 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer border'
+  const verdictPill = (v: VerdictFilter, active: string, inactive: string) =>
+    verdictFilter === v ? active : inactive
+
   return (
-    <div className="space-y-4">
-      {/* Header row */}
+    <SignalErrorBoundary>
+    <div className="space-y-3">
+
+      {/* ── Header ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-white font-bold text-base">Multi-Source Signal Board</h2>
           <p className="text-xs text-gray-500">Analyst 35% · Earnings 22% · Alpaca News 18% · Yahoo 12% · Congress 13%</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* market mood pills */}
-          <div className="flex gap-1.5 text-xs font-semibold">
-            <span className="px-2 py-1 bg-emerald-900 text-emerald-300 rounded-full">{bullish} Bull</span>
-            <span className="px-2 py-1 bg-yellow-900 text-yellow-300 rounded-full">{neutral} Neutral</span>
-            <span className="px-2 py-1 bg-red-900 text-red-300 rounded-full">{bearish} Bear</span>
-          </div>
           {avgScore !== null && (
             <div className="text-xs">
               <span className="text-gray-500">Avg: </span>
@@ -409,27 +450,87 @@ export default function SignalsPanel() {
               </span>
             </div>
           )}
-          {lastUpdated && (
-            <span className="text-xs text-gray-600">{lastUpdated}</span>
-          )}
+          {lastUpdated && <span className="text-xs text-gray-600">{lastUpdated}</span>}
           <button
             onClick={fetchSignals}
             className="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
-          >
-            ↻
-          </button>
+          >↻</button>
         </div>
+      </div>
+
+      {/* ── Verdict filter pills ── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-gray-600 mr-1">Filter:</span>
+        <button
+          onClick={() => setVerdictFilter('all')}
+          className={`${pillBase} ${verdictPill('all',
+            'bg-gray-600 text-white border-gray-500',
+            'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-500 hover:text-gray-200')}`}
+        >All ({allSignals.length})</button>
+        <button
+          onClick={() => setVerdictFilter('bull')}
+          className={`${pillBase} ${verdictPill('bull',
+            'bg-emerald-600 text-white border-emerald-500',
+            'bg-emerald-950 text-emerald-400 border-emerald-800 hover:border-emerald-600 hover:text-emerald-200')}`}
+        >▲ Bullish ({bullish})</button>
+        <button
+          onClick={() => setVerdictFilter('neutral')}
+          className={`${pillBase} ${verdictPill('neutral',
+            'bg-yellow-600 text-white border-yellow-500',
+            'bg-yellow-950 text-yellow-400 border-yellow-800 hover:border-yellow-600 hover:text-yellow-200')}`}
+        >– Neutral ({neutral})</button>
+        <button
+          onClick={() => setVerdictFilter('bear')}
+          className={`${pillBase} ${verdictPill('bear',
+            'bg-red-600 text-white border-red-500',
+            'bg-red-950 text-red-400 border-red-800 hover:border-red-600 hover:text-red-200')}`}
+        >▼ Bearish ({bearish})</button>
+        {(verdictFilter !== 'all' || symbolSearch) && (
+          <span className="text-xs text-gray-500 ml-1">
+            Showing {sorted.length} of {allSignals.length}
+          </span>
+        )}
       </div>
 
       {sorted.length === 0 ? (
         <div className="flex items-center justify-center h-32 text-gray-500 bg-gray-900 rounded-xl">
-          No signal data — start the trading loop first.
+          {allSignals.length === 0
+            ? 'No signal data — start the trading loop first.'
+            : `No ${verdictFilter} signals right now.`}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          {sorted.map(sig => <SignalCard key={sig.symbol} sig={sig} />)}
+        <div className="overflow-x-auto rounded-xl border border-gray-700">
+          <table className="w-full text-sm min-w-[860px] border-collapse">
+            <thead>
+              <tr className="bg-gray-800 border-b border-gray-700">
+                {/* Symbol — text search filter */}
+                <th className="px-3 py-2 text-left bg-gray-800">
+                  <div className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Symbol</div>
+                  <input
+                    type="text"
+                    value={symbolSearch}
+                    onChange={e => setSymbolSearch(e.target.value)}
+                    placeholder="Filter…"
+                    className="w-20 px-2 py-0.5 bg-gray-700 border border-gray-600 rounded text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                  />
+                </th>
+                <SortTh col="composite"  label="Composite"                    current={sortCol} dir={sortDir} onSort={handleSort} />
+                <SortTh col="confidence" label="Conf."        center          current={sortCol} dir={sortDir} onSort={handleSort} />
+                <SortTh col="analyst"    label="Analyst"   sub=" 35%"         current={sortCol} dir={sortDir} onSort={handleSort} />
+                <SortTh col="earnings"   label="Earnings"  sub=" 22%"         current={sortCol} dir={sortDir} onSort={handleSort} />
+                <SortTh col="alpaca"     label="Alpaca"    sub=" 18%"         current={sortCol} dir={sortDir} onSort={handleSort} />
+                <SortTh col="yahoo"      label="Yahoo"     sub=" 12%"         current={sortCol} dir={sortDir} onSort={handleSort} />
+                <SortTh col="congress"   label="Congress"  sub=" 13%"         current={sortCol} dir={sortDir} onSort={handleSort} />
+                <th className="px-3 py-2 text-center text-xs text-gray-400 font-semibold uppercase tracking-wide">Headlines</th>
+              </tr>
+            </thead>
+            <tbody className="bg-gray-900 divide-y divide-gray-800/50">
+              {sorted.map(sig => <SignalRow key={sig.symbol} sig={sig} />)}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
+    </SignalErrorBoundary>
   )
 }

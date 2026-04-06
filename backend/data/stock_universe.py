@@ -24,9 +24,10 @@ UNIVERSE: Dict[str, List[str]] = {
         "CVS", "HUM", "CI", "ELV", "MCK", "COR",
     ],
     "Biotech": [
-        "SRPT", "EXAS", "INCY", "ALNY", "IONS", "SGEN", "BLUE",
+        "SRPT", "EXAS", "INCY", "ALNY", "IONS", "BLUE",
         "BEAM", "EDIT", "CRSP", "NTLA", "ACAD", "RARE",
         "RCKT", "ARWR", "FATE", "PRGO",
+        "ROIV", "LEGN",                     # replacements for SGEN (acq. Pfizer 2023)
     ],
     "Finance": [
         "JPM", "BAC", "WFC", "GS", "MS", "C", "BLK", "AXP",
@@ -63,12 +64,12 @@ UNIVERSE: Dict[str, List[str]] = {
     "Communication": [
         "T", "VZ", "TMUS", "CHTR", "CMCSA",
         "DIS", "FOXA", "WBD", "SNAP", "PINS",
-        "SPOT", "TTWO", "EA", "ATVI",
+        "SPOT", "TTWO", "EA", "WBD",        # ATVI delisted (acq. Microsoft Jan 2024)
     ],
     "Materials": [
         "LIN", "APD", "SHW", "FCX", "NEM", "GOLD",
         "NUE", "CLF", "CF", "MOS",
-        "ALB", "LTHM", "MP", "LAC",       # Lithium/rare earth
+        "ALB", "SQM", "MP", "LAC", "PLL",  # Lithium/rare earth (LTHM→ALTM both delisted via acq.)
         "AA", "CENX",                       # Aluminum
     ],
     "Utilities": [

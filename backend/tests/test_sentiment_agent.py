@@ -674,6 +674,103 @@ class TestOllamaOnlyModeSentiment(unittest.IsolatedAsyncioTestCase):
         # Standard OpenAI constructor — no base_url override
         self.assertNotEqual(captured.get("base_url", ""), "http://localhost:11434/v1")
 
+    async def test_get_sentiment_uses_ollama_model_not_gpt4o(self):
+        """
+        Regression: when OLLAMA_ONLY_MODE=1, _get_sentiment() must call
+        config.OLLAMA_MODEL, not the hardcoded 'gpt-4o-mini'.
+        """
+        agent = SentimentAgent()
+        captured_model = {}
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"sentiment":"neutral","confidence":0.5,"strength":"weak","reasoning":"ok","key_signals":[]}'))]
+        mock_response.usage = MagicMock(prompt_tokens=10, completion_tokens=20)
+
+        mock_client = MagicMock()
+        async def fake_create(**kwargs):
+            captured_model["model"] = kwargs.get("model")
+            return mock_response
+        mock_client.chat = MagicMock()
+        mock_client.chat.completions = MagicMock()
+        mock_client.chat.completions.create = fake_create
+
+        mock_cfg = MagicMock()
+        mock_cfg.OPENAI_API_KEY = ""
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config", mock_cfg), \
+             patch("agents.sentiment_agent.save_token_log", new_callable=AsyncMock), \
+             patch.object(agent, "_get_client", return_value=mock_client):
+            await agent._get_sentiment("AAPL", "desc")
+
+        self.assertEqual(captured_model.get("model"), "llama3.1:8b",
+                         "Should use OLLAMA_MODEL, not gpt-4o-mini, in Ollama mode")
+
+    async def test_get_sentiment_skips_openai_key_guard_in_ollama_mode(self):
+        """
+        When OLLAMA_ONLY_MODE=1 and OPENAI_API_KEY is empty, the call
+        must still proceed (no key needed for local Ollama).
+        """
+        agent = SentimentAgent()
+        call_count = {"n": 0}
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"sentiment":"neutral","confidence":0.5,"strength":"weak","reasoning":"ok","key_signals":[]}'))]
+        mock_response.usage = MagicMock(prompt_tokens=5, completion_tokens=10)
+
+        mock_client = MagicMock()
+        async def fake_create(**kwargs):
+            call_count["n"] += 1
+            return mock_response
+        mock_client.chat = MagicMock()
+        mock_client.chat.completions = MagicMock()
+        mock_client.chat.completions.create = fake_create
+
+        mock_cfg = MagicMock()
+        mock_cfg.OPENAI_API_KEY = ""        # no OpenAI key
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config", mock_cfg), \
+             patch("agents.sentiment_agent.save_token_log", new_callable=AsyncMock), \
+             patch.object(agent, "_get_client", return_value=mock_client):
+            result = await agent._get_sentiment("AAPL", "desc")
+
+        self.assertEqual(call_count["n"], 1,
+                         "API must be called even with empty OPENAI_API_KEY in Ollama mode")
+        self.assertNotEqual(result.get("sentiment"), "neutral" if call_count["n"] == 0 else None)
+
+    async def test_get_sentiment_skips_token_log_in_ollama_mode(self):
+        """In Ollama mode token usage is zero-cost — save_token_log must NOT be called."""
+        agent = SentimentAgent()
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(message=MagicMock(content='{"sentiment":"bullish","confidence":0.7,"strength":"moderate","reasoning":"ok","key_signals":[]}'))]
+        mock_response.usage = MagicMock(prompt_tokens=10, completion_tokens=20)
+
+        mock_client = MagicMock()
+        async def fake_create(**kwargs):
+            return mock_response
+        mock_client.chat = MagicMock()
+        mock_client.chat.completions = MagicMock()
+        mock_client.chat.completions.create = fake_create
+
+        mock_cfg = MagicMock()
+        mock_cfg.OPENAI_API_KEY = ""
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        with patch("agents.sentiment_agent.HAS_OPENAI", True), \
+             patch("agents.sentiment_agent.config", mock_cfg), \
+             patch("agents.sentiment_agent.save_token_log", new_callable=AsyncMock) as mock_save, \
+             patch.object(agent, "_get_client", return_value=mock_client):
+            await agent._get_sentiment("AAPL", "desc")
+
+        mock_save.assert_not_awaited()
+
 
 if __name__ == "__main__":
     unittest.main()

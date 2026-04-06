@@ -485,6 +485,19 @@ async def get_daily_token_total(agent: str, hours: int = 24) -> int:
         return int(row[0]) if row and row[0] is not None else 0
 
 
+async def get_agent_calls_this_hour(agent: str) -> int:
+    """Return the number of non-limit-hit API calls made by an agent in the last 60 minutes."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cutoff = (datetime.now(_EASTERN) - timedelta(hours=1)).isoformat()
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM token_log "
+            "WHERE agent = ? AND timestamp >= ? AND limit_hit = 0",
+            (agent, cutoff),
+        )
+        row = await cursor.fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+
+
 async def save_price_snapshot(snap: Dict) -> int:
     """Insert a new news-price snapshot row and return its DB id."""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -564,3 +577,47 @@ async def cleanup_token_log(hours: int = 24) -> None:
         await db.execute("DELETE FROM token_log WHERE timestamp < ?", (cutoff,))
         await db.commit()
     logger.debug(f"Token log cleanup: removed entries older than {hours}h")
+
+
+async def prune_performance_table(days: int = 3) -> int:
+    """Delete performance rows older than `days` days.
+
+    The startup chart restoration loads at most 2000 rows per agent (~33 h at
+    60 s intervals) and the frontend chart API requests at most 200 rows, so
+    keeping 3 days of data covers all read paths with comfortable margin.
+
+    Returns the number of rows deleted.
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cursor = await db.execute(
+            "DELETE FROM performance WHERE timestamp < ?", (cutoff,)
+        )
+        deleted = cursor.rowcount
+        await db.commit()
+    if deleted:
+        logger.info(f"DB prune: removed {deleted} performance rows older than {days}d")
+    return deleted
+
+
+async def prune_news_price_snapshots(days: int = 14) -> int:
+    """Delete news_price_snapshots rows older than `days` days.
+
+    Pending snapshots (price_1h IS NULL) are left untouched so that in-flight
+    price tracking is never interrupted.  Only completed or very old rows are
+    removed.
+
+    Returns the number of rows deleted.
+    """
+    async with aiosqlite.connect(DB_PATH) as db:
+        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cursor = await db.execute(
+            """DELETE FROM news_price_snapshots
+               WHERE created_at < ? AND (price_1h IS NOT NULL OR created_at < ?)""",
+            (cutoff, (datetime.utcnow() - timedelta(days=days * 3)).isoformat()),
+        )
+        deleted = cursor.rowcount
+        await db.commit()
+    if deleted:
+        logger.info(f"DB prune: removed {deleted} news_price_snapshots older than {days}d")
+    return deleted

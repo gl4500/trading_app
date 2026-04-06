@@ -125,6 +125,8 @@ Co-Authored-By line required (added automatically by implementation agent).
 | `agents/sentiment_agent.py` | `test_sentiment_agent.py` | ✅ covered |
 | `agents/scanner_agent.py` | `test_scanner_agent.py` | ✅ covered |
 | `agents/scanner_portfolio_agent.py` | `test_scanner_portfolio_agent.py` | ✅ covered |
+| `agents/cnn_reasoning_agent.py` | `test_cnn_reasoning_agent.py` | ✅ covered |
+| `data/agent_performance_tracker.py` | `test_agent_performance_tracker.py` | ✅ covered |
 | `agents/summary_agent.py` | `test_summary_agent.py` | ✅ covered |
 | `agents/historical_trends_agent.py` | `test_historical_trends_agent.py` | ✅ covered |
 | `data/stooq_client.py` | `test_stooq_client.py` | ✅ covered |
@@ -138,7 +140,10 @@ Co-Authored-By line required (added automatically by implementation agent).
 - **Frontend:** React + Vite + Tailwind, port 5173
 - **DB:** SQLite via aiosqlite (`trading.db`)
 - **Market data:** Alpaca Markets (paper trading)
-- **AI agents:** Claude Opus 4.6, Gemini 2.0 Flash, GPT-4o-mini
+- **AI agents (cloud mode):** Claude Opus 4.6, Gemini 2.0 Flash, GPT-4o-mini
+- **AI agents (Ollama mode):** All three above route to local Ollama when `OLLAMA_ONLY_MODE=1`
+- **Local inference:** Ollama at `http://localhost:11434/v1` (OpenAI-compatible); `OLLAMA_MODEL` for Sentiment/Gemini/CNN; `RESEARCH_MODEL` for Claude (defaults to `OLLAMA_MODEL`)
+- **GPU constraint:** RTX 2060 = 6 GB VRAM — only one Q4 model fits at a time. Set `RESEARCH_MODEL=OLLAMA_MODEL` to share the single loaded model; never configure two different models simultaneously on this GPU.
 - **Config:** `.env` → `backend/config.py` → `config` singleton
 - **Agent context key:** `market_context["__overnight_catalysts__"]` is a `list` — all agents guard with `isinstance(ctx, dict)` when iterating
 
@@ -148,3 +153,5 @@ Co-Authored-By line required (added automatically by implementation agent).
 3. Force-trading loop wakes within 10 seconds of `app_state.force_trading` being set
 4. Sentinel polls every 5 min during market hours, 15 min overnight
 5. NYSE regular hours only: 9:30–16:00 ET — no pre/after-hours trading
+6. `OLLAMA_ONLY_MODE=1` must route ALL three AI agents (Claude, Gemini, Sentiment) through Ollama — never call cloud APIs in this mode; token logging is skipped (zero cost, no quota)
+7. `Portfolio` has no `get_position()` method — always access positions via `portfolio.positions[sym]` (check with `sym in portfolio.positions`; read shares with `.shares`)

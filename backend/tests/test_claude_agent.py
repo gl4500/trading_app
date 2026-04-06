@@ -714,7 +714,7 @@ class TestClaudeAgentPromptCaching(unittest.IsolatedAsyncioTestCase):
 
 
 class TestOllamaOnlyModeClaude(unittest.IsolatedAsyncioTestCase):
-    """When OLLAMA_ONLY_MODE=1, ClaudeAgent.analyze() must return empty signals (no API call)."""
+    """When OLLAMA_ONLY_MODE=1 ClaudeAgent routes through local Ollama, not Anthropic API."""
 
     def setUp(self):
         os.environ["OLLAMA_ONLY_MODE"] = "1"
@@ -722,29 +722,108 @@ class TestOllamaOnlyModeClaude(unittest.IsolatedAsyncioTestCase):
     def tearDown(self):
         os.environ.pop("OLLAMA_ONLY_MODE", None)
 
-    async def test_analyze_returns_empty_when_ollama_only_mode(self):
-        """analyze() must skip Claude API and return [] when OLLAMA_ONLY_MODE=1."""
+    def _valid_ollama_response(self):
+        return {
+            "market_analysis": "Bullish outlook.",
+            "decisions": [
+                {"symbol": "AAPL", "action": "BUY", "shares": 5,
+                 "confidence": 0.75, "reasoning": "Strong momentum"}
+            ],
+        }
+
+    async def test_returns_signals_from_ollama_not_empty(self):
+        """analyze() must return signals (not []) when Ollama responds."""
         agent = ClaudeAgent()
-        with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
-             patch("agents.claude_agent.config") as mock_cfg:
-            mock_cfg.ANTHROPIC_API_KEY = "real-key"
+        with patch("agents.claude_agent.config") as mock_cfg, \
+             patch.object(agent, "_get_ollama_decisions",
+                          new=AsyncMock(return_value=self._valid_ollama_response())):
             mock_cfg.WATCHLIST = ["AAPL"]
             mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_cfg.RESEARCH_MODEL = "llama3.1:8b"
             signals = await agent.analyze(_make_ctx(["AAPL"]))
-        self.assertEqual(signals, [])
+        self.assertIsInstance(signals, list)
+        self.assertGreater(len(signals), 0)
 
     async def test_no_anthropic_call_when_ollama_only_mode(self):
         """Anthropic API must NOT be called when OLLAMA_ONLY_MODE=1."""
         agent = ClaudeAgent()
-        mock_api = MagicMock()
         with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
              patch("agents.claude_agent.config") as mock_cfg, \
-             patch("anthropic.AsyncAnthropic", return_value=mock_api):
+             patch.object(agent, "_get_ollama_decisions",
+                          new=AsyncMock(return_value=self._valid_ollama_response())), \
+             patch.object(agent, "_get_claude_decisions",
+                          new=AsyncMock()) as mock_claude:
             mock_cfg.ANTHROPIC_API_KEY = "real-key"
             mock_cfg.WATCHLIST = ["AAPL"]
             mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_cfg.RESEARCH_MODEL = "llama3.1:8b"
             await agent.analyze(_make_ctx(["AAPL"]))
-        mock_api.messages.create.assert_not_called()
+        mock_claude.assert_not_called()
+
+    async def test_uses_research_model_in_ollama_call(self):
+        """_get_ollama_decisions must be called with config.RESEARCH_MODEL."""
+        agent = ClaudeAgent()
+        captured = {}
+
+        async def fake_ollama(market_context, watchlist):
+            captured["called"] = True
+            return self._valid_ollama_response()
+
+        with patch("agents.claude_agent.config") as mock_cfg, \
+             patch.object(agent, "_get_ollama_decisions", side_effect=fake_ollama):
+            mock_cfg.WATCHLIST = ["AAPL"]
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_cfg.RESEARCH_MODEL = "deepseek-r1:7b"
+            await agent.analyze(_make_ctx(["AAPL"]))
+
+        self.assertTrue(captured.get("called"),
+                        "_get_ollama_decisions must be called in Ollama mode")
+
+    async def test_fallback_to_cached_decisions_when_ollama_fails(self):
+        """If _get_ollama_decisions returns None, replay last cached decisions."""
+        agent = ClaudeAgent()
+        agent._last_decisions = {
+            "_watchlist": ["AAPL"],
+            "market_analysis": "cached",
+            "decisions": [{"symbol": "AAPL", "action": "HOLD", "shares": 0,
+                           "confidence": 0.5, "reasoning": "cached"}],
+        }
+        with patch("agents.claude_agent.config") as mock_cfg, \
+             patch.object(agent, "_get_ollama_decisions", new=AsyncMock(return_value=None)):
+            mock_cfg.WATCHLIST = ["AAPL"]
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_cfg.RESEARCH_MODEL = "llama3.1:8b"
+            signals = await agent.analyze(_make_ctx(["AAPL"]))
+        self.assertTrue(all(s.action == "HOLD" for s in signals))
+
+    async def test_get_ollama_decisions_uses_research_model(self):
+        """_get_ollama_decisions must pass config.RESEARCH_MODEL as the model name."""
+        agent = ClaudeAgent()
+        captured_model = {}
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(
+            message=MagicMock(content='{"market_analysis":"ok","decisions":[]}')
+        )]
+
+        async def fake_create(**kwargs):
+            captured_model["model"] = kwargs.get("model")
+            return mock_response
+
+        mock_client = MagicMock()
+        mock_client.chat = MagicMock()
+        mock_client.chat.completions = MagicMock()
+        mock_client.chat.completions.create = fake_create
+
+        with patch("agents.claude_agent.config") as mock_cfg, \
+             patch("agents.claude_agent.AsyncOpenAI", return_value=mock_client):
+            mock_cfg.RESEARCH_MODEL = "deepseek-r1:7b"
+            mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_cfg.WATCHLIST = ["AAPL"]
+            await agent._get_ollama_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+
+        self.assertEqual(captured_model.get("model"), "deepseek-r1:7b")
 
 
 if __name__ == "__main__":

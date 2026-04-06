@@ -950,15 +950,31 @@ async def _run_ollama_scanner(candidates: List[Dict], sector_summary: str = "") 
         # Force a tool call on round 1 so llama3/mistral-class models don't
         # return a plain-text response and exit with 0 recommendations.
         _tool_choice = "required" if rounds == 1 else "auto"
-        try:
-            response = await client.chat.completions.create(
-                model=config.OLLAMA_MODEL,
-                messages=messages,
-                tools=_OPENAI_TOOLS,
-                tool_choice=_tool_choice,
-            )
-        except Exception as e:
-            logger.error(f"Scanner/Ollama: API error round {rounds}: {e}")
+        response = None
+        for _attempt in range(3):  # up to 3 attempts per round (handles 500 crashes)
+            try:
+                response = await client.chat.completions.create(
+                    model=config.OLLAMA_MODEL,
+                    messages=messages,
+                    tools=_OPENAI_TOOLS,
+                    tool_choice=_tool_choice,
+                )
+                break  # success
+            except Exception as e:
+                err_str = str(e)
+                is_500 = "500" in err_str or "terminated" in err_str or "runner" in err_str
+                if is_500 and _attempt < 2:
+                    wait = 5 * (2 ** _attempt)  # 5 s, 10 s
+                    logger.warning(
+                        f"Scanner/Ollama: API error round {rounds} attempt {_attempt + 1} "
+                        f"(Ollama crash?), retrying in {wait}s: {e}"
+                    )
+                    await asyncio.sleep(wait)
+                else:
+                    logger.error(f"Scanner/Ollama: API error round {rounds}: {e}")
+                    response = None
+                    break
+        if response is None:
             break
 
         if response.usage:

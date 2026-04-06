@@ -42,6 +42,11 @@ except ImportError:
     HAS_ANTHROPIC = False
     logger.warning("Anthropic package not available")
 
+try:
+    from openai import AsyncOpenAI
+except ImportError:
+    AsyncOpenAI = None  # type: ignore[assignment,misc]
+
 
 class ClaudeAgent(BaseAgent):
     """AI trading agent using Claude Opus 4.6 with extended thinking."""
@@ -345,12 +350,58 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
             logger.error(f"ClaudeAgent: Unexpected error: {e}", exc_info=True)
             return None
 
+    async def _get_ollama_decisions(self, market_context: Dict, watchlist: List[str]) -> Optional[Dict]:
+        """Get trading decisions from the local Ollama RESEARCH_MODEL via OpenAI-compatible API."""
+        if AsyncOpenAI is None:
+            logger.warning("ClaudeAgent(Ollama): openai package not available")
+            return None
+        if not config.RESEARCH_MODEL:
+            return None
+        try:
+            client  = AsyncOpenAI(base_url=config.OLLAMA_BASE_URL, api_key="ollama")
+            stable  = self._build_stable_context(market_context)
+            dynamic = self._build_dynamic_context(market_context, watchlist)
+            response = await asyncio.wait_for(
+                client.chat.completions.create(
+                    model=config.RESEARCH_MODEL,
+                    messages=[
+                        {"role": "system", "content": self._SYSTEM_TEXT},
+                        {"role": "user",   "content": f"{stable}\n{dynamic}"},
+                    ],
+                    temperature=0.2,
+                    max_tokens=4096,
+                ),
+                timeout=120.0,
+            )
+            text = (response.choices[0].message.content or "").strip()
+            if not text:
+                logger.warning("ClaudeAgent(Ollama): empty response")
+                return None
+            logger.info(f"ClaudeAgent: received response from local model '{config.RESEARCH_MODEL}'")
+            json_match = re.search(r'\{[\s\S]*\}', text)
+            if json_match:
+                try:
+                    return json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    pass
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                logger.error(f"ClaudeAgent(Ollama): JSON parse failed: {text[:200]}")
+                return None
+        except asyncio.TimeoutError:
+            logger.warning(
+                f"ClaudeAgent: Ollama request timed out (model='{config.RESEARCH_MODEL}')"
+            )
+            return None
+        except Exception as e:
+            logger.error(f"ClaudeAgent: Ollama error: {e}")
+            return None
+
     async def analyze(self, market_context: Dict) -> List[Signal]:
-        """Analyze market using Claude with extended thinking."""
+        """Analyze market using Claude or local Ollama research model."""
         import os as _os
-        if _os.environ.get("OLLAMA_ONLY_MODE") == "1":
-            logger.debug("ClaudeAgent: Ollama-only mode active — skipping Claude API call")
-            return []
+        _ollama_mode = _os.environ.get("OLLAMA_ONLY_MODE") == "1"
 
         prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
 
@@ -402,28 +453,34 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
                     self.portfolio, self._picks, config.MAX_POSITION_SIZE, "ClaudeAgent"
                 )
 
-            if not HAS_ANTHROPIC or not config.ANTHROPIC_API_KEY:
-                logger.warning("ClaudeAgent: Anthropic not configured, using fallback")
-                return get_fallback_signals(market_context, "ClaudeAgent")
+            if _ollama_mode:
+                logger.info(
+                    f"ClaudeAgent: Using local model '{config.RESEARCH_MODEL}' "
+                    f"(cycle {self._cycle_count})"
+                )
+                claude_response = await self._get_ollama_decisions(market_context, watchlist)
+            else:
+                if not HAS_ANTHROPIC or not config.ANTHROPIC_API_KEY:
+                    logger.warning("ClaudeAgent: Anthropic not configured, using fallback")
+                    return get_fallback_signals(market_context, "ClaudeAgent")
 
-            if time.time() < self._backoff_until:
-                remaining = int(self._backoff_until - time.time())
-                logger.debug(f"ClaudeAgent: In backoff, {remaining}s remaining — reusing last decisions")
-                if self._last_decisions:
-                    return parse_ai_decisions(
-                        self._last_decisions, market_context, prices,
-                        self.portfolio, config.MAX_POSITION_SIZE, "CLAUDE ANALYSIS"
-                    )
-                return get_fallback_signals(market_context, "ClaudeAgent")
+                if time.time() < self._backoff_until:
+                    remaining = int(self._backoff_until - time.time())
+                    logger.debug(f"ClaudeAgent: In backoff, {remaining}s remaining — reusing last decisions")
+                    if self._last_decisions:
+                        return parse_ai_decisions(
+                            self._last_decisions, market_context, prices,
+                            self.portfolio, config.MAX_POSITION_SIZE, "CLAUDE ANALYSIS"
+                        )
+                    return get_fallback_signals(market_context, "ClaudeAgent")
 
-            logger.info(f"ClaudeAgent: Requesting analysis from Claude (cycle {self._cycle_count})")
-
-            try:
+                logger.info(f"ClaudeAgent: Requesting analysis from Claude (cycle {self._cycle_count})")
                 claude_response = await self._get_claude_decisions(market_context, watchlist)
 
+            try:
                 if claude_response is None:
                     if self._last_decisions:
-                        logger.debug("ClaudeAgent: No response (rate limit or error) — replaying last decisions")
+                        logger.debug("ClaudeAgent: No response — replaying last decisions")
                         signals = parse_ai_decisions(
                             self._last_decisions, market_context, prices,
                             self.portfolio, config.MAX_POSITION_SIZE, "CLAUDE ANALYSIS"
@@ -472,7 +529,7 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
                                 agent_name=self.name,
                             )
 
-                logger.info(f"ClaudeAgent: Got {len(signals)} signals from Claude")
+                logger.info(f"ClaudeAgent: Got {len(signals)} signals")
                 return signals
 
             except Exception as e:

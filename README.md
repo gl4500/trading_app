@@ -15,16 +15,17 @@ trading_app/
 │   ├── requirements.txt      # Python dependencies
 │   ├── agents/               # Trading agents
 │   │   ├── base_agent.py               # Abstract base: portfolio, risk, picks persistence
-│   │   ├── claude_agent.py             # Claude Opus 4.6 with adaptive thinking
-│   │   ├── gemini_agent.py             # Google Gemini 2.0 Flash — market view context provider
+│   │   ├── claude_agent.py             # Claude Opus 4.6 / Ollama (Tier 2 swap) with adaptive thinking
+│   │   ├── gemini_agent.py             # Gemini 2.0 Flash / Ollama (Tier 2 swap) — market view context provider
 │   │   ├── tech_agent.py               # RSI / MACD / Bollinger Bands technical agent
 │   │   ├── momentum_agent.py           # Price momentum / trailing stop agent
 │   │   ├── mean_reversion_agent.py     # Z-score mean reversion agent
-│   │   ├── sentiment_agent.py          # OpenAI GPT-4o-mini sentiment agent (time-throttled)
+│   │   ├── sentiment_agent.py          # GPT-4o-mini / Ollama sentiment agent (time-throttled)
 │   │   ├── ensemble_agent.py           # Adaptive performance-weighted voting + regime detection
 │   │   ├── scanner_agent.py            # Agentic Claude scanner — discovers opportunities
 │   │   ├── scanner_portfolio_agent.py  # Executes on cached scanner picks
 │   │   ├── historical_trends_agent.py  # Seasonal patterns, channel, multi-period momentum
+│   │   ├── cnn_reasoning_agent.py      # CNN-based pattern recognition + Ollama reasoning
 │   │   └── summary_agent.py            # Daily roll-up narrative via Claude
 │   ├── trading/
 │   │   ├── alpaca_client.py  # Alpaca Markets async wrapper
@@ -75,19 +76,24 @@ trading_app/
 
 | Agent | Strategy | AI Model | Ensemble Weight |
 |---|---|---|---|
-| **ClaudeAgent** | Deep market analysis with adaptive thinking | Claude Opus 4.6 | 29% |
+| **ClaudeAgent** | Deep market analysis with adaptive thinking | Claude Opus 4.6 (or Ollama in `OLLAMA_ONLY_MODE`) | 29% |
 | **TechAgent** | RSI, MACD, Bollinger Bands, Stochastic, OBV, volume | Rule-based | 23% |
-| **SentimentAgent** | Price action + news sentiment | GPT-4o-mini | 17% |
+| **SentimentAgent** | Price action + news sentiment | GPT-4o-mini (or Ollama in `OLLAMA_ONLY_MODE`) | 17% |
 | **MomentumAgent** | Short/mid/long momentum + trailing stop | Rule-based | 14% |
 | **MeanReversionAgent** | Z-score deviation from 20-day mean | Rule-based | 9% |
 | **HistoricalTrendsAgent** | Seasonal calendar patterns, channel positioning, multi-period momentum | Rule-based | 8% |
 | **ScannerPortfolioAgent** | Executes on cached agentic scanner picks | Rule-based | — |
+| **CNNReasoningAgent** | CNN price-pattern recognition + local Ollama reasoning | Ollama (llama3.1:8b) | — |
 | **EnsembleAgent** | Adaptive performance-weighted voting + regime detection | Combines all | — |
-| **GeminiAgent** | Market-view context provider (not an ensemble voter) | Gemini 2.0 Flash | — |
+| **GeminiAgent** | Market-view context provider (not an ensemble voter) | Gemini 2.0 Flash (or Ollama in `OLLAMA_ONLY_MODE`) | — |
 
 **EnsembleAgent** weights shift automatically based on each agent's recent Sharpe ratio and win rate. Market regime (Trending / Ranging / Volatile) is detected every 5 cycles using a **2-of-3 signal requirement**: SMA-20 slope + trend consistency (% positive days) + volume expansion. All three must align for a TRENDING call — single-signal false positives are suppressed.
 
 **GeminiAgent** runs alongside Claude as a second AI perspective. It does not vote in the ensemble — instead it contributes a `market_analysis` string (2-3 sentence market overview) that is injected into Claude's prompt under `## Gemini Market View` before Claude makes its own decisions.
+
+**CNNReasoningAgent** uses a convolutional neural network to identify price patterns in OHLCV data, then routes its reasoning through a local Ollama model. It runs independently of the cloud AI agents — useful when operating fully offline or in `OLLAMA_ONLY_MODE`.
+
+**Ollama / Zero-cost mode:** Set `OLLAMA_ONLY_MODE=1` in `.env` to route ClaudeAgent, GeminiAgent, and SentimentAgent through local Ollama inference instead of cloud APIs. No Anthropic, OpenAI, or Gemini API calls are made — zero token cost. See Environment Variables for the required Ollama config vars.
 
 **HistoricalTrendsAgent** is a pure rule-based agent with three analytical pillars: (1) **seasonal bias** — month-of-year and quarter-position effects based on long-run S&P 500 seasonality research; (2) **channel analysis** — where the current price sits in its historical high-low range, SMA-slope adjusted; (3) **multi-period momentum** — trend persistence across 5/10/20/40-day windows with an alignment bonus when all timeframes agree. It uses up to 5 years of free daily OHLCV data from Stooq.com, falling back to Alpaca bars when Stooq is unavailable. Regime multipliers: boosted in trending (×1.20) and ranging (×1.30) regimes, reduced in volatile markets (×0.80).
 
@@ -240,6 +246,7 @@ In calm trending markets, momentum and technical signals can outvote the AI agen
 | **◈ Daily Roll-Up** | Claude-authored narrative summary of all agent decisions |
 | **⚡ Sentinel** | Overnight catalyst feed grouped by category + news→price impact tracker |
 | **🔢 Tokens** | Live token usage per agent (daily total, calls/hr) + searchable 24h log with limit-hit alerts |
+| **📊 Telemetry** | System resource monitor: CPU, RAM, disk, GPU utilisation + VRAM + temperature (NVIDIA only) |
 
 ---
 
@@ -290,6 +297,7 @@ Discovers high-conviction opportunities outside the core watchlist.
 | `GET /api/performance/{agent_name}` | Full performance history |
 | `GET /api/tokens` | Live token usage stats per agent + session/daily totals |
 | `GET /api/token-log` | 24h token log (`?agent=`, `?hours=`, `?limit_hit=true`) |
+| `GET /api/telemetry` | CPU%, RAM%, disk%, GPU utilisation/VRAM/temp (per device), Ollama status |
 | `GET /api/status` | App status (running, market_status, cycle count) |
 | `POST /api/start` | Start trading |
 | `POST /api/stop` | Stop trading |
@@ -372,6 +380,15 @@ GEMINI_API_KEY=your_key
 FINNHUB_API_KEY=your_key        # https://finnhub.io
 UNUSUAL_WHALES_API_KEY=your_key # https://unusualwhales.com
 
+# Ollama local inference (zero API cost)
+# Install Ollama: https://ollama.com  →  ollama pull llama3.1:8b
+OLLAMA_ONLY_MODE=0              # Set to 1 to route ALL AI agents through local Ollama (no cloud calls)
+OLLAMA_BASE_URL=http://localhost:11434/v1
+OLLAMA_MODEL=llama3.1:8b        # Model for SentimentAgent, GeminiAgent, CNNReasoningAgent
+RESEARCH_MODEL=llama3.1:8b      # Model for ClaudeAgent in Ollama mode (defaults to OLLAMA_MODEL)
+                                # RTX 2060 (6 GB): keep as llama3.1:8b — only one Q4 model fits
+                                # RTX 3080+ (16 GB+): upgrade to deepseek-r1:14b for richer reasoning
+
 # Trading parameters
 STARTING_CAPITAL=100000
 MAX_POSITION_SIZE=0.15
@@ -388,10 +405,12 @@ WATCHLIST=AAPL,MSFT,GOOGL,TSLA,AMZN,NVDA,META,SPY
 
 | File | What to change |
 |---|---|
-| `.env` | API keys, watchlist, trading parameters |
-| `backend/config.py` | Add config variables, adjust ensemble weights |
-| `backend/agents/claude_agent.py` | Claude's prompt or decision logic |
-| `backend/agents/gemini_agent.py` | Gemini's prompt or model settings |
+| `.env` | API keys, watchlist, trading parameters, `OLLAMA_ONLY_MODE` |
+| `backend/config.py` | Add config variables, adjust ensemble weights, `RESEARCH_MODEL` |
+| `backend/agents/claude_agent.py` | Claude's prompt, decision logic, or Ollama model routing |
+| `backend/agents/gemini_agent.py` | Gemini's prompt, model settings, or Ollama routing |
+| `backend/agents/sentiment_agent.py` | Sentiment scoring, Ollama vs GPT-4o-mini routing |
+| `backend/agents/cnn_reasoning_agent.py` | CNN architecture, pattern features, reasoning prompt |
 | `backend/data/sentinel_sources.py` | Add/remove sentinel data sources |
 | `backend/data/policy_monitor.py` | Keyword tables, sector mappings |
 | `backend/data/signal_aggregator.py` | Signal source weights |
@@ -415,6 +434,10 @@ See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 | Date | Change |
 |---|---|
+| 2026-04-05 | **GPU telemetry** — `nvidia-smi` subprocess in `/api/telemetry`; GPU utilisation, VRAM, and temperature displayed in 📊 Telemetry dashboard tab; multi-GPU support; graceful "no GPU" state |
+| 2026-04-05 | **CNNReasoningAgent halt fix** — `get_position()` method does not exist on `Portfolio`; fixed to `portfolio.positions[sym].shares`; was causing `AttributeError` every SELL cycle → 5-error halt |
+| 2026-04-05 | **Tier 2 Ollama swap** — `OLLAMA_ONLY_MODE=1` routes ClaudeAgent, GeminiAgent, and SentimentAgent through local Ollama; `RESEARCH_MODEL` config var selects model for ClaudeAgent (defaults to `OLLAMA_MODEL` to share single loaded model — critical for RTX 2060 6 GB VRAM); cycle-throttle and cache-replay logic preserved on Ollama path |
+| 2026-04-05 | **SentimentAgent Ollama fix** — hardcoded `model="gpt-4o-mini"` and OpenAI key guard now bypassed in Ollama mode; token logging skipped (zero cost) |
 | 2026-03-31 | **Stochastic + OBV indicators** — added Stochastic %K/%D (14/3) and On-Balance Volume to `data/technicals.py` and `TechAgent`; Stochastic scores entry timing (oversold/overbought zones + %K crossover); OBV detects confirmation vs divergence (distribution/accumulation); both injected into AI agent prompts via `format_for_prompt()` |
 | 2026-03-31 | **Tailscale remote access** — `gen_certs.py` now auto-detects Tailscale IP (`tailscale ip -4`) and includes it in the cert's SANs; Vite updated to bind on `0.0.0.0` and serve HTTPS; access dashboard remotely at `https://<tailscale-ip>:5173` |
 | 2026-03-31 | **HTTPS on frontend** — Vite now serves HTTPS (was plain HTTP); use `https://localhost:5173` |

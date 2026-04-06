@@ -17,6 +17,7 @@ from data.signal_aggregator import get_composite_signal
 from data.massive_client import massive_client, format_greeks_for_prompt
 from data.stooq_client import stooq_client, format_macro_for_prompt as format_stooq_macro
 from data import sector_analysis
+from data.signal_history import signal_history
 
 logger = logging.getLogger(__name__)
 
@@ -327,6 +328,7 @@ class MarketDataService:
                     if isinstance(all_long_term_bars, dict) else pd.DataFrame()
                 greeks_sym = all_greeks.get(sym, {}) if isinstance(all_greeks, dict) else {}
                 svs = sector_analysis.get_stock_vs_sector(sym, None, sector_perf)
+                _comp_empty = all_composite.get(sym, {}) or {}
                 context[sym] = {
                     "symbol":          sym,
                     "price":           price or 0,
@@ -335,12 +337,27 @@ class MarketDataService:
                     "stats":           {},
                     "news":            alpaca_news_empty + [n for n in massive_news_empty if n.get("headline", "") not in existing_hl],
                     "indicators":      None,
-                    "composite_signal": all_composite.get(sym, {}),
+                    "composite_signal": _comp_empty,
                     "greeks":          greeks_sym,
                     "greeks_text":     format_greeks_for_prompt(sym, greeks_sym),
                     "sector_vs_market": svs,
                     "sector_context_text": sector_analysis.format_stock_sector_context(sym, svs),
                 }
+                # Record snapshot + update outcomes (fire-and-forget)
+                try:
+                    _src = (_comp_empty.get("sources") or {})
+                    asyncio.create_task(signal_history.record_snapshot(
+                        symbol=sym,
+                        scores={k: ((_src.get(k) or {}).get("score")) for k in (
+                            "analyst_consensus", "earnings_surprise",
+                            "alpaca_news", "yahoo_news", "congressional_trades",
+                        )},
+                        composite_score=_comp_empty.get("composite_score", 0.0) or 0.0,
+                        price=price or 0,
+                    ))
+                    asyncio.create_task(signal_history.update_outcomes(sym, price or 0))
+                except Exception:
+                    pass
                 continue
 
             # Calculate basic stats
@@ -388,6 +405,7 @@ class MarketDataService:
             stock_1d = stats.get("price_change_1d")
             svs = sector_analysis.get_stock_vs_sector(sym, stock_1d, sector_perf)
 
+            _comp = all_composite.get(sym, {}) or {}
             context[sym] = {
                 "symbol":           sym,
                 "bars":             all_bars.get(sym, pd.DataFrame()),
@@ -397,12 +415,27 @@ class MarketDataService:
                 "price":            stats["current_price"],
                 "news":             merged_news,
                 "indicators":       ind,
-                "composite_signal": all_composite.get(sym, {}),
+                "composite_signal": _comp,
                 "greeks":           greeks_sym,
                 "greeks_text":      format_greeks_for_prompt(sym, greeks_sym),
                 "sector_vs_market": svs,
                 "sector_context_text": sector_analysis.format_stock_sector_context(sym, svs),
             }
+            # Record snapshot + update outcomes (fire-and-forget)
+            try:
+                _src = (_comp.get("sources") or {})
+                asyncio.create_task(signal_history.record_snapshot(
+                    symbol=sym,
+                    scores={k: ((_src.get(k) or {}).get("score")) for k in (
+                        "analyst_consensus", "earnings_surprise",
+                        "alpaca_news", "yahoo_news", "congressional_trades",
+                    )},
+                    composite_score=_comp.get("composite_score", 0.0) or 0.0,
+                    price=stats["current_price"],
+                ))
+                asyncio.create_task(signal_history.update_outcomes(sym, stats["current_price"]))
+            except Exception:
+                pass
 
         # Attach macro and sector context at the top level
         if macro_ctx:

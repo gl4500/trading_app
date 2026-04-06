@@ -66,10 +66,10 @@ export default function Dashboard({
         {/* Right: Charts & Detail */}
         <div className="lg:col-span-2 space-y-4">
           {/* Tab Controls */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             <button
               onClick={() => setActiveTab('chart')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'chart'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-gray-200'
@@ -79,7 +79,7 @@ export default function Dashboard({
             </button>
             <button
               onClick={() => setActiveTab('detail')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'detail'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-gray-200'
@@ -89,7 +89,7 @@ export default function Dashboard({
             </button>
             <button
               onClick={() => setActiveTab('signals')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'signals'
                   ? 'bg-purple-600 text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-gray-200'
@@ -99,7 +99,7 @@ export default function Dashboard({
             </button>
             <button
               onClick={() => setActiveTab('scanner')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'scanner'
                   ? 'bg-violet-600 text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-gray-200'
@@ -109,7 +109,7 @@ export default function Dashboard({
             </button>
             <button
               onClick={() => setActiveTab('summary')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'summary'
                   ? 'bg-amber-700 text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-gray-200'
@@ -119,7 +119,7 @@ export default function Dashboard({
             </button>
             <button
               onClick={() => setActiveTab('sentinel')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'sentinel'
                   ? 'bg-orange-700 text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-gray-200'
@@ -129,7 +129,7 @@ export default function Dashboard({
             </button>
             <button
               onClick={() => setActiveTab('trades')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'trades'
                   ? 'bg-gray-600 text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-gray-200'
@@ -139,7 +139,7 @@ export default function Dashboard({
             </button>
             <button
               onClick={() => setActiveTab('tokens')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'tokens'
                   ? 'bg-teal-700 text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-gray-200'
@@ -149,7 +149,7 @@ export default function Dashboard({
             </button>
             <button
               onClick={() => setActiveTab('errors')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'errors'
                   ? 'bg-red-800 text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-gray-200'
@@ -159,7 +159,7 @@ export default function Dashboard({
             </button>
             <button
               onClick={() => setActiveTab('telemetry')}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === 'telemetry'
                   ? 'bg-purple-800 text-white'
                   : 'bg-gray-800 text-gray-400 hover:text-gray-200'

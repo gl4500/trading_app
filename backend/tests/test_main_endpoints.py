@@ -1671,6 +1671,72 @@ class TestTelemetryEndpoint(unittest.TestCase):
                 data = client.get("/api/telemetry").json()
         self.assertEqual(data["ollama"]["models"], [])
 
+    def _get_with_gpu(self, nvidia_smi_output=None, nvidia_smi_raises=False):
+        """Helper: run /api/telemetry with subprocess.run mocked for nvidia-smi."""
+        from main import app
+        import subprocess as _sp
+
+        def fake_run(cmd, **kwargs):
+            if nvidia_smi_raises:
+                raise FileNotFoundError("nvidia-smi not found")
+            mock_result = MagicMock()
+            mock_result.returncode = 0 if nvidia_smi_output is not None else 1
+            mock_result.stdout = nvidia_smi_output or ""
+            return mock_result
+
+        with patch("main.psutil") as mock_ps, \
+             patch("main.httpx") as mock_httpx, \
+             patch("subprocess.run", side_effect=fake_run):
+            mock_ps.cpu_percent.return_value = 10.0
+            mock_ps.virtual_memory.return_value = MagicMock(total=8*1024**3, available=4*1024**3, percent=50.0)
+            mock_ps.Process.return_value = MagicMock(memory_info=MagicMock(return_value=MagicMock(rss=100*1024**2)))
+            mock_resp = MagicMock(status_code=200)
+            mock_resp.json.return_value = {"models": []}
+            mock_client = MagicMock()
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client.get = AsyncMock(return_value=mock_resp)
+            mock_httpx.AsyncClient.return_value = mock_client
+            with TestClient(app) as client:
+                return client.get("/api/telemetry").json()
+
+    def test_has_gpu_key(self):
+        """Response always contains a 'gpu' key (list)."""
+        data = self._get_with_gpu(nvidia_smi_raises=True)
+        self.assertIn("gpu", data)
+        self.assertIsInstance(data["gpu"], list)
+
+    def test_gpu_data_from_nvidia_smi(self):
+        """Parses nvidia-smi CSV output into GPU dicts."""
+        smi_output = "NVIDIA GeForce RTX 4090, 72, 18432, 24576, 68\n"
+        data = self._get_with_gpu(nvidia_smi_output=smi_output)
+        self.assertEqual(len(data["gpu"]), 1)
+        gpu = data["gpu"][0]
+        self.assertEqual(gpu["name"], "NVIDIA GeForce RTX 4090")
+        self.assertAlmostEqual(gpu["util_pct"], 72.0)
+        self.assertAlmostEqual(gpu["vram_used_mb"], 18432.0)
+        self.assertAlmostEqual(gpu["vram_total_mb"], 24576.0)
+        self.assertAlmostEqual(gpu["temp_c"], 68.0)
+
+    def test_gpu_multi_device(self):
+        """Multiple GPUs are returned as separate entries."""
+        smi_output = (
+            "NVIDIA GeForce RTX 3080, 45, 8192, 10240, 72\n"
+            "NVIDIA GeForce RTX 3080, 12, 4096, 10240, 61\n"
+        )
+        data = self._get_with_gpu(nvidia_smi_output=smi_output)
+        self.assertEqual(len(data["gpu"]), 2)
+
+    def test_gpu_empty_when_nvidia_smi_unavailable(self):
+        """Returns empty gpu list when nvidia-smi is not found."""
+        data = self._get_with_gpu(nvidia_smi_raises=True)
+        self.assertEqual(data["gpu"], [])
+
+    def test_gpu_empty_when_nvidia_smi_nonzero_exit(self):
+        """Returns empty gpu list when nvidia-smi returns non-zero exit code."""
+        data = self._get_with_gpu(nvidia_smi_output=None)
+        self.assertEqual(data["gpu"], [])
+
 
 class TestOllamaModeEndpoint(unittest.TestCase):
     """POST /api/ollama-mode — enable/disable 24-hour Ollama-only mode."""

@@ -36,6 +36,7 @@ REGIME_MULTIPLIERS: Dict[str, Dict[str, float]] = {
         "TechAgent":              1.20,
         "HistoricalTrendsAgent":  1.20,  # seasonal + multi-period momentum shines in trends
         "ClaudeAgent":            1.10,
+        "CNNReasoningAgent":      1.20,  # CNN temporal patterns shine in trending markets
         "SentimentAgent":         0.80,
         "MeanReversionAgent":     0.40,
     },
@@ -45,11 +46,13 @@ REGIME_MULTIPLIERS: Dict[str, Dict[str, float]] = {
         "SentimentAgent":         1.20,
         "TechAgent":              1.10,
         "ClaudeAgent":            1.00,
+        "CNNReasoningAgent":      0.90,
         "MomentumAgent":          0.55,
     },
     "volatile": {
         "ClaudeAgent":            1.40,
         "SentimentAgent":         1.20,
+        "CNNReasoningAgent":      1.10,  # CNN adapts weights dynamically in volatility
         "TechAgent":              0.80,
         "MomentumAgent":          0.65,
         "MeanReversionAgent":     0.60,
@@ -71,6 +74,7 @@ class EnsembleAgent(BaseAgent):
         mean_reversion_agent: "BaseAgent" = None,
         sentiment_agent: "BaseAgent" = None,
         claude_agent: "BaseAgent" = None,
+        cnn_reasoning_agent: "BaseAgent" = None,
     ):
         super().__init__(
             name="EnsembleAgent",
@@ -95,6 +99,7 @@ class EnsembleAgent(BaseAgent):
             ("MeanReversionAgent", mean_reversion_agent),
             ("SentimentAgent", sentiment_agent),
             ("ClaudeAgent", claude_agent),
+            ("CNNReasoningAgent", cnn_reasoning_agent),
         ]:
             if agent is not None:
                 self.component_agents[name] = agent

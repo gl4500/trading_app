@@ -30,13 +30,14 @@ interface TokenStatsData {
 }
 
 const AGENT_COLORS: Record<string, string> = {
-  SentimentAgent:       'text-green-400',
-  ClaudeAgent:          'text-red-400',
-  GeminiAgent:          'text-blue-400',
-  SummaryAgent:         'text-amber-400',
-  'ScannerAgent/Claude':'text-red-300',
-  'ScannerAgent/Gemini':'text-blue-300',
-  'ScannerAgent/OpenAI':'text-green-300',
+  SentimentAgent:        'text-green-400',
+  ClaudeAgent:           'text-red-400',
+  GeminiAgent:           'text-blue-400',
+  SummaryAgent:          'text-amber-400',
+  'ScannerAgent/Claude': 'text-red-300',
+  'ScannerAgent/Gemini': 'text-blue-300',
+  'ScannerAgent/OpenAI': 'text-green-300',
+  'ScannerAgent/Ollama': 'text-purple-400',
 }
 
 function agentBadge(agent: string) {
@@ -172,6 +173,7 @@ export default function TokensPanel() {
               <option value="ScannerAgent/Claude">ScannerAgent/Claude</option>
               <option value="ScannerAgent/Gemini">ScannerAgent/Gemini</option>
               <option value="ScannerAgent/OpenAI">ScannerAgent/OpenAI</option>
+              <option value="ScannerAgent/Ollama">ScannerAgent/Ollama</option>
             </select>
           </div>
 

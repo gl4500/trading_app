@@ -7,6 +7,14 @@ interface OllamaModel {
   expires_at: string
 }
 
+interface GpuDevice {
+  name: string
+  util_pct: number
+  vram_used_mb: number
+  vram_total_mb: number
+  temp_c: number
+}
+
 interface TelemetryData {
   cpu_pct: number
   memory: {
@@ -15,6 +23,7 @@ interface TelemetryData {
     used_pct: number
   }
   process_memory_mb: number
+  gpu: GpuDevice[]
   ollama: {
     online: boolean
     mode: string
@@ -82,6 +91,16 @@ export default function TelemetryPanel() {
   const cpuColor = data.cpu_pct > 80 ? 'bg-red-500' : data.cpu_pct > 50 ? 'bg-yellow-500' : 'bg-green-500'
   const memColor = data.memory.used_pct > 85 ? 'bg-red-500' : data.memory.used_pct > 65 ? 'bg-yellow-500' : 'bg-blue-500'
 
+  function gpuUtilColor(pct: number) {
+    return pct > 85 ? 'bg-red-500' : pct > 60 ? 'bg-yellow-500' : 'bg-green-500'
+  }
+  function gpuVramColor(pct: number) {
+    return pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-yellow-500' : 'bg-violet-500'
+  }
+  function gpuTempColor(temp: number) {
+    return temp > 85 ? 'text-red-400' : temp > 70 ? 'text-yellow-400' : 'text-green-400'
+  }
+
   const durations = data.scan_history.durations_sec
   const maxDur = durations.length > 0 ? Math.max(...durations) : 1
 
@@ -131,6 +150,99 @@ export default function TelemetryPanel() {
             <GaugeBar pct={data.memory.used_pct} color={memColor} />
           </div>
         </div>
+      </div>
+
+      {/* GPU Telemetry */}
+      <div className="card p-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="text-sm font-semibold text-gray-300 uppercase tracking-wide">GPU</div>
+          {data.gpu.length > 0 ? (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-400 border border-green-700 font-medium">
+              {data.gpu.length} device{data.gpu.length > 1 ? 's' : ''} detected
+            </span>
+          ) : (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-500 border border-gray-700 font-medium">
+              No NVIDIA GPU
+            </span>
+          )}
+        </div>
+
+        {data.gpu.length === 0 ? (
+          <div className="text-sm text-gray-500 italic">
+            No NVIDIA GPU detected — nvidia-smi not available or no discrete GPU present.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {data.gpu.map((gpu, idx) => {
+              const vramPct = gpu.vram_total_mb > 0 ? (gpu.vram_used_mb / gpu.vram_total_mb) * 100 : 0
+              return (
+                <div key={idx} className="bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-3">
+                  {/* GPU name + index + temp */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold text-white">{gpu.name}</div>
+                      {data.gpu.length > 1 && (
+                        <div className="text-xs text-gray-500">GPU {idx}</div>
+                      )}
+                    </div>
+                    <div className={`text-lg font-bold ${gpuTempColor(gpu.temp_c)}`}>
+                      {gpu.temp_c.toFixed(0)}°C
+                    </div>
+                  </div>
+
+                  {/* Stat row */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-gray-900/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-gray-400 mb-1">Utilisation</div>
+                      <div className="text-xl font-bold text-white">{gpu.util_pct.toFixed(0)}%</div>
+                    </div>
+                    <div className="bg-gray-900/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-gray-400 mb-1">VRAM Used</div>
+                      <div className="text-xl font-bold text-white">
+                        {gpu.vram_used_mb >= 1024
+                          ? `${(gpu.vram_used_mb / 1024).toFixed(1)} GB`
+                          : `${gpu.vram_used_mb.toFixed(0)} MB`}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        of {gpu.vram_total_mb >= 1024
+                          ? `${(gpu.vram_total_mb / 1024).toFixed(0)} GB`
+                          : `${gpu.vram_total_mb.toFixed(0)} MB`}
+                      </div>
+                    </div>
+                    <div className="bg-gray-900/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-gray-400 mb-1">VRAM Free</div>
+                      <div className="text-xl font-bold text-white">
+                        {(() => {
+                          const free = gpu.vram_total_mb - gpu.vram_used_mb
+                          return free >= 1024
+                            ? `${(free / 1024).toFixed(1)} GB`
+                            : `${free.toFixed(0)} MB`
+                        })()}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">{(100 - vramPct).toFixed(0)}% free</div>
+                    </div>
+                  </div>
+
+                  {/* Gauge bars */}
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>GPU Utilisation</span><span>{gpu.util_pct.toFixed(1)}%</span>
+                      </div>
+                      <GaugeBar pct={gpu.util_pct} color={gpuUtilColor(gpu.util_pct)} />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>VRAM</span><span>{vramPct.toFixed(1)}%</span>
+                      </div>
+                      <GaugeBar pct={vramPct} color={gpuVramColor(vramPct)} />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Ollama Status */}

@@ -536,5 +536,111 @@ class TestGeminiSaveTokenLog(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(limit_hit)
 
 
+class TestGeminiOllamaMode(unittest.IsolatedAsyncioTestCase):
+    """When OLLAMA_ONLY_MODE=1 GeminiAgent routes through local Ollama, not Gemini API."""
+
+    def setUp(self):
+        os.environ["OLLAMA_ONLY_MODE"] = "1"
+
+    def tearDown(self):
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+    def _valid_response(self):
+        return {
+            "market_analysis": "Neutral market.",
+            "decisions": [
+                {"symbol": "AAPL", "action": "HOLD", "shares": 0,
+                 "confidence": 0.5, "reasoning": "Waiting for signal"}
+            ],
+        }
+
+    async def test_returns_signals_in_ollama_mode(self):
+        """analyze() must return signals when Ollama responds."""
+        agent = GeminiAgent()
+        with patch("agents.gemini_agent.config") as mock_cfg, \
+             patch.object(agent, "_get_ollama_decisions",
+                          new=AsyncMock(return_value=self._valid_response())):
+            mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            signals = await agent.analyze(_make_ctx(["AAPL"]))
+        self.assertIsInstance(signals, list)
+        self.assertGreater(len(signals), 0)
+
+    async def test_gemini_api_not_called_in_ollama_mode(self):
+        """Gemini SDK must NOT be called when OLLAMA_ONLY_MODE=1."""
+        agent = GeminiAgent()
+        with patch("agents.gemini_agent.config") as mock_cfg, \
+             patch.object(agent, "_get_ollama_decisions",
+                          new=AsyncMock(return_value=self._valid_response())), \
+             patch.object(agent, "_get_gemini_decisions",
+                          new=AsyncMock()) as mock_gemini:
+            mock_cfg.GEMINI_API_KEY = "real-key"
+            mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            await agent.analyze(_make_ctx(["AAPL"]))
+        mock_gemini.assert_not_called()
+
+    async def test_get_market_view_uses_ollama_in_ollama_mode(self):
+        """get_market_view() must return analysis from Ollama, not Gemini."""
+        agent = GeminiAgent()
+        with patch("agents.gemini_agent.config") as mock_cfg, \
+             patch.object(agent, "_get_ollama_decisions",
+                          new=AsyncMock(return_value=self._valid_response())):
+            mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            result = await agent.get_market_view(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertEqual(result, "Neutral market.")
+
+    async def test_get_ollama_decisions_uses_ollama_model(self):
+        """_get_ollama_decisions must pass OLLAMA_MODEL as the model name."""
+        agent = GeminiAgent()
+        captured_model = {}
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock(
+            message=MagicMock(content='{"market_analysis":"ok","decisions":[]}')
+        )]
+
+        async def fake_create(**kwargs):
+            captured_model["model"] = kwargs.get("model")
+            return mock_response
+
+        mock_client = MagicMock()
+        mock_client.chat = MagicMock()
+        mock_client.chat.completions = MagicMock()
+        mock_client.chat.completions.create = fake_create
+
+        with patch("agents.gemini_agent.config") as mock_cfg, \
+             patch("agents.gemini_agent.AsyncOpenAI", return_value=mock_client), \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.format_sector_summary", return_value=""):
+            mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+            mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            await agent._get_ollama_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+
+        self.assertEqual(captured_model.get("model"), "llama3.1:8b")
+
+    async def test_fallback_to_cache_when_ollama_fails(self):
+        """If _get_ollama_decisions returns None, replay last cached decisions."""
+        agent = GeminiAgent()
+        agent._last_decisions = {
+            "_watchlist": ["AAPL"],
+            "market_analysis": "cached",
+            "decisions": [{"symbol": "AAPL", "action": "HOLD", "shares": 0,
+                           "confidence": 0.5, "reasoning": "cached"}],
+        }
+        with patch("agents.gemini_agent.config") as mock_cfg, \
+             patch.object(agent, "_get_ollama_decisions", new=AsyncMock(return_value=None)):
+            mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+            mock_cfg.MAX_POSITION_SIZE = 0.10
+            signals = await agent.analyze(_make_ctx(["AAPL"]))
+        self.assertTrue(all(s.action == "HOLD" for s in signals))
+
+
 if __name__ == "__main__":
     unittest.main()

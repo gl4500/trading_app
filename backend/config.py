@@ -26,11 +26,16 @@ class Config:
     OPENCLAW_MODEL: str    = os.getenv("OPENCLAW_MODEL", "llama3.2")
 
     # Ollama local model (OpenAI-compatible, zero token cost)
-    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-    OLLAMA_MODEL: str    = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+    OLLAMA_BASE_URL: str  = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    OLLAMA_MODEL: str     = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+    # Research model used by ClaudeAgent and GeminiAgent in Ollama-only mode.
+    # Defaults to OLLAMA_MODEL so both share the same loaded model (saves VRAM).
+    # Upgrade example for RTX 3080+: RESEARCH_MODEL=deepseek-r1:14b
+    # RTX 2060 (6 GB): keep default — llama3.1:8b is the only model that fits.
+    RESEARCH_MODEL: str   = os.getenv("RESEARCH_MODEL", os.getenv("OLLAMA_MODEL", "llama3.1:8b"))
     # Optional: override the Ollama binary directory added to PATH on startup.
     # Defaults to %LOCALAPPDATA%\Programs\Ollama on Windows (auto-detected).
-    OLLAMA_PATH: str     = os.getenv("OLLAMA_PATH", "")
+    OLLAMA_PATH: str      = os.getenv("OLLAMA_PATH", "")
 
     # Additional data source keys
     FINNHUB_API_KEY: str = os.getenv("FINNHUB_API_KEY", "")

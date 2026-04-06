@@ -1,30 +1,40 @@
 @echo off
 echo ==========================================
-echo  AI Trading Competition - Backend Startup
+echo  AI Trading App - Backend Startup
 echo ==========================================
 
-set CONDA_PYTHON=C:\Users\gl450\radioconda\envs\trading\python.exe
+set ROOT=%~dp0
+set PYTHON=%ROOT%runtime\python\python.exe
 
-cd /d "%~dp0backend"
+cd /d "%ROOT%backend"
 
-if not exist "..\\.env" (
+if not exist "%ROOT%.env" (
     echo [WARN] No .env file found. Copying from .env.example...
-    copy "..\\.env.example" "..\.env"
-    echo [INFO] Please edit .env with your API keys before starting!
+    copy "%ROOT%.env.example" "%ROOT%.env"
+    echo [INFO] Edit .env with your API keys, then re-run this script.
     pause
     exit /b 1
 )
 
-if not exist "%CONDA_PYTHON%" (
-    echo [ERROR] Conda trading environment not found at %CONDA_PYTHON%
-    echo [INFO] Run: conda create -n trading python=3.12
+if not exist "%PYTHON%" (
+    echo [ERROR] Bundled Python not found at %PYTHON%
     pause
     exit /b 1
 )
 
+:: ── Ollama GPU settings ────────────────────────────────────────────────────
+:: Force all model layers onto the GPU (RTX 2060, 6 GB VRAM).
+:: OLLAMA_NUM_GPU=999  → offload every layer to VRAM (auto-capped to model max)
+:: OLLAMA_NUM_THREAD=2 → Ollama uses only 2 CPU threads for non-GPU work,
+::                       leaving the remaining cores free for Python data fetching.
+:: These must be set BEFORE Ollama starts — restart Ollama if it was already running.
+set OLLAMA_NUM_GPU=999
+set OLLAMA_NUM_THREAD=2
+
+echo [INFO] Ollama GPU offload: OLLAMA_NUM_GPU=%OLLAMA_NUM_GPU%, OLLAMA_NUM_THREAD=%OLLAMA_NUM_THREAD%
 echo [INFO] Starting FastAPI backend on http://localhost:8000
 echo [INFO] API docs at http://localhost:8000/docs
 echo.
-"%CONDA_PYTHON%" main.py
+"%PYTHON%" main.py
 
 pause
