@@ -450,19 +450,38 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
             logger.warning("ClaudeAgent(Hybrid): Ollama returned no response — using fallback")
             return None
 
-        # ── Step 2: Find high-conviction non-HOLD signals ───────────────────
-        escalate: List[str] = [
-            dec["symbol"]
-            for dec in ollama_response.get("decisions", [])
-            if dec.get("action", "HOLD").upper() != "HOLD"
-            and float(dec.get("confidence", 0)) >= threshold
-            and dec.get("symbol")
-        ]
+        # ── Step 2: Find symbols that genuinely need Claude ─────────────────
+        # Escalation rules (must pass confidence threshold AND one of):
+        #   a) SELL on a held position — scanner never reasons about open positions
+        #   b) BUY on a symbol NOT already recommended by the scanner — new signal
+        # BUYs the scanner already flagged are redundant; Ollama's answer is enough.
+        from agents.scanner_agent import get_cached_scan
+        scanner_syms: set = set()
+        cached = get_cached_scan(require_fresh=False)
+        if cached:
+            scanner_syms = {
+                r.get("symbol", "")
+                for r in cached.get("recommendations", [])
+                if r.get("symbol")
+            }
+
+        escalate: List[str] = []
+        for dec in ollama_response.get("decisions", []):
+            sym    = dec.get("symbol", "")
+            action = dec.get("action", "HOLD").upper()
+            conf   = float(dec.get("confidence", 0))
+            if not sym or action == "HOLD" or conf < threshold:
+                continue
+            if action == "SELL" and sym in self.portfolio.positions:
+                escalate.append(sym)   # (a) position management — scanner blind spot
+            elif action == "BUY" and sym not in scanner_syms:
+                escalate.append(sym)   # (b) genuinely new signal not in scanner output
 
         if not escalate:
             logger.info(
-                f"ClaudeAgent(Hybrid): No signals above {threshold:.0%} confidence — "
-                f"Ollama handles all {len(watchlist)} symbols"
+                f"ClaudeAgent(Hybrid): No escalation needed — "
+                f"Ollama handles all {len(watchlist)} symbols "
+                f"(scanner already covers BUY candidates; no SELL on held positions)"
             )
             return ollama_response
 
@@ -485,8 +504,9 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
         # ── Step 4: Escalate high-conviction symbols to Claude Opus ─────────
         non_escalated = [s for s in watchlist if s not in escalate]
         logger.info(
-            f"ClaudeAgent(Hybrid): Escalating {escalate} → Claude Opus 4.6 | "
-            f"Ollama handles {non_escalated}"
+            f"ClaudeAgent(Hybrid): Escalating {escalate} → Claude Opus 4.6 "
+            f"(SELL-on-held or new BUY not in scanner) | "
+            f"Ollama handles {non_escalated} (scanner-validated or below threshold)"
         )
         claude_response = await self._get_claude_decisions(market_context, escalate)
 
