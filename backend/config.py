@@ -36,6 +36,12 @@ class Config:
     # Optional: override the Ollama binary directory added to PATH on startup.
     # Defaults to %LOCALAPPDATA%\Programs\Ollama on Windows (auto-detected).
     OLLAMA_PATH: str      = os.getenv("OLLAMA_PATH", "")
+    # Hybrid mode: Ollama pre-screens all symbols each cycle; only symbols where
+    # Ollama confidence >= HYBRID_ESCALATION_THRESHOLD are escalated to Claude Opus.
+    # Set OLLAMA_ONLY_MODE=0 and OLLAMA_HYBRID_MODE=1 to enable.
+    # Incompatible with OLLAMA_ONLY_MODE=1 (pure Ollama takes precedence).
+    OLLAMA_HYBRID_MODE: bool          = os.getenv("OLLAMA_HYBRID_MODE", "0") == "1"
+    HYBRID_ESCALATION_THRESHOLD: float = float(os.getenv("HYBRID_ESCALATION_THRESHOLD", "0.65"))
 
     # Additional data source keys
     FINNHUB_API_KEY: str = os.getenv("FINNHUB_API_KEY", "")

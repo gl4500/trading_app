@@ -826,5 +826,139 @@ class TestOllamaOnlyModeClaude(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(captured_model.get("model"), "deepseek-r1:7b")
 
 
+class TestHybridMode(unittest.IsolatedAsyncioTestCase):
+    """Tests for _get_hybrid_decisions() and hybrid mode routing in analyze()."""
+
+    def _ollama_response(self, decisions):
+        return {"decisions": decisions, "market_analysis": "Ollama view"}
+
+    def _claude_response(self, decisions):
+        return {"decisions": decisions, "market_analysis": "Claude view"}
+
+    async def test_no_high_conviction_uses_ollama_only(self):
+        """When all Ollama signals are below threshold, Claude is never called."""
+        agent = ClaudeAgent()
+        ollama_resp = self._ollama_response([
+            {"symbol": "AAPL", "action": "BUY",  "confidence": 0.50, "shares": 1, "reasoning": "ok"},
+            {"symbol": "MSFT", "action": "HOLD", "confidence": 0.40, "shares": 0, "reasoning": "ok"},
+        ])
+        with patch.object(agent, "_get_ollama_decisions", new=AsyncMock(return_value=ollama_resp)), \
+             patch.object(agent, "_get_claude_decisions", new=AsyncMock()) as mock_claude, \
+             patch("agents.claude_agent.config") as mock_cfg:
+            mock_cfg.RESEARCH_MODEL = "llama3.1:8b"
+            mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+            mock_cfg.HYBRID_ESCALATION_THRESHOLD = 0.65
+            mock_cfg.ANTHROPIC_API_KEY = "key"
+            result = await agent._get_hybrid_decisions(_make_ctx(["AAPL", "MSFT"]), ["AAPL", "MSFT"])
+        mock_claude.assert_not_called()
+        self.assertEqual(result, ollama_resp)
+
+    async def test_high_conviction_escalates_to_claude(self):
+        """Symbol with Ollama confidence >= threshold is passed to Claude."""
+        agent = ClaudeAgent()
+        ollama_resp = self._ollama_response([
+            {"symbol": "AAPL", "action": "BUY",  "confidence": 0.80, "shares": 2, "reasoning": "strong"},
+            {"symbol": "MSFT", "action": "HOLD", "confidence": 0.30, "shares": 0, "reasoning": "flat"},
+        ])
+        claude_resp = self._claude_response([
+            {"symbol": "AAPL", "action": "BUY", "confidence": 0.90, "shares": 3, "reasoning": "claude agrees"},
+        ])
+        with patch.object(agent, "_get_ollama_decisions", new=AsyncMock(return_value=ollama_resp)), \
+             patch.object(agent, "_get_claude_decisions", new=AsyncMock(return_value=claude_resp)) as mock_claude, \
+             patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as mock_cfg:
+            mock_cfg.RESEARCH_MODEL = "llama3.1:8b"
+            mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+            mock_cfg.HYBRID_ESCALATION_THRESHOLD = 0.65
+            mock_cfg.ANTHROPIC_API_KEY = "key"
+            result = await agent._get_hybrid_decisions(_make_ctx(["AAPL", "MSFT"]), ["AAPL", "MSFT"])
+
+        mock_claude.assert_called_once_with(_make_ctx(["AAPL", "MSFT"]), ["AAPL"])
+        decisions = {d["symbol"]: d for d in result["decisions"]}
+        # Claude's decision wins for AAPL
+        self.assertEqual(decisions["AAPL"]["confidence"], 0.90)
+        self.assertIn("[Claude validated]", decisions["AAPL"]["reasoning"])
+        # Ollama's decision kept for MSFT
+        self.assertEqual(decisions["MSFT"]["action"], "HOLD")
+        self.assertIn("[Ollama screened]", decisions["MSFT"]["reasoning"])
+
+    async def test_claude_unavailable_falls_back_to_ollama(self):
+        """If Claude API key is missing, Ollama result is returned as-is."""
+        agent = ClaudeAgent()
+        ollama_resp = self._ollama_response([
+            {"symbol": "AAPL", "action": "BUY", "confidence": 0.80, "shares": 2, "reasoning": "ok"},
+        ])
+        with patch.object(agent, "_get_ollama_decisions", new=AsyncMock(return_value=ollama_resp)), \
+             patch.object(agent, "_get_claude_decisions", new=AsyncMock()) as mock_claude, \
+             patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as mock_cfg:
+            mock_cfg.HYBRID_ESCALATION_THRESHOLD = 0.65
+            mock_cfg.ANTHROPIC_API_KEY = ""   # no key
+            result = await agent._get_hybrid_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+
+        mock_claude.assert_not_called()
+        self.assertEqual(result, ollama_resp)
+
+    async def test_claude_returns_none_falls_back_to_ollama(self):
+        """If Claude call fails, full Ollama response is returned unchanged."""
+        agent = ClaudeAgent()
+        ollama_resp = self._ollama_response([
+            {"symbol": "AAPL", "action": "BUY", "confidence": 0.80, "shares": 2, "reasoning": "ok"},
+        ])
+        with patch.object(agent, "_get_ollama_decisions", new=AsyncMock(return_value=ollama_resp)), \
+             patch.object(agent, "_get_claude_decisions", new=AsyncMock(return_value=None)), \
+             patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as mock_cfg:
+            mock_cfg.HYBRID_ESCALATION_THRESHOLD = 0.65
+            mock_cfg.ANTHROPIC_API_KEY = "key"
+            result = await agent._get_hybrid_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertEqual(result, ollama_resp)
+
+    async def test_market_analysis_prefers_claude(self):
+        """Merged response uses Claude's market_analysis when available."""
+        agent = ClaudeAgent()
+        ollama_resp = self._ollama_response([
+            {"symbol": "AAPL", "action": "BUY", "confidence": 0.80, "shares": 1, "reasoning": "ok"},
+        ])
+        claude_resp = {"decisions": [
+            {"symbol": "AAPL", "action": "SELL", "confidence": 0.85, "shares": 1, "reasoning": "claude"},
+        ], "market_analysis": "Claude's deep view"}
+        with patch.object(agent, "_get_ollama_decisions", new=AsyncMock(return_value=ollama_resp)), \
+             patch.object(agent, "_get_claude_decisions", new=AsyncMock(return_value=claude_resp)), \
+             patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as mock_cfg:
+            mock_cfg.HYBRID_ESCALATION_THRESHOLD = 0.65
+            mock_cfg.ANTHROPIC_API_KEY = "key"
+            result = await agent._get_hybrid_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertEqual(result["market_analysis"], "Claude's deep view")
+
+    async def test_ollama_none_returns_none(self):
+        """If Ollama itself fails, return None."""
+        agent = ClaudeAgent()
+        with patch.object(agent, "_get_ollama_decisions", new=AsyncMock(return_value=None)), \
+             patch("agents.claude_agent.config") as mock_cfg:
+            mock_cfg.HYBRID_ESCALATION_THRESHOLD = 0.65
+            mock_cfg.ANTHROPIC_API_KEY = "key"
+            result = await agent._get_hybrid_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertIsNone(result)
+
+    async def test_backoff_skips_escalation(self):
+        """Claude call is skipped when agent is in backoff — Ollama result returned."""
+        agent = ClaudeAgent()
+        agent._backoff_until = time.time() + 300  # 5 min backoff
+        ollama_resp = self._ollama_response([
+            {"symbol": "AAPL", "action": "BUY", "confidence": 0.90, "shares": 1, "reasoning": "ok"},
+        ])
+        with patch.object(agent, "_get_ollama_decisions", new=AsyncMock(return_value=ollama_resp)), \
+             patch.object(agent, "_get_claude_decisions", new=AsyncMock()) as mock_claude, \
+             patch("agents.claude_agent.HAS_ANTHROPIC", True), \
+             patch("agents.claude_agent.config") as mock_cfg:
+            mock_cfg.HYBRID_ESCALATION_THRESHOLD = 0.65
+            mock_cfg.ANTHROPIC_API_KEY = "key"
+            result = await agent._get_hybrid_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        mock_claude.assert_not_called()
+        self.assertEqual(result, ollama_resp)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -427,10 +427,111 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
             logger.error(f"ClaudeAgent: Ollama error: {e}")
             return None
 
+    async def _get_hybrid_decisions(self, market_context: Dict, watchlist: List[str]) -> Optional[Dict]:
+        """Hybrid mode: Ollama pre-screens all symbols, Claude validates high-conviction ones.
+
+        Flow:
+          1. Ollama analyzes the full watchlist (free, fast).
+          2. Symbols where Ollama confidence >= HYBRID_ESCALATION_THRESHOLD and
+             action != HOLD are escalated to Claude Opus.
+          3. Claude's decisions override Ollama's for escalated symbols only.
+          4. Returns merged dict; reasoning tagged [Claude validated] / [Ollama screened].
+        """
+        threshold = config.HYBRID_ESCALATION_THRESHOLD
+
+        # ── Step 1: Ollama screens all symbols ──────────────────────────────
+        logger.info(
+            f"ClaudeAgent(Hybrid): Ollama pre-screening {len(watchlist)} symbols "
+            f"(escalation threshold={threshold:.0%})"
+        )
+        ollama_response = await self._get_ollama_decisions(market_context, watchlist)
+
+        if not ollama_response:
+            logger.warning("ClaudeAgent(Hybrid): Ollama returned no response — using fallback")
+            return None
+
+        # ── Step 2: Find high-conviction non-HOLD signals ───────────────────
+        escalate: List[str] = [
+            dec["symbol"]
+            for dec in ollama_response.get("decisions", [])
+            if dec.get("action", "HOLD").upper() != "HOLD"
+            and float(dec.get("confidence", 0)) >= threshold
+            and dec.get("symbol")
+        ]
+
+        if not escalate:
+            logger.info(
+                f"ClaudeAgent(Hybrid): No signals above {threshold:.0%} confidence — "
+                f"Ollama handles all {len(watchlist)} symbols"
+            )
+            return ollama_response
+
+        # ── Step 3: Check Claude availability ───────────────────────────────
+        if not HAS_ANTHROPIC or not config.ANTHROPIC_API_KEY:
+            logger.info(
+                f"ClaudeAgent(Hybrid): Escalation candidates {escalate} — "
+                f"Claude not configured, using Ollama for all"
+            )
+            return ollama_response
+
+        if time.time() < self._backoff_until:
+            remaining = int(self._backoff_until - time.time())
+            logger.info(
+                f"ClaudeAgent(Hybrid): Escalation candidates {escalate} — "
+                f"Claude in backoff ({remaining}s remaining), using Ollama"
+            )
+            return ollama_response
+
+        # ── Step 4: Escalate high-conviction symbols to Claude Opus ─────────
+        non_escalated = [s for s in watchlist if s not in escalate]
+        logger.info(
+            f"ClaudeAgent(Hybrid): Escalating {escalate} → Claude Opus 4.6 | "
+            f"Ollama handles {non_escalated}"
+        )
+        claude_response = await self._get_claude_decisions(market_context, escalate)
+
+        if not claude_response:
+            logger.warning(
+                "ClaudeAgent(Hybrid): Claude returned no response — "
+                "falling back to Ollama for all symbols"
+            )
+            return ollama_response
+
+        # ── Step 5: Merge — Claude overrides Ollama for escalated symbols ───
+        claude_by_sym = {
+            d["symbol"]: d
+            for d in claude_response.get("decisions", [])
+            if d.get("symbol")
+        }
+        merged_decisions = []
+        for dec in ollama_response.get("decisions", []):
+            sym = dec.get("symbol", "")
+            if sym in claude_by_sym:
+                entry = claude_by_sym[sym].copy()
+                entry["reasoning"] = f"[Claude validated] {entry.get('reasoning', '')}"
+                merged_decisions.append(entry)
+            else:
+                entry = dec.copy()
+                entry["reasoning"] = f"[Ollama screened] {entry.get('reasoning', '')}"
+                merged_decisions.append(entry)
+
+        logger.info(
+            f"ClaudeAgent(Hybrid): Merged — Claude decided {len(claude_by_sym)} symbol(s), "
+            f"Ollama handled {len(merged_decisions) - len(claude_by_sym)}"
+        )
+        return {
+            "decisions": merged_decisions,
+            "market_analysis": (
+                claude_response.get("market_analysis")
+                or ollama_response.get("market_analysis", "")
+            ),
+        }
+
     async def analyze(self, market_context: Dict) -> List[Signal]:
-        """Analyze market using Claude or local Ollama research model."""
+        """Analyze market using Claude, local Ollama, or hybrid mode."""
         import os as _os
-        _ollama_mode = _os.environ.get("OLLAMA_ONLY_MODE") == "1"
+        _ollama_mode  = _os.environ.get("OLLAMA_ONLY_MODE") == "1"
+        _hybrid_mode  = (not _ollama_mode) and config.OLLAMA_HYBRID_MODE
 
         prices = {s: ctx.get("price", 0) for s, ctx in market_context.items() if isinstance(ctx, dict)}
 
@@ -470,17 +571,20 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
             self._analysis_interval = self._open_interval if _is_market_hours() else self._closed_interval
             self._cycle_count += 1
 
-            # Only call Claude API every N cycles to manage costs
-            if self._cycle_count % self._analysis_interval != 1 and self._last_decisions:
-                logger.debug(f"ClaudeAgent: Replaying cached decisions (cycle {self._cycle_count})")
-                signals = parse_ai_decisions(
-                    self._last_decisions, market_context, prices,
-                    self.portfolio, config.MAX_POSITION_SIZE, "CLAUDE ANALYSIS"
-                )
-                return fill_missing_symbols(
-                    signals, market_context, prices,
-                    self.portfolio, self._picks, config.MAX_POSITION_SIZE, "ClaudeAgent"
-                )
+            # Cycle throttle: replay cached decisions between API calls.
+            # Skipped in hybrid mode — Ollama runs every cycle and the escalation
+            # threshold acts as the natural gate on Claude calls.
+            if not _hybrid_mode:
+                if self._cycle_count % self._analysis_interval != 1 and self._last_decisions:
+                    logger.debug(f"ClaudeAgent: Replaying cached decisions (cycle {self._cycle_count})")
+                    signals = parse_ai_decisions(
+                        self._last_decisions, market_context, prices,
+                        self.portfolio, config.MAX_POSITION_SIZE, "CLAUDE ANALYSIS"
+                    )
+                    return fill_missing_symbols(
+                        signals, market_context, prices,
+                        self.portfolio, self._picks, config.MAX_POSITION_SIZE, "ClaudeAgent"
+                    )
 
             if _ollama_mode:
                 logger.info(
@@ -488,6 +592,11 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
                     f"(cycle {self._cycle_count})"
                 )
                 claude_response = await self._get_ollama_decisions(market_context, watchlist)
+
+            elif _hybrid_mode:
+                logger.info(f"ClaudeAgent(Hybrid): Running hybrid mode (cycle {self._cycle_count})")
+                claude_response = await self._get_hybrid_decisions(market_context, watchlist)
+
             else:
                 if not HAS_ANTHROPIC or not config.ANTHROPIC_API_KEY:
                     logger.warning("ClaudeAgent: Anthropic not configured, using fallback")
