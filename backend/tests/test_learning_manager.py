@@ -234,5 +234,50 @@ class TestGetCatalystSummary(LearningManagerBase):
         self.assertIn("CATALYST", result)
 
 
+# ── get_few_shot_examples tests ───────────────────────────────────────────────
+
+class TestGetFewShotExamples(LearningManagerBase):
+
+    def test_empty_file_returns_empty_string(self):
+        result = lm.get_few_shot_examples()
+        self.assertEqual(result, "")
+
+    def test_profitable_trade_appears_in_examples(self):
+        lm.record_trade("AAPL", 100.0, 120.0, 2000.0, 20.0,
+                        "Strong momentum and earnings beat", "Target reached", "ClaudeAgent")
+        result = lm.get_few_shot_examples()
+        self.assertIn("AAPL", result)
+        self.assertIn("+20.0%", result)
+        self.assertIn("SUCCESSFUL TRADES", result)
+
+    def test_loss_trade_appears_as_avoid_pattern(self):
+        lm.record_trade("TSLA", 200.0, 170.0, -3000.0, -15.0,
+                        "FOMO on Reddit hype", "Stop loss hit", "ClaudeAgent")
+        result = lm.get_few_shot_examples()
+        self.assertIn("TSLA", result)
+        self.assertIn("AVOID", result)
+
+    def test_examples_capped_at_n(self):
+        for i in range(10):
+            lm.record_trade(f"SYM{i}", 100.0, 110.0, float(i + 1), float(i + 1),
+                            "buy", "sell", "Agent")
+        result = lm.get_few_shot_examples(n=3)
+        # Should have EXAMPLE 1, 2, 3 but not EXAMPLE 4
+        self.assertIn("EXAMPLE 3", result)
+        self.assertNotIn("EXAMPLE 4", result)
+
+    def test_buy_and_sell_reasoning_in_output(self):
+        lm.record_trade("NVDA", 400.0, 500.0, 1000.0, 25.0,
+                        "AI chip demand surge", "Overvalued short term", "ClaudeAgent")
+        result = lm.get_few_shot_examples()
+        self.assertIn("AI chip demand surge", result)
+        self.assertIn("Overvalued short term", result)
+
+    def test_closing_instruction_present(self):
+        lm.record_trade("MSFT", 300.0, 330.0, 300.0, 10.0, "Cloud growth", "PE expansion", "Agent")
+        result = lm.get_few_shot_examples()
+        self.assertIn("Apply the successful patterns", result)
+
+
 if __name__ == "__main__":
     unittest.main()

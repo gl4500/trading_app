@@ -164,6 +164,48 @@ def get_catalyst_summary() -> str:
     return "\n".join(lines)
 
 
+def get_few_shot_examples(n: int = 5) -> str:
+    """Return few-shot examples from Claude's best trades, formatted for smaller LLMs.
+
+    Produces an explicit instruction block showing reasoning → decision → outcome
+    so llama3.1:8b can mimic Claude's decision style when in OLLAMA_ONLY_MODE.
+    """
+    data = _load()
+    profitable = data.get("profitable_trades", [])
+    losses = data.get("loss_trades", [])
+
+    if not profitable and not losses:
+        return ""
+
+    lines = [
+        "## Few-Shot Examples: Proven Trade Decisions (Claude Opus history)",
+        "Study these examples. Mirror this reasoning pattern in your own decisions.",
+        "",
+    ]
+
+    if profitable:
+        lines.append("### SUCCESSFUL TRADES — replicate this reasoning pattern:")
+        for i, t in enumerate(profitable[:n], 1):
+            lines.append(
+                f"\nEXAMPLE {i} ({t['symbol']} — +{t['pnl_pct']:.1f}% gain):\n"
+                f"  BUY reasoning:  {t['buy_reasoning'][:200]}\n"
+                f"  SELL reasoning: {t['sell_reasoning'][:200]}\n"
+                f"  Outcome: +${t['pnl']:.0f} ({t['pnl_pct']:+.1f}%) on {t.get('date','')}"
+            )
+
+    if losses:
+        lines.append("\n### FAILED TRADES — avoid these patterns:")
+        for i, t in enumerate(losses[:3], 1):
+            lines.append(
+                f"\nAVOID PATTERN {i} ({t['symbol']} — {t['pnl_pct']:.1f}% loss):\n"
+                f"  BUY reasoning that FAILED: {t['buy_reasoning'][:200]}\n"
+                f"  Do NOT make similar buys. Outcome: ${t['pnl']:.0f} ({t['pnl_pct']:+.1f}%)"
+            )
+
+    lines.append("\nApply the successful patterns above when building your JSON response.")
+    return "\n".join(lines)
+
+
 def get_learning_summary() -> str:
     """Return a formatted string of past learnings for injection into Claude's prompt."""
     data = _load()

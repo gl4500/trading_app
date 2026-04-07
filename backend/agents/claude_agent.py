@@ -358,15 +358,18 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
         if not config.RESEARCH_MODEL:
             return None
         try:
+            from data.learning_manager import get_few_shot_examples
             client  = AsyncOpenAI(base_url=config.OLLAMA_BASE_URL, api_key="ollama")
             stable  = self._build_stable_context(market_context)
             dynamic = self._build_dynamic_context(market_context, watchlist)
+            few_shot = get_few_shot_examples(n=5)
+            user_content = f"{few_shot}\n\n{stable}\n{dynamic}" if few_shot else f"{stable}\n{dynamic}"
             response = await asyncio.wait_for(
                 client.chat.completions.create(
                     model=config.RESEARCH_MODEL,
                     messages=[
                         {"role": "system", "content": self._SYSTEM_TEXT},
-                        {"role": "user",   "content": f"{stable}\n{dynamic}"},
+                        {"role": "user",   "content": user_content},
                     ],
                     temperature=0.2,
                     max_tokens=4096,
