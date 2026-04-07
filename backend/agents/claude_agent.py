@@ -359,11 +359,37 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
             return None
         try:
             from data.learning_manager import get_few_shot_examples
+            from data.agent_performance_tracker import agent_performance_tracker
             client  = AsyncOpenAI(base_url=config.OLLAMA_BASE_URL, api_key="ollama")
             stable  = self._build_stable_context(market_context)
             dynamic = self._build_dynamic_context(market_context, watchlist)
             few_shot = get_few_shot_examples(n=5)
-            user_content = f"{few_shot}\n\n{stable}\n{dynamic}" if few_shot else f"{stable}\n{dynamic}"
+
+            # Build agent signal section from other agents' last-cycle signals
+            agent_signal_section = ""
+            raw_agent_sigs = market_context.get("__agent_signals__", {})
+            if isinstance(raw_agent_sigs, dict) and raw_agent_sigs:
+                try:
+                    metrics = agent_performance_tracker.get_metrics_summary()
+                    lines = ["## Other Agent Signals This Cycle",
+                             "(Performance-weighted — use these to inform your decisions)\n"]
+                    for sym in watchlist:
+                        sigs = raw_agent_sigs.get(sym)
+                        if not sigs:
+                            continue
+                        consensus = agent_performance_tracker.consensus_score(sigs)
+                        direction = "BULLISH" if consensus > 0.1 else ("BEARISH" if consensus < -0.1 else "NEUTRAL")
+                        parts = []
+                        for agent_name, (action, conf) in sorted(sigs.items()):
+                            score = metrics.get(agent_name, {}).get("score", 0.5)
+                            parts.append(f"{agent_name}→{action}({conf:.2f},score={score:.2f})")
+                        lines.append(f"  {sym}: {' | '.join(parts)} → consensus={direction}({consensus:+.2f})")
+                    agent_signal_section = "\n".join(lines) + "\n"
+                except Exception:
+                    pass  # Never block the Ollama call over signal formatting
+
+            sections = [s for s in [few_shot, agent_signal_section, stable, dynamic] if s]
+            user_content = "\n\n".join(sections)
             response = await asyncio.wait_for(
                 client.chat.completions.create(
                     model=config.RESEARCH_MODEL,
