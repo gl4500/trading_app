@@ -110,47 +110,56 @@ logging.root.addFilter(_win10054_filter)
 # ─── Persistent Error Log File ──────────────────────────────────────────────
 
 _LOG_DIR = os.path.join(os.path.dirname(__file__), "logs")
-_ERROR_LOG_PATH = os.path.join(_LOG_DIR, "error.log")
+_ERROR_LOG_PATH       = os.path.join(_LOG_DIR, "error.log")        # WARNING+
+_ERRORS_ONLY_LOG_PATH = os.path.join(_LOG_DIR, "errors_only.log")  # ERROR+ only
 
-try:
-    os.makedirs(_LOG_DIR, exist_ok=True)
-    _file_handler = RotatingFileHandler(
-        _ERROR_LOG_PATH,
-        maxBytes=2 * 1024 * 1024,   # 2 MB per file
-        backupCount=5,
-        encoding="utf-8",
-    )
-    _file_handler.setLevel(logging.WARNING)
-    _file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    ))
-    _file_handler.addFilter(_win10054_filter)
-    # Guard against duplicate handlers on uvicorn hot-reload: only add if no
-    # RotatingFileHandler already points at the same path on the root logger.
-    _handler_already_added = any(
-        isinstance(h, RotatingFileHandler)
-        and os.path.abspath(getattr(h, "baseFilename", "")) == os.path.abspath(_ERROR_LOG_PATH)
-        for h in logging.root.handlers
-    )
-    if not _handler_already_added:
-        logging.root.addHandler(_file_handler)
-    else:
-        _file_handler.close()
-except OSError:
-    pass  # Non-fatal: log to console only if file logging fails
+def _add_log_handler(path: str, level: int) -> None:
+    """Add a RotatingFileHandler at `path` for `level`+, guarded against duplicates."""
+    try:
+        os.makedirs(_LOG_DIR, exist_ok=True)
+        handler = RotatingFileHandler(
+            path,
+            maxBytes=5 * 1024 * 1024,   # 5 MB per file
+            backupCount=10,
+            encoding="utf-8",
+        )
+        handler.setLevel(level)
+        handler.setFormatter(logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        ))
+        handler.addFilter(_win10054_filter)
+        already_added = any(
+            isinstance(h, RotatingFileHandler)
+            and os.path.abspath(getattr(h, "baseFilename", "")) == os.path.abspath(path)
+            for h in logging.root.handlers
+        )
+        if not already_added:
+            logging.root.addHandler(handler)
+        else:
+            handler.close()
+    except OSError:
+        pass  # Non-fatal
+
+_add_log_handler(_ERROR_LOG_PATH,       logging.WARNING)  # warnings + errors
+_add_log_handler(_ERRORS_ONLY_LOG_PATH, logging.ERROR)    # errors + critical only
 
 _LOG_LINE_RE = re.compile(
     r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(\w+)\] ([^:]+): (.+)$"
 )
 
 
-def _parse_error_log(limit: int = 100) -> list:
-    """Read and parse the error log file, returning entries newest-first."""
-    if not os.path.exists(_ERROR_LOG_PATH):
+def _parse_error_log(limit: int = 100, errors_only: bool = True) -> list:
+    """Read and parse the log file, returning entries newest-first.
+
+    errors_only=True  → reads errors_only.log (ERROR/CRITICAL, never polluted by warnings)
+    errors_only=False → reads error.log       (WARNING/ERROR/CRITICAL, full log)
+    """
+    path = _ERRORS_ONLY_LOG_PATH if errors_only else _ERROR_LOG_PATH
+    if not os.path.exists(path):
         return []
     try:
-        with open(_ERROR_LOG_PATH, "r", encoding="utf-8", errors="replace") as f:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
     except OSError:
         return []
@@ -2043,9 +2052,18 @@ async def get_token_log_endpoint(
 # ─── Error Log Endpoints ───────────────────────────────────────────────────────
 
 @app.get("/api/errors")
-async def get_error_log_endpoint(limit: int = Query(100, description="Max entries to return")):
-    """Return recent WARNING/ERROR entries from the persistent error log file, newest first."""
-    return {"entries": _parse_error_log(limit=limit)}
+async def get_error_log_endpoint(
+    limit: int = Query(200, description="Max entries to return"),
+    errors_only: bool = Query(True, description="True=ERROR/CRITICAL only; False=include WARNINGs"),
+):
+    """Return recent log entries newest-first.
+    Default: errors_only=True reads errors_only.log (ERROR/CRITICAL, never diluted by warnings).
+    Pass errors_only=false to include WARNING entries from the full error.log.
+    """
+    return {
+        "entries": _parse_error_log(limit=limit, errors_only=errors_only),
+        "source": "errors_only.log" if errors_only else "error.log",
+    }
 
 
 @app.post("/api/ollama-mode")
@@ -2082,7 +2100,8 @@ async def analyze_error_log():
     """Send recent ERROR/CRITICAL entries to Claude Haiku and return root-cause analysis."""
     import anthropic
 
-    entries = _parse_error_log(limit=30)
+    # Read from errors_only.log so warnings never dilute the analysis
+    entries = _parse_error_log(limit=50, errors_only=True)
     error_entries = [e for e in entries if e["level"] in ("ERROR", "CRITICAL")]
 
     if not error_entries:

@@ -9,6 +9,59 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2026-04-07] — Phase 1 Ollama Learning, Dual Error Logs, NSSM Services, Decision Diagram
+
+### Added
+
+- **Phase 1 Ollama learning — few-shot examples** (`data/learning_manager.py`, `agents/claude_agent.py`)
+  - New `get_few_shot_examples(n=5)` in `learning_manager.py`:
+    - Reads the top N profitable trades from `learning.json` and formats them as explicit few-shot reasoning examples: symbol, buy reasoning, sell reasoning, and outcome %
+    - Top 3 loss trades formatted as "AVOID PATTERN" blocks showing which reasoning patterns failed and why
+    - Closes with an instruction line directing the model to apply the successful patterns
+  - In `_get_ollama_decisions()` (`claude_agent.py`): `get_few_shot_examples()` is called before building the prompt; the few-shot block is prepended to the user message ahead of the stable/dynamic context so the smaller `llama3.1:8b` model sees proven reasoning patterns first
+  - When `learning.json` is empty (no trades yet) the function returns an empty string and no block is injected — zero overhead at startup
+  - Phase 2 (fine-tuning via JSONL + Unsloth LoRA) is tracked for a future release
+
+- **Dual error log files** (`backend/main.py`)
+  - Refactored log handler setup into `_add_log_handler(path, level)` helper — avoids duplicating handler code
+  - `error.log` — WARNING+ as before
+  - `errors_only.log` — ERROR and CRITICAL only (separate rotating file, never polluted by warnings)
+  - `_parse_error_log(errors_only=True)` now accepts a flag to switch between the two files
+  - `/api/errors` defaults to `errors_only=True`; pass `?errors_only=false` to include warnings
+  - `/api/errors/analyze` reads from `errors_only.log` (limit 50)
+
+- **Error Log dashboard tab** (`frontend/src/components/ErrorLogPanel.tsx`, `frontend/src/components/Dashboard.tsx`)
+  - New `⚠ Errors` tab surfacing the error log in the dashboard
+  - Summary bar: error count, warning count, mode label ("Errors only" vs "All logs")
+  - Warnings toggle button (OFF by default) — fetches `?errors_only=false` when ON
+  - Level filter dropdown (All / WARNING / ERROR / CRITICAL)
+  - Manual refresh button + 60-second auto-refresh interval
+  - "Analyze with AI" button — calls `/api/errors/analyze` and renders AI narrative in an inline card
+  - Entries styled by severity: yellow for WARNING, red for ERROR, bright red for CRITICAL
+  - Tab bar made horizontally scrollable (`overflow-x-auto` + `shrink-0` on all buttons) to prevent compression on smaller screens
+
+- **NSSM Windows service scripts** (root)
+  - `install_services.bat` — installs `TradingAppBackend` and `TradingAppFrontend` as NSSM-managed Windows services:
+    - Auto-elevates to administrator via UAC (no manual `runas` needed)
+    - Sets `PYTHONPATH=%ROOT%\site-packages` in the service environment so uvicorn resolves without an external launcher
+    - Log rotation at 10 MB per log file; restart delay 5 seconds; auto-start on boot
+    - Locates `nssm.exe` from PATH or from the root directory automatically
+    - Validates Python/Node paths before installing; warns if `.env` is missing
+  - `uninstall_services.bat` — stops and removes both services; same UAC auto-elevation
+
+- **Printable decision diagram** (`decision_diagram.html`)
+  - Self-contained HTML file — open in any browser, print with Ctrl+P (or File → Print)
+  - Renders all 7 decision layers as styled boxes with directional arrows:
+    Layer 1 (Data Sources) → Layer 2 (Overnight Sentinel) → Layer 3 (Gemini Pre-Pass) → Layer 4 (Individual Agents) → Layer 5 (Ensemble Voting) → Layer 6 (Risk Manager Gate) → Layer 7 (Scanner Agent)
+  - Includes base weights table, regime multiplier table, and full cycle summary
+
+### Changed
+
+- **`main.py` — sys.path bootstrap** — added at the very top (before any imports) to insert `site-packages/` into `sys.path`; ensures uvicorn resolves correctly when the backend is started as a Windows service without an external PYTHONPATH
+- **Dashboard tab bar** — all tab buttons given `shrink-0`; container set to `overflow-x-auto` so all 10 tabs remain accessible on narrower displays
+
+---
+
 ## [2026-04-05b] — DB Auto-Pruning, Ollama Scanner Crash Retry
 
 ### Added

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Trading App — Decision Flow Diagram</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #111; background: #fff; padding: 20px; }
+  h1 { font-size: 16px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 14px; letter-spacing: 1px; }
+  h2 { font-size: 12px; background: #222; color: #fff; padding: 4px 8px; margin: 14px 0 8px 0; letter-spacing: 0.5px; }
+  h3 { font-size: 11px; background: #555; color: #fff; padding: 3px 8px; margin: 8px 0 6px 0; }
+
+  /* Layout */
+  .row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .col { flex: 1; }
+
+  /* Blocks */
+  .block { border: 1.5px solid #333; border-radius: 4px; padding: 7px 9px; background: #f9f9f9; margin-bottom: 6px; }
+  .block.blue   { border-color: #1a5276; background: #eaf4fb; }
+  .block.green  { border-color: #1e8449; background: #eafaf1; }
+  .block.purple { border-color: #6c3483; background: #f5eef8; }
+  .block.orange { border-color: #b7770d; background: #fef9e7; }
+  .block.red    { border-color: #922b21; background: #fdedec; }
+  .block.gray   { border-color: #555; background: #f2f2f2; }
+  .block.dark   { border-color: #111; background: #e8e8e8; }
+
+  .block-title { font-weight: bold; font-size: 11.5px; margin-bottom: 4px; }
+  .block ul { padding-left: 14px; }
+  .block li { margin-bottom: 2px; line-height: 1.4; }
+  .block p  { margin-bottom: 3px; line-height: 1.4; }
+
+  /* Arrow */
+  .arrow { text-align: center; font-size: 16px; line-height: 1; margin: 2px 0; color: #333; }
+  .arrow-row { display: flex; justify-content: space-around; margin: 2px 0; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 10.5px; }
+  th { background: #333; color: #fff; padding: 3px 6px; text-align: left; }
+  td { border: 1px solid #ccc; padding: 3px 6px; }
+  tr:nth-child(even) td { background: #f5f5f5; }
+
+  /* Badges */
+  .badge { display: inline-block; border-radius: 3px; padding: 1px 5px; font-size: 10px; font-weight: bold; margin-right: 3px; }
+  .badge.buy  { background: #1e8449; color: #fff; }
+  .badge.sell { background: #922b21; color: #fff; }
+  .badge.hold { background: #888; color: #fff; }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid #bbb; margin: 10px 0; }
+
+  /* Print */
+  @media print {
+    body { padding: 10px; font-size: 10px; }
+    h1 { font-size: 14px; }
+    h2 { font-size: 11px; }
+    .no-break { page-break-inside: avoid; }
+  }
+
+  .cycle-box { border: 2px solid #111; border-radius: 6px; padding: 10px; margin-top: 10px; background: #f0f0f0; }
+  .cycle-box ol { padding-left: 18px; }
+  .cycle-box li { margin-bottom: 3px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h1>AI TRADING APP — DECISION FLOW DIAGRAM</h1>
+
+<!-- LAYER 1 -->
+<h2>LAYER 1 — DATA SOURCES &amp; MARKET CONTEXT</h2>
+<div class="row no-break">
+  <div class="col">
+    <div class="block blue">
+      <div class="block-title">Alpaca Markets</div>
+      <ul>
+        <li>OHLCV bars (1D, 1H, 5M)</li>
+        <li>Live prices &amp; volume</li>
+        <li>Snapshot quotes</li>
+        <li>Paper trading execution</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col">
+    <div class="block blue">
+      <div class="block-title">yfinance</div>
+      <ul>
+        <li>Analyst consensus (Buy/Hold/Sell)</li>
+        <li>Earnings surprise history</li>
+        <li>52-week high / low</li>
+        <li>ETFs skipped (no fundamentals)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col">
+    <div class="block blue">
+      <div class="block-title">News Sources</div>
+      <ul>
+        <li>Alpaca News API (90s cache)</li>
+        <li>Yahoo Finance RSS</li>
+        <li>CNBC / Reuters RSS</li>
+        <li>SEC EDGAR Form 4 (congressional trades)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col">
+    <div class="block blue">
+      <div class="block-title">Stooq (Long-term)</div>
+      <ul>
+        <li>5-year daily bars</li>
+        <li>Used by HistoricalTrendsAgent</li>
+        <li>Falls back to Alpaca 60-day</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="arrow">▼</div>
+
+<div class="row no-break">
+  <div class="col">
+    <div class="block gray">
+      <div class="block-title">signal_aggregator.py — Composite Signal (per symbol)</div>
+      <table>
+        <tr><th>Source</th><th>Weight</th><th>Notes</th></tr>
+        <tr><td>Analyst consensus (yfinance)</td><td>35%</td><td>Skipped for ETFs (SPY, QQQ, etc.)</td></tr>
+        <tr><td>Earnings surprise (yfinance)</td><td>22%</td><td>Skipped for ETFs</td></tr>
+        <tr><td>Alpaca News (keyword scored)</td><td>18%</td><td>90-second cache</td></tr>
+        <tr><td>Yahoo Finance news</td><td>12%</td><td>RSS feed</td></tr>
+        <tr><td>Congressional trades (SEC EDGAR)</td><td>13%</td><td>4-hour cache</td></tr>
+      </table>
+      <p>Output: <strong>composite_score</strong> (−1 to +1) + verdict (BUY / SELL / HOLD)</p>
+    </div>
+  </div>
+  <div class="col" style="max-width:220px;">
+    <div class="block gray">
+      <div class="block-title">technicals.py</div>
+      <ul>
+        <li>RSI (14)</li>
+        <li>MACD (12/26/9)</li>
+        <li>Bollinger Bands (20, 2σ)</li>
+        <li>SMA 20 / 50 / 200</li>
+        <li>ATR (14)</li>
+        <li>Volume ratio (SMA-20)</li>
+        <li>Stochastic %K/%D</li>
+        <li>OBV</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="arrow">▼</div>
+<div class="block dark no-break">
+  <div class="block-title">market_context (built per symbol, every cycle)</div>
+  <div class="row">
+    <div class="col"><ul>
+      <li>price, OHLCV bars (30d)</li>
+      <li>long_term_bars (Stooq 5yr)</li>
+      <li>RSI, MACD, BB, SMA, ATR, volume</li>
+    </ul></div>
+    <div class="col"><ul>
+      <li>composite_signal (score + verdict)</li>
+      <li>news headlines</li>
+      <li>portfolio_state (positions, cash, P&amp;L)</li>
+    </ul></div>
+    <div class="col"><ul>
+      <li>__overnight_catalysts__ ← Sentinel</li>
+      <li>__gemini_market_view__ ← Gemini pre-pass</li>
+      <li>scanner_picks ← ScannerAgent cache</li>
+    </ul></div>
+  </div>
+</div>
+
+<hr>
+
+<!-- LAYER 2 -->
+<h2>LAYER 2 — OVERNIGHT SENTINEL (runs 24/7)</h2>
+<div class="block orange no-break">
+  <div class="block-title">news_sentinel_loop — every 5 min (market hours) / 15 min (off-hours)</div>
+  <div class="row">
+    <div class="col">
+      <p><strong>Sources:</strong> Alpaca · CNBC RSS · Reuters RSS · Yahoo Finance · SEC EDGAR 8-K · Finnhub · Unusual Whales</p>
+      <p><strong>Scoring:</strong></p>
+      <ul>
+        <li>Standard catalyst: earnings / M&amp;A / FDA / analyst upgrades / bankruptcies</li>
+        <li>Policy monitor: executive orders / legislation / tariffs / Fed / sanctions / antitrust</li>
+      </ul>
+    </div>
+    <div class="col" style="max-width:260px;">
+      <p><strong>combined_score &ge; 2 &rarr; triggers scanner run</strong></p>
+      <p>Stores up to 50 catalysts in <code>app_state.after_hours_catalysts</code></p>
+      <p>Injected into ClaudeAgent + GeminiAgent prompts at next cycle</p>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- LAYER 3 -->
+<h2>LAYER 3 — GEMINI PRE-PASS (every 3rd cycle, news-only)</h2>
+<div class="block purple no-break">
+  <div class="block-title">GeminiAgent — Gemini 2.0 Flash &nbsp;[NOT a voting member of the ensemble]</div>
+  <div class="row">
+    <div class="col">
+      <p><strong>Input:</strong> price action, RSI/MACD/BB, news, composite signal, overnight catalysts</p>
+      <p><strong>Decision framework:</strong></p>
+      <ul>
+        <li>STRONG BUY → catalyst + RSI &lt; 65 + MACD+ + price &gt; SMA20</li>
+        <li>STRONG SELL → negative catalyst + RSI &gt; 65 + MACD− + price &lt; SMA20</li>
+        <li>HOLD → mixed signals</li>
+      </ul>
+    </div>
+    <div class="col" style="max-width:280px;">
+      <p><strong>Output:</strong></p>
+      <ul>
+        <li>market_analysis string (2–3 sentences)</li>
+        <li>per-symbol BUY / SELL / HOLD</li>
+      </ul>
+      <p><strong>Injected as:</strong> <code>market_context["__gemini_market_view__"]</code> into ClaudeAgent prompt as <em>"## Gemini Market View"</em></p>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- LAYER 4 -->
+<h2>LAYER 4 — INDIVIDUAL AGENTS (all run in parallel each cycle)</h2>
+
+<div class="row no-break">
+  <div class="col">
+    <div class="block green">
+      <div class="block-title">TechAgent</div>
+      <p><em>Rule-based technical analysis</em></p>
+      <ul>
+        <li>RSI (14) — oversold/overbought</li>
+        <li>MACD (12/26/9) — cross + histogram</li>
+        <li>Bollinger Bands (20, 2σ)</li>
+        <li>Stochastic %K/%D</li>
+        <li>OBV divergence</li>
+        <li>Volume spike confirmation</li>
+      </ul>
+      <hr style="margin:4px 0;">
+      <p><span class="badge buy">BUY</span> score &ge; 0.55</p>
+      <p><span class="badge sell">SELL</span> score &ge; 0.55 + has position</p>
+      <p>Sells entire position</p>
+    </div>
+  </div>
+  <div class="col">
+    <div class="block green">
+      <div class="block-title">MomentumAgent</div>
+      <p><em>Price momentum + trailing stop</em></p>
+      <ul>
+        <li>mom_5d ×5 + mom_10d ×3 + mom_20d ×2</li>
+        <li>Trend consistency score</li>
+        <li>Acceleration factor</li>
+        <li>Volume-weighted momentum</li>
+      </ul>
+      <hr style="margin:4px 0;">
+      <p><span class="badge buy">BUY</span> score &ge; 0.30 + vw_mom &gt; 0</p>
+      <p><span class="badge sell">SELL</span> score &ge; 0.30 or mom &lt; −2%</p>
+      <p>Trailing stop: drawdown &gt; 3%</p>
+    </div>
+  </div>
+  <div class="col">
+    <div class="block green">
+      <div class="block-title">MeanReversionAgent</div>
+      <p><em>Z-score mean reversion (20-day)</em></p>
+      <ul>
+        <li>z = (price − mean) / std</li>
+        <li>MR_BUY_ZSCORE = −1.5</li>
+        <li>MR_SELL_ZSCORE = +1.5</li>
+        <li>Early exit: −0.3 &le; z &le; 0.5 if P&amp;L &gt; 1%</li>
+      </ul>
+      <hr style="margin:4px 0;">
+      <p><span class="badge buy">BUY</span> z &le; −1.5</p>
+      <p><span class="badge sell">SELL</span> z &ge; +1.5 or mean-reversion exit</p>
+      <p>conf = min(0.95, |z| / 3)</p>
+    </div>
+  </div>
+</div>
+
+<div class="row no-break">
+  <div class="col">
+    <div class="block green">
+      <div class="block-title">SentimentAgent (Ollama / GPT-4o-mini)</div>
+      <p><em>LLM news sentiment, throttled 90 min, batch &le; 5 symbols</em></p>
+      <ul>
+        <li>Input: 1D/5D/20D returns, vol, high/low dist, news headlines</li>
+        <li>LLM returns: sentiment + confidence + strength</li>
+        <li>adjusted_conf = confidence × {strong:1.0, moderate:0.8, weak:0.6}</li>
+      </ul>
+      <hr style="margin:4px 0;">
+      <p><span class="badge buy">BUY</span> bullish + adjusted_conf &ge; 0.45</p>
+      <p><span class="badge sell">SELL</span> bearish + adjusted_conf &ge; 0.45</p>
+    </div>
+  </div>
+  <div class="col">
+    <div class="block green">
+      <div class="block-title">HistoricalTrendsAgent</div>
+      <p><em>Seasonal + channel + multi-period momentum</em></p>
+      <ul>
+        <li>composite = seasonal×0.20 + channel×0.30 + momentum×0.40 + volume×0.10</li>
+        <li>Seasonal: month-of-year bias + quarter effect</li>
+        <li>Channel: price in 5-yr high-low range (SMA-20 slope adjusted)</li>
+        <li>Momentum: weighted RoC 5/10/20/40d — alignment bonus ±0.20</li>
+      </ul>
+      <hr style="margin:4px 0;">
+      <p><span class="badge buy">BUY</span> composite &gt; +0.25, no position</p>
+      <p><span class="badge sell">SELL</span> composite &lt; −0.25, has position</p>
+    </div>
+  </div>
+  <div class="col">
+    <div class="block purple">
+      <div class="block-title">ClaudeAgent (Claude Opus 4.6 / Ollama llama3.1:8b)</div>
+      <p><em>Full-context LLM — every 3rd cycle, &le; 2 API calls/hr</em></p>
+      <ul>
+        <li>Input: all indicators + composite signal + news + overnight catalysts + portfolio state + learning history + Gemini market view + risk assessor flags</li>
+        <li>STRONG BUY: catalyst + RSI &lt; 65 + MACD+ + price &gt; SMA20</li>
+        <li>STRONG SELL: negative + RSI &gt; 65 + MACD− + price &lt; SMA20</li>
+        <li>CONFLICTED: use technicals for timing, news for direction</li>
+      </ul>
+      <hr style="margin:4px 0;">
+      <p><strong>Phase 1 Ollama Learning</strong> (OLLAMA_ONLY_MODE=1):</p>
+      <ul>
+        <li>Top 5 profitable Claude trades prepended as few-shot EXAMPLES (reasoning → outcome)</li>
+        <li>Top 3 losses shown as AVOID PATTERN blocks</li>
+        <li>llama3.1:8b mimics Claude Opus decision style</li>
+      </ul>
+      <hr style="margin:4px 0;">
+      <p>Output: per-symbol {action, shares, confidence, reasoning}</p>
+      <p>Replays last decisions on non-API cycles</p>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- LAYER 5 -->
+<h2>LAYER 5 — ENSEMBLE VOTING (EnsembleAgent, every cycle)</h2>
+<div class="no-break">
+<div class="block gray">
+  <div class="block-title">Weighted Vote — 6 agents (GeminiAgent excluded)</div>
+  <div class="row">
+    <div class="col">
+      <table>
+        <tr><th>Agent</th><th>Base Weight</th></tr>
+        <tr><td>ClaudeAgent</td><td>29%</td></tr>
+        <tr><td>TechAgent</td><td>23%</td></tr>
+        <tr><td>SentimentAgent</td><td>17%</td></tr>
+        <tr><td>MomentumAgent</td><td>14%</td></tr>
+        <tr><td>MeanReversionAgent</td><td>9%</td></tr>
+        <tr><td>HistoricalTrendsAgent</td><td>8%</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <p><strong>buy_score</strong> = Σ(weight × conf) for BUY signals / total_weight</p>
+      <p><strong>sell_score</strong> = Σ(weight × conf) for SELL signals / total_weight</p>
+      <br>
+      <p><strong>Every 5 cycles — adaptive weight recalculation:</strong></p>
+      <ul>
+        <li>perf_score = 0.5 × win_rate + 0.5 × norm_sharpe</li>
+        <li>norm_sharpe = (sharpe + 2) / 5  [clamped −2 to +3]</li>
+        <li>raw = base × max(0.30, perf_score) × regime_multiplier</li>
+        <li>final = raw / Σ(all raw)  [renormalised]</li>
+      </ul>
+    </div>
+    <div class="col">
+      <p><strong>Regime detection (SPY/QQQ, every 5 cycles):</strong></p>
+      <table>
+        <tr><th>Signal</th><th>Condition</th></tr>
+        <tr><td>A</td><td>|SMA20 slope| &gt; 0.4% per price</td></tr>
+        <tr><td>B</td><td>&gt;60% of last 10 days in slope direction</td></tr>
+        <tr><td>C</td><td>5-bar volume &gt; 20-bar avg × 1.10</td></tr>
+      </table>
+      <p style="margin-top:4px;">ATR &gt; 2.5% → <strong>VOLATILE</strong> (checked first)<br>
+      2+ of A/B/C → <strong>TRENDING</strong><br>
+      otherwise → <strong>RANGING</strong></p>
+    </div>
+  </div>
+</div>
+
+<div class="block gray" style="margin-top:6px;">
+  <div class="block-title">Regime Multipliers</div>
+  <table>
+    <tr><th>Agent</th><th>TRENDING</th><th>RANGING</th><th>VOLATILE</th></tr>
+    <tr><td>MomentumAgent</td><td>×1.50</td><td>×0.55</td><td>×0.65</td></tr>
+    <tr><td>TechAgent</td><td>×1.20</td><td>×1.10</td><td>×0.80</td></tr>
+    <tr><td>HistoricalTrendsAgent</td><td>×1.20</td><td>×1.30</td><td>×0.80</td></tr>
+    <tr><td>ClaudeAgent</td><td>×1.10</td><td>×1.00</td><td>×1.40</td></tr>
+    <tr><td>SentimentAgent</td><td>×0.80</td><td>×1.20</td><td>×1.20</td></tr>
+    <tr><td>MeanReversionAgent</td><td>×0.40</td><td>×1.60</td><td>×0.60</td></tr>
+  </table>
+</div>
+
+<div class="block dark" style="margin-top:6px;">
+  <div class="block-title">Final Vote Decision</div>
+  <div class="row">
+    <div class="col">
+      <p><span class="badge buy">BUY</span> buy_score &ge; 0.60 <strong>AND</strong> no existing position <strong>AND</strong> buy_score &ge; sell_score × 2.0 (margin of safety)</p>
+      <p style="margin-top:4px;"><span class="badge sell">SELL</span> sell_score &ge; 0.60 <strong>AND</strong> holding position</p>
+      <p style="margin-top:4px;"><span class="badge hold">HOLD</span> neither threshold met, or margin of safety fails</p>
+    </div>
+    <div class="col" style="max-width:280px;">
+      <p><strong>Position sizing:</strong></p>
+      <ul>
+        <li>target = portfolio_value × 15% × buy_score</li>
+        <li>target = min(target, available_cash × 0.95)</li>
+        <li>shares = floor(target / price × 100) / 100</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</div>
+
+<hr>
+
+<!-- LAYER 6 -->
+<h2>LAYER 6 — RISK MANAGER GATE (before every trade)</h2>
+<div class="block red no-break">
+  <div class="block-title">RiskManager — any FAIL blocks the trade</div>
+  <div class="row">
+    <div class="col">
+      <ul>
+        <li>Daily loss limit not breached (default 5% of portfolio)</li>
+        <li>Position size &le; MAX_POSITION_SIZE per symbol (default 15%)</li>
+        <li>Sufficient cash available for trade value</li>
+      </ul>
+    </div>
+    <div class="col">
+      <ul>
+        <li>No churn cooloff active (30 min after selling a symbol)</li>
+        <li>Sector concentration &le; 35% of portfolio value</li>
+        <li>No short selling (long-only)</li>
+      </ul>
+    </div>
+  </div>
+  <hr style="margin:5px 0;">
+  <div class="row">
+    <div class="col" style="text-align:center;">
+      <p style="color:#1e8449; font-weight:bold;">✓ PASS → Trade executed (Alpaca paper API)</p>
+    </div>
+    <div class="col" style="text-align:center;">
+      <p style="color:#922b21; font-weight:bold;">✗ FAIL → Signal dropped (reason logged)</p>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- LAYER 7 -->
+<h2>LAYER 7 — SCANNER AGENT (independent, every 30 min)</h2>
+<div class="block purple no-break">
+  <div class="block-title">ScannerAgent — Agentic tool-use loop (Claude Opus + Ollama fallback)</div>
+  <div class="row">
+    <div class="col">
+      <p><strong>Input:</strong> ~299 S&P 500 stocks (stock_universe.py)</p>
+      <p><strong>Pre-screen:</strong> price change + volume ratio filter → top candidates</p>
+      <p><strong>Tool-use loop:</strong> fetch bars, check technicals, assess news, score opportunity</p>
+      <p><strong>Output:</strong> ranked BUY / SELL / WATCH + confidence + price target + catalyst</p>
+      <p><strong>Persisted:</strong> data/scan_cache.json (survives restarts, is_stale flag)</p>
+      <p><strong>Retry:</strong> up to 3 attempts with 5s/10s backoff on VRAM crash</p>
+    </div>
+    <div class="col" style="max-width:280px;">
+      <p><strong>ScannerPortfolioAgent (every cycle):</strong></p>
+      <ul>
+        <li>Reads cached scanner results</li>
+        <li><span class="badge buy">BUY</span> conf &ge; 0.60, fresh scan only (no churn)</li>
+        <li><span class="badge sell">SELL</span> explicit SELL rec from scanner</li>
+        <li><span class="badge sell">SELL</span> not in BUY set + position loss &ge; 5%</li>
+        <li>Same RiskManager gate applies</li>
+      </ul>
+      <p style="margin-top:4px;"><strong>Scanner symbols</strong> also injected into all agents' market_context each cycle</p>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- FULL CYCLE SUMMARY -->
+<h2>FULL CYCLE SUMMARY — Every 60 seconds (9:30–16:00 ET)</h2>
+<div class="cycle-box no-break">
+  <ol>
+    <li><strong>Fetch market data</strong> — Alpaca OHLCV + Stooq long-term bars → build market_context for all watchlist symbols</li>
+    <li><strong>(Every 3rd cycle) GeminiAgent pre-pass</strong> → market_analysis injected into context as <em>__gemini_market_view__</em></li>
+    <li><strong>6 agents run in parallel</strong> → each returns BUY / SELL / HOLD per symbol<br>
+        (TechAgent · MomentumAgent · MeanReversionAgent · SentimentAgent · HistoricalTrendsAgent · ClaudeAgent)</li>
+    <li><strong>EnsembleAgent collects all signals</strong> → weighted vote per symbol<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;→ Every 5 cycles: recalculate regime + adaptive weights<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;→ BUY gate: threshold 0.60 AND margin-of-safety 2× vs sell signal</li>
+    <li><strong>RiskManager gate</strong> — checks daily loss / position size / cash / churn / sector limits</li>
+    <li><strong>Passing signals → Alpaca paper trade execution</strong></li>
+    <li><strong>(Every 30 min) ScannerAgent</strong> runs independently → scan_cache.json updated</li>
+    <li><strong>ScannerPortfolioAgent</strong> reads cache → its own BUY / SELL signals → same RiskManager gate → Alpaca execution</li>
+    <li><strong>(24/7 background) Sentinel</strong> polls news every 5–15 min → catalysts queued → triggers scanner if score &ge; 2</li>
+  </ol>
+</div>
+
+<hr>
+<p style="text-align:center; font-size:10px; color:#888; margin-top:8px;">
+  AI Trading App &nbsp;|&nbsp; Generated 2026-04-06 &nbsp;|&nbsp; C:\Users\gl450\trading_app\
+</p>
+
+</body>
+</html>

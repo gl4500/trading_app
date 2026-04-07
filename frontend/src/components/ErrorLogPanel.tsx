@@ -31,6 +31,7 @@ export default function ErrorLogPanel() {
   const [loading, setLoading] = useState(false)
   const [offline, setOffline] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [showWarnings, setShowWarnings] = useState(false)
 
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null)
@@ -43,7 +44,8 @@ export default function ErrorLogPanel() {
     setFetchError(null)
     setOffline(false)
     try {
-      const resp = await fetch(`${API_BASE}/api/errors?limit=200`)
+      const errorsOnly = !showWarnings
+      const resp = await fetch(`${API_BASE}/api/errors?limit=200&errors_only=${errorsOnly}`)
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
       const data = await resp.json()
       setEntries(data.entries || [])
@@ -53,7 +55,7 @@ export default function ErrorLogPanel() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [showWarnings])
 
   useEffect(() => {
     fetchEntries()
@@ -89,10 +91,20 @@ export default function ErrorLogPanel() {
 
       {/* Summary bar */}
       <div className="flex items-center gap-4 px-4 py-3 rounded-lg bg-gray-800/60 border border-gray-700/40 text-sm">
-        <span className="text-gray-400">Last 200 log entries:</span>
+        <span className="text-gray-400">{showWarnings ? 'All logs (warnings + errors):' : 'Errors only:'}</span>
         <span className="font-semibold text-red-400">{errorCount} error{errorCount !== 1 ? 's' : ''}</span>
         <span className="font-semibold text-yellow-400">{warningCount} warning{warningCount !== 1 ? 's' : ''}</span>
         <div className="ml-auto flex items-center gap-3">
+          <button
+            onClick={() => setShowWarnings(v => !v)}
+            className={`px-3 py-1 rounded text-xs transition-colors border ${
+              showWarnings
+                ? 'bg-yellow-800 border-yellow-600 text-yellow-200'
+                : 'bg-gray-800 border-gray-600 text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            {showWarnings ? '⚠ Warnings ON' : '⚠ Warnings OFF'}
+          </button>
           <select
             value={levelFilter}
             onChange={e => setLevelFilter(e.target.value)}

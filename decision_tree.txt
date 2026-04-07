@@ -173,11 +173,18 @@
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │  ClaudeAgent  (Claude Opus 4.6, every 3rd cycle, ≤ 2 calls/hr)       │
+  │               (Ollama llama3.1:8b when OLLAMA_ONLY_MODE=1)           │
   │                                                                        │
   │  Input: everything — price, OHLCV(30d), RSI/MACD/BB/SMA/ATR,         │
   │         composite signal, Alpaca news, overnight catalysts,           │
   │         portfolio state, learning history, Gemini market view,        │
   │         risk assessor findings (churn/regime/sector flags)            │
+  │                                                                        │
+  │  [OLLAMA_ONLY_MODE=1] Phase 1 Learning — prepended to prompt:        │
+  │   • Top 5 profitable trades as few-shot EXAMPLES                     │
+  │     (symbol, buy/sell reasoning, outcome %) from learning.json       │
+  │   • Up to 3 worst losses as AVOID PATTERN blocks                     │
+  │   → llama3.1:8b mimics Claude Opus decision style                    │
   │                                                                        │
   │  Decision framework:                                                   │
   │   STRONG BUY  → bullish catalyst + RSI<65 + MACD+ + price>SMA20      │
@@ -336,14 +343,19 @@
   3. Run 6 agents in parallel → each returns BUY/SELL/HOLD per symbol
      (TechAgent, MomentumAgent, MeanReversionAgent, SentimentAgent,
       HistoricalTrendsAgent, ClaudeAgent)
+     └─ OLLAMA_ONLY_MODE=1: ClaudeAgent prepends Phase 1 few-shot
+        examples from learning.json before sending to llama3.1:8b
   4. EnsembleAgent collects all signals → weighted vote per symbol
      └─ Every 5 cycles: recalculate regime + adaptive weights
      └─ BUY gate: threshold 0.60 AND margin-of-safety 2× vs sell signal
   5. For each signal: RiskManager gate
   6. Passing signals → Alpaca paper trade execution
+     └─ Completed SELL trades recorded to learning.json for future learning
   7. (Every 30 min) Scanner runs independently → scan_cache.json updated
   8. ScannerPortfolioAgent reads cache → its own BUY/SELL signals
      └─ Through same RiskManager gate → Alpaca execution
   9. (24/7 background) Sentinel polls news → catalysts queued for next cycle
+ 10. (Background) Dual logs written: error.log (WARNING+),
+     errors_only.log (ERROR/CRITICAL) → viewable in ⚠ Errors dashboard tab
 
 ================================================================================

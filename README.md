@@ -58,7 +58,8 @@ trading_app/
 │       ├── ScannerPanel.tsx    # Agentic scanner results
 │       ├── SentinelPanel.tsx   # Overnight catalyst feed + news→price impact
 │       ├── SummaryPanel.tsx    # Daily roll-up narrative
-│       └── TokensPanel.tsx     # Live token usage stats + 24h searchable log
+│       ├── TokensPanel.tsx     # Live token usage stats + 24h searchable log
+│       └── ErrorLogPanel.tsx   # Error/warning log viewer with AI analysis + warnings toggle
 ├── runtime/                  # Self-contained Python + Node runtimes
 ├── site-packages/            # All installed Python packages
 ├── .env                      # API keys (never commit)
@@ -67,6 +68,9 @@ trading_app/
 ├── start_backend.ps1 / .bat  # Start backend only
 ├── start_frontend.ps1 / .bat # Start frontend only
 ├── setup_offline.ps1 / .bat  # Install all deps without internet
+├── install_services.bat      # Install TradingAppBackend + TradingAppFrontend as Windows services (NSSM)
+├── uninstall_services.bat    # Remove NSSM services
+├── decision_diagram.html     # Printable browser-rendered block diagram of all 7 decision layers
 └── README.md                 # This file
 ```
 
@@ -94,6 +98,8 @@ trading_app/
 **CNNReasoningAgent** uses a convolutional neural network to identify price patterns in OHLCV data, then routes its reasoning through a local Ollama model. It runs independently of the cloud AI agents — useful when operating fully offline or in `OLLAMA_ONLY_MODE`.
 
 **Ollama / Zero-cost mode:** Set `OLLAMA_ONLY_MODE=1` in `.env` to route ClaudeAgent, GeminiAgent, and SentimentAgent through local Ollama inference instead of cloud APIs. No Anthropic, OpenAI, or Gemini API calls are made — zero token cost. See Environment Variables for the required Ollama config vars.
+
+**Phase 1 Ollama Learning:** When `OLLAMA_ONLY_MODE=1`, ClaudeAgent automatically prepends Claude Opus's top 5 most profitable trade decisions (from `learning.json`) as few-shot examples into the Ollama prompt. This teaches `llama3.1:8b` to mimic Claude's reasoning style — e.g. "Given these conditions, Claude decided BUY — here's why." Loss trades are shown as "AVOID PATTERN" blocks. Examples grow automatically as the app accumulates real trade history.
 
 **HistoricalTrendsAgent** is a pure rule-based agent with three analytical pillars: (1) **seasonal bias** — month-of-year and quarter-position effects based on long-run S&P 500 seasonality research; (2) **channel analysis** — where the current price sits in its historical high-low range, SMA-slope adjusted; (3) **multi-period momentum** — trend persistence across 5/10/20/40-day windows with an alignment bonus when all timeframes agree. It uses up to 5 years of free daily OHLCV data from Stooq.com, falling back to Alpaca bars when Stooq is unavailable. Regime multipliers: boosted in trending (×1.20) and ranging (×1.30) regimes, reduced in volatile markets (×0.80).
 
@@ -158,7 +164,7 @@ ClaudeAgent receives per symbol each cycle:
 - **OHLCV data** — last 15 daily bars
 - **Overnight catalysts** — all sentinel-detected events injected at market open
 - **Portfolio state** — current cash, positions, cost basis
-- **Past trade learnings** — top profitable/loss patterns
+- **Past trade learnings** — top profitable/loss patterns + few-shot Ollama examples (Phase 1 learning)
 - **Gemini market view** — Gemini's 2-3 sentence overall market assessment
 - **Risk assessor findings** — churn alerts, false regime warnings, sector overweight flags (every 30 cycles)
 
@@ -247,6 +253,7 @@ In calm trending markets, momentum and technical signals can outvote the AI agen
 | **⚡ Sentinel** | Overnight catalyst feed grouped by category + news→price impact tracker |
 | **🔢 Tokens** | Live token usage per agent (daily total, calls/hr) + searchable 24h log with limit-hit alerts |
 | **📊 Telemetry** | System resource monitor: CPU, RAM, disk, GPU utilisation + VRAM + temperature (NVIDIA only) |
+| **⚠ Errors** | Live error/critical log viewer with warnings toggle, level filter, AI-powered analysis button, and auto-refresh every 60s |
 
 ---
 
@@ -298,6 +305,8 @@ Discovers high-conviction opportunities outside the core watchlist.
 | `GET /api/tokens` | Live token usage stats per agent + session/daily totals |
 | `GET /api/token-log` | 24h token log (`?agent=`, `?hours=`, `?limit_hit=true`) |
 | `GET /api/telemetry` | CPU%, RAM%, disk%, GPU utilisation/VRAM/temp (per device), Ollama status |
+| `GET /api/errors` | Recent error/warning log entries (`?limit=200&errors_only=true`) |
+| `GET /api/errors/analyze` | AI-powered analysis of recent errors using Ollama |
 | `GET /api/status` | App status (running, market_status, cycle count) |
 | `POST /api/start` | Start trading |
 | `POST /api/stop` | Stop trading |
@@ -434,6 +443,11 @@ See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 | Date | Change |
 |---|---|
+| 2026-04-07 | **Phase 1 Ollama learning** — `get_few_shot_examples()` in `learning_manager.py` formats Claude's top profitable/loss trades as explicit few-shot examples; prepended to Ollama prompt in `_get_ollama_decisions()` so `llama3.1:8b` mimics Claude Opus reasoning style in `OLLAMA_ONLY_MODE=1` |
+| 2026-04-07 | **Dual error log files** — `backend/logs/error.log` captures WARNING+; `errors_only.log` captures ERROR/CRITICAL only; `/api/errors` defaults to errors-only with `errors_only=false` toggle for warnings |
+| 2026-04-07 | **Error Log dashboard tab** — new `ErrorLogPanel.tsx` with warnings toggle, level filter dropdown, AI analysis button (`/api/errors/analyze`), 60s auto-refresh |
+| 2026-04-07 | **NSSM Windows service scripts** — `install_services.bat` and `uninstall_services.bat` install backend and frontend as auto-restarting Windows services; auto-elevates UAC; backend service sets `PYTHONPATH` to `site-packages/` |
+| 2026-04-07 | **Printable decision diagram** — `decision_diagram.html` renders all 7 decision layers as a styled block diagram; print with Ctrl+P |
 | 2026-04-05 | **GPU telemetry** — `nvidia-smi` subprocess in `/api/telemetry`; GPU utilisation, VRAM, and temperature displayed in 📊 Telemetry dashboard tab; multi-GPU support; graceful "no GPU" state |
 | 2026-04-05 | **CNNReasoningAgent halt fix** — `get_position()` method does not exist on `Portfolio`; fixed to `portfolio.positions[sym].shares`; was causing `AttributeError` every SELL cycle → 5-error halt |
 | 2026-04-05 | **Tier 2 Ollama swap** — `OLLAMA_ONLY_MODE=1` routes ClaudeAgent, GeminiAgent, and SentimentAgent through local Ollama; `RESEARCH_MODEL` config var selects model for ClaudeAgent (defaults to `OLLAMA_MODEL` to share single loaded model — critical for RTX 2060 6 GB VRAM); cycle-throttle and cache-replay logic preserved on Ollama path |
