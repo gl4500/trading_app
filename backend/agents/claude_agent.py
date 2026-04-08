@@ -136,8 +136,8 @@ class ClaudeAgent(BaseAgent):
 
     def _build_stable_context(self, market_context: Dict) -> str:
         """
-        Portfolio state + learning summary.
-        Changes only when a trade executes or learning data updates — worth caching.
+        Portfolio state + learning summary + macro context.
+        Changes only when a trade executes, learning updates, or macro refreshes (15 min).
         """
         portfolio_ctx = build_portfolio_context(self.portfolio)
         learning_ctx  = get_learning_summary()
@@ -147,7 +147,12 @@ class ClaudeAgent(BaseAgent):
                 assessment_ctx = _get_risk_assessment_context()
         except Exception:
             pass
-        return f"## Current Portfolio State\n{portfolio_ctx}\n{learning_ctx}{assessment_ctx}"
+        macro_ctx = market_context.get("__macro_context__", "")
+        macro_section = f"\n\n{macro_ctx}" if macro_ctx else ""
+        return (
+            f"## Current Portfolio State\n{portfolio_ctx}\n"
+            f"{learning_ctx}{assessment_ctx}{macro_section}"
+        )
 
     def _build_dynamic_context(self, market_context: Dict, watchlist: List[str]) -> str:
         """

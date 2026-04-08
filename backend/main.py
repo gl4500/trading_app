@@ -66,6 +66,7 @@ from trading.alpaca_client import alpaca_client
 from data.drift_detector import check_all_agents
 from data.risk_assessor import record_trade as record_risk_trade, run_periodic_assessment
 from data.learning_manager import record_catalyst_outcome
+from data.macro_context import get_macro_context_text
 from agents.tech_agent import TechAgent
 from agents.momentum_agent import MomentumAgent
 from agents.mean_reversion_agent import MeanReversionAgent
@@ -569,6 +570,22 @@ async def trading_loop() -> None:
             # Inject overnight sentinel catalysts so agents see what happened after hours
             if app_state.after_hours_catalysts:
                 market_context["__overnight_catalysts__"] = app_state.after_hours_catalysts
+
+            # Inject macro sector rotation context (15-min cache; Murphy + Bridgewater framework)
+            # Refresh every 15 cycles (~15 min at 60s interval); also on first cycle
+            if app_state.cycle_count % 15 == 1:
+                try:
+                    macro_text = await get_macro_context_text()
+                    if macro_text:
+                        market_context["__macro_context__"] = macro_text
+                        logger.debug("MacroContext: injected into market_context")
+                except Exception as _me:
+                    logger.warning(f"MacroContext injection failed: {_me}")
+            elif "__macro_context__" not in market_context and app_state.last_market_context:
+                # Carry forward cached macro context from previous cycle
+                prev = app_state.last_market_context.get("__macro_context__", "")
+                if prev:
+                    market_context["__macro_context__"] = prev
 
             # Fetch Gemini market view (rate-limited 2/hr) and inject as context
             if app_state.gemini_news_agent:
