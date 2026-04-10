@@ -131,7 +131,10 @@ class ClaudeAgent(BaseAgent):
         "    }\n"
         "  ]\n"
         "}\n\n"
-        "Only recommend BUY if you have strong conviction. Manage risk carefully."
+        "Only recommend BUY if you have strong conviction. Manage risk carefully.\n\n"
+        "CRITICAL: Output raw JSON only. No markdown, no code fences (```), no explanation text "
+        "before or after the JSON. The very first character of your response must be '{' and the "
+        "very last character must be '}'."
     )
 
     def _build_stable_context(self, market_context: Dict) -> str:
@@ -412,17 +415,26 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
                 logger.warning("ClaudeAgent(Ollama): empty response")
                 return None
             logger.info(f"ClaudeAgent: received response from local model '{config.RESEARCH_MODEL}'")
+
+            # Strip markdown code fences that smaller models emit despite instructions
+            text = re.sub(r'```(?:json)?\s*', '', text).strip()
+
+            # Try direct parse first (ideal case: clean JSON)
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                pass
+
+            # Extract the outermost JSON object if wrapped in prose
             json_match = re.search(r'\{[\s\S]*\}', text)
             if json_match:
                 try:
                     return json.loads(json_match.group())
                 except json.JSONDecodeError:
                     pass
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError:
-                logger.error(f"ClaudeAgent(Ollama): JSON parse failed: {text[:200]}")
-                return None
+
+            logger.error(f"ClaudeAgent(Ollama): JSON parse failed: {text[:200]}")
+            return None
         except asyncio.TimeoutError:
             logger.warning(
                 f"ClaudeAgent: Ollama request timed out (model='{config.RESEARCH_MODEL}')"

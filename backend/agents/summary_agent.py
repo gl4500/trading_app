@@ -239,10 +239,13 @@ class DailySummaryService:
         self._generated_for_date: Optional[date] = None
 
     def _is_fresh(self, market_status: str) -> bool:
-        """Cache is fresh only when it was generated today (EOD roll-up already done)."""
+        """Return True if the cache is within its TTL and was generated today."""
         if not self._cache:
             return False
-        return self._generated_for_date == date.today()
+        if self._generated_for_date != date.today():
+            return False
+        ttl = CACHE_TTL_MARKET_CLOSED if market_status == "closed" else CACHE_TTL_MARKET_OPEN
+        return (time.time() - self._cache_ts) < ttl
 
     async def generate(
         self,

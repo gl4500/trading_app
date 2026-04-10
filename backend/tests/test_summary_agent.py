@@ -246,14 +246,39 @@ class TestDailySummaryServiceCache(unittest.IsolatedAsyncioTestCase):
         self.assertIn("generating", result.get("status", "") + result.get("narrative", ""))
 
     async def test_closed_market_cache_fresh_when_generated_today(self):
-        """After EOD roll-up runs today, the cache is returned without regeneration."""
+        """EOD cache generated 10 min ago is still fresh (closed TTL = 60 min)."""
         service = DailySummaryService()
         service._cache = {"status": "ok", "narrative": "eod_cache"}
-        service._cache_ts = time.time() - 10 * 60  # 10 min ago — doesn't matter anymore
+        service._cache_ts = time.time() - 10 * 60  # 10 min ago < 60 min closed TTL
         service._generated_for_date = date.today()
 
         result = await service.generate({}, {}, "closed", force=False)
         self.assertEqual(result["narrative"], "eod_cache")
+
+    async def test_open_market_stale_cache_triggers_regeneration(self):
+        """Cache older than CACHE_TTL_MARKET_OPEN (5 min) is regenerated during market hours."""
+        service = DailySummaryService()
+        service._cache = {"status": "ok", "narrative": "stale_open_cache"}
+        service._cache_ts = time.time() - 6 * 60  # 6 min ago > 5 min open TTL
+        service._generated_for_date = date.today()
+
+        agents = {"TestAgent": _make_agent("TestAgent")}
+        with patch.object(service, "_build_summary", new_callable=AsyncMock) as mock_build:
+            mock_build.return_value = {"status": "ok", "narrative": "fresh_open"}
+            result = await service.generate(agents, {}, "open", force=False)
+
+        mock_build.assert_called_once()
+        self.assertEqual(result["narrative"], "fresh_open")
+
+    async def test_open_market_fresh_cache_not_regenerated(self):
+        """Cache younger than CACHE_TTL_MARKET_OPEN (5 min) is served as-is."""
+        service = DailySummaryService()
+        service._cache = {"status": "ok", "narrative": "recent_open_cache"}
+        service._cache_ts = time.time() - 2 * 60  # 2 min ago < 5 min open TTL
+        service._generated_for_date = date.today()
+
+        result = await service.generate({}, {}, "open", force=False)
+        self.assertEqual(result["narrative"], "recent_open_cache")
 
     async def test_generate_with_no_anthropic_key_uses_fallback(self):
         """When ANTHROPIC_API_KEY is empty, fallback narrative is generated."""

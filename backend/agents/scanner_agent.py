@@ -483,8 +483,11 @@ async def _pre_screen(top_n: int = 50) -> List[Dict]:
             for sym, bars in bars_dict.items():
                 if bars is None or bars.empty or len(bars) < 2:
                     continue
-                price      = float(bars["close"].iloc[-1])
-                prev_close = float(bars["close"].iloc[-2])
+                try:
+                    price      = float(bars["close"].iloc[-1])
+                    prev_close = float(bars["close"].iloc[-2])
+                except (TypeError, ValueError):
+                    continue  # skip symbols with null/nil price values
                 day_vol    = float(bars["volume"].iloc[-1]) if "volume" in bars.columns else 0
                 prev_vol   = float(bars["volume"].iloc[-2]) if "volume" in bars.columns else 0
 

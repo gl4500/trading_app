@@ -155,7 +155,13 @@ class AlpacaClient:
 
         try:
             bar_set = await asyncio.to_thread(self._data.get_stock_bars, request)
-            df_all = bar_set.df  # MultiIndex (symbol, timestamp)
+            df_all = bar_set.df  # Normally MultiIndex (symbol, timestamp)
+
+            # When only one symbol returns data the SDK may give a plain Index.
+            # Wrap it into a MultiIndex so xs(level="symbol") works uniformly.
+            if not df_all.empty and not isinstance(df_all.index, pd.MultiIndex):
+                returned_sym = symbols[0] if len(symbols) == 1 else symbols[0]
+                df_all = pd.concat({returned_sym: df_all}, names=["symbol", "timestamp"])
 
             result: Dict[str, pd.DataFrame] = {}
             for sym in symbols:
