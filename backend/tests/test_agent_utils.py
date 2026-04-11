@@ -321,5 +321,37 @@ class TestIsMarketHours(unittest.TestCase):
         self._check(weekday=6, hour=11, minute=0, expected=False)
 
 
+class TestExtractJson(unittest.TestCase):
+    """extract_json parses JSON from clean text, prose-wrapped, and fails gracefully."""
+
+    def setUp(self):
+        from agents.agent_utils import extract_json
+        self.extract_json = extract_json
+
+    def test_clean_json_object(self):
+        result = self.extract_json('{"action": "BUY", "confidence": 0.8}')
+        self.assertEqual(result["action"], "BUY")
+        self.assertAlmostEqual(result["confidence"], 0.8)
+
+    def test_json_wrapped_in_prose(self):
+        text = 'Based on analysis: {"action": "SELL", "symbol": "AAPL"} — recommended.'
+        result = self.extract_json(text)
+        self.assertEqual(result["action"], "SELL")
+
+    def test_invalid_json_returns_none(self):
+        self.assertIsNone(self.extract_json("not json at all"))
+
+    def test_empty_string_returns_none(self):
+        self.assertIsNone(self.extract_json(""))
+
+    def test_nested_json_parsed(self):
+        text = '{"decisions": [{"symbol": "NVDA", "action": "BUY"}]}'
+        result = self.extract_json(text)
+        self.assertEqual(result["decisions"][0]["symbol"], "NVDA")
+
+    def test_broken_prose_no_json_returns_none(self):
+        self.assertIsNone(self.extract_json("The market looks {bullish} today"))
+
+
 if __name__ == "__main__":
     unittest.main()

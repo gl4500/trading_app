@@ -5,9 +5,11 @@ import asyncio
 import json
 import logging
 import os
+import time
 from abc import ABC, abstractmethod
+from collections import deque
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
+from typing import Deque, Dict, List, Optional, Any, Tuple
 from datetime import datetime, timezone
 
 from config import config
@@ -50,6 +52,11 @@ class BaseAgent(ABC):
         self._max_errors: int = 5
         self._is_active: bool = True
         self._lock = asyncio.Lock()
+        # Rolling 24-hour token window — (epoch_secs, token_count) pairs
+        self._token_window: Deque[Tuple[float, int]] = deque()
+        self._session_tokens: int = 0
+        # Sliding hourly call window — used by cloud API agents for rate limiting
+        self._call_timestamps: List[float] = []
         # Persistent picks: symbol → {action, confidence, reasoning, added_at, last_updated}
         # Survives scanner cache expiry and app restarts — each agent owns its own conviction.
         self._picks: Dict[str, Dict] = {}
@@ -119,6 +126,37 @@ class BaseAgent(ABC):
 
         if changed:
             self._save_picks()
+
+    # ── Token tracking ───────────────────────────────────────────────────────
+
+    @property
+    def _daily_tokens(self) -> int:
+        """Tokens used in the rolling 24-hour window."""
+        cutoff = time.time() - 86400
+        while self._token_window and self._token_window[0][0] < cutoff:
+            self._token_window.popleft()
+        return sum(tok for _, tok in self._token_window)
+
+    @_daily_tokens.setter
+    def _daily_tokens(self, value: int) -> None:
+        """Replace window with a single entry — used in tests to seed the counter."""
+        self._token_window.clear()
+        if value > 0:
+            self._token_window.append((time.time(), value))
+
+    def _check_hourly_rate_limit(self, limit: int) -> bool:
+        """Return True if under the hourly call cap; False (+ log warning) if exceeded.
+        Caller must append to self._call_timestamps after each successful API call."""
+        now = time.time()
+        self._call_timestamps = [t for t in self._call_timestamps if now - t < 3600]
+        if len(self._call_timestamps) >= limit:
+            next_slot = self._call_timestamps[0] + 3600
+            logger.warning(
+                f"{self.name}: Hourly rate limit ({limit}/hr) reached — "
+                f"skipping API call, next slot in {int(next_slot - now)}s"
+            )
+            return False
+        return True
 
     # ── Abstract interface ───────────────────────────────────────────────────
 

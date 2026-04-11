@@ -3,10 +3,12 @@ Shared utilities for AI trading agents (ClaudeAgent, GeminiAgent).
 Extracted to eliminate code duplication — both agents use identical
 bar formatting, portfolio context, decision parsing, and fallback logic.
 """
+import json
 import math
 import logging
+import re
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import pandas as pd
 
@@ -182,6 +184,26 @@ def fill_missing_symbols(
                 reasoning=f"{agent_prefix}: symbol not in current analysis window — HOLD",
             ))
     return signals
+
+
+def extract_json(text: str) -> Optional[Dict]:
+    """Parse a JSON object from an LLM response string.
+
+    Tries direct parse first (fast path for clean responses), then falls back
+    to a regex search for the outermost ``{...}`` block (handles prose-wrapped
+    or markdown-fenced output).  Returns None if no valid JSON object is found.
+    """
+    try:
+        return json.loads(text.strip())
+    except (json.JSONDecodeError, ValueError):
+        pass
+    match = re.search(r'\{[\s\S]*\}', text)
+    if match:
+        try:
+            return json.loads(match.group())
+        except (json.JSONDecodeError, ValueError):
+            pass
+    return None
 
 
 def get_fallback_signals(market_context: Dict, agent_prefix: str) -> List[Signal]:

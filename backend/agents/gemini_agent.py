@@ -7,11 +7,11 @@ import json
 import logging
 import re
 import time
-from collections import deque
-from typing import Deque, Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 
 from agents.base_agent import BaseAgent, Signal
 from agents.agent_utils import (
+    extract_json,
     format_bars_for_prompt,
     build_portfolio_context,
     parse_ai_decisions,
@@ -64,24 +64,7 @@ class GeminiAgent(BaseAgent):
         self._backoff_until: float = 0.0   # epoch seconds — skip API until this time
         self._backoff_seconds: float = 30.0   # current backoff duration (doubles on repeat 429s, capped at 60s)
         self._api_lock = asyncio.Lock()  # prevents duplicate concurrent API calls (separate from base _lock)
-        self._call_timestamps: List[float] = []  # sliding window for hourly rate limit
         self._hourly_call_limit: int = 2
-        self._token_window: Deque[Tuple[float, int]] = deque()  # (epoch_secs, tokens) rolling 24h
-        self._session_tokens: int = 0
-
-    @property
-    def _daily_tokens(self) -> int:
-        """Tokens used in the rolling 24-hour window."""
-        cutoff = time.time() - 86400
-        while self._token_window and self._token_window[0][0] < cutoff:
-            self._token_window.popleft()
-        return sum(tok for _, tok in self._token_window)
-
-    @_daily_tokens.setter
-    def _daily_tokens(self, value: int) -> None:
-        self._token_window.clear()
-        if value > 0:
-            self._token_window.append((time.time(), value))
 
     async def seed_from_history(self) -> None:
         """Restore rolling 24h token window from DB after a restart."""
@@ -239,17 +222,10 @@ Include an entry for every symbol: {', '.join(watchlist)}
                 logger.warning("GeminiAgent(Ollama): empty response")
                 return None
             logger.info(f"GeminiAgent: received response from local model '{config.OLLAMA_MODEL}'")
-            json_match = re.search(r'\{[\s\S]*\}', text)
-            if json_match:
-                try:
-                    return json.loads(json_match.group())
-                except json.JSONDecodeError:
-                    pass
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError:
+            result = extract_json(text)
+            if result is None:
                 logger.error(f"GeminiAgent(Ollama): JSON parse failed: {text[:200]}")
-                return None
+            return result
         except asyncio.TimeoutError:
             logger.warning(
                 f"GeminiAgent: Ollama request timed out (model='{config.OLLAMA_MODEL}')"
@@ -266,15 +242,7 @@ Include an entry for every symbol: {', '.join(watchlist)}
 
         prompt = self._build_prompt(market_context, watchlist)
 
-        # Sliding-window hourly rate limit (2 calls per hour)
-        now = time.time()
-        self._call_timestamps = [t for t in self._call_timestamps if now - t < 3600]
-        if len(self._call_timestamps) >= self._hourly_call_limit:
-            next_slot = self._call_timestamps[0] + 3600
-            logger.warning(
-                f"GeminiAgent: Hourly rate limit ({self._hourly_call_limit}/hr) reached — "
-                f"skipping API call, next slot in {int(next_slot - now)}s"
-            )
+        if not self._check_hourly_rate_limit(self._hourly_call_limit):
             return None
 
         try:
@@ -317,19 +285,10 @@ Include an entry for every symbol: {', '.join(watchlist)}
             except Exception as _e:
                 logger.debug(f"GeminiAgent: token log save failed: {_e}")
 
-            # Extract JSON from response
-            json_match = re.search(r'\{[\s\S]*\}', text)
-            if json_match:
-                try:
-                    return json.loads(json_match.group())
-                except json.JSONDecodeError:
-                    pass
-
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError:
+            result = extract_json(text)
+            if result is None:
                 logger.error(f"GeminiAgent: Could not parse JSON: {text[:200]}")
-                return None
+            return result
 
         except Exception as e:
             err = str(e)

@@ -44,6 +44,7 @@ class TestClaudeAgentFallback(unittest.IsolatedAsyncioTestCase):
             mock_cfg.ANTHROPIC_API_KEY = ""
             mock_cfg.WATCHLIST = ["AAPL"]
             mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_cfg.OLLAMA_HYBRID_MODE = False
             ctx = _make_ctx(["AAPL"])
             signals = await self.agent.analyze(ctx)
         self.assertTrue(all(s.action == "HOLD" for s in signals))
@@ -54,6 +55,7 @@ class TestClaudeAgentFallback(unittest.IsolatedAsyncioTestCase):
             mock_cfg.ANTHROPIC_API_KEY = ""
             mock_cfg.WATCHLIST = []
             mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_cfg.OLLAMA_HYBRID_MODE = False
             ctx = _make_ctx(["AAPL"])
             signals = await self.agent.analyze(ctx)
         self.assertTrue(all(s.action == "HOLD" for s in signals))
@@ -64,6 +66,7 @@ class TestClaudeAgentFallback(unittest.IsolatedAsyncioTestCase):
             mock_cfg.ANTHROPIC_API_KEY = ""
             mock_cfg.WATCHLIST = []
             mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_cfg.OLLAMA_HYBRID_MODE = False
             ctx = _make_ctx(["AAPL", "MSFT"])
             signals = await self.agent.analyze(ctx)
         syms = {s.symbol for s in signals}
@@ -144,6 +147,7 @@ class TestClaudeAgentBackoff(unittest.IsolatedAsyncioTestCase):
             mock_cfg.ANTHROPIC_API_KEY = "fake"
             mock_cfg.WATCHLIST = []
             mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_cfg.OLLAMA_HYBRID_MODE = False
             ctx = _make_ctx(["AAPL"])
             signals = await self.agent.analyze(ctx)
         self.assertTrue(all(s.action == "HOLD" for s in signals))
@@ -235,6 +239,7 @@ class TestClaudeAgentSuccessfulAnalysis(unittest.IsolatedAsyncioTestCase):
             mock_cfg.ANTHROPIC_API_KEY = "fake"
             mock_cfg.WATCHLIST = ["AAPL"]
             mock_cfg.MAX_POSITION_SIZE = 0.10
+            mock_cfg.OLLAMA_HYBRID_MODE = False
             mock_news.format_for_prompt.return_value = ""
             signals = await agent.analyze(_make_ctx(["AAPL"]))
 
@@ -437,7 +442,7 @@ class TestClaudeHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
             cfg.WATCHLIST = ["AAPL"]
             cfg.MAX_POSITION_SIZE = 0.10
             mock_news.format_for_prompt.return_value = ""
-            with self.assertLogs("agents.claude_agent", level="WARNING") as cm:
+            with self.assertLogs("agents.base_agent", level="WARNING") as cm:
                 await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
         self.assertTrue(any("rate limit" in line.lower() or "hourly" in line.lower() for line in cm.output))
 
@@ -503,6 +508,7 @@ class TestClaudeRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
             cfg.ANTHROPIC_API_KEY = "key"
             cfg.WATCHLIST = ["AAPL"]
             cfg.MAX_POSITION_SIZE = 0.10
+            cfg.OLLAMA_HYBRID_MODE = False
             mock_news.format_for_prompt.return_value = ""
             signals = await agent.analyze(_make_ctx(["AAPL"]))
 
@@ -529,6 +535,7 @@ class TestClaudeRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
             cfg.ANTHROPIC_API_KEY = "key"
             cfg.WATCHLIST = ["AAPL"]
             cfg.MAX_POSITION_SIZE = 0.10
+            cfg.OLLAMA_HYBRID_MODE = False
             mock_news.format_for_prompt.return_value = ""
             signals = await agent.analyze(_make_ctx(["AAPL"]))
 

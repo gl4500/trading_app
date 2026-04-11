@@ -7,8 +7,7 @@ import json
 import logging
 import math
 import time
-from collections import deque
-from typing import Deque, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 import pandas as pd
 
 from agents.base_agent import BaseAgent, Signal
@@ -122,25 +121,7 @@ class SentimentAgent(BaseAgent):
         self._closed_min_call_interval: int = 4 * 60 * 60  # 4 h between batches off-hours
         self._last_api_call_time: float = 0.0          # epoch seconds of last API batch
         self._max_symbols_per_call: int = 5            # cap per batch (held positions first)
-        self._token_window: Deque[Tuple[float, int]] = deque()  # (epoch_secs, tokens) rolling 24h
-        self._session_tokens: int = 0
         self._daily_token_limit: int = 10_000
-
-    @property
-    def _daily_tokens(self) -> int:
-        """Tokens used in the rolling 24-hour window."""
-        cutoff = time.time() - 86400
-        while self._token_window and self._token_window[0][0] < cutoff:
-            self._token_window.popleft()
-        return sum(tok for _, tok in self._token_window)
-
-    @_daily_tokens.setter
-    def _daily_tokens(self, value: int) -> None:
-        """Replace window with a single entry at current time.
-        Used in tests to seed the counter to a known value."""
-        self._token_window.clear()
-        if value > 0:
-            self._token_window.append((time.time(), value))
 
     async def seed_from_history(self) -> None:
         """Restore rolling 24h token window from DB after a restart.

@@ -8,11 +8,11 @@ import logging
 import math
 import re
 import time
-from collections import deque
-from typing import Deque, Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 
 from agents.base_agent import BaseAgent, Signal
 from agents.agent_utils import (
+    extract_json,
     format_bars_for_prompt,
     build_portfolio_context,
     parse_ai_decisions,
@@ -65,24 +65,7 @@ class ClaudeAgent(BaseAgent):
         self._backoff_until: float = 0.0   # epoch seconds — skip API until this time
         self._backoff_seconds: float = 60.0  # current backoff duration (doubles on repeat errors)
         self._api_lock = asyncio.Lock()  # prevents duplicate concurrent API calls (separate from base _lock)
-        self._call_timestamps: List[float] = []  # sliding window for hourly rate limit
         self._hourly_call_limit: int = 2
-        self._token_window: Deque[Tuple[float, int]] = deque()  # (epoch_secs, tokens) rolling 24h
-        self._session_tokens: int = 0
-
-    @property
-    def _daily_tokens(self) -> int:
-        """Tokens used in the rolling 24-hour window."""
-        cutoff = time.time() - 86400
-        while self._token_window and self._token_window[0][0] < cutoff:
-            self._token_window.popleft()
-        return sum(tok for _, tok in self._token_window)
-
-    @_daily_tokens.setter
-    def _daily_tokens(self, value: int) -> None:
-        self._token_window.clear()
-        if value > 0:
-            self._token_window.append((time.time(), value))
 
     async def seed_from_history(self) -> None:
         """Restore rolling 24h token window from DB after a restart."""
@@ -252,15 +235,7 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
         stable  = self._build_stable_context(market_context)
         dynamic = self._build_dynamic_context(market_context, watchlist)
 
-        # Sliding-window hourly rate limit (2 calls per hour)
-        now = time.time()
-        self._call_timestamps = [t for t in self._call_timestamps if now - t < 3600]
-        if len(self._call_timestamps) >= self._hourly_call_limit:
-            next_slot = self._call_timestamps[0] + 3600
-            logger.warning(
-                f"ClaudeAgent: Hourly rate limit ({self._hourly_call_limit}/hr) reached — "
-                f"skipping API call, next slot in {int(next_slot - now)}s"
-            )
+        if not self._check_hourly_rate_limit(self._hourly_call_limit):
             return None
 
         try:
@@ -325,19 +300,10 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
             except Exception as _e:
                 logger.debug(f"ClaudeAgent: token log save failed: {_e}")
 
-            # Try JSON block first, then direct parse
-            json_match = re.search(r'\{[\s\S]*\}', text_content)
-            if json_match:
-                try:
-                    return json.loads(json_match.group())
-                except json.JSONDecodeError:
-                    pass
-
-            try:
-                return json.loads(text_content.strip())
-            except json.JSONDecodeError:
+            result = extract_json(text_content)
+            if result is None:
                 logger.error(f"ClaudeAgent: Could not parse JSON from response: {text_content[:200]}")
-                return None
+            return result
 
         except anthropic.APIStatusError as e:
             if e.status_code in (429, 529):  # rate limit or overloaded
@@ -418,23 +384,10 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
 
             # Strip markdown code fences that smaller models emit despite instructions
             text = re.sub(r'```(?:json)?\s*', '', text).strip()
-
-            # Try direct parse first (ideal case: clean JSON)
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError:
-                pass
-
-            # Extract the outermost JSON object if wrapped in prose
-            json_match = re.search(r'\{[\s\S]*\}', text)
-            if json_match:
-                try:
-                    return json.loads(json_match.group())
-                except json.JSONDecodeError:
-                    pass
-
-            logger.error(f"ClaudeAgent(Ollama): JSON parse failed: {text[:200]}")
-            return None
+            result = extract_json(text)
+            if result is None:
+                logger.error(f"ClaudeAgent(Ollama): JSON parse failed: {text[:200]}")
+            return result
         except asyncio.TimeoutError:
             logger.warning(
                 f"ClaudeAgent: Ollama request timed out (model='{config.RESEARCH_MODEL}')"

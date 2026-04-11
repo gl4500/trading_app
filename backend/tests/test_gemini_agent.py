@@ -375,7 +375,7 @@ class TestGeminiHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
              patch("agents.gemini_agent.build_portfolio_context", return_value=""):
             _patch_gemini_deps(cfg)
             mock_news.format_for_prompt.return_value = ""
-            with self.assertLogs("agents.gemini_agent", level="WARNING") as cm:
+            with self.assertLogs("agents.base_agent", level="WARNING") as cm:
                 await agent._get_gemini_decisions(_make_ctx(["AAPL"]), ["AAPL"])
         self.assertTrue(any("rate limit" in line.lower() or "hourly" in line.lower() for line in cm.output))
 

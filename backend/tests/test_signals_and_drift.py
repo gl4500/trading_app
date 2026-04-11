@@ -284,5 +284,46 @@ class TestLastSignalsPruning(unittest.IsolatedAsyncioTestCase):
         self.assertIn("AAPL", agent._last_signals)
 
 
+class TestCheckHourlyRateLimit(unittest.TestCase):
+    """BaseAgent._check_hourly_rate_limit enforces the sliding-window call cap."""
+
+    def _make_agent(self):
+        from unittest.mock import patch
+        from agents.base_agent import BaseAgent
+
+        class _Stub(BaseAgent):
+            def __init__(self):
+                with patch("agents.base_agent.BaseAgent._load_picks"):
+                    super().__init__("StubAgent", "stub")
+            async def analyze(self, ctx):
+                return []
+
+        return _Stub()
+
+    def test_under_limit_returns_true(self):
+        agent = self._make_agent()
+        self.assertTrue(agent._check_hourly_rate_limit(2))
+
+    def test_at_limit_returns_false(self):
+        import time
+        agent = self._make_agent()
+        now = time.time()
+        agent._call_timestamps = [now - 100, now - 200]   # 2 recent calls
+        self.assertFalse(agent._check_hourly_rate_limit(2))
+
+    def test_expired_timestamps_not_counted(self):
+        import time
+        agent = self._make_agent()
+        agent._call_timestamps = [time.time() - 7200, time.time() - 3700]  # both > 1h old
+        self.assertTrue(agent._check_hourly_rate_limit(2))
+
+    def test_mixed_fresh_and_expired(self):
+        import time
+        agent = self._make_agent()
+        # 1 expired, 1 fresh — under limit of 2
+        agent._call_timestamps = [time.time() - 7200, time.time() - 60]
+        self.assertTrue(agent._check_hourly_rate_limit(2))
+
+
 if __name__ == "__main__":
     unittest.main()
