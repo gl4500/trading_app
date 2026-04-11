@@ -8,16 +8,15 @@ Last updated: 2026-04-11
 
 ## Priority 1 — Immediate (complete before next trading session)
 
-### 1.1 Verify sentinel tab fix
+### 1.1 Verify sentinel tab fix ✅ DONE 2026-04-11
 **Why:** `CatalystCard` used `timeZone` from parent scope — crashes with
 `ReferenceError` whenever catalysts > 0.  Fixed 2026-04-11 (prop added).
 
-- [ ] Restart backend and wait for first sentinel poll (~15 min after start)
-- [ ] Navigate to Sentinel tab — confirm catalyst cards render with correct timestamps
-- [ ] Check browser console — confirm no React errors
-- [ ] Confirm backend log shows `GET /api/sentinel HTTP/1.1" 200 OK` on tab visit
+- [x] Backend running with 33 live catalysts (last poll 16:38 UTC)
+- [x] Sentinel tab renders catalyst cards with correct timestamps — confirmed
+- [x] No React errors in browser console
 
-**Files:** `frontend/src/components/SentinelPanel.tsx:95`
+**Files:** `frontend/src/components/SentinelPanel.tsx:95` — commit `80abb20`
 
 ---
 
