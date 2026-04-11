@@ -1026,6 +1026,170 @@ class TestOllamaScanCacheTTL(unittest.IsolatedAsyncioTestCase):
         mock_inner.assert_called_once()
 
 
+class TestComputeTrendMultiplier(unittest.TestCase):
+    """_compute_trend_multiplier returns correct multiplier from Stooq bars."""
+
+    def _make_bars(self, n: int, close_val: float, high_val: float = None) -> "pd.DataFrame":
+        import pandas as pd
+        if high_val is None:
+            high_val = close_val * 1.05
+        return pd.DataFrame({
+            "close": [close_val] * n,
+            "high":  [high_val]  * n,
+        })
+
+    def test_returns_1_for_none_input(self):
+        from agents.scanner_agent import _compute_trend_multiplier
+        self.assertEqual(_compute_trend_multiplier(None, 100.0), 1.0)
+
+    def test_returns_1_for_empty_dataframe(self):
+        import pandas as pd
+        from agents.scanner_agent import _compute_trend_multiplier
+        self.assertEqual(_compute_trend_multiplier(pd.DataFrame(), 100.0), 1.0)
+
+    def test_returns_1_for_insufficient_bars(self):
+        """Less than 20 bars → fall back to neutral multiplier."""
+        from agents.scanner_agent import _compute_trend_multiplier
+        bars = self._make_bars(10, 100.0)
+        self.assertEqual(_compute_trend_multiplier(bars, 100.0), 1.0)
+
+    def test_uptrend_above_200ma(self):
+        """Price above 200-day SMA → above_200ma = 1.3."""
+        from agents.scanner_agent import _compute_trend_multiplier
+        # 200 bars at close=100; price=110 (above SMA of 100); high=200 so price far from 52w high
+        bars = self._make_bars(200, 100.0, high_val=200.0)  # high far above price → not near 52w high
+        result = _compute_trend_multiplier(bars, 110.0)
+        self.assertAlmostEqual(result, 1.3, places=2)
+
+    def test_downtrend_below_200ma(self):
+        """Price below 200-day SMA → above_200ma = 0.9."""
+        from agents.scanner_agent import _compute_trend_multiplier
+        bars = self._make_bars(200, 100.0, high_val=200.0)  # high far above price → not near 52w high
+        result = _compute_trend_multiplier(bars, 90.0)  # price < SMA 100
+        self.assertAlmostEqual(result, 0.9, places=2)
+
+    def test_near_52w_high_boost(self):
+        """Price within 3% of 52-week high → near_52w_high = 1.4."""
+        from agents.scanner_agent import _compute_trend_multiplier
+        # high_val=100, price=98 → 98 >= 100*0.97=97 → near high
+        bars = self._make_bars(252, close_val=50.0, high_val=100.0)
+        result = _compute_trend_multiplier(bars, 98.0)
+        # above_200ma: 98 > sma(50) → 1.3; near_52w_high: 1.4
+        self.assertAlmostEqual(result, 1.3 * 1.4, places=2)
+
+    def test_full_uptrend_breakout(self):
+        """Above 200MA and near 52-week high → maximum multiplier 1.82."""
+        from agents.scanner_agent import _compute_trend_multiplier
+        bars = self._make_bars(252, close_val=80.0, high_val=100.0)
+        result = _compute_trend_multiplier(bars, 99.0)
+        self.assertAlmostEqual(result, 1.3 * 1.4, places=2)
+
+    def test_full_downtrend_not_near_high(self):
+        """Below 200MA and far from 52-week high → minimum multiplier 0.9."""
+        from agents.scanner_agent import _compute_trend_multiplier
+        bars = self._make_bars(252, close_val=100.0, high_val=200.0)
+        result = _compute_trend_multiplier(bars, 80.0)  # price < SMA(100), far from high(200)
+        self.assertAlmostEqual(result, 0.9, places=2)
+
+    def test_exception_returns_1(self):
+        """Any unexpected error returns neutral multiplier — never crashes pre-screen."""
+        from agents.scanner_agent import _compute_trend_multiplier
+        self.assertEqual(_compute_trend_multiplier("not_a_dataframe", 100.0), 1.0)
+
+
+class TestPreScreenTrendMultiplier(unittest.IsolatedAsyncioTestCase):
+    """_pre_screen applies trend_multiplier to momentum_score and stores it in candidates."""
+
+    def _make_alpaca_bars(self, close_today=110.0, close_prev=100.0, vol=2_000_000):
+        import pandas as pd
+        return pd.DataFrame({
+            "close":  [close_prev, close_today],
+            "volume": [1_000_000,  vol],
+        })
+
+    def _make_stooq_bars(self, n=252, close=80.0, high=100.0):
+        import pandas as pd
+        return pd.DataFrame({
+            "close": [close] * n,
+            "high":  [high]  * n,
+        })
+
+    async def test_trend_multiplier_stored_in_candidate(self):
+        """Candidate dict must contain trend_multiplier key after pre-screen."""
+        from agents.scanner_agent import _pre_screen
+
+        alpaca_bars = {"AAPL": self._make_alpaca_bars()}
+        stooq_bars  = {"AAPL": self._make_stooq_bars()}
+
+        import agents.scanner_agent as sm
+        from data import stock_universe
+        orig_symbols = stock_universe.ALL_SYMBOLS[:]
+        try:
+            stock_universe.ALL_SYMBOLS = ["AAPL"]
+            # Patch at source module level — _pre_screen does local `from ... import ...`
+            with patch("agents.scanner_agent._compute_trend_multiplier", return_value=1.3), \
+                 patch("trading.alpaca_client.alpaca_client") as mock_alp, \
+                 patch("data.stooq_client.stooq_client") as mock_stq:
+                mock_alp.get_bars_multi = AsyncMock(return_value=alpaca_bars)
+                mock_stq.get_bars_multi = AsyncMock(return_value=stooq_bars)
+                candidates = await sm._pre_screen(top_n=10)
+        finally:
+            stock_universe.ALL_SYMBOLS = orig_symbols
+
+        self.assertTrue(len(candidates) > 0, "Expected at least one candidate")
+        self.assertIn("trend_multiplier", candidates[0])
+        self.assertEqual(candidates[0]["trend_multiplier"], 1.3)
+
+    async def test_momentum_score_blends_short_and_trend(self):
+        """momentum_score = short_score × trend_multiplier."""
+        import agents.scanner_agent as sm
+        from data import stock_universe
+
+        alpaca_bars = {"NVDA": self._make_alpaca_bars(close_today=110.0, close_prev=100.0, vol=2_000_000)}
+        stooq_bars  = {"NVDA": self._make_stooq_bars()}
+
+        orig = stock_universe.ALL_SYMBOLS[:]
+        try:
+            stock_universe.ALL_SYMBOLS = ["NVDA"]
+            with patch("trading.alpaca_client.alpaca_client") as mock_alp, \
+                 patch("data.stooq_client.stooq_client") as mock_stq, \
+                 patch("agents.scanner_agent._compute_trend_multiplier", return_value=1.3):
+                mock_alp.get_bars_multi = AsyncMock(return_value=alpaca_bars)
+                mock_stq.get_bars_multi = AsyncMock(return_value=stooq_bars)
+                candidates = await sm._pre_screen(top_n=10)
+        finally:
+            stock_universe.ALL_SYMBOLS = orig
+
+        self.assertTrue(candidates, "Expected candidate for NVDA")
+        c = candidates[0]
+        # pct_change = (110-100)/100*100 = 10%, vol_ratio = 2M/1M = 2.0
+        # short_score = 10.0 * max(2.0, 0.1) = 20.0
+        # final_score = 20.0 * 1.3 = 26.0
+        self.assertAlmostEqual(c["momentum_score"], 26.0, places=1)
+
+    async def test_stooq_failure_falls_back_to_multiplier_1(self):
+        """If Stooq raises an exception, trend_multiplier=1.0 and pre-screen still returns results."""
+        import agents.scanner_agent as sm
+        from data import stock_universe
+
+        alpaca_bars = {"SPY": self._make_alpaca_bars()}
+
+        orig = stock_universe.ALL_SYMBOLS[:]
+        try:
+            stock_universe.ALL_SYMBOLS = ["SPY"]
+            with patch("trading.alpaca_client.alpaca_client") as mock_alp, \
+                 patch("data.stooq_client.stooq_client") as mock_stq:
+                mock_alp.get_bars_multi = AsyncMock(return_value=alpaca_bars)
+                # Stooq raises — asyncio.gather with return_exceptions=True returns the Exception
+                mock_stq.get_bars_multi = AsyncMock(side_effect=Exception("network error"))
+                candidates = await sm._pre_screen(top_n=10)
+        finally:
+            stock_universe.ALL_SYMBOLS = orig
+
+        self.assertTrue(candidates, "Expected candidate even when Stooq fails")
+        self.assertEqual(candidates[0]["trend_multiplier"], 1.0)
+
+
 class TestAutoScanLoopInterval(unittest.IsolatedAsyncioTestCase):
     """auto_scan_loop uses 5-min interval in Ollama-only mode, 30-min otherwise."""
 

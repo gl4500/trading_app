@@ -269,9 +269,11 @@ def _build_user_message(
     sector_summary: str = "",
 ) -> str:
     def _fmt(c: Dict) -> str:
+        trend = c.get("trend_multiplier")
+        trend_str = f"  trend×{trend:.2f}" if trend is not None and trend != 1.0 else ""
         return (
             f"  {c['symbol']:6s}  {c['pct_change']:+.2f}%  vol\u00d7{c['vol_ratio']:.1f}  "
-            f"momentum={c['momentum_score']:.2f}"
+            f"momentum={c['momentum_score']:.2f}{trend_str}"
         )
 
     primary_block = "\n".join(_fmt(c) for c in primary)
@@ -460,17 +462,71 @@ def _coerce_rec(rec: Dict) -> Dict:
 
 # ── Pre-screener ───────────────────────────────────────────────────────────────
 
+def _compute_trend_multiplier(stooq_bars, price: float) -> float:
+    """
+    Derive a trend-alignment multiplier from Stooq long-term daily bars.
+
+    Multiplier components:
+      above_200ma  — 1.3 if price > 200-day SMA (uptrend), 0.9 if below
+      near_52w_high — 1.4 if price is within 3% of the 52-week high (breakout zone)
+
+    Combined range:  0.90 (downtrend, far from highs)  →  1.82 (uptrend breakout)
+
+    Returns 1.0 when Stooq data is absent or insufficient — pure momentum score
+    is used unchanged so the fallback never degrades the candidate ranking.
+    """
+    try:
+        import pandas as pd
+        if stooq_bars is None or not isinstance(stooq_bars, pd.DataFrame):
+            return 1.0
+        if stooq_bars.empty or "close" not in stooq_bars.columns:
+            return 1.0
+
+        closes = stooq_bars["close"].dropna()
+        if len(closes) < 20:          # need at least a month of data
+            return 1.0
+
+        # 200-day SMA (or all available bars if history < 200 days)
+        sma_200 = float(closes.tail(200).mean())
+        above_200ma = 1.3 if price > sma_200 else 0.9
+
+        # 52-week high from the high column (fallback: close column)
+        if "high" in stooq_bars.columns:
+            highs = stooq_bars["high"].dropna()
+        else:
+            highs = closes
+        high_52w = float(highs.tail(252).max())
+        near_52w_high = 1.4 if high_52w > 0 and price >= high_52w * 0.97 else 1.0
+
+        return round(above_200ma * near_52w_high, 3)
+
+    except Exception:
+        return 1.0  # never let Stooq issues break the pre-screen
+
+
 async def _pre_screen(top_n: int = 50) -> List[Dict]:
     """
     Fast pre-screen using daily bars (more reliable than snapshots on IEX feed).
-    Fetches last 5 bars for the full universe in batches of 40, ranks by
-    |1-day pct change| x volume ratio, returns top_n candidates.
 
-    Default pool is 50 (up from 20) so each AI scanner has a meaningful
-    fallback set of ranked candidates when primary data pulls fail.
+    Stage 1 — Alpaca (5 daily bars, batched 40 at a time):
+      short_score = abs(pct_change) × max(vol_ratio, 0.1)
+
+    Stage 2 — Stooq (252 daily bars, concurrent with Alpaca per batch):
+      trend_multiplier = above_200ma × near_52w_high
+        above_200ma  : 1.3 if price > 200-day SMA else 0.9
+        near_52w_high: 1.4 if price ≥ 52-week high × 0.97 else 1.0
+
+    Final score = short_score × trend_multiplier
+
+    Stooq has a 4-hour in-memory cache — only the first scan of the day hits
+    the network.  If Stooq is unavailable, trend_multiplier falls back to 1.0
+    so the short-term momentum score is used unchanged.
+
+    Default pool is 50 (cloud mode) or 20 (OLLAMA_ONLY_MODE).
     """
     from data.stock_universe import ALL_SYMBOLS
     from trading.alpaca_client import alpaca_client
+    from data.stooq_client import stooq_client
 
     BATCH = 40
     batches = [ALL_SYMBOLS[i:i+BATCH] for i in range(0, len(ALL_SYMBOLS), BATCH)]
@@ -479,7 +535,16 @@ async def _pre_screen(top_n: int = 50) -> List[Dict]:
     candidates = []
     for batch in batches:
         try:
-            bars_dict = await alpaca_client.get_bars_multi(batch, limit=5)
+            # Fetch Alpaca (5 bars) and Stooq (252 bars = 1 year) concurrently
+            alpaca_result, stooq_result = await asyncio.gather(
+                alpaca_client.get_bars_multi(batch, limit=5),
+                stooq_client.get_bars_multi(batch, days=252),
+                return_exceptions=True,
+            )
+
+            bars_dict  = alpaca_result  if isinstance(alpaca_result,  dict) else {}
+            stooq_dict = stooq_result   if isinstance(stooq_result,   dict) else {}
+
             for sym, bars in bars_dict.items():
                 if bars is None or bars.empty or len(bars) < 2:
                     continue
@@ -487,30 +552,43 @@ async def _pre_screen(top_n: int = 50) -> List[Dict]:
                     price      = float(bars["close"].iloc[-1])
                     prev_close = float(bars["close"].iloc[-2])
                 except (TypeError, ValueError):
-                    continue  # skip symbols with null/nil price values
-                day_vol    = float(bars["volume"].iloc[-1]) if "volume" in bars.columns else 0
-                prev_vol   = float(bars["volume"].iloc[-2]) if "volume" in bars.columns else 0
+                    continue
+                day_vol  = float(bars["volume"].iloc[-1]) if "volume" in bars.columns else 0
+                prev_vol = float(bars["volume"].iloc[-2]) if "volume" in bars.columns else 0
 
                 if prev_close == 0:
                     continue
 
-                pct_change = (price - prev_close) / prev_close * 100
-                vol_ratio  = (day_vol / prev_vol) if prev_vol > 0 else 1.0
-                score      = abs(pct_change) * max(vol_ratio, 0.1)
+                pct_change       = (price - prev_close) / prev_close * 100
+                vol_ratio        = (day_vol / prev_vol) if prev_vol > 0 else 1.0
+                short_score      = abs(pct_change) * max(vol_ratio, 0.1)
+                trend_multiplier = _compute_trend_multiplier(stooq_dict.get(sym), price)
+                final_score      = short_score * trend_multiplier
 
                 candidates.append({
-                    "symbol":         sym,
-                    "price":          round(price, 2),
-                    "pct_change":     round(pct_change, 2),
-                    "vol_ratio":      round(vol_ratio, 2),
-                    "momentum_score": round(score, 3),
+                    "symbol":           sym,
+                    "price":            round(price, 2),
+                    "pct_change":       round(pct_change, 2),
+                    "vol_ratio":        round(vol_ratio, 2),
+                    "trend_multiplier": trend_multiplier,
+                    "momentum_score":   round(final_score, 3),
                 })
         except Exception as e:
             logger.warning(f"Pre-screen batch failed: {e}")
 
     candidates.sort(key=lambda x: x["momentum_score"], reverse=True)
+    top = candidates[:top_n]
+
+    # Log top-5 with trend context so it's visible in the daily log
+    if top:
+        summary = "  ".join(
+            f"{c['symbol']}({c['pct_change']:+.1f}% ×{c['trend_multiplier']}={c['momentum_score']:.2f})"
+            for c in top[:5]
+        )
+        logger.info(f"Pre-screen top-5: {summary}")
+
     logger.info(f"Pre-screen complete: {len(candidates)} valid symbols, top-{top_n} selected")
-    return candidates[:top_n]
+    return top
 
 
 # ── Candidate splitting ────────────────────────────────────────────────────────

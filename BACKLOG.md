@@ -54,37 +54,38 @@ developer workflow.
 
 ## Priority 2 — Short-term (this week)
 
-### 2.1 Add Stooq trend multiplier to scanner pre-screen
+### 2.1 Add Stooq trend multiplier to scanner pre-screen ✅ DONE 2026-04-11
 **Why:** Current pre-screen scores only on same-day price movement
 (`abs(pct_change) × vol_ratio`). Stocks building multi-week momentum without
 a single big day are missed.  Stooq 5-year data is already in the codebase.
 
-**Proposed score formula:**
+**Score formula implemented:**
 ```
 short_score      = abs(pct_change) × max(vol_ratio, 0.1)
 above_200ma      = 1.3 if price > sma_200 else 0.9
-near_52w_high    = 1.4 if price > high_52w × 0.97 else 1.0
+near_52w_high    = 1.4 if price >= high_52w × 0.97 else 1.0
 trend_multiplier = above_200ma × near_52w_high
 final_score      = short_score × trend_multiplier
 ```
 
-- [ ] Read `backend/data/stooq_client.py` — confirm `get_bars_multi` signature
-- [ ] Add `_compute_trend_multiplier(bars_df) -> float` helper in `scanner_agent.py`
-      - Compute 200-day SMA from Stooq bars
-      - Compute 52-week high from Stooq bars
-      - Return multiplier (1.0 if Stooq data unavailable — graceful fallback)
-- [ ] Modify `_pre_screen()`:
-      - After Alpaca batch fetch, call `stooq_client.get_bars_multi(batch, days=252)` concurrently
-      - Apply `_compute_trend_multiplier` per symbol
-      - Store `trend_multiplier` and `sma_200` in candidate dict
-      - Log top-5 candidates with their trend multipliers for visibility
-- [ ] Add test: trend multiplier applied when Stooq data available
-- [ ] Add test: graceful fallback (multiplier=1.0) when Stooq returns empty DataFrame
-- [ ] Add test: score formula produces correct blended result
-- [ ] Run full test suite → GREEN
+- [x] Read `backend/data/stooq_client.py` — confirmed `get_bars_multi` signature
+- [x] Add `_compute_trend_multiplier(bars_df) -> float` helper in `scanner_agent.py`
+      - Computes 200-day SMA from Stooq bars
+      - Computes 52-week high from Stooq bars
+      - Returns 1.0 if Stooq data unavailable — graceful fallback
+- [x] Modify `_pre_screen()`:
+      - Concurrent Alpaca + Stooq fetch via `asyncio.gather(return_exceptions=True)`
+      - Applies `_compute_trend_multiplier` per symbol
+      - Stores `trend_multiplier` in candidate dict
+      - Logs top-5 candidates with trend multipliers
+- [x] Add test: trend multiplier stored in candidate dict (TestPreScreenTrendMultiplier)
+- [x] Add test: graceful fallback when Stooq fails (multiplier=1.0)
+- [x] Add test: score formula blends correctly (pct_change × vol × trend_mult)
+- [x] Add 9 unit tests for `_compute_trend_multiplier` (TestComputeTrendMultiplier)
+- [x] Run test_scanner_agent.py → 80 tests GREEN
 - [ ] Monitor first live scan — confirm top-20 candidates include trend-aligned names
 
-**Files:** `backend/agents/scanner_agent.py:463`, `backend/data/stooq_client.py`
+**Files:** `backend/agents/scanner_agent.py`, `backend/tests/test_scanner_agent.py`
 
 **Impact warning:** First scan of each day fetches 260 Stooq bars concurrently
 (HTTP). Cache warms in ~15-30 sec. Subsequent scans (within 4h TTL) are instant.
@@ -214,3 +215,4 @@ formally evaluated for lift over pure `OLLAMA_ONLY_MODE`.
 | 2026-04-11 | Security: B104 HOST fix, B314 defusedxml, B608 nosec | pending |
 | 2026-04-11 | Sentinel tab: `timeZone` prop missing in `CatalystCard` → blank screen | pending |
 | 2026-04-11 | Docs: `CLAUDE.md` security gate section, `SECURITY.md` new file, `tests/README.md` rewrite | pending |
+| 2026-04-11 | Scanner 2.1: Stooq trend multiplier in pre-screen — `_compute_trend_multiplier`, concurrent fetch, 80 tests GREEN | pending |
