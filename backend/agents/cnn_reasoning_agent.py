@@ -174,7 +174,8 @@ class CNNReasoningAgent(BaseAgent):
             f"## CNN Prediction\n"
             f"  Predicted 1-day return : {pred_return*100:+.2f}%\n"
             f"  Direction              : {direction.upper()}\n"
-            f"  CNN confidence         : {cnn_conf:.0%}\n\n"
+            f"  CNN confidence         : {cnn_conf:.0%}  "
+            f"(this is the model's certainty in the predicted direction — do NOT invert it)\n\n"
             f"## Learned Source Weights  (trained from historical price outcomes)\n"
             f"{weight_lines}\n\n"
             f"## Current Source Scores\n"
@@ -184,10 +185,16 @@ class CNNReasoningAgent(BaseAgent):
             f"## Stock\n"
             f"  Symbol: {symbol}   Price: ${price:.2f}\n\n"
             f"## Task\n"
-            f"Based on the CNN prediction, source scores, and agent performance above, "
-            f"give a trading recommendation.  Weight agent signals by their performance score.\n"
-            f"Respond with ONLY valid JSON:\n"
-            f'{{"action":"BUY"|"SELL"|"HOLD","confidence":<0.0-1.0>,"reasoning":"<1-2 sentences>"}}'
+            f"Follow these steps and then output JSON:\n"
+            f"Step 1 — Agreement: Does the CNN direction agree with the composite score sign? "
+            f"State yes or no and why.\n"
+            f"Step 2 — Agents: Name the top-2 agents by performance score and their actions. "
+            f"Do they support or contradict the CNN?\n"
+            f"Step 3 — Decision: Choose BUY, SELL, or HOLD. "
+            f"If CNN and composite conflict, prefer HOLD unless agent consensus is strong. "
+            f"Set confidence to the CNN confidence value; only adjust it if agents strongly disagree.\n\n"
+            f"Respond with ONLY valid JSON (no markdown, no extra text):\n"
+            f'{{"action":"BUY"|"SELL"|"HOLD","confidence":<0.0-1.0>,"reasoning":"<2 sentences max>"}}'
         )
 
     async def _ollama_decision(self, prompt: str) -> Optional[Dict]:
@@ -201,19 +208,19 @@ class CNNReasoningAgent(BaseAgent):
                 client.chat.completions.create(
                     model=config.OLLAMA_MODEL,
                     messages=[{"role": "user", "content": prompt}],
-                    temperature=0.1,
-                    max_tokens=200,
+                    temperature=0.3,
+                    max_tokens=350,
                 ),
-                timeout=25.0,
+                timeout=50.0,
             )
             text = (response.choices[0].message.content or "").strip()
             m    = re.search(r'\{[\s\S]*\}', text)
             if m:
                 return json.loads(m.group())
         except asyncio.TimeoutError:
-            logger.debug("CNNReasoningAgent: Ollama timed out")
+            logger.warning("CNNReasoningAgent: Ollama timed out (50s) — using rule-based fallback")
         except Exception as exc:
-            logger.debug(f"CNNReasoningAgent: Ollama error: {exc}")
+            logger.warning(f"CNNReasoningAgent: Ollama error — using rule-based fallback: {exc}")
         return None
 
     # ── main analysis loop ────────────────────────────────────────────────────

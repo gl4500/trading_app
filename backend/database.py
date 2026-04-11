@@ -113,13 +113,13 @@ async def init_db() -> None:
         await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_timestamp ON token_log(timestamp)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_agent ON token_log(agent)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_limit_hit ON token_log(limit_hit)")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_date ON token_log(date)")
-        # Migrate existing DBs: add date column if absent (SQLite ignores the column on new DBs)
+        # Migrate existing DBs: add date column if absent — must run before the index on date
         try:
             await db.execute("ALTER TABLE token_log ADD COLUMN date TEXT NOT NULL DEFAULT ''")
             await db.commit()
         except Exception:
             pass  # Column already exists
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_date ON token_log(date)")
 
         await db.execute("""
             CREATE TABLE IF NOT EXISTS news_price_snapshots (
@@ -465,7 +465,7 @@ async def get_token_log(
         where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
         params.append(limit)
         cursor = await db.execute(
-            f"SELECT * FROM token_log {where_clause} ORDER BY timestamp DESC LIMIT ?",
+            f"SELECT * FROM token_log {where_clause} ORDER BY timestamp DESC LIMIT ?",  # nosec B608 - where_clause built from literal strings only, never user input
             params
         )
         rows = await cursor.fetchall()
@@ -555,7 +555,8 @@ async def update_price_snapshot(snap_id: int, **fields) -> None:
     params = list(updates.values()) + [snap_id]
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            f"UPDATE news_price_snapshots SET {set_clause} WHERE id = ?", params
+            f"UPDATE news_price_snapshots SET {set_clause} WHERE id = ?",  # nosec B608 - set_clause keys whitelisted against `allowed` set above
+            params
         )
         await db.commit()
 

@@ -87,8 +87,9 @@ class Config:
     DATABASE_URL: str = os.getenv("DATABASE_URL", "trading.db")
     TOKEN_LOG_RETENTION_DAYS: int = int(os.getenv("TOKEN_LOG_RETENTION_DAYS", "365"))
 
-    # Server
-    HOST: str = os.getenv("HOST", "0.0.0.0")
+    # Server — default to localhost only; set HOST=0.0.0.0 in .env only if
+    # you intentionally want the API reachable from other devices on the network.
+    HOST: str = os.getenv("HOST", "127.0.0.1")
     PORT: int = int(os.getenv("PORT", "8000"))
 
     # WebSocket update interval

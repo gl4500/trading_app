@@ -923,8 +923,17 @@ def _load_ollama_learning() -> str:
     return ""
 
 
-async def _run_ollama_scanner(candidates: List[Dict], sector_summary: str = "") -> List[Dict]:
-    """Agentic Ollama tool-use loop over a candidate subset (OpenAI-compatible API)."""
+async def _run_ollama_scanner(
+    candidates: List[Dict],
+    sector_summary: str = "",
+    max_rounds: int = MAX_TOOL_ROUNDS,
+) -> List[Dict]:
+    """Agentic Ollama tool-use loop over a candidate subset (OpenAI-compatible API).
+
+    ``max_rounds`` is intentionally lower in OLLAMA_ONLY_MODE (passed by the
+    dispatcher) so that scanner calls don't hold the single-GPU Ollama queue
+    for too long and starve other agents (e.g. CNNReasoningAgent).
+    """
     from config import config
     from openai import AsyncOpenAI as _OllamaClient
 
@@ -946,9 +955,12 @@ async def _run_ollama_scanner(candidates: List[Dict], sector_summary: str = "") 
     total_prompt_tokens = 0
     total_completion_tokens = 0
 
-    logger.info(f"Scanner/Ollama: starting agentic loop ({len(candidates)} candidates, model={config.OLLAMA_MODEL})")
+    logger.info(
+        f"Scanner/Ollama: starting agentic loop "
+        f"({len(candidates)} candidates, model={config.OLLAMA_MODEL}, max_rounds={max_rounds})"
+    )
 
-    while rounds < MAX_TOOL_ROUNDS:
+    while rounds < max_rounds:
         rounds += 1
         # Force a tool call on round 1 so llama3/mistral-class models don't
         # return a plain-text response and exit with 0 recommendations.
@@ -1126,7 +1138,12 @@ async def _run_scan_inner() -> Dict:
     _reset_pull_stats()
 
     import os as _os_inner
-    _top_n = 60 if _os_inner.environ.get("OLLAMA_ONLY_MODE") == "1" else 50
+    # In OLLAMA_ONLY_MODE there is only one scanner — no parallel splitting.
+    # Ollama is capped at MAX_TOOL_ROUNDS rounds, so a large pool just bloats
+    # the prompt without adding coverage.  20 candidates is plenty for 4 rounds.
+    # Cloud mode splits 50 candidates across Claude + Gemini (+ Ollama), so each
+    # agent gets a meaningful ~17-symbol slice.
+    _top_n = 20 if _os_inner.environ.get("OLLAMA_ONLY_MODE") == "1" else 50
     candidates = await _pre_screen(top_n=_top_n)
 
     if not candidates:
@@ -1199,7 +1216,16 @@ async def _run_scan_inner() -> Dict:
     # Merge primary + fallback into a single ordered list per scanner
     # (primary first so agents always start with their highest-momentum symbols)
     combined = [primary + fb for primary, fb in zip(splits, fallback_per)]
-    tasks = [fn(cands, sector_summary) for (_, fn), cands in zip(scanners, combined)]
+
+    # In OLLAMA_ONLY_MODE the single Ollama scanner handles the full pool alone.
+    # Cap its rounds at 4 (vs MAX_TOOL_ROUNDS=6) so the GPU queue stays free
+    # for CNNReasoningAgent and other Ollama consumers.
+    def _make_task(name: str, fn, cands: List[Dict]) -> Any:
+        if name == "Ollama" and _ollama_only:
+            return fn(cands, sector_summary, max_rounds=4)
+        return fn(cands, sector_summary)
+
+    tasks = [_make_task(name, fn, cands) for (name, fn), cands in zip(scanners, combined)]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     recommendations = _merge_recommendations(results)

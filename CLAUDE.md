@@ -94,10 +94,42 @@ fix:  short description of bug fixed
 test: add/update tests for X
 docs: update README or CLAUDE.md
 refactor: internal cleanup, no behavior change
+security: security hardening, SAST fixes, secret scanning
 ```
 
 All commits include both the implementation file and its test file.
 Co-Authored-By line required (added automatically by implementation agent).
+
+---
+
+## Security Gate — Pre-commit Hook
+
+Every `git commit` runs `.git/hooks/pre-commit` automatically (3 steps, < 10 sec):
+
+1. **Block staged `.env`** — prevents API keys reaching GitHub
+2. **Secret pattern scan** — rejects Anthropic/OpenAI/Google/AWS/Alpaca key patterns in staged `.py/.ts/.js/.json` files
+3. **Bandit SAST** — medium+/medium+ severity, excludes `tests/`, uses `site-packages/` runtime
+
+**Security tests run on-demand** (not per-commit — PyTorch import makes it ~2 min):
+```bash
+run_security_tests.bat          # Windows convenience script
+```
+Run before every merge to main.
+
+**To suppress a known-safe Bandit finding:**
+```python
+result = some_call()  # nosec BXXX - brief reason why this is safe
+```
+The `# nosec` comment must be on the **flagged line itself** (not the line above).
+
+**Bandit is installed at:** `C:\Users\gl450\trading_app\site-packages\bandit`
+**defusedxml is installed at:** `C:\Users\gl450\trading_app\site-packages\defusedxml`
+
+Run Bandit manually:
+```bash
+cd backend
+PYTHONPATH=../site-packages ../runtime/python/python.exe -m bandit -r . -x ./tests/ --severity-level medium --confidence-level medium
+```
 
 ---
 
@@ -131,6 +163,7 @@ Co-Authored-By line required (added automatically by implementation agent).
 | `agents/historical_trends_agent.py` | `test_historical_trends_agent.py` | ✅ covered |
 | `data/stooq_client.py` | `test_stooq_client.py` | ✅ covered |
 | `main.py` endpoints | `test_main_endpoints.py` | ✅ covered |
+| security surface (headers, CORS, SQL, secrets) | `test_security.py` | ✅ covered |
 
 ---
 

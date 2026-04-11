@@ -18,7 +18,11 @@ policy_monitor.score_headline() so scoring stays consistent.
 """
 import asyncio
 import logging
-import xml.etree.ElementTree as ET
+try:
+    from defusedxml.ElementTree import fromstring as _xml_fromstring  # safe against XXE / entity expansion
+except ImportError:
+    from xml.etree.ElementTree import fromstring as _xml_fromstring  # nosec B314 - fallback only if defusedxml missing
+import xml.etree.ElementTree as ET  # used for namespace-aware find() only, not fromstring()
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
@@ -98,7 +102,7 @@ def _parse_rss(xml_text: str, source_name: str) -> List[Dict]:
     """Parse RSS/Atom XML and return list of catalyst dicts."""
     items = []
     try:
-        root = ET.fromstring(xml_text)
+        root = _xml_fromstring(xml_text)  # nosec B314 - _xml_fromstring is defusedxml.fromstring when available
         # Handle both RSS <item> and Atom <entry>
         ns = {"atom": "http://www.w3.org/2005/Atom"}
         entries = root.findall(".//item") or root.findall(".//atom:entry", ns)
@@ -229,7 +233,7 @@ async def fetch_edgar_8k(symbols: List[str]) -> List[Dict]:
                 return []
 
         ns = {"atom": "http://www.w3.org/2005/Atom"}
-        root = ET.fromstring(resp.text)
+        root = _xml_fromstring(resp.text)  # nosec B314 - _xml_fromstring is defusedxml.fromstring when available
         entries = root.findall("atom:entry", ns)
 
         # Build a lookup of ticker → company name substring for matching

@@ -92,7 +92,7 @@ function minsToHM(mins: number): string {
 
 // ── CatalystCard ──────────────────────────────────────────────────────────────
 
-function CatalystCard({ cat }: { cat: Catalyst }) {
+function CatalystCard({ cat, timeZone }: { cat: Catalyst; timeZone: string }) {
   return (
     <div className={`bg-gray-900 border border-gray-700 border-l-4 ${categoryBorder(cat.category)} rounded-lg p-3 space-y-1.5`}>
       <div className="flex items-start justify-between gap-2">
@@ -317,7 +317,7 @@ export default function SentinelPanel() {
                 <div className="space-y-2">
                   {byCategory[cat]
                     .sort((a, b) => b.score - a.score)
-                    .map((c, i) => <CatalystCard key={i} cat={c} />)}
+                    .map((c, i) => <CatalystCard key={i} cat={c} timeZone={timeZone} />)}
                 </div>
               </div>
             ))}
