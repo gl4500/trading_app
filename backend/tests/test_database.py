@@ -658,26 +658,28 @@ class TestNewsPriceSnapshots(TestDatabaseBase):
 
 
 class TestTokenLogTimezone(TestDatabaseBase):
-    """Timestamps written by save_token_log must be in Eastern Time."""
+    """Timestamps written by save_token_log must be UTC with explicit offset."""
 
-    def test_timestamp_has_eastern_offset(self):
-        """Saved timestamp must include a -05:00 or -04:00 UTC offset (EST/EDT)."""
+    def test_timestamp_has_utc_offset(self):
+        """Saved timestamp must include a +00:00 UTC offset."""
         run(database.save_token_log("ClaudeAgent", "claude-opus-4-6", 100, 50, 150, 150, False))
         rows = run(database.get_token_log())
         ts = rows[0]["timestamp"]
-        # Must contain an Eastern offset: -05:00 (EST) or -04:00 (EDT)
         self.assertTrue(
-            ts.endswith("-05:00") or ts.endswith("-04:00"),
-            f"Expected Eastern offset in timestamp, got: {ts}"
+            ts.endswith("+00:00"),
+            f"Expected UTC offset (+00:00) in timestamp, got: {ts}"
         )
 
-    def test_timestamp_is_not_utc(self):
-        """Timestamp must not be a bare UTC value (no +00:00 or Z suffix)."""
+    def test_timestamp_is_not_naive(self):
+        """Timestamp must include a timezone offset (not naive/bare UTC string)."""
         run(database.save_token_log("ClaudeAgent", "claude-opus-4-6", 100, 50, 150, 150, False))
         rows = run(database.get_token_log())
         ts = rows[0]["timestamp"]
-        self.assertFalse(ts.endswith("+00:00"), f"Timestamp is UTC: {ts}")
-        self.assertFalse(ts.endswith("Z"), f"Timestamp is UTC: {ts}")
+        # Must have explicit offset, not just a bare datetime string
+        self.assertTrue(
+            "+" in ts or ts.endswith("Z"),
+            f"Timestamp has no timezone offset: {ts}"
+        )
 
 
 class TestGetAgentCallsThisHour(TestDatabaseBase):

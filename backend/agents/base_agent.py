@@ -8,7 +8,7 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from config import config
 from trading.portfolio import Portfolio
@@ -99,7 +99,7 @@ class BaseAgent(ABC):
           No signal   → picks for symbols not analysed this cycle are left unchanged
         """
         changed = False
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         for signal in signals:
             sym = signal.symbol

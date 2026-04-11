@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import { useTimezone } from '../context/TimezoneContext'
+import { formatTime } from '../utils/time'
 
 const API_BASE = ''
 
@@ -183,6 +185,7 @@ function AgentRow({ name, s }: { name: string; s: AgentSummary }) {
 // ── Main Panel ────────────────────────────────────────────────────────────────
 
 export default function SummaryPanel() {
+  const { timeZone } = useTimezone()
   const [data, setData]       = useState<SummaryData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
@@ -205,7 +208,7 @@ export default function SummaryPanel() {
   useEffect(() => { fetchSummary() }, [])
 
   const genTime = data?.generated_at
-    ? new Date(data.generated_at + 'Z').toLocaleTimeString()
+    ? formatTime(data.generated_at, timeZone)
     : null
 
   const consensusEntries = Object.entries(data?.consensus ?? {}).slice(0, 10)

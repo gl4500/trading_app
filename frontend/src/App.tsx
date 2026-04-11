@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Dashboard from './components/Dashboard'
+import { TimezoneProvider } from './context/TimezoneContext'
+import TimezoneSelector from './components/TimezoneSelector'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -284,6 +286,7 @@ export default function App() {
   }
 
   return (
+    <TimezoneProvider>
     <div className="min-h-screen bg-gray-900 text-gray-100">
       {/* Header */}
       <header className="gradient-border sticky top-0 z-50">
@@ -323,6 +326,9 @@ export default function App() {
             {statusMessage && (
               <span className="text-xs text-blue-400 animate-pulse">{statusMessage}</span>
             )}
+
+            {/* Timezone selector */}
+            <TimezoneSelector />
 
             {/* Force-trading toggle */}
             <button
@@ -394,5 +400,6 @@ export default function App() {
         />
       </main>
     </div>
+    </TimezoneProvider>
   )
 }

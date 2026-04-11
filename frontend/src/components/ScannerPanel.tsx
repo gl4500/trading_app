@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import { useTimezone } from '../context/TimezoneContext'
+import { formatTime } from '../utils/time'
 
 const API_BASE = ''  // always use Vite proxy — supports both HTTP and HTTPS
 
@@ -164,6 +166,7 @@ function CandidateRow({ c, rank }: { c: Candidate; rank: number }) {
 // ── ScannerPanel ──────────────────────────────────────────────────────────────
 
 export default function ScannerPanel() {
+  const { timeZone } = useTimezone()
   const [result, setResult]       = useState<ScanResult | null>(null)
   const [loading, setLoading]     = useState(false)
   const [scanning, setScanning]   = useState(false)
@@ -220,7 +223,7 @@ export default function ScannerPanel() {
   const watches = recs.filter(r => r.action === 'WATCH').length
 
   const scannedTime = result?.scanned_at
-    ? new Date(result.scanned_at + 'Z').toLocaleTimeString()
+    ? formatTime(result.scanned_at, timeZone)
     : null
 
   return (

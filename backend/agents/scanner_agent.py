@@ -25,7 +25,7 @@ import logging
 import math
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from database import save_token_log, get_daily_token_total
@@ -587,7 +587,7 @@ async def _run_claude_scanner(candidates: List[Dict], sector_summary: str = "") 
                 tool_uses.append(block)
                 if block.name == "add_recommendation":
                     rec = _coerce_rec(dict(block.input))
-                    rec["timestamp"] = datetime.utcnow().isoformat()
+                    rec["timestamp"] = datetime.now(timezone.utc).isoformat()
                     recommendations.append(rec)
                     logger.info(
                         f"Scanner/Claude: {rec.get('symbol')} {rec.get('action')} "
@@ -720,7 +720,7 @@ async def _run_gemini_scanner(candidates: List[Dict], sector_summary: str = "") 
                 function_calls.append(fc)
                 if fc.name == "add_recommendation":
                     rec = _coerce_rec(dict(fc.args))
-                    rec["timestamp"] = datetime.utcnow().isoformat()
+                    rec["timestamp"] = datetime.now(timezone.utc).isoformat()
                     recommendations.append(rec)
                     logger.info(
                         f"Scanner/Gemini: {rec.get('symbol')} {rec.get('action')} "
@@ -827,7 +827,7 @@ async def _run_openai_scanner(candidates: List[Dict], sector_summary: str = "") 
             if tc.function.name == "add_recommendation":
                 try:
                     rec = _coerce_rec(json.loads(tc.function.arguments))
-                    rec["timestamp"] = datetime.utcnow().isoformat()
+                    rec["timestamp"] = datetime.now(timezone.utc).isoformat()
                     recommendations.append(rec)
                     logger.info(
                         f"Scanner/OpenAI: {rec.get('symbol')} {rec.get('action')} "
@@ -992,7 +992,7 @@ async def _run_ollama_scanner(candidates: List[Dict], sector_summary: str = "") 
             if tc.function.name == "add_recommendation":
                 try:
                     rec = _coerce_rec(json.loads(tc.function.arguments))
-                    rec["timestamp"] = datetime.utcnow().isoformat()
+                    rec["timestamp"] = datetime.now(timezone.utc).isoformat()
                     recommendations.append(rec)
                     logger.info(
                         f"Scanner/Ollama: {rec.get('symbol')} {rec.get('action')} "
@@ -1122,7 +1122,7 @@ async def _run_scan_inner() -> Dict:
     global _cache, _cache_ts
 
     _t0 = time.time()
-    started = datetime.utcnow().isoformat()
+    started = datetime.now(timezone.utc).isoformat()
     _reset_pull_stats()
 
     import os as _os_inner
@@ -1216,7 +1216,7 @@ async def _run_scan_inner() -> Dict:
         "candidates":       candidates,
         "pull_stats":       pull_stats,
         "scanned_at":       started,
-        "completed_at":     datetime.utcnow().isoformat(),
+        "completed_at":     datetime.now(timezone.utc).isoformat(),
         "cache_expires_in": SCAN_CACHE_TTL,
     }
     _cache    = result

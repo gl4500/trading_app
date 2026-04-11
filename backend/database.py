@@ -6,10 +6,7 @@ import aiosqlite
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
-
-_EASTERN = ZoneInfo("America/New_York")
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional, Any, Tuple
 
 from config import config
@@ -161,7 +158,7 @@ async def upsert_agent(name: str, strategy: str) -> int:
         if row:
             return row["id"]
 
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         cursor = await db.execute(
             "INSERT INTO agents (name, strategy, created_at) VALUES (?, ?, ?)",
             (name, strategy, now)
@@ -174,7 +171,7 @@ async def save_trade(agent_id: int, symbol: str, action: str, shares: float,
                      price: float, reasoning: str = "", pnl: float = 0.0) -> None:
     """Record a trade in the database."""
     async with aiosqlite.connect(DB_PATH) as db:
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         await db.execute(
             """INSERT INTO trades (agent_id, symbol, action, shares, price, timestamp, reasoning, pnl)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -187,7 +184,7 @@ async def save_performance(agent_id: int, total_value: float, cash: float,
                            total_return_pct: float, sharpe_ratio: float, win_rate: float) -> None:
     """Record performance snapshot."""
     async with aiosqlite.connect(DB_PATH) as db:
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         await db.execute(
             """INSERT INTO performance (agent_id, timestamp, total_value, cash, total_return_pct, sharpe_ratio, win_rate)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
@@ -424,9 +421,9 @@ async def save_token_log(
 ) -> None:
     """Record a token usage event to the persistent log."""
     async with aiosqlite.connect(DB_PATH) as db:
-        now_et = datetime.now(_EASTERN)
-        now = now_et.isoformat()
-        date_str = now_et.strftime("%Y-%m-%d")
+        now_utc = datetime.now(timezone.utc)
+        now = now_utc.isoformat()
+        date_str = now_utc.strftime("%Y-%m-%d")
         await db.execute(
             """INSERT INTO token_log
                (date, timestamp, agent, model, prompt_tokens, completion_tokens,
@@ -455,7 +452,7 @@ async def get_token_log(
         params: List[Any] = []
 
         if hours > 0:
-            cutoff = (datetime.now(_EASTERN) - timedelta(hours=hours)).isoformat()
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
             conditions.append("timestamp >= ?")
             params.append(cutoff)
 
@@ -485,7 +482,7 @@ async def get_daily_token_total(agent: str, hours: int = 24) -> int:
     Used by agents on startup to seed their rolling 24h window after a restart.
     """
     async with aiosqlite.connect(DB_PATH) as db:
-        cutoff = (datetime.now(_EASTERN) - timedelta(hours=hours)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
         cursor = await db.execute(
             "SELECT COALESCE(SUM(total_tokens), 0) FROM token_log "
             "WHERE agent = ? AND timestamp >= ? AND limit_hit = 0",
@@ -498,7 +495,7 @@ async def get_daily_token_total(agent: str, hours: int = 24) -> int:
 async def get_agent_calls_this_hour(agent: str) -> int:
     """Return the number of non-limit-hit API calls made by an agent in the last 60 minutes."""
     async with aiosqlite.connect(DB_PATH) as db:
-        cutoff = (datetime.now(_EASTERN) - timedelta(hours=1)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
         cursor = await db.execute(
             "SELECT COUNT(*) FROM token_log "
             "WHERE agent = ? AND timestamp >= ? AND limit_hit = 0",
@@ -511,7 +508,7 @@ async def get_agent_calls_this_hour(agent: str) -> int:
 async def save_price_snapshot(snap: Dict) -> int:
     """Insert a new news-price snapshot row and return its DB id."""
     async with aiosqlite.connect(DB_PATH) as db:
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         cursor = await db.execute(
             """INSERT INTO news_price_snapshots
                (symbol, headline, score, category, price_at, detected_at,
@@ -583,7 +580,7 @@ async def get_price_snapshots(limit: int = 100) -> List[Dict]:
 async def cleanup_token_log(hours: int = 24) -> None:
     """Delete token log entries older than `hours` hours."""
     async with aiosqlite.connect(DB_PATH) as db:
-        cutoff = (datetime.now(_EASTERN) - timedelta(hours=hours)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
         await db.execute("DELETE FROM token_log WHERE timestamp < ?", (cutoff,))
         await db.commit()
     logger.debug(f"Token log cleanup: removed entries older than {hours}h")
@@ -599,7 +596,7 @@ async def prune_performance_table(days: int = 3) -> int:
     Returns the number of rows deleted.
     """
     async with aiosqlite.connect(DB_PATH) as db:
-        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         cursor = await db.execute(
             "DELETE FROM performance WHERE timestamp < ?", (cutoff,)
         )
@@ -620,11 +617,11 @@ async def prune_news_price_snapshots(days: int = 14) -> int:
     Returns the number of rows deleted.
     """
     async with aiosqlite.connect(DB_PATH) as db:
-        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         cursor = await db.execute(
             """DELETE FROM news_price_snapshots
                WHERE created_at < ? AND (price_1h IS NOT NULL OR created_at < ?)""",
-            (cutoff, (datetime.utcnow() - timedelta(days=days * 3)).isoformat()),
+            (cutoff, (datetime.now(timezone.utc) - timedelta(days=days * 3)).isoformat()),
         )
         deleted = cursor.rowcount
         await db.commit()

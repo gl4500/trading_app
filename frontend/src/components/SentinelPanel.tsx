@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import { useTimezone } from '../context/TimezoneContext'
+import { formatTime } from '../utils/time'
 
 const API_BASE = ''
 
@@ -79,11 +81,7 @@ function changePill(pct: number | null): JSX.Element {
   return <span className={`text-xs font-bold font-mono ${cls}`}>{pct > 0 ? '+' : ''}{pct.toFixed(2)}%</span>
 }
 
-function fmtTime(iso: string | null): string {
-  if (!iso) return '—'
-  try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-  catch { return '—' }
-}
+// fmtTime is now provided via formatTime(iso, timeZone) from utils/time — removed local version
 
 function minsToHM(mins: number): string {
   if (mins <= 0) return 'now'
@@ -112,7 +110,7 @@ function CatalystCard({ cat }: { cat: Catalyst }) {
             ))}
           </div>
         </div>
-        <span className="text-xs text-gray-600 whitespace-nowrap">{fmtTime(cat.detected_at)}</span>
+        <span className="text-xs text-gray-600 whitespace-nowrap">{formatTime(cat.detected_at, timeZone)}</span>
       </div>
 
       <p className="text-sm text-gray-200 leading-snug">{cat.headline}</p>
@@ -190,6 +188,7 @@ function ImpactRow({ snap }: { snap: PriceSnap }) {
 // ── SentinelPanel ─────────────────────────────────────────────────────────────
 
 export default function SentinelPanel() {
+  const { timeZone } = useTimezone()
   const [sentinel, setSentinel]   = useState<SentinelData | null>(null)
   const [impact, setImpact]       = useState<ImpactData | null>(null)
   const [loading, setLoading]     = useState(true)
@@ -205,7 +204,7 @@ export default function SentinelPanel() {
       ])
       if (sRes.ok) setSentinel(await sRes.json())
       if (iRes.ok) setImpact(await iRes.json())
-      setLU(new Date().toLocaleTimeString())
+      setLU(new Date().toLocaleTimeString(undefined, { timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
     } catch (_) {}
     finally { setLoading(false) }
   }
@@ -269,7 +268,7 @@ export default function SentinelPanel() {
         <div className="bg-gray-900 rounded-xl p-3 border border-gray-700">
           <div className="text-xs text-gray-500 mb-1">Last Poll</div>
           <div className="text-sm font-bold text-gray-300">
-            {fmtTime(sentinel?.last_poll ?? null)}
+            {formatTime(sentinel?.last_poll ?? null, timeZone)}
           </div>
         </div>
         <div className="bg-gray-900 rounded-xl p-3 border border-gray-700">

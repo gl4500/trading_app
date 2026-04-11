@@ -3,7 +3,7 @@ Portfolio management: tracks cash, positions, and performance metrics.
 """
 import math
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 
@@ -58,7 +58,7 @@ class Portfolio:
         self.daily_starting_value: float = self.starting_capital
         self.daily_start_date: date = date.today()
         self._value_history: List[Tuple[datetime, float]] = [
-            (datetime.utcnow(), self.starting_capital)
+            (datetime.now(timezone.utc), self.starting_capital)
         ]
         self._recent_exits: Dict[str, datetime] = {}
         self._position_high: Dict[str, float] = {}  # MFE tracker: highest price seen since entry
@@ -111,11 +111,11 @@ class Portfolio:
             action="BUY",
             shares=shares,
             price=price,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             reasoning=reasoning,
         )
         self.trade_history.append(record)
-        self._value_history.append((datetime.utcnow(), self.cash))  # snapshot
+        self._value_history.append((datetime.now(timezone.utc), self.cash))  # snapshot
         return True
 
     def execute_sell(self, symbol: str, shares: float, price: float, reasoning: str = "") -> bool:
@@ -154,21 +154,21 @@ class Portfolio:
             action="SELL",
             shares=shares_to_sell,
             price=price,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             reasoning=reasoning,
             pnl=realized_pnl,
             mae_pct=max(0.0, mae_pct),
             mfe_pct=max(0.0, mfe_pct),
         )
         self.trade_history.append(record)
-        self._value_history.append((datetime.utcnow(), self.cash))
-        self._recent_exits[symbol] = datetime.utcnow()
+        self._value_history.append((datetime.now(timezone.utc), self.cash))
+        self._recent_exits[symbol] = datetime.now(timezone.utc)
         return True
 
     def record_value(self, prices: Dict[str, float]) -> float:
         """Record current portfolio value and update MAE/MFE trackers for open positions."""
         total_value = self.get_total_value(prices)
-        self._value_history.append((datetime.utcnow(), total_value))
+        self._value_history.append((datetime.now(timezone.utc), total_value))
         if len(self._value_history) > 2000:
             self._value_history = self._value_history[-2000:]
 

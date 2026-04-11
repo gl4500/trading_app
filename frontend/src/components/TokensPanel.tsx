@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
+import { useTimezone } from '../context/TimezoneContext'
+import { formatDate, formatTime } from '../utils/time'
 
 const API_BASE = ''
 
@@ -47,6 +49,7 @@ function agentBadge(agent: string) {
 }
 
 export default function TokensPanel() {
+  const { timeZone } = useTimezone()
   const [entries, setEntries] = useState<TokenLogEntry[]>([])
   const [stats, setStats] = useState<TokenStatsData | null>(null)
   const [agentFilter, setAgentFilter] = useState<string>('')
@@ -240,7 +243,7 @@ export default function TokensPanel() {
               <thead>
                 <tr className="text-gray-500 border-b border-gray-800">
                   <th className="text-left py-2 pr-3 font-medium">Date</th>
-                  <th className="text-left py-2 pr-3 font-medium">Time (ET)</th>
+                  <th className="text-left py-2 pr-3 font-medium">Time</th>
                   <th className="text-left py-2 pr-3 font-medium">Agent</th>
                   <th className="text-left py-2 pr-3 font-medium">Model</th>
                   <th className="text-right py-2 pr-3 font-medium">Prompt</th>
@@ -254,10 +257,10 @@ export default function TokensPanel() {
                 {entries.map(entry => (
                   <tr key={entry.id} className={`hover:bg-gray-800/30 ${entry.limit_hit ? 'bg-orange-900/20' : ''}`}>
                     <td className="py-1.5 pr-3 text-gray-400 font-mono whitespace-nowrap">
-                      {entry.date || new Date(entry.timestamp).toLocaleDateString('en-CA')}
+                      {entry.date || formatDate(entry.timestamp, timeZone)}
                     </td>
                     <td className="py-1.5 pr-3 text-gray-500 font-mono whitespace-nowrap">
-                      {new Date(entry.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {formatTime(entry.timestamp, timeZone)}
                     </td>
                     <td className="py-1.5 pr-3">{agentBadge(entry.agent)}</td>
                     <td className="py-1.5 pr-3 text-gray-400">{entry.model}</td>

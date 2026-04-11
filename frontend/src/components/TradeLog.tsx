@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { Trade, Agent } from '../App'
+import { useTimezone } from '../context/TimezoneContext'
+import { formatTs } from '../utils/time'
 
 interface TradeLogProps {
   trades: Trade[]
@@ -15,23 +17,10 @@ const AGENT_COLORS: Record<string, string> = {
   EnsembleAgent: 'text-slate-400',
 }
 
-function formatTime(timestamp: string): string {
-  try {
-    return new Date(timestamp).toLocaleString([], {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-  } catch {
-    return timestamp
-  }
-}
-
 const PAGE_SIZE = 20
 
 export default function TradeLog({ trades, agents }: TradeLogProps) {
+  const { timeZone } = useTimezone()
   const [page, setPage] = useState(0)
   const [filterAgent, setFilterAgent] = useState<string>('all')
   const [filterAction, setFilterAction] = useState<string>('all')
@@ -145,7 +134,7 @@ export default function TradeLog({ trades, agents }: TradeLogProps) {
               {pageData.map((trade, idx) => (
                 <tr key={idx} className="table-row group">
                   <td className="table-cell text-gray-500 whitespace-nowrap">
-                    {formatTime(trade.timestamp)}
+                    {formatTs(trade.timestamp, timeZone, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                   </td>
                   <td className={`table-cell font-medium ${AGENT_COLORS[trade.agent_name || ''] || 'text-gray-300'}`}>
                     {trade.agent_name || '—'}

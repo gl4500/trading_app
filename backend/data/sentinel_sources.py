@@ -62,7 +62,7 @@ _UNUSUAL_WHALES_FLOW     = "https://api.unusualwhales.com/api/option-contract/fl
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _now_iso() -> str:
-    return datetime.utcnow().isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _score(headline: str, summary: str = "") -> Dict:
