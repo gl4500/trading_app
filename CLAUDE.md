@@ -176,6 +176,7 @@ PYTHONPATH=../site-packages ../runtime/python/python.exe -m bandit -r . -x ./tes
 - **AI agents (cloud mode):** Claude Opus 4.6, Gemini 2.0 Flash, GPT-4o-mini
 - **AI agents (Ollama mode):** All three above route to local Ollama when `OLLAMA_ONLY_MODE=1`
 - **Local inference:** Ollama at `http://localhost:11434/v1` (OpenAI-compatible); `OLLAMA_MODEL` for Sentiment/Gemini/CNN; `RESEARCH_MODEL` for Claude (defaults to `OLLAMA_MODEL`)
+- **Current Ollama model:** `qwen2.5:7b` (~4.5 GB Q4) — stronger structured JSON output and reasoning than llama3.1:8b, fits RTX 2060 with headroom.
 - **GPU constraint:** RTX 2060 = 6 GB VRAM — only one Q4 model fits at a time. Set `RESEARCH_MODEL=OLLAMA_MODEL` to share the single loaded model; never configure two different models simultaneously on this GPU.
 - **Config:** `.env` → `backend/config.py` → `config` singleton
 - **Agent context key:** `market_context["__overnight_catalysts__"]` is a `list` — all agents guard with `isinstance(ctx, dict)` when iterating

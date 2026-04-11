@@ -2,7 +2,7 @@
 
 Status key: `[ ]` open · `[x]` done · `[-]` deferred · `[!]` blocked
 
-Last updated: 2026-04-11
+Last updated: 2026-04-11 (session 2)
 
 ---
 
@@ -208,11 +208,13 @@ formally evaluated for lift over pure `OLLAMA_ONLY_MODE`.
 
 | Date | Item | Commit |
 |---|---|---|
-| 2026-04-11 | Security gate: Bandit SAST + pre-commit hook + `test_security.py` (25 tests) | pending |
-| 2026-04-11 | CNN agent: timeout 25→50s, temp 0.1→0.3, tokens 200→350, 3-step prompt | pending |
-| 2026-04-11 | Scanner: `top_n` 60→20 in OLLAMA_ONLY_MODE, `max_rounds=4` cap | pending |
-| 2026-04-11 | Database: fix migration order — `ALTER TABLE` before `CREATE INDEX` on date | pending |
-| 2026-04-11 | Security: B104 HOST fix, B314 defusedxml, B608 nosec | pending |
-| 2026-04-11 | Sentinel tab: `timeZone` prop missing in `CatalystCard` → blank screen | pending |
-| 2026-04-11 | Docs: `CLAUDE.md` security gate section, `SECURITY.md` new file, `tests/README.md` rewrite | pending |
-| 2026-04-11 | Scanner 2.1: Stooq trend multiplier in pre-screen — `_compute_trend_multiplier`, concurrent fetch, 80 tests GREEN | pending |
+| 2026-04-11 | Security gate: Bandit SAST + pre-commit hook + `test_security.py` (25 tests) | `8f14eee` |
+| 2026-04-11 | CNN agent: timeout 25→50s, temp 0.1→0.3, tokens 200→350, 3-step prompt | `8f14eee` |
+| 2026-04-11 | Scanner: `top_n` 60→20 in OLLAMA_ONLY_MODE, `max_rounds=4` cap | `8f14eee` |
+| 2026-04-11 | Database: fix migration order — `ALTER TABLE` before `CREATE INDEX` on date | `8f14eee` |
+| 2026-04-11 | Security: B104 HOST fix, B314 defusedxml, B608 nosec | `8f14eee` |
+| 2026-04-11 | Sentinel tab: `timeZone` prop missing in `CatalystCard` → blank screen | `eeeec19` |
+| 2026-04-11 | Docs: `CLAUDE.md` security gate section, `SECURITY.md` new file, `tests/README.md` rewrite | `8f14eee` |
+| 2026-04-11 | Scanner 2.1: Stooq trend multiplier in pre-screen — `_compute_trend_multiplier`, concurrent fetch, 80 tests GREEN | `9dfce45` |
+| 2026-04-11 | Switch Ollama model `llama3.1:8b` → `qwen2.5:7b` (better JSON output, -500 MB VRAM) | `152f839` |
+| 2026-04-11 | Refactor: consolidate token tracking, rate-limit window, JSON parsing into base classes (~150 LOC, 181 tests GREEN) | `56509b0` |
