@@ -21,18 +21,18 @@ Last updated: 2026-04-11
 
 ---
 
-### 1.2 Update test_scanner_agent.py for new max_rounds parameter
+### 1.2 Update test_scanner_agent.py for new max_rounds parameter ✅ DONE 2026-04-11
 **Why:** `_run_ollama_scanner` signature changed — new `max_rounds` parameter,
 and the dispatcher passes `max_rounds=4` in OLLAMA_ONLY_MODE via `_make_task`.
 Existing tests may not cover this dispatch path.
 
-- [ ] Open `backend/tests/test_scanner_agent.py`
-- [ ] Add test: `OLLAMA_ONLY_MODE=1` → `_run_ollama_scanner` called with `max_rounds=4`
-- [ ] Add test: cloud mode → `_run_ollama_scanner` called with default `max_rounds=6`
-- [ ] Add test: `_make_task` returns correct coroutine type for each mode
-- [ ] Run: `runtime\python\python.exe run_tests.py -v` → all GREEN
+- [x] Add TestRunOllamaScannerMaxRounds: max_rounds cap + default equals MAX_TOOL_ROUNDS
+- [x] Add TestPreScreenTopN: top_n=20 in OLLAMA_ONLY_MODE, top_n=50 in cloud mode
+- [x] Add to TestOllamaOnlyModeScanner: max_rounds=4 kwarg in OLLAMA_ONLY, absent in cloud
+- [x] Fix stale test: test_ollama_only_mode_uses_larger_pool → uses_smaller_pool (60→20)
+- [x] Run: 68 tests GREEN (6 sec)
 
-**Files:** `backend/tests/test_scanner_agent.py`, `backend/agents/scanner_agent.py:1218`
+**Files:** `backend/tests/test_scanner_agent.py` — commit `52b42b2`
 
 ---
 
@@ -92,20 +92,19 @@ final_score      = short_score × trend_multiplier
 
 ---
 
-### 2.2 Fix / disable Unusual Whales API
+### 2.2 Fix / disable Unusual Whales API ✅ DONE 2026-04-11
 **Why:** Logs show persistent `401 Unauthorized` and `404 Not Found` from
-Unusual Whales endpoints. This is noise in the log and wastes network calls.
+Unusual Whales endpoints every 5-15 min sentinel poll.
 
-- [ ] Check if Unusual Whales subscription is active at unusualwhales.com
-- [ ] **If subscription lapsed:** set `UNUSUAL_WHALES_API_KEY=` (empty) in `.env`
-      and confirm `sentinel_sources.py` skips the source when key is absent
-- [ ] **If subscription active:** check API docs for endpoint changes; update URLs
-      in `backend/data/sentinel_sources.py`
-- [ ] Confirm log no longer shows 401/404 from Unusual Whales after fix
-- [ ] If permanently disabling: remove the source from `sentinel_sources.py`
-      and update `SECURITY.md` data sources list
+- [x] Add circuit breaker: _uw_auth_failed flag — on first 401, log WARNING
+      once and skip all subsequent calls for the process lifetime
+- [x] Add circuit breaker: _uw_flow_missing flag — on first 404, log WARNING
+      once and skip flow alerts for the process lifetime
+- [x] Subscription status unknown — circuit breaker handles both expired key
+      and endpoint changes gracefully without requiring .env edit
+- [x] To re-enable: update UNUSUAL_WHALES_API_KEY in .env and restart backend
 
-**Files:** `backend/data/sentinel_sources.py`, `.env`
+**Files:** `backend/data/sentinel_sources.py` — commit `5bfc2b7`
 
 ---
 
