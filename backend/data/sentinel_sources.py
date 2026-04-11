@@ -320,6 +320,13 @@ async def fetch_finnhub_news(symbols: List[str]) -> List[Dict]:
 
 # ── Source 6: Unusual Whales ──────────────────────────────────────────────────
 
+# Circuit breaker: set True after the first 401 so we stop calling every poll.
+# Resets on process restart — intentional (re-check after key rotation).
+_uw_auth_failed: bool = False
+# Set True after the first 404 on the flow endpoint (endpoint may have changed).
+_uw_flow_missing: bool = False
+
+
 async def fetch_unusual_whales(symbols: List[str]) -> List[Dict]:
     """
     Fetch congressional trades and options flow alerts from Unusual Whales.
@@ -327,8 +334,17 @@ async def fetch_unusual_whales(symbols: List[str]) -> List[Dict]:
 
     Congressional trades:  members of Congress buying/selling stocks
     Flow alerts:           unusually large options activity (smart money signals)
+
+    Circuit breaker: after the first 401 the function skips all subsequent calls
+    for the lifetime of the process.  Update UNUSUAL_WHALES_API_KEY in .env and
+    restart the backend to retry.
     """
+    global _uw_auth_failed, _uw_flow_missing
+
     if not config.UNUSUAL_WHALES_API_KEY:
+        return []
+
+    if _uw_auth_failed:
         return []
 
     headers = {
@@ -344,6 +360,13 @@ async def fetch_unusual_whales(symbols: List[str]) -> List[Dict]:
         # ── Congressional trades ──────────────────────────────────────────
         try:
             resp = await client.get(_UNUSUAL_WHALES_CONGRESS, params={"limit": 50})
+            if resp.status_code == 401:
+                _uw_auth_failed = True
+                logger.warning(
+                    "Unusual Whales: 401 Unauthorized — API key invalid or subscription lapsed. "
+                    "Disabling source for this session. Update UNUSUAL_WHALES_API_KEY in .env and restart."
+                )
+                return []
             if resp.status_code == 200:
                 data = resp.json()
                 trades = data if isinstance(data, list) else data.get("data", [])
@@ -368,8 +391,23 @@ async def fetch_unusual_whales(symbols: List[str]) -> List[Dict]:
             logger.debug(f"Unusual Whales congress fetch failed: {e}")
 
         # ── Options flow alerts ───────────────────────────────────────────
+        if _uw_flow_missing:
+            return results  # endpoint previously returned 404 — skip
         try:
             resp = await client.get(_UNUSUAL_WHALES_FLOW, params={"limit": 30})
+            if resp.status_code == 401:
+                _uw_auth_failed = True
+                logger.warning(
+                    "Unusual Whales: 401 Unauthorized on flow endpoint — disabling source for this session."
+                )
+                return results
+            if resp.status_code == 404:
+                _uw_flow_missing = True
+                logger.warning(
+                    "Unusual Whales: 404 on flow-alerts endpoint — endpoint may have changed. "
+                    "Skipping flow alerts for this session."
+                )
+                return results
             if resp.status_code == 200:
                 data = resp.json()
                 flows = data if isinstance(data, list) else data.get("data", [])
