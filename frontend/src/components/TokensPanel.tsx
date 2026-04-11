@@ -4,6 +4,7 @@ const API_BASE = ''
 
 interface TokenLogEntry {
   id: number
+  date: string
   timestamp: string
   agent: string
   model: string
@@ -238,7 +239,8 @@ export default function TokensPanel() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-gray-500 border-b border-gray-800">
-                  <th className="text-left py-2 pr-3 font-medium">Time</th>
+                  <th className="text-left py-2 pr-3 font-medium">Date</th>
+                  <th className="text-left py-2 pr-3 font-medium">Time (ET)</th>
                   <th className="text-left py-2 pr-3 font-medium">Agent</th>
                   <th className="text-left py-2 pr-3 font-medium">Model</th>
                   <th className="text-right py-2 pr-3 font-medium">Prompt</th>
@@ -251,10 +253,11 @@ export default function TokensPanel() {
               <tbody className="divide-y divide-gray-800/50">
                 {entries.map(entry => (
                   <tr key={entry.id} className={`hover:bg-gray-800/30 ${entry.limit_hit ? 'bg-orange-900/20' : ''}`}>
+                    <td className="py-1.5 pr-3 text-gray-400 font-mono whitespace-nowrap">
+                      {entry.date || new Date(entry.timestamp).toLocaleDateString('en-CA')}
+                    </td>
                     <td className="py-1.5 pr-3 text-gray-500 font-mono whitespace-nowrap">
-                      {hoursFilter > 24 || hoursFilter === 0
-                        ? new Date(entry.timestamp).toLocaleString('en-GB', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
-                        : new Date(entry.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {new Date(entry.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>
                     <td className="py-1.5 pr-3">{agentBadge(entry.agent)}</td>
                     <td className="py-1.5 pr-3 text-gray-400">{entry.model}</td>

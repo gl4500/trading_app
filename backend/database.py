@@ -101,6 +101,7 @@ async def init_db() -> None:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS token_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL DEFAULT '',
                 timestamp TEXT NOT NULL,
                 agent TEXT NOT NULL,
                 model TEXT NOT NULL,
@@ -115,6 +116,13 @@ async def init_db() -> None:
         await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_timestamp ON token_log(timestamp)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_agent ON token_log(agent)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_limit_hit ON token_log(limit_hit)")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_date ON token_log(date)")
+        # Migrate existing DBs: add date column if absent (SQLite ignores the column on new DBs)
+        try:
+            await db.execute("ALTER TABLE token_log ADD COLUMN date TEXT NOT NULL DEFAULT ''")
+            await db.commit()
+        except Exception:
+            pass  # Column already exists
 
         await db.execute("""
             CREATE TABLE IF NOT EXISTS news_price_snapshots (
@@ -416,13 +424,15 @@ async def save_token_log(
 ) -> None:
     """Record a token usage event to the persistent log."""
     async with aiosqlite.connect(DB_PATH) as db:
-        now = datetime.now(_EASTERN).isoformat()
+        now_et = datetime.now(_EASTERN)
+        now = now_et.isoformat()
+        date_str = now_et.strftime("%Y-%m-%d")
         await db.execute(
             """INSERT INTO token_log
-               (timestamp, agent, model, prompt_tokens, completion_tokens,
+               (date, timestamp, agent, model, prompt_tokens, completion_tokens,
                 total_tokens, daily_total, daily_limit, limit_hit)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (now, agent, model, prompt_tokens, completion_tokens,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (date_str, now, agent, model, prompt_tokens, completion_tokens,
              total_tokens, daily_total, daily_limit, 1 if limit_hit else 0)
         )
         await db.commit()
