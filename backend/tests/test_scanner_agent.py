@@ -785,6 +785,193 @@ class TestOllamaOnlyModeScanner(unittest.IsolatedAsyncioTestCase):
 
         mock_ollama.assert_called_once()
 
+    async def test_ollama_called_with_max_rounds_4_in_ollama_only_mode(self):
+        """_run_ollama_scanner must receive max_rounds=4 when OLLAMA_ONLY_MODE=1.
+
+        In OLLAMA_ONLY_MODE there is only one scanner — no parallel splitting.
+        Capping rounds at 4 frees the GPU queue sooner for CNNReasoningAgent.
+        """
+        mock_cfg = MagicMock()
+        mock_cfg.ANTHROPIC_API_KEY = ""
+        mock_cfg.GEMINI_API_KEY = ""
+        mock_cfg.OPENAI_API_KEY = ""
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        candidates = [{"symbol": "NVDA", "pct_change": 3.0, "vol_ratio": 2.5,
+                       "momentum_score": 7.5, "price": 900.0}]
+        mock_result = [{"symbol": "NVDA", "action": "BUY", "confidence": 0.82,
+                        "composite_score": 0.75, "reasoning": "strong momentum"}]
+
+        with patch("agents.scanner_agent._pre_screen",
+                   new_callable=AsyncMock, return_value=candidates), \
+             patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, return_value=True), \
+             patch("agents.scanner_agent._run_ollama_scanner",
+                   new_callable=AsyncMock, return_value=mock_result) as mock_ollama, \
+             patch("config.config", mock_cfg):
+            from agents.scanner_agent import _run_scan_inner
+            await _run_scan_inner()
+
+        mock_ollama.assert_called_once()
+        _, call_kwargs = mock_ollama.call_args
+        self.assertEqual(
+            call_kwargs.get("max_rounds"), 4,
+            "OLLAMA_ONLY_MODE should pass max_rounds=4 to _run_ollama_scanner"
+        )
+
+    async def test_ollama_called_with_default_max_rounds_in_cloud_mode(self):
+        """_run_ollama_scanner uses default max_rounds (MAX_TOOL_ROUNDS=6) in cloud mode.
+
+        In cloud mode Ollama handles only its own candidate slice alongside
+        Claude/Gemini — full rounds are appropriate.
+        """
+        os.environ.pop("OLLAMA_ONLY_MODE", None)   # ensure cloud mode
+
+        mock_cfg = MagicMock()
+        mock_cfg.ANTHROPIC_API_KEY = ""   # no Claude/Gemini — only Ollama available
+        mock_cfg.GEMINI_API_KEY = ""
+        mock_cfg.OPENAI_API_KEY = ""
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        candidates = [{"symbol": "AMD", "pct_change": 2.5, "vol_ratio": 2.0,
+                       "momentum_score": 5.0, "price": 180.0}]
+        mock_result = [{"symbol": "AMD", "action": "BUY", "confidence": 0.75,
+                        "composite_score": 0.6, "reasoning": "uptrend"}]
+
+        with patch("agents.scanner_agent._pre_screen",
+                   new_callable=AsyncMock, return_value=candidates), \
+             patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, return_value=True), \
+             patch("agents.scanner_agent._run_ollama_scanner",
+                   new_callable=AsyncMock, return_value=mock_result) as mock_ollama, \
+             patch("config.config", mock_cfg):
+            from agents.scanner_agent import _run_scan_inner
+            await _run_scan_inner()
+
+        mock_ollama.assert_called_once()
+        _, call_kwargs = mock_ollama.call_args
+        # Cloud mode: _make_task calls fn(cands, sector_summary) with no max_rounds kwarg
+        self.assertNotIn(
+            "max_rounds", call_kwargs,
+            "Cloud mode should NOT pass max_rounds — use function default (MAX_TOOL_ROUNDS)"
+        )
+
+
+class TestPreScreenTopN(unittest.IsolatedAsyncioTestCase):
+    """_run_scan_inner must request top_n=20 in OLLAMA_ONLY_MODE, top_n=50 otherwise."""
+
+    def tearDown(self):
+        os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+    async def _capture_pre_screen_top_n(self, ollama_only: bool) -> int:
+        """Run _run_scan_inner and return the top_n arg passed to _pre_screen."""
+        if ollama_only:
+            os.environ["OLLAMA_ONLY_MODE"] = "1"
+        else:
+            os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+        captured = {}
+
+        async def fake_pre_screen(top_n=50):
+            captured["top_n"] = top_n
+            return [{"symbol": "AAPL", "pct_change": 1.0, "vol_ratio": 1.5,
+                     "momentum_score": 1.5, "price": 150.0}]
+
+        mock_cfg = MagicMock()
+        mock_cfg.ANTHROPIC_API_KEY = ""
+        mock_cfg.GEMINI_API_KEY = ""
+        mock_cfg.OPENAI_API_KEY = ""
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        with patch("agents.scanner_agent._pre_screen", side_effect=fake_pre_screen), \
+             patch("agents.scanner_agent._ollama_is_available",
+                   new_callable=AsyncMock, return_value=True), \
+             patch("agents.scanner_agent._run_ollama_scanner",
+                   new_callable=AsyncMock, return_value=[]), \
+             patch("config.config", mock_cfg):
+            from agents.scanner_agent import _run_scan_inner
+            await _run_scan_inner()
+
+        return captured.get("top_n", -1)
+
+    async def test_top_n_is_20_in_ollama_only_mode(self):
+        """OLLAMA_ONLY_MODE=1: pre-screen top_n must be 20 (Ollama only does 4 rounds)."""
+        top_n = await self._capture_pre_screen_top_n(ollama_only=True)
+        self.assertEqual(top_n, 20,
+                         f"Expected top_n=20 in OLLAMA_ONLY_MODE, got {top_n}")
+
+    async def test_top_n_is_50_in_cloud_mode(self):
+        """Cloud mode: pre-screen top_n must be 50 (split across Claude+Gemini+Ollama)."""
+        top_n = await self._capture_pre_screen_top_n(ollama_only=False)
+        self.assertEqual(top_n, 50,
+                         f"Expected top_n=50 in cloud mode, got {top_n}")
+
+
+class TestRunOllamaScannerMaxRounds(unittest.IsolatedAsyncioTestCase):
+    """_run_ollama_scanner respects the max_rounds parameter."""
+
+    def _make_stop_response(self):
+        resp = MagicMock()
+        resp.usage = MagicMock(prompt_tokens=10, completion_tokens=5)
+        choice = MagicMock()
+        choice.finish_reason = "stop"
+        choice.message = MagicMock(content="done", tool_calls=None)
+        resp.choices = [choice]
+        return resp
+
+    async def test_max_rounds_limits_loop_iterations(self):
+        """When max_rounds=2, the agentic loop runs at most 2 API calls."""
+        from agents.scanner_agent import _run_ollama_scanner
+
+        # Return a tool_calls response every time (would loop forever without cap)
+        tc = MagicMock()
+        tc.id = "tc1"
+        tc.function.name = "get_stock_analysis"
+        tc.function.arguments = '{"symbol": "AAPL"}'
+
+        tool_resp = MagicMock()
+        tool_resp.usage = MagicMock(prompt_tokens=20, completion_tokens=10)
+        choice = MagicMock()
+        choice.finish_reason = "tool_calls"
+        choice.message = MagicMock(content=None, tool_calls=[tc])
+        tool_resp.choices = [choice]
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=tool_resp)
+
+        mock_cfg = MagicMock()
+        mock_cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+        mock_cfg.OLLAMA_MODEL = "llama3.1:8b"
+
+        candidates = [{"symbol": "AAPL", "pct_change": 1.0, "vol_ratio": 1.5,
+                       "momentum_score": 1.5, "price": 150.0}]
+
+        with patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock), \
+             patch("agents.scanner_agent.get_daily_token_total",
+                   new_callable=AsyncMock, return_value=0), \
+             patch("agents.scanner_agent._dispatch_tool",
+                   new_callable=AsyncMock,
+                   return_value='{"data_available": true, "composite_score": 0.5}'), \
+             patch("config.config", mock_cfg), \
+             patch("openai.AsyncOpenAI", return_value=mock_client):
+            await _run_ollama_scanner(candidates, max_rounds=2)
+
+        actual_calls = mock_client.chat.completions.create.call_count
+        self.assertLessEqual(actual_calls, 2,
+                             f"max_rounds=2 should cap API calls at 2, got {actual_calls}")
+
+    async def test_default_max_rounds_equals_MAX_TOOL_ROUNDS(self):
+        """Default max_rounds must equal the module-level MAX_TOOL_ROUNDS constant (6)."""
+        import inspect
+        from agents.scanner_agent import _run_ollama_scanner
+        sig = inspect.signature(_run_ollama_scanner)
+        default = sig.parameters["max_rounds"].default
+        self.assertEqual(default, MAX_TOOL_ROUNDS,
+                         f"max_rounds default should be MAX_TOOL_ROUNDS={MAX_TOOL_ROUNDS}, got {default}")
+
 
 class TestOllamaScanCacheTTL(unittest.IsolatedAsyncioTestCase):
     """run_scan() uses OLLAMA_SCAN_TTL (shorter) when OLLAMA_ONLY_MODE=1."""
@@ -1037,14 +1224,14 @@ class TestExpandedCandidatePool(unittest.TestCase):
         self.assertEqual(default_top_n, 50,
                          msg=f"_pre_screen default top_n is {default_top_n}, expected 50")
 
-    def test_ollama_only_mode_uses_larger_pool(self):
-        """Ollama-only mode should use top_n=60 (more scans = bigger pool per scan)."""
+    def test_ollama_only_mode_uses_smaller_pool(self):
+        """Ollama-only mode should use top_n=20 (Ollama caps at 4 rounds; 20 is sufficient)."""
         async def _run():
             import os
             candidates = [
                 {"symbol": f"S{i}", "price": 100.0, "pct_change": float(i),
                  "vol_ratio": 1.0, "momentum_score": float(i)}
-                for i in range(60)
+                for i in range(20)
             ]
             captured = {}
 
@@ -1069,7 +1256,7 @@ class TestExpandedCandidatePool(unittest.TestCase):
 
         import os
         top_n = asyncio.run(_run())
-        self.assertEqual(top_n, 60, msg=f"Ollama-only mode used top_n={top_n}, expected 60")
+        self.assertEqual(top_n, 20, msg=f"Ollama-only mode used top_n={top_n}, expected 20")
 
     def test_each_scanner_receives_fallback_candidates(self):
         """
