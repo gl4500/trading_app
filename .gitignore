@@ -16,10 +16,13 @@ backend/learning.json
 backend/data/scan_cache.json
 backend/data/agent_picks.json
 
-# Runtime & deps
+# Runtime & deps (large binaries — downloaded by scripts/setup_fresh.ps1)
 site-packages/
-backend/packages/
 runtime/
+
+# Offline wheel cache — committed so setup_fresh.ps1 can fall back to local install
+# (torch wheels are NOT included — too large; setup_fresh.ps1 downloads torch from PyPI)
+# backend/packages/  ← intentionally NOT excluded
 
 # Node
 frontend/node_modules/

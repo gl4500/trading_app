@@ -78,11 +78,13 @@ trading_app/
 │   ├── decision_diagram.html # Printable browser-rendered block diagram
 │   └── ...
 └── scripts/                  # Setup, build, and maintenance tools
+    ├── setup_fresh.bat       # Double-click to run full automated setup on a new machine
+    ├── setup_fresh.ps1       # Full automated install: Python + Node + packages + certs + .env
     ├── build_exe.ps1         # Compile launcher_gui.pyw → Start Trading App.exe
     ├── launcher_gui.spec     # PyInstaller spec (Tcl/Tk DLL bundling)
     ├── create_icon.py        # Generate launcher.ico (robot icon)
     ├── gen_certs.py          # Generate self-signed TLS cert for localhost/Tailscale
-    ├── setup_offline.ps1     # Install all Python/Node deps without internet
+    ├── setup_offline.ps1     # Install Python/Node deps from local packages\ (offline)
     ├── install_services.bat  # Install as auto-start Windows services (NSSM)
     ├── uninstall_services.bat
     ├── run_security_tests.bat
@@ -337,7 +339,50 @@ Discovers high-conviction opportunities outside the core watchlist.
 
 ## Setup & Running
 
-### Quickstart
+### Fresh Install (new machine / first-time clone)
+
+The GitHub repo contains all source code. Runtimes, packages, and secrets are excluded from git
+(they are large binaries or sensitive data). The setup script downloads and installs everything automatically.
+
+**One command — does everything:**
+
+```
+1. Clone the repo
+   git clone https://github.com/gl4500/trading_app.git
+   cd trading_app
+
+2. Double-click  scripts\setup_fresh.bat
+   (or in PowerShell:  .\scripts\setup_fresh.ps1)
+```
+
+The script will:
+
+| Step | What it does | Size |
+|---|---|---|
+| Python 3.12.12 | Downloads installer → installs to `runtime\python\` | ~28 MB |
+| Node.js 22 LTS | Downloads zip → extracts to `runtime\node\` | ~20 MB |
+| Python packages | `pip install -r backend\requirements.txt` → `site-packages\` | ~200 MB |
+| PyTorch | CPU (~250 MB) or GPU/CUDA 12.4 (~2.5 GB) — your choice | optional |
+| npm packages | `npm install` → `frontend\node_modules\` | ~50 MB |
+| TLS certs | Self-signed cert for localhost via `gen_certs.py` | — |
+| `.env` | Copied from `.env.example`; `SESSION_SECRET` auto-generated | — |
+
+After the script finishes, open `.env` and fill in at minimum:
+
+```ini
+ALPACA_API_KEY=    # from https://app.alpaca.markets/paper-trading
+ALPACA_SECRET_KEY=
+```
+
+All other keys are optional — the app runs in Ollama-only mode if cloud AI keys are empty.
+
+> **PyTorch note:** If you skip PyTorch during setup, the CNNReasoningAgent falls back to rule-based
+> surrogate mode. You can install it later with:
+> `runtime\python\python.exe -m pip install torch --index-url https://download.pytorch.org/whl/cpu`
+
+---
+
+### Quickstart (after setup)
 
 **Double-click `Start Trading App.exe`** — launches backend, frontend, and opens the browser.
 
@@ -345,11 +390,11 @@ Or manually in two terminals:
 
 ```powershell
 # Terminal 1 — Backend
-cd C:\Users\gl450\trading_app
+cd C:\Users\...\trading_app
 .\start_backend.ps1
 
 # Terminal 2 — Frontend
-cd C:\Users\gl450\trading_app
+cd C:\Users\...\trading_app
 .\start_frontend.ps1
 ```
 

@@ -13,6 +13,12 @@ Never touch `radioconda\`, `.spyder-py3\`, or any other directory in the user's 
 - For running tests, only use `C:\Users\gl450\trading_app\runtime\python\python.exe` — never fall back to radioconda or any system Python.
 - If pytest is missing from that runtime, flag it to the user — do NOT silently switch runtimes.
 
+### Fresh install infrastructure
+- New-machine setup: `scripts/setup_fresh.bat` (double-click) or `scripts/setup_fresh.ps1`
+- Downloads Python 3.12, Node.js 22 LTS, all packages, generates certs, creates `.env` automatically
+- Offline wheel cache: `backend/packages/` (committed to git — excludes torch, which is downloaded by the script)
+- Do NOT remove `.env.example` or `backend/requirements.txt` — they are the source of truth for the setup script
+
 ---
 
 ## Two-Agent Setup
