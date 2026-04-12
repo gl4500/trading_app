@@ -10,6 +10,9 @@ It defines responsibilities, workflows, and rules that every agent must follow.
 **Only modify files inside `C:\Users\gl450\trading_app\`.**
 Never touch `radioconda\`, `.spyder-py3\`, or any other directory in the user's home folder.
 
+- For running tests, only use `C:\Users\gl450\trading_app\runtime\python\python.exe` — never fall back to radioconda or any system Python.
+- If pytest is missing from that runtime, flag it to the user — do NOT silently switch runtimes.
+
 ---
 
 ## Two-Agent Setup
@@ -178,6 +181,29 @@ PYTHONPATH=../site-packages ../runtime/python/python.exe -m bandit -r . -x ./tes
 | `data/stooq_client.py` | `test_stooq_client.py` | ✅ covered |
 | `main.py` endpoints | `test_main_endpoints.py` | ✅ covered |
 | security surface (headers, CORS, SQL, secrets) | `test_security.py` | ✅ covered |
+
+---
+
+## CLAUDE.md ↔ Memory Sync Rule
+
+**Both must always be updated together.**
+
+`CLAUDE.md` (this file, in the repo) and the persistent memory files at
+`C:\Users\gl450\.claude\projects\C--Users-gl450\memory\` are the two halves of the same contract.
+
+- When you add or change a rule in `CLAUDE.md` → update the corresponding memory file in the same response.
+- When you update a memory file that covers trading_app rules or feedback → reflect the change in `CLAUDE.md` in the same response.
+- Never let a session end with the two out of sync.
+
+Relevant memory files for this repo:
+| Memory file | Mirrors |
+|---|---|
+| `feedback_tdd_workflow.md` | TDD Workflow section |
+| `feedback_scope_restriction.md` | Scope section |
+| `feedback_shell_cleanup.md` | Shell cleanup section |
+| `trading_app_architecture.md` | Architecture Quick Reference + Key invariants |
+| `trading_app_bugs_fixed.md` | Known bugs and fixes (not in CLAUDE.md — memory only) |
+| `trading_app_thresholds.md` | Agent thresholds (not in CLAUDE.md — memory only) |
 
 ---
 
