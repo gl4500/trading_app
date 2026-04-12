@@ -319,6 +319,7 @@ async def _tool_get_stock_analysis(symbol: str) -> Dict:
         news, bars  = await asyncio.gather(news_task, bars_task, return_exceptions=False)
 
         sig = await get_composite_signal(symbol, news if isinstance(news, list) else [])
+        sig = sig or {}   # guard: get_composite_signal returns None when all sources fail
 
         ind   = {}
         price = None

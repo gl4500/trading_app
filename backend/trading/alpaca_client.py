@@ -171,7 +171,9 @@ class AlpacaClient:
                     df = df.sort_values("timestamp").reset_index(drop=True)
                     result[sym] = df.tail(limit)
                 except KeyError:
-                    logger.warning("No bars in batch response for %s", sym)
+                    # Symbol returned no data in this batch (low-volume, restricted,
+                    # or not yet traded today). Empty DataFrame is handled downstream.
+                    logger.debug("No bars in batch response for %s", sym)
                     result[sym] = pd.DataFrame()
 
             return result
