@@ -7,6 +7,7 @@ Covers:
   - Ollama unavailable falls back to rule-based decision
   - Pre-training surrogate logic (CNN not yet trained)
   - analyze() does not raise when market_context is empty
+  - Sentinel catalysts and macro context injected into Ollama prompt
 """
 import asyncio
 import os
@@ -140,6 +141,157 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
             signals = await self.agent.analyze(mkt)
         buys = [s for s in signals if s.action == "BUY"]
         self.assertEqual(len(buys), 0)
+
+
+class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
+    """_build_prompt includes sentinel catalysts and macro context when present."""
+
+    def setUp(self):
+        self.agent = CNNReasoningAgent()
+        self.base_kwargs = dict(
+            symbol="AAPL", price=150.0, pred_return=0.01, direction="bull",
+            cnn_conf=0.7,
+            learned_weights={"analyst_consensus": 0.35, "earnings_surprise": 0.22,
+                             "alpaca_news": 0.18, "yahoo_news": 0.12,
+                             "congressional_trades": 0.13},
+            current_scores={"analyst_consensus": 0.1, "earnings_surprise": None,
+                            "alpaca_news": 0.0, "yahoo_news": 0.0,
+                            "congressional_trades": 0.0},
+            composite_score=0.05,
+        )
+
+    def test_no_catalysts_no_section(self):
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
+        self.assertNotIn("Overnight / Sentinel Catalysts", prompt)
+        self.assertNotIn("Macro Context", prompt)
+
+    def test_direct_catalyst_for_symbol_appears_in_prompt(self):
+        cats = [{"symbol": "AAPL", "headline": "AAPL beats earnings",
+                 "score": 3, "category": "CATALYST", "date": "2026-04-12"}]
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=cats, macro_text="")
+        self.assertIn("Overnight / Sentinel Catalysts", prompt)
+        self.assertIn("[DIRECT]", prompt)
+        self.assertIn("AAPL beats earnings", prompt)
+
+    def test_market_catalyst_different_symbol_appears_with_tag(self):
+        cats = [{"symbol": "SPY", "headline": "Fed holds rates",
+                 "score": 4, "category": "MACRO", "date": "2026-04-12"}]
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=cats, macro_text="")
+        self.assertIn("Overnight / Sentinel Catalysts", prompt)
+        self.assertIn("[SPY]", prompt)
+        self.assertIn("Fed holds rates", prompt)
+        self.assertNotIn("[DIRECT]", prompt)
+
+    def test_no_symbol_catalyst_tagged_as_market(self):
+        cats = [{"headline": "Global sell-off", "score": 2,
+                 "category": "GEOPOLITICAL", "date": "2026-04-12"}]
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=cats, macro_text="")
+        self.assertIn("[MARKET]", prompt)
+        self.assertIn("Global sell-off", prompt)
+
+    def test_macro_text_included_when_present(self):
+        macro = "SPY -1.2% (5D) | VIX 22 elevated | Regime: BEAR"
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text=macro)
+        self.assertIn("Macro Context", prompt)
+        self.assertIn("SPY -1.2%", prompt)
+
+    def test_catalysts_capped_at_six(self):
+        cats = [
+            {"symbol": "AAPL", "headline": f"Cat {i}", "score": i,
+             "category": "CATALYST", "date": "2026-04-12"}
+            for i in range(10)
+        ]
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=cats, macro_text="")
+        # Only first 3 direct + first 3 market-wide (capped inside _build_prompt)
+        self.assertIn("Overnight / Sentinel Catalysts", prompt)
+        count = prompt.count("[DIRECT]")
+        self.assertLessEqual(count, 3)
+
+    def test_task_includes_catalyst_step(self):
+        cats = [{"symbol": "AAPL", "headline": "FDA approval",
+                 "score": 4, "category": "CATALYST", "date": "2026-04-12"}]
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=cats, macro_text="")
+        self.assertIn("Step 3 — Catalysts", prompt)
+        self.assertIn("Step 4 — Decision", prompt)
+
+    def test_task_without_catalysts_still_has_steps(self):
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
+        # Step 3 should be catalyst step even when no catalysts present
+        self.assertIn("Step 3 — Catalysts", prompt)
+
+
+class TestCNNAnalyzeCatalystPassthrough(unittest.IsolatedAsyncioTestCase):
+    """analyze() correctly extracts and passes catalysts/macro to _build_prompt."""
+
+    def setUp(self):
+        self.agent = CNNReasoningAgent()
+
+    async def test_catalysts_extracted_from_market_context(self):
+        """analyze() passes __overnight_catalysts__ to _build_prompt."""
+        catalyst = {"symbol": "AAPL", "headline": "Strong Q1", "score": 3,
+                    "category": "CATALYST", "date": "2026-04-12"}
+        mkt = {
+            "AAPL": {
+                "price": 150.0,
+                "composite_signal": {"composite_score": 0.1, "sources": {}},
+            },
+            "__overnight_catalysts__": [catalyst],
+        }
+        captured = {}
+
+        async def fake_ollama(prompt):
+            captured["prompt"] = prompt
+            return {"action": "HOLD", "confidence": 0.5, "reasoning": "ok"}
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", new=AsyncMock(side_effect=fake_ollama)):
+            await self.agent.analyze(mkt)
+
+        self.assertIn("prompt", captured)
+        self.assertIn("Strong Q1", captured["prompt"])
+
+    async def test_macro_context_extracted_from_market_context(self):
+        """analyze() passes __macro_context__ to _build_prompt."""
+        mkt = {
+            "AAPL": {
+                "price": 150.0,
+                "composite_signal": {"composite_score": 0.1, "sources": {}},
+            },
+            "__macro_context__": "VIX=28 BEAR regime",
+            "__overnight_catalysts__": [],
+        }
+        captured = {}
+
+        async def fake_ollama(prompt):
+            captured["prompt"] = prompt
+            return {"action": "HOLD", "confidence": 0.5, "reasoning": "ok"}
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", new=AsyncMock(side_effect=fake_ollama)):
+            await self.agent.analyze(mkt)
+
+        self.assertIn("VIX=28 BEAR regime", captured["prompt"])
+
+    async def test_empty_catalysts_list_passes_none(self):
+        """Empty __overnight_catalysts__ does not add catalyst section to prompt."""
+        mkt = {
+            "AAPL": {
+                "price": 150.0,
+                "composite_signal": {"composite_score": 0.0, "sources": {}},
+            },
+            "__overnight_catalysts__": [],
+        }
+        captured = {}
+
+        async def fake_ollama(prompt):
+            captured["prompt"] = prompt
+            return {"action": "HOLD", "confidence": 0.5, "reasoning": "ok"}
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", new=AsyncMock(side_effect=fake_ollama)):
+            await self.agent.analyze(mkt)
+
+        self.assertNotIn("Overnight / Sentinel Catalysts", captured.get("prompt", ""))
 
 
 if __name__ == "__main__":

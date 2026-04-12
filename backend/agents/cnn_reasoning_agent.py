@@ -129,6 +129,8 @@ class CNNReasoningAgent(BaseAgent):
         current_scores:  Dict[str, Optional[float]],
         composite_score: float,
         agent_signals:   Optional[Dict[str, tuple]] = None,
+        catalysts:       Optional[List[Dict]] = None,
+        macro_text:      str = "",
     ) -> str:
         weight_lines = "\n".join(
             f"  • {name:<25} learned={w*100:5.1f}%  hardcoded={_HARDCODED[name]}%  "
@@ -168,6 +170,28 @@ class CNNReasoningAgent(BaseAgent):
                 f"Agreement : {agreement:.0%}\n"
             )
 
+        # ── Catalyst section (symbol-specific first, then broad market) ──────────
+        catalyst_section = ""
+        if catalysts:
+            sym_cats    = [c for c in catalysts if c.get("symbol") == symbol][:3]
+            market_cats = [c for c in catalysts if not c.get("symbol") or c.get("symbol") != symbol][:3]
+            lines = []
+            for c in sym_cats:
+                lines.append(
+                    f"  [DIRECT] {c['headline']} "
+                    f"(score={c.get('score', 0)}, {c.get('category', 'news')}, {c.get('date', '')})"
+                )
+            for c in market_cats:
+                tag = f"[{c['symbol']}] " if c.get("symbol") else "[MARKET] "
+                lines.append(
+                    f"  {tag}{c['headline']} "
+                    f"(score={c.get('score', 0)}, {c.get('category', 'news')}, {c.get('date', '')})"
+                )
+            if lines:
+                catalyst_section = "\n## Overnight / Sentinel Catalysts\n" + "\n".join(lines) + "\n"
+
+        macro_section = f"\n## Macro Context\n{macro_text}\n" if macro_text else ""
+
         return (
             f"You are an expert quantitative trader. "
             f"A trained temporal CNN has produced the following signal for {symbol}.\n\n"
@@ -181,7 +205,9 @@ class CNNReasoningAgent(BaseAgent):
             f"## Current Source Scores\n"
             f"{score_lines}\n"
             f"  Composite score        : {composite_score:+.3f}\n"
-            f"{agent_section}\n"
+            f"{agent_section}"
+            f"{catalyst_section}"
+            f"{macro_section}\n"
             f"## Stock\n"
             f"  Symbol: {symbol}   Price: ${price:.2f}\n\n"
             f"## Task\n"
@@ -190,9 +216,11 @@ class CNNReasoningAgent(BaseAgent):
             f"State yes or no and why.\n"
             f"Step 2 — Agents: Name the top-2 agents by performance score and their actions. "
             f"Do they support or contradict the CNN?\n"
-            f"Step 3 — Decision: Choose BUY, SELL, or HOLD. "
+            f"Step 3 — Catalysts: If any direct catalysts exist for {symbol}, do they support "
+            f"or contradict the CNN direction? Factor this into your confidence.\n"
+            f"Step 4 — Decision: Choose BUY, SELL, or HOLD. "
             f"If CNN and composite conflict, prefer HOLD unless agent consensus is strong. "
-            f"Set confidence to the CNN confidence value; only adjust it if agents strongly disagree.\n\n"
+            f"Set confidence to the CNN confidence value; only adjust it if agents or catalysts strongly disagree.\n\n"
             f"Respond with ONLY valid JSON (no markdown, no extra text):\n"
             f'{{"action":"BUY"|"SELL"|"HOLD","confidence":<0.0-1.0>,"reasoning":"<2 sentences max>"}}'
         )
@@ -281,10 +309,22 @@ class CNNReasoningAgent(BaseAgent):
             if isinstance(raw_agent_sigs, dict) and symbol in raw_agent_sigs:
                 other_agent_signals = raw_agent_sigs[symbol]
 
+            # Sentinel catalysts — symbol-specific first, then broad market (cap at 6)
+            raw_catalysts = market_context.get("__overnight_catalysts__", [])
+            catalysts: Optional[List[Dict]] = None
+            if isinstance(raw_catalysts, list) and raw_catalysts:
+                valid = [c for c in raw_catalysts if isinstance(c, dict)]
+                catalysts = valid[:6] if valid else None
+
+            # Macro context text (tactical + strategic summary)
+            macro_text: str = market_context.get("__macro_context__", "") or ""
+
             prompt   = self._build_prompt(
                 symbol, price, pred_return, direction, cnn_conf,
                 learned_weights, current_scores, c_score,
                 agent_signals=other_agent_signals or None,
+                catalysts=catalysts,
+                macro_text=macro_text,
             )
             decision = await self._ollama_decision(prompt)
 
