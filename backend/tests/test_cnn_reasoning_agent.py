@@ -163,7 +163,9 @@ class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
     def test_no_catalysts_no_section(self):
         prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
         self.assertNotIn("Overnight / Sentinel Catalysts", prompt)
-        self.assertNotIn("Macro Context", prompt)
+        # "## Macro Context" section is only injected when macro_text is non-empty.
+        # Step 4 of the Task does reference "Macro Context" by name — that's expected.
+        self.assertNotIn("## Macro Context\n", prompt)
 
     def test_direct_catalyst_for_symbol_appears_in_prompt(self):
         cats = [{"symbol": "AAPL", "headline": "AAPL beats earnings",
@@ -212,12 +214,28 @@ class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
                  "score": 4, "category": "CATALYST", "date": "2026-04-12"}]
         prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=cats, macro_text="")
         self.assertIn("Step 3 — Catalysts", prompt)
-        self.assertIn("Step 4 — Decision", prompt)
+        self.assertIn("Step 4 — Macro", prompt)
+        self.assertIn("Step 5 — Decision", prompt)
 
     def test_task_without_catalysts_still_has_steps(self):
         prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
-        # Step 3 should be catalyst step even when no catalysts present
         self.assertIn("Step 3 — Catalysts", prompt)
+        self.assertIn("Step 4 — Macro", prompt)
+        self.assertIn("Step 5 — Decision", prompt)
+
+    def test_macro_step_references_key_fred_indicators(self):
+        """Step 4 must name the specific FRED indicators so Ollama knows what to look for."""
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
+        self.assertIn("yield curve", prompt)
+        self.assertIn("VIX", prompt)
+        self.assertIn("recession", prompt)
+        self.assertIn("inflation", prompt)
+
+    def test_macro_step_confidence_adjustment_mentioned(self):
+        """Step 5 must state the confidence adjustment rules so Ollama applies them."""
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
+        self.assertIn("0.15", prompt)   # max reduction for macro headwind
+        self.assertIn("0.10", prompt)   # max increase for supportive macro
 
 
 class TestCNNAnalyzeCatalystPassthrough(unittest.IsolatedAsyncioTestCase):

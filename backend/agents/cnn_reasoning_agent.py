@@ -218,9 +218,15 @@ class CNNReasoningAgent(BaseAgent):
             f"Do they support or contradict the CNN?\n"
             f"Step 3 — Catalysts: If any direct catalysts exist for {symbol}, do they support "
             f"or contradict the CNN direction? Factor this into your confidence.\n"
-            f"Step 4 — Decision: Choose BUY, SELL, or HOLD. "
+            f"Step 4 — Macro: Review the Macro Context above. "
+            f"Does the current macro regime (Fed rate, inflation trend, yield curve, VIX, recession risk) "
+            f"support or oppose the CNN direction for {symbol}? "
+            f"Flag any macro headwind that should reduce confidence (e.g. inverted yield curve, "
+            f"rising VIX above 25, CPI accelerating, recession probability > 30%).\n"
+            f"Step 5 — Decision: Choose BUY, SELL, or HOLD. "
             f"If CNN and composite conflict, prefer HOLD unless agent consensus is strong. "
-            f"Set confidence to the CNN confidence value; only adjust it if agents or catalysts strongly disagree.\n\n"
+            f"Set confidence to the CNN confidence value; reduce by up to 0.15 if macro step "
+            f"identified a significant headwind; increase by up to 0.10 if macro is clearly supportive.\n\n"
             f"Respond with ONLY valid JSON (no markdown, no extra text):\n"
             f'{{"action":"BUY"|"SELL"|"HOLD","confidence":<0.0-1.0>,"reasoning":"<2 sentences max>"}}'
         )
