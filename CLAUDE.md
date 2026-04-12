@@ -84,6 +84,20 @@ runtime\python\python.exe run_tests.py       # full suite (summary only)
 ```
 Note: pytest is not installed in the self-contained runtime. Use `run_tests.py` (unittest discovery).
 
+### Shell cleanup — required after every test run
+
+Running tests repeatedly causes background bash+python processes to stack up. After any test run:
+
+```bash
+# Kill leftover python processes
+ps aux | grep python | grep -v grep | awk '{print $1}' | xargs kill -9 2>/dev/null
+```
+
+Rules:
+- **Prefer per-module tests** (`python -m unittest tests.<module>`) over the full suite during development — faster, stays foreground, no stacking
+- **Only run the full suite once** before committing, not repeatedly
+- **Always clean up** after a test run completes or is interrupted
+
 ---
 
 ## Commit Standards
