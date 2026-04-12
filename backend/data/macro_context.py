@@ -758,6 +758,16 @@ async def get_macro_context_text() -> str:
             return _fast_cache_text
 
         text = _build_macro_text(fast_data, slow_data)
+
+        # Append FRED economic statistics (4-hour cache inside fred_client)
+        try:
+            from data.fred_client import get_fred_macro_text
+            fred_text = await get_fred_macro_text()
+            if fred_text:
+                text = text + "\n\n" + fred_text
+        except Exception as fred_exc:
+            logger.debug("MacroContext: FRED append skipped: %s", fred_exc)
+
         _fast_cache_text = text
         _fast_cache_ts   = now
         logger.info("MacroContext: fast cache refreshed (%d instruments)", len(fast_data))
