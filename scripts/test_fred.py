@@ -2,7 +2,7 @@
 FRED API validation script.
 Run after adding FRED_API_KEY to .env:
 
-    runtime\python\python.exe scripts\test_fred.py
+    runtime/python/python.exe scripts/test_fred.py
 """
 import sys
 import os
@@ -59,11 +59,11 @@ async def main():
             prev    = d.get("previous")
             prev_v  = prev["value"] if prev else "n/a"
 
-            # Direction indicator
+            # Direction indicator (ASCII-safe for Windows console)
             arrow = ""
             try:
                 diff = float(val) - float(prev_v)
-                arrow = f"  ({'↑' if diff > 0 else '↓'}{abs(diff):.3f} vs prev)"
+                arrow = f"  ({'(+)' if diff > 0 else '(-)'}{abs(diff):.3f} vs prev)"
             except (ValueError, TypeError):
                 pass
 

@@ -181,7 +181,7 @@ class FREDClient:
                         prev_val = float(previous["value"])
                         diff = val - prev_val
                         if abs(diff) >= 0.01:
-                            arrow = f" ({'↑' if diff > 0 else '↓'}{abs(diff):.2f})"
+                            arrow = f" ({'(+)' if diff > 0 else '(-)'}{abs(diff):.2f})"
                     except (ValueError, TypeError):
                         pass
 
@@ -211,11 +211,11 @@ class FREDClient:
                 spread = float(data["T10Y2Y"]["latest"]["value"])
                 if spread < 0:
                     lines.append(
-                        f"\n  ⚠ Yield curve inverted ({spread:.2f}%): historically precedes recession"
+                        f"\n  [!] Yield curve inverted ({spread:.2f}%): historically precedes recession"
                     )
                 elif spread < 0.25:
                     lines.append(
-                        f"\n  ⚠ Yield curve flat ({spread:.2f}%): elevated recession risk"
+                        f"\n  [!] Yield curve flat ({spread:.2f}%): elevated recession risk"
                     )
                 else:
                     lines.append(
@@ -230,7 +230,7 @@ class FREDClient:
                 rec_prob = float(data["RECPROUSM156N"]["latest"]["value"])
                 if rec_prob >= 30:
                     lines.append(
-                        f"\n  ⚠ Recession probability elevated: {rec_prob:.1f}%"
+                        f"\n  [!] Recession probability elevated: {rec_prob:.1f}%"
                     )
             except (ValueError, TypeError):
                 pass
