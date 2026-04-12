@@ -48,6 +48,7 @@ trading_app/
 │       └── scan_cache.json         # Scanner results cache (auto-managed)
 ├── frontend/                 # React + Vite + Tailwind dashboard
 │   └── src/components/
+│       ├── LoginPage.tsx       # Password login form (dark-themed, rate-limit aware)
 │       ├── Dashboard.tsx       # Main layout, tab controller
 │       ├── Leaderboard.tsx     # Agent ranking strip
 │       ├── AgentCard.tsx       # Per-agent detail view
@@ -62,9 +63,13 @@ trading_app/
 │       └── ErrorLogPanel.tsx   # Error/warning log viewer with AI analysis + warnings toggle
 ├── runtime/                  # Self-contained Python + Node runtimes
 ├── site-packages/            # All installed Python packages
-├── .env                      # API keys (never commit)
+├── .env                      # API keys + auth secrets (never commit)
 ├── .env.example              # Template for .env
-├── Start Trading App.exe     # Double-click launcher
+├── Start Trading App.exe     # Double-click launcher (GUI, no console windows)
+├── launcher_gui.pyw          # Launcher source (tkinter dark-themed control panel)
+├── build_exe.ps1             # Compiles launcher_gui.pyw → Start Trading App.exe via PyInstaller
+├── launcher_gui.spec         # PyInstaller spec — bundles Tcl/Tk DLLs + library dirs
+├── create_icon.py            # Generates launcher.ico (robot icon)
 ├── start_backend.ps1 / .bat  # Start backend only
 ├── start_frontend.ps1 / .bat # Start frontend only
 ├── setup_offline.ps1 / .bat  # Install all deps without internet
@@ -289,6 +294,9 @@ Discovers high-conviction opportunities outside the core watchlist.
 
 | Endpoint | Description |
 |---|---|
+| `POST /api/login` | Authenticate — sets httpOnly session cookie (rate limited 5/5 min/IP) |
+| `POST /api/logout` | Revoke session and clear cookie |
+| `GET /api/auth/check` | Always public — returns `{authenticated, auth_enabled}` |
 | `GET /api/agents` | All agents with current state |
 | `GET /api/leaderboard` | Agents ranked by return % |
 | `GET /api/trades` | Recent trades (optional `?agent_id=`) |
@@ -371,6 +379,10 @@ The cert is valid for 825 days. Tailscale IPs are stable — you only need to re
 ## Environment Variables (`.env`)
 
 ```ini
+# Authentication (optional — leave blank to disable)
+APP_PASSWORD=your_password         # Password to access the dashboard
+SESSION_SECRET=your_secret_string  # Random secret for signing session cookies (generate with: python -c "import secrets; print(secrets.token_urlsafe(48))")
+
 # Alpaca Markets (paper trading) — https://app.alpaca.markets
 ALPACA_API_KEY=your_key
 ALPACA_SECRET_KEY=your_secret
@@ -443,6 +455,8 @@ See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 | Date | Change |
 |---|---|
+| 2026-04-11 | **Session auth** — PBKDF2 password hashing, httpOnly cookies, login rate limiting, WebSocket auth, `/api/auth/check`; dark-themed `LoginPage.tsx` |
+| 2026-04-11 | **GUI Launcher EXE** — tkinter dark-themed control panel compiled to `Start Trading App.exe` via PyInstaller; no console windows; bundled Tcl/Tk DLLs; `ROOT` path fix for frozen executables |
 | 2026-04-07 | **Phase 1 Ollama learning** — `get_few_shot_examples()` in `learning_manager.py` formats Claude's top profitable/loss trades as explicit few-shot examples; prepended to Ollama prompt in `_get_ollama_decisions()` so `llama3.1:8b` mimics Claude Opus reasoning style in `OLLAMA_ONLY_MODE=1` |
 | 2026-04-07 | **Dual error log files** — `backend/logs/error.log` captures WARNING+; `errors_only.log` captures ERROR/CRITICAL only; `/api/errors` defaults to errors-only with `errors_only=false` toggle for warnings |
 | 2026-04-07 | **Error Log dashboard tab** — new `ErrorLogPanel.tsx` with warnings toggle, level filter dropdown, AI analysis button (`/api/errors/analyze`), 60s auto-refresh |

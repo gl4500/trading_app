@@ -82,6 +82,29 @@ from xml.etree.ElementTree import fromstring as _xml_fromstring  # nosec B314
 
 ---
 
+## Authentication
+
+Session-based authentication is enforced when `APP_PASSWORD` and `SESSION_SECRET` are set in `.env`.
+
+| Control | Detail |
+|---|---|
+| Password hashing | PBKDF2-HMAC-SHA256, 200,000 iterations, session secret as salt |
+| Session cookies | httpOnly, SameSite=Lax; `Secure` flag set automatically when HTTPS certs are present |
+| Session TTL | 24 hours; server-side revocation on logout |
+| Rate limiting | 5 login attempts per IP per 5 minutes; HTTP 429 with `Retry-After` on breach |
+| Timing attack prevention | `hmac.compare_digest` for constant-time password comparison |
+| WebSocket auth | Session cookie validated before `accept()` — unauthenticated connections receive HTTP 403 |
+| Exempt endpoints | `/api/login`, `/api/logout`, `/api/auth/check`, `/docs`, `/openapi.json`, `/redoc` |
+
+To enable: add `APP_PASSWORD` and `SESSION_SECRET` to `.env`. Leave either blank to run without authentication (development/local use only).
+
+Generate a session secret:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+---
+
 ## Runtime Security Hardening
 
 ### API Server binding

@@ -28,6 +28,8 @@ frontend/dist/
 build/
 dist/
 *.spec
+# Keep the launcher spec — it's the build recipe for Start Trading App.exe
+!launcher_gui.spec
 
 # Misc
 *.log

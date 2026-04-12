@@ -83,6 +83,13 @@ class Config:
     def WATCHLIST_ANCHORS(self) -> List[str]:
         return [s.strip() for s in self.WATCHLIST_ANCHORS_STR.split(",") if s.strip()]
 
+    # Authentication
+    # Set APP_PASSWORD and SESSION_SECRET in .env to enable login protection.
+    # Leave APP_PASSWORD empty for open access (local-only use, no auth required).
+    # SESSION_SECRET must be a stable random string — changing it invalidates all sessions.
+    APP_PASSWORD: str = os.getenv("APP_PASSWORD", "")
+    SESSION_SECRET: str = os.getenv("SESSION_SECRET", "")
+
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "trading.db")
     TOKEN_LOG_RETENTION_DAYS: int = int(os.getenv("TOKEN_LOG_RETENTION_DAYS", "365"))

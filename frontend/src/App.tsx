@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Dashboard from './components/Dashboard'
+import LoginPage from './components/LoginPage'
 import { TimezoneProvider } from './context/TimezoneContext'
 import TimezoneSelector from './components/TimezoneSelector'
 
@@ -140,6 +141,35 @@ const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${wind
 const API_BASE = ''
 
 export default function App() {
+  // ── Authentication ──────────────────────────────────────────────────────────
+  const [authChecked, setAuthChecked] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth/check')
+      .then(r => { if (r.ok) setIsAuthenticated(true) })
+      .catch(() => {/* server unreachable — stay on login */})
+      .finally(() => setAuthChecked(true))
+  }, [])
+
+  if (!authChecked) {
+    // Brief loading state while checking session — avoids flash of login page
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-500 text-sm">Loading…</div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={() => setIsAuthenticated(true)} />
+  }
+
+  // ── Main App ────────────────────────────────────────────────────────────────
+  return <AuthenticatedApp />
+}
+
+function AuthenticatedApp() {
   const [appData, setAppData] = useState<AppData>({
     agents: [],
     prices: {},

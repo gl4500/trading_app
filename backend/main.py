@@ -34,6 +34,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import config
+import auth as auth
 from data.agent_performance_tracker import agent_performance_tracker
 from data.signal_history import signal_history
 from database import (
@@ -90,6 +91,10 @@ logger = logging.getLogger(__name__)
 # Ollama is the default primary model — always active unless explicitly disabled.
 # Set before any agent or scanner code runs so the flag is visible to all modules.
 os.environ.setdefault("OLLAMA_ONLY_MODE", "1")
+
+# Detect whether TLS certs exist (used to set the Secure cookie flag)
+_CERTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'certs')
+_HTTPS_ENABLED = os.path.isfile(os.path.join(_CERTS_DIR, 'cert.pem'))
 
 
 # Suppress the Windows-specific "connection forcibly closed" asyncio noise.
@@ -1473,6 +1478,17 @@ async def lifespan(app: FastAPI):
     """Application startup and shutdown."""
     # Startup
     logger.info("Starting AI Trading Competition backend...")
+
+    # Initialise authentication (no-op when APP_PASSWORD is empty)
+    auth.init_auth(config.APP_PASSWORD, config.SESSION_SECRET)
+    if auth.is_enabled():
+        logger.info("Authentication ENABLED — password protection is active.")
+    else:
+        logger.warning(
+            "Authentication DISABLED — set APP_PASSWORD and SESSION_SECRET in .env "
+            "to restrict access."
+        )
+
     await init_db()
     await cleanup_token_log(hours=config.TOKEN_LOG_RETENTION_DAYS * 24)
     await prune_performance_table(days=3)
@@ -1568,6 +1584,40 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
+# ─── Authentication Middleware ────────────────────────────────────────────────
+
+# Paths that are always accessible without a session cookie.
+_AUTH_EXEMPT = frozenset({
+    "/api/login",
+    "/api/logout",
+    "/api/auth/check",
+    "/docs",
+    "/openapi.json",
+    "/redoc",
+})
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """Block unauthenticated requests when APP_PASSWORD is set."""
+    # Auth disabled (no password configured) — pass everything through
+    if not auth.is_enabled():
+        return await call_next(request)
+
+    # WebSocket upgrade requests are handled inside websocket_endpoint
+    if request.url.path.startswith("/ws"):
+        return await call_next(request)
+
+    # Public paths never require a cookie
+    if request.url.path in _AUTH_EXEMPT:
+        return await call_next(request)
+
+    token = request.cookies.get(auth.SESSION_COOKIE)
+    if not token or not auth.validate_session(token):
+        return JSONResponse({"detail": "Authentication required"}, status_code=401)
+
+    return await call_next(request)
+
+
 # ─── Rate Limiter ─────────────────────────────────────────────────────────────
 
 _rate_limit_store: Dict[str, List[float]] = defaultdict(list)
@@ -1584,6 +1634,67 @@ def _check_rate_limit(ip: str) -> bool:
         return False
     calls.append(now)
     return True
+
+
+# ─── Auth Endpoints ───────────────────────────────────────────────────────────
+
+@app.post("/api/login")
+async def login(request: Request):
+    """Verify password and issue a session cookie."""
+    if not auth.is_enabled():
+        # Auth is disabled — auto-login
+        return JSONResponse({"detail": "Auth disabled — open access"})
+
+    ip = request.client.host if request.client else "unknown"
+    if not auth.check_login_rate_limit(ip):
+        return JSONResponse({"detail": "Too many login attempts. Try again in 5 minutes."}, status_code=429)
+
+    try:
+        body = await request.json()
+        password = body.get("password", "")
+    except Exception:
+        return JSONResponse({"detail": "Invalid request body"}, status_code=400)
+
+    if not auth.verify_password(password):
+        return JSONResponse({"detail": "Invalid password"}, status_code=401)
+
+    token = auth.create_session()
+    response = JSONResponse({"detail": "Login successful"})
+    response.set_cookie(
+        key=auth.SESSION_COOKIE,
+        value=token,
+        httponly=True,
+        secure=_HTTPS_ENABLED,
+        samesite="lax",
+        max_age=auth.SESSION_TTL,
+        path="/",
+    )
+    return response
+
+
+@app.post("/api/logout")
+async def logout(request: Request):
+    """Revoke the current session and clear the cookie."""
+    token = request.cookies.get(auth.SESSION_COOKIE)
+    if token:
+        auth.revoke_session(token)
+    response = JSONResponse({"detail": "Logged out"})
+    response.delete_cookie(key=auth.SESSION_COOKIE, path="/")
+    return response
+
+
+@app.get("/api/auth/check")
+async def auth_check(request: Request):
+    """
+    Returns auth status.  Used by the frontend to decide whether to show the login page.
+    Always accessible (no session required).
+    """
+    if not auth.is_enabled():
+        return {"authenticated": True, "auth_enabled": False}
+    token = request.cookies.get(auth.SESSION_COOKIE)
+    if token and auth.validate_session(token):
+        return {"authenticated": True, "auth_enabled": True}
+    return JSONResponse({"authenticated": False, "auth_enabled": True}, status_code=401)
 
 
 # ─── REST Endpoints ───────────────────────────────────────────────────────────
@@ -2273,6 +2384,14 @@ async def get_telemetry():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """Real-time WebSocket endpoint for live updates."""
+    # Authenticate before accepting the connection.
+    # The session cookie is forwarded by the Vite proxy on WS upgrade.
+    if auth.is_enabled():
+        token = websocket.cookies.get(auth.SESSION_COOKIE)
+        if not token or not auth.validate_session(token):
+            await websocket.close(code=1008)  # 1008 = Policy Violation
+            return
+
     await websocket.accept()
     app_state.ws_connections.add(websocket)
     client = websocket.client

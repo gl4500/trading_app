@@ -104,6 +104,9 @@ def _start_lifespan_patches():
         patch("main.auto_scan_loop",            new_callable=AsyncMock),
         patch("main.news_sentinel_loop",        new_callable=AsyncMock),
         patch("main.asyncio.create_task"),
+        # Keep auth disabled so tests don't require session cookies,
+        # even if APP_PASSWORD is set in the local .env file.
+        patch("auth._password_hash", ""),
     ]
     for p in patchers:
         p.start()

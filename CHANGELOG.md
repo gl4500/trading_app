@@ -9,6 +9,49 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2026-04-11] — Session Authentication + GUI Launcher EXE
+
+### Added
+
+- **Session-based authentication** (`backend/auth.py`, `backend/main.py`)
+  - New `backend/auth.py` module: PBKDF2-HMAC-SHA256 password hashing (200k iterations), httpOnly session cookies (`trading_session`), 24h TTL, constant-time comparison via `hmac.compare_digest`
+  - `init_auth(password, session_secret)` called in lifespan from `.env` vars `APP_PASSWORD` / `SESSION_SECRET`
+  - Login rate limiting: 5 attempts / 5 min per IP; HTTP 429 with `Retry-After` header on breach
+  - Auth middleware in `main.py` enforces sessions on all routes except: `/api/login`, `/api/logout`, `/api/auth/check`, `/docs`, `/openapi.json`, `/redoc`
+  - WebSocket (`/ws`) validates session cookie before `accept()` — returns 403 to unauthenticated clients
+  - Endpoints added: `POST /api/login`, `POST /api/logout`, `GET /api/auth/check`
+  - `GET /api/auth/check` is always public — used by the launcher and frontend to determine auth state
+
+- **Login UI** (`frontend/src/components/LoginPage.tsx`, `frontend/src/App.tsx`)
+  - Dark-themed password form; POST to `/api/login`; shows rate-limit countdown on 429
+  - `App.tsx` checks `/api/auth/check` on mount; renders `LoginPage` when not authenticated, main dashboard when authenticated
+
+- **GUI Launcher EXE** (`launcher_gui.pyw`, `build_exe.ps1`, `launcher_gui.spec`, `create_icon.py`)
+  - Full tkinter dark-themed control panel: status cards with colored dots, Start All / Stop All / Open Dashboard buttons, live backend log window
+  - No console windows — both backend and frontend subprocesses use `CREATE_NO_WINDOW`
+  - Compiled with PyInstaller via `build_exe.ps1` + `launcher_gui.spec` — output: `Start Trading App.exe`
+  - Spec file explicitly bundles `tcl86t.dll` + `tk86t.dll` from `radioconda/Library/bin/` (threaded Tcl/Tk DLLs that `_tkinter.pyd` links against) plus `tcl8.6`/`tk8.6` library script dirs
+  - `TCL_LIBRARY` / `TK_LIBRARY` env vars set before `import tkinter` to prevent DLL load failure in frozen exe
+  - `ROOT` computed from `sys.executable` when frozen (not `__file__`, which resolves to `_MEIPASS` temp dir)
+  - `create_icon.py` generates `launcher.ico` — dark robot icon with glowing blue eyes and green chart bars
+
+- **`test_auth.py`** — 28 tests across `TestInitAuth`, `TestPasswordVerification`, `TestSessionManagement`, `TestLoginRateLimit`, `TestAuthEndpointsIntegration`; all passing
+
+### Changed
+
+- **`backend/config.py`** — added `APP_PASSWORD` and `SESSION_SECRET` env vars
+- **`launcher.py`** — changed `BACKEND_STATUS_URL` from `/api/status` to `/api/auth/check`; treats HTTP 401/403 as "backend is up"; added `_kill_port(5173)` before starting frontend
+- **`start_frontend.ps1`** — added port 5173 kill before starting Vite to prevent dual-frontend conflict
+
+### Fixed
+
+- **`wait_for_backend` retried 60s on 401** — `/api/status` returns 401 after auth was added; changed poll URL to `/api/auth/check` (always public); 401/403 treated as "backend is up"
+- **Dual Vite instances on port 5173/5174** — impatience during slow startup caused a second Vite; fixed by killing port before launch
+- **PyInstaller `ImportError: DLL load failed while importing _tkinter`** — spec file now bundles `tcl86t.dll`/`tk86t.dll` (threaded DLLs) from `radioconda/Library/bin/`
+- **`[WinError 2] The system cannot find the file specified`** — frozen exe used `__file__` (points to `_MEIPASS`) for ROOT; changed to `sys.executable` directory
+
+---
+
 ## [2026-04-07] — Phase 1 Ollama Learning, Dual Error Logs, NSSM Services, Decision Diagram
 
 ### Added

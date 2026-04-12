@@ -22,6 +22,18 @@ if (-not (Test-Path "node_modules")) {
     & $NPM install
 }
 
-Write-Host "[INFO] Starting React frontend on http://localhost:5173" -ForegroundColor Green
+Write-Host "[INFO] Freeing port 5173..." -ForegroundColor Yellow
+$portUsers = netstat -ano | Select-String ":5173\s" | ForEach-Object {
+    ($_ -split '\s+')[-1]
+} | Sort-Object -Unique | Where-Object { $_ -match '^\d+$' }
+foreach ($pid in $portUsers) {
+    if ($pid -ne "0") {
+        Write-Host "  Killing PID $pid on port 5173" -ForegroundColor Yellow
+        taskkill /F /PID $pid 2>$null | Out-Null
+    }
+}
+Start-Sleep -Milliseconds 500
+
+Write-Host "[INFO] Starting React frontend on https://localhost:5173" -ForegroundColor Green
 Write-Host ""
 & $NPM run dev

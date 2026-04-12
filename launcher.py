@@ -15,7 +15,7 @@ FRONTEND_DIR = os.path.join(ROOT, "frontend")
 CERT = os.path.join(ROOT, "certs", "cert.pem")
 
 PROTOCOL = "https" if os.path.exists(CERT) else "http"
-BACKEND_STATUS_URL = f"{PROTOCOL}://localhost:8000/api/status"
+BACKEND_STATUS_URL = f"{PROTOCOL}://localhost:8000/api/auth/check"
 FRONTEND_URL = f"{PROTOCOL}://localhost:5173"
 
 # ── Shared env ────────────────────────────────────────────────────────────────
@@ -30,7 +30,9 @@ env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0"
 # ── Helper: poll backend until ready ─────────────────────────────────────────
 
 def wait_for_backend(timeout: int = 60) -> bool:
-    """Poll /api/status until the backend responds or timeout expires."""
+    """Poll /api/auth/check until the backend responds or timeout expires.
+    Uses auth/check (always public) so a 200 or 401 both count as 'backend is up'."""
+    import urllib.error
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
@@ -39,9 +41,13 @@ def wait_for_backend(timeout: int = 60) -> bool:
     while time.time() < deadline:
         try:
             urllib.request.urlopen(BACKEND_STATUS_URL, context=ctx, timeout=2)
-            return True
+            return True   # 200 — auth disabled
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403):
+                return True   # backend is up, auth is just enabled
         except Exception:
-            time.sleep(0.5)
+            pass
+        time.sleep(0.5)
     return False
 
 # ── 1. Start backend ──────────────────────────────────────────────────────────
@@ -62,7 +68,30 @@ if wait_for_backend(timeout=60):
 else:
     print("[WARN] Backend did not respond within 60 s — starting frontend anyway.")
 
-# ── 3. Start frontend ─────────────────────────────────────────────────────────
+# ── 3. Free port 5173 then start frontend ────────────────────────────────────
+
+import socket as _socket
+
+def _kill_port(port: int) -> None:
+    """Kill any process listening on the given port."""
+    try:
+        result = subprocess.run(
+            ["netstat", "-ano"],
+            capture_output=True, text=True
+        )
+        for line in result.stdout.splitlines():
+            if f":{port}" in line and "LISTENING" in line:
+                parts = line.strip().split()
+                pid = parts[-1]
+                if pid.isdigit() and int(pid) != os.getpid():
+                    subprocess.run(["taskkill", "/F", "/PID", pid],
+                                   capture_output=True)
+                    print(f"[INFO] Freed port {port} (killed PID {pid})")
+    except Exception:
+        pass
+
+_kill_port(5173)
+time.sleep(0.5)
 
 print("[INFO] Starting frontend...")
 subprocess.Popen(
