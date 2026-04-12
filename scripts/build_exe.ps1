@@ -9,8 +9,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 $ErrorActionPreference = "Stop"
-$root   = Split-Path -Parent $MyInvocation.MyCommand.Path
-$CONDA  = "C:\Users\gl450\radioconda"
+# scripts/ is one level below the project root
+$scripts = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root    = Split-Path -Parent $scripts
+$CONDA   = "C:\Users\gl450\radioconda"
 $python = Join-Path $CONDA "python.exe"
 $pip    = Join-Path $CONDA "Scripts\pip.exe"
 $pyi    = Join-Path $CONDA "Scripts\pyinstaller.exe"
@@ -34,10 +36,10 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: pip install failed." -ForegroundColor Red; exit 1
 }
 
-# ── 4. Generate icon ─────────────────────────────────────────────────────────
-$ico = Join-Path $root "launcher.ico"
+# ── 4. Generate icon (outputs to scripts/launcher.ico) ───────────────────────
+$ico = Join-Path $scripts "launcher.ico"
 Write-Host "Generating icon..." -ForegroundColor Yellow
-& $python (Join-Path $root "create_icon.py")
+& $python (Join-Path $scripts "create_icon.py")
 
 # ── 5. Clean old build artefacts ─────────────────────────────────────────────
 $oldExe = Join-Path $root "Start Trading App.exe"
@@ -52,10 +54,11 @@ foreach ($d in @("dist", "build")) {
 
 # ── 6. Run PyInstaller ────────────────────────────────────────────────────────
 Write-Host "Compiling launcher_gui.pyw via spec file..." -ForegroundColor Yellow
+# Run from the project root so dist/ and build/ land in root
 Set-Location $root
 
 $pyiArgs = @(
-    "launcher_gui.spec",
+    (Join-Path $scripts "launcher_gui.spec"),
     "--clean",
     "--noconfirm"
 )

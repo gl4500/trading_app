@@ -7,7 +7,8 @@
 ::
 :: Run before merging any branch to main.
 :: ============================================================
-set REPO=%~dp0
+:: scripts\ is one level below the project root
+for %%I in ("%~dp0..") do set REPO=%%~fI\
 set PYTHON=%REPO%runtime\python\python.exe
 set PYTHONPATH=%REPO%site-packages
 

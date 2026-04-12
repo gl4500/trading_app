@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Trading App — Data Tree & Agent Linkages</title>
+<style>
+  @page { margin: 1.2cm 1.4cm; size: A4; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10.5pt; color: #1a1a1a; line-height: 1.55; margin: 0; padding: 0; }
+  h1 { font-size: 18pt; color: #0a2540; border-bottom: 3px solid #0a2540; padding-bottom: 6px; margin-top: 0; }
+  h2 { font-size: 13pt; color: #0a2540; border-left: 4px solid #2563eb; padding-left: 10px; margin-top: 22px; margin-bottom: 8px; page-break-after: avoid; }
+  h3 { font-size: 11pt; color: #1e3a5f; margin-top: 14px; margin-bottom: 4px; page-break-after: avoid; }
+  p  { margin: 4px 0 8px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 14px; page-break-inside: avoid; }
+  th { background: #0a2540; color: #fff; padding: 5px 8px; text-align: left; }
+  td { padding: 4px 8px; border-bottom: 1px solid #dde3ea; vertical-align: top; }
+  tr:nth-child(even) td { background: #f5f8fc; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 8.5pt; font-weight: bold; }
+  .buy   { background: #dcfce7; color: #166534; }
+  .sell  { background: #fee2e2; color: #991b1b; }
+  .hold  { background: #fef9c3; color: #854d0e; }
+  .info  { background: #dbeafe; color: #1e40af; }
+  .gray  { background: #f3f4f6; color: #374151; }
+  .box   { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; margin: 10px 0; background: #f8fafc; page-break-inside: avoid; }
+  .flow  { font-family: 'Courier New', monospace; font-size: 9pt; background: #f0f4f8; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px 14px; margin: 8px 0; white-space: pre; line-height: 1.7; page-break-inside: avoid; }
+  .tag   { font-size: 8pt; color: #6b7280; }
+  .section-divider { border: none; border-top: 1px solid #e2e8f0; margin: 18px 0; }
+  ul { margin: 4px 0 8px 16px; padding: 0; }
+  li { margin: 2px 0; }
+  .cover { text-align: center; padding: 40px 0 30px 0; page-break-after: always; }
+  .cover h1 { border: none; font-size: 26pt; margin-bottom: 8px; }
+  .cover .subtitle { font-size: 13pt; color: #4b5563; margin-bottom: 6px; }
+  .cover .date { font-size: 10pt; color: #9ca3af; }
+  .cover .tagline { font-size: 11pt; color: #2563eb; margin-top: 18px; font-style: italic; }
+  .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .footnote { font-size: 8.5pt; color: #6b7280; margin-top: 2px; }
+  @media print {
+    .cover { padding-top: 80px; }
+    h2 { page-break-before: auto; }
+    .no-break { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover">
+  <h1>AI Trading App</h1>
+  <div class="subtitle">Data Tree, Agent Architecture &amp; Signal Linkages</div>
+  <div class="date">Generated: April 10, 2026</div>
+  <div class="tagline">FastAPI + React &middot; 9 Agents &middot; Multi-Source Data Pipeline &middot; Ensemble Voting</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>1. System Overview</h1>
+
+<p>The AI Trading App is a paper-trading competition engine that runs <strong>9 autonomous agents</strong> concurrently. Each cycle (~60 seconds) the system fetches multi-source market data, builds a rich <code>market_context</code> dictionary, and dispatches it to every agent. Agents emit <code>BUY / SELL / HOLD</code> signals which are executed against each agent's independent virtual portfolio. The <code>EnsembleAgent</code> aggregates votes from 7 sub-agents using adaptive performance-weighted voting to produce the highest-quality trades.</p>
+
+<div class="box">
+<strong>Key invariants:</strong>
+<ul>
+  <li><code>market_context[symbol]</code> is always a <code>dict</code> — never iterate without <code>isinstance(ctx, dict)</code></li>
+  <li><code>market_context["__overnight_catalysts__"]</code> is a <code>list</code>, not a dict</li>
+  <li><code>Portfolio</code> has no <code>get_position()</code> — access via <code>portfolio.positions[sym].shares</code></li>
+  <li>NYSE hours only: 9:30–16:00 ET. No pre/after-hours trades executed.</li>
+</ul>
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>2. Data Tree — Sources &amp; Hierarchy</h1>
+<p>All data flows through <code>MarketDataService.get_market_context(symbols)</code> which fans out to multiple providers concurrently via <code>asyncio.gather</code>.</p>
+
+<div class="flow">EXTERNAL DATA SOURCES
+│
+├── Alpaca Markets (primary)
+│   ├── get_latest_prices(symbols)      → real-time NBBO quotes           [10s cache]
+│   ├── get_bars(symbol)                → OHLCV daily bars, 60 days       [60s cache]
+│   ├── get_bars_multi(symbols)         → batch OHLCV (1 API call)        [60s cache]
+│   └── NewsService.get_news(symbols)   → Alpaca News API headlines        [90s cache]
+│
+├── yfinance (fundamentals &amp; extra news)
+│   ├── Analyst consensus               → composite score [-1, +1]        [15 min cache]
+│   ├── Earnings surprise               → fundamental momentum signal     [15 min cache]
+│   └── Yahoo Finance news headlines    → additional coverage             [15 min cache]
+│
+├── Stooq (free historical data)
+│   ├── get_bars(symbol, days)          → fallback daily bars             [60s cache]
+│   ├── get_bars_multi(symbols)         → long-term bars for HistAgent    [4 hr cache]
+│   └── get_macro_indicators()          → VIX, 10Y yield, Gold price      [15 min cache]
+│
+├── Massive.com (fallback + options)
+│   ├── get_snapshots(symbols)          → price fallback when Alpaca down [varies]
+│   ├── get_bars(symbol)                → bars last resort                [60s cache]
+│   ├── get_news_multi(symbols)         → deduplicated vs Alpaca news     [varies]
+│   ├── get_macro_context()             → macro text summary              [varies]
+│   └── get_greeks_summary(symbols)     → options greeks (delta, IV)      [varies]
+│
+├── SEC EDGAR Form 4 (congressional trades)
+│   └── get_congressional_trades()      → insider/congressional buys+sells [4 hr cache]
+│
+├── yfinance / Sector Analysis
+│   └── get_sector_performance()        → 11 SPDR sectors vs SPY         [varies]
+│
+└── yfinance / macro_context.py (dual-cache)
+    ├── FAST cache: _fetch_macro_data() period="65d" daily               [15 min]
+    │   └── 1D/5D/20D/60D returns for GLD, TLT, USO, UUP, VIX, SPY + 11 sectors
+    └── SLOW cache: _fetch_macro_data_slow() period="2y" weekly          [24 hr]
+        └── 52W returns, 26W/52W SMA trend, range position (0-100%),
+            breadth ETFs (IWM, MDY, SPY, QQQ)</div>
+
+<h2>2.1 Per-Symbol Context Dictionary</h2>
+<p>After all sources are gathered, each symbol gets a rich context object. This is what every agent reads:</p>
+
+<table>
+<tr><th>Key</th><th>Type</th><th>Source</th><th>Used By</th></tr>
+<tr><td><code>price</code></td><td>float</td><td>Alpaca → Massive fallback</td><td>All agents</td></tr>
+<tr><td><code>bars</code></td><td>DataFrame (OHLCV, 60 days)</td><td>Alpaca → Stooq → Massive</td><td>Tech, Momentum, MeanRev, CNN, Ensemble</td></tr>
+<tr><td><code>long_term_bars</code></td><td>DataFrame (multi-year)</td><td>Stooq (4 hr cache)</td><td>HistoricalTrends</td></tr>
+<tr><td><code>recent_bars</code></td><td>List[dict] (last 10 bars)</td><td>Alpaca bars slice</td><td>Claude, CNN (prompt)</td></tr>
+<tr><td><code>stats</code></td><td>dict</td><td>Computed from bars</td><td>Claude, Tech, Momentum</td></tr>
+<tr><td><code>stats.price_change_1d/5d/20d</code></td><td>float %</td><td>bars close values</td><td>Claude prompt, Momentum agent</td></tr>
+<tr><td><code>stats.high_52w / low_52w</code></td><td>float</td><td>60-day bars (approx)</td><td>MeanRev, HistTrends</td></tr>
+<tr><td><code>stats.avg_volume_20d</code></td><td>float</td><td>bars volume column</td><td>Momentum, Scanner pre-screener</td></tr>
+<tr><td><code>news</code></td><td>List[dict]</td><td>Alpaca News + Massive (deduped)</td><td>Claude, Sentiment, Scanner</td></tr>
+<tr><td><code>indicators</code></td><td>dict</td><td><code>technicals.compute(bars)</code></td><td>TechAgent, CNN, Claude prompt</td></tr>
+<tr><td><code>indicators.rsi</code></td><td>float</td><td>pandas-ta RSI(14)</td><td>TechAgent rules, Claude framework</td></tr>
+<tr><td><code>indicators.macd / macd_signal</code></td><td>float</td><td>pandas-ta MACD(12,26,9)</td><td>TechAgent crossover rules</td></tr>
+<tr><td><code>indicators.bb_upper/lower/mid</code></td><td>float</td><td>Bollinger Bands (20,2)</td><td>TechAgent, MeanRev</td></tr>
+<tr><td><code>indicators.sma_20/50</code></td><td>float</td><td>Simple Moving Averages</td><td>TechAgent, Ensemble regime</td></tr>
+<tr><td><code>indicators.atr</code></td><td>float</td><td>Average True Range (14)</td><td>Ensemble regime detection</td></tr>
+<tr><td><code>composite_signal</code></td><td>dict</td><td><code>signal_aggregator</code></td><td>Claude, Sentiment agent</td></tr>
+<tr><td><code>composite_signal.score</code></td><td>float [-1,+1]</td><td>Weighted 5-source average</td><td>Claude prompt, SentimentAgent</td></tr>
+<tr><td><code>greeks</code></td><td>dict</td><td>Massive.com options data</td><td>Claude prompt (options context)</td></tr>
+<tr><td><code>sector_vs_market</code></td><td>dict</td><td>Sector analysis</td><td>Claude, HistTrends</td></tr>
+<tr><td><code>sector_context_text</code></td><td>str</td><td>Formatted sector analysis</td><td>Claude prompt</td></tr>
+</table>
+
+<h2>2.2 Top-Level Context Keys (not per-symbol)</h2>
+<table>
+<tr><th>Key</th><th>Content</th><th>Injected By</th><th>Read By</th></tr>
+<tr><td><code>__overnight_catalysts__</code></td><td>List of catalyst dicts from after-hours sentinel</td><td>main.py trading loop</td><td>All agents (guard: isinstance list)</td></tr>
+<tr><td><code>__macro_context__</code></td><td>Formatted text: regime, sector rotation, 52W bars, conflict flags</td><td>main.py every 15 cycles</td><td>Claude, Gemini, Sentiment, CNN</td></tr>
+<tr><td><code>__gemini_market_view__</code></td><td>Gemini's narrative market commentary string</td><td>main.py each cycle</td><td>ClaudeAgent (injected into prompt)</td></tr>
+<tr><td><code>__agent_signals__</code></td><td><code>{sym: {agent_name: (action, conf)}}</code></td><td>main.py post-cycle</td><td>CNNReasoningAgent next cycle, signal_history</td></tr>
+<tr><td><code>__massive_macro__</code></td><td>Massive macro text</td><td>MarketDataService</td><td>Claude prompt</td></tr>
+<tr><td><code>__sector_context__</code></td><td>Sector performance dict</td><td>MarketDataService</td><td>HistoricalTrends, Claude</td></tr>
+<tr><td><code>__stooq_macro__</code></td><td>VIX, yield, gold from Stooq</td><td>MarketDataService</td><td>Claude prompt</td></tr>
+</table>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>3. Composite Signal — 5-Source Aggregator</h1>
+<p><code>data/signal_aggregator.py</code> runs concurrently for each watchlist symbol before <code>market_context</code> is assembled. Each source emits a score in <strong>[-1, +1]</strong>. The weighted average becomes <code>composite_signal.score</code>.</p>
+
+<table>
+<tr><th>Source</th><th>Weight</th><th>Provider</th><th>Signal Logic</th><th>ETF Skip?</th></tr>
+<tr><td>Analyst consensus</td><td>35%</td><td>yfinance</td><td>Strong Buy=+1, Buy=+0.5, Hold=0, Sell=-0.5, Strong Sell=-1</td><td>Yes</td></tr>
+<tr><td>Earnings surprise</td><td>22%</td><td>yfinance</td><td>Beat &gt; 5% = +1; Miss &lt; -5% = -1; scaled between</td><td>Yes</td></tr>
+<tr><td>Alpaca News</td><td>18%</td><td>Alpaca News API</td><td>Keyword scoring: bullish/bearish word sets, averaged over recent articles</td><td>No</td></tr>
+<tr><td>Yahoo Finance News</td><td>12%</td><td>yfinance</td><td>Same keyword scoring as Alpaca news</td><td>No</td></tr>
+<tr><td>Congressional Trades</td><td>13%</td><td>SEC EDGAR Form 4</td><td>Net BUY dollar value vs SELL = directional signal, 4 hr cache</td><td>No</td></tr>
+</table>
+
+<p class="footnote">Agreement across sources raises confidence; disagreement lowers it. Result stored in <code>composite_signal.confidence</code> alongside the raw source breakdown in <code>composite_signal.sources</code>.</p>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>4. The 9 Trading Agents</h1>
+<p>All agents inherit from <code>BaseAgent</code>. Each runs <code>analyze(market_context, prices) → Dict[str, Signal]</code>. The trading loop calls them concurrently via <code>asyncio.gather</code>, then persists new trades via <code>save_trade()</code>.</p>
+
+<h2>4.1 Agent Registry</h2>
+<table>
+<tr><th>Agent</th><th>Strategy</th><th>Data Used</th><th>API / Model</th><th>Cycle Rate</th></tr>
+<tr>
+  <td><strong>TechAgent</strong></td>
+  <td>Rule-based: RSI overbought/oversold, MACD crossover, Bollinger squeeze, SMA trend filter</td>
+  <td><code>indicators</code> (RSI, MACD, BB, SMA)</td>
+  <td>None (pure rules)</td>
+  <td>Every cycle</td>
+</tr>
+<tr>
+  <td><strong>MomentumAgent</strong></td>
+  <td>Price momentum with trailing stop. Buys when 5-day return &gt; threshold; stops out on drawdown.</td>
+  <td><code>stats.price_change_5d</code>, <code>bars</code></td>
+  <td>None</td>
+  <td>Every cycle</td>
+</tr>
+<tr>
+  <td><strong>MeanReversionAgent</strong></td>
+  <td>Z-score vs 20-day mean. Buys extreme oversold, sells extreme overbought.</td>
+  <td><code>bars</code> (close), <code>indicators.bb_lower/upper</code></td>
+  <td>None</td>
+  <td>Every cycle</td>
+</tr>
+<tr>
+  <td><strong>SentimentAgent</strong></td>
+  <td>Sends news headlines to LLM for sentiment scoring. Trades on strong directional consensus.</td>
+  <td><code>news</code>, <code>composite_signal.score</code></td>
+  <td>GPT-4o-mini (cloud) or Ollama</td>
+  <td>Every cycle</td>
+</tr>
+<tr>
+  <td><strong>ClaudeAgent</strong></td>
+  <td>Full-context reasoning: portfolio state + technical picture + news + macro + Gemini view → BUY/SELL/HOLD with confidence. Has rate limiting (2/hr) and cache replay.</td>
+  <td>All context keys: <code>stats</code>, <code>news</code>, <code>indicators</code>, <code>composite_signal</code>, <code>greeks</code>, <code>__macro_context__</code>, <code>__gemini_market_view__</code>, <code>__agent_signals__</code></td>
+  <td>Claude Opus 4.6 (cloud) or Ollama RESEARCH_MODEL</td>
+  <td>Every 5th cycle (or when in Ollama mode)</td>
+</tr>
+<tr>
+  <td><strong>GeminiAgent</strong></td>
+  <td><em>Not a trading agent.</em> Runs once per cycle to produce a market narrative string. Injected into Claude's prompt as <code>__gemini_market_view__</code>. Rate-limited 2/hr.</td>
+  <td><code>news</code>, <code>stats</code>, <code>composite_signal</code></td>
+  <td>Gemini 2.0 Flash (cloud) or Ollama</td>
+  <td>Every cycle (rate-limited)</td>
+</tr>
+<tr>
+  <td><strong>HistoricalTrendsAgent</strong></td>
+  <td>Seasonal calendar patterns + multi-period momentum (5/10/20/40d) + long-term channel positioning vs 52W high/low.</td>
+  <td><code>long_term_bars</code> (multi-year Stooq), <code>__sector_context__</code></td>
+  <td>None</td>
+  <td>Every cycle</td>
+</tr>
+<tr>
+  <td><strong>CNNReasoningAgent</strong></td>
+  <td>Runs CNN pattern recognition on price bars, then sends CNN output + <code>__agent_signals__</code> to Ollama for final BUY/SELL/HOLD reasoning.</td>
+  <td><code>bars</code>, <code>__agent_signals__</code>, <code>__macro_context__</code></td>
+  <td>Ollama (OLLAMA_MODEL)</td>
+  <td>Every cycle</td>
+</tr>
+<tr>
+  <td><strong>ScannerPortfolioAgent</strong></td>
+  <td>Acts on cached scanner recommendations. Buys BUY recs ≥60% confidence; sells SELL recs and underperformers (held positions down ≥5% not in current BUY set).</td>
+  <td>Cached scan results + Alpaca bars for scanner symbols</td>
+  <td>None (acts on scanner cache)</td>
+  <td>Every cycle</td>
+</tr>
+<tr>
+  <td><strong>EnsembleAgent</strong></td>
+  <td>Aggregates signals from 7 agents (excluding Gemini and ScannerPortfolio) using adaptive performance-weighted voting with regime detection.</td>
+  <td>Sub-agent <code>_last_signals</code> from all component agents</td>
+  <td>None (reads from agent state)</td>
+  <td>After all others complete</td>
+</tr>
+</table>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>5. Agent Linkages &amp; Data Flow Between Agents</h1>
+
+<h2>5.1 Information Flow Diagram</h2>
+<div class="flow">
+EXTERNAL DATA
+  │
+  ▼
+MarketDataService.get_market_context(watchlist)
+  ├── per-symbol dict (bars, price, news, indicators, composite_signal, greeks, sector)
+  └── top-level keys (__overnight_catalysts__, __macro_context__, etc.)
+  │
+  ▼
+main.py trading loop — augments context:
+  ├── Scanner symbols added if fresh scan available
+  ├── Agent pick symbols added (retained conviction symbols)
+  ├── __overnight_catalysts__  ← sentinel after-hours catalyst list
+  ├── __macro_context__        ← macro_context.py (every 15 cycles, 15-min cache)
+  ├── __gemini_market_view__   ← GeminiAgent.get_market_view() ← runs FIRST
+  └── __agent_signals__        ← injected AFTER cycle N, available in cycle N+1
+  │
+  ▼
+asyncio.gather([all non-ensemble agents run concurrently])
+  │
+  ├── TechAgent.analyze()          → _last_signals {sym → Signal}
+  ├── MomentumAgent.analyze()      → _last_signals
+  ├── MeanReversionAgent.analyze() → _last_signals
+  ├── SentimentAgent.analyze()     → _last_signals  (calls GPT/Ollama)
+  ├── ClaudeAgent.analyze()        → _last_signals  (calls Claude Opus/Ollama)
+  │     reads: __gemini_market_view__, __macro_context__, __agent_signals__ (prev cycle)
+  ├── HistoricalTrendsAgent.analyze() → _last_signals
+  ├── CNNReasoningAgent.analyze()  → _last_signals  (CNN → Ollama reasoning)
+  │     reads: __agent_signals__ (prev cycle)
+  └── ScannerPortfolioAgent.analyze() → _last_signals
+  │
+  ▼
+EnsembleAgent.analyze()  ← runs AFTER all others
+  ├── reads component_agents[name]._last_signals (fresh from this cycle)
+  ├── _detect_regime(market_context)  → trending / ranging / volatile
+  ├── _update_weights()  → adaptive perf weights every 5 cycles
+  └── _vote(symbol, agent_signals) → weighted BUY/SELL/HOLD score
+        threshold: buy_score >= sell_score × 2.0 AND >= ENSEMBLE_THRESHOLD(0.60)
+  │
+  ▼
+Post-cycle:
+  ├── Collect sym_agent_sigs → inject as __agent_signals__ for NEXT cycle
+  ├── signal_history.record_agent_signals() → consensus + agreement stored
+  ├── save_trade() → SQLite for each new trade
+  └── save_performance_snapshots() → DB performance table</div>
+
+<h2>5.2 Gemini → Claude Linkage</h2>
+<div class="box">
+<strong>GeminiAgent is a pure context provider, not a voter.</strong><br>
+Each cycle, <code>GeminiAgent.get_market_view(market_context, watchlist)</code> is called and returns a short narrative paragraph (e.g. "Tech sector showing momentum, rising rates a headwind for growth"). This is injected as <code>market_context["__gemini_market_view__"]</code> and appended to ClaudeAgent's prompt under <em>"## Gemini Market View"</em>. Claude reads this as peer analysis and weighs it against its own assessment. Gemini's signals are not passed to EnsembleAgent.
+</div>
+
+<h2>5.3 Agent Signals → CNN Linkage (cross-cycle)</h2>
+<div class="box">
+<strong>CNNReasoningAgent uses other agents' signals as a feature.</strong><br>
+After each cycle, the trading loop collects all per-symbol signals from every agent and stores them in <code>market_context["__agent_signals__"] = {sym: {agent_name: (action, confidence)}}</code>. On the <em>next</em> cycle, CNNReasoningAgent reads this dict and prepends an <em>"## Other Agent Signals This Cycle"</em> section to its Ollama prompt. This lets the CNN agent use the ensemble's collective intelligence as a soft prior. <strong>This is a one-cycle lag</strong> — CNNAgent always reads last cycle's signals.
+</div>
+
+<h2>5.4 Scanner → All Agents Linkage</h2>
+<div class="box">
+<strong>The scanner expands the universe of symbols all agents can trade.</strong><br>
+When a fresh scan is available, the trading loop fetches full market context for scanner-recommended symbols and merges them into <code>market_context</code> (deduped against the watchlist). This means every agent — not just ScannerPortfolioAgent — can trade scanner picks. ScannerPortfolioAgent specifically acts on scanner BUY/SELL recommendations directly, while other agents get the full price/technical/news data for the same symbols.
+</div>
+
+<h2>5.5 Agent Performance → Ensemble Weights (adaptive feedback)</h2>
+<div class="box">
+<strong>EnsembleAgent dynamically reweights based on live performance.</strong><br>
+Every 5 cycles, <code>_update_weights()</code> reads each component agent's portfolio metrics (win_rate, sharpe_ratio), computes a performance score = 0.5×win_rate + 0.5×normalised_sharpe, and scales the base weight by that score. A floor of 30% of base weight prevents any agent from being zeroed out. Regime multipliers then layer on top (e.g. Momentum ×1.50 in trending, MeanRev ×1.60 in ranging).
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>6. EnsembleAgent — Detailed Voting Logic</h1>
+
+<h2>6.1 Base Weights</h2>
+<table>
+<tr><th>Agent</th><th>Base Weight</th><th>Trending ×</th><th>Ranging ×</th><th>Volatile ×</th></tr>
+<tr><td>ClaudeAgent</td><td>29%</td><td>1.10</td><td>1.00</td><td>1.40</td></tr>
+<tr><td>TechAgent</td><td>23%</td><td>1.20</td><td>1.10</td><td>0.80</td></tr>
+<tr><td>SentimentAgent</td><td>17%</td><td>0.80</td><td>1.20</td><td>1.20</td></tr>
+<tr><td>MomentumAgent</td><td>14%</td><td>1.50</td><td>0.55</td><td>0.65</td></tr>
+<tr><td>MeanReversionAgent</td><td>9%</td><td>0.40</td><td>1.60</td><td>0.60</td></tr>
+<tr><td>HistoricalTrendsAgent</td><td>8%</td><td>1.20</td><td>1.30</td><td>0.80</td></tr>
+<tr><td>CNNReasoningAgent</td><td>(perf-based)</td><td>1.20</td><td>0.90</td><td>1.10</td></tr>
+</table>
+<p class="footnote">GeminiAgent and ScannerPortfolioAgent are excluded from ensemble voting.</p>
+
+<h2>6.2 Regime Detection (on SPY/QQQ bars)</h2>
+<table>
+<tr><th>Regime</th><th>Condition</th><th>Dominant Agent</th></tr>
+<tr><td><span class="badge buy">TRENDING</span></td><td>2-of-3: SMA slope &gt;0.4%, 60%+ returns in trend direction, volume expansion &gt;10%</td><td>MomentumAgent (×1.50)</td></tr>
+<tr><td><span class="badge hold">RANGING</span></td><td>Default when not trending or volatile</td><td>MeanReversionAgent (×1.60)</td></tr>
+<tr><td><span class="badge sell">VOLATILE</span></td><td>ATR &gt; 2.5% of price</td><td>ClaudeAgent (×1.40)</td></tr>
+</table>
+
+<h2>6.3 Vote Decision Rule</h2>
+<div class="box">
+For each symbol:<br>
+<code>buy_score = Σ(weight × confidence) for BUY signals</code><br>
+<code>sell_score = Σ(weight × confidence) for SELL signals</code><br><br>
+<strong>BUY</strong> if: <code>buy_score ≥ ENSEMBLE_THRESHOLD (0.60)</code> AND <code>buy_score ≥ sell_score × MARGIN_OF_SAFETY (2.0)</code><br>
+<strong>SELL</strong> if: symmetric — <code>sell_score ≥ 0.60</code> AND <code>sell_score ≥ buy_score × 2.0</code><br>
+<strong>HOLD</strong> otherwise.
+</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>7. Macro Context — Dual-Cache Architecture</h1>
+<p><code>data/macro_context.py</code> provides a two-layer context that is injected into <code>market_context["__macro_context__"]</code> every 15 trading cycles (~15 minutes).</p>
+
+<table>
+<tr><th>Layer</th><th>Source</th><th>Period / Interval</th><th>TTL</th><th>Content</th></tr>
+<tr><td><strong>FAST cache</strong> (tactical)</td><td>yfinance</td><td>65 trading days, daily</td><td>15 min</td><td>1D/5D/20D/60D returns for GLD, TLT, USO, UUP, VIX, SPY + 11 SPDR sectors. Inter-market rules (6 rules + Rule 7 breadth). Regime classification.</td></tr>
+<tr><td><strong>SLOW cache</strong> (strategic)</td><td>yfinance</td><td>2 years, weekly bars</td><td>24 hr</td><td>52W/26W returns, 52W range position (0-100%), SMA trend (LT-UPTREND / LT-DOWNTREND / LT-NEUTRAL), breadth ETFs (IWM, MDY, SPY, QQQ)</td></tr>
+</table>
+
+<h2>7.1 Inter-Market Rules (Rule Engine)</h2>
+<table>
+<tr><th>Rule</th><th>Trigger</th><th>Signal</th></tr>
+<tr><td>Rule 1: Gold Rally</td><td>GLD 5D &gt; +2%</td><td>BEARISH on XLF, XLE, XLK, XLY, XLC; BULLISH on XLU, XLV</td></tr>
+<tr><td>Rule 2: Bond Rally (TLT)</td><td>TLT 5D &gt; +1%</td><td>BULLISH on XLU, XLV, XLP; BEARISH on XLF, XLE</td></tr>
+<tr><td>Rule 3: Oil Spike (USO)</td><td>USO 5D &gt; +3%</td><td>BULLISH on XLE; BEARISH on XLY, XLI, airlines</td></tr>
+<tr><td>Rule 4: Dollar Strength</td><td>UUP 5D &gt; +1%</td><td>BEARISH on XLK, XLB (multinationals)</td></tr>
+<tr><td>Rule 5: VIX Spike</td><td>VIX 1D &gt; +15%</td><td>RISK-OFF: BEARISH on XLK, XLY, XLF, XLC; BULLISH on XLU, XLV, GLD, TLT</td></tr>
+<tr><td>Rule 6: Market Downturn</td><td>SPY 5D &lt; -3%</td><td>BEARISH on XLK, XLY, XLF; NEUTRAL on XLU, XLV</td></tr>
+<tr><td>Rule 7: Breadth Divergence</td><td>IWM 5D underperforms SPY 5D by &gt;1.5%</td><td>Large-cap leading — CAUTIOUS on small-caps, confirm SPY trend</td></tr>
+</table>
+
+<h2>7.2 Conflict Detection</h2>
+<p>If the tactical FAST signal contradicts the strategic SLOW trend, the macro text flags it explicitly:</p>
+<div class="flow">Example output in agent prompt:
+  [!CONFLICT: tactical-BEAR vs LT-UPTREND on XLK]
+  Tactical: -4.2% (5D), BEARISH signals from VIX spike
+  Strategic: 52W range pos=72%, LT-UPTREND (26W SMA > 52W SMA)
+  → This may be a dip in an uptrend, not a reversal</div>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>8. Background Tasks &amp; Loops</h1>
+<table>
+<tr><th>Task</th><th>Module</th><th>Schedule</th><th>What it does</th></tr>
+<tr><td>Trading loop</td><td>main.py</td><td>Every 60s during market hours</td><td>Fetch context → run all agents → save trades → update portfolio</td></tr>
+<tr><td>Auto-scan loop</td><td>scanner_agent.py</td><td>Every 30 min (10 min pre-market)</td><td>Pre-screen 160 symbols → parallel Claude + Gemini + GPT-4o-mini agentic analysis → cache results</td></tr>
+<tr><td>News sentinel loop</td><td>main.py</td><td>Every 5 min (market open) / 15 min (closed)</td><td>Poll Alpaca News for catalysts; score with keyword rules + policy monitor; trigger scanner if score ≥ 2</td></tr>
+<tr><td>WebSocket broadcast</td><td>main.py</td><td>Every 5s</td><td>Push live prices, agent signals, portfolio values to frontend</td></tr>
+<tr><td>Performance snapshots</td><td>main.py</td><td>Every cycle</td><td>Save each agent's total_value, cash, return%, sharpe, win_rate to DB</td></tr>
+<tr><td>Drift detection</td><td>drift_detector.py</td><td>Every 10 cycles</td><td>Compare rolling vs baseline win_rate and PnL — alerts if agent is drifting</td></tr>
+<tr><td>DB prune</td><td>database.py</td><td>Every 1440 cycles (~24 hr)</td><td>Delete performance rows &gt;3 days; news snapshots &gt;14 days</td></tr>
+<tr><td>EOD summary</td><td>summary_agent.py</td><td>On market close transition</td><td>Generate Claude narrative roll-up covering all agent activity</td></tr>
+<tr><td>Risk assessment</td><td>risk_assessor.py</td><td>Every 30 cycles</td><td>Portfolio concentration, correlation, drawdown checks</td></tr>
+</table>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>9. Persistence Layer (SQLite — trading.db)</h1>
+<table>
+<tr><th>Table</th><th>Key Columns</th><th>Written By</th><th>Read By</th></tr>
+<tr><td><code>agents</code></td><td>id, name, strategy_description</td><td>init_agents() on startup</td><td>All DB queries (agent_id FK)</td></tr>
+<tr><td><code>trades</code></td><td>agent_id, symbol, action, shares, price, timestamp, reasoning, pnl</td><td>run_agent_cycle() via save_trade()</td><td>API /api/trades, summary agent, trade restore on restart</td></tr>
+<tr><td><code>portfolios</code></td><td>agent_id, symbol, shares, avg_cost, current_value, unrealized_pnl</td><td>run_agent_cycle() via upsert_portfolio_position()</td><td>Startup restore, API /api/agents</td></tr>
+<tr><td><code>performance</code></td><td>agent_id, timestamp, total_value, cash, total_return_pct, sharpe, win_rate</td><td>save_performance_snapshots() every cycle</td><td>Portfolio chart, leaderboard. Pruned to 3 days.</td></tr>
+<tr><td><code>token_log</code></td><td>agent_id, model, input_tokens, output_tokens, timestamp, limit_hit</td><td>ClaudeAgent, GeminiAgent after API call</td><td>Cost monitoring (skipped in Ollama mode)</td></tr>
+<tr><td><code>signal_history</code></td><td>symbol, timestamp, consensus_score, agreement, composite_score, price</td><td>signal_history.record_snapshot()</td><td>CNN training features, drift detection</td></tr>
+<tr><td><code>news_price_snapshots</code></td><td>symbol, price_open, catalyst_headline, price_1h, price_4h</td><td>Sentinel loop</td><td>News-price correlation analysis. Pruned to 14 days.</td></tr>
+</table>
+
+<p><strong>Startup restoration:</strong> On every restart, <code>init_agents()</code> queries all tables to rebuild in-memory state — cash balances, open positions, and last 500 trades per agent (for win_rate calculation). This ensures continuity across restarts.</p>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>10. Ollama / Local Mode</h1>
+<p>Setting <code>OLLAMA_ONLY_MODE=1</code> routes <strong>all three LLM agents</strong> through local Ollama (no cloud calls, zero cost):</p>
+
+<table>
+<tr><th>Agent</th><th>Cloud Model</th><th>Ollama Route</th><th>Model Env Var</th></tr>
+<tr><td>ClaudeAgent</td><td>Claude Opus 4.6</td><td><code>_get_ollama_decisions()</code></td><td><code>RESEARCH_MODEL</code> (default: <code>OLLAMA_MODEL</code>)</td></tr>
+<tr><td>GeminiAgent</td><td>Gemini 2.0 Flash</td><td><code>_get_ollama_market_view()</code></td><td><code>OLLAMA_MODEL</code></td></tr>
+<tr><td>SentimentAgent</td><td>GPT-4o-mini</td><td><code>_get_ollama_sentiment()</code></td><td><code>OLLAMA_MODEL</code></td></tr>
+<tr><td>CNNReasoningAgent</td><td>–</td><td>Always Ollama</td><td><code>OLLAMA_MODEL</code></td></tr>
+</table>
+
+<p><strong>RTX 2060 constraint:</strong> 6 GB VRAM fits only one Q4 model at a time. Set <code>RESEARCH_MODEL=OLLAMA_MODEL</code> to share the single loaded model across all agents. Never configure two different models simultaneously.</p>
+<p><strong>JSON enforcement:</strong> Ollama models often return markdown instead of raw JSON. The parser strips <code>```json```</code> fences and retries. System prompt includes: <em>"CRITICAL: Output raw JSON only. The first character must be '{' and the last must be '}'."</em></p>
+
+<hr class="section-divider">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h1>11. Frontend → Backend API Contract</h1>
+<table>
+<tr><th>Endpoint</th><th>Returns</th><th>Notes</th></tr>
+<tr><td>GET /api/agents</td><td>Per-agent: signals, portfolio, metrics</td><td>Live from app_state.agents</td></tr>
+<tr><td>GET /api/leaderboard</td><td>Agents ranked by total_return_pct</td><td></td></tr>
+<tr><td>GET /api/trades</td><td>Recent trades from DB</td><td>Paginated, filterable by agent</td></tr>
+<tr><td>GET /api/signals</td><td>Composite signals for watchlist</td><td>From signal_aggregator</td></tr>
+<tr><td>GET /api/scanner</td><td>Cached scan results + is_scanning flag</td><td>From scan_cache.json</td></tr>
+<tr><td>POST /api/scanner/run</td><td>Triggers new scan (rate limited 10/60s)</td><td></td></tr>
+<tr><td>GET /api/sentinel</td><td>Catalyst feed + market_is_open</td><td>After-hours catalysts</td></tr>
+<tr><td>GET /api/watchlist</td><td>Active watchlist + scored pool</td><td>WatchlistManager state</td></tr>
+<tr><td>GET /api/summary</td><td>Daily narrative (Claude-authored)</td><td>5 min cache open / 60 min closed</td></tr>
+<tr><td>GET /api/drift</td><td>Per-agent drift alerts</td><td></td></tr>
+<tr><td>GET /api/telemetry</td><td>CPU/RAM/disk/GPU metrics</td><td>nvidia-smi for GPU</td></tr>
+<tr><td>WS /ws</td><td>Live: prices, signals, portfolio every 5s</td><td>Always running</td></tr>
+</table>
+
+<hr class="section-divider">
+<p style="text-align:center; color:#9ca3af; font-size:9pt;">AI Trading App Architecture Documentation &mdash; April 2026</p>
+
+</body>
+</html>

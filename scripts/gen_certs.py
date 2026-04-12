@@ -1,7 +1,7 @@
 """
 Generate a self-signed TLS certificate for localhost + Tailscale IP.
 Saves cert.pem and key.pem to trading_app/certs/.
-Run with: runtime\\python\\python.exe gen_certs.py
+Run with: runtime/python/python.exe scripts/gen_certs.py
 """
 import sys
 import datetime
@@ -10,12 +10,14 @@ import pathlib
 import socket
 import subprocess
 
+# gen_certs.py lives in scripts/ — project root is one level up
+ROOT = pathlib.Path(__file__).parent.parent
+
 # Ensure the self-contained site-packages is on the path
-_SITE = pathlib.Path(__file__).parent / "site-packages"
+_SITE = ROOT / "site-packages"
 if _SITE.exists() and str(_SITE) not in sys.path:
     sys.path.insert(0, str(_SITE))
 
-ROOT = pathlib.Path(__file__).parent
 CERTS_DIR = ROOT / "certs"
 CERTS_DIR.mkdir(exist_ok=True)
 

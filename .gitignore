@@ -10,6 +10,7 @@ __pycache__/
 .Python
 
 # Database - contains trading data
+trading.db
 backend/trading.db
 backend/learning.json
 backend/data/scan_cache.json

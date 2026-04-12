@@ -67,16 +67,26 @@ trading_app/
 ├── .env.example              # Template for .env
 ├── Start Trading App.exe     # Double-click launcher (GUI, no console windows)
 ├── launcher_gui.pyw          # Launcher source (tkinter dark-themed control panel)
-├── build_exe.ps1             # Compiles launcher_gui.pyw → Start Trading App.exe via PyInstaller
-├── launcher_gui.spec         # PyInstaller spec — bundles Tcl/Tk DLLs + library dirs
-├── create_icon.py            # Generates launcher.ico (robot icon)
-├── start_backend.ps1 / .bat  # Start backend only
-├── start_frontend.ps1 / .bat # Start frontend only
-├── setup_offline.ps1 / .bat  # Install all deps without internet
-├── install_services.bat      # Install TradingAppBackend + TradingAppFrontend as Windows services (NSSM)
-├── uninstall_services.bat    # Remove NSSM services
-├── decision_diagram.html     # Printable browser-rendered block diagram of all 7 decision layers
-└── README.md                 # This file
+├── start_backend.ps1         # Start backend only (PowerShell)
+├── start_frontend.ps1        # Start frontend only (PowerShell)
+├── docs/                     # Reference documentation
+│   ├── CHANGELOG.md          # Full version history
+│   ├── BACKLOG.md            # Planned features and known issues
+│   ├── SECURITY.md           # Security architecture and controls
+│   ├── agent_formulas.txt    # All agent buy/sell formulas and thresholds
+│   ├── decision_tree.txt     # ASCII diagram of the full decision pipeline
+│   ├── decision_diagram.html # Printable browser-rendered block diagram
+│   └── ...
+└── scripts/                  # Setup, build, and maintenance tools
+    ├── build_exe.ps1         # Compile launcher_gui.pyw → Start Trading App.exe
+    ├── launcher_gui.spec     # PyInstaller spec (Tcl/Tk DLL bundling)
+    ├── create_icon.py        # Generate launcher.ico (robot icon)
+    ├── gen_certs.py          # Generate self-signed TLS cert for localhost/Tailscale
+    ├── setup_offline.ps1     # Install all Python/Node deps without internet
+    ├── install_services.bat  # Install as auto-start Windows services (NSSM)
+    ├── uninstall_services.bat
+    ├── run_security_tests.bat
+    └── ...                   # Legacy .bat launchers
 ```
 
 ---
@@ -362,7 +372,7 @@ The app supports remote access over [Tailscale](https://tailscale.com) with no p
 3. Regenerate the cert (auto-detects your Tailscale IP):
    ```powershell
    cd C:\Users\gl450\trading_app
-   runtime\python\python.exe gen_certs.py
+   runtime\python\python.exe scripts\gen_certs.py
    ```
 4. Restart the trading app
 
@@ -443,15 +453,15 @@ WATCHLIST=AAPL,MSFT,GOOGL,TSLA,AMZN,NVDA,META,SPY
 
 ## Agent Formulas Reference
 
-See [`agent_formulas.txt`](agent_formulas.txt) for a complete printout of every buy/sell formula, scoring weight, threshold, and position-sizing calculation used by each agent.
+See [`docs/agent_formulas.txt`](docs/agent_formulas.txt) for a complete printout of every buy/sell formula, scoring weight, threshold, and position-sizing calculation used by each agent.
 
-See [`decision_tree.txt`](decision_tree.txt) for a full ASCII diagram of how data flows from market sources through each agent layer to final trade execution.
+See [`docs/decision_tree.txt`](docs/decision_tree.txt) for a full ASCII diagram of how data flows from market sources through each agent layer to final trade execution.
 
 ---
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for full history.
+See [CHANGELOG.md](docs/CHANGELOG.md) for full history.
 
 | Date | Change |
 |---|---|

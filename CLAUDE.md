@@ -112,7 +112,7 @@ Every `git commit` runs `.git/hooks/pre-commit` automatically (3 steps, < 10 sec
 
 **Security tests run on-demand** (not per-commit — PyTorch import makes it ~2 min):
 ```bash
-run_security_tests.bat          # Windows convenience script
+scripts\run_security_tests.bat  # Windows convenience script
 ```
 Run before every merge to main.
 

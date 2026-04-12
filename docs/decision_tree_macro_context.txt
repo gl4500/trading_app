@@ -1,0 +1,329 @@
+================================================================================
+  MACRO CONTEXT ENGINE — DECISION TREE
+  backend/data/macro_context.py
+================================================================================
+
+  Source: John Murphy Intermarket Analysis + Bridgewater All Weather
+  Updated: 2026-04-07
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 0 — TRIGGER (every 15 cycles ≈ 15 min in main.py)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cycle_count % 15 == 1 ?
+       │
+       ├── YES → await get_macro_context_text()
+       │              │
+       │              ├── Cache still valid? (< 15 min old)
+       │              │        │
+       │              │        └── YES → return cached text (no yfinance call)
+       │              │
+       │              └── NO  → fetch fresh data (yfinance, executor thread)
+       │                             │
+       │                             ├── Data returned? ──── NO → return stale
+       │                             │                             cache text
+       │                             └── YES → build new text, update cache
+       │
+       └── NO  → carry forward __macro_context__ from previous cycle
+                 (prevents missing key if never fetched yet)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 1 — DATA FETCH  (_fetch_macro_data)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  yfinance.Tickers — 25 calendar days of daily OHLCV bars
+  16 symbols fetched in one call:
+
+  MACRO PROXIES (6):          SECTOR ETFs (10):
+  ┌──────┬───────────────────┐ ┌──────┬──────────────────────────┐
+  │ GLD  │ Gold              │ │ XLK  │ Technology               │
+  │ TLT  │ 20Y Treasuries    │ │ XLF  │ Financials               │
+  │ UUP  │ US Dollar (DXY)   │ │ XLE  │ Energy                   │
+  │ USO  │ Oil (WTI proxy)   │ │ XLU  │ Utilities                │
+  │ ^VIX │ Fear Index        │ │ XLV  │ Healthcare               │
+  │ ^TNX │ 10Y Yield         │ │ XLI  │ Industrials              │
+  └──────┴───────────────────┘ │ XLP  │ Consumer Staples         │
+                                │ XLY  │ Consumer Discretionary   │
+  Per symbol computed:          │ XLB  │ Materials                │
+    price = last close          │ XLRE │ Real Estate              │
+    1d  = 1-bar % change        └──────┴──────────────────────────┘
+    5d  = 5-bar % change
+    20d = 20-bar % change
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 2 — 6 INTER-MARKET RULES  (_apply_intermarket_rules)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Each rule emits:  signal string  +  sector bias tags (bullish / bearish)
+  Bias tags use setdefault() — first rule to tag a sector wins.
+
+  ─────────────────────────────────────────────────────────────────────────────
+  RULE 1 — GOLD  (Murphy: lead indicator for risk-off)
+  ─────────────────────────────────────────────────────────────────────────────
+
+  GLD 5-day return?
+  │
+  ├── > +2.0%  →  RISK-OFF signal
+  │             XLU, XLV, XLP → BULLISH   (defensives benefit)
+  │             XLK, XLY, XLRE → BEARISH  (growth/rate-sensitive hit)
+  │
+  ├── +0.8% to +2.0%  →  MILD RISK-OFF signal (monitor only, no bias)
+  │
+  ├── -1.5% to +0.8%  →  No signal
+  │
+  └── < -1.5%  →  RISK-ON signal
+                  XLK, XLY, XLI, XLF → BULLISH  (growth/cyclicals favoured)
+                  XLU, XLP → BEARISH             (defensives fade)
+
+  ─────────────────────────────────────────────────────────────────────────────
+  RULE 2 — BONDS / YIELDS  (Murphy: bond market leads stocks)
+  ─────────────────────────────────────────────────────────────────────────────
+
+  TLT 5-day return?   (TLT price FALLS when yields RISE)
+  │
+  ├── < -2.0%  →  YIELDS RISING SHARPLY
+  │             XLF → BULLISH              (wider net interest margins)
+  │             XLU, XLRE, XLK → BEARISH  (higher discount rate hurts)
+  │
+  ├── -2.0% to -0.8%  →  Yields drifting higher
+  │             XLU, XLRE → BEARISH (mild)
+  │
+  ├── -0.8% to +2.0%  →  No signal
+  │
+  └── > +2.0%  →  YIELDS FALLING (flight to safety)
+                  XLU, XLRE, XLV → BULLISH  (rate-sensitives benefit)
+                  Signal: growth concern — XLK, XLY may lag
+
+  ─────────────────────────────────────────────────────────────────────────────
+  RULE 3 — US DOLLAR  (Murphy: inverse commodities + EM pressure)
+  ─────────────────────────────────────────────────────────────────────────────
+
+  UUP 5-day return?
+  │
+  ├── > +1.5%  →  STRONG DOLLAR
+  │             XLB, XLE → BEARISH  (commodity headwind + FX drag)
+  │
+  ├── -1.5% to +1.5%  →  No signal
+  │
+  └── < -1.5%  →  WEAK DOLLAR
+                  XLB, XLE → BULLISH  (commodity tailwind)
+
+  ─────────────────────────────────────────────────────────────────────────────
+  RULE 4 — OIL  (energy cost pass-through across sectors)
+  ─────────────────────────────────────────────────────────────────────────────
+
+  USO 5-day return?
+  │
+  ├── > +4.0%  →  ENERGY SURGE
+  │             XLE → BULLISH           (direct beneficiary)
+  │             XLY, XLI → BEARISH     (higher input costs)
+  │
+  ├── -4.0% to +4.0%  →  No signal
+  │
+  └── < -4.0%  →  OIL FALLING
+                  XLE → BEARISH         (revenue hit)
+                  XLY → BULLISH         (consumer relief)
+
+  ─────────────────────────────────────────────────────────────────────────────
+  RULE 5 — VIX / FEAR INDEX
+  ─────────────────────────────────────────────────────────────────────────────
+
+  VIX level?
+  │
+  ├── > 30  →  EXTREME FEAR
+  │            XLU, XLV, XLP → BULLISH  (defensives override all)
+  │            XLK, XLY, XLI → BEARISH  (high-beta at max risk)
+  │            Signal: consider reducing all equity exposure
+  │
+  ├── 20–30  →  ELEVATED FEAR
+  │             Signal only — prefer lower-beta, no bias overrides
+  │
+  ├── 14–20  →  Normal range — no signal
+  │
+  └── < 14   →  LOW FEAR / COMPLACENCY
+                Signal: risk-on environment supports cyclicals + growth
+
+  ─────────────────────────────────────────────────────────────────────────────
+  RULE 6 — BRIDGEWATER ALL WEATHER REGIME  (growth/inflation matrix)
+  ─────────────────────────────────────────────────────────────────────────────
+
+  Evaluated in priority order (first match wins signal):
+
+  STAGFLATION RISK?    GLD>+1.5% AND USO>+3.0% AND TLT<-1.0%
+       │
+       └── YES → Signal: STAGFLATION
+                 Hard assets (XLE, XLB) > Defensives > Growth
+
+  INFLATION REGIME?    GLD>+1.0% AND USO>+2.0% AND TLT<-0.5%
+       │
+       └── YES → Signal: INFLATION REGIME
+                 Overweight: XLE, XLB   Underweight: XLK, bonds
+
+  DEFLATION / RECESSION?    GLD>+1.0% AND TLT>+1.5% AND VIX>20
+       │
+       └── YES → Signal: DEFLATION / RECESSION FEAR
+                 Overweight: XLU, XLV, XLP, TLT   Underweight: XLE, XLB, XLY
+
+  GROWTH REGIME?    GLD<-0.5% AND TLT<-0.5% AND USO<+1.0%
+       │
+       └── YES → Signal: GROWTH REGIME
+                 Overweight: XLK, XLF, XLY, XLI   Underweight: TLT, XLU
+
+  (none match)  →  No Bridgewater signal this cycle
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 3 — OVERALL REGIME CLASSIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  After all 6 rules run, count bullish/bearish sector tags.
+  Evaluated in priority order (first match wins):
+
+  stagflation_risk  (Rule 6 flag)         →  "STAGFLATION RISK"
+  deflation_signal  OR  GLD_5d > +2.0%    →  "RISK-OFF / DEFENSIVE"
+  growth_signal     AND  VIX < 18         →  "RISK-ON / GROWTH"
+  inflation_signal  (Rule 6 flag)         →  "INFLATIONARY"
+  VIX > 25                                →  "HIGH VOLATILITY"
+  bearish_count > bullish_count + 2       →  "CAUTIOUS"
+  bullish_count > bearish_count + 2       →  "CONSTRUCTIVE"
+  (default)                               →  "NEUTRAL / MIXED"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 4 — OUTPUT FORMAT  (_build_macro_text)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Formatted text block injected into AI prompt:
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  ## Macro Sector Rotation Context  [YYYY-MM-DD HH:MM UTC]              │
+  │                                                                         │
+  │  MACRO REGIME: <regime string>                                          │
+  │  10Y Yield: X.XX%   |   VIX: XX.X                                     │
+  │                                                                         │
+  │  INTER-MARKET SIGNALS (John Murphy / Bridgewater framework):            │
+  │    • <signal from Rule 1>                                               │
+  │    • <signal from Rule 2>  ...                                          │
+  │                                                                         │
+  │  MACRO PROXY PERFORMANCE (1D / 5D / 20D):                              │
+  │    GLD    Gold (risk-off safe haven...)    +0.3% / +2.4% / +8.1%  ↑↑  │
+  │    TLT    20Y Treasuries...               -0.1% / -1.2% / -4.3%  ↓    │
+  │    ...                                                                  │
+  │                                                                         │
+  │  SECTOR ETF PERFORMANCE (1D / 5D / 20D) [bias from inter-market rules]:│
+  │    XLK    Technology        +0.2% / -1.8% / -5.0%  ↓   ← BEARISH      │
+  │    XLF    Financials        +0.5% / +1.3% / +3.1%  ↑   ← BULLISH      │
+  │    ...                                                                  │
+  │                                                                         │
+  │  TRADING IMPLICATIONS FOR YOUR WATCHLIST:                               │
+  │    Macro TAILWIND: Healthcare (XLV), Utilities (XLU), ...              │
+  │    Macro HEADWIND: Technology (XLK), Consumer Discret. (XLY), ...      │
+  │    Apply as tiebreaker: prefer tailwind sectors when mixed;             │
+  │    require stronger conviction in headwind sectors before buying.       │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+  Momentum arrows:
+    ↑↑  =  5d > +2.0% AND 20d > +3.0%  (strong uptrend)
+    ↑   =  5d > +0.5%
+    →   =  flat / insufficient data
+    ↓   =  5d < -0.5%
+    ↓↓  =  5d < -2.0% AND 20d < -3.0%  (strong downtrend)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  LAYER 5 — INTEGRATION INTO AI AGENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  market_context["__macro_context__"] = <text from Layer 4>
+         │
+         └── _build_stable_context() in ClaudeAgent
+                    │
+                    ├── Appended to stable prompt section
+                    │   (cached by Claude API — not re-sent each call)
+                    │
+                    └── Prompt structure sent to Ollama / Claude:
+                        ┌───────────────────────────────────────┐
+                        │  [STABLE — cached]                    │
+                        │    Portfolio state                     │
+                        │    Learning history (few-shot)         │
+                        │    Risk assessor flags                 │
+                        │    ## Macro Sector Rotation Context    │  ← HERE
+                        │                                        │
+                        │  [DYNAMIC — per call]                  │
+                        │    Per-symbol market data              │
+                        │    News headlines                      │
+                        │    Agent signals                       │
+                        └───────────────────────────────────────┘
+
+  HOW AI AGENTS USE MACRO CONTEXT:
+
+  Stock on watchlist is in a BEARISH sector?
+       │
+       ├── BUY signal from technicals?
+       │        → Require stronger conviction (higher conf threshold)
+       │        → Ollama/Claude instructed: "require stronger conviction
+       │            in macro headwind sectors before buying"
+       │
+       └── SELL signal from technicals?
+                → Macro headwind confirms — execute with normal confidence
+
+  Stock on watchlist is in a BULLISH sector?
+       │
+       ├── BUY signal from technicals?
+       │        → Macro tailwind confirms — apply as tiebreaker
+       │
+       └── Mixed technicals?
+                → Macro tailwind can tip the balance toward BUY
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  QUICK REFERENCE — REGIME × SECTOR MATRIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+                     XLK  XLF  XLE  XLU  XLV  XLI  XLP  XLY  XLB  XLRE
+                     ─────────────────────────────────────────────────────
+  RISK-OFF/GOLD↑      ↓    -    -    ↑    ↑    -    ↑    ↓    -    ↓
+  GROWTH REGIME       ↑    ↑    -    ↓    -    ↑    ↓    ↑    -    -
+  INFLATIONARY        ↓    -    ↑    -    -    -    -    -    ↑    -
+  STAGFLATION RISK    ↓    -    ↑    -    -    -    -    ↓    ↑    -
+  YIELDS RISING       ↓    ↑    -    ↓    -    -    -    -    -    ↓
+  YIELDS FALLING      -    -    -    ↑    ↑    -    -    -    -    ↑
+  STRONG USD          ↓    -    ↓    -    -    -    -    -    ↓    -
+  WEAK USD            -    -    ↑    -    -    -    -    -    ↑    -
+  OIL SURGE           -    -    ↑    -    -    ↓    -    ↓    -    -
+  OIL FALLING         -    -    ↓    -    -    -    -    ↑    -    -
+  EXTREME FEAR        ↓    -    -    ↑    ↑    ↓    ↑    ↓    -    -
+  ─────────────────────────────────────────────────────────────────────
+  ↑ = BULLISH bias     ↓ = BEARISH bias     - = no signal this regime
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TEST COVERAGE  (backend/tests/test_macro_context.py — 19 tests, all GREEN)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  TestIntermarketRules (12):
+    gold_rally_produces_risk_off_regime
+    gold_rally_marks_defensives_bullish
+    gold_rally_marks_growth_bearish
+    rising_yields_marks_financials_bullish
+    rising_yields_marks_utilities_bearish
+    oil_surge_marks_energy_bullish_consumer_bearish
+    strong_usd_marks_materials_bearish
+    high_vix_extreme_fear_regime
+    low_vix_risk_on_signal
+    growth_regime_detected
+    stagflation_signal
+    neutral_regime_no_strong_signals
+
+  TestMacroTextFormatting (7):
+    output_contains_regime
+    output_contains_sector_table
+    output_contains_inter_market_section
+    output_contains_trading_implications
+    bullish_sectors_labelled
+    bearish_sectors_labelled
+    all_sector_etfs_appear_in_output
+
+================================================================================

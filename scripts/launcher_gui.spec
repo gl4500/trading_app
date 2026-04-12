@@ -16,7 +16,7 @@ TK_LIB   = os.path.join(CONDA, 'Library', 'lib', 'tk8.6')
 block_cipher = None
 
 a = Analysis(
-    ['launcher_gui.pyw'],
+    ['../launcher_gui.pyw'],
     pathex=[],
     binaries=[
         # Tcl/Tk threaded DLLs that _tkinter.pyd links against

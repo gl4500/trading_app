@@ -1,231 +1,2548 @@
 {
   "TechAgent": {
-    "AAPL": {
+    "COR": {
       "action": "BUY",
       "confidence": 0.6499999999999999,
-      "reasoning": "TECH BUY: RSI=33.2 (oversold), Price at lower BB ($250.89). Score=0.65",
-      "added_at": "2026-03-16T10:07:30.947800",
-      "last_updated": "2026-03-16T10:13:27.256933"
+      "reasoning": "TECH BUY: RSI=34.0 (oversold), Price at lower BB ($340.01). Score=0.65",
+      "added_at": "2026-03-17T13:53:40.103540",
+      "last_updated": "2026-03-17T13:53:40.103540"
     },
-    "SPY": {
+    "LLY": {
       "action": "BUY",
       "confidence": 0.6499999999999999,
-      "reasoning": "TECH BUY: RSI=35.0 (oversold), Price at lower BB ($665.99). Score=0.65",
-      "added_at": "2026-03-16T10:07:30.947800",
-      "last_updated": "2026-03-16T10:13:27.256933"
+      "reasoning": "TECH BUY: RSI=34.7 (oversold), Price at lower BB ($934.31). Score=0.65",
+      "added_at": "2026-03-18T13:32:05.623700",
+      "last_updated": "2026-03-18T13:32:05.623700"
     },
-    "CLF": {
+    "ABBV": {
       "action": "BUY",
       "confidence": 0.6499999999999999,
-      "reasoning": "TECH BUY: RSI=25.0 (oversold), Price at lower BB ($8.75). Score=0.65",
-      "added_at": "2026-03-16T10:09:34.414586",
-      "last_updated": "2026-03-16T10:13:27.256933"
-    }
-  },
-  "MeanReversionAgent": {
-    "AAPL": {
+      "reasoning": "TECH BUY: RSI=33.9 (oversold), Price at lower BB ($214.91). Score=0.65",
+      "added_at": "2026-03-18T13:52:46.984954",
+      "last_updated": "2026-03-18T13:52:46.984954"
+    },
+    "CMCSA": {
       "action": "BUY",
-      "confidence": 0.5304222976613846,
-      "reasoning": "MR BUY: z=-1.59 (oversold, target z=0). Price $252.82 vs mean $262.59 (-3.7%). not yet reverting. Reversion freq=0.12",
-      "added_at": "2026-03-16T10:07:30.983794",
-      "last_updated": "2026-03-16T21:58:24.990338"
+      "confidence": 0.6499999999999999,
+      "reasoning": "TECH BUY: RSI=33.0 (oversold), Price at lower BB ($29.50). Score=0.65",
+      "added_at": "2026-03-18T14:28:50.258226",
+      "last_updated": "2026-03-18T14:28:50.258226"
+    },
+    "GIS": {
+      "action": "BUY",
+      "confidence": 0.7499999999999999,
+      "reasoning": "TECH BUY: RSI=19.4 (oversold), Price at lower BB ($37.54), Volume spike (1.4x avg). Score=0.75",
+      "added_at": "2026-03-18T18:02:50.867783",
+      "last_updated": "2026-03-18T18:02:50.867783"
+    },
+    "SAP": {
+      "action": "BUY",
+      "confidence": 0.7499999999999999,
+      "reasoning": "TECH BUY: RSI=32.1 (oversold), Price at lower BB ($185.90), MACD positive. Score=0.75",
+      "added_at": "2026-03-18T19:11:34.553795",
+      "last_updated": "2026-03-18T19:11:34.553795"
+    },
+    "KHC": {
+      "action": "BUY",
+      "confidence": 0.6499999999999999,
+      "reasoning": "TECH BUY: RSI=32.0 (oversold), Price at lower BB ($22.09). Score=0.65",
+      "added_at": "2026-03-18T19:12:37.081670",
+      "last_updated": "2026-03-18T19:12:37.081670"
+    },
+    "NEM": {
+      "action": "BUY",
+      "confidence": 0.7499999999999999,
+      "reasoning": "TECH BUY: RSI=31.7 (oversold), Price at lower BB ($101.96), Volume spike (2.8x avg). Score=0.75",
+      "added_at": "2026-03-19T21:38:53.529266",
+      "last_updated": "2026-03-19T21:38:53.529266"
+    },
+    "NSC": {
+      "action": "BUY",
+      "confidence": 0.7499999999999999,
+      "reasoning": "TECH BUY: RSI=25.2 (oversold), Price at lower BB ($278.25), Volume spike (2.5x avg). Score=0.75",
+      "added_at": "2026-03-19T21:38:53.529266",
+      "last_updated": "2026-03-19T21:38:53.529266"
     },
     "TSLA": {
       "action": "BUY",
-      "confidence": 0.5884696154538246,
-      "reasoning": "MR BUY: z=-1.77 (oversold, target z=0). Price $391.13 vs mean $404.82 (-3.4%). not yet reverting. Reversion freq=0.12",
-      "added_at": "2026-03-16T10:07:30.983794",
-      "last_updated": "2026-03-16T10:13:27.333720"
+      "confidence": 0.7499999999999999,
+      "reasoning": "TECH BUY: RSI=33.9 (oversold), Price at lower BB ($383.64), Volume spike (1.3x avg). Score=0.75",
+      "added_at": "2026-03-19T21:38:53.529266",
+      "last_updated": "2026-03-19T21:40:17.040510"
     },
-    "META": {
+    "MCD": {
       "action": "BUY",
-      "confidence": 0.5255024954637529,
-      "reasoning": "MR BUY: z=-1.58 (oversold, target z=0). Price $625.20 vs mean $646.78 (-3.3%). not yet reverting. Reversion freq=0.12",
-      "added_at": "2026-03-16T10:07:30.983794",
-      "last_updated": "2026-03-16T21:58:24.990338"
+      "confidence": 0.7499999999999999,
+      "reasoning": "TECH BUY: RSI=32.1 (oversold), Price at lower BB ($314.71), Volume spike (1.5x avg). Score=0.75",
+      "added_at": "2026-03-19T21:38:53.529266",
+      "last_updated": "2026-03-19T21:41:17.066987"
     },
     "SPY": {
       "action": "BUY",
-      "confidence": 0.8261552687762123,
-      "reasoning": "MR BUY: z=-2.48 (oversold, target z=0). Price $661.94 vs mean $681.43 (-2.9%). not yet reverting. Reversion freq=0.16",
-      "added_at": "2026-03-16T10:07:30.983794",
-      "last_updated": "2026-03-16T10:13:27.333720"
+      "confidence": 0.6499999999999999,
+      "reasoning": "TECH BUY: RSI=34.4 (oversold), Price at lower BB ($657.45). Score=0.65",
+      "added_at": "2026-03-20T13:30:56.938851",
+      "last_updated": "2026-03-20T13:30:56.938851"
     },
-    "NEM": {
+    "GILD": {
       "action": "BUY",
-      "confidence": 0.5953972109240387,
-      "reasoning": "MR BUY: z=-1.79 (oversold, target z=0). Price $110.16 vs mean $120.53 (-8.6%). not yet reverting. Reversion freq=0.12",
-      "added_at": "2026-03-16T10:09:34.480291",
-      "last_updated": "2026-03-16T21:58:24.990338"
+      "confidence": 0.6499999999999999,
+      "reasoning": "TECH BUY: RSI=33.8 (oversold), Price at lower BB ($139.26). Score=0.65",
+      "added_at": "2026-03-21T13:54:10.928236",
+      "last_updated": "2026-03-21T13:54:10.928236"
     },
-    "FCX": {
+    "SNAP": {
       "action": "BUY",
-      "confidence": 0.6893833937590164,
-      "reasoning": "MR BUY: z=-2.07 (oversold, target z=0). Price $56.35 vs mean $63.69 (-11.5%). not yet reverting. Reversion freq=0.12",
-      "added_at": "2026-03-16T10:09:34.480291",
-      "last_updated": "2026-03-16T10:13:27.333720"
+      "confidence": 0.8499999999999999,
+      "reasoning": "TECH BUY: RSI=23.5 (oversold), Price at lower BB ($4.04), MACD positive, Volume spike (2.6x avg). Score=0.85",
+      "added_at": "2026-03-27T13:30:28.860481",
+      "last_updated": "2026-03-27T13:30:28.860481"
     },
-    "CLF": {
+    "NOW": {
       "action": "BUY",
-      "confidence": 0.6210235710150723,
-      "reasoning": "MR BUY: z=-1.86 (oversold, target z=0). Price $8.60 vs mean $10.20 (-15.7%). not yet reverting. Reversion freq=0.08",
-      "added_at": "2026-03-16T10:09:34.480291",
-      "last_updated": "2026-03-16T21:58:24.990338"
+      "confidence": 0.7299999999999999,
+      "reasoning": "TECH BUY: RSI=26.7 (oversold), Price at lower BB ($92.76), Stoch %K=1.3 oversold. Score=0.73",
+      "added_at": "2026-04-09T15:02:17.194093",
+      "last_updated": "2026-04-09T15:02:17.194093"
     },
-    "GE": {
+    "WDAY": {
       "action": "BUY",
-      "confidence": 0.6255113632980521,
-      "reasoning": "MR BUY: z=-1.88 (oversold, target z=0). Price $304.10 vs mean $329.93 (-7.8%). not yet reverting. Reversion freq=0.04",
-      "added_at": "2026-03-16T10:45:16.107393",
-      "last_updated": "2026-03-16T21:58:24.990338"
+      "confidence": 0.7999999999999999,
+      "reasoning": "TECH BUY: RSI=27.1 (oversold), Price at lower BB ($117.88), Stoch %K=5.1 oversold+rising (entry trigger). Score=0.80",
+      "added_at": "2026-04-09T15:02:17.194093",
+      "last_updated": "2026-04-09T15:02:17.194093"
+    },
+    "S": {
+      "action": "BUY",
+      "confidence": 0.8299999999999998,
+      "reasoning": "TECH BUY: RSI=33.6 (oversold), Price at lower BB ($12.00), Volume spike (1.4x avg), Stoch %K=0.0 oversold. Score=0.83",
+      "added_at": "2026-04-10T18:08:07.649615",
+      "last_updated": "2026-04-10T18:08:07.649615"
     }
   },
-  "ClaudeAgent": {
+  "MeanReversionAgent": {
+    "COR": {
+      "action": "BUY",
+      "confidence": 0.8722841930564882,
+      "reasoning": "MR BUY: z=-2.62 (oversold, target z=0). Price $334.12 vs mean $359.47 (-7.1%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-03-17T13:53:40.190095",
+      "last_updated": "2026-03-17T13:53:40.190095"
+    },
+    "LLY": {
+      "action": "BUY",
+      "confidence": 0.6486862483576346,
+      "reasoning": "MR BUY: z=-1.95 (oversold, target z=0). Price $959.85 vs mean $1008.86 (-4.9%). not yet reverting. Reversion freq=0.16",
+      "added_at": "2026-03-17T14:29:40.334936",
+      "last_updated": "2026-03-17T14:29:40.334936"
+    },
+    "GOLD": {
+      "action": "BUY",
+      "confidence": 0.6263852570665527,
+      "reasoning": "MR BUY: z=-1.58 (oversold, target z=0). Price $46.56 vs mean $53.34 (-12.7%). already reverting. Reversion freq=0.08",
+      "added_at": "2026-03-17T18:01:35.857493",
+      "last_updated": "2026-03-18T13:34:17.615031"
+    },
+    "CL": {
+      "action": "BUY",
+      "confidence": 0.6301026694049423,
+      "reasoning": "MR BUY: z=-1.59 (oversold, target z=0). Price $88.02 vs mean $93.58 (-5.9%). already reverting. Reversion freq=0.04",
+      "added_at": "2026-03-18T13:52:47.131076",
+      "last_updated": "2026-03-18T13:52:47.131076"
+    },
+    "PG": {
+      "action": "BUY",
+      "confidence": 0.620084353282134,
+      "reasoning": "MR BUY: z=-1.56 (oversold, target z=0). Price $148.41 vs mean $157.53 (-5.8%). already reverting. Reversion freq=0.04",
+      "added_at": "2026-03-18T13:52:47.131076",
+      "last_updated": "2026-03-18T13:52:47.131076"
+    },
+    "CMCSA": {
+      "action": "BUY",
+      "confidence": 0.8276077741489233,
+      "reasoning": "MR BUY: z=-2.48 (oversold, target z=0). Price $29.09 vs mean $30.93 (-5.9%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-03-18T14:28:50.437529",
+      "last_updated": "2026-03-18T14:29:46.838287"
+    },
+    "REGN": {
+      "action": "BUY",
+      "confidence": 0.8094521848804,
+      "reasoning": "MR BUY: z=-2.13 (oversold, target z=0). Price $736.72 vs mean $769.99 (-4.3%). already reverting. Reversion freq=0.24",
+      "added_at": "2026-03-18T14:28:50.437529",
+      "last_updated": "2026-03-18T14:28:50.437529"
+    },
+    "HD": {
+      "action": "BUY",
+      "confidence": 0.524059879114656,
+      "reasoning": "MR BUY: z=-1.57 (oversold, target z=0). Price $325.14 vs mean $332.01 (-2.1%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-03-18T14:28:50.437529",
+      "last_updated": "2026-04-07T19:06:32.589357"
+    },
+    "LOW": {
+      "action": "BUY",
+      "confidence": 0.618307125064786,
+      "reasoning": "MR BUY: z=-1.55 (oversold, target z=0). Price $234.38 vs mean $256.26 (-8.5%). already reverting. Reversion freq=0.08",
+      "added_at": "2026-03-18T14:28:50.437529",
+      "last_updated": "2026-03-18T14:29:46.838287"
+    },
+    "MCD": {
+      "action": "BUY",
+      "confidence": 0.6463310986195286,
+      "reasoning": "MR BUY: z=-1.94 (oversold, target z=0). Price $320.72 vs mean $329.71 (-2.7%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-03-18T14:28:50.437529",
+      "last_updated": "2026-03-18T14:28:50.437529"
+    },
+    "META": {
+      "action": "BUY",
+      "confidence": 0.6537743834796895,
+      "reasoning": "MR BUY: z=-1.96 (oversold, target z=0). Price $533.46 vs mean $615.07 (-13.3%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-03-27T13:38:53.543779",
+      "last_updated": "2026-03-30T13:36:37.125691"
+    },
+    "TSLA": {
+      "action": "BUY",
+      "confidence": 0.6060070610549755,
+      "reasoning": "MR BUY: z=-1.52 (oversold, target z=0). Price $345.73 vs mean $373.16 (-7.4%). already reverting. Reversion freq=0.08",
+      "added_at": "2026-03-27T13:38:53.543779",
+      "last_updated": "2026-04-10T13:32:31.645944"
+    },
     "MSFT": {
       "action": "BUY",
-      "confidence": 0.48,
-      "reasoning": "CLAUDE ANALYSIS: Bullish MACD (+2.46), price near SMA20, and strongest analyst consensus (54 buy/3 hold/0 sell) with 49% upside. OpenAI restructuring news provides positive AI narrative. Low confidenc",
-      "added_at": "2026-03-16T10:08:33.712136",
-      "last_updated": "2026-03-16T22:03:44.068162"
-    },
-    "AMZN": {
-      "action": "BUY",
-      "confidence": 0.6,
-      "reasoning": "CLAUDE ANALYSIS: Best technical picture among current holdings \u2014 price above SMA20, positive MACD (+1.12), RSI neutral at 50. AI-driven 'super seller' marketplace growth is a strong fundamental cataly",
-      "added_at": "2026-03-16T10:08:33.712136",
-      "last_updated": "2026-03-16T22:08:36.978316"
-    },
-    "DDOG": {
-      "action": "BUY",
-      "confidence": 0.65,
-      "reasoning": "CLAUDE ANALYSIS: Best technical setup in portfolio: price above SMA20, strong bullish MACD (+1.71), healthy RSI (55), best 5D (+2.9%) and 20D (+3.3%) momentum. Analyst target $182 implies 44% upside. ",
-      "added_at": "2026-03-16T10:14:50.788218",
-      "last_updated": "2026-03-16T22:15:40.494256"
-    },
-    "NVDA": {
-      "action": "BUY",
-      "confidence": 0.65,
-      "reasoning": "CLAUDE ANALYSIS: GTC conference delivering exceptional news flow \u2014 Uber, Lyft, Hyundai/Kia autonomous partnerships, robotics frameworks, NemoClaw platform. RSI 48.3 leaves room for upside. After-hours",
-      "added_at": "2026-03-16T10:18:19.793678",
-      "last_updated": "2026-03-16T22:21:50.964748"
+      "confidence": 0.6899743324042847,
+      "reasoning": "MR BUY: z=-1.77 (oversold, target z=0). Price $360.11 vs mean $390.87 (-7.9%). already reverting. Reversion freq=0.04",
+      "added_at": "2026-03-27T13:38:53.543779",
+      "last_updated": "2026-03-30T13:36:37.125691"
     },
     "ORCL": {
       "action": "BUY",
-      "confidence": 0.62,
-      "reasoning": "CLAUDE ANALYSIS: Highest composite confidence at 62% with strongest composite score (+0.75). MACD strongly positive (+2.37), price above SMA20, RSI neutral at 48.5. AI deals supporting outlook with Mi",
-      "added_at": "2026-03-16T21:59:43.196186",
-      "last_updated": "2026-03-16T22:08:36.978316"
-    }
-  },
-  "MomentumAgent": {
-    "MU": {
+      "confidence": 0.5117675540440961,
+      "reasoning": "MR BUY: z=-1.54 (oversold, target z=0). Price $137.53 vs mean $146.96 (-6.4%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-03-27T13:38:53.543779",
+      "last_updated": "2026-04-10T14:45:03.114084"
+    },
+    "SAP": {
       "action": "BUY",
-      "confidence": 0.6611520488323348,
-      "reasoning": "MOMENTUM BUY: 5d momentum=13.5%, 10d momentum=7.1%, 20d momentum=7.4%. Score=0.66",
-      "added_at": "2026-03-16T10:09:34.448202",
-      "last_updated": "2026-03-16T21:58:24.951794"
+      "confidence": 0.711032569206573,
+      "reasoning": "MR BUY: z=-1.83 (oversold, target z=0). Price $165.22 vs mean $186.71 (-11.5%). already reverting. Reversion freq=0.08",
+      "added_at": "2026-03-27T13:38:53.543779",
+      "last_updated": "2026-03-27T13:39:52.761042"
+    },
+    "AMZN": {
+      "action": "BUY",
+      "confidence": 0.603187562571897,
+      "reasoning": "MR BUY: z=-1.81 (oversold, target z=0). Price $201.53 vs mean $210.19 (-4.1%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-03-27T13:38:53.543779",
+      "last_updated": "2026-03-30T13:37:31.157499"
+    },
+    "SNOW": {
+      "action": "BUY",
+      "confidence": 0.6935806519769564,
+      "reasoning": "MR BUY: z=-1.78 (oversold, target z=0). Price $155.62 vs mean $170.90 (-8.9%). already reverting. Reversion freq=0.08",
+      "added_at": "2026-03-27T13:38:53.543779",
+      "last_updated": "2026-03-30T13:34:30.100444"
+    },
+    "RTX": {
+      "action": "BUY",
+      "confidence": 0.69159974458708,
+      "reasoning": "MR BUY: z=-2.07 (oversold, target z=0). Price $191.22 vs mean $201.27 (-5.0%). not yet reverting. Reversion freq=0.10",
+      "added_at": "2026-03-27T13:38:53.543779",
+      "last_updated": "2026-03-31T16:50:06.256297"
+    },
+    "AVGO": {
+      "action": "BUY",
+      "confidence": 0.5177555534997228,
+      "reasoning": "MR BUY: z=-1.55 (oversold, target z=0). Price $298.69 vs mean $321.16 (-7.0%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-03-27T13:38:53.543779",
+      "last_updated": "2026-03-31T13:40:14.943942"
+    },
+    "VRTX": {
+      "action": "BUY",
+      "confidence": 0.56680673631593,
+      "reasoning": "MR BUY: z=-1.70 (oversold, target z=0). Price $433.38 vs mean $461.83 (-6.2%). not yet reverting. Reversion freq=0.16",
+      "added_at": "2026-03-30T13:34:30.100444",
+      "last_updated": "2026-03-30T13:35:29.982167"
+    },
+    "ARKK": {
+      "action": "BUY",
+      "confidence": 0.814594310357471,
+      "reasoning": "MR BUY: z=-2.44 (oversold, target z=0). Price $67.19 vs mean $70.84 (-5.2%). not yet reverting. Reversion freq=0.10",
+      "added_at": "2026-03-30T13:34:30.100444",
+      "last_updated": "2026-03-31T17:30:18.972575"
+    },
+    "BKNG": {
+      "action": "BUY",
+      "confidence": 0.551738123003386,
+      "reasoning": "MR BUY: z=-1.66 (oversold, target z=0). Price $4060.12 vs mean $4304.62 (-5.7%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-03-30T13:34:30.100444",
+      "last_updated": "2026-04-01T13:49:44.315297"
+    },
+    "NOC": {
+      "action": "BUY",
+      "confidence": 0.6694204484895797,
+      "reasoning": "MR BUY: z=-1.71 (oversold, target z=0). Price $678.13 vs mean $719.82 (-5.8%). already reverting. Reversion freq=0.05",
+      "added_at": "2026-03-30T13:34:30.100444",
+      "last_updated": "2026-03-31T16:42:17.241900"
+    },
+    "SYY": {
+      "action": "BUY",
+      "confidence": 0.9266780200744341,
+      "reasoning": "MR BUY: z=-2.78 (oversold, target z=0). Price $68.58 vs mean $82.31 (-16.7%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-03-31T13:35:14.732690",
+      "last_updated": "2026-03-31T13:40:14.943942"
+    },
+    "GOOGL": {
+      "action": "BUY",
+      "confidence": 0.6353775054692516,
+      "reasoning": "MR BUY: z=-1.61 (oversold, target z=0). Price $278.52 vs mean $297.68 (-6.4%). already reverting. Reversion freq=0.08",
+      "added_at": "2026-03-31T13:35:14.732690",
+      "last_updated": "2026-03-31T13:40:14.943942"
+    },
+    "BIIB": {
+      "action": "BUY",
+      "confidence": 0.6460255124466046,
+      "reasoning": "MR BUY: z=-1.64 (oversold, target z=0). Price $174.09 vs mean $181.99 (-4.3%). already reverting. Reversion freq=0.15",
+      "added_at": "2026-03-31T13:35:14.732690",
+      "last_updated": "2026-04-10T14:45:03.114084"
+    },
+    "NKE": {
+      "action": "BUY",
+      "confidence": 0.95,
+      "reasoning": "MR BUY: z=-2.98 (oversold, target z=0). Price $45.85 vs mean $53.66 (-14.6%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-04-01T13:54:05.412213",
+      "last_updated": "2026-04-01T13:54:05.412213"
+    },
+    "TMUS": {
+      "action": "BUY",
+      "confidence": 0.6671627912429344,
+      "reasoning": "MR BUY: z=-2.00 (oversold, target z=0). Price $202.94 vs mean $212.71 (-4.6%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-04-01T15:02:02.185601",
+      "last_updated": "2026-04-01T15:02:02.185601"
+    },
+    "LCID": {
+      "action": "BUY",
+      "confidence": 0.5187461072727899,
+      "reasoning": "MR BUY: z=-1.56 (oversold, target z=0). Price $8.85 vs mean $9.70 (-8.7%). not yet reverting. Reversion freq=0.23",
+      "added_at": "2026-04-07T13:33:42.246636",
+      "last_updated": "2026-04-10T15:10:42.620163"
+    },
+    "ASML": {
+      "action": "BUY",
+      "confidence": 0.5145268647385163,
+      "reasoning": "MR BUY: z=-1.54 (oversold, target z=0). Price $1300.77 vs mean $1345.28 (-3.3%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-04-07T14:00:56.680850",
+      "last_updated": "2026-04-07T15:22:57.330216"
+    },
+    "GM": {
+      "action": "BUY",
+      "confidence": 0.5039165242969723,
+      "reasoning": "MR BUY: z=-1.51 (oversold, target z=0). Price $73.25 vs mean $74.01 (-1.0%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-04-07T15:22:57.330216",
+      "last_updated": "2026-04-07T15:51:36.799685"
+    },
+    "BABA": {
+      "action": "BUY",
+      "confidence": 0.5236390234785443,
+      "reasoning": "MR BUY: z=-1.57 (oversold, target z=0). Price $118.25 vs mean $128.05 (-7.7%). not yet reverting. Reversion freq=0.00",
+      "added_at": "2026-04-07T16:19:57.813629",
+      "last_updated": "2026-04-07T19:06:32.589357"
+    },
+    "GNRC": {
+      "action": "BUY",
+      "confidence": 0.5520173897063483,
+      "reasoning": "MR BUY: z=-1.66 (oversold, target z=0). Price $188.73 vs mean $200.07 (-5.7%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-04-07T19:06:32.589357",
+      "last_updated": "2026-04-07T19:06:32.589357"
     },
     "CF": {
       "action": "BUY",
+      "confidence": 0.5878855882839878,
+      "reasoning": "MR BUY: z=-1.76 (oversold, target z=0). Price $118.12 vs mean $127.52 (-7.4%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-04-08T13:59:43.797938",
+      "last_updated": "2026-04-10T14:45:03.114084"
+    },
+    "PSX": {
+      "action": "BUY",
+      "confidence": 0.8143650465677502,
+      "reasoning": "MR BUY: z=-2.44 (oversold, target z=0). Price $157.15 vs mean $175.84 (-10.6%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-04-08T13:59:43.797938",
+      "last_updated": "2026-04-10T14:45:03.114084"
+    },
+    "CVX": {
+      "action": "BUY",
+      "confidence": 0.7194759802173816,
+      "reasoning": "MR BUY: z=-2.16 (oversold, target z=0). Price $186.67 vs mean $200.69 (-7.0%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-04-08T13:59:43.797938",
+      "last_updated": "2026-04-10T14:45:03.114084"
+    },
+    "WDAY": {
+      "action": "BUY",
+      "confidence": 0.8027592731276254,
+      "reasoning": "MR BUY: z=-2.41 (oversold, target z=0). Price $111.93 vs mean $128.53 (-12.9%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-04-08T17:23:38.966837",
+      "last_updated": "2026-04-10T14:45:03.114084"
+    },
+    "PLTR": {
+      "action": "BUY",
+      "confidence": 0.8903123091388717,
+      "reasoning": "MR BUY: z=-2.67 (oversold, target z=0). Price $123.63 vs mean $147.54 (-16.2%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-04-08T18:50:33.993069",
+      "last_updated": "2026-04-10T14:21:31.588328"
+    },
+    "NOW": {
+      "action": "BUY",
+      "confidence": 0.7856056468929739,
+      "reasoning": "MR BUY: z=-2.36 (oversold, target z=0). Price $87.29 vs mean $106.15 (-17.8%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-04-09T14:02:51.903327",
+      "last_updated": "2026-04-10T13:32:31.645944"
+    },
+    "ADBE": {
+      "action": "BUY",
+      "confidence": 0.7842390242250383,
+      "reasoning": "MR BUY: z=-2.35 (oversold, target z=0). Price $225.82 vs mean $242.15 (-6.7%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-04-09T14:02:51.903327",
+      "last_updated": "2026-04-10T14:45:03.114084"
+    },
+    "OKTA": {
+      "action": "BUY",
+      "confidence": 0.95,
+      "reasoning": "MR BUY: z=-2.98 (oversold, target z=0). Price $64.73 vs mean $77.15 (-16.1%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-04-09T14:02:51.903327",
+      "last_updated": "2026-04-10T15:10:42.620163"
+    },
+    "NET": {
+      "action": "BUY",
+      "confidence": 0.95,
+      "reasoning": "MR BUY: z=-2.91 (oversold, target z=0). Price $177.22 vs mean $209.33 (-15.3%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-04-09T14:32:16.653283",
+      "last_updated": "2026-04-10T13:57:24.686893"
+    },
+    "DDOG": {
+      "action": "BUY",
+      "confidence": 0.8646535477911644,
+      "reasoning": "MR BUY: z=-2.59 (oversold, target z=0). Price $101.09 vs mean $120.66 (-16.2%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-04-09T14:32:16.653283",
+      "last_updated": "2026-04-10T15:10:42.620163"
+    },
+    "MDB": {
+      "action": "BUY",
+      "confidence": 0.643108166231188,
+      "reasoning": "MR BUY: z=-1.93 (oversold, target z=0). Price $230.74 vs mean $254.07 (-9.2%). not yet reverting. Reversion freq=0.00",
+      "added_at": "2026-04-09T15:32:55.608639",
+      "last_updated": "2026-04-10T13:32:31.645944"
+    },
+    "MPC": {
+      "action": "BUY",
+      "confidence": 0.7412722479319451,
+      "reasoning": "MR BUY: z=-2.22 (oversold, target z=0). Price $217.34 vs mean $237.02 (-8.3%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-04-09T16:33:45.232828",
+      "last_updated": "2026-04-10T14:45:03.114084"
+    },
+    "XOM": {
+      "action": "BUY",
+      "confidence": 0.5813883572753783,
+      "reasoning": "MR BUY: z=-1.74 (oversold, target z=0). Price $152.09 vs mean $161.34 (-5.7%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-04-10T13:57:24.686893",
+      "last_updated": "2026-04-10T14:45:03.114084"
+    },
+    "XLE": {
+      "action": "BUY",
+      "confidence": 0.568950517895232,
+      "reasoning": "MR BUY: z=-1.71 (oversold, target z=0). Price $56.47 vs mean $59.49 (-5.1%). not yet reverting. Reversion freq=0.04",
+      "added_at": "2026-04-10T13:57:24.686893",
+      "last_updated": "2026-04-10T15:10:42.620163"
+    },
+    "CRWD": {
+      "action": "BUY",
+      "confidence": 0.5795774499313262,
+      "reasoning": "MR BUY: z=-1.74 (oversold, target z=0). Price $366.05 vs mean $404.89 (-9.6%). not yet reverting. Reversion freq=0.12",
+      "added_at": "2026-04-10T14:21:31.588328",
+      "last_updated": "2026-04-10T14:45:03.114084"
+    },
+    "S": {
+      "action": "BUY",
+      "confidence": 0.652310741773274,
+      "reasoning": "MR BUY: z=-1.96 (oversold, target z=0). Price $12.06 vs mean $13.53 (-10.8%). not yet reverting. Reversion freq=0.08",
+      "added_at": "2026-04-10T14:21:31.588328",
+      "last_updated": "2026-04-10T15:10:42.620163"
+    }
+  },
+  "ClaudeAgent": {
+    "MU": {
+      "action": "BUY",
+      "confidence": 0.45,
+      "reasoning": "CLAUDE ANALYSIS: Only stock screened in a confirmed uptrend (price > SMA20 > SMA50) with positive MACD. CEO warns AI memory demand far exceeds supply \u2014 strong fundamental catalyst. Limiting to 5 share",
+      "added_at": "2026-03-21T00:57:03.046570",
+      "last_updated": "2026-03-22T02:26:09.332473"
+    },
+    "JNJ": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "CLAUDE ANALYSIS: Cleanest setup available: uptrend (price > SMA20 > SMA50), leading healthcare sector, RBC reiterates Outperform, RSI neutral (58.5), OBV rising (accumulation). Defensive quality name ",
+      "added_at": "2026-03-31T13:36:40.865596",
+      "last_updated": "2026-03-31T20:00:28.757278"
+    },
+    "NEM": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CLAUDE ANALYSIS: STRONG BUY: Highest composite score (+0.81, 64% confidence) with gold at $4,700/oz catalyst, RSI neutral at 52.6, MACD bullish, OBV rising, and 25% upside to $139.94 target. Provides ",
+      "added_at": "2026-04-01T13:33:01.232726",
+      "last_updated": "2026-04-01T20:00:15.476484"
+    },
+    "FCX": {
+      "action": "BUY",
+      "confidence": 0.55,
+      "reasoning": "CLAUDE ANALYSIS: Strong composite signal (+0.77), neutral RSI at 55.6, bullish MACD, rising OBV showing accumulation, and 11% upside to target. Small position as today's +7.6% move adds chase risk, bu",
+      "added_at": "2026-04-01T13:33:01.232726",
+      "last_updated": "2026-04-01T20:00:15.476484"
+    },
+    "LLY": {
+      "action": "BUY",
+      "confidence": 0.68,
+      "reasoning": "CLAUDE ANALYSIS: STRONG BUY signal: BofA raises target to $1294, RSI neutral at 45, MACD bullish (+2.59), OBV rising on 2.1x volume, 28% upside to consensus $1209. Clean technical setup with catalyst.",
+      "added_at": "2026-04-02T13:33:58.589261",
+      "last_updated": "2026-04-02T20:00:27.923210"
+    }
+  },
+  "MomentumAgent": {
+    "MRNA": {
+      "action": "BUY",
+      "confidence": 0.3,
+      "reasoning": "MOMENTUM BUY: 5d momentum=6.2%. Score=0.30",
+      "added_at": "2026-03-17T17:28:15.740744",
+      "last_updated": "2026-04-10T15:35:16.502482"
+    },
+    "NEM": {
+      "action": "BUY",
+      "confidence": 0.31631853785900715,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.3%, High volume (1.3x). Score=0.32",
+      "added_at": "2026-03-27T14:18:02.243042",
+      "last_updated": "2026-03-27T14:18:02.243042"
+    },
+    "TGT": {
+      "action": "BUY",
+      "confidence": 0.4900393233387414,
+      "reasoning": "MOMENTUM BUY: 5d momentum=6.3%, 10d momentum=2.5%, 20d momentum=5.7%. Score=0.49",
+      "added_at": "2026-03-27T14:52:53.593252",
+      "last_updated": "2026-03-27T14:52:53.593252"
+    },
+    "DVN": {
+      "action": "BUY",
+      "confidence": 0.8500000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=6.2%, 10d momentum=10.4%, 20d momentum=14.6%, Trend consistency=65%. Score=0.85",
+      "added_at": "2026-03-31T16:59:47.766021",
+      "last_updated": "2026-03-31T18:44:43.978394"
+    },
+    "PSX": {
+      "action": "BUY",
+      "confidence": 0.5736402557280512,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.6%, 10d momentum=6.5%, 20d momentum=15.4%. Score=0.57",
+      "added_at": "2026-03-31T17:16:21.645668",
+      "last_updated": "2026-03-31T19:32:04.381285"
+    },
+    "MPC": {
+      "action": "BUY",
+      "confidence": 0.6341226324770376,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.4%, 10d momentum=7.1%, 20d momentum=16.8%. Score=0.63",
+      "added_at": "2026-03-31T17:25:29.702181",
+      "last_updated": "2026-03-31T19:57:06.074413"
+    },
+    "GS": {
+      "action": "BUY",
+      "confidence": 0.34144631679008164,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.5%, 10d momentum=7.2%. Score=0.34",
+      "added_at": "2026-04-01T13:34:10.240306",
+      "last_updated": "2026-04-01T13:34:10.240306"
+    },
+    "FCX": {
+      "action": "BUY",
+      "confidence": 0.5249562171628717,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.5%, 10d momentum=8.6%. Score=0.52",
+      "added_at": "2026-04-01T13:35:07.669337",
+      "last_updated": "2026-04-01T13:35:07.669337"
+    },
+    "LLY": {
+      "action": "BUY",
+      "confidence": 0.3185404062466535,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.1%, 10d momentum=3.8%. Score=0.32",
+      "added_at": "2026-04-01T15:30:10.007768",
+      "last_updated": "2026-04-01T15:30:10.007768"
+    },
+    "HAL": {
+      "action": "BUY",
+      "confidence": 0.5154552610863291,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.3%, 10d momentum=9.4%, 20d momentum=10.6%. Score=0.52",
+      "added_at": "2026-04-01T18:14:45.168483",
+      "last_updated": "2026-04-01T19:26:39.015393"
+    },
+    "KHC": {
+      "action": "BUY",
+      "confidence": 0.30281240625596584,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.1%, 10d momentum=3.2%. Score=0.30",
+      "added_at": "2026-04-02T13:44:07.042645",
+      "last_updated": "2026-04-02T13:44:07.042645"
+    },
+    "CAT": {
+      "action": "BUY",
+      "confidence": 0.30538165499225767,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.5%, 10d momentum=4.6%, 20d momentum=2.1%. Score=0.31",
+      "added_at": "2026-04-02T14:03:11.663726",
+      "last_updated": "2026-04-02T14:03:11.663726"
+    },
+    "NFLX": {
+      "action": "BUY",
+      "confidence": 0.3724691491501133,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.0%, 10d momentum=5.8%. Score=0.37",
+      "added_at": "2026-04-02T14:42:26.902162",
+      "last_updated": "2026-04-02T14:42:26.902162"
+    },
+    "META": {
+      "action": "BUY",
+      "confidence": 0.35,
+      "reasoning": "MOMENTUM BUY: 5d momentum=9.5%, High volume (1.4x). Score=0.35",
+      "added_at": "2026-04-02T14:45:26.131797",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "NUE": {
+      "action": "BUY",
+      "confidence": 0.31503156072962035,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.9%, 10d momentum=5.6%. Score=0.32",
+      "added_at": "2026-04-02T16:18:45.390889",
+      "last_updated": "2026-04-02T16:18:45.390889"
+    },
+    "VLO": {
+      "action": "BUY",
+      "confidence": 0.32586782646923096,
+      "reasoning": "MOMENTUM BUY: 5d momentum=3.0%, 10d momentum=1.3%, 20d momentum=7.0%. Score=0.33",
+      "added_at": "2026-04-02T19:46:42.522024",
+      "last_updated": "2026-04-02T19:46:42.522024"
+    },
+    "AMD": {
+      "action": "BUY",
+      "confidence": 0.6802280257259794,
+      "reasoning": "MOMENTUM BUY: 5d momentum=6.8%, 10d momentum=6.0%, 20d momentum=9.1%, High volume (1.2x). Score=0.68",
+      "added_at": "2026-04-02T19:52:56.624438",
+      "last_updated": "2026-04-04T16:37:07.858821"
+    },
+    "CCI": {
+      "action": "BUY",
+      "confidence": 0.3,
+      "reasoning": "MOMENTUM BUY: 5d momentum=8.7%. Score=0.30",
+      "added_at": "2026-04-04T18:34:59.552960",
+      "last_updated": "2026-04-04T18:36:38.932634"
+    },
+    "RARE": {
+      "action": "BUY",
+      "confidence": 0.7000000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=18.1%, 10d momentum=14.9%, 20d momentum=7.6%. Score=0.70",
+      "added_at": "2026-04-04T18:34:59.552960",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "RIVN": {
+      "action": "BUY",
+      "confidence": 0.4145027513162378,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.2%, 10d momentum=4.4%, 20d momentum=1.2%. Score=0.41",
+      "added_at": "2026-04-06T13:53:28.060939",
+      "last_updated": "2026-04-06T13:53:28.060939"
+    },
+    "DIOD": {
+      "action": "BUY",
+      "confidence": 0.8500000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=7.8%, 10d momentum=13.9%, 20d momentum=19.1%, Trend consistency=70%. Score=0.85",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T14:37:08.116094"
+    },
+    "MPWR": {
+      "action": "BUY",
+      "confidence": 0.7000000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=11.5%, 10d momentum=10.0%, 20d momentum=14.9%. Score=0.70",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T15:23:03.632990"
+    },
+    "RIOT": {
+      "action": "BUY",
+      "confidence": 0.3436567164179107,
+      "reasoning": "MOMENTUM BUY: 5d momentum=6.3%, 10d momentum=1.5%. Score=0.34",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:28:37.044408"
+    },
+    "ALB": {
+      "action": "BUY",
+      "confidence": 0.4,
+      "reasoning": "MOMENTUM BUY: 10d momentum=11.4%, 20d momentum=7.5%. Score=0.40",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T14:37:08.116094"
+    },
+    "PYPL": {
+      "action": "BUY",
+      "confidence": 0.34084859610330076,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.6%, 10d momentum=3.6%. Score=0.34",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "GOOGL": {
+      "action": "BUY",
+      "confidence": 0.3020097136158097,
+      "reasoning": "MOMENTUM BUY: 5d momentum=8.9%, 20d momentum=0.1%. Score=0.30",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "GILD": {
+      "action": "BUY",
+      "confidence": 0.3052493167416541,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.7%, 10d momentum=2.4%. Score=0.31",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T14:37:08.116094"
+    },
+    "MRVL": {
+      "action": "BUY",
       "confidence": 0.7500000000000001,
-      "reasoning": "MOMENTUM BUY: 5d momentum=10.2%, 10d momentum=17.3%, 20d momentum=29.3%, High volume (2.5x). Score=0.75",
-      "added_at": "2026-03-16T22:00:44.287176",
-      "last_updated": "2026-03-16T22:00:44.287176"
+      "reasoning": "MOMENTUM BUY: 5d momentum=15.4%, 10d momentum=24.5%, 20d momentum=22.3%, High volume (1.5x). Score=0.75",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "LRCX": {
+      "action": "BUY",
+      "confidence": 0.3205807305202478,
+      "reasoning": "MOMENTUM BUY: 5d momentum=3.4%, 20d momentum=9.8%. Score=0.32",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "AMZN": {
+      "action": "BUY",
+      "confidence": 0.38942574643222433,
+      "reasoning": "MOMENTUM BUY: 5d momentum=6.0%, 10d momentum=3.0%. Score=0.39",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "NVDA": {
+      "action": "BUY",
+      "confidence": 0.3355954461799975,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.4%, 10d momentum=2.1%. Score=0.34",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "AMAT": {
+      "action": "BUY",
+      "confidence": 0.33377505518436756,
+      "reasoning": "MOMENTUM BUY: 5d momentum=3.7%, 20d momentum=7.8%. Score=0.33",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "SBUX": {
+      "action": "BUY",
+      "confidence": 0.34537107054121247,
+      "reasoning": "MOMENTUM BUY: 5d momentum=8.2%, 10d momentum=1.5%. Score=0.35",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "JPM": {
+      "action": "BUY",
+      "confidence": 0.5071461132125273,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.5%, 10d momentum=3.0%, 20d momentum=2.1%, Trend consistency=65%. Score=0.51",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "MET": {
+      "action": "BUY",
+      "confidence": 0.3508085285026936,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.9%, 10d momentum=3.6%. Score=0.35",
+      "added_at": "2026-04-06T14:37:08.116094",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "INTC": {
+      "action": "BUY",
+      "confidence": 0.8500000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=16.9%, 10d momentum=14.8%, 20d momentum=16.1%, Trend consistency=65%. Score=0.85",
+      "added_at": "2026-04-06T17:19:07.666314",
+      "last_updated": "2026-04-06T18:05:45.004369"
+    },
+    "MU": {
+      "action": "BUY",
+      "confidence": 0.3484207333257496,
+      "reasoning": "MOMENTUM BUY: 5d momentum=19.1%, 10d momentum=1.6%. Score=0.35",
+      "added_at": "2026-04-06T18:51:44.251229",
+      "last_updated": "2026-04-08T14:56:10.285182"
+    },
+    "UNH": {
+      "action": "BUY",
+      "confidence": 0.6788636283899943,
+      "reasoning": "MOMENTUM BUY: 5d momentum=15.9%, 10d momentum=12.5%, 20d momentum=6.4%. Score=0.68",
+      "added_at": "2026-04-07T14:00:56.464987",
+      "last_updated": "2026-04-07T14:00:56.464987"
+    },
+    "CVS": {
+      "action": "BUY",
+      "confidence": 0.5320314143468197,
+      "reasoning": "MOMENTUM BUY: 5d momentum=9.5%, 10d momentum=7.7%. Score=0.53",
+      "added_at": "2026-04-07T14:00:56.464987",
+      "last_updated": "2026-04-07T14:27:56.640359"
+    },
+    "ELV": {
+      "action": "BUY",
+      "confidence": 0.8500000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=8.5%, 10d momentum=9.5%, 20d momentum=12.5%, Trend consistency=65%. Score=0.85",
+      "added_at": "2026-04-07T14:00:56.464987",
+      "last_updated": "2026-04-08T18:50:33.741018"
+    },
+    "AVGO": {
+      "action": "BUY",
+      "confidence": 0.5999846717566168,
+      "reasoning": "MOMENTUM BUY: 5d momentum=13.4%, 10d momentum=10.3%, 20d momentum=2.5%. Score=0.60",
+      "added_at": "2026-04-07T14:00:56.464987",
+      "last_updated": "2026-04-08T18:50:33.741018"
+    },
+    "RTX": {
+      "action": "BUY",
+      "confidence": 0.3898858667571605,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.1%, 10d momentum=4.4%. Score=0.39",
+      "added_at": "2026-04-07T14:00:56.464987",
+      "last_updated": "2026-04-08T18:50:33.741018"
+    },
+    "HUM": {
+      "action": "BUY",
+      "confidence": 0.8500000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=17.1%, 10d momentum=14.3%, 20d momentum=9.0%, Trend consistency=65%. Score=0.85",
+      "added_at": "2026-04-07T14:55:20.100926",
+      "last_updated": "2026-04-07T15:22:57.115892"
+    },
+    "COPX": {
+      "action": "BUY",
+      "confidence": 0.55,
+      "reasoning": "MOMENTUM BUY: 5d momentum=8.6%, 10d momentum=13.4%. Score=0.55",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-08T14:27:24.645655"
+    },
+    "FORM": {
+      "action": "BUY",
+      "confidence": 0.8450516147362441,
+      "reasoning": "MOMENTUM BUY: 5d momentum=17.8%, 10d momentum=8.2%, 20d momentum=25.7%, Trend consistency=70%. Score=0.85",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-08T15:25:31.910641"
+    },
+    "BLK": {
+      "action": "BUY",
+      "confidence": 0.3880954808718631,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.5%, 10d momentum=2.9%, 20d momentum=3.8%. Score=0.39",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-08T18:22:21.031960"
+    },
+    "KLAC": {
+      "action": "BUY",
+      "confidence": 0.8500000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=11.4%, 10d momentum=9.7%, 20d momentum=15.7%, Trend consistency=65%. Score=0.85",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-09T15:32:55.346924"
+    },
+    "SOXX": {
+      "action": "BUY",
+      "confidence": 0.8421376731911154,
+      "reasoning": "MOMENTUM BUY: 5d momentum=12.2%, 10d momentum=8.1%, 20d momentum=8.7%, Trend consistency=70%. Score=0.84",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-08T19:18:54.294974"
+    },
+    "OPFI": {
+      "action": "BUY",
+      "confidence": 0.3864661654135339,
+      "reasoning": "MOMENTUM BUY: 5d momentum=6.3%, 10d momentum=2.9%. Score=0.39",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-08T16:53:17.820428"
+    },
+    "ASML": {
+      "action": "BUY",
+      "confidence": 0.39383999392689745,
+      "reasoning": "MOMENTUM BUY: 5d momentum=7.4%, 10d momentum=1.4%, 20d momentum=2.6%. Score=0.39",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-08T17:23:38.693455"
+    },
+    "FOXA": {
+      "action": "BUY",
+      "confidence": 0.4090038561622463,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.7%, 10d momentum=2.1%, 20d momentum=3.1%, Trend consistency=65%. Score=0.41",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-08T16:53:17.820428"
+    },
+    "GE": {
+      "action": "BUY",
+      "confidence": 0.48583522609952484,
+      "reasoning": "MOMENTUM BUY: 5d momentum=8.7%, 10d momentum=6.2%. Score=0.49",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-08T18:50:33.741018"
+    },
+    "DDOG": {
+      "action": "BUY",
+      "confidence": 0.3228081321473951,
+      "reasoning": "MOMENTUM BUY: 5d momentum=3.5%, Trend consistency=65%. Score=0.32",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-08T15:55:38.221451"
+    },
+    "MS": {
+      "action": "BUY",
+      "confidence": 0.7794608936863049,
+      "reasoning": "MOMENTUM BUY: 5d momentum=6.8%, 10d momentum=6.0%, 20d momentum=9.3%, Trend consistency=65%. Score=0.78",
+      "added_at": "2026-04-08T14:27:24.645655",
+      "last_updated": "2026-04-08T18:50:33.741018"
+    },
+    "EDIT": {
+      "action": "BUY",
+      "confidence": 0.6216981132075474,
+      "reasoning": "MOMENTUM BUY: 5d momentum=10.9%, 10d momentum=22.0%, 20d momentum=3.6%. Score=0.62",
+      "added_at": "2026-04-08T14:56:10.285182",
+      "last_updated": "2026-04-08T16:53:17.820428"
+    },
+    "ENTG": {
+      "action": "BUY",
+      "confidence": 0.6403665954298863,
+      "reasoning": "MOMENTUM BUY: 5d momentum=10.4%, 10d momentum=6.3%, 20d momentum=10.6%. Score=0.64",
+      "added_at": "2026-04-08T15:25:31.910641",
+      "last_updated": "2026-04-08T16:53:17.820428"
+    },
+    "MP": {
+      "action": "BUY",
+      "confidence": 0.3196998123827394,
+      "reasoning": "MOMENTUM BUY: 5d momentum=11.1%, 10d momentum=0.7%. Score=0.32",
+      "added_at": "2026-04-08T15:55:38.221451",
+      "last_updated": "2026-04-08T16:53:17.820428"
+    },
+    "ON": {
+      "action": "BUY",
+      "confidence": 0.7000000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=9.8%, 10d momentum=9.0%, 20d momentum=14.0%. Score=0.70",
+      "added_at": "2026-04-08T18:22:21.031960",
+      "last_updated": "2026-04-08T18:50:33.741018"
+    },
+    "CCL": {
+      "action": "BUY",
+      "confidence": 0.6802023673157691,
+      "reasoning": "MOMENTUM BUY: 5d momentum=7.7%, 10d momentum=9.4%, 20d momentum=6.5%. Score=0.68",
+      "added_at": "2026-04-08T19:18:54.294974",
+      "last_updated": "2026-04-08T19:49:54.366499"
+    },
+    "UPST": {
+      "action": "BUY",
+      "confidence": 0.4173312883435584,
+      "reasoning": "MOMENTUM BUY: 5d momentum=7.0%, 10d momentum=3.9%. Score=0.42",
+      "added_at": "2026-04-08T19:49:54.366499",
+      "last_updated": "2026-04-09T13:33:45.184666"
+    },
+    "SPY": {
+      "action": "BUY",
+      "confidence": 0.30375542520785337,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.0%, 10d momentum=3.5%. Score=0.30",
+      "added_at": "2026-04-09T13:33:45.184666",
+      "last_updated": "2026-04-09T13:33:45.184666"
+    },
+    "FSLY": {
+      "action": "BUY",
+      "confidence": 0.31515609264853983,
+      "reasoning": "MOMENTUM BUY: 10d momentum=5.5%, 20d momentum=30.6%. Score=0.32",
+      "added_at": "2026-04-09T14:02:51.642921",
+      "last_updated": "2026-04-09T14:02:51.642921"
+    },
+    "ETSY": {
+      "action": "BUY",
+      "confidence": 0.56157495256167,
+      "reasoning": "MOMENTUM BUY: 5d momentum=6.1%, 10d momentum=9.8%, 20d momentum=0.6%. Score=0.56",
+      "added_at": "2026-04-09T14:02:51.642921",
+      "last_updated": "2026-04-09T14:32:16.393738"
+    },
+    "AFRM": {
+      "action": "BUY",
+      "confidence": 0.4841313309194528,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.6%, 10d momentum=6.7%. Score=0.48",
+      "added_at": "2026-04-09T14:02:51.642921",
+      "last_updated": "2026-04-09T15:02:17.442136"
+    },
+    "VTR": {
+      "action": "BUY",
+      "confidence": 0.32160651065128576,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.4%, 10d momentum=3.5%. Score=0.32",
+      "added_at": "2026-04-09T15:02:17.442136",
+      "last_updated": "2026-04-09T15:02:17.442136"
+    },
+    "LOW": {
+      "action": "BUY",
+      "confidence": 0.30067250991038863,
+      "reasoning": "MOMENTUM BUY: 5d momentum=3.8%, 10d momentum=3.7%. Score=0.30",
+      "added_at": "2026-04-09T16:04:09.942125",
+      "last_updated": "2026-04-09T16:04:09.942125"
+    },
+    "AA": {
+      "action": "BUY",
+      "confidence": 0.5384071042042468,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.8%, 10d momentum=26.2%, 20d momentum=11.6%. Score=0.54",
+      "added_at": "2026-04-09T16:04:09.942125",
+      "last_updated": "2026-04-09T16:33:44.967539"
+    },
+    "COHR": {
+      "action": "BUY",
+      "confidence": 0.8500000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=16.8%, 10d momentum=23.8%, 20d momentum=25.1%, Trend consistency=70%. Score=0.85",
+      "added_at": "2026-04-09T19:03:52.153118",
+      "last_updated": "2026-04-10T15:10:42.354964"
+    },
+    "PANW": {
+      "action": "BUY",
+      "confidence": 0.39001460241991026,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.9%, 10d momentum=8.0%, 20d momentum=0.3%. Score=0.39",
+      "added_at": "2026-04-09T19:03:52.153118",
+      "last_updated": "2026-04-09T19:33:43.253500"
+    },
+    "NSC": {
+      "action": "BUY",
+      "confidence": 0.30365830011488865,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.6%, 10d momentum=4.2%, High volume (1.3x). Score=0.30",
+      "added_at": "2026-04-09T19:03:52.153118",
+      "last_updated": "2026-04-09T19:03:52.153118"
+    },
+    "GOLD": {
+      "action": "BUY",
+      "confidence": 0.55,
+      "reasoning": "MOMENTUM BUY: 5d momentum=8.2%, 10d momentum=12.8%. Score=0.55",
+      "added_at": "2026-04-09T19:03:52.153118",
+      "last_updated": "2026-04-10T15:35:16.502482"
+    },
+    "DIS": {
+      "action": "BUY",
+      "confidence": 0.31349759608857397,
+      "reasoning": "MOMENTUM BUY: 5d momentum=3.1%, 10d momentum=5.2%, 20d momentum=0.2%. Score=0.31",
+      "added_at": "2026-04-09T19:33:43.253500",
+      "last_updated": "2026-04-10T14:45:02.844241"
+    },
+    "FATE": {
+      "action": "BUY",
+      "confidence": 0.35756303113720933,
+      "reasoning": "MOMENTUM BUY: 5d momentum=3.2%, 10d momentum=4.1%, 20d momentum=3.7%. Score=0.36",
+      "added_at": "2026-04-10T13:32:31.384884",
+      "last_updated": "2026-04-10T13:32:31.384884"
+    },
+    "SE": {
+      "action": "BUY",
+      "confidence": 0.48542276735516987,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.6%, 10d momentum=7.8%, 20d momentum=1.1%. Score=0.49",
+      "added_at": "2026-04-10T13:32:31.384884",
+      "last_updated": "2026-04-10T15:35:16.502482"
+    },
+    "SNAP": {
+      "action": "BUY",
+      "confidence": 0.6491035555865208,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.8%, 10d momentum=22.2%, 20d momentum=5.4%. Score=0.65",
+      "added_at": "2026-04-10T13:57:24.356310",
+      "last_updated": "2026-04-10T13:57:24.356310"
+    },
+    "ATO": {
+      "action": "BUY",
+      "confidence": 0.4429544533044174,
+      "reasoning": "MOMENTUM BUY: 5d momentum=3.6%, 10d momentum=5.9%, 20d momentum=4.3%. Score=0.44",
+      "added_at": "2026-04-10T14:21:31.293365",
+      "last_updated": "2026-04-10T14:21:31.293365"
+    },
+    "TSM": {
+      "action": "BUY",
+      "confidence": 0.8500000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=11.0%, 10d momentum=15.3%, 20d momentum=11.7%, Trend consistency=65%. Score=0.85",
+      "added_at": "2026-04-10T14:21:31.293365",
+      "last_updated": "2026-04-10T14:45:02.844241"
+    },
+    "BABA": {
+      "action": "BUY",
+      "confidence": 0.3028996840090452,
+      "reasoning": "MOMENTUM BUY: 5d momentum=4.9%, 10d momentum=2.0%. Score=0.30",
+      "added_at": "2026-04-10T14:21:31.293365",
+      "last_updated": "2026-04-10T15:35:16.502482"
+    },
+    "ARM": {
+      "action": "BUY",
+      "confidence": 0.439531763600993,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.8%, 20d momentum=33.0%, Trend consistency=65%. Score=0.44",
+      "added_at": "2026-04-10T14:21:31.293365",
+      "last_updated": "2026-04-10T15:35:16.502482"
+    },
+    "GNRC": {
+      "action": "BUY",
+      "confidence": 0.5345039449092119,
+      "reasoning": "MOMENTUM BUY: 5d momentum=8.1%, 10d momentum=6.0%, 20d momentum=2.8%. Score=0.53",
+      "added_at": "2026-04-10T14:21:31.293365",
+      "last_updated": "2026-04-10T15:35:16.502482"
+    },
+    "HD": {
+      "action": "BUY",
+      "confidence": 0.3554639614831141,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.3%, 10d momentum=3.1%. Score=0.36",
+      "added_at": "2026-04-10T14:21:31.293365",
+      "last_updated": "2026-04-10T15:10:42.354964"
+    },
+    "AAPL": {
+      "action": "BUY",
+      "confidence": 0.40003112364385707,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.1%, 10d momentum=3.3%, 20d momentum=2.2%, Trend consistency=65%. Score=0.40",
+      "added_at": "2026-04-10T14:21:31.293365",
+      "last_updated": "2026-04-10T15:10:42.354964"
+    },
+    "GM": {
+      "action": "BUY",
+      "confidence": 0.40775451486716396,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.6%, 10d momentum=1.3%, 20d momentum=4.4%. Score=0.41",
+      "added_at": "2026-04-10T14:21:31.293365",
+      "last_updated": "2026-04-10T15:35:16.502482"
+    },
+    "SMH": {
+      "action": "BUY",
+      "confidence": 0.8500000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=12.2%, 10d momentum=15.6%, 20d momentum=13.3%, Trend consistency=70%. Score=0.85",
+      "added_at": "2026-04-10T14:45:02.844241",
+      "last_updated": "2026-04-10T15:10:42.354964"
+    },
+    "RCL": {
+      "action": "BUY",
+      "confidence": 0.3169124447406879,
+      "reasoning": "MOMENTUM BUY: 5d momentum=2.7%, 10d momentum=2.5%, 20d momentum=5.4%. Score=0.32",
+      "added_at": "2026-04-10T14:45:02.844241",
+      "last_updated": "2026-04-10T14:45:02.844241"
+    },
+    "WOLF": {
+      "action": "BUY",
+      "confidence": 0.7000000000000001,
+      "reasoning": "MOMENTUM BUY: 5d momentum=36.2%, 10d momentum=41.3%, 20d momentum=40.1%. Score=0.70",
+      "added_at": "2026-04-10T15:10:42.354964",
+      "last_updated": "2026-04-10T15:35:16.502482"
+    },
+    "VALE": {
+      "action": "BUY",
+      "confidence": 0.8340382834208089,
+      "reasoning": "MOMENTUM BUY: 5d momentum=5.7%, 10d momentum=14.4%, 20d momentum=13.7%, Trend consistency=65%. Score=0.83",
+      "added_at": "2026-04-10T15:35:16.502482",
+      "last_updated": "2026-04-10T15:35:16.502482"
+    },
+    "PRGO": {
+      "action": "BUY",
+      "confidence": 0.4,
+      "reasoning": "MOMENTUM BUY: 10d momentum=15.8%, 20d momentum=15.2%. Score=0.40",
+      "added_at": "2026-04-11T15:42:37.402388",
+      "last_updated": "2026-04-11T15:42:37.402388"
     }
   },
   "ScannerAgent": {
+    "JPM": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "Scanner BUY (conf=80%): Strong analyst sentiment backed by recent positive news indicates bullish momentum. | Catalysts: Positive earnings report; Market leader; Expanding services",
+      "added_at": "2026-03-17T13:53:40.197130",
+      "last_updated": "2026-03-17T13:54:36.555245"
+    },
+    "BKNG": {
+      "action": "BUY",
+      "confidence": 0.72,
+      "reasoning": "Scanner BUY (conf=72%): BKNG has a solid composite score of +0.398 with unanimous bullish analyst consensus (30 Buy, 0 Sell), MACD bullish crossover forming, and RSI at 51.8  | Catalysts: Unanimous an",
+      "added_at": "2026-03-17T13:53:40.197130",
+      "last_updated": "2026-03-17T13:54:36.555245"
+    },
+    "ORCL": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "Scanner BUY (conf=85%): ORCL has the highest composite score of all stocks scanned today at +0.729. A 21.9% earnings surprise drives momentum, confirmed by 35 bull analysts t | Catalysts: Highest comp",
+      "added_at": "2026-03-17T14:29:40.378732",
+      "last_updated": "2026-03-17T14:29:40.378732"
+    },
     "NEM": {
       "action": "BUY",
       "confidence": 0.82,
-      "reasoning": "Scanner BUY (conf=82%): NEM has the highest composite score (+0.701) in the entire scan. It posted a massive +21.55% earnings surprise, has near-unanimous analyst consensus ( | Catalysts: 21.55% earni",
-      "added_at": "2026-03-16T10:09:34.506075",
-      "last_updated": "2026-03-16T10:45:16.114934"
+      "reasoning": "Scanner BUY (conf=82%): NEM is deeply oversold (RSI 31.7) with a massive composite score of +0.636 \u2014 the highest in today's scan. With 18 of 21 analysts bullish and a price t | Catalysts: RSI at 31.7 ",
+      "added_at": "2026-03-19T21:42:17.384415",
+      "last_updated": "2026-03-19T21:44:18.410305"
+    },
+    "NSC": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): Norfolk Southern is the most deeply oversold stock on the board (RSI 22.3, BB position -0.004) with a solid composite score of +0.396. The +9.78% earn | Catalysts: RSI 22.3 \u2014 d",
+      "added_at": "2026-03-19T21:42:17.384415",
+      "last_updated": "2026-03-20T13:34:42.853152"
+    },
+    "AMD": {
+      "action": "BUY",
+      "confidence": 0.78,
+      "reasoning": "Scanner BUY (conf=78%): AMD shows a solid composite score of +0.463 with a critical MACD bullish crossover (MACD -2.74 crossing above signal -4.21), the only candidate showin | Catalysts: MACD bullish",
+      "added_at": "2026-03-19T21:42:17.384415",
+      "last_updated": "2026-03-30T17:27:31.357663"
+    },
+    "UBER": {
+      "action": "BUY",
+      "confidence": 0.634,
+      "reasoning": "Scanner BUY (conf=63%): Significant bullish indicators backed by a strong earnings surprise and favorable analyst outlook suggest high potential for price appreciation.",
+      "added_at": "2026-03-20T18:52:49.766079",
+      "last_updated": "2026-03-20T18:52:49.766079"
+    },
+    "GILD": {
+      "action": "BUY",
+      "confidence": 0.68,
+      "reasoning": "Scanner BUY (conf=68%): GILD presents a solid defensive BUY with a +0.427 composite score and the highest model confidence among all candidates (0.568). Analyst consensus is  | Catalysts: 23 analyst B",
+      "added_at": "2026-03-20T19:23:50.295335",
+      "last_updated": "2026-03-30T15:46:25.788865"
+    },
+    "INTC": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "Scanner BUY (conf=65%): INTC shows a strong +0.46 composite driven by an extraordinary +1601% earnings surprise and bullish news sentiment. RSI at 48.1 is perfectly neutral.  | Catalysts: Extraordinar",
+      "added_at": "2026-03-20T19:55:45.214257",
+      "last_updated": "2026-03-20T19:57:45.048103"
+    },
+    "CCL": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "Scanner BUY (conf=80%): Strong bullish composite score and bright outlook for recovery in the cruise industry. | Catalysts: Analyst consensus; Earnings surprise; Post-pandemic recovery",
+      "added_at": "2026-03-30T13:30:58.735870",
+      "last_updated": "2026-03-30T13:30:58.735870"
+    },
+    "VRTX": {
+      "action": "BUY",
+      "confidence": 0.78,
+      "reasoning": "Scanner BUY (conf=78%): VRTX shows the strongest risk/reward setup today. Composite score of +0.42 is driven by overwhelming analyst consensus (27 bulls vs 2 bears) AND posit | Catalysts: Strong analy",
+      "added_at": "2026-03-30T13:32:46.770582",
+      "last_updated": "2026-03-30T13:32:46.770582"
+    },
+    "DDOG": {
+      "action": "BUY",
+      "confidence": 0.72,
+      "reasoning": "Scanner BUY (conf=72%): DDOG's -7.9% selloff on 3.3x volume creates a compelling dip-buy opportunity. Composite score +0.40 is supported by dominant analyst consensus (42 bul | Catalysts: Massive anal",
+      "added_at": "2026-03-30T13:32:46.770582",
+      "last_updated": "2026-03-30T13:32:46.770582"
+    },
+    "GOOGL": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "Scanner BUY (conf=80%): GOOGL has a strong composite score and positive analyst backing with a significant upside potential despite low RSI indicating oversold conditions. | Catalysts: Strong earnings",
+      "added_at": "2026-03-30T13:58:31.088825",
+      "last_updated": "2026-03-30T13:59:32.393339"
+    },
+    "GE": {
+      "action": "BUY",
+      "confidence": 0.82,
+      "reasoning": "Scanner BUY (conf=82%): GE Aerospace shows a strong composite score of +0.596 with RSI deeply oversold at 26.8, creating an excellent mean-reversion opportunity. The 11.4% ea | Catalysts: RSI at 26.8 ",
+      "added_at": "2026-03-30T13:58:31.088825",
+      "last_updated": "2026-03-30T17:27:31.357663"
+    },
+    "NVDA": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): NVIDIA has a robust composite score of +0.519 with the strongest analyst consensus of all candidates (57 buy, 2 hold, 1 sell) and a price target of $2 | Catalysts: 57/2/1 analy",
+      "added_at": "2026-03-30T13:58:31.088825",
+      "last_updated": "2026-03-30T16:51:29.596201"
+    },
+    "DIS": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): Disney shows a positive composite score with strong bullish factors and solid analyst consensus. Despite being close to oversold territory, it has sig | Catalysts: Strong analy",
+      "added_at": "2026-03-30T13:58:31.088825",
+      "last_updated": "2026-03-30T13:59:32.393339"
+    },
+    "MSFT": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): Microsoft's robust composite score and positive earnings surprise, along with strong analyst backing, position it as a strong buy as it appears underv | Catalysts: Strong earni",
+      "added_at": "2026-03-30T13:58:31.088825",
+      "last_updated": "2026-03-30T14:27:30.208987"
+    },
+    "AMZN": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "Scanner BUY (conf=75%): With strong analyst consensus and a positive earnings report, Amazon shows potential for growth, favoring buying at current market conditions. | Catalysts: Positive market sent",
+      "added_at": "2026-03-30T13:58:31.088825",
+      "last_updated": "2026-03-30T13:58:31.088825"
     },
     "MU": {
       "action": "BUY",
       "confidence": 0.88,
-      "reasoning": "Scanner BUY (conf=88%): MU is the strongest setup on the board today. Composite score of +0.576 is backed by overwhelming analyst consensus (37 bull / 4 hold / 2 bear), a mas | Catalysts: Massive volu",
-      "added_at": "2026-03-16T10:09:34.506075",
-      "last_updated": "2026-03-16T22:04:09.649252"
+      "reasoning": "Scanner BUY (conf=88%): Micron has the highest composite score (+0.638) with overwhelming analyst consensus (38 buy, 0 sell) and a massive 26.9% earnings surprise. RSI at 32  | Catalysts: 26.9% earnin",
+      "added_at": "2026-03-30T13:58:31.088825",
+      "last_updated": "2026-03-30T17:28:32.829901"
+    },
+    "AVGO": {
+      "action": "BUY",
+      "confidence": 0.77,
+      "reasoning": "Scanner BUY (conf=77%): Broadcom has a strong composite score of +0.429 with near-unanimous analyst consensus (47 buy, 0 sell) and a $471.55 target implying 61% upside \u2014 the  | Catalysts: 47 buy / 0 s",
+      "added_at": "2026-03-30T14:34:20.356421",
+      "last_updated": "2026-03-30T17:28:32.829901"
+    },
+    "LRCX": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "Scanner BUY (conf=70%): Lam Research shows a solid composite of +0.394 with strong analyst conviction (27 buy, 9 hold, 0 sell) and a price target of $274.90 \u2014 37% upside. RSI | Catalysts: 27 buy / 0 s",
+      "added_at": "2026-03-30T16:22:22.568508",
+      "last_updated": "2026-03-30T16:51:29.596201"
+    },
+    "AMAT": {
+      "action": "BUY",
+      "confidence": 0.68,
+      "reasoning": "Scanner BUY (conf=68%): Applied Materials has a composite of +0.405 with strong analyst support (28 buy, 9 hold, 0 sell) and a $410.63 target \u2014 27% upside. The MACD is nearly | Catalysts: MACD nearly ",
+      "added_at": "2026-03-30T16:22:22.568508",
+      "last_updated": "2026-03-30T16:51:29.596201"
+    },
+    "PLTR": {
+      "action": "BUY",
+      "confidence": 0.82,
+      "reasoning": "Scanner BUY (conf=82%): Highest composite score (+0.668) across all candidates with triple confirmation: massive 17% earnings beat, unanimously bullish news sentiment (1.0 on | Catalysts: 17% earnings",
+      "added_at": "2026-03-30T16:53:31.236840",
+      "last_updated": "2026-03-30T17:22:32.405553"
+    },
+    "SAP": {
+      "action": "BUY",
+      "confidence": 0.77,
+      "reasoning": "Scanner BUY (conf=77%): Bullish composite of +0.588 with RSI at 29.9 near oversold \u2014 excellent risk/reward setup. 9% earnings beat paired with perfect Yahoo news sentiment (+ | Catalysts: RSI at 29.9 ",
+      "added_at": "2026-03-30T16:53:31.236840",
+      "last_updated": "2026-03-30T17:22:32.405553"
+    },
+    "LLY": {
+      "action": "BUY",
+      "confidence": 0.83,
+      "reasoning": "Scanner BUY (conf=83%): Eli Lilly has the joint-highest composite score (+0.637) with a 14.15% earnings surprise and strong analyst consensus (24 buy vs 1 sell). RSI at 34.3  | Catalysts: 14.15% earni",
+      "added_at": "2026-03-30T17:27:31.357663",
+      "last_updated": "2026-03-30T17:28:32.829901"
+    },
+    "FCX": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "Scanner BUY (conf=80%): Strong bullish indicators and solid analyst support with a price target of $67.27. | Catalysts: Strong earnings surprise; Bullish analyst revisions",
+      "added_at": "2026-03-30T17:27:31.357663",
+      "last_updated": "2026-03-30T17:28:32.829901"
+    },
+    "RIOT": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "Scanner BUY (conf=80%): High momentum in industrial sector, confirmed by volatility and analyst consensus. | Catalysts: [; \"; s",
+      "added_at": "2026-04-08T15:55:38.708871",
+      "last_updated": "2026-04-08T15:55:38.708871"
+    }
+  },
+  "SentimentAgent": {
+    "LYFT": {
+      "action": "BUY",
+      "confidence": 0.5599999999999999,
+      "reasoning": "SENTIMENT BUY (moderate): LYFT shows a modest uptrend with positive performance over multiple time frames and recent days, despite low trading volume. The price is relatively close to the 20-day high,",
+      "added_at": "2026-03-17T13:32:23.538551",
+      "last_updated": "2026-03-17T13:32:23.538551"
+    },
+    "FOXA": {
+      "action": "BUY",
+      "confidence": 0.6000000000000001,
+      "reasoning": "SENTIMENT BUY (moderate): The price is in a modest uptrend with positive performance over multiple time frames and low volatility, indicating a stable upward momentum. Additionally, the stock is tradi",
+      "added_at": "2026-03-17T13:54:07.947786",
+      "last_updated": "2026-03-17T13:54:07.947786"
+    },
+    "HAL": {
+      "action": "BUY",
+      "confidence": 0.6000000000000001,
+      "reasoning": "SENTIMENT BUY (moderate): The price is in a modest uptrend with positive performance over multiple timeframes and recent positive momentum. The news regarding automated well construction may further s",
+      "added_at": "2026-03-17T14:30:09.921781",
+      "last_updated": "2026-03-17T14:30:09.921781"
+    },
+    "SPY": {
+      "action": "BUY",
+      "confidence": 0.5599999999999999,
+      "reasoning": "SENTIMENT BUY (moderate): The stock has shown a moderate increase in price over the past 5 days, with low volatility and positive momentum.. Signals: positive momentum; low volatility. Confidence=0.56",
+      "added_at": "2026-04-09T17:36:38.418569",
+      "last_updated": "2026-04-09T17:36:38.418569"
+    },
+    "WOLF": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "SENTIMENT BUY (strong): Strong uptrend over 20 days with high momentum and elevated volume, indicating a sustained buying interest.. Signals: High momentum; Elevated volume. Confidence=0.85",
+      "added_at": "2026-04-09T19:37:28.289679",
+      "last_updated": "2026-04-09T19:37:28.289679"
+    }
+  },
+  "GeminiAgent": {},
+  "EnsembleAgent": {
+    "SNOW": {
+      "action": "BUY",
+      "confidence": 0.4733460581478578,
+      "reasoning": "ENSEMBLE BUY [TRENDING]: 47% consensus | Agents: ClaudeAgent | ClaudeAgent: CLAUDE ANALYSIS: Bullish MACD momentum, 35% upside to $239.84 analyst target, 30",
+      "added_at": "2026-03-17T13:36:50.525059",
+      "last_updated": "2026-03-17T13:36:50.525059"
+    },
+    "UBER": {
+      "action": "BUY",
+      "confidence": 0.6671521153426054,
+      "reasoning": "ENSEMBLE BUY [TRENDING]: 67% consensus | Agents: ClaudeAgent | ClaudeAgent: CLAUDE ANALYSIS: Strongest composite signal (+0.80, 63% confidence) with NVIDIA ",
+      "added_at": "2026-03-18T13:31:59.584492",
+      "last_updated": "2026-03-18T13:31:59.584492"
+    },
+    "PFE": {
+      "action": "BUY",
+      "confidence": 0.46330008009903156,
+      "reasoning": "ENSEMBLE BUY [TRENDING]: 46% consensus | Agents: ClaudeAgent | ClaudeAgent: CLAUDE ANALYSIS: Defensive healthcare play in uptrend (price > SMA20 > SMA50) wi",
+      "added_at": "2026-03-18T13:31:59.584492",
+      "last_updated": "2026-03-18T13:31:59.584492"
+    },
+    "AMZN": {
+      "action": "BUY",
+      "confidence": 0.4818320833029928,
+      "reasoning": "ENSEMBLE BUY [TRENDING]: 48% consensus | Agents: ClaudeAgent | ClaudeAgent: CLAUDE ANALYSIS: Improving technical setup with MACD bullish (+1.42), price abov",
+      "added_at": "2026-03-18T13:31:59.584492",
+      "last_updated": "2026-03-18T13:31:59.584492"
+    },
+    "RIVN": {
+      "action": "BUY",
+      "confidence": 0.5021242095746532,
+      "reasoning": "ENSEMBLE BUY [TRENDING]: 50% consensus | Agents: MomentumAgent, SentimentAgent | MomentumAgent: MOMENTUM BUY: 5d momentum=5.5%, 10d momentum=6.4%, 20d momentum=3.6%. Score=0.54 | SentimentAgent: SENTI",
+      "added_at": "2026-03-19T21:40:14.474571",
+      "last_updated": "2026-03-19T21:40:14.474571"
+    },
+    "LCID": {
+      "action": "BUY",
+      "confidence": 0.4221942589677085,
+      "reasoning": "ENSEMBLE BUY [TRENDING]: 42% consensus | Agents: MomentumAgent | MomentumAgent: MOMENTUM BUY: 5d momentum=4.5%, 10d momentum=4.4%, 20d momentum=5.4%. Score=0.47",
+      "added_at": "2026-03-19T21:40:14.474571",
+      "last_updated": "2026-03-19T21:40:14.474571"
+    }
+  },
+  "HistoricalTrendsAgent": {
+    "CF": {
+      "action": "BUY",
+      "confidence": 0.3119377196050817,
+      "reasoning": "HIST TRENDS BUY: composite=+0.31 | [Alpaca 49d] | March seasonal bias=+0.11 (bullish) | 49d channel: position=100%, near period high, SMA slope=+12.81% | Multi-period momentum (5d=+9.3%, 10d=+5.4%, 20",
+      "added_at": "2026-03-30T13:30:58.725750",
+      "last_updated": "2026-03-30T13:30:58.725750"
+    },
+    "VLO": {
+      "action": "BUY",
+      "confidence": 0.25120567251341896,
+      "reasoning": "HIST TRENDS BUY: composite=+0.25 | [Alpaca 49d] | March seasonal bias=+0.11 (bullish) | 49d channel: position=100%, near period high, SMA slope=+8.66% | Multi-period momentum (5d=+6.0%, 10d=+10.3%, 20",
+      "added_at": "2026-03-30T13:30:58.725750",
+      "last_updated": "2026-03-30T13:30:58.725750"
+    },
+    "MPC": {
+      "action": "BUY",
+      "confidence": 0.25734764930050835,
+      "reasoning": "HIST TRENDS BUY: composite=+0.26 | [Alpaca 49d] | March seasonal bias=+0.11 (bullish) | 49d channel: position=100%, near period high, SMA slope=+9.05% | Multi-period momentum (5d=+8.3%, 10d=+11.4%, 20",
+      "added_at": "2026-03-30T13:30:58.725750",
+      "last_updated": "2026-03-30T13:30:58.725750"
+    },
+    "OXY": {
+      "action": "BUY",
+      "confidence": 0.2531959854825467,
+      "reasoning": "HIST TRENDS BUY: composite=+0.25 | [Alpaca 49d] | March seasonal bias=+0.11 (bullish) | 49d channel: position=100%, near period high, SMA slope=+8.76% | Multi-period momentum (5d=+7.6%, 10d=+12.8%, 20",
+      "added_at": "2026-03-30T13:30:58.725750",
+      "last_updated": "2026-03-30T13:30:58.725750"
+    },
+    "PSX": {
+      "action": "BUY",
+      "confidence": 0.2517852300750887,
+      "reasoning": "HIST TRENDS BUY: composite=+0.25 | [Alpaca 50d] | March seasonal bias=+0.11 (bullish) | 50d channel: position=97%, near period high, SMA slope=+7.13% | Multi-period momentum (5d=+5.6%, 10d=+7.6%, 20d=",
+      "added_at": "2026-03-30T17:34:33.816659",
+      "last_updated": "2026-03-30T17:34:33.816659"
+    },
+    "COP": {
+      "action": "BUY",
+      "confidence": 0.25104096465149073,
+      "reasoning": "HIST TRENDS BUY: composite=+0.25 | [Alpaca 49d] | March seasonal bias=+0.11 (bullish) | 49d channel: position=96%, near period high, SMA slope=+6.78% | Multi-period momentum (5d=+4.5%, 10d=+9.5%, 20d=",
+      "added_at": "2026-03-31T13:32:03.128357",
+      "last_updated": "2026-03-31T13:32:03.128357"
+    },
+    "BIIB": {
+      "action": "BUY",
+      "confidence": 0.2755708776080219,
+      "reasoning": "HIST TRENDS BUY: composite=+0.28 | [Alpaca 41d] | March seasonal bias=+0.11 (bullish) | 41d channel: position=11%, near period low, SMA slope=-1.64% | Multi-period momentum (5d=+2.1%, 10d=+2.4%, 20d=-",
+      "added_at": "2026-03-31T14:39:48.775787",
+      "last_updated": "2026-03-31T14:39:48.775787"
+    },
+    "DVN": {
+      "action": "BUY",
+      "confidence": 0.26042502279536656,
+      "reasoning": "HIST TRENDS BUY: composite=+0.26 | [Alpaca 50d] | March seasonal bias=+0.11 (bullish) | 50d channel: position=94%, near period high, SMA slope=+6.65% | Multi-period momentum (5d=+2.8%, 10d=+8.9%, 20d=",
+      "added_at": "2026-03-31T16:40:29.418235",
+      "last_updated": "2026-03-31T16:40:29.418235"
+    },
+    "HAL": {
+      "action": "BUY",
+      "confidence": 0.2652472836199859,
+      "reasoning": "HIST TRENDS BUY: composite=+0.27 | [Alpaca 41d] | April seasonal bias=+0.17 (bullish) | 41d channel: position=73%, mid-channel, SMA slope=+3.62% | Multi-period momentum (5d=+2.3%, 10d=+9.4%, 20d=+10.6",
+      "added_at": "2026-04-01T13:54:05.535210",
+      "last_updated": "2026-04-01T13:54:05.535210"
+    },
+    "CVX": {
+      "action": "BUY",
+      "confidence": 0.28970974581057607,
+      "reasoning": "HIST TRENDS BUY: composite=+0.29 | [Alpaca 41d] | April seasonal bias=+0.17 (bullish) | 41d channel: position=68%, mid-channel, SMA slope=+4.86% | Multi-period momentum (5d=+0.1%, 10d=+4.5%, 20d=+9.6%",
+      "added_at": "2026-04-01T14:48:31.278810",
+      "last_updated": "2026-04-01T14:48:31.278810"
+    },
+    "XLE": {
+      "action": "BUY",
+      "confidence": 0.2655488747722583,
+      "reasoning": "HIST TRENDS BUY: composite=+0.27 | [Alpaca 41d] | April seasonal bias=+0.17 (bullish) | 41d channel: position=73%, mid-channel, SMA slope=+4.19% | Multi-period momentum (5d=+0.7%, 10d=+4.7%, 20d=+8.4%",
+      "added_at": "2026-04-01T14:53:25.083860",
+      "last_updated": "2026-04-01T14:53:25.083860"
+    },
+    "XOM": {
+      "action": "BUY",
+      "confidence": 0.31772852348838,
+      "reasoning": "HIST TRENDS BUY: composite=+0.32 | [Alpaca 41d] | April seasonal bias=+0.17 (bullish) | 41d channel: position=71%, mid-channel, SMA slope=+4.30% | Multi-period momentum (5d=+2.6%, 10d=+6.8%, 20d=+11.7",
+      "added_at": "2026-04-01T14:56:19.516589",
+      "last_updated": "2026-04-01T18:47:27.813744"
+    },
+    "AMD": {
+      "action": "BUY",
+      "confidence": 0.344925150363379,
+      "reasoning": "HIST TRENDS BUY: composite=+0.34 | [Alpaca 52d] | April seasonal bias=+0.17 (bullish) | 52d channel: position=21%, near period low, SMA slope=+0.81% | Multi-period momentum (5d=+0.9%, 10d=+0.1%, 20d=+",
+      "added_at": "2026-04-02T13:35:21.224491",
+      "last_updated": "2026-04-02T13:35:21.224491"
+    },
+    "USO": {
+      "action": "BUY",
+      "confidence": 0.3765454639094822,
+      "reasoning": "HIST TRENDS BUY: composite=+0.38 | [Alpaca 42d] | April seasonal bias=+0.17 (bullish) | 42d channel: position=100%, near period high, SMA slope=+16.31% | Multi-period momentum (5d=+17.6%, 10d=+17.5%, ",
+      "added_at": "2026-04-04T18:34:59.906017",
+      "last_updated": "2026-04-04T18:34:59.906017"
+    },
+    "SRPT": {
+      "action": "BUY",
+      "confidence": 0.32291636789346595,
+      "reasoning": "HIST TRENDS BUY: composite=+0.32 | [Alpaca 42d] | April seasonal bias=+0.17 (bullish) | 42d channel: position=93%, near period high, SMA slope=+9.86% | Multi-period momentum (5d=+7.1%, 10d=+39.5%, 20d",
+      "added_at": "2026-04-04T18:34:59.906017",
+      "last_updated": "2026-04-04T18:34:59.906017"
+    },
+    "DIOD": {
+      "action": "BUY",
+      "confidence": 0.25101609323966917,
+      "reasoning": "HIST TRENDS BUY: composite=+0.25 | [Alpaca 50d] | April seasonal bias=+0.17 (bullish) | 50d channel: position=84%, near period high, SMA slope=+1.53% | Multi-period momentum (5d=+9.0%, 10d=+15.1%, 20d",
+      "added_at": "2026-04-06T13:53:28.215307",
+      "last_updated": "2026-04-06T13:53:28.215307"
+    },
+    "MRVL": {
+      "action": "BUY",
+      "confidence": 0.2878787192724953,
+      "reasoning": "HIST TRENDS BUY: composite=+0.29 | [Alpaca 50d] | April seasonal bias=+0.17 (bullish) | 50d channel: position=99%, near period high, SMA slope=+9.97% | Multi-period momentum (5d=+14.5%, 10d=+23.6%, 20",
+      "added_at": "2026-04-06T13:53:28.215307",
+      "last_updated": "2026-04-06T13:53:28.215307"
+    },
+    "WOLF": {
+      "action": "BUY",
+      "confidence": 0.255741240619666,
+      "reasoning": "HIST TRENDS BUY: composite=+0.26 | [Alpaca 50d] | April seasonal bias=+0.17 (bullish) | 50d channel: position=51%, mid-channel, SMA slope=-7.76% | Multi-period momentum (5d=+17.5%, 10d=+11.1%, 20d=+9.",
+      "added_at": "2026-04-06T13:53:28.215307",
+      "last_updated": "2026-04-06T13:53:28.215307"
+    },
+    "RIVN": {
+      "action": "BUY",
+      "confidence": 0.2736130666804097,
+      "reasoning": "HIST TRENDS BUY: composite=+0.27 | [Alpaca 50d] | April seasonal bias=+0.17 (bullish) | 50d channel: position=46%, mid-channel, SMA slope=+0.06% | Multi-period momentum (5d=+5.2%, 10d=+4.4%, 20d=+1.2%",
+      "added_at": "2026-04-06T13:53:28.215307",
+      "last_updated": "2026-04-06T13:53:28.215307"
+    },
+    "FSLY": {
+      "action": "BUY",
+      "confidence": 0.47412711161583265,
+      "reasoning": "HIST TRENDS BUY: composite=+0.47 | [Alpaca 50d] | April seasonal bias=+0.17 (bullish) | 50d channel: position=94%, near period high, SMA slope=+20.18% | Multi-period momentum (5d=+16.0%, 10d=+25.9%, 2",
+      "added_at": "2026-04-06T14:15:06.826631",
+      "last_updated": "2026-04-06T14:15:06.826631"
+    },
+    "UNH": {
+      "action": "BUY",
+      "confidence": 0.29285369079932994,
+      "reasoning": "HIST TRENDS BUY: composite=+0.29 | [Alpaca 50d] | April seasonal bias=+0.17 (bullish) | 50d channel: position=48%, mid-channel, SMA slope=-2.37% | Multi-period momentum (5d=+15.9%, 10d=+12.5%, 20d=+6.",
+      "added_at": "2026-04-07T14:00:56.858447",
+      "last_updated": "2026-04-07T14:00:56.858447"
+    },
+    "HUM": {
+      "action": "BUY",
+      "confidence": 0.36904421172933277,
+      "reasoning": "HIST TRENDS BUY: composite=+0.37 | [Alpaca 50d] | April seasonal bias=+0.17 (bullish) | 50d channel: position=32%, mid-channel, SMA slope=-1.50% | Multi-period momentum (5d=+17.6%, 10d=+14.7%, 20d=+9.",
+      "added_at": "2026-04-07T14:00:56.858447",
+      "last_updated": "2026-04-07T14:00:56.858447"
+    },
+    "EDIT": {
+      "action": "BUY",
+      "confidence": 0.2851423352184579,
+      "reasoning": "HIST TRENDS BUY: composite=+0.29 | [Alpaca 50d] | April seasonal bias=+0.17 (bullish) | 50d channel: position=91%, near period high, SMA slope=+6.61% | Multi-period momentum (5d=+16.5%, 10d=+9.2%, 20d",
+      "added_at": "2026-04-07T14:00:56.858447",
+      "last_updated": "2026-04-07T14:00:56.858447"
+    },
+    "ARM": {
+      "action": "BUY",
+      "confidence": 0.37009559252197494,
+      "reasoning": "HIST TRENDS BUY: composite=+0.37 | [Alpaca 50d] | April seasonal bias=+0.17 (bullish) | 50d channel: position=66%, mid-channel, SMA slope=+9.02% | Multi-period momentum (5d=+1.8%, 10d=+1.9%, 20d=+18.5",
+      "added_at": "2026-04-07T14:27:57.016407",
+      "last_updated": "2026-04-07T14:27:57.016407"
+    },
+    "ALNY": {
+      "action": "BUY",
+      "confidence": 0.25720467415248843,
+      "reasoning": "HIST TRENDS BUY: composite=+0.26 | [Alpaca 50d] | April seasonal bias=+0.17 (bullish) | 50d channel: position=14%, near period low, SMA slope=-0.09% | Multi-period momentum (5d=+1.7%, 10d=+4.8%, 20d=-",
+      "added_at": "2026-04-07T17:47:05.944752",
+      "last_updated": "2026-04-07T17:47:05.944752"
+    },
+    "ELV": {
+      "action": "BUY",
+      "confidence": 0.257548680554201,
+      "reasoning": "HIST TRENDS BUY: composite=+0.26 | [Alpaca 51d] | April seasonal bias=+0.17 (bullish) | 51d channel: position=32%, mid-channel, SMA slope=+0.62% | Multi-period momentum (5d=+8.0%, 10d=+8.9%, 20d=+11.9",
+      "added_at": "2026-04-08T13:59:43.981153",
+      "last_updated": "2026-04-08T13:59:43.981153"
+    },
+    "PYPL": {
+      "action": "BUY",
+      "confidence": 0.2762900510888188,
+      "reasoning": "HIST TRENDS BUY: composite=+0.28 | [Alpaca 51d] | April seasonal bias=+0.17 (bullish) | 51d channel: position=41%, mid-channel, SMA slope=-1.22% | Multi-period momentum (5d=+2.2%, 10d=+4.5%, 20d=+2.6%",
+      "added_at": "2026-04-08T13:59:43.981153",
+      "last_updated": "2026-04-08T14:27:25.072466"
+    },
+    "FATE": {
+      "action": "BUY",
+      "confidence": 0.2567977112888562,
+      "reasoning": "HIST TRENDS BUY: composite=+0.26 | [Alpaca 52d] | April seasonal bias=+0.17 (bullish) | 52d channel: position=28%, mid-channel, SMA slope=-6.39% | Multi-period momentum (5d=+0.4%, 10d=+1.2%, 20d=+0.8%",
+      "added_at": "2026-04-09T15:02:17.915988",
+      "last_updated": "2026-04-09T15:02:17.915988"
+    }
+  },
+  "CNNReasoningAgent": {
+    "PG": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.12% return, and the composite score is +0.526, indicating a strong bullish signal. The elevated scores from alpaca_news and yahoo_news also support this recommendatio",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "PLTR": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.77% return with high confidence, and the composite score of +0.481 supports this prediction. The elevated scores from alpaca_news and yahoo_news indicate strong marke",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T18:55:38.612717"
+    },
+    "GS": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.67% return, and the composite score is +0.605, indicating a strong bullish signal. The elevated scores from alpaca_news and congressional_trades also support this rec",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "SNOW": {
+      "action": "BUY",
+      "confidence": 0.95,
+      "reasoning": "CNN+Ollama: The CNN prediction is extremely confident in a bullish direction, and the composite score of +0.565 further supports this signal. The elevated weights on alpaca_news and yahoo_news also in",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "NSC": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 42% confidence level, and the composite score of +0.222 supports this signal. The elevated weights on alpaca_news and yahoo_news als",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "VLO": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 29% confidence level, and the composite score of +0.364 supports this signal. The elevated scores from alpaca_news and yahoo_news al",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "NVDA": {
+      "action": "BUY",
+      "confidence": 0.78,
+      "reasoning": "CNN+Ollama: The CNN predicts a +3.90% return with high confidence, and the composite score of +0.619 supports this bullish signal. The elevated scores from alpaca_news and yahoo_news also indicate str",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "CF": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 38% confidence level, and the composite score of +0.193 supports this signal. The elevated scores from congressional_trades and earn",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T19:20:15.298030"
+    },
+    "HAL": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a moderate confidence level of 49%. The composite score of +0.579, weighted by the learned source weights, suggests that the analyst c",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-09T18:32:33.405168"
+    },
+    "ORCL": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.56% return, and the composite score of +0.729 indicates strong bullish sentiment from various sources, including earnings surprise and news articles.",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T17:12:47.251859"
+    },
+    "HD": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with high confidence, and the composite score is slightly positive (+0.047). The elevated weights on alpaca_news and congressional_trades s",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T18:55:38.612717"
+    },
+    "NUE": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.94% return, and the composite score is +0.511, indicating a strong bullish signal. The elevated weights on alpaca_news and yahoo_news also support this recommendation",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-09T18:02:24.660162"
+    },
+    "RTX": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.66% return, and the composite score is +0.500, indicating a bullish signal. The elevated scores from alpaca_news and yahoo_news also support this recommendation.",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "GOOGL": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.37% return with high confidence, and the composite score of +0.682 supports this bullish signal. The elevated scores from alpaca_news and yahoo_news also indicate pos",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T18:30:21.776720"
+    },
+    "MPC": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a moderate confidence level of 30%. The composite score from the learned source weights is +0.653, which suggests that the stock has p",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-06T16:52:32.929102"
     },
     "DDOG": {
       "action": "BUY",
       "confidence": 0.75,
-      "reasoning": "Scanner BUY (conf=75%): DDOG is a textbook bullish setup: composite +0.523, MACD has just crossed above signal line (bullish crossover confirmed), RSI at 53.2 is perfectly ne | Catalysts: MACD bullish",
-      "added_at": "2026-03-16T10:09:34.506075",
-      "last_updated": "2026-03-16T10:13:27.418725"
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.60% return with high confidence, and the composite score of +0.562 supports this bullish signal. The elevated weights on alpaca_news and yahoo_news also indicate stro",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T19:45:05.398674"
     },
-    "AVGO": {
+    "JNJ": {
       "action": "BUY",
-      "confidence": 0.75,
-      "reasoning": "Scanner BUY (conf=75%): AVGO presents a compelling value accumulation opportunity. Composite score of +0.499 is supported by near-unanimous analyst consensus (47 bull / 2 hol | Catalysts: 47/49 analys",
-      "added_at": "2026-03-16T10:09:34.506075",
-      "last_updated": "2026-03-16T22:04:09.649252"
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.79% return, and the composite score is +0.357, indicating a strong bullish signal. The elevated scores from alpaca_news and yahoo_news also support this recommendatio",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-08T17:21:50.405357"
+    },
+    "COP": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.57% return, and the composite score is +0.224, indicating a bullish signal. The elevated weights on alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T16:21:42.452999"
     },
     "AMD": {
       "action": "BUY",
-      "confidence": 0.75,
-      "reasoning": "Scanner BUY (conf=75%): AMD has a composite score of 0.533 with an RSI of 41.05, indicating bullish momentum. Positive earnings surprise and a favorable price target support  | Catalysts: Earnings sur",
-      "added_at": "2026-03-16T10:09:34.506075",
-      "last_updated": "2026-03-16T10:45:16.114934"
+      "confidence": 0.63,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.34% return, and the composite score of +0.630 indicates strong agreement among sources, particularly alpaca_news and yahoo_news.",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T19:45:05.398674"
     },
-    "AAPL": {
+    "CCL": {
       "action": "BUY",
-      "confidence": 0.75,
-      "reasoning": "Scanner BUY (conf=75%): AAPL shows strong bullish potential with a composite score of 0.411, RSI at 33.20 and a recent earnings surprise of 5.43%, along with positive analyst | Catalysts: Earnings sur",
-      "added_at": "2026-03-16T10:45:16.114934",
-      "last_updated": "2026-03-16T10:45:16.114934"
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.50% return with moderate confidence, and the composite score of +0.582 supports this bullish signal. Analyst consensus and earnings surprise are strong contributors t",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
     },
-    "ORCL": {
+    "COR": {
       "action": "BUY",
-      "confidence": 0.75,
-      "reasoning": "Scanner BUY (conf=75%): ORCL's composite score of 0.642 and an RSI of 47.66 signal bullish momentum. The recent earnings surprise of 21.87% and positive analyst targets imply | Catalysts: Earnings sur",
-      "added_at": "2026-03-16T10:45:16.114934",
-      "last_updated": "2026-03-16T10:45:16.114934"
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.81% return, and the composite score is +0.389, indicating a bullish signal. The elevated scores from alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-09T20:03:35.252391"
+    },
+    "GILD": {
+      "action": "BUY",
+      "confidence": 0.72,
+      "reasoning": "CNN+Ollama: The CNN predicts a +3.62% return with high confidence, and the composite score of +0.638 is also positive, indicating that multiple sources are aligned in their bullish assessment of GILD.",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "DIS": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.89% return with high confidence, and the composite score is positive (+0.329). The elevated weights on alpaca_news and yahoo_news suggest strong market sentiment supp",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T16:48:04.231427"
+    },
+    "PSX": {
+      "action": "BUY",
+      "confidence": 0.95,
+      "reasoning": "CNN+Ollama: The CNN prediction is extremely confident (100%) in a bullish direction, and the composite score of +0.061 supports this signal. The elevated scores from alpaca_news and yahoo_news also in",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T19:45:05.398674"
     },
     "GE": {
       "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.30% return with high confidence, and the composite score of +0.585 supports this prediction. The elevated scores from alpaca_news and yahoo_news also indicate positiv",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "INTC": {
+      "action": "BUY",
       "confidence": 0.75,
-      "reasoning": "Scanner BUY (conf=75%): GE's composite score of 0.570 and RSI at 35.02 suggest a bullish outlook. Recent earnings surprise and strong analyst pricing indicate significant pot | Catalysts: Earnings sur",
-      "added_at": "2026-03-16T10:45:16.114934",
-      "last_updated": "2026-03-16T10:45:16.114934"
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.58% return, and the composite score is +0.498, indicating a bullish signal. The elevated scores from alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
     },
-    "NVDA": {
+    "BIIB": {
       "action": "BUY",
-      "confidence": 0.82,
-      "reasoning": "Scanner BUY (conf=82%): NVDA has the highest composite score in the scan at +0.616 with exceptional multi-source confirmation: 54 of 57 analysts are bullish, news sentiment i | Catalysts: Highest comp",
-      "added_at": "2026-03-16T10:45:16.114934",
-      "last_updated": "2026-03-16T22:04:09.649252"
+      "confidence": 0.7,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 30% confidence, and the composite score of +0.522 supports this signal. The agent's performance is weighted towards earnings surpris",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-06T16:52:32.929102"
     },
-    "CF": {
+    "NKE": {
       "action": "BUY",
-      "confidence": 0.72,
-      "reasoning": "Scanner BUY (conf=72%): CF is a contrarian opportunity \u2014 the -5.59% daily drop is creating a buy-the-dip setup against strong underlying fundamentals. Composite score of +0.4 | Catalysts: Contrarian b",
-      "added_at": "2026-03-16T22:00:44.372716",
-      "last_updated": "2026-03-16T22:04:09.649252"
-    }
-  },
-  "SentimentAgent": {
-    "MU": {
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.37% return, and the composite score of +0.522 supports this bullish signal. The elevated scores from alpaca_news and yahoo_news also contribute to the confidence in t",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "FCX": {
       "action": "BUY",
-      "confidence": 0.8,
-      "reasoning": "SENTIMENT BUY (strong): The price is in a modest uptrend with significant recent gains and unusual trading volume, indicating strong buyer interest. The positive momentum over the last few days furthe",
-      "added_at": "2026-03-16T10:09:57.091440",
-      "last_updated": "2026-03-16T21:58:41.622102"
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.25% return with high confidence, and the composite score of +0.769 supports this prediction. The elevated scores from alpaca_news and yahoo_news also indicate positiv",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "OXY": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.72% return, and the composite score is +0.435, indicating a bullish signal. The elevated scores from alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-10T15:32:25.816717"
+    },
+    "PFE": {
+      "action": "BUY",
+      "confidence": 0.55,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.76% return with high confidence, and the composite score is positive (+0.208), indicating overall bullish sentiment. Analyst consensus and congressional trades are al",
+      "added_at": "2026-04-05T17:35:23.634463",
+      "last_updated": "2026-04-09T18:32:33.405168"
+    },
+    "NEM": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.63% return with a moderate confidence of 53%. The composite score is also positive at +0.720, indicating that the agent's signals are aligned with the prediction.",
+      "added_at": "2026-04-05T18:25:29.314069",
+      "last_updated": "2026-04-10T20:14:55.105407"
     },
     "AMZN": {
       "action": "BUY",
-      "confidence": 0.5599999999999999,
-      "reasoning": "SENTIMENT BUY (moderate): The recent price action shows a modest uptrend with a positive performance over the 20-day period, and the price is above the 20-day low while being close to the 20-day high.",
-      "added_at": "2026-03-16T21:43:32.389398",
-      "last_updated": "2026-03-16T21:58:41.622102"
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.61% return, and the composite score of +0.689 indicates a strong bullish signal. The elevated scores from alpaca_news and yahoo_news also support this recommendation.",
+      "added_at": "2026-04-05T18:25:29.314069",
+      "last_updated": "2026-04-10T20:14:55.105407"
     },
-    "CF": {
+    "HON": {
       "action": "BUY",
-      "confidence": 0.6000000000000001,
-      "reasoning": "SENTIMENT BUY (moderate): Despite a recent decline of 5.6% in the last day, the overall trend shows strong upward momentum over the past 20 days, with significant gains and unusual trading volume indi",
-      "added_at": "2026-03-16T22:20:33.636533",
-      "last_updated": "2026-03-16T22:20:33.636533"
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with an 18% confidence level, and the composite score of +0.290 further supports this direction. The elevated weights on alpaca_news an",
+      "added_at": "2026-04-05T18:25:29.314069",
+      "last_updated": "2026-04-10T16:21:42.452999"
+    },
+    "DVN": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN predicts a +3.06% return with high confidence, and the composite score of +0.443 is driven by elevated scores from alpaca_news and yahoo_news, indicating strong bullish sentiment.",
+      "added_at": "2026-04-05T18:25:29.314069",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "MSFT": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.37% return with high confidence, and the composite score of +0.568 supports this prediction. The elevated scores from alpaca_news and yahoo_news also indicate positiv",
+      "added_at": "2026-04-05T18:25:29.314069",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "UBER": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.27% return, and the composite score of +0.630 indicates a strong bullish signal. The elevated weights on alpaca_news and yahoo_news also support this recommendation.",
+      "added_at": "2026-04-05T18:25:29.314069",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "MCD": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.66% return with high confidence, and the composite score is also positive (+0.316). The elevated scores from alpaca_news and yahoo_news suggest strong bullish sentime",
+      "added_at": "2026-04-05T18:25:29.314069",
+      "last_updated": "2026-04-08T18:20:39.334081"
+    },
+    "VRTX": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.70% return with high confidence, and the composite score of +0.330 is also positive. The elevated scores from alpaca_news and yahoo_news suggest strong market sentime",
+      "added_at": "2026-04-05T18:25:29.314069",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "FOXA": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.77% return, and the composite score is +0.529, indicating a strong bullish signal. The elevated weights on alpaca_news and yahoo_news also support this recommendation",
+      "added_at": "2026-04-05T18:52:19.691719",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "AVGO": {
+      "action": "BUY",
+      "confidence": 0.95,
+      "reasoning": "CNN+Ollama: The CNN prediction is extremely confident (100%) in a bullish direction, and the composite score of +0.599 supports this signal. The elevated scores from alpaca_news and yahoo_news also in",
+      "added_at": "2026-04-05T18:52:19.691719",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "MU": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.10% return, and the composite score is +0.428, indicating a bullish signal. The elevated weights on alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-05T18:52:19.691719",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "LLY": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 60% confidence level, and the composite score of +0.376 supports this signal. The elevated weights on alpaca_news and yahoo_news als",
+      "added_at": "2026-04-05T21:21:26.786814",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "XLE": {
+      "action": "BUY",
+      "confidence": 0.68,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 34% confidence level, and the composite score of +0.200 further supports this signal. The elevated scores for alpaca_news and yahoo_",
+      "added_at": "2026-04-05T21:21:26.786814",
+      "last_updated": "2026-04-10T14:18:29.155327"
+    },
+    "REGN": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.01% return with high confidence, and the composite score is +0.575, indicating a strong bullish signal. The elevated weights on alpaca_news and yahoo_news also suppor",
+      "added_at": "2026-04-05T21:21:26.786814",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "SAP": {
+      "action": "BUY",
+      "confidence": 0.72,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.41% return with high confidence, and the composite score of +0.472 is also positive. The elevated weights on alpaca_news and yahoo_news suggest that recent news may b",
+      "added_at": "2026-04-05T21:21:26.786814",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "CMCSA": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 22% confidence level, and the composite score of +0.127 supports this signal. The elevated scores from alpaca_news and yahoo_news al",
+      "added_at": "2026-04-05T21:21:26.786814",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "NFLX": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.33% return, and the composite score is +0.219, indicating a bullish trend. The elevated scores from alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-06T13:50:48.938643",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "ICE": {
+      "action": "BUY",
+      "confidence": 0.68,
+      "reasoning": "CNN+Ollama: The CNN predicts a +3.39% return with high confidence, and the composite score of +0.460 supports this bullish signal. The elevated weights on alpaca_news and yahoo_news also indicate stro",
+      "added_at": "2026-04-06T13:50:48.938643",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "ETSY": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.51% return with high confidence, and the composite score of +0.463 supports this bullish signal. The elevated scores from alpaca_news and yahoo_news also indicate pos",
+      "added_at": "2026-04-06T13:50:48.938643",
+      "last_updated": "2026-04-08T18:20:39.334081"
+    },
+    "TGT": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 58% confidence level, and the composite score of +0.357 further supports this signal. The elevated scores from alpaca_news and yahoo",
+      "added_at": "2026-04-06T13:50:48.938643",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "RIVN": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a moderate confidence level of 52%. The composite score is slightly positive (+0.014), and the elevated scores from alpaca_news, yahoo",
+      "added_at": "2026-04-06T13:50:48.938643",
+      "last_updated": "2026-04-10T15:07:54.085400"
+    },
+    "MRNA": {
+      "action": "BUY",
+      "confidence": 0.64,
+      "reasoning": "CNN+Ollama: The CNN predicts a +3.21% return, and the composite score is +0.469, indicating a bullish signal. The elevated weights on alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-06T13:50:48.938643",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "NOC": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 27% confidence level, and the composite score of +0.513 supports this signal. The elevated scores from alpaca_news and yahoo_news al",
+      "added_at": "2026-04-06T13:50:48.938643",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "AMAT": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.34% return with high confidence, and the composite score of +0.383 supports this bullish signal. The elevated weights on alpaca_news and yahoo_news also indicate stro",
+      "added_at": "2026-04-06T13:50:48.938643",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "BKNG": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.63% return, and the composite score of +0.330 indicates a strong bullish signal. The elevated weights on alpaca_news and yahoo_news also suggest positive market senti",
+      "added_at": "2026-04-06T13:50:48.938643",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "TMUS": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with 16% confidence, and the composite score of +0.285 further supports this direction. The elevated weights on alpaca_news and yahoo_n",
+      "added_at": "2026-04-06T13:50:48.938643",
+      "last_updated": "2026-04-09T15:31:17.563817"
+    },
+    "VTR": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with a 19% confidence level, and the composite score of +0.734 further supports this direction. The elevated scores from alpaca_news an",
+      "added_at": "2026-04-06T14:12:18.399506",
+      "last_updated": "2026-04-09T18:32:33.405168"
+    },
+    "AFRM": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 12% confidence level, and the composite score of +0.185 supports this signal. The elevated weights on alpaca_news and yahoo_news als",
+      "added_at": "2026-04-06T14:12:18.399506",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "MRVL": {
+      "action": "BUY",
+      "confidence": 0.9,
+      "reasoning": "CNN+Ollama: The CNN prediction is extremely confident (100%) in a bullish direction, and the composite score of +0.576 supports this signal. The elevated scores from alpaca_news and yahoo_news also in",
+      "added_at": "2026-04-06T14:12:18.399506",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "MET": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.95% return, and the composite score is +0.206, indicating a bullish signal. The elevated weights on alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-06T14:12:18.399506",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "ABBV": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.58% return with high confidence, and the composite score of +0.189 supports this prediction. The elevated scores from alpaca_news and yahoo_news also indicate positiv",
+      "added_at": "2026-04-06T14:12:18.399506",
+      "last_updated": "2026-04-10T14:18:29.155327"
+    },
+    "ALNY": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with high confidence (10%), and the composite score of +0.583 further supports this direction, driven by elevated scores from alpaca_ne",
+      "added_at": "2026-04-06T14:34:24.807067",
+      "last_updated": "2026-04-09T15:31:17.563817"
+    },
+    "ALB": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.39% return with high confidence, and the composite score of +0.608 supports this prediction. The elevated scores for alpaca_news and yahoo_news indicate strong market",
+      "added_at": "2026-04-06T14:34:24.807067",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "FSLY": {
+      "action": "BUY",
+      "confidence": 0.5430152267217636,
+      "reasoning": "CNN+Ollama: CNN-only (cuda): predicted +2.7% 1D return (bull)",
+      "added_at": "2026-04-06T14:34:24.807067",
+      "last_updated": "2026-04-10T15:32:25.816717"
+    },
+    "UPST": {
+      "action": "BUY",
+      "confidence": 0.83,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with a 13% confidence level, and the composite score of +0.556 further supports this direction. The elevated scores from Yahoo News and",
+      "added_at": "2026-04-06T14:34:24.807067",
+      "last_updated": "2026-04-10T19:20:15.298030"
+    },
+    "ASML": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a moderate confidence level of 26%. The composite score of +0.533, driven by elevated scores from alpaca_news and yahoo_news, further ",
+      "added_at": "2026-04-06T14:34:24.807067",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "MPWR": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.78% return, and the composite score is +0.453, indicating a bullish signal. The elevated scores from alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-06T14:56:51.403170",
+      "last_updated": "2026-04-09T17:31:37.049436"
+    },
+    "CVX": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.69% return, and the composite score is +0.467, indicating a strong bullish signal. The elevated scores from alpaca_news and yahoo_news also support this recommendatio",
+      "added_at": "2026-04-06T14:56:51.403170",
+      "last_updated": "2026-04-10T18:55:38.612717"
+    },
+    "LYFT": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with high confidence, and the composite score of +0.404 supports this signal. The elevated weights on alpaca_news and yahoo_news also sugge",
+      "added_at": "2026-04-06T14:56:51.403170",
+      "last_updated": "2026-04-09T18:32:33.405168"
+    },
+    "SPY": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.67% return with high confidence (13%), and the composite score is +1.000, indicating strong agreement among sources. The elevated scores for alpaca_news and yahoo_new",
+      "added_at": "2026-04-06T15:20:25.750994",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "OPFI": {
+      "action": "BUY",
+      "confidence": 0.68,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.22% return, and the composite score of +0.680 indicates strong agreement among sources, particularly earnings surprise and Yahoo news.",
+      "added_at": "2026-04-06T15:20:25.750994",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "USO": {
+      "action": "BUY",
+      "confidence": 0.63,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a +0.63% return, and the learned source weights suggest elevated importance of news sources such as Alpaca News and Yahoo News, which may be driving this bulli",
+      "added_at": "2026-04-06T16:06:35.850207",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "WDAY": {
+      "action": "BUY",
+      "confidence": 0.58,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.92% return with high confidence, and the composite score is positive (+0.183). The elevated weights on alpaca_news and yahoo_news suggest strong market sentiment.",
+      "added_at": "2026-04-06T17:39:40.763165",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "ELV": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with a 19% confidence level, and the composite score of +0.540 further supports this direction. The elevated weights on alpaca_news and",
+      "added_at": "2026-04-07T14:25:13.140912",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "AAPL": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.81% return with high confidence, and the composite score is also positive (+0.440). The elevated scores from alpaca_news and yahoo_news suggest strong market sentimen",
+      "added_at": "2026-04-07T14:25:13.140912",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "EDIT": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 39% confidence level, and the composite score of +0.315 supports this signal. The elevated weights on alpaca_news and yahoo_news als",
+      "added_at": "2026-04-07T14:25:13.140912",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "ARM": {
+      "action": "BUY",
+      "confidence": 0.62,
+      "reasoning": "CNN+Ollama: The CNN predicts a +3.10% return with high confidence, and the composite score of +0.396 supports this bullish signal. The elevated weights on alpaca_news and yahoo_news also indicate posi",
+      "added_at": "2026-04-07T14:52:42.934456",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "PRGO": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.42% return with high confidence, and the composite score is also positive (+0.222). The elevated scores from alpaca_news and yahoo_news suggest strong market sentimen",
+      "added_at": "2026-04-07T15:20:13.864939",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "LEGN": {
+      "action": "BUY",
+      "confidence": 0.55,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.64% return, and the composite score is +0.189, indicating a bullish signal. The elevated weights on alpaca_news and yahoo_news suggest that recent news may be driving",
+      "added_at": "2026-04-07T15:49:00.677403",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "BABA": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bull signal with high confidence, and the composite score of +0.115 further supports this direction. The elevated weights on alpaca_news and yahoo_new",
+      "added_at": "2026-04-07T18:10:31.662031",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "RIOT": {
+      "action": "BUY",
+      "confidence": 0.57,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.83% return with high confidence, and the source scores indicate elevated news sentiment from Alpaca News and Yahoo News, which are positively correlated with RIOT's p",
+      "added_at": "2026-04-07T18:10:31.662031",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "GOLD": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction is extremely confident in a bullish direction, and the composite score of +0.149 supports this signal. The elevated scores from alpaca_news and yahoo_news also suggest s",
+      "added_at": "2026-04-07T18:10:31.662031",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "WOLF": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction is extremely confident in a bullish direction, and the source scores are mostly positive, with Yahoo News being particularly strong. The composite score is slightly nega",
+      "added_at": "2026-04-07T18:10:31.662031",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "KHC": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN predicts a +3.66% return with high confidence, and the composite score is slightly negative (-0.032), but the elevated weights for alpaca_news and yahoo_news suggest positive senti",
+      "added_at": "2026-04-07T18:10:31.662031",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "FATE": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.77% return, and the composite score is +0.117, indicating a bullish signal. The elevated weights on alpaca_news and yahoo_news also support this direction.",
+      "added_at": "2026-04-07T18:10:31.662031",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "RARE": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with high confidence, and the composite score is slightly positive (+0.060). The elevated weights on alpaca_news and yahoo_news suggest str",
+      "added_at": "2026-04-07T18:10:31.662031",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "CL": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 25% confidence level, and the composite score of +0.273 supports this signal. The elevated weights on alpaca_news and yahoo_news als",
+      "added_at": "2026-04-07T18:10:31.662031",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "SYY": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 35% confidence level, and the composite score of +0.234 supports this signal. The elevated weights on alpaca_news and yahoo_news sug",
+      "added_at": "2026-04-07T18:10:31.662031",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "DIOD": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.71% return with high confidence, and the composite score is also positive (+0.467). The elevated scores from alpaca_news and yahoo_news suggest strong bullish sentime",
+      "added_at": "2026-04-07T18:10:31.662031",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "ARKK": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with a 14% confidence level, and the composite score of +0.467 further supports this direction. The elevated scores from alpaca_news an",
+      "added_at": "2026-04-07T19:03:45.322782",
+      "last_updated": "2026-04-10T16:21:42.452999"
+    },
+    "XOM": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.86% return, and the composite score is -0.014, indicating a slight bearish trend in news sources. However, the learned weights suggest that alpaca_news and congressio",
+      "added_at": "2026-04-07T19:03:45.322782",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "GNRC": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.90% return, and the composite score is +0.063, indicating a bullish signal. The elevated weights on alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-07T19:31:55.668706",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "META": {
+      "action": "BUY",
+      "confidence": 0.6,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 20% confidence level, and the composite score of +0.308 supports this signal. The elevated scores from alpaca_news and yahoo_news al",
+      "added_at": "2026-04-07T19:31:55.668706",
+      "last_updated": "2026-04-10T16:21:42.452999"
+    },
+    "PANW": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.20% return, and the composite score of +0.587 indicates a strong signal to buy PANW. The elevated scores for alpaca_news and yahoo_news also support this recommendati",
+      "added_at": "2026-04-07T20:00:40.605244",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "JPM": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 41% confidence level, and the composite score of +0.432 supports this signal. The elevated scores from alpaca_news and yahoo_news al",
+      "added_at": "2026-04-08T13:58:13.474283",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "HOOD": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.78% return with high confidence, and the composite score of +0.449 supports this bullish signal. The elevated scores from alpaca_news and yahoo_news also indicate str",
+      "added_at": "2026-04-08T14:25:23.179847",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "KLAC": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with an 11% confidence level, and the composite score of +0.393 further supports this direction. The elevated scores from alpaca_news a",
+      "added_at": "2026-04-08T14:25:23.179847",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "MS": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.14% return with high confidence, and the composite score of 0.727 indicates strong agreement among sources. Analyst consensus and earnings surprise are reduced in wei",
+      "added_at": "2026-04-08T14:25:23.179847",
+      "last_updated": "2026-04-08T17:51:38.150919"
+    },
+    "COHR": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.95% return, and the composite score of +0.559 indicates a strong bullish signal. The elevated weights on alpaca_news and yahoo_news also support this recommendation.",
+      "added_at": "2026-04-08T14:25:23.179847",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "HUM": {
+      "action": "BUY",
+      "confidence": 0.83,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with an 83% confidence level, supported by elevated source scores from alpaca_news and yahoo_news, which have been historically accurat",
+      "added_at": "2026-04-08T14:25:23.179847",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "UNH": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.31% return, and the composite score of +0.538 supports this bullish signal. The elevated scores from alpaca_news and yahoo_news also contribute to the confidence in t",
+      "added_at": "2026-04-08T14:25:23.179847",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "BLK": {
+      "action": "BUY",
+      "confidence": 0.95,
+      "reasoning": "CNN+Ollama: The CNN prediction is extremely confident in a bullish direction, and the composite score of +0.600 further supports this signal. The elevated scores from alpaca_news and yahoo_news also i",
+      "added_at": "2026-04-08T14:54:25.901835",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "FORM": {
+      "action": "BUY",
+      "confidence": 0.83,
+      "reasoning": "CNN+Ollama: The CNN predicts a +3.31% return with high confidence, and the composite score of +0.163 supports this prediction. Analyst consensus and earnings surprise are strong indicators, while cong",
+      "added_at": "2026-04-08T15:22:49.915824",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "FANG": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal for FANG, with a predicted return of +0.86%. The composite score is also positive (+0.288), driven by elevated scores from alpaca_news ",
+      "added_at": "2026-04-08T15:22:49.915824",
+      "last_updated": "2026-04-10T15:57:16.377097"
+    },
+    "COPX": {
+      "action": "BUY",
+      "confidence": 0.67,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.67% return, and the composite score is +1.000, indicating strong agreement among sources. The elevated scores for alpaca_news and yahoo_news suggest positive market s",
+      "added_at": "2026-04-08T16:22:29.307198",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "SE": {
+      "action": "BUY",
+      "confidence": 0.56,
+      "reasoning": "CNN+Ollama: The CNN predicts a +2.78% return, and the composite score is +0.163, indicating a bullish signal. The elevated scores for alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-08T16:22:29.307198",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "MP": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bull direction with a 41% confidence level, and the composite score of +0.623 supports this signal. The elevated weights for alpaca_news and yahoo_news also ",
+      "added_at": "2026-04-08T16:22:29.307198",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "SRPT": {
+      "action": "BUY",
+      "confidence": 0.71,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 29% confidence level, and the composite score is -0.319, which suggests that the current source scores are not strongly aligned with",
+      "added_at": "2026-04-08T16:22:29.307198",
+      "last_updated": "2026-04-08T16:22:29.307198"
+    },
+    "SOXX": {
+      "action": "BUY",
+      "confidence": 0.667,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.00% return, and the composite score of +0.667 from current source scores supports this bullish signal.",
+      "added_at": "2026-04-08T16:51:30.160980",
+      "last_updated": "2026-04-10T19:20:15.298030"
+    },
+    "SBUX": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.32% return, and the composite score is +0.183, indicating a bullish signal. The elevated scores from alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-08T16:51:30.160980",
+      "last_updated": "2026-04-10T16:21:42.452999"
+    },
+    "ENTG": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.57% return with high confidence (11%), and the composite score is also positive (+0.223). The elevated weights on alpaca_news and yahoo_news suggest strong bullish se",
+      "added_at": "2026-04-08T16:51:30.160980",
+      "last_updated": "2026-04-09T15:31:17.563817"
+    },
+    "LOW": {
+      "action": "BUY",
+      "confidence": 0.93,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a high confidence bull signal, and the composite score of +0.258 supports this direction. The elevated weights on alpaca_news and yahoo_news suggest that recen",
+      "added_at": "2026-04-08T18:20:39.334081",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "ON": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with high confidence, and the composite score of +0.344 further supports this signal. The elevated scores from alpaca_news and yahoo_news a",
+      "added_at": "2026-04-08T18:48:55.667759",
+      "last_updated": "2026-04-09T18:32:33.405168"
+    },
+    "NOW": {
+      "action": "BUY",
+      "confidence": 0.95,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bull signal with high confidence, and the composite score of +0.237 supports this direction. The elevated weights on alpaca_news and congressional_tra",
+      "added_at": "2026-04-09T14:30:44.869071",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "PDD": {
+      "action": "BUY",
+      "confidence": 0.6,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 40% confidence level, and the composite score of +0.316 suggests that the model is performing well on this stock. The elevated weigh",
+      "added_at": "2026-04-09T14:30:44.869071",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "MDB": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.50% return with moderate confidence, and the composite score of +0.572 supports this bullish signal. Analyst consensus and earnings surprise are strong contributors t",
+      "added_at": "2026-04-09T14:30:44.869071",
+      "last_updated": "2026-04-09T18:32:33.405168"
+    },
+    "ADBE": {
+      "action": "BUY",
+      "confidence": 0.75,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a moderate confidence level of 30%. The composite score of +0.404, weighted by the performance scores of each source (analyst_consensu",
+      "added_at": "2026-04-09T14:30:44.869071",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "SPGI": {
+      "action": "BUY",
+      "confidence": 0.84,
+      "reasoning": "CNN+Ollama: The CNN predicts a +4.18% return with high confidence, and the composite score of +0.620 is also positive, indicating a strong buy signal.",
+      "added_at": "2026-04-09T14:30:44.869071",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "AA": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "CNN+Ollama: The CNN predicts a +1.34% return, and the composite score of +0.670 supports this bullish signal. The elevated weights on alpaca_news and yahoo_news also indicate positive sentiment.",
+      "added_at": "2026-04-09T14:30:44.869071",
+      "last_updated": "2026-04-09T15:00:39.341364"
+    },
+    "LCID": {
+      "action": "BUY",
+      "confidence": 0.5235811322927475,
+      "reasoning": "CNN+Ollama: CNN-only (cuda): predicted +2.6% 1D return (bull)",
+      "added_at": "2026-04-09T14:30:44.869071",
+      "last_updated": "2026-04-09T14:30:44.869071"
+    },
+    "NET": {
+      "action": "BUY",
+      "confidence": 0.550965741276741,
+      "reasoning": "CNN+Ollama: CNN-only (cuda): predicted +2.8% 1D return (bull)",
+      "added_at": "2026-04-09T15:00:39.341364",
+      "last_updated": "2026-04-10T15:07:54.085400"
+    },
+    "OKTA": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.89% return, and the composite score is +0.278, indicating a bullish signal. The elevated weights on alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-09T15:00:39.341364",
+      "last_updated": "2026-04-10T16:48:04.231427"
+    },
+    "SNAP": {
+      "action": "BUY",
+      "confidence": 0.85,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.94% return, and the composite score of +0.335 indicates a bullish signal. The elevated weights on alpaca_news and yahoo_news suggest strong news sentiment supporting ",
+      "added_at": "2026-04-09T16:32:09.531099",
+      "last_updated": "2026-04-10T16:48:04.231427"
+    },
+    "CRWD": {
+      "action": "BUY",
+      "confidence": 0.86,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with an 86% confidence level, supported by elevated source scores from alpaca_news and yahoo_news, which have been historically accurat",
+      "added_at": "2026-04-09T17:31:37.049436",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "TSLA": {
+      "action": "BUY",
+      "confidence": 0.95,
+      "reasoning": "CNN+Ollama: The CNN prediction is extremely confident (100%) in a bullish direction, and the composite score of +0.157 supports this signal. The elevated scores from alpaca_news and yahoo_news also in",
+      "added_at": "2026-04-09T19:02:18.779137",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "ATO": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.40% return, and the composite score is +0.200, indicating a bullish signal. The elevated scores from alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-10T14:18:29.155327",
+      "last_updated": "2026-04-10T14:42:01.426423"
+    },
+    "TSM": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a strong bullish signal with an 80% confidence level, and the source scores are generally positive, particularly from alpaca_news and yahoo_news. The composite",
+      "added_at": "2026-04-10T14:18:29.155327",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "S": {
+      "action": "BUY",
+      "confidence": 0.9,
+      "reasoning": "CNN+Ollama: The CNN prediction is extremely confident (100%) in a bullish direction, and the composite score of +0.181 supports this signal. The elevated scores from alpaca_news and yahoo_news also in",
+      "added_at": "2026-04-10T14:42:01.426423",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "GM": {
+      "action": "BUY",
+      "confidence": 0.9,
+      "reasoning": "CNN+Ollama: The CNN prediction is extremely confident (100%) in a bullish direction, and the composite score of +0.300 supports this signal. The elevated weights on alpaca_news and congressional_trade",
+      "added_at": "2026-04-10T14:42:01.426423",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "SMH": {
+      "action": "BUY",
+      "confidence": 0.62,
+      "reasoning": "CNN+Ollama: The CNN predicts a +3.12% return with high confidence, and the learned source weights indicate elevated importance of news sources, which are currently scoring highly.",
+      "added_at": "2026-04-10T15:07:54.085400",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "VALE": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN predicts a +3.25% return, and the composite score is +0.188, indicating a bullish signal. The elevated scores from alpaca_news and yahoo_news also support this prediction.",
+      "added_at": "2026-04-10T15:57:16.377097",
+      "last_updated": "2026-04-10T20:14:55.105407"
+    },
+    "ZM": {
+      "action": "BUY",
+      "confidence": 0.65,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.31% return, and the composite score of +0.157 is above average. The elevated weights on alpaca_news and yahoo_news suggest strong market sentiment supporting this pre",
+      "added_at": "2026-04-10T16:48:04.231427",
+      "last_updated": "2026-04-10T17:12:47.251859"
+    },
+    "LRCX": {
+      "action": "BUY",
+      "confidence": 0.7,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 30% confidence level, and the composite score of +0.394 supports this signal. The elevated scores from alpaca_news and yahoo_news al",
+      "added_at": "2026-04-10T16:48:04.231427",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "RCL": {
+      "action": "BUY",
+      "confidence": 0.8,
+      "reasoning": "CNN+Ollama: The CNN predicts a +0.51% return with high confidence, and the composite score is +0.323, indicating a bullish trend. The elevated scores from alpaca_news and yahoo_news also support this ",
+      "added_at": "2026-04-10T18:30:21.776720",
+      "last_updated": "2026-04-10T19:45:05.398674"
+    },
+    "CVS": {
+      "action": "BUY",
+      "confidence": 0.73,
+      "reasoning": "CNN+Ollama: The CNN prediction indicates a bullish direction with a 27% confidence level, and the composite score of +0.461 supports this signal. The elevated weights on alpaca_news and yahoo_news als",
+      "added_at": "2026-04-10T20:14:55.105407",
+      "last_updated": "2026-04-10T20:14:55.105407"
     }
   }
 }

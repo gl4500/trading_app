@@ -34,9 +34,8 @@ if %errorLevel% equ 0 (
 echo [INFO] Using NSSM: %NSSM%
 
 :: ── Paths ──────────────────────────────────────────────────────────────────
-set ROOT=%~dp0
-:: Remove trailing backslash
-if "%ROOT:~-1%"=="\" set ROOT=%ROOT:~0,-1%
+:: scripts\ is one level below the project root
+for %%I in ("%~dp0..") do set ROOT=%%~fI
 
 set PYTHON=%ROOT%\runtime\python\python.exe
 set NODE=%ROOT%\runtime\node\node.exe
