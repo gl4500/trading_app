@@ -223,19 +223,23 @@ class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
         self.assertIn("Step 4 — Macro", prompt)
         self.assertIn("Step 5 — Decision", prompt)
 
-    def test_macro_step_references_key_fred_indicators(self):
-        """Step 4 must name the specific FRED indicators so Ollama knows what to look for."""
+    def test_macro_step_references_freshness_tags(self):
+        """Step 4 must instruct Ollama to use FRESH data only for confidence adjustment."""
         prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
-        self.assertIn("yield curve", prompt)
-        self.assertIn("VIX", prompt)
-        self.assertIn("recession", prompt)
+        self.assertIn("[FRESH]", prompt)
+        self.assertIn("[STALE]", prompt)
         self.assertIn("inflation", prompt)
 
-    def test_macro_step_confidence_adjustment_mentioned(self):
-        """Step 5 must state the confidence adjustment rules so Ollama applies them."""
+    def test_macro_step_stale_data_cannot_move_confidence(self):
+        """Step 5 must explicitly state stale data must not shift confidence."""
         prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
-        self.assertIn("0.15", prompt)   # max reduction for macro headwind
-        self.assertIn("0.10", prompt)   # max increase for supportive macro
+        self.assertIn("Stale macro data must not move the confidence", prompt)
+
+    def test_macro_step_confidence_adjustment_mentioned(self):
+        """Step 5 must state the confidence adjustment bounds."""
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
+        self.assertIn("0.15", prompt)
+        self.assertIn("0.10", prompt)
 
 
 class TestCNNAnalyzeCatalystPassthrough(unittest.IsolatedAsyncioTestCase):

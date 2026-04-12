@@ -219,14 +219,18 @@ class CNNReasoningAgent(BaseAgent):
             f"Step 3 — Catalysts: If any direct catalysts exist for {symbol}, do they support "
             f"or contradict the CNN direction? Factor this into your confidence.\n"
             f"Step 4 — Macro: Review the Macro Context above. "
-            f"Does the current macro regime (Fed rate, inflation trend, yield curve, VIX, recession risk) "
-            f"support or oppose the CNN direction for {symbol}? "
-            f"Flag any macro headwind that should reduce confidence (e.g. inverted yield curve, "
-            f"rising VIX above 25, CPI accelerating, recession probability > 30%).\n"
+            f"IMPORTANT: lines tagged [FRESH] are current (<=4 days old) and may inform confidence. "
+            f"Lines tagged [STALE] are context only — do NOT use stale numbers to adjust confidence "
+            f"because a rate decision or tariff shock last week makes them unreliable. "
+            f"Using only FRESH data: does the Fed rate or breakeven inflation support or oppose "
+            f"the CNN direction for {symbol}? "
+            f"Flag headwinds only if backed by FRESH data (e.g. Fed funds above 5% = tight money = "
+            f"headwind for growth stocks; breakeven inflation above 3% = rate-hike risk).\n"
             f"Step 5 — Decision: Choose BUY, SELL, or HOLD. "
             f"If CNN and composite conflict, prefer HOLD unless agent consensus is strong. "
-            f"Set confidence to the CNN confidence value; reduce by up to 0.15 if macro step "
-            f"identified a significant headwind; increase by up to 0.10 if macro is clearly supportive.\n\n"
+            f"Set confidence to the CNN confidence value; reduce by up to 0.15 only if a FRESH "
+            f"macro signal is a clear headwind; increase by up to 0.10 only if FRESH macro is "
+            f"clearly supportive. Stale macro data must not move the confidence number.\n\n"
             f"Respond with ONLY valid JSON (no markdown, no extra text):\n"
             f'{{"action":"BUY"|"SELL"|"HOLD","confidence":<0.0-1.0>,"reasoning":"<2 sentences max>"}}'
         )
@@ -238,6 +242,7 @@ class CNNReasoningAgent(BaseAgent):
         try:
             from openai import AsyncOpenAI
             client   = AsyncOpenAI(base_url=_OLLAMA_BASE, api_key="ollama")
+            _t0 = time.perf_counter()
             response = await asyncio.wait_for(
                 client.chat.completions.create(
                     model=config.OLLAMA_MODEL,
@@ -247,6 +252,11 @@ class CNNReasoningAgent(BaseAgent):
                 ),
                 timeout=50.0,
             )
+            _elapsed = time.perf_counter() - _t0
+            if _elapsed > 15:
+                logger.warning(f"[OLLAMA_LATENCY] app=trading_app caller=CNNReasoningAgent model={config.OLLAMA_MODEL} elapsed={_elapsed:.2f}s (SLOW)")
+            else:
+                logger.info(f"[OLLAMA_LATENCY] app=trading_app caller=CNNReasoningAgent model={config.OLLAMA_MODEL} elapsed={_elapsed:.2f}s")
             text = (response.choices[0].message.content or "").strip()
             m    = re.search(r'\{[\s\S]*\}', text)
             if m:
