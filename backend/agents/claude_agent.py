@@ -364,6 +364,7 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
 
             sections = [s for s in [few_shot, agent_signal_section, stable, dynamic] if s]
             user_content = "\n\n".join(sections)
+            _t0 = time.perf_counter()
             response = await asyncio.wait_for(
                 client.chat.completions.create(
                     model=config.RESEARCH_MODEL,
@@ -376,6 +377,11 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
                 ),
                 timeout=120.0,
             )
+            _elapsed = time.perf_counter() - _t0
+            if _elapsed > 15:
+                logger.warning(f"[OLLAMA_LATENCY] app=trading_app caller=ClaudeAgent model={config.RESEARCH_MODEL} elapsed={_elapsed:.2f}s (SLOW)")
+            else:
+                logger.info(f"[OLLAMA_LATENCY] app=trading_app caller=ClaudeAgent model={config.RESEARCH_MODEL} elapsed={_elapsed:.2f}s")
             text = (response.choices[0].message.content or "").strip()
             if not text:
                 logger.warning("ClaudeAgent(Ollama): empty response")
