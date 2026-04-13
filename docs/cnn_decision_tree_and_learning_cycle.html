@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CNN Decision Tree &amp; Learning Cycle</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      line-height: 1.7;
+      padding: 40px 24px;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .doc-header {
+      border-bottom: 2px solid #30363d;
+      padding-bottom: 20px;
+      margin-bottom: 40px;
+    }
+    .doc-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #58a6ff;
+      margin-bottom: 6px;
+    }
+    .doc-header .meta {
+      font-size: 0.85rem;
+      color: #8b949e;
+    }
+    .doc-header .meta code {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.82rem;
+      color: #79c0ff;
+    }
+
+    /* ── Section headings ── */
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f0f6fc;
+      margin: 48px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #21262d;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2 .badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    h2 .badge.blue  { background: #1f6feb; color: #cae8ff; }
+    h2 .badge.green { background: #1a7f37; color: #aff5b4; }
+    h2 .badge.amber { background: #9e6a03; color: #fae17d; }
+    h2 .badge.purple{ background: #6e40c9; color: #d2a8ff; }
+    h2 .badge.red   { background: #b62324; color: #ffa198; }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #79c0ff;
+      margin: 28px 0 10px;
+    }
+
+    p { margin-bottom: 12px; color: #c9d1d9; }
+
+    /* ── Code / diagram blocks ── */
+    pre {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px 22px;
+      overflow-x: auto;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: #e6edf3;
+      margin-bottom: 20px;
+      white-space: pre;
+    }
+
+    /* ── Highlighted flow arrows ── */
+    .flow-diagram pre {
+      border-left: 3px solid #58a6ff;
+      background: #0d1b2a;
+    }
+
+    /* ── Architecture box ── */
+    .arch-diagram pre {
+      border-left: 3px solid #3fb950;
+      background: #0d1f12;
+    }
+
+    /* ── Signal gate ── */
+    .gate-diagram pre {
+      border-left: 3px solid #f78166;
+      background: #1f0d0d;
+    }
+
+    /* ── Feedback loop ── */
+    .loop-diagram pre {
+      border-left: 3px solid #d2a8ff;
+      background: #160d2b;
+    }
+
+    /* ── Info cards ── */
+    .card-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .card h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #79c0ff;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .card ul { padding-left: 16px; }
+    .card li {
+      font-size: 0.875rem;
+      color: #c9d1d9;
+      margin-bottom: 4px;
+    }
+    .card li strong { color: #e6edf3; }
+    .card .value {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      color: #79c0ff;
+    }
+
+    /* ── Diagnosis table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+      font-size: 0.875rem;
+    }
+    thead tr { background: #21262d; }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.75rem;
+      border-bottom: 1px solid #30363d;
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #21262d;
+      color: #c9d1d9;
+      vertical-align: top;
+    }
+    td code {
+      background: #21262d;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.8rem;
+      color: #79c0ff;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+    }
+    tr:last-child td { border-bottom: none; }
+
+    .diagnosis-ok      { color: #3fb950; font-weight: 700; }
+    .diagnosis-overfit { color: #f78166; font-weight: 700; }
+    .diagnosis-under   { color: #e3b341; font-weight: 700; }
+    .diagnosis-mem     { color: #ff7b72; font-weight: 700; }
+
+    /* ── Step boxes ── */
+    .steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    .step {
+      display: flex;
+      gap: 14px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #1f6feb;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step-body h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #e6edf3;
+      margin-bottom: 4px;
+    }
+    .step-body p {
+      font-size: 0.85rem;
+      color: #8b949e;
+      margin: 0;
+    }
+    .step-body code {
+      background: #21262d;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 0.8rem;
+      color: #79c0ff;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+    }
+
+    /* ── Channel pills ── */
+    .channels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .channel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+    .channel .idx {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #1f6feb;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-align: center;
+      line-height: 18px;
+      margin-right: 6px;
+    }
+    .channel .name { color: #79c0ff; font-weight: 600; font-family: monospace; }
+    .channel .desc { color: #8b949e; margin-left: 4px; }
+    .channel.agent { border-color: #6e40c9; }
+    .channel.agent .idx { background: #6e40c9; }
+
+    /* ── Callout ── */
+    .callout {
+      background: #161b22;
+      border-left: 4px solid #58a6ff;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      color: #c9d1d9;
+    }
+    .callout.warning { border-color: #e3b341; }
+    .callout.success { border-color: #3fb950; }
+    .callout.danger  { border-color: #f78166; }
+    .callout strong  { color: #e6edf3; }
+
+    /* ── Files table ── */
+    .files-table td:first-child code {
+      color: #3fb950;
+    }
+
+    /* ── divider ── */
+    hr {
+      border: none;
+      border-top: 1px solid #21262d;
+      margin: 40px 0;
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 60px;
+      padding-top: 20px;
+      border-top: 1px solid #21262d;
+      font-size: 0.8rem;
+      color: #484f58;
+      text-align: center;
+    }
+
+    /* ── Print ── */
+    @media print {
+      body { background: #fff; color: #000; padding: 20px; }
+      pre  { background: #f6f8fa; border: 1px solid #d0d7de; color: #000; }
+      h2   { color: #000; border-bottom: 1px solid #d0d7de; }
+      h3   { color: #0550ae; }
+      .card { background: #f6f8fa; border: 1px solid #d0d7de; }
+      .step { background: #f6f8fa; border: 1px solid #d0d7de; }
+      table th { background: #f6f8fa; }
+      .callout { background: #f6f8fa; }
+      .doc-header { border-color: #d0d7de; }
+      .doc-header h1 { color: #0550ae; }
+      footer { color: #888; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <div class="doc-header">
+    <h1>CNN Decision Tree &amp; Learning Cycle</h1>
+    <p class="meta">
+      <code>backend/data/cnn_model.py</code> &nbsp;+&nbsp;
+      <code>backend/agents/cnn_reasoning_agent.py</code>
+      &nbsp;&nbsp;|&nbsp;&nbsp; Last updated: 2026-04-13
+    </p>
+  </div>
+
+  <!-- ── Architecture at a Glance ── -->
+  <h2>Architecture at a Glance <span class="badge blue">Overview</span></h2>
+  <div class="flow-diagram">
+  <pre>
+Signal History (Parquet) ──► CNN Training (24h cycle) ──► Saved Weights (.pt)
+        │                                                          │
+        │                                                          ▼
+        └─────────────────────────────────────────► CNN Inference (every cycle)
+                                                              │
+                                                              ▼
+                                                    Ollama 5-Step Reasoning
+                                                              │
+                                                              ▼
+                                                     BUY / SELL / HOLD Signal
+                                                              │
+                                                              ▼
+                                                   Trade Outcome → Labeled Row
+                                                              │
+                                                              └──► back to Training
+  </pre>
+  </div>
+
+  <!-- ── Part 1: Learning Cycle ── -->
+  <h2>Part 1 — Learning Cycle <span class="badge green">Continuous Background</span></h2>
+
+  <h3>Step A — Snapshot Recording (every ~60 seconds)</h3>
+  <pre>
+signal_aggregator.py computes 5 source scores per symbol:
+  analyst_consensus    earnings_surprise    alpaca_news
+  yahoo_news           congressional_trades
+  → weighted sum = composite_score
+
+signal_history.record_snapshot()
+  Appends one row to  data/history/{SYMBOL}.parquet
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │ symbol │ timestamp │ 5 scores │ composite │ price │ return_1d=NaN  │
+  └────────────────────────────────────────────────────────────────────┘
+
+After all agents run:
+signal_history.record_agent_signals()
+  Updates that row with:
+    agent_consensus  — performance-weighted directional vote  (-1.0 to +1.0)
+    agent_agreement  — fraction of agents that agree          ( 0.0 to  1.0)
+  </pre>
+
+  <h3>Step B — Outcome Labeling (ground truth filled in as time passes)</h3>
+  <pre>
+signal_history.update_outcomes()
+
+  Rows >= 24h old:
+    return_1d = (current_price - snapshot_price) / snapshot_price
+
+  Rows >= 5d old:
+    return_5d = same formula
+
+signal_history.update_top_agent_correct()
+
+  Rows >= 24h old where agent_consensus is set:
+    top_agent_correct = 1.0   if consensus direction == actual return direction
+    top_agent_correct = 0.0   if they disagreed
+  </pre>
+
+  <h3>Step C — CNN Retraining (every 24 hours)</h3>
+  <pre>
+CNNReasoningAgent._ensure_model()
+  Checks: has it been 24h since last train? Are there >= 30 labeled rows?
+  If yes → asyncio.to_thread(_train_blocking)   [non-blocking background thread]
+
+_train_blocking():
+
+  1. signal_history.get_training_data()
+       Loads ALL .parquet files from data/history/
+       Keeps only rows where return_1d is NOT NaN
+
+  2. build_training_windows(df, T=10)
+
+       For each symbol, for each labeled row i:
+         window = rows[max(0, i-9) : i+1]    shape: up to (10, 7)
+         if fewer than 10 rows → zero-pad the front
+
+       OUTPUT ARRAYS:
+         X  shape (N, 7, 10)  float32   7 channels × 10 timesteps
+         y  shape (N,)        float32   1-day return, clipped to ±20%
+         w  shape (N,)        float32   sample weights (see below)
+
+       SAMPLE WEIGHTS:
+         top_agent_correct = 1.0  →  weight = 1.0  (reward correct calls)
+         top_agent_correct = 0.0  →  weight = 0.5  (penalise wrong calls)
+         unknown / NaN           →  weight = 0.75  (neutral)
+
+  3. 80/20 Train / Validation Split
+       n_val   = max(5, int(N × 0.20))
+       n_train = N - n_val
+       Split is random (torch.randperm) to avoid time-ordering bias
+
+  4. signal_cnn.fit()
+       Optimizer : Adam  lr=3e-4
+       Epochs    : 80
+       Batch     : 32
+       Loss      : weighted MSE (per-sample weights applied)
+       Grad clip : max_norm=1.0
+
+       Each epoch:
+         TRAIN pass  → forward → weighted MSE → backward → optimizer step
+         VAL pass    → forward → MSE  (no gradient, no weight)
+         Both losses recorded for every epoch
+
+  5. _diagnose(train_mse, val_mse, ratio=val/train)
+       train_mse &lt; 1e-5          → OVERFIT_MEMORIZING  (memorised training data)
+       ratio > 3.0               → OVERFIT             (not generalising)
+       both > 0.005              → UNDERFIT            (not learning signal)
+       otherwise                 → OK
+
+  6. signal_cnn.save()
+       Writes data/models/signal_cnn.pt
+       Saved fields: arch="glu"  state_dict  opt_state
+                     train_loss[]  val_loss[]  n_train  n_val
+                     n_channels  trained  train_ts
+  </pre>
+
+  <!-- ── Part 2: Architecture ── -->
+  <h2>Part 2 — CNN Architecture <span class="badge green">GLU-Gated</span></h2>
+
+  <p>The 7 input channels fed into the CNN on every inference pass:</p>
+  <div class="channels">
+    <div class="channel"><span class="idx">0</span><span class="name">analyst_score</span><span class="desc">analyst consensus</span></div>
+    <div class="channel"><span class="idx">1</span><span class="name">earnings_score</span><span class="desc">earnings surprise</span></div>
+    <div class="channel"><span class="idx">2</span><span class="name">alpaca_score</span><span class="desc">Alpaca news sentiment</span></div>
+    <div class="channel"><span class="idx">3</span><span class="name">yahoo_score</span><span class="desc">Yahoo Finance news</span></div>
+    <div class="channel"><span class="idx">4</span><span class="name">congress_score</span><span class="desc">congressional trades</span></div>
+    <div class="channel agent"><span class="idx">5</span><span class="name">agent_consensus</span><span class="desc">perf-weighted agent vote</span></div>
+    <div class="channel agent"><span class="idx">6</span><span class="name">agent_agreement</span><span class="desc">fraction agreeing</span></div>
+  </div>
+
+  <div class="arch-diagram">
+  <pre>
+INPUT  (batch, 7, 10)    7 channels × 10 timesteps
+
+┌─────────────────────────────────────────────────────────────────┐
+│  GatedConv1d  (7 → 16, kernel=3, padding=1)                     │
+│                                                                 │
+│    Two parallel Conv1d layers run on the same input:            │
+│      main path:  Conv1d(7, 16, k=3)                             │
+│      gate path:  Conv1d(7, 16, k=3) → sigmoid                  │
+│                                                                 │
+│    output = main(x)  ×  sigmoid(gate(x))                        │
+│                                                                 │
+│    Gate outputs 0–1 per channel per timestep.                   │
+│    Gate ≈ 0  →  suppress this channel this timestep             │
+│    Gate ≈ 1  →  pass this channel through at full strength      │
+│                                                                 │
+│    Example: analyst_score during a strong trend → gate learns   │
+│    to suppress it (overbought signals are noise in trends).     │
+│    No manual feature engineering needed.                        │
+│                                                                 │
+│  BatchNorm1d(16)  +  Dropout(0.2)                               │
+├─────────────────────────────────────────────────────────────────┤
+│  GatedConv1d  (16 → 32, kernel=3, padding=1)                    │
+│    Learns cross-channel interactions                             │
+│  BatchNorm1d(32)  +  Dropout(0.2)                               │
+├─────────────────────────────────────────────────────────────────┤
+│  GatedConv1d  (32 → 16, kernel=3, padding=1)                    │
+│    Compression — reduces feature map back to 16 channels        │
+├─────────────────────────────────────────────────────────────────┤
+│  AdaptiveAvgPool1d(1)                                           │
+│    Collapses time axis → shape (batch, 16)                      │
+│    Averages each channel across all 10 timesteps                │
+├─────────────────────────────────────────────────────────────────┤
+│  Linear(16 → 8)  +  ReLU                                        │
+│  Linear(8  → 1)                                                  │
+│    Output: predicted 1-day return  (e.g. +0.018 = +1.8%)        │
+└─────────────────────────────────────────────────────────────────┘
+
+Total parameters : ~6,800   (2× old Conv1d model — dual-path gating)
+Training time    : &lt; 5s on CPU,  &lt; 1s on GPU
+Device selection : CUDA → MPS (Apple Silicon) → CPU
+  </pre>
+  </div>
+
+  <!-- ── Part 3: Inference ── -->
+  <h2>Part 3 — Inference Cycle <span class="badge blue">Every Symbol, Every Cycle</span></h2>
+  <pre>
+signal_history.get_recent_window(symbol, T=10)
+  Loads last 10 rows from data/history/{SYMBOL}.parquet
+  Returns shape (7, 10)  ← direct CNN input tensor
+
+signal_cnn.predict(window)
+  Runs one forward pass through the GLU-gated CNN
+  Raw output: pred_return  (float, e.g. +0.018)
+
+  Direction:
+    pred_return > +0.005  →  "bull"
+    pred_return &lt; -0.005  →  "bear"
+    else                  →  "neutral"
+
+  Confidence:
+    confidence = min(1.0,  |pred_return| / 0.05)
+    5% predicted return  →  confidence = 1.0
+    1% predicted return  →  confidence = 0.20
+
+  Pre-training fallback (no trained model yet):
+    pred_return = composite_score × 0.02
+    direction   = bull if composite > 0.15
+                  bear if composite &lt; -0.15
+                  neutral otherwise
+    confidence  = 0.30
+  </pre>
+
+  <!-- ── Part 4: Ollama Prompt ── -->
+  <h2>Part 4 — Ollama Reasoning Prompt <span class="badge purple">5-Step Chain of Thought</span></h2>
+
+  <div class="callout">
+    <strong>Important:</strong> The CNN prediction is NOT the final signal. It feeds a 5-step reasoning
+    prompt sent to the local Ollama LLM, which weighs all available evidence before deciding.
+  </div>
+
+  <h3>Prompt Sections</h3>
+  <div class="card-row">
+    <div class="card">
+      <h4>1 — CNN Prediction</h4>
+      <ul>
+        <li>Predicted return %, direction, confidence</li>
+        <li>Note: <em>do NOT invert confidence</em></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>2 — Learned Source Weights</h4>
+      <ul>
+        <li>From <code>GatedConv1d.conv_main.weight</code></li>
+        <li>5 sources: learned % vs hardcoded %</li>
+        <li>Delta: elevated / reduced / same</li>
+        <li>Updates every 24h on retrain</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>3 — Current Source Scores</h4>
+      <ul>
+        <li>Live scores for all 5 sources</li>
+        <li>Composite score</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>4 — Agent Performance Rankings</h4>
+      <ul>
+        <li>All agents sorted by 30-day score</li>
+        <li>Per agent: score, win%, sharpe, trades, action, conf</li>
+        <li>Weighted consensus + agreement fraction</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>5 — Overnight Catalysts</h4>
+      <ul>
+        <li>Direct catalysts for this symbol (up to 3)</li>
+        <li>Broad market catalysts (up to 3)</li>
+        <li>Format: <code>[DIRECT]</code> or <code>[SYMBOL]</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>6 — Macro Context</h4>
+      <ul>
+        <li>FRED + ETF-proxy macro text</li>
+        <li>Each line tagged <code>[FRESH: date]</code> or <code>[STALE: Nd old]</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>5 Reasoning Steps</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Agreement</h4>
+        <p>Does CNN direction agree with the composite score sign? State yes or no and why.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Agents</h4>
+        <p>Name top-2 agents by performance score. Do their actions support or contradict the CNN?</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Catalysts</h4>
+        <p>Any direct catalysts for this symbol? Factor into confidence.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Macro <em>(staleness strictly enforced)</em></h4>
+        <p>
+          <code>[FRESH]</code> data (&lt;=4 days) — MAY adjust confidence.<br>
+          <code>[STALE]</code> data — context only, <strong>do NOT adjust confidence</strong>.<br>
+          Headwinds: Fed funds &gt; 5% = tight money; breakeven inflation &gt; 3% = rate-hike risk.
+        </p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h4>Decision</h4>
+        <p>
+          Choose BUY / SELL / HOLD. If CNN and composite conflict → prefer HOLD unless agent consensus is strong.<br>
+          Reduce confidence by up to 0.15 if FRESH macro is a clear headwind.<br>
+          Increase by up to 0.10 if FRESH macro is clearly supportive. Stale data = zero adjustment.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warning">
+    <strong>Fallback:</strong> If Ollama times out (50s) or is unavailable, the CNN direction maps
+    directly to BUY / SELL / HOLD with CNN confidence, bypassing all reasoning steps.
+  </div>
+
+  <!-- ── Part 5: Signal Gate ── -->
+  <h2>Part 5 — Signal Gate <span class="badge red">BUY / SELL / HOLD</span></h2>
+  <div class="gate-diagram">
+  <pre>
+action = BUY
+  AND  confidence >= 0.50
+  AND  price > 0
+  ──► Signal BUY
+        shares = floor( portfolio_value × MAX_POSITION_SIZE / price )
+        MAX_POSITION_SIZE = 10%  (config)
+
+action = SELL
+  AND  symbol in portfolio.positions
+  ──► Signal SELL
+        shares = portfolio.positions[symbol].shares
+
+else
+  ──► Signal HOLD
+        shares = 0
+  </pre>
+  </div>
+
+  <!-- ── Part 6: Feedback Loop ── -->
+  <h2>Part 6 — Feedback Loop <span class="badge purple">Closes the Circle</span></h2>
+  <div class="loop-diagram">
+  <pre>
+                 ┌─────────────────────────────────────────────┐
+                 │                                             │
+    Market data  │  Every 60s                                  │
+    cycle        │                                             │
+        │        ▼                                             │
+        │  record_snapshot()                                   │
+        │  5 source scores + composite + price                 │
+        │                                                      │
+        │  After agents run:                                   │
+        │  record_agent_signals()                              │
+        │  agent_consensus + agent_agreement                   │
+        │                                                      │
+        │  24h later:                                          │
+        │  update_outcomes()  → return_1d filled               │
+        │  update_top_agent_correct() → 1.0 or 0.0            │
+        │                                                      │
+        │  24h retrain:                                        │
+        │  Rows where top agent was right  → weight 1.0        │
+        │  Rows where top agent was wrong  → weight 0.5        │
+        │  CNN trains harder on correct-agent rows             │
+        │                                                      │
+        │  get_learned_weights() extracts importance from      │
+        │  GatedConv1d.conv_main.weight  (main path only)      │
+        │  → fed back into next Ollama prompt                  │
+        │                                                      │
+        └─────────────────────────────────────────────────────┘
+  </pre>
+  </div>
+
+  <div class="callout success">
+    <strong>Key Invariant:</strong> The CNN does not just learn from price — it learns from which agents
+    were right. Rows confirmed correct by top performers carry <strong>2× the gradient influence</strong>
+    of rows where agents were wrong. Over time the model up-weights sources that consistently preceded
+    correct calls and down-weights sources associated with losing trades.
+  </div>
+
+  <!-- ── Part 7: Diagnostics ── -->
+  <h2>Part 7 — Diagnostics Endpoint <span class="badge amber">GET /api/cnn-diagnostics</span></h2>
+
+  <div class="card-row">
+    <div class="card">
+      <h4>Identity</h4>
+      <ul>
+        <li><strong>trained</strong> — bool: trained at least once?</li>
+        <li><strong>device</strong> — <span class="value">"cuda" | "mps" | "cpu"</span></li>
+        <li><strong>n_channels</strong> — 7 (5 source + 2 agent)</li>
+        <li><strong>last_trained</strong> — ISO timestamp</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Sample Counts</h4>
+      <ul>
+        <li><strong>n_train</strong> — training samples last run</li>
+        <li><strong>n_val</strong> — validation samples last run</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>MSE &amp; Diagnosis</h4>
+      <ul>
+        <li><strong>final_train_mse</strong> — last epoch train MSE</li>
+        <li><strong>final_val_mse</strong> — last epoch val MSE</li>
+        <li><strong>overfit_ratio</strong> — val/train (healthy: 1.0–2.5)</li>
+        <li><strong>diagnosis</strong> — see table below</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Curves &amp; Weights</h4>
+      <ul>
+        <li><strong>train_loss_curve</strong> — per-epoch MSE (40 pts)</li>
+        <li><strong>val_loss_curve</strong> — per-epoch MSE (40 pts)</li>
+        <li><strong>learned_weights</strong> — per-source (sums to 1.0)</li>
+        <li><strong>weight_delta</strong> — learned minus hardcoded</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Diagnosis Thresholds</h3>
+  <p style="font-size:0.85rem;color:#8b949e;margin-bottom:12px;">
+    Tuned for 1-day returns clipped ±20%. Typical 1-day move 0.5–2% → squared → MSE 0.000025–0.0004.
+    Healthy train MSE: 0.0002–0.002. Healthy ratio: 1.0–2.5×.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Diagnosis</th><th>Condition</th><th>Meaning</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="diagnosis-ok">OK</td>
+        <td>Everything else</td>
+        <td>Model is learning and generalising normally</td>
+      </tr>
+      <tr>
+        <td class="diagnosis-mem">OVERFIT_MEMORIZING</td>
+        <td><code>train_mse &lt; 0.00001</code></td>
+        <td>Model memorised training data — essentially zero train loss</td>
+      </tr>
+      <tr>
+        <td class="diagnosis-overfit">OVERFIT</td>
+        <td><code>ratio &gt; 3.0</code></td>
+        <td>Val MSE is 3× train MSE — not generalising to unseen data</td>
+      </tr>
+      <tr>
+        <td class="diagnosis-under">UNDERFIT</td>
+        <td><code>both &gt; 0.005</code></td>
+        <td>Both losses high — model is not learning any signal at all</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── Quick Reference ── -->
+  <h2>Quick Reference — Key Files</h2>
+  <table class="files-table">
+    <thead>
+      <tr><th>File</th><th>Role</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>backend/data/cnn_model.py</code></td><td>GatedConv1d, _build_glu_net, SignalCNN — fit, predict, save/load, diagnostics</td></tr>
+      <tr><td><code>backend/data/signal_history.py</code></td><td>Parquet store — snapshot recording, outcome labeling, training data export</td></tr>
+      <tr><td><code>backend/agents/cnn_reasoning_agent.py</code></td><td>Model lifecycle, Ollama prompt builder, 5-step reasoning, signal gate</td></tr>
+      <tr><td><code>backend/data/macro_context.py</code></td><td>Macro context text injected into prompt (FRESH/STALE tagged)</td></tr>
+      <tr><td><code>backend/data/agent_performance_tracker.py</code></td><td>Agent scores/win rates used in the ranking section of the prompt</td></tr>
+      <tr><td><code>backend/data/models/signal_cnn.pt</code></td><td>Saved model checkpoint — excluded from git</td></tr>
+      <tr><td><code>backend/data/history/*.parquet</code></td><td>Per-symbol snapshot history — excluded from git</td></tr>
+      <tr><td><code>backend/tests/test_cnn_model.py</code></td><td>48 unit tests covering all of the above</td></tr>
+    </tbody>
+  </table>
+
+  <footer>Generated 2026-04-13 from live codebase &nbsp;·&nbsp; trading_app / docs</footer>
+
+</div>
+</body>
+</html>
