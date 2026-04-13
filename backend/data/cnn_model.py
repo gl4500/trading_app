@@ -85,6 +85,30 @@ MIN_TRAIN_SAMPLES = 30   # minimum labelled rows before training starts
 WINDOW_SIZE       = 10   # T: rolling window length fed to the CNN
 
 
+def _diagnose(train_mse: float, val_mse: float, ratio: float) -> str:
+    """
+    Return a plain-English diagnosis based on final train and val MSE.
+
+    Thresholds are tuned for 1-day returns clipped at ±20%:
+      Typical 1-day move  0.5–2%  → squared → 0.000025–0.0004
+      Healthy train MSE   0.0002–0.002
+      Healthy val/train ratio  1.0–2.5x
+
+    Returns one of:
+      OVERFIT_MEMORIZING  — train MSE suspiciously low (model memorised data)
+      OVERFIT             — val MSE >> train MSE (not generalising)
+      UNDERFIT            — both MSEs high (model isn't learning signal)
+      OK                  — within normal bounds
+    """
+    if train_mse < 1e-5:
+        return "OVERFIT_MEMORIZING"
+    if ratio > 3.0:
+        return "OVERFIT"
+    if train_mse > 0.005 and val_mse > 0.005:
+        return "UNDERFIT"
+    return "OK"
+
+
 def _device() -> "torch.device":
     if not HAS_TORCH:
         return None
@@ -217,6 +241,9 @@ class SignalCNN:
         self._trained    = False
         self._train_ts   = 0.0
         self._train_loss: List[float] = []
+        self._val_loss:   List[float] = []   # validation MSE per epoch
+        self._n_train:    int = 0            # samples used for training
+        self._n_val:      int = 0            # samples held out for validation
         self._dev        = _device()
 
         if HAS_TORCH:
@@ -269,50 +296,83 @@ class SignalCNN:
             self._net = _build_net(actual_channels).to(self._dev)
             self._opt = optim.Adam(self._net.parameters(), lr=lr)
 
-        X_t = torch.from_numpy(X).to(self._dev)                    # (N, C, T)
-        y_t = torch.from_numpy(y).unsqueeze(1).to(self._dev)        # (N, 1)
+        # ── Train / validation split (80 / 20) ───────────────────────────────
+        # Hold out 20% as a never-trained-on validation set so we can detect
+        # overfitting (val loss rises while train loss falls) vs underfitting
+        # (both stay high).  Need at least 5 val samples to be meaningful.
+        N        = len(X)
+        n_val    = max(5, int(N * 0.2))
+        n_train  = N - n_val
 
-        if sample_weights is not None:
-            w_t = torch.from_numpy(
-                sample_weights.astype(np.float32)
-            ).unsqueeze(1).to(self._dev)                            # (N, 1)
-        else:
-            w_t = None
+        perm       = torch.randperm(N)
+        val_idx    = perm[:n_val]
+        train_idx  = perm[n_val:]
 
-        dataset       = TensorDataset(X_t, y_t) if w_t is None \
-                        else TensorDataset(X_t, y_t, w_t)
-        loader        = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=False)
-        loss_fn       = nn.MSELoss(reduction="none")
-        epoch_losses: List[float] = []
+        X_all = torch.from_numpy(X).to(self._dev)                   # (N, C, T)
+        y_all = torch.from_numpy(y).unsqueeze(1).to(self._dev)       # (N, 1)
+        w_all = torch.from_numpy(
+            sample_weights.astype(np.float32)
+        ).unsqueeze(1).to(self._dev) if sample_weights is not None else None
+
+        X_train, y_train = X_all[train_idx], y_all[train_idx]
+        X_val,   y_val   = X_all[val_idx],   y_all[val_idx]
+        w_train          = w_all[train_idx] if w_all is not None else None
+
+        dataset = (
+            TensorDataset(X_train, y_train)
+            if w_train is None
+            else TensorDataset(X_train, y_train, w_train)
+        )
+        loader   = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=False)
+        loss_fn  = nn.MSELoss(reduction="none")
+
+        train_losses: List[float] = []
+        val_losses:   List[float] = []
 
         self._net.train()
         for epoch in range(epochs):
-            total = 0.0
-            n     = 0
+            # ── training step ──────────────────────────────────────────────
+            total, n = 0.0, 0
             for batch in loader:
-                xb, yb  = batch[0], batch[1]
-                wb       = batch[2] if len(batch) == 3 else None
+                xb, yb = batch[0], batch[1]
+                wb     = batch[2] if len(batch) == 3 else None
                 self._opt.zero_grad()
                 pred     = self._net(xb)
-                per_loss = loss_fn(pred, yb)                        # (B, 1)
-                if wb is not None:
-                    loss = (per_loss * wb).mean()
-                else:
-                    loss = per_loss.mean()
+                per_loss = loss_fn(pred, yb)
+                loss     = (per_loss * wb).mean() if wb is not None else per_loss.mean()
                 loss.backward()
                 nn.utils.clip_grad_norm_(self._net.parameters(), max_norm=1.0)
                 self._opt.step()
                 total += loss.item() * len(xb)
                 n     += len(xb)
-            epoch_losses.append(total / n)
+            train_losses.append(total / n)
 
-        self._train_loss = epoch_losses
+            # ── validation step (no gradient) ──────────────────────────────
+            self._net.eval()
+            with torch.no_grad():
+                val_pred = self._net(X_val)
+                val_mse  = float(loss_fn(val_pred, y_val).mean().item())
+            val_losses.append(val_mse)
+            self._net.train()
+
+        self._train_loss = train_losses
+        self._val_loss   = val_losses
+        self._n_train    = n_train
+        self._n_val      = n_val
         self._trained    = True
         self._train_ts   = time.time()
+
+        final_train = train_losses[-1]
+        final_val   = val_losses[-1]
+        overfit_ratio = final_val / final_train if final_train > 1e-10 else float("inf")
+        diagnosis = _diagnose(final_train, final_val, overfit_ratio)
+
         dev_name = str(self._dev) if self._dev else "cpu"
         logger.info(
-            f"SignalCNN: trained {epochs} epochs on {len(X)} samples "
-            f"({actual_channels}ch, {dev_name}) — final MSE={epoch_losses[-1]:.6f}"
+            f"SignalCNN: trained {epochs} epochs | "
+            f"train={n_train} val={n_val} ({dev_name}) | "
+            f"train_MSE={final_train:.6f} val_MSE={final_val:.6f} "
+            f"ratio={overfit_ratio:.2f} | {diagnosis}"
         )
 
     # ── inference ─────────────────────────────────────────────────────────────
@@ -385,6 +445,9 @@ class SignalCNN:
                 "trained":    self._trained,
                 "train_ts":   self._train_ts,
                 "train_loss": self._train_loss,
+                "val_loss":   self._val_loss,
+                "n_train":    self._n_train,
+                "n_val":      self._n_val,
                 "T":          self.T,
                 "n_channels": self._n_channels,
             },
@@ -415,6 +478,9 @@ class SignalCNN:
             self._trained    = ckpt.get("trained", False)
             self._train_ts   = ckpt.get("train_ts", 0.0)
             self._train_loss = ckpt.get("train_loss", [])
+            self._val_loss   = ckpt.get("val_loss", [])
+            self._n_train    = ckpt.get("n_train", 0)
+            self._n_val      = ckpt.get("n_val", 0)
             logger.info(f"SignalCNN: loaded ← {_MODEL_PATH} ({saved_ch}ch)")
             return True
         except Exception as exc:
@@ -436,16 +502,42 @@ class SignalCNN:
         return str(self._dev) if self._dev else "unavailable"
 
     def training_summary(self) -> Dict:
-        weights = self.get_learned_weights()
+        weights   = self.get_learned_weights()
         hardcoded = _DEFAULT_WEIGHTS
-        delta = {k: round(weights[k] - hardcoded[k], 4) for k in SOURCE_NAMES}
+        delta     = {k: round(weights[k] - hardcoded[k], 4) for k in SOURCE_NAMES}
+
+        final_train = self._train_loss[-1] if self._train_loss else None
+        final_val   = self._val_loss[-1]   if self._val_loss   else None
+
+        overfit_ratio = None
+        diagnosis     = "UNTRAINED"
+        if final_train is not None and final_val is not None and final_train > 1e-10:
+            overfit_ratio = round(final_val / final_train, 3)
+            diagnosis     = _diagnose(final_train, final_val, overfit_ratio)
+
         return {
-            "trained":        self._trained,
-            "device":         self.device,
-            "train_ts":       self._train_ts,
-            "final_mse":      self._train_loss[-1] if self._train_loss else None,
+            # Identity
+            "trained":         self._trained,
+            "device":          self.device,
+            "train_ts":        self._train_ts,
+            "n_channels":      self._n_channels,
+            # Sample counts
+            "n_train":         self._n_train,
+            "n_val":           self._n_val,
+            # Final MSE values
+            "final_train_mse": final_train,
+            "final_val_mse":   final_val,
+            # Overfitting diagnosis
+            "overfit_ratio":   overfit_ratio,  # val/train — ideally 1.0–2.5
+            "diagnosis":       diagnosis,       # OK | OVERFIT | OVERFIT_MEMORIZING | UNDERFIT
+            # Full loss curves (one float per epoch) for plotting
+            "train_loss_curve": self._train_loss,
+            "val_loss_curve":   self._val_loss,
+            # Learned source weights
             "learned_weights": weights,
-            "weight_delta":   delta,   # positive = learned higher than hardcoded
+            "weight_delta":    delta,
+            # Legacy key kept for backward compatibility
+            "final_mse":       final_train,
         }
 
 

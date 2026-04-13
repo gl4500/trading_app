@@ -1999,6 +1999,55 @@ async def get_drift():
     }
 
 
+@app.get("/api/cnn-diagnostics")
+async def get_cnn_diagnostics():
+    """
+    CNN model training diagnostics — overfitting / underfitting detection.
+
+    Returns train and validation MSE curves (one value per epoch), the
+    final ratio (val/train), and a plain-English diagnosis.
+
+    Diagnosis values:
+      OK                  — healthy generalisation (ratio 1.0–2.5x)
+      OVERFIT             — val MSE >> train MSE (ratio > 3x)
+      OVERFIT_MEMORIZING  — train MSE < 1e-5 (memorised training data)
+      UNDERFIT            — both MSEs > 0.005 (not learning signal)
+      UNTRAINED           — model has not been trained yet
+    """
+    from data.cnn_model import signal_cnn
+    summary = signal_cnn.training_summary()
+
+    # Downsample loss curves to at most 40 points for the frontend
+    # (avoids sending 80 floats when a sparkline only needs ~20)
+    def _downsample(curve, n=40):
+        if not curve or len(curve) <= n:
+            return curve
+        step = len(curve) / n
+        return [curve[int(i * step)] for i in range(n)]
+
+    return {
+        "trained":          summary["trained"],
+        "device":           summary["device"],
+        "n_channels":       summary["n_channels"],
+        "n_train":          summary["n_train"],
+        "n_val":            summary["n_val"],
+        "final_train_mse":  summary["final_train_mse"],
+        "final_val_mse":    summary["final_val_mse"],
+        "overfit_ratio":    summary["overfit_ratio"],
+        "diagnosis":        summary["diagnosis"],
+        "train_loss_curve": _downsample(summary["train_loss_curve"]),
+        "val_loss_curve":   _downsample(summary["val_loss_curve"]),
+        "learned_weights":  summary["learned_weights"],
+        "weight_delta":     summary["weight_delta"],
+        "last_trained":     (
+            __import__("datetime").datetime.fromtimestamp(
+                summary["train_ts"],
+                tz=__import__("datetime").timezone.utc,
+            ).isoformat() if summary["train_ts"] else None
+        ),
+    }
+
+
 @app.get("/api/status")
 async def get_status():
     """Get application status."""

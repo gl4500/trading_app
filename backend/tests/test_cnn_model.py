@@ -280,7 +280,12 @@ class TestTrainingSummary(unittest.TestCase):
     def test_summary_keys_present(self):
         model = SignalCNN()
         s = model.training_summary()
-        for key in ("trained", "device", "train_ts", "final_mse", "learned_weights", "weight_delta"):
+        for key in ("trained", "device", "train_ts", "final_mse",
+                    "learned_weights", "weight_delta",
+                    "final_train_mse", "final_val_mse",
+                    "overfit_ratio", "diagnosis",
+                    "train_loss_curve", "val_loss_curve",
+                    "n_train", "n_val"):
             self.assertIn(key, s)
 
     def test_summary_trained_false_when_untrained(self):
@@ -288,11 +293,102 @@ class TestTrainingSummary(unittest.TestCase):
         self.assertFalse(model.training_summary()["trained"])
 
     def test_weight_delta_sums_near_zero_for_defaults(self):
-        """Default weights minus themselves = 0 for all sources."""
         model = SignalCNN()
         delta = model.training_summary()["weight_delta"]
         for k in SOURCE_NAMES:
             self.assertAlmostEqual(delta[k], 0.0, places=3)
+
+    def test_diagnosis_untrained_when_no_training(self):
+        model = SignalCNN()
+        self.assertEqual(model.training_summary()["diagnosis"], "UNTRAINED")
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_val_loss_populated_after_training(self):
+        """fit() must produce a non-empty val_loss_curve."""
+        df    = _make_df(n_rows=60)
+        X, y, w = build_training_windows(df)
+        model = SignalCNN()
+        model.fit(X, y, epochs=5, sample_weights=w)
+        s = model.training_summary()
+        self.assertGreater(len(s["val_loss_curve"]), 0)
+        self.assertEqual(len(s["train_loss_curve"]), len(s["val_loss_curve"]))
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_n_train_plus_n_val_equals_total(self):
+        """Train + val sample counts must sum to total samples used."""
+        df    = _make_df(n_rows=60)
+        X, y, w = build_training_windows(df)
+        model = SignalCNN()
+        model.fit(X, y, epochs=5, sample_weights=w)
+        s = model.training_summary()
+        self.assertEqual(s["n_train"] + s["n_val"], len(X))
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_overfit_ratio_is_positive(self):
+        df    = _make_df(n_rows=60)
+        X, y, w = build_training_windows(df)
+        model = SignalCNN()
+        model.fit(X, y, epochs=5, sample_weights=w)
+        s = model.training_summary()
+        self.assertGreater(s["overfit_ratio"], 0)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_diagnosis_is_valid_string(self):
+        df    = _make_df(n_rows=60)
+        X, y, w = build_training_windows(df)
+        model = SignalCNN()
+        model.fit(X, y, epochs=5, sample_weights=w)
+        valid = {"OK", "OVERFIT", "OVERFIT_MEMORIZING", "UNDERFIT", "UNTRAINED"}
+        self.assertIn(model.training_summary()["diagnosis"], valid)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_val_loss_persisted_through_save_load(self):
+        """Val loss curve must survive a save/load round-trip."""
+        df    = _make_df(n_rows=60)
+        X, y, w = build_training_windows(df)
+        model = SignalCNN()
+        model.fit(X, y, epochs=5, sample_weights=w)
+        original_val = model.training_summary()["val_loss_curve"]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            import data.cnn_model as _cm
+            orig_path = _cm._MODEL_PATH
+            _cm._MODEL_PATH = os.path.join(tmpdir, "test_cnn.pt")
+            try:
+                model.save()
+                model2 = SignalCNN()
+                model2.load()
+                self.assertEqual(
+                    model2.training_summary()["val_loss_curve"],
+                    original_val,
+                )
+            finally:
+                _cm._MODEL_PATH = orig_path
+
+
+class TestDiagnoseFunction(unittest.TestCase):
+    """Unit tests for the _diagnose() helper."""
+
+    def test_ok_in_normal_range(self):
+        from data.cnn_model import _diagnose
+        self.assertEqual(_diagnose(0.001, 0.002, 2.0), "OK")
+
+    def test_overfit_when_ratio_above_3(self):
+        from data.cnn_model import _diagnose
+        self.assertEqual(_diagnose(0.001, 0.005, 5.0), "OVERFIT")
+
+    def test_overfit_memorizing_when_train_tiny(self):
+        from data.cnn_model import _diagnose
+        self.assertEqual(_diagnose(1e-7, 0.003, 30000), "OVERFIT_MEMORIZING")
+
+    def test_underfit_when_both_high(self):
+        from data.cnn_model import _diagnose
+        self.assertEqual(_diagnose(0.008, 0.010, 1.25), "UNDERFIT")
+
+    def test_ok_boundary_ratio_exactly_3(self):
+        from data.cnn_model import _diagnose
+        # ratio == 3.0 is not > 3.0, so still OK (train MSE normal range)
+        self.assertEqual(_diagnose(0.001, 0.003, 3.0), "OK")
 
 
 if __name__ == "__main__":
