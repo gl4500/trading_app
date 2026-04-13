@@ -192,11 +192,18 @@ PYTHONPATH=../site-packages ../runtime/python/python.exe -m bandit -r . -x ./tes
 
 ## CLAUDE.md ↔ Memory Sync Rule
 
-**Both must always be updated together.**
+**Both must always be updated together, and memory must be updated after every code change.**
 
 `CLAUDE.md` (this file, in the repo) and the persistent memory files at
 `C:\Users\gl450\.claude\projects\C--Users-gl450\memory\` are the two halves of the same contract.
 
+### After every code change — required steps
+1. If the change affects architecture, agents, endpoints, or file structure → update `trading_app_architecture.md`.
+2. If the change fixes a bug → append the bug + fix to `trading_app_bugs_fixed.md`.
+3. If the change adds or modifies a rule → update the matching memory file AND this `CLAUDE.md` section in the same response.
+4. Never commit code without also committing any corresponding `CLAUDE.md` update in the same or immediately following commit.
+
+### CLAUDE.md ↔ memory sync
 - When you add or change a rule in `CLAUDE.md` → update the corresponding memory file in the same response.
 - When you update a memory file that covers trading_app rules or feedback → reflect the change in `CLAUDE.md` in the same response.
 - Never let a session end with the two out of sync.
@@ -207,6 +214,7 @@ Relevant memory files for this repo:
 | `feedback_tdd_workflow.md` | TDD Workflow section |
 | `feedback_scope_restriction.md` | Scope section |
 | `feedback_shell_cleanup.md` | Shell cleanup section |
+| `feedback_sync_rule.md` | This section (memory update after every change) |
 | `trading_app_architecture.md` | Architecture Quick Reference + Key invariants |
 | `trading_app_bugs_fixed.md` | Known bugs and fixes (not in CLAUDE.md — memory only) |
 | `trading_app_thresholds.md` | Agent thresholds (not in CLAUDE.md — memory only) |
