@@ -265,37 +265,51 @@ async def init_agents() -> None:
         agent_id = await upsert_agent(agent.name, agent.strategy_description)
         agent.agent_id = agent_id
 
-        # Restore cash balance from last performance snapshot
+        # Always restore open positions — saved independently of performance snapshots
+        db_positions = await get_portfolio_positions(agent_id)
+        for pos in db_positions:
+            agent.portfolio.positions[pos["symbol"]] = Position(
+                symbol=pos["symbol"],
+                shares=pos["shares"],
+                avg_cost=pos["avg_cost"],
+            )
+            # Seed last_prices so first WS broadcast uses closing price, not avg_cost
+            lp = pos.get("last_price", 0.0)
+            if lp and lp > 0:
+                app_state.last_prices.setdefault(pos["symbol"], lp)
+
+        # Always restore trade history for win_rate / total_trades
+        db_trades = await get_agent_trades(agent_id, limit=500)
+        db_trades.reverse()  # DB returns DESC; portfolio expects chronological order
+        for t in db_trades:
+            agent.portfolio.trade_history.append(TradeRecord(
+                symbol=t["symbol"],
+                action=t["action"],
+                shares=t["shares"],
+                price=t["price"],
+                timestamp=_parse_ts(t["timestamp"]),
+                reasoning=t.get("reasoning", ""),
+                pnl=t.get("pnl", 0.0),
+            ))
+
+        # Restore cash: prefer last performance snapshot; fall back to trade-history estimate
         cash = await get_latest_cash(agent_id)
         if cash is not None:
             agent.portfolio.cash = cash
-
-            # Restore open positions (including last known market price)
-            db_positions = await get_portfolio_positions(agent_id)
-            for pos in db_positions:
-                agent.portfolio.positions[pos["symbol"]] = Position(
-                    symbol=pos["symbol"],
-                    shares=pos["shares"],
-                    avg_cost=pos["avg_cost"],
-                )
-                # Seed last_prices so first WS broadcast uses closing price, not avg_cost
-                lp = pos.get("last_price", 0.0)
-                if lp and lp > 0:
-                    app_state.last_prices.setdefault(pos["symbol"], lp)
-
-            # Restore trade history for win_rate / total_trades
-            db_trades = await get_agent_trades(agent_id, limit=500)
-            db_trades.reverse()  # DB returns DESC; portfolio expects chronological order
+        elif db_trades:
+            # No performance snapshot saved (e.g. _calculate_sharpe was crashing) —
+            # reconstruct cash from trade history as best approximation.
+            estimated = float(config.STARTING_CAPITAL)
             for t in db_trades:
-                agent.portfolio.trade_history.append(TradeRecord(
-                    symbol=t["symbol"],
-                    action=t["action"],
-                    shares=t["shares"],
-                    price=t["price"],
-                    timestamp=_parse_ts(t["timestamp"]),
-                    reasoning=t.get("reasoning", ""),
-                    pnl=t.get("pnl", 0.0),
-                ))
+                if t["action"] == "BUY":
+                    estimated -= t["shares"] * t["price"]
+                elif t["action"] == "SELL":
+                    estimated += t["shares"] * t["price"]
+            agent.portfolio.cash = max(0.0, estimated)
+            logger.info(
+                f"{agent.name}: no performance snapshot — cash estimated from "
+                f"{len(db_trades)} trades as ${agent.portfolio.cash:,.2f}"
+            )
 
         # Restore value history for portfolio chart
         history = await restore_value_history(agent_id)
