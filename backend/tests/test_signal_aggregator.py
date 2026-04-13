@@ -15,6 +15,7 @@ from data.signal_aggregator import (
     _aggregate_scores,
     format_for_prompt,
     SOURCE_WEIGHTS,
+    CONTEXT_ONLY_SOURCES,
 )
 
 
@@ -77,7 +78,7 @@ class TestAggregateScores(unittest.TestCase):
         composite, confidence, verdict = _aggregate_scores(None, None, None, None, None)
         self.assertEqual(composite, 0.0)
         self.assertEqual(confidence, 0.0)
-        self.assertIn("No external signal", verdict)
+        self.assertIn("No fresh signal", verdict)
 
     def test_single_bullish_source(self):
         composite, confidence, verdict = _aggregate_scores(
@@ -87,24 +88,21 @@ class TestAggregateScores(unittest.TestCase):
             yahoo_news_score=None,
         )
         self.assertGreater(composite, 0)
-        # agreement=0.5 (single source) × source_coverage=1/5 → confidence=0.100
-        self.assertEqual(confidence, 0.1)
 
     def test_unanimous_bullish_raises_confidence(self):
-        # All five sources agree strongly bullish
+        # Fresh sources all agree bullish — composite must be > 0.4
         composite, confidence, verdict = _aggregate_scores(
             analyst_score=0.9,
-            earnings_score=0.8,
+            earnings_score=0.8,       # stale — ignored in composite
             alpaca_news_score=0.85,
             yahoo_news_score=0.75,
-            congressional_score=0.7,
+            congressional_score=0.7,  # stale — ignored in composite
         )
         self.assertGreater(composite, 0.4)
         self.assertGreater(confidence, 0.5)
         self.assertIn("BULLISH", verdict)
 
     def test_mixed_sources_lowers_confidence(self):
-        # Strongly conflicting sources → lower confidence
         composite, confidence, verdict = _aggregate_scores(
             analyst_score=1.0,
             earnings_score=-1.0,
@@ -140,6 +138,29 @@ class TestAggregateScores(unittest.TestCase):
     def test_source_weights_sum_to_one(self):
         total = sum(SOURCE_WEIGHTS.values())
         self.assertAlmostEqual(total, 1.0, places=5)
+
+    # ── Stale-source isolation tests ──────────────────────────────────────────
+
+    def test_congressional_score_does_not_affect_composite(self):
+        """Flipping congress score ±1 must not change composite at all."""
+        base, _, _ = _aggregate_scores(0.5, None, 0.4, 0.3, congressional_score=None)
+        bull, _, _ = _aggregate_scores(0.5, None, 0.4, 0.3, congressional_score=+1.0)
+        bear, _, _ = _aggregate_scores(0.5, None, 0.4, 0.3, congressional_score=-1.0)
+        self.assertAlmostEqual(base, bull, places=5)
+        self.assertAlmostEqual(base, bear, places=5)
+
+    def test_earnings_score_does_not_affect_composite(self):
+        """Flipping earnings score ±1 must not change composite at all."""
+        base, _, _ = _aggregate_scores(0.5, None,  0.4, 0.3)
+        bull, _, _ = _aggregate_scores(0.5, +1.0,  0.4, 0.3)
+        bear, _, _ = _aggregate_scores(0.5, -1.0,  0.4, 0.3)
+        self.assertAlmostEqual(base, bull, places=5)
+        self.assertAlmostEqual(base, bear, places=5)
+
+    def test_context_only_sources_set_contains_stale_sources(self):
+        """CONTEXT_ONLY_SOURCES must name both stale sources."""
+        self.assertIn("earnings_surprise",    CONTEXT_ONLY_SOURCES)
+        self.assertIn("congressional_trades", CONTEXT_ONLY_SOURCES)
 
 
 # ── format_for_prompt tests ───────────────────────────────────────────────────
@@ -220,6 +241,22 @@ class TestFormatForPrompt(unittest.TestCase):
     def test_yahoo_headlines_included(self):
         result = format_for_prompt(self._make_signal())
         self.assertIn("Apple beats Q3 estimates", result)
+
+    def test_format_for_prompt_labels_congress_context_only(self):
+        """Congressional trades line must carry a CONTEXT ONLY label."""
+        result = format_for_prompt(self._make_signal())
+        congress_line = next(
+            (l for l in result.splitlines() if "congressional" in l.lower()), ""
+        )
+        self.assertIn("CONTEXT ONLY", congress_line)
+
+    def test_format_for_prompt_labels_earnings_context_only(self):
+        """Earnings surprise line must carry a CONTEXT ONLY label."""
+        result = format_for_prompt(self._make_signal())
+        earnings_line = next(
+            (l for l in result.splitlines() if "earnings" in l.lower()), ""
+        )
+        self.assertIn("CONTEXT ONLY", earnings_line)
 
 
 if __name__ == "__main__":

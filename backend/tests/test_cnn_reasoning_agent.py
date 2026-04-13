@@ -241,6 +241,28 @@ class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
         self.assertIn("0.15", prompt)
         self.assertIn("0.10", prompt)
 
+    def test_stale_sources_labeled_context_only_in_prompt(self):
+        """Earnings surprise and congressional trades must appear under CONTEXT ONLY."""
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
+        earnings_line = next(
+            (l for l in prompt.splitlines() if "earnings" in l.lower()), ""
+        )
+        congress_line = next(
+            (l for l in prompt.splitlines() if "congressional" in l.lower()), ""
+        )
+        self.assertIn("CONTEXT ONLY", earnings_line,
+                      "earnings_surprise must be labeled CONTEXT ONLY")
+        self.assertIn("CONTEXT ONLY", congress_line,
+                      "congressional_trades must be labeled CONTEXT ONLY")
+
+    def test_step1_references_fresh_sources_only(self):
+        """Step 1 agreement check must note composite = fresh sources only."""
+        prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
+        step1_idx = prompt.find("Step 1")
+        self.assertGreater(step1_idx, -1)
+        step1_text = prompt[step1_idx: step1_idx + 300]
+        self.assertIn("fresh", step1_text.lower())
+
 
 class TestCNNAnalyzeCatalystPassthrough(unittest.IsolatedAsyncioTestCase):
     """analyze() correctly extracts and passes catalysts/macro to _build_prompt."""

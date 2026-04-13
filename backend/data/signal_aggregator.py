@@ -50,6 +50,13 @@ SOURCE_WEIGHTS = {
     "congressional_trades": 0.13,
 }
 
+# Sources excluded from the composite score — shown to the LLM as context only.
+# earnings_surprise: quarterly cadence (stale for 90+ days between reports)
+# congressional_trades: SEC EDGAR Form 4 has a 90-day reporting window; filings
+#   can reflect trades from months ago and must not gate live decisions.
+CONTEXT_ONLY_SOURCES = {"earnings_surprise", "congressional_trades"}
+_FRESH_SOURCES = {"analyst_consensus", "alpaca_news", "yahoo_news"}
+
 # Simple bullish/bearish keyword sets for news scoring
 _BULLISH_WORDS = {
     "beat", "beats", "record", "upgrade", "upgraded", "outperform", "raised",
@@ -179,25 +186,34 @@ def _aggregate_scores(
     """
     Compute weighted composite score and confidence.
     Returns (composite_score, confidence, verdict_text).
+
+    Only fresh sources (analyst_consensus, alpaca_news, yahoo_news) are
+    included in the composite score.  earnings_surprise and congressional_trades
+    are accepted for API compatibility but are CONTEXT_ONLY_SOURCES — they are
+    shown to the LLM as context, never used to compute composite or gate trades.
     """
-    sources = {
-        "analyst_consensus":   analyst_score,
-        "earnings_surprise":   earnings_score,
-        "alpaca_news":         alpaca_news_score,
-        "yahoo_news":          yahoo_news_score,
+    all_sources = {
+        "analyst_consensus":    analyst_score,
+        "earnings_surprise":    earnings_score,
+        "alpaca_news":          alpaca_news_score,
+        "yahoo_news":           yahoo_news_score,
         "congressional_trades": congressional_score,
     }
 
-    available = {k: v for k, v in sources.items() if v is not None}
-    if not available:
-        return 0.0, 0.0, "No external signal data available"
+    # Only fresh sources drive the composite score
+    fresh_available = {
+        k: v for k, v in all_sources.items()
+        if k not in CONTEXT_ONLY_SOURCES and v is not None
+    }
+    if not fresh_available:
+        return 0.0, 0.0, "No fresh signal data available"
 
-    # Normalise weights to available sources
-    total_weight = sum(SOURCE_WEIGHTS[k] for k in available)
-    composite = sum(SOURCE_WEIGHTS[k] * v for k, v in available.items()) / total_weight
+    # Normalise weights to available fresh sources
+    total_weight = sum(SOURCE_WEIGHTS[k] for k in fresh_available)
+    composite = sum(SOURCE_WEIGHTS[k] * v for k, v in fresh_available.items()) / total_weight
 
-    # Confidence: how well sources agree (1 - normalised std dev)
-    values = list(available.values())
+    # Confidence: how well fresh sources agree (1 - normalised std dev)
+    values = list(fresh_available.values())
     if len(values) > 1:
         mean = sum(values) / len(values)
         variance = sum((v - mean) ** 2 for v in values) / len(values)
@@ -206,16 +222,16 @@ def _aggregate_scores(
     else:
         agreement = 0.5  # only one source, moderate confidence
 
-    # Scale agreement by how many sources we have
-    source_coverage = len(available) / len(SOURCE_WEIGHTS)
+    # Scale agreement by fresh source coverage
+    source_coverage = len(fresh_available) / len(_FRESH_SOURCES)
     confidence = round(agreement * source_coverage, 3)
 
     # Verdict
-    if composite >= 0.4:    verdict = "BULLISH"
-    elif composite >= 0.15: verdict = "MILDLY BULLISH"
-    elif composite <= -0.4: verdict = "BEARISH"
-    elif composite <= -0.15:verdict = "MILDLY BEARISH"
-    else:                   verdict = "NEUTRAL"
+    if composite >= 0.4:     verdict = "BULLISH"
+    elif composite >= 0.15:  verdict = "MILDLY BULLISH"
+    elif composite <= -0.4:  verdict = "BEARISH"
+    elif composite <= -0.15: verdict = "MILDLY BEARISH"
+    else:                    verdict = "NEUTRAL"
 
     if confidence < 0.35:
         verdict += " (LOW CONFIDENCE — sources conflict)"
@@ -329,10 +345,10 @@ def format_for_prompt(signal: Dict) -> str:
     if earnings.get("score") is not None:
         lines.append(
             f"    Earnings surprise   (22%): {earnings['score']:+.2f} — "
-            f"avg EPS surprise {earnings.get('surprise_pct', 0):+.1f}%"
+            f"avg EPS surprise {earnings.get('surprise_pct', 0):+.1f}%  [CONTEXT ONLY — quarterly]"
         )
     else:
-        lines.append("    Earnings surprise   (22%): no data")
+        lines.append("    Earnings surprise   (22%): no data  [CONTEXT ONLY — quarterly]")
 
     if alpaca.get("score") is not None:
         lines.append(
@@ -356,10 +372,10 @@ def format_for_prompt(signal: Dict) -> str:
         c_sells = congress.get("congress_sells", 0)
         lines.append(
             f"    Congressional trades (13%): {congress['score']:+.2f} — "
-            f"{c_buys} buy / {c_sells} sell (SEC EDGAR Form 4, 90 days)"
+            f"{c_buys} buy / {c_sells} sell (SEC EDGAR Form 4, 90 days)  [CONTEXT ONLY — 90-day window]"
         )
     else:
-        lines.append("    Congressional trades (13%): no filings found")
+        lines.append("    Congressional trades (13%): no filings found  [CONTEXT ONLY — 90-day window]")
 
     extra_headlines = signal.get("yahoo_news_headlines", [])
     if extra_headlines:

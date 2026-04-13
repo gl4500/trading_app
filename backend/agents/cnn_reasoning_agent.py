@@ -132,13 +132,16 @@ class CNNReasoningAgent(BaseAgent):
         catalysts:       Optional[List[Dict]] = None,
         macro_text:      str = "",
     ) -> str:
+        _CONTEXT_ONLY_KEYS = {"earnings_surprise", "congressional_trades"}
         weight_lines = "\n".join(
             f"  • {name:<25} learned={w*100:5.1f}%  hardcoded={_HARDCODED[name]}%  "
             f"{'▲ elevated' if w*100 > _HARDCODED[name]+2 else ('▼ reduced' if w*100 < _HARDCODED[name]-2 else '≈ same')}"
+            + (" [CONTEXT ONLY]" if name in _CONTEXT_ONLY_KEYS else "")
             for name, w in learned_weights.items()
         )
         score_lines = "\n".join(
             f"  • {name:<25} {f'{v:+.3f}' if v is not None else 'n/a'}"
+            + (" [CONTEXT ONLY — stale data]" if name in _CONTEXT_ONLY_KEYS else "")
             for name, v in current_scores.items()
         )
 
@@ -213,6 +216,8 @@ class CNNReasoningAgent(BaseAgent):
             f"## Task\n"
             f"Follow these steps and then output JSON:\n"
             f"Step 1 — Agreement: Does the CNN direction agree with the composite score sign? "
+            f"Note: composite reflects fresh sources only (analyst_consensus + alpaca_news + yahoo_news) — "
+            f"stale sources (earnings_surprise, congressional_trades) are context only and not included. "
             f"State yes or no and why.\n"
             f"Step 2 — Agents: Name the top-2 agents by performance score and their actions. "
             f"Do they support or contradict the CNN?\n"
