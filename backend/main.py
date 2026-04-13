@@ -19,7 +19,7 @@ import subprocess
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from typing import Dict, List, Optional, Set
 
@@ -87,6 +87,13 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
+
+
+def _parse_ts(s: str) -> datetime:
+    """Parse an ISO timestamp; treat naive strings as UTC so aware arithmetic works."""
+    dt = datetime.fromisoformat(s)
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+
 
 # Ollama is the default primary model — always active unless explicitly disabled.
 # Set before any agent or scanner code runs so the flag is visible to all modules.
@@ -285,7 +292,7 @@ async def init_agents() -> None:
                     action=t["action"],
                     shares=t["shares"],
                     price=t["price"],
-                    timestamp=datetime.fromisoformat(t["timestamp"]),
+                    timestamp=_parse_ts(t["timestamp"]),
                     reasoning=t.get("reasoning", ""),
                     pnl=t.get("pnl", 0.0),
                 ))

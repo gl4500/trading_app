@@ -292,6 +292,10 @@ async def restore_value_history(agent_id: int, limit: int = 2000) -> List[Tuple[
         for row in rows:
             try:
                 ts = datetime.fromisoformat(row["timestamp"])
+                # Older DB rows were stored as naive UTC strings (no +00:00).
+                # Normalize to aware so _calculate_sharpe can subtract timestamps.
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
             except ValueError:
                 continue
             result.append((ts, row["total_value"]))
