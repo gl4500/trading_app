@@ -26,6 +26,10 @@ from data.cnn_model import (
     HAS_TORCH,
 )
 
+if HAS_TORCH:
+    import torch
+    import torch.nn as nn
+
 
 def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True):
     """Build a minimal labelled history DataFrame."""
@@ -364,6 +368,120 @@ class TestTrainingSummary(unittest.TestCase):
                 )
             finally:
                 _cm._MODEL_PATH = orig_path
+
+
+class TestGatedConv1d(unittest.TestCase):
+    """Unit tests for the GatedConv1d module and _build_glu_net factory."""
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_output_shape_preserved(self):
+        """GatedConv1d must produce the same (batch, out_ch, T) shape as Conv1d."""
+        from data.cnn_model import GatedConv1d
+        block = GatedConv1d(7, 16, kernel_size=3, padding=1)
+        x = torch.randn(4, 7, WINDOW_SIZE)
+        out = block(x)
+        self.assertEqual(out.shape, (4, 16, WINDOW_SIZE))
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_gate_zeros_output_when_gate_bias_very_negative(self):
+        """sigmoid(-100) ≈ 0 → output should be ~0 regardless of main path."""
+        from data.cnn_model import GatedConv1d
+        block = GatedConv1d(1, 1, kernel_size=1, padding=0)
+        nn.init.zeros_(block.conv_main.weight)
+        nn.init.ones_(block.conv_main.bias)          # main always outputs 1
+        nn.init.zeros_(block.conv_gate.weight)
+        nn.init.constant_(block.conv_gate.bias, -100.0)  # sigmoid → 0
+        x = torch.ones(1, 1, 5)
+        out = block(x)
+        self.assertTrue((out.abs() < 0.01).all(), f"Expected ~0, got {out}")
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_gate_passes_output_when_gate_bias_very_positive(self):
+        """sigmoid(+100) ≈ 1 → output ≈ main path value."""
+        from data.cnn_model import GatedConv1d
+        block = GatedConv1d(1, 1, kernel_size=1, padding=0)
+        nn.init.zeros_(block.conv_main.weight)
+        nn.init.constant_(block.conv_main.bias, 2.0)     # main always outputs 2
+        nn.init.zeros_(block.conv_gate.weight)
+        nn.init.constant_(block.conv_gate.bias, 100.0)   # sigmoid → 1
+        x = torch.ones(1, 1, 5)
+        out = block(x)
+        self.assertTrue((out - 2.0).abs().max() < 0.01, f"Expected ~2, got {out}")
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_first_block_of_glu_net_is_gated_conv(self):
+        """_build_glu_net must use GatedConv1d as the first (and all conv) blocks."""
+        from data.cnn_model import _build_glu_net, GatedConv1d
+        net = _build_glu_net(N_CHANNELS)
+        self.assertIsInstance(net[0], GatedConv1d)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_glu_net_output_shape(self):
+        """_build_glu_net must produce (batch, 1) output for (batch, C, T) input."""
+        from data.cnn_model import _build_glu_net
+        net = _build_glu_net(N_CHANNELS)
+        net.eval()
+        x = torch.randn(4, N_CHANNELS, WINDOW_SIZE)
+        with torch.no_grad():
+            out = net(x)
+        self.assertEqual(out.shape, (4, 1))
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_signal_cnn_uses_glu_architecture(self):
+        """The live SignalCNN model must use GatedConv1d blocks, not plain Conv1d."""
+        from data.cnn_model import GatedConv1d
+        model = SignalCNN()
+        self.assertIsInstance(model._net[0], GatedConv1d)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_glu_model_trains_and_predicts(self):
+        """End-to-end: GLU model must fit without error and return valid predictions."""
+        model = SignalCNN()
+        df = _make_df(60)
+        X, y, w = build_training_windows(df)
+        model.fit(X, y, epochs=5, sample_weights=w)
+        self.assertTrue(model.is_trained)
+        x = np.random.randn(N_CHANNELS, WINDOW_SIZE).astype(np.float32)
+        pred, direction, conf = model.predict(x)
+        self.assertIsInstance(pred, float)
+        self.assertIn(direction, ("bull", "neutral", "bear"))
+        self.assertGreaterEqual(conf, 0.0)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_glu_save_load_roundtrip(self):
+        """GLU architecture must survive save → load with matching weights."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orig_path = cm._MODEL_PATH
+            cm._MODEL_PATH = os.path.join(tmpdir, "glu_cnn.pt")
+            try:
+                model_a = SignalCNN()
+                df = _make_df(60)
+                X, y, w = build_training_windows(df)
+                model_a.fit(X, y, epochs=5, sample_weights=w)
+                model_a.save()
+
+                model_b = SignalCNN()
+                loaded = model_b.load()
+                self.assertTrue(loaded)
+                self.assertTrue(model_b.is_trained)
+                for k in SOURCE_NAMES:
+                    self.assertAlmostEqual(
+                        model_a.get_learned_weights()[k],
+                        model_b.get_learned_weights()[k],
+                        places=5,
+                    )
+            finally:
+                cm._MODEL_PATH = orig_path
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_learned_weights_sum_to_one_after_glu_training(self):
+        """get_learned_weights() must still sum to 1.0 with GLU first layer."""
+        model = SignalCNN()
+        df = _make_df(60)
+        X, y, w = build_training_windows(df)
+        model.fit(X, y, epochs=5, sample_weights=w)
+        weights = model.get_learned_weights()
+        self.assertAlmostEqual(sum(weights.values()), 1.0, places=5)
 
 
 class TestDiagnoseFunction(unittest.TestCase):

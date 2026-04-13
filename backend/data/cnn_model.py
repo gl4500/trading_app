@@ -1,27 +1,37 @@
 """
 Temporal 1-D CNN for learning optimal composite signal source weights.
 
-Architecture
-------------
-  Input   : (batch, 5, T)   — 5 source scores × T time-steps
-  Conv1d  : 5  → 16, k=3   — short-term trend per source
-  BatchNorm + ReLU + Dropout(0.2)
-  Conv1d  : 16 → 32, k=3   — higher-order cross-source patterns
-  BatchNorm + ReLU + Dropout(0.2)
-  Conv1d  : 32 → 16, k=3   — compression
-  ReLU
-  AdaptiveAvgPool1d(1)       — global temporal pooling  → (batch, 16)
+Architecture (GLU-gated)
+------------------------
+  Input       : (batch, 7, T)  — 7 channels (5 source + 2 agent) × T time-steps
+  GatedConv1d : 7  → 16, k=3  — conv_main(x) * sigmoid(conv_gate(x))
+  BatchNorm1d(16) + Dropout(0.2)
+  GatedConv1d : 16 → 32, k=3  — higher-order cross-source patterns
+  BatchNorm1d(32) + Dropout(0.2)
+  GatedConv1d : 32 → 16, k=3  — compression
+  AdaptiveAvgPool1d(1)          — global temporal pooling → (batch, 16)
   Linear  : 16 → 8
   ReLU
-  Linear  : 8  → 1           — predicted 1-day forward return
+  Linear  : 8  → 1             — predicted 1-day forward return
 
-Total parameters ≈ 3 400 — trains in <5 s on CPU, <1 s on GPU.
+Total parameters ≈ 6 800 — 2× first-gen due to dual-path gating.
+
+GLU gating
+----------
+  Each GatedConv1d block runs two parallel Conv1d layers (main + gate).
+  The sigmoid gate outputs 0–1 per channel per timestep, multiplied
+  element-wise against the main path:
+      output = conv_main(x) ⊗ σ(conv_gate(x))
+  This lets the network suppress noisy indicators (e.g., RSI in trending
+  markets, MACD in range-bound markets) on each forward pass without
+  any manual feature engineering.
 
 Learned source importance
 -------------------------
-  After training, sum |weight| magnitudes in the first Conv1d layer across
-  output channels and kernel positions to get a per-source importance vector,
-  then normalise to [0, 1] → these replace the hardcoded SOURCE_WEIGHTS.
+  After training, sum |weight| magnitudes in the first GatedConv1d's
+  conv_main layer across output channels and kernel positions to get a
+  per-source importance vector, then normalise to [0, 1] → these replace
+  the hardcoded SOURCE_WEIGHTS.
 
 Device selection
 ----------------
@@ -121,8 +131,60 @@ def _device() -> "torch.device":
 
 # ── model definition ──────────────────────────────────────────────────────────
 
+if HAS_TORCH:
+    class GatedConv1d(nn.Module):
+        """
+        Gated Linear Unit (GLU) convolution block.
+
+        Runs two parallel Conv1d layers over the same input:
+            output = conv_main(x) ⊗ σ(conv_gate(x))
+
+        The sigmoid gate produces per-channel values in [0, 1] that multiply
+        the main path element-wise.  This lets the network learn to suppress
+        noisy indicators on each forward pass — no separate ReLU needed; the
+        gate IS the nonlinearity.
+        """
+
+        def __init__(
+            self,
+            in_channels: int,
+            out_channels: int,
+            kernel_size: int,
+            padding: int = 0,
+        ) -> None:
+            super().__init__()
+            self.conv_main = nn.Conv1d(in_channels, out_channels, kernel_size, padding=padding)
+            self.conv_gate = nn.Conv1d(in_channels, out_channels, kernel_size, padding=padding)
+
+        def forward(self, x: "torch.Tensor") -> "torch.Tensor":
+            return self.conv_main(x) * torch.sigmoid(self.conv_gate(x))
+
+
+def _build_glu_net(n_channels: int = N_CHANNELS) -> "nn.Module":
+    """Construct the GLU-gated CNN as an nn.Sequential."""
+    return nn.Sequential(
+        # Block 1 — GLU gate replaces ReLU as the nonlinearity
+        GatedConv1d(n_channels, 16, kernel_size=3, padding=1),
+        nn.BatchNorm1d(16),
+        nn.Dropout(0.2),
+        # Block 2
+        GatedConv1d(16, 32, kernel_size=3, padding=1),
+        nn.BatchNorm1d(32),
+        nn.Dropout(0.2),
+        # Block 3 — compress
+        GatedConv1d(32, 16, kernel_size=3, padding=1),
+        # Global pool
+        nn.AdaptiveAvgPool1d(1),   # → (batch, 16, 1)
+        nn.Flatten(),              # → (batch, 16)
+        # Head
+        nn.Linear(16, 8),
+        nn.ReLU(),
+        nn.Linear(8, 1),
+    )
+
+
 def _build_net(n_channels: int = N_CHANNELS) -> "nn.Module":
-    """Construct the CNN as a plain nn.Sequential."""
+    """Legacy non-gated architecture — kept for loading old checkpoints only."""
     return nn.Sequential(
         # Block 1
         nn.Conv1d(n_channels, 16, kernel_size=3, padding=1),
@@ -247,7 +309,7 @@ class SignalCNN:
         self._dev        = _device()
 
         if HAS_TORCH:
-            self._net = _build_net(n_channels).to(self._dev)
+            self._net = _build_glu_net(n_channels).to(self._dev)
             self._opt = optim.Adam(self._net.parameters(), lr=lr)
         else:
             self._net = None
@@ -288,12 +350,12 @@ class SignalCNN:
         actual_channels = X.shape[1]
         if actual_channels != self._n_channels:
             logger.info(
-                f"SignalCNN: rebuilding net for {actual_channels} input channels "
+                f"SignalCNN: rebuilding GLU net for {actual_channels} input channels "
                 f"(was {self._n_channels})"
             )
             self._n_channels = actual_channels
             lr = self._opt.param_groups[0]["lr"] if self._opt else 3e-4
-            self._net = _build_net(actual_channels).to(self._dev)
+            self._net = _build_glu_net(actual_channels).to(self._dev)
             self._opt = optim.Adam(self._net.parameters(), lr=lr)
 
         # ── Train / validation split (80 / 20) ───────────────────────────────
@@ -417,9 +479,14 @@ class SignalCNN:
         if not HAS_TORCH or self._net is None or not self._trained:
             return _DEFAULT_WEIGHTS.copy()
 
-        # First layer in the Sequential is Conv1d(n_channels→16)
-        first_conv: "nn.Conv1d" = self._net[0]
-        W = first_conv.weight.detach().cpu().numpy()   # (16, C, 3)
+        # First layer in the Sequential is GatedConv1d (GLU) or Conv1d (legacy).
+        # Read weights from the main path only — the gate path is a control signal,
+        # not a feature extractor.
+        first_block = self._net[0]
+        if hasattr(first_block, "conv_main"):
+            W = first_block.conv_main.weight.detach().cpu().numpy()   # (16, C, 3)
+        else:
+            W = first_block.weight.detach().cpu().numpy()             # legacy
         importance = np.abs(W).sum(axis=(0, 2))        # (C,) — sum over C_out and K
 
         # Only report importance for the SOURCE channels (first 5).
@@ -440,6 +507,7 @@ class SignalCNN:
         os.makedirs(_MODEL_DIR, exist_ok=True)
         torch.save(
             {
+                "arch":       "glu",          # identifies the GLU architecture
                 "state_dict": self._net.state_dict(),
                 "opt_state":  self._opt.state_dict(),
                 "trained":    self._trained,
@@ -463,15 +531,17 @@ class SignalCNN:
         try:
             ckpt        = torch.load(_MODEL_PATH, map_location=self._dev, weights_only=True)
             saved_ch    = ckpt.get("n_channels", 5)   # default 5 for pre-agent-column models
-            if saved_ch != self._n_channels:
-                # Rebuild net to match saved channel count before loading weights
+            saved_arch  = ckpt.get("arch", "legacy")  # "glu" or "legacy"
+            if saved_ch != self._n_channels or saved_arch != "glu":
+                # Rebuild net to match saved channel count and architecture
                 logger.info(
-                    f"SignalCNN: loading saved model with {saved_ch} channels "
-                    f"(current default {self._n_channels}) — rebuilding net"
+                    f"SignalCNN: loading saved model — arch={saved_arch} ch={saved_ch} "
+                    f"(current arch=glu ch={self._n_channels}) — rebuilding net"
                 )
                 self._n_channels = saved_ch
                 lr = self._opt.param_groups[0]["lr"] if self._opt else 3e-4
-                self._net = _build_net(saved_ch).to(self._dev)
+                builder = _build_glu_net if saved_arch == "glu" else _build_net
+                self._net = builder(saved_ch).to(self._dev)
                 self._opt = optim.Adam(self._net.parameters(), lr=lr)
             self._net.load_state_dict(ckpt["state_dict"])
             self._opt.load_state_dict(ckpt["opt_state"])
