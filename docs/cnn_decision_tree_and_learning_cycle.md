@@ -33,9 +33,12 @@ Signal History (Parquet) ──► CNN Training (24h cycle) ──► Saved Weig
 
 ```
 signal_aggregator.py computes 5 source scores per symbol:
-  analyst_consensus    earnings_surprise    alpaca_news
-  yahoo_news           congressional_trades
-  → weighted sum = composite_score
+  analyst_consensus    earnings_surprise*   alpaca_news
+  yahoo_news           congressional_trades*
+
+  * CONTEXT_ONLY_SOURCES — passed to LLM as background but excluded from composite
+  → composite_score = weighted sum of FRESH sources only
+    (analyst_consensus + alpaca_news + yahoo_news, renormalised to 1.0)
 
 signal_history.record_snapshot()
   Appends one row to  data/history/{SYMBOL}.parquet
@@ -235,6 +238,7 @@ PROMPT SECTIONS:
 
   3. Current Source Scores
        Live scores for all 5 sources + composite score
+       earnings_surprise and congressional_trades labeled [CONTEXT ONLY]
 
   4. Agent Performance Rankings
        All other agents sorted by 30-day performance score
@@ -254,6 +258,7 @@ TASK — 5 reasoning steps:
 
   Step 1 — Agreement
     Does CNN direction agree with composite score sign?
+    (composite = fresh sources only: analyst + alpaca_news + yahoo_news)
 
   Step 2 — Agents
     Name top-2 agents by performance score.
@@ -399,4 +404,4 @@ DIAGNOSIS THRESHOLDS (tuned for 1-day returns clipped ±20%):
 
 ---
 
-*Generated 2026-04-13 from live codebase.*
+*Updated 2026-04-12 — stale-source isolation: earnings_surprise and congressional_trades excluded from composite; labeled CONTEXT ONLY in all LLM prompts.*
