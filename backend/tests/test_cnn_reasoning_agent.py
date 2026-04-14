@@ -338,5 +338,160 @@ class TestCNNAnalyzeCatalystPassthrough(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("Overnight / Sentinel Catalysts", captured.get("prompt", ""))
 
 
+# ── Portfolio context + goal-aware sizing tests ───────────────────────────────
+
+class TestCNNPortfolioContext(unittest.TestCase):
+    """_build_portfolio_context computes the right values."""
+
+    def setUp(self):
+        self.agent = CNNReasoningAgent()
+
+    def test_returns_required_keys(self):
+        ctx = self.agent._build_portfolio_context({})
+        for key in ("total_value", "cash", "deployed_pct", "ytd_pnl", "annual_goal", "pace_diff"):
+            self.assertIn(key, ctx)
+
+    def test_deployed_pct_zero_when_all_cash(self):
+        ctx = self.agent._build_portfolio_context({})
+        self.assertAlmostEqual(ctx["deployed_pct"], 0.0, places=1)
+
+    def test_ytd_pnl_negative_when_below_starting_capital(self):
+        self.agent.portfolio.cash = 80_000.0
+        ctx = self.agent._build_portfolio_context({})
+        self.assertLess(ctx["ytd_pnl"], 0)
+
+    def test_ytd_pnl_positive_when_above_starting_capital(self):
+        self.agent.portfolio.cash = 120_000.0
+        ctx = self.agent._build_portfolio_context({})
+        self.assertGreater(ctx["ytd_pnl"], 0)
+
+    def test_annual_goal_matches_config(self):
+        from config import config
+        ctx = self.agent._build_portfolio_context({})
+        self.assertEqual(ctx["annual_goal"], config.ANNUAL_GOAL)
+
+    def test_pace_diff_negative_when_behind(self):
+        """Starting at $100K with no gains → always behind a non-zero annual goal."""
+        ctx = self.agent._build_portfolio_context({})
+        self.assertLess(ctx["pace_diff"], 0)
+
+
+class TestCNNPromptPortfolioSection(unittest.TestCase):
+    """_build_prompt includes Portfolio Context when portfolio_context is provided."""
+
+    def setUp(self):
+        self.agent = CNNReasoningAgent()
+        self.base_kwargs = dict(
+            symbol="AAPL", price=150.0, pred_return=0.01, direction="bull",
+            cnn_conf=0.7,
+            learned_weights={"analyst_consensus": 0.35, "earnings_surprise": 0.22,
+                             "alpaca_news": 0.18, "yahoo_news": 0.12,
+                             "congressional_trades": 0.13},
+            current_scores={"analyst_consensus": 0.1, "earnings_surprise": None,
+                            "alpaca_news": 0.0, "yahoo_news": 0.0,
+                            "congressional_trades": 0.0},
+            composite_score=0.05,
+            catalysts=None,
+            macro_text="",
+        )
+
+    def test_portfolio_section_absent_when_not_provided(self):
+        prompt = self.agent._build_prompt(**self.base_kwargs)
+        self.assertNotIn("Portfolio Context", prompt)
+
+    def test_portfolio_section_present_when_provided(self):
+        pctx = {"total_value": 95000, "cash": 60000, "deployed_pct": 37.0,
+                "ytd_pnl": -5000, "annual_goal": 50000, "pace_diff": -8000}
+        prompt = self.agent._build_prompt(**self.base_kwargs, portfolio_context=pctx)
+        self.assertIn("Portfolio Context", prompt)
+
+    def test_total_value_in_prompt(self):
+        pctx = {"total_value": 95000, "cash": 60000, "deployed_pct": 37.0,
+                "ytd_pnl": -5000, "annual_goal": 50000, "pace_diff": -8000}
+        prompt = self.agent._build_prompt(**self.base_kwargs, portfolio_context=pctx)
+        self.assertIn("95,000", prompt)
+
+    def test_annual_goal_in_prompt(self):
+        pctx = {"total_value": 95000, "cash": 60000, "deployed_pct": 37.0,
+                "ytd_pnl": -5000, "annual_goal": 50000, "pace_diff": -8000}
+        prompt = self.agent._build_prompt(**self.base_kwargs, portfolio_context=pctx)
+        self.assertIn("50,000", prompt)
+
+    def test_behind_pace_label_in_prompt(self):
+        pctx = {"total_value": 95000, "cash": 60000, "deployed_pct": 37.0,
+                "ytd_pnl": -5000, "annual_goal": 50000, "pace_diff": -8000}
+        prompt = self.agent._build_prompt(**self.base_kwargs, portfolio_context=pctx)
+        self.assertIn("behind", prompt)
+
+    def test_ahead_pace_label_in_prompt(self):
+        pctx = {"total_value": 160000, "cash": 60000, "deployed_pct": 37.0,
+                "ytd_pnl": 60000, "annual_goal": 50000, "pace_diff": 10000}
+        prompt = self.agent._build_prompt(**self.base_kwargs, portfolio_context=pctx)
+        self.assertIn("ahead", prompt)
+
+    def test_step5_mentions_size_pct(self):
+        """Step 5 must ask Ollama to return size_pct."""
+        prompt = self.agent._build_prompt(**self.base_kwargs)
+        self.assertIn("size_pct", prompt)
+
+    def test_json_schema_includes_size_pct(self):
+        """Output JSON schema in prompt must include size_pct field."""
+        prompt = self.agent._build_prompt(**self.base_kwargs)
+        self.assertIn('"size_pct"', prompt)
+
+
+class TestCNNGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
+    """analyze() uses size_pct from Ollama to size BUY positions."""
+
+    def setUp(self):
+        self.agent = CNNReasoningAgent()
+        self.agent.portfolio.cash = 100_000.0
+
+    async def test_buy_uses_size_pct_from_ollama(self):
+        """size_pct=0.10 → 10% of $100k portfolio at $100/share = 100 shares."""
+        mkt = _make_market(["AAPL"], price=100.0)
+        buy_resp = {"action": "BUY", "confidence": 0.80, "size_pct": 0.10, "reasoning": "strong"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        self.assertEqual(len(buys), 1)
+        self.assertEqual(buys[0].shares, 100)
+
+    async def test_size_pct_clamped_at_max_position_size(self):
+        """size_pct > MAX_POSITION_SIZE is clamped to MAX_POSITION_SIZE (15%)."""
+        from config import config
+        mkt = _make_market(["AAPL"], price=100.0)
+        buy_resp = {"action": "BUY", "confidence": 0.90, "size_pct": 0.99, "reasoning": "all in"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        # MAX_POSITION_SIZE of $100k at $100 = 150 shares max
+        self.assertLessEqual(buys[0].shares, int(100_000 * config.MAX_POSITION_SIZE / 100) + 1)
+
+    async def test_size_pct_clamped_below_2pct(self):
+        """size_pct < 0.02 is raised to 0.02 (minimum meaningful position)."""
+        mkt = _make_market(["AAPL"], price=100.0)
+        buy_resp = {"action": "BUY", "confidence": 0.75, "size_pct": 0.001, "reasoning": "tiny"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        # 2% of $100k at $100 = 20 shares minimum
+        self.assertGreaterEqual(buys[0].shares, 20)
+
+    async def test_missing_size_pct_defaults_to_10pct(self):
+        """If Ollama omits size_pct, fall back to 10% of portfolio value."""
+        mkt = _make_market(["AAPL"], price=100.0)
+        buy_resp = {"action": "BUY", "confidence": 0.75, "reasoning": "no size"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        # 10% of $100k at $100 = 100 shares
+        self.assertEqual(buys[0].shares, 100)
+
+
 if __name__ == "__main__":
     unittest.main()

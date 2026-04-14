@@ -131,6 +131,7 @@ class CNNReasoningAgent(BaseAgent):
         agent_signals:   Optional[Dict[str, tuple]] = None,
         catalysts:       Optional[List[Dict]] = None,
         macro_text:      str = "",
+        portfolio_context: Optional[Dict] = None,
     ) -> str:
         _CONTEXT_ONLY_KEYS = {"earnings_surprise", "congressional_trades"}
         weight_lines = "\n".join(
@@ -195,6 +196,30 @@ class CNNReasoningAgent(BaseAgent):
 
         macro_section = f"\n## Macro Context\n{macro_text}\n" if macro_text else ""
 
+        # ── Portfolio & goal context ──────────────────────────────────────────
+        portfolio_section = ""
+        if portfolio_context:
+            total      = portfolio_context.get("total_value", 0.0)
+            cash       = portfolio_context.get("cash", 0.0)
+            deployed   = portfolio_context.get("deployed_pct", 0.0)
+            idle       = 100.0 - deployed
+            ytd_pnl    = portfolio_context.get("ytd_pnl", 0.0)
+            annual_goal = portfolio_context.get("annual_goal", 0.0)
+            pace_diff  = portfolio_context.get("pace_diff", 0.0)
+            pace_label = (
+                f"ahead by ${pace_diff:,.0f}"
+                if pace_diff >= 0
+                else f"behind by ${abs(pace_diff):,.0f}"
+            )
+            portfolio_section = (
+                f"\n## Portfolio Context\n"
+                f"  Total value    : ${total:,.0f}\n"
+                f"  Cash available : ${cash:,.0f}  ({deployed:.0f}% deployed, {idle:.0f}% idle)\n"
+                f"  Annual goal    : ${annual_goal:,.0f}\n"
+                f"  YTD P&L        : {'+' if ytd_pnl >= 0 else ''}${ytd_pnl:,.0f}  "
+                f"(pace: {pace_label})\n"
+            )
+
         return (
             f"You are an expert quantitative trader. "
             f"A trained temporal CNN has produced the following signal for {symbol}.\n\n"
@@ -210,7 +235,8 @@ class CNNReasoningAgent(BaseAgent):
             f"  Composite score        : {composite_score:+.3f}\n"
             f"{agent_section}"
             f"{catalyst_section}"
-            f"{macro_section}\n"
+            f"{macro_section}"
+            f"{portfolio_section}\n"
             f"## Stock\n"
             f"  Symbol: {symbol}   Price: ${price:.2f}\n\n"
             f"## Task\n"
@@ -235,9 +261,13 @@ class CNNReasoningAgent(BaseAgent):
             f"If CNN and composite conflict, prefer HOLD unless agent consensus is strong. "
             f"Set confidence to the CNN confidence value; reduce by up to 0.15 only if a FRESH "
             f"macro signal is a clear headwind; increase by up to 0.10 only if FRESH macro is "
-            f"clearly supportive. Stale macro data must not move the confidence number.\n\n"
+            f"clearly supportive. Stale macro data must not move the confidence number. "
+            f"For BUY signals, also set size_pct: the fraction of total portfolio value to deploy (0.0–1.0). "
+            f"Consider signal strength, goal pace, and idle cash together — "
+            f"strong signal + behind pace + ample idle cash → higher size_pct (0.10–0.15); "
+            f"weak signal + ahead of pace → lower size_pct (0.02–0.05) or HOLD.\n\n"
             f"Respond with ONLY valid JSON (no markdown, no extra text):\n"
-            f'{{"action":"BUY"|"SELL"|"HOLD","confidence":<0.0-1.0>,"reasoning":"<2 sentences max>"}}'
+            f'{{"action":"BUY"|"SELL"|"HOLD","confidence":<0.0-1.0>,"size_pct":<0.0-1.0>,"reasoning":"<2 sentences max>"}}'
         )
 
     async def _ollama_decision(self, prompt: str) -> Optional[Dict]:
@@ -272,6 +302,37 @@ class CNNReasoningAgent(BaseAgent):
             logger.warning(f"CNNReasoningAgent: Ollama error — using rule-based fallback: {exc}")
         return None
 
+    # ── portfolio + goal context ──────────────────────────────────────────────
+
+    def _build_portfolio_context(self, prices: Dict[str, float]) -> Dict:
+        """
+        Snapshot of current portfolio state and annual goal pace.
+        Passed into _build_prompt so Ollama can reason about position sizing.
+        """
+        from datetime import date
+        total_value  = self.portfolio.get_total_value(prices)
+        cash         = self.portfolio.cash
+        deployed     = max(0.0, total_value - cash)
+        deployed_pct = (deployed / total_value * 100) if total_value > 0 else 0.0
+
+        ytd_pnl = total_value - config.STARTING_CAPITAL
+
+        # Estimate trading days elapsed this calendar year (252 trading days / 365 calendar days)
+        year_start       = date(date.today().year, 1, 1)
+        calendar_elapsed = (date.today() - year_start).days + 1
+        trading_elapsed  = max(1, int(calendar_elapsed * 252 / 365))
+        ytd_target       = config.ANNUAL_GOAL * trading_elapsed / 252
+        pace_diff        = ytd_pnl - ytd_target
+
+        return {
+            "total_value":  total_value,
+            "cash":         cash,
+            "deployed_pct": deployed_pct,
+            "ytd_pnl":      ytd_pnl,
+            "annual_goal":  config.ANNUAL_GOAL,
+            "pace_diff":    pace_diff,
+        }
+
     # ── main analysis loop ────────────────────────────────────────────────────
 
     async def analyze(self, market_context: Dict) -> List[Signal]:
@@ -283,6 +344,9 @@ class CNNReasoningAgent(BaseAgent):
             if isinstance(ctx, dict)
         }
         signals: List[Signal] = []
+
+        # Build portfolio + goal context once per cycle (shared across all symbols)
+        portfolio_context = self._build_portfolio_context(prices)
 
         for symbol, ctx in market_context.items():
             if not isinstance(ctx, dict):
@@ -346,6 +410,7 @@ class CNNReasoningAgent(BaseAgent):
                 agent_signals=other_agent_signals or None,
                 catalysts=catalysts,
                 macro_text=macro_text,
+                portfolio_context=portfolio_context,
             )
             decision = await self._ollama_decision(prompt)
 
@@ -359,6 +424,7 @@ class CNNReasoningAgent(BaseAgent):
                 decision = {
                     "action":     action,
                     "confidence": cnn_conf,
+                    "size_pct":   0.10,
                     "reasoning":  (
                         f"CNN-only ({signal_cnn.device}): "
                         f"predicted {pred_return*100:+.1f}% 1D return ({direction})"
@@ -369,11 +435,16 @@ class CNNReasoningAgent(BaseAgent):
             confidence = float(decision.get("confidence") or cnn_conf)
             reasoning  = str(decision.get("reasoning", ""))
 
-            portfolio_val = self.portfolio.get_total_value(prices)
-
             if action == "BUY" and confidence >= 0.50 and price > 0:
-                max_alloc = portfolio_val * config.MAX_POSITION_SIZE
-                shares    = max(1, int(max_alloc / price))
+                # Use Ollama's size_pct (fraction of total portfolio value to deploy).
+                # Clamp: floor at 2% (minimum meaningful), ceiling at MAX_POSITION_SIZE.
+                # Final alloc also capped at 95% of available cash so we never overspend.
+                portfolio_val = self.portfolio.get_total_value(prices)
+                raw_pct  = decision.get("size_pct")
+                size_pct = float(raw_pct) if raw_pct is not None else 0.10
+                size_pct = max(0.02, min(config.MAX_POSITION_SIZE, size_pct))
+                alloc    = min(portfolio_val * size_pct, self.portfolio.cash * 0.95)
+                shares   = max(1, int(alloc / price))
                 signals.append(Signal(
                     symbol    = symbol,
                     action    = "BUY",

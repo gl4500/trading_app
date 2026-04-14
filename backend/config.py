@@ -60,6 +60,7 @@ class Config:
     MAX_POSITION_SIZE: float = float(os.getenv("MAX_POSITION_SIZE", "0.15"))  # 15% max per position
     TRADE_INTERVAL_SECONDS: int = int(os.getenv("TRADE_INTERVAL_SECONDS", "60"))
     DAILY_LOSS_LIMIT: float = float(os.getenv("DAILY_LOSS_LIMIT", "0.05"))  # 5% daily loss stops trading
+    ANNUAL_GOAL: float = float(os.getenv("ANNUAL_GOAL", "50000"))  # annual P&L target in dollars
 
     # Watchlist — static seed symbols used as fallback when the scanner pool is small.
     # Set WATCHLIST=* to disable static seeds entirely — the watchlist is then built
