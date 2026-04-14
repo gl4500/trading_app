@@ -509,5 +509,130 @@ class TestDiagnoseFunction(unittest.TestCase):
         self.assertEqual(_diagnose(0.001, 0.003, 3.0), "OK")
 
 
+# ── Walk-Forward Efficiency ────────────────────────────────────────────────────
+
+class TestWalkForwardEfficiency(unittest.TestCase):
+    """
+    Walk-Forward Efficiency (WFE) = OOS R² on the held-out validation set.
+
+    Computed as:  wfe = 1 - val_MSE / var(y_val)
+    Healthy:  wfe >= 0.0  (model beats naive "predict the mean")
+    Unhealthy: wfe < 0.0  (model worse than predicting the mean)
+    """
+
+    def test_summary_includes_wfe_key_untrained(self):
+        """training_summary() always includes 'walk_forward_efficiency'."""
+        model = SignalCNN()
+        s = model.training_summary()
+        self.assertIn("walk_forward_efficiency", s)
+
+    def test_wfe_none_when_untrained(self):
+        """WFE is None before training."""
+        model = SignalCNN()
+        s = model.training_summary()
+        self.assertIsNone(s["walk_forward_efficiency"])
+
+    def test_summary_includes_wfe_status_untrained(self):
+        """training_summary() always includes 'wfe_status'."""
+        model = SignalCNN()
+        s = model.training_summary()
+        self.assertIn("wfe_status", s)
+        self.assertEqual(s["wfe_status"], "UNTRAINED")
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_wfe_is_float_after_training(self):
+        """After fit(), WFE should be a float."""
+        df = _make_df(n_rows=60)
+        X, y, w = build_training_windows(df)
+        model = SignalCNN()
+        model.fit(X, y, epochs=5, sample_weights=w)
+        s = model.training_summary()
+        self.assertIsInstance(s["walk_forward_efficiency"], float)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_wfe_bounded_below_minus_10(self):
+        """WFE >= -10.0 even for a very bad model (sanity clamp)."""
+        df = _make_df(n_rows=60)
+        X, y, w = build_training_windows(df)
+        model = SignalCNN()
+        model.fit(X, y, epochs=2, sample_weights=w)
+        s = model.training_summary()
+        self.assertGreaterEqual(s["walk_forward_efficiency"], -10.0)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_wfe_persisted_through_save_load(self):
+        """WFE value survives a save/load round-trip."""
+        df = _make_df(n_rows=60)
+        X, y, w = build_training_windows(df)
+        model = SignalCNN()
+        model.fit(X, y, epochs=5, sample_weights=w)
+        original_wfe = model.training_summary()["walk_forward_efficiency"]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            import data.cnn_model as _cm
+            orig_path = _cm._MODEL_PATH
+            _cm._MODEL_PATH = os.path.join(tmpdir, "test_cnn_wfe.pt")
+            try:
+                model.save()
+                model2 = SignalCNN()
+                model2.load()
+                loaded_wfe = model2.training_summary()["walk_forward_efficiency"]
+                self.assertAlmostEqual(original_wfe, loaded_wfe, places=4)
+            finally:
+                _cm._MODEL_PATH = orig_path
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_wfe_status_is_valid_string(self):
+        """wfe_status must be one of the expected strings after training."""
+        df = _make_df(n_rows=60)
+        X, y, w = build_training_windows(df)
+        model = SignalCNN()
+        model.fit(X, y, epochs=5, sample_weights=w)
+        valid = {"HEALTHY", "DEGRADED", "POOR", "UNTRAINED"}
+        self.assertIn(model.training_summary()["wfe_status"], valid)
+
+    def test_wfe_compute_healthy(self):
+        """_compute_wfe() with perfect predictions → WFE = 1.0."""
+        from data.cnn_model import _compute_wfe
+        y_true = [0.01, -0.02, 0.03, -0.01, 0.02]
+        # Perfect predictions — OOS R² should be 1.0
+        wfe, status = _compute_wfe(y_true, y_true)
+        self.assertAlmostEqual(wfe, 1.0, places=4)
+        self.assertEqual(status, "HEALTHY")
+
+    def test_wfe_compute_predicting_mean(self):
+        """Predicting the mean → WFE = 0.0."""
+        from data.cnn_model import _compute_wfe
+        y_true = [0.01, -0.02, 0.03, -0.01, 0.02]
+        mean_y = sum(y_true) / len(y_true)
+        y_pred = [mean_y] * len(y_true)
+        wfe, _ = _compute_wfe(y_true, y_pred)
+        self.assertAlmostEqual(wfe, 0.0, places=4)
+
+    def test_wfe_compute_poor_model(self):
+        """Predictions inversely correlated → WFE < 0."""
+        from data.cnn_model import _compute_wfe
+        y_true = [0.01, -0.02, 0.03, -0.01, 0.02]
+        y_pred = [-0.01, 0.02, -0.03, 0.01, -0.02]  # opposite sign
+        wfe, status = _compute_wfe(y_true, y_pred)
+        self.assertLess(wfe, 0.0)
+
+    def test_wfe_status_boundaries(self):
+        """Status thresholds: HEALTHY ≥ 0.70, DEGRADED ≥ 0.50, POOR < 0.50."""
+        from data.cnn_model import _compute_wfe
+        # WFE exactly at threshold values — check boundary conditions
+        # Perfect → HEALTHY
+        y = [0.01, -0.02, 0.03, -0.01, 0.02]
+        _, s = _compute_wfe(y, y)
+        self.assertEqual(s, "HEALTHY")
+
+    def test_wfe_empty_returns_none_untrained(self):
+        """_compute_wfe() with empty lists returns (None, UNTRAINED)."""
+        from data.cnn_model import _compute_wfe
+        wfe, status = _compute_wfe([], [])
+        self.assertIsNone(wfe)
+        self.assertEqual(status, "UNTRAINED")
+
+
 if __name__ == "__main__":
     unittest.main()

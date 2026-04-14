@@ -235,6 +235,27 @@ class BaseAgent(ABC):
             return False
 
         if signal.action == "BUY":
+            # ── Fractional Kelly sizing ───────────────────────────────────────
+            # Apply quarter-Kelly as a position-size CAP: if the agent requested
+            # more shares than Kelly suggests, scale down to the Kelly amount.
+            # Kelly is derived from this agent's own realized win/loss history.
+            kelly_pct    = self.portfolio.kelly_fraction()
+            total_value  = self.portfolio.get_total_value(prices)
+            kelly_alloc  = min(total_value * kelly_pct, self.portfolio.cash * 0.95)
+            kelly_shares = max(1, int(kelly_alloc / price))
+            shares = int(min(signal.shares, kelly_shares))
+            if shares < 1:
+                shares = 1
+            # Create a local copy with Kelly-adjusted share count
+            signal = Signal(
+                action=signal.action,
+                symbol=signal.symbol,
+                confidence=signal.confidence,
+                shares=shares,
+                reasoning=signal.reasoning,
+                agent_name=signal.agent_name,
+            )
+
             allowed, reason = self.risk_manager.check_buy_allowed(
                 signal.symbol, signal.shares, price, self.portfolio, prices
             )

@@ -335,6 +335,45 @@ class Portfolio:
         ]
         return {**metrics, "recent_trades": recent_trades}
 
+    def kelly_fraction(self, half_kelly: float = 0.25) -> float:
+        """
+        Compute the fractional Kelly position size from realized trade history.
+
+        Formula:  full_Kelly = (win_rate × avg_win − loss_rate × avg_loss) / avg_win
+                  result     = full_Kelly × half_kelly   (default: quarter-Kelly)
+
+        Result is clamped to [0.02, MAX_POSITION_SIZE].
+        Returns the default 10 % when fewer than 10 closed trades are available.
+
+        Parameters
+        ----------
+        half_kelly : float, default 0.25
+            Fraction of the full Kelly to use.  0.25 = quarter-Kelly (production
+            standard used by Renaissance, AQR, and Ed Thorp).
+        """
+        sell_trades = [t for t in self.trade_history if t.action == "SELL"]
+        if len(sell_trades) < 10:
+            return 0.10
+
+        wins   = [t for t in sell_trades if t.pnl > 0]
+        losses = [t for t in sell_trades if t.pnl <= 0]
+
+        win_rate  = len(wins)   / len(sell_trades)
+        loss_rate = len(losses) / len(sell_trades)
+
+        avg_win  = (sum(t.pnl for t in wins)          / len(wins))   if wins   else 0.0
+        avg_loss = (abs(sum(t.pnl for t in losses))   / len(losses)) if losses else 0.0
+
+        if avg_win <= 0.0:
+            return 0.10
+
+        # Full Kelly: fraction of bankroll that maximises log-wealth growth
+        full_kelly = (win_rate * avg_win - loss_rate * avg_loss) / avg_win
+
+        # Apply fractional-Kelly multiplier and clamp to safe range
+        result = full_kelly * half_kelly
+        return float(min(config.MAX_POSITION_SIZE, max(0.02, result)))
+
     def get_value_history(self) -> List[Dict]:
         """Get value history for charting."""
         return [

@@ -95,6 +95,54 @@ MIN_TRAIN_SAMPLES = 30   # minimum labelled rows before training starts
 WINDOW_SIZE       = 10   # T: rolling window length fed to the CNN
 
 
+def _compute_wfe(
+    y_true: list,
+    y_pred: list,
+) -> tuple:
+    """
+    Compute Walk-Forward Efficiency (WFE) as the OOS R² on the validation set.
+
+        WFE = 1 − SS_res / SS_tot
+            = 1 − Σ(y_pred − y_true)² / Σ(y_true − ȳ)²
+
+    This is analogous to the standard Walk-Forward Efficiency metric used in
+    quantitative research (healthy ≥ 0.70, degraded 0.50–0.70, poor < 0.50).
+
+    Parameters
+    ----------
+    y_true : list[float]   actual validation labels
+    y_pred : list[float]   model predictions on the same samples
+
+    Returns
+    -------
+    (wfe: float | None, status: str)
+        status ∈ {"HEALTHY", "DEGRADED", "POOR", "UNTRAINED"}
+    """
+    n = len(y_true)
+    if n == 0 or len(y_pred) == 0 or n != len(y_pred):
+        return None, "UNTRAINED"
+
+    mean_y   = sum(y_true) / n
+    ss_tot   = sum((v - mean_y) ** 2 for v in y_true)
+    ss_res   = sum((p - t) ** 2 for p, t in zip(y_pred, y_true))
+
+    if ss_tot < 1e-12:
+        # All labels identical (degenerate fold) — WFE undefined
+        return None, "UNTRAINED"
+
+    wfe = 1.0 - ss_res / ss_tot
+    wfe = max(-10.0, wfe)  # sanity clamp — can't be worse than −10
+
+    if wfe >= 0.70:
+        status = "HEALTHY"
+    elif wfe >= 0.50:
+        status = "DEGRADED"
+    else:
+        status = "POOR"
+
+    return round(wfe, 4), status
+
+
 def _diagnose(train_mse: float, val_mse: float, ratio: float) -> str:
     """
     Return a plain-English diagnosis based on final train and val MSE.
@@ -306,6 +354,8 @@ class SignalCNN:
         self._val_loss:   List[float] = []   # validation MSE per epoch
         self._n_train:    int = 0            # samples used for training
         self._n_val:      int = 0            # samples held out for validation
+        self._wfe:        Optional[float] = None   # Walk-Forward Efficiency (OOS R²)
+        self._wfe_status: str = "UNTRAINED"        # HEALTHY / DEGRADED / POOR / UNTRAINED
         self._dev        = _device()
 
         if HAS_TORCH:
@@ -429,12 +479,25 @@ class SignalCNN:
         overfit_ratio = final_val / final_train if final_train > 1e-10 else float("inf")
         diagnosis = _diagnose(final_train, final_val, overfit_ratio)
 
+        # ── Walk-Forward Efficiency (OOS R²) ──────────────────────────────────
+        # Run the trained model on the held-out validation set and compute R².
+        self._net.eval()
+        with torch.no_grad():
+            val_preds_t = self._net(X_val).squeeze().cpu().tolist()
+        y_val_list = y_val.squeeze().cpu().tolist()
+        if not isinstance(val_preds_t, list):
+            val_preds_t = [float(val_preds_t)]
+        if not isinstance(y_val_list, list):
+            y_val_list = [float(y_val_list)]
+        self._wfe, self._wfe_status = _compute_wfe(y_val_list, val_preds_t)
+
         dev_name = str(self._dev) if self._dev else "cpu"
         logger.info(
             f"SignalCNN: trained {epochs} epochs | "
             f"train={n_train} val={n_val} ({dev_name}) | "
             f"train_MSE={final_train:.6f} val_MSE={final_val:.6f} "
-            f"ratio={overfit_ratio:.2f} | {diagnosis}"
+            f"ratio={overfit_ratio:.2f} | {diagnosis} | "
+            f"WFE={self._wfe} [{self._wfe_status}]"
         )
 
     # ── inference ─────────────────────────────────────────────────────────────
@@ -518,6 +581,8 @@ class SignalCNN:
                 "n_val":      self._n_val,
                 "T":          self.T,
                 "n_channels": self._n_channels,
+                "wfe":        self._wfe,
+                "wfe_status": self._wfe_status,
             },
             _MODEL_PATH,
         )
@@ -551,6 +616,8 @@ class SignalCNN:
             self._val_loss   = ckpt.get("val_loss", [])
             self._n_train    = ckpt.get("n_train", 0)
             self._n_val      = ckpt.get("n_val", 0)
+            self._wfe        = ckpt.get("wfe", None)
+            self._wfe_status = ckpt.get("wfe_status", "UNTRAINED")
             logger.info(f"SignalCNN: loaded ← {_MODEL_PATH} ({saved_ch}ch)")
             return True
         except Exception as exc:
@@ -600,6 +667,9 @@ class SignalCNN:
             # Overfitting diagnosis
             "overfit_ratio":   overfit_ratio,  # val/train — ideally 1.0–2.5
             "diagnosis":       diagnosis,       # OK | OVERFIT | OVERFIT_MEMORIZING | UNDERFIT
+            # Walk-Forward Efficiency (OOS R²)
+            "walk_forward_efficiency": self._wfe,        # None before training
+            "wfe_status":              self._wfe_status,  # HEALTHY | DEGRADED | POOR | UNTRAINED
             # Full loss curves (one float per epoch) for plotting
             "train_loss_curve": self._train_loss,
             "val_loss_curve":   self._val_loss,

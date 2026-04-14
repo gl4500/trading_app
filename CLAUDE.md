@@ -187,6 +187,9 @@ PYTHONPATH=../site-packages ../runtime/python/python.exe -m bandit -r . -x ./tes
 | `data/stooq_client.py` | `test_stooq_client.py` | ✅ covered |
 | `main.py` endpoints | `test_main_endpoints.py` | ✅ covered |
 | security surface (headers, CORS, SQL, secrets) | `test_security.py` | ✅ covered |
+| `data/regime_detector.py` | `test_regime_detector.py` | ✅ covered |
+| `trading/portfolio.py` (Kelly sizing) | `test_portfolio.py::TestKellyFraction` | ✅ covered |
+| `data/cnn_model.py` (WFE) | `test_cnn_model.py::TestWalkForwardEfficiency` | ✅ covered |
 
 ---
 

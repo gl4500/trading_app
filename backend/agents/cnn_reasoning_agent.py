@@ -435,7 +435,11 @@ class CNNReasoningAgent(BaseAgent):
             confidence = float(decision.get("confidence") or cnn_conf)
             reasoning  = str(decision.get("reasoning", ""))
 
-            if action == "BUY" and confidence >= 0.50 and price > 0:
+            # Regime-aware buy gate: bear/high_vol markets require higher confidence
+            from data.regime_detector import regime_detector
+            _buy_threshold = 0.50 + regime_detector.get_confidence_gate()
+
+            if action == "BUY" and confidence >= _buy_threshold and price > 0:
                 # Use Ollama's size_pct (fraction of total portfolio value to deploy).
                 # Clamp: floor at 2% (minimum meaningful), ceiling at MAX_POSITION_SIZE.
                 # Final alloc also capped at 95% of available cash so we never overspend.

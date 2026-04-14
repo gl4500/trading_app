@@ -9,6 +9,77 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2026-04-14] — HMM Regime Detection · Fractional Kelly Sizing · Walk-Forward Efficiency
+
+### Added
+
+- **HMM-inspired Regime Detector** (`backend/data/regime_detector.py`)
+  - New module: pure numpy, no hmmlearn required
+  - 4 states derived from SPY 20-day momentum + annualized realized volatility:
+    - `bull` — momentum ≥ +2%, vol < 20%
+    - `neutral` — momentum between ±2%, vol < 20%
+    - `bear` — momentum ≤ −2%, vol < 20%
+    - `high_vol` — annualized vol ≥ 20% (dominates regardless of direction)
+  - `get_ensemble_regime()` maps 4 states → 3-state EnsembleAgent vocabulary (trending/ranging/volatile)
+  - `get_confidence_gate()` returns additional BUY confidence required by regime (+0.00 bull/neutral, +0.15 bear, +0.20 high_vol)
+  - Module-level singleton `regime_detector` — import from anywhere, updates once per EnsembleAgent cycle
+  - 24 unit tests in `tests/test_regime_detector.py`
+
+- **Dual-signal EnsembleAgent regime consensus** (`backend/agents/ensemble_agent.py`)
+  - `_detect_regime()` now combines SMA/ATR signal with HMM regime_detector output
+  - Conservative consensus: **volatile > ranging > trending** when the two methods disagree
+  - SPY close prices fed to `regime_detector.update()` automatically each detection cycle
+
+- **Regime-aware CNN BUY gate** (`backend/agents/cnn_reasoning_agent.py`)
+  - `_buy_threshold = 0.50 + regime_detector.get_confidence_gate()`
+  - Bull/neutral: threshold stays at 0.50; bear: 0.65; high_vol: 0.70
+  - Prevents the CNN from initiating new long positions aggressively in hostile market conditions
+
+- **Fractional Kelly Position Sizing** (`backend/trading/portfolio.py`, `backend/agents/base_agent.py`)
+  - `Portfolio.kelly_fraction(half_kelly=0.25)` — quarter-Kelly from realized win/loss history
+  - Formula: `f* = (win_rate × avg_win − loss_rate × avg_loss) / avg_win × 0.25`
+  - Clamped to [2%, MAX_POSITION_SIZE]; defaults to 10% when fewer than 10 closed trades
+  - Applied uniformly in `base_agent._execute_signal()` for ALL BUY signals across every agent
+  - Kelly acts as a position-size **cap** — agents can still request less than the Kelly maximum
+  - 10 unit tests in `tests/test_portfolio.py::TestKellyFraction`
+
+- **Walk-Forward Efficiency (WFE)** (`backend/data/cnn_model.py`)
+  - `_compute_wfe(y_true, y_pred)` — OOS R² on held-out validation set
+  - Computed after each `fit()` by running the trained model on the validation fold
+  - Status thresholds: HEALTHY ≥ 0.70 / DEGRADED 0.50–0.70 / POOR < 0.50 / UNTRAINED
+  - Persisted in `.pt` checkpoint (`wfe` + `wfe_status` keys) — survives restarts
+  - 12 unit tests in `tests/test_cnn_model.py::TestWalkForwardEfficiency`
+
+- **Enhanced `/api/cnn-diagnostics` endpoint** (`backend/main.py`)
+  - New response fields: `walk_forward_efficiency`, `wfe_status`, `regime` (full regime detector summary)
+  - `"regime"` includes: current state, confidence, ensemble_regime, n_prices
+
+### Changed
+
+- `EnsembleAgent._detect_regime()` — integrated HMM regime_detector with conservative consensus (non-breaking; purely extends existing 3-state output)
+- `base_agent._execute_signal()` — Kelly cap applied before risk-manager check (transparent to callers; Signal object rebuilt with capped shares)
+
+---
+
+## [2026-04-13] — Goal-Aware CNN Sizing · Crash Logging · Sentinel Fix
+
+### Added
+
+- **Goal-aware CNN position sizing** (`backend/agents/cnn_reasoning_agent.py`, `backend/config.py`)
+  - `_build_portfolio_context()` injects portfolio state + annual goal into Ollama prompt
+  - Step 5 of reasoning chain asks for `size_pct` (fraction of total portfolio value to deploy)
+  - `ANNUAL_GOAL=50000` in `.env` (default $50k/year target)
+
+- **Crash logging** (`backend/main.py`)
+  - Raw file I/O to `backend/logs/crash.log` — survives logging failures and launcher output routing
+  - Captures: process start, lifespan checkpoints, and unhandled exceptions via `sys.excepthook`
+
+### Fixed
+
+- **Sentinel OOM crash** — TRIGGER_SCORE raised 2→3; 1-hour scan cooldown (`SCAN_COOLDOWN_SECS=3600`) added; previously a single CNBC RSS headline scored exactly 2 and triggered the Ollama scanner every 15 minutes, causing Windows to OOM-kill the backend
+
+---
+
 ## [2026-04-11] — Session Authentication + GUI Launcher EXE
 
 ### Added

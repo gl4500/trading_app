@@ -114,9 +114,29 @@ class EnsembleAgent(BaseAgent):
 
     def _detect_regime(self, market_context: Dict) -> str:
         """
-        Classify market regime using SMA slope (trend) and ATR (volatility).
-        Returns 'trending', 'ranging', or 'volatile'.
+        Classify market regime using two complementary methods:
+
+        1. SMA-slope + ATR (intraday, fast signals) — existing logic
+        2. HMM-inspired RegimeDetector (20-day momentum + realized vol)
+
+        The two signals are combined with a conservative consensus rule:
+          - If both agree → use the agreed regime
+          - "volatile" beats "ranging" beats "trending" when they conflict
+            (prefer the more defensive classification)
         """
+        # ── Feed SPY close prices to the HMM regime detector ─────────────────
+        hmm_regime = "ranging"   # default if no SPY history
+        try:
+            from data.regime_detector import regime_detector
+            spy_ctx = market_context.get("SPY", {})
+            spy_bars = spy_ctx.get("bars") if isinstance(spy_ctx, dict) else None
+            if spy_bars is not None and not spy_bars.empty and len(spy_bars) >= 21:
+                spy_close = spy_bars["close"].astype(float).tolist()
+                regime_detector.update(spy_close)
+            hmm_regime = regime_detector.get_ensemble_regime()
+        except Exception as _e:
+            logger.debug(f"EnsembleAgent: HMM regime update error: {_e}")
+
         # Prefer a broad market proxy, fall back to any symbol with enough bars
         bars = None
         for sym in ["SPY", "QQQ"] + list(market_context.keys()):
@@ -127,18 +147,18 @@ class EnsembleAgent(BaseAgent):
                 break
 
         if bars is None:
-            return "ranging"
+            return hmm_regime   # fall back to HMM-only result
 
         try:
             close = bars["close"].astype(float)
             price = float(close.iloc[-1])
             if price <= 0:
-                return "ranging"
+                return hmm_regime
 
             # SMA-20 slope: change over last 10 bars, normalised by price
             sma20 = close.rolling(20).mean().dropna()
             if len(sma20) < 10:
-                return "ranging"
+                return hmm_regime
             sma_slope = (float(sma20.iloc[-1]) - float(sma20.iloc[-10])) / price
 
             # ATR over 14 bars
@@ -149,36 +169,40 @@ class EnsembleAgent(BaseAgent):
                 atr_pct = 0.015  # assume ~1.5 %
 
             if atr_pct > 0.025:          # intraday swings > 2.5 % → volatile
-                return "volatile"
-
-            # 2-of-3 multi-signal check for trending
-            trending_signals = 0
-
-            # Signal 1: SMA slope
-            if abs(sma_slope) > 0.004:
-                trending_signals += 1
-
-            # Signal 2: trend consistency (pct of returns in same direction as slope)
-            if len(close) >= 11:
-                returns = close.pct_change().dropna().tail(10)
-                pct_positive = (returns > 0).sum() / len(returns)
-                if (sma_slope > 0 and pct_positive > 0.60) or (sma_slope < 0 and pct_positive < 0.40):
-                    trending_signals += 1
-
-            # Signal 3: volume expansion (recent 5-bar avg > 20-bar avg * 1.10)
-            if "volume" in bars.columns and len(bars) >= 20:
-                vol = bars["volume"].astype(float)
-                if vol.tail(5).mean() > vol.tail(20).mean() * 1.10:
-                    trending_signals += 1
-
-            if trending_signals >= 2:
-                return "trending"
+                sma_regime = "volatile"
             else:
-                return "ranging"
+                # 2-of-3 multi-signal check for trending
+                trending_signals = 0
+
+                # Signal 1: SMA slope
+                if abs(sma_slope) > 0.004:
+                    trending_signals += 1
+
+                # Signal 2: trend consistency (pct of returns in same direction as slope)
+                if len(close) >= 11:
+                    returns = close.pct_change().dropna().tail(10)
+                    pct_positive = (returns > 0).sum() / len(returns)
+                    if (sma_slope > 0 and pct_positive > 0.60) or (sma_slope < 0 and pct_positive < 0.40):
+                        trending_signals += 1
+
+                # Signal 3: volume expansion (recent 5-bar avg > 20-bar avg * 1.10)
+                if "volume" in bars.columns and len(bars) >= 20:
+                    vol = bars["volume"].astype(float)
+                    if vol.tail(5).mean() > vol.tail(20).mean() * 1.10:
+                        trending_signals += 1
+
+                sma_regime = "trending" if trending_signals >= 2 else "ranging"
+
+            # ── Combine SMA and HMM regimes (conservative consensus) ──────────
+            # Priority: volatile > ranging > trending (most defensive wins on conflict)
+            _priority = {"volatile": 2, "ranging": 1, "trending": 0}
+            if _priority.get(hmm_regime, 0) > _priority.get(sma_regime, 0):
+                return hmm_regime
+            return sma_regime
 
         except Exception as e:
             logger.debug(f"EnsembleAgent: regime detection error: {e}")
-            return "ranging"
+            return hmm_regime
 
     # ── Adaptive weight computation ────────────────────────────────────────────
 

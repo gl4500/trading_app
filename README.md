@@ -29,7 +29,7 @@ trading_app/
 │   │   └── summary_agent.py            # Daily roll-up narrative via Claude
 │   ├── trading/
 │   │   ├── alpaca_client.py  # Alpaca Markets async wrapper
-│   │   ├── portfolio.py      # Position tracking, P&L, metrics, churn cooloff tracking
+│   │   ├── portfolio.py      # Position tracking, P&L, metrics, kelly_fraction() sizing
 │   │   └── risk_manager.py   # Daily loss limits, position size, churn & sector concentration
 │   └── data/
 │       ├── market_data.py          # Central market context builder
@@ -39,6 +39,7 @@ trading_app/
 │       ├── technicals.py           # RSI/MACD/BB/ATR/SMA/Stochastic/OBV calculator
 │       ├── signal_aggregator.py    # Multi-source composite signal
 │       ├── congressional_trading.py # SEC EDGAR Form 4 signals
+│       ├── regime_detector.py      # HMM-inspired regime classifier (bull/neutral/bear/high_vol)
 │       ├── stock_universe.py       # ~160 curated S&P 500 stocks across 10 sectors
 │       ├── drift_detector.py       # Performance drift detection
 │       ├── learning_manager.py     # Persistent trade learning (learning.json)
@@ -108,11 +109,15 @@ trading_app/
 | **EnsembleAgent** | Adaptive performance-weighted voting + regime detection | Combines all | — |
 | **GeminiAgent** | Market-view context provider (not an ensemble voter) | Gemini 2.0 Flash (or Ollama in `OLLAMA_ONLY_MODE`) | — |
 
-**EnsembleAgent** weights shift automatically based on each agent's recent Sharpe ratio and win rate. Market regime (Trending / Ranging / Volatile) is detected every 5 cycles using a **2-of-3 signal requirement**: SMA-20 slope + trend consistency (% positive days) + volume expansion. All three must align for a TRENDING call — single-signal false positives are suppressed.
+**EnsembleAgent** weights shift automatically based on each agent's recent Sharpe ratio and win rate. Market regime (Trending / Ranging / Volatile) is now detected using a **dual-signal consensus**: the existing 2-of-3 SMA/ATR system *plus* the new HMM-inspired `RegimeDetector` (20-day momentum + realized volatility). When the two methods disagree, the more defensive classification wins (volatile > ranging > trending).
 
 **GeminiAgent** runs alongside Claude as a second AI perspective. It does not vote in the ensemble — instead it contributes a `market_analysis` string (2-3 sentence market overview) that is injected into Claude's prompt under `## Gemini Market View` before Claude makes its own decisions.
 
-**CNNReasoningAgent** uses a convolutional neural network to identify price patterns in OHLCV data, then routes its reasoning through a local Ollama model. It runs independently of the cloud AI agents — useful when operating fully offline or in `OLLAMA_ONLY_MODE`.
+**CNNReasoningAgent** uses a convolutional neural network to identify price patterns in OHLCV data, then routes its reasoning through a local Ollama model. The BUY confidence threshold adjusts based on the regime detector: 0.50 in bull/neutral markets, 0.65 in bear markets, 0.70 in high-volatility markets. It runs independently of the cloud AI agents — useful when operating fully offline or in `OLLAMA_ONLY_MODE`.
+
+**RegimeDetector** (`data/regime_detector.py`) — HMM-inspired 4-state market classifier running on SPY price history. Requires no external libraries (pure numpy). States: `bull` (≥+2% 20-day momentum, annualized vol <20%), `neutral` (flat momentum), `bear` (≤-2% momentum), `high_vol` (annualized vol ≥20%). Maps to the EnsembleAgent's Trending/Ranging/Volatile regime system via a conservative consensus rule.
+
+**Fractional Kelly Sizing** — every agent's BUY allocation is now capped by a quarter-Kelly criterion computed from that agent's own realized win/loss trade history. Formula: `f* = (win_rate × avg_win − loss_rate × avg_loss) / avg_win × 0.25`. With fewer than 10 closed trades the default 10% cap applies. Prevents over-sizing positions that a given agent's historical performance doesn't justify.
 
 **Ollama / Zero-cost mode:** Set `OLLAMA_ONLY_MODE=1` in `.env` to route ClaudeAgent, GeminiAgent, and SentimentAgent through local Ollama inference instead of cloud APIs. No Anthropic, OpenAI, or Gemini API calls are made — zero token cost. See Environment Variables for the required Ollama config vars.
 
@@ -238,7 +243,7 @@ The EnsembleAgent is the final decision-maker. It does not trade on its own anal
 
 **2. Adaptive performance adjustment** — every 5 cycles, each agent's weight is scaled by its recent Sharpe ratio and win rate. Underperforming agents are reduced (minimum 30% of base weight preserved). Outperforming agents gain more influence automatically.
 
-**3. Regime multipliers** — market regime is detected using a 2-of-3 signal requirement (SMA-20 slope, trend consistency, volume expansion). Single-signal false TRENDING calls are suppressed:
+**3. Regime multipliers** — market regime is detected using a **dual-signal consensus**: SMA-20 slope + ATR (fast/intraday signal) combined with the HMM-inspired `RegimeDetector` (20-day momentum + realized volatility). When they disagree, the more conservative regime wins:
 
 | Regime | Who gets boosted | Who gets reduced |
 |---|---|---|
@@ -320,6 +325,7 @@ Discovers high-conviction opportunities outside the core watchlist.
 | `GET /api/sentinel` | Catalyst feed + market status + minutes until open |
 | `GET /api/news-impact` | News→price correlation snapshots |
 | `GET /api/summary` | Daily roll-up narrative (`?force=true` to regenerate) |
+| `GET /api/cnn-diagnostics` | CNN diagnosis: overfitting/underfitting, loss curves, learned weights, Walk-Forward Efficiency (OOS R²), regime detector state |
 | `GET /api/drift` | Performance drift report per agent |
 | `GET /api/performance/{agent_name}` | Full performance history |
 | `GET /api/tokens` | Live token usage stats per agent + session/daily totals |
@@ -470,6 +476,7 @@ STARTING_CAPITAL=100000
 MAX_POSITION_SIZE=0.15
 TRADE_INTERVAL_SECONDS=60
 DAILY_LOSS_LIMIT=0.05
+ANNUAL_GOAL=50000          # Annual P&L target ($) used by CNNReasoningAgent for goal-aware sizing
 
 # Watchlist (comma-separated)
 WATCHLIST=AAPL,MSFT,GOOGL,TSLA,AMZN,NVDA,META,SPY
@@ -510,6 +517,11 @@ See [CHANGELOG.md](docs/CHANGELOG.md) for full history.
 
 | Date | Change |
 |---|---|
+| 2026-04-14 | **HMM Regime Detector** — new `data/regime_detector.py`; 4-state classifier (bull/neutral/bear/high_vol) from SPY 20-day momentum + realized volatility; integrated into EnsembleAgent via conservative dual-signal consensus (volatile > ranging > trending when methods disagree); CNNReasoningAgent BUY gate raises threshold by +0.15 in bear and +0.20 in high-vol markets |
+| 2026-04-14 | **Fractional Kelly Sizing** — `Portfolio.kelly_fraction()` computes quarter-Kelly (25% of full Kelly) from realized trade history; applied as a BUY cap in `base_agent._execute_signal()` for all agents uniformly; falls back to 10% until ≥10 closed trades |
+| 2026-04-14 | **Walk-Forward Efficiency (WFE)** — CNN now computes OOS R² on held-out validation set after each training run; HEALTHY ≥0.70 / DEGRADED 0.50–0.70 / POOR <0.50; persisted in checkpoint, exposed in `/api/cnn-diagnostics` alongside regime detector state |
+| 2026-04-13 | **Goal-aware CNN sizing** — `_build_portfolio_context()` injects portfolio state + $50K annual goal into every Ollama reasoning prompt; Ollama returns `size_pct` (fraction of total portfolio to deploy); clamped to [2%, MAX\_POSITION\_SIZE] |
+| 2026-04-13 | **Crash logging** — raw file I/O `backend/logs/crash.log` survives logging failures; captures process start, lifespan checkpoints, and unhandled exceptions; sentinel TRIGGER\_SCORE raised 2→3 with 1-hour scan cooldown to prevent OOM crash from repeated scanner triggers |
 | 2026-04-11 | **Session auth** — PBKDF2 password hashing, httpOnly cookies, login rate limiting, WebSocket auth, `/api/auth/check`; dark-themed `LoginPage.tsx` |
 | 2026-04-11 | **GUI Launcher EXE** — tkinter dark-themed control panel compiled to `Start Trading App.exe` via PyInstaller; no console windows; bundled Tcl/Tk DLLs; `ROOT` path fix for frozen executables |
 | 2026-04-07 | **Phase 1 Ollama learning** — `get_few_shot_examples()` in `learning_manager.py` formats Claude's top profitable/loss trades as explicit few-shot examples; prepended to Ollama prompt in `_get_ollama_decisions()` so `llama3.1:8b` mimics Claude Opus reasoning style in `OLLAMA_ONLY_MODE=1` |

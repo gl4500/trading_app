@@ -309,5 +309,127 @@ class TestMaxDrawdown(unittest.TestCase):
         self.assertLessEqual(len(p._value_history), 2000)
 
 
+# ── Fractional Kelly Sizing ───────────────────────────────────────────────────
+
+def _make_portfolio_with_trades(
+    n_wins: int,
+    n_losses: int,
+    avg_win_pnl: float = 500.0,
+    avg_loss_pnl: float = -200.0,
+    starting_capital: float = 100_000.0,
+) -> Portfolio:
+    """Build a Portfolio whose trade_history contains the requested win/loss records."""
+    from trading.portfolio import TradeRecord
+    from datetime import datetime, timezone
+    p = Portfolio(starting_capital=starting_capital)
+    now = datetime.now(timezone.utc)
+    for _ in range(n_wins):
+        p.trade_history.append(TradeRecord(
+            symbol="AAPL", action="SELL", shares=10,
+            price=150.0, timestamp=now, pnl=avg_win_pnl,
+        ))
+    for _ in range(n_losses):
+        p.trade_history.append(TradeRecord(
+            symbol="AAPL", action="SELL", shares=10,
+            price=130.0, timestamp=now, pnl=avg_loss_pnl,
+        ))
+    return p
+
+
+class TestKellyFraction(unittest.TestCase):
+
+    def test_fallback_when_fewer_than_10_trades(self):
+        """< 10 closed trades → default 10 % fraction."""
+        p = _make_portfolio_with_trades(n_wins=3, n_losses=3)
+        self.assertAlmostEqual(p.kelly_fraction(), 0.10)
+
+    def test_fallback_at_exactly_9_trades(self):
+        p = _make_portfolio_with_trades(n_wins=5, n_losses=4)
+        self.assertAlmostEqual(p.kelly_fraction(), 0.10)
+
+    def test_kelly_positive_with_positive_edge(self):
+        """60 % win-rate, avg_win > avg_loss → positive Kelly fraction."""
+        p = _make_portfolio_with_trades(
+            n_wins=12, n_losses=8,
+            avg_win_pnl=600.0, avg_loss_pnl=-200.0,
+        )
+        f = p.kelly_fraction()
+        self.assertGreater(f, 0.0)
+
+    def test_kelly_is_quarter_kelly(self):
+        """kelly_fraction() applies a 0.25 multiplier (quarter-Kelly)."""
+        # win_rate=0.6, avg_win=500, avg_loss=200 (abs)
+        # full Kelly = (0.6*500 - 0.4*200) / 500 = (300-80)/500 = 0.44
+        # quarter Kelly = 0.44 * 0.25 = 0.11
+        p = _make_portfolio_with_trades(
+            n_wins=12, n_losses=8,
+            avg_win_pnl=500.0, avg_loss_pnl=-200.0,
+        )
+        f = p.kelly_fraction()
+        self.assertAlmostEqual(f, 0.11, places=2)
+
+    def test_kelly_clamped_to_max_position_size(self):
+        """Very high win-rate → Kelly capped at MAX_POSITION_SIZE."""
+        p = _make_portfolio_with_trades(
+            n_wins=19, n_losses=1,
+            avg_win_pnl=1000.0, avg_loss_pnl=-50.0,
+        )
+        from config import config
+        f = p.kelly_fraction()
+        self.assertLessEqual(f, config.MAX_POSITION_SIZE)
+
+    def test_kelly_clamped_to_minimum_2pct(self):
+        """Very negative edge → Kelly floor 2 %."""
+        p = _make_portfolio_with_trades(
+            n_wins=2, n_losses=18,
+            avg_win_pnl=100.0, avg_loss_pnl=-800.0,
+        )
+        f = p.kelly_fraction()
+        self.assertGreaterEqual(f, 0.02)
+
+    def test_kelly_all_wins(self):
+        """All winning trades → still bounded by MAX_POSITION_SIZE."""
+        p = _make_portfolio_with_trades(n_wins=15, n_losses=0)
+        from config import config
+        f = p.kelly_fraction()
+        self.assertLessEqual(f, config.MAX_POSITION_SIZE)
+        self.assertGreaterEqual(f, 0.02)
+
+    def test_kelly_all_losses(self):
+        """All losing trades → avg_win=0 is undefined, returns 10% default."""
+        p = _make_portfolio_with_trades(n_wins=0, n_losses=15)
+        f = p.kelly_fraction()
+        # avg_win = 0 → Kelly undefined → fall back to 10% default
+        self.assertAlmostEqual(f, 0.10)
+
+    def test_kelly_custom_half_kelly(self):
+        """Passing half_kelly=0.5 gives exactly 2× quarter-Kelly when clamping doesn't interfere."""
+        # win_rate=0.5, avg_win=200, avg_loss=150
+        # full_kelly = (0.5*200 - 0.5*150)/200 = 25/200 = 0.125
+        # quarter = 0.125*0.25 = 0.03125  (between 2% floor and 15% cap)
+        # half    = 0.125*0.50 = 0.0625   (still within bounds)
+        p = _make_portfolio_with_trades(
+            n_wins=10, n_losses=10,
+            avg_win_pnl=200.0, avg_loss_pnl=-150.0,
+        )
+        quarter = p.kelly_fraction(half_kelly=0.25)
+        half    = p.kelly_fraction(half_kelly=0.50)
+        self.assertAlmostEqual(half, quarter * 2, places=4)
+
+    def test_kelly_zero_avg_win_returns_default(self):
+        """Trades with zero pnl → avg_win could be 0 — return 10% default."""
+        from trading.portfolio import TradeRecord
+        from datetime import datetime, timezone
+        p = Portfolio(starting_capital=100_000)
+        now = datetime.now(timezone.utc)
+        for _ in range(15):
+            p.trade_history.append(TradeRecord(
+                symbol="AAPL", action="SELL", shares=10,
+                price=150.0, timestamp=now, pnl=0.0,
+            ))
+        f = p.kelly_fraction()
+        self.assertAlmostEqual(f, 0.10)
+
+
 if __name__ == "__main__":
     unittest.main()

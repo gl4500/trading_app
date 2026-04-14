@@ -88,6 +88,40 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ─── Crash Log (raw file — survives logging failures) ────────────────────────
+# Written with open() so it works even if the RotatingFileHandler hasn't
+# been initialised yet, and appears in the repo regardless of the launcher.
+
+_CRASH_LOG_PATH = os.path.join(os.path.dirname(__file__), "logs", "crash.log")
+
+
+def _write_crash(msg: str) -> None:
+    """Append msg to crash.log with a UTC timestamp. Never raises."""
+    try:
+        os.makedirs(os.path.dirname(_CRASH_LOG_PATH), exist_ok=True)
+        ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        with open(_CRASH_LOG_PATH, "a", encoding="utf-8") as _f:
+            _f.write(f"{ts} {msg}\n")
+    except Exception:
+        pass
+
+
+def _crash_excepthook(exc_type, exc_value, exc_tb) -> None:
+    """sys.excepthook replacement — logs unhandled exceptions to crash.log."""
+    import traceback
+    tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    _write_crash(f"[UNHANDLED EXCEPTION]\n{tb_str}")
+    # Also log via standard logging so it still appears in error.log
+    logger.critical(f"Unhandled exception: {exc_value}", exc_info=(exc_type, exc_value, exc_tb))
+    # Call the default handler so the process exits normally
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+
+sys.excepthook = _crash_excepthook
+
+# Stamp the start of each process run so separate crashes are easy to distinguish
+_write_crash(f"[PROCESS START] pid={os.getpid()}")
+
 
 def _parse_ts(s: str) -> datetime:
     """Parse an ISO timestamp; treat naive strings as UTC so aware arithmetic works."""
@@ -262,62 +296,77 @@ async def init_agents() -> None:
 
     # Register agents in DB and restore full portfolio state for continuity across restarts
     for agent in all_agents:
-        agent_id = await upsert_agent(agent.name, agent.strategy_description)
-        agent.agent_id = agent_id
+        try:
+            agent_id = await upsert_agent(agent.name, agent.strategy_description)
+            agent.agent_id = agent_id
 
-        # Always restore open positions — saved independently of performance snapshots
-        db_positions = await get_portfolio_positions(agent_id)
-        for pos in db_positions:
-            agent.portfolio.positions[pos["symbol"]] = Position(
-                symbol=pos["symbol"],
-                shares=pos["shares"],
-                avg_cost=pos["avg_cost"],
-            )
-            # Seed last_prices so first WS broadcast uses closing price, not avg_cost
-            lp = pos.get("last_price", 0.0)
-            if lp and lp > 0:
-                app_state.last_prices.setdefault(pos["symbol"], lp)
+            # Always restore open positions — saved independently of performance snapshots
+            db_positions = await get_portfolio_positions(agent_id)
+            for pos in db_positions:
+                agent.portfolio.positions[pos["symbol"]] = Position(
+                    symbol=pos["symbol"],
+                    shares=pos["shares"],
+                    avg_cost=pos["avg_cost"],
+                )
+                # Seed last_prices so first WS broadcast uses closing price, not avg_cost
+                lp = pos.get("last_price", 0.0)
+                if lp and lp > 0:
+                    app_state.last_prices.setdefault(pos["symbol"], lp)
 
-        # Always restore trade history for win_rate / total_trades
-        db_trades = await get_agent_trades(agent_id, limit=500)
-        db_trades.reverse()  # DB returns DESC; portfolio expects chronological order
-        for t in db_trades:
-            agent.portfolio.trade_history.append(TradeRecord(
-                symbol=t["symbol"],
-                action=t["action"],
-                shares=t["shares"],
-                price=t["price"],
-                timestamp=_parse_ts(t["timestamp"]),
-                reasoning=t.get("reasoning", ""),
-                pnl=t.get("pnl", 0.0),
-            ))
-
-        # Restore cash: prefer last performance snapshot; fall back to trade-history estimate
-        cash = await get_latest_cash(agent_id)
-        if cash is not None:
-            agent.portfolio.cash = cash
-        elif db_trades:
-            # No performance snapshot saved (e.g. _calculate_sharpe was crashing) —
-            # reconstruct cash from trade history as best approximation.
-            estimated = float(config.STARTING_CAPITAL)
+            # Always restore trade history for win_rate / total_trades
+            db_trades = await get_agent_trades(agent_id, limit=500)
+            db_trades.reverse()  # DB returns DESC; portfolio expects chronological order
             for t in db_trades:
-                if t["action"] == "BUY":
-                    estimated -= t["shares"] * t["price"]
-                elif t["action"] == "SELL":
-                    estimated += t["shares"] * t["price"]
-            agent.portfolio.cash = max(0.0, estimated)
-            logger.info(
-                f"{agent.name}: no performance snapshot — cash estimated from "
-                f"{len(db_trades)} trades as ${agent.portfolio.cash:,.2f}"
-            )
+                try:
+                    agent.portfolio.trade_history.append(TradeRecord(
+                        symbol=t["symbol"],
+                        action=t["action"],
+                        shares=t["shares"],
+                        price=t["price"],
+                        timestamp=_parse_ts(t["timestamp"]),
+                        reasoning=t.get("reasoning", ""),
+                        pnl=t.get("pnl", 0.0),
+                    ))
+                except Exception as _te:
+                    logger.warning(f"{agent.name}: skipping bad trade record: {_te} — row={t}")
 
-        # Restore value history for portfolio chart
-        history = await restore_value_history(agent_id)
-        if history:
-            agent.portfolio._value_history = history
+            # Restore cash: prefer last performance snapshot; fall back to trade-history estimate
+            cash = await get_latest_cash(agent_id)
+            if cash is not None:
+                agent.portfolio.cash = cash
+            elif db_trades:
+                # No performance snapshot saved (e.g. _calculate_sharpe was crashing) —
+                # reconstruct cash from trade history as best approximation.
+                estimated = float(config.STARTING_CAPITAL)
+                for t in db_trades:
+                    if t["action"] == "BUY":
+                        estimated -= t["shares"] * t["price"]
+                    elif t["action"] == "SELL":
+                        estimated += t["shares"] * t["price"]
+                agent.portfolio.cash = max(0.0, estimated)
+                logger.info(
+                    f"{agent.name}: no performance snapshot — cash estimated from "
+                    f"{len(db_trades)} trades as ${agent.portfolio.cash:,.2f}"
+                )
 
-        app_state.agents[agent.name] = agent
-        logger.info(f"Registered agent: {agent.name} (id={agent_id})")
+            # Restore value history for portfolio chart
+            history = await restore_value_history(agent_id)
+            if history:
+                agent.portfolio._value_history = history
+
+            app_state.agents[agent.name] = agent
+            logger.info(f"Registered agent: {agent.name} (id={agent_id})")
+        except Exception as _agent_exc:
+            import traceback as _tb_mod
+            _write_crash(f"[init_agents] CRASH restoring {agent.name}:\n{_tb_mod.format_exc()}")
+            logger.error(f"Failed to restore agent {agent.name}: {_agent_exc}", exc_info=True)
+            # Still register the agent with defaults so the app can start
+            if not hasattr(agent, "agent_id") or agent.agent_id is None:
+                try:
+                    agent.agent_id = await upsert_agent(agent.name, agent.strategy_description)
+                except Exception:
+                    agent.agent_id = 0
+            app_state.agents[agent.name] = agent
 
     logger.info(f"Initialized {len(all_agents)} agents")
 
@@ -344,7 +393,10 @@ async def init_agents() -> None:
 
     # Seed rolling 24h token windows from DB after restart
     for _token_agent in [sentiment, claude, gemini]:
-        await _token_agent.seed_from_history()
+        try:
+            await _token_agent.seed_from_history()
+        except Exception as _e:
+            logger.warning(f"seed_from_history failed for {_token_agent.name}: {_e}")
 
 
 # ─── News-Price Correlation ──────────────────────────────────────────────────
@@ -714,6 +766,7 @@ async def trading_loop() -> None:
             await asyncio.sleep(10)  # backoff on error
 
     logger.info("Trading loop stopped")
+    _write_crash("[trading_loop] exited normally")
 
 
 # ─── Auto-Scan Loop ───────────────────────────────────────────────────────────
@@ -1002,8 +1055,11 @@ async def news_sentinel_loop() -> None:
     from agents.scanner_agent import run_scan, is_scan_in_progress
     from data.policy_monitor import scan_policy_news
 
-    SENTINEL_POLL_MIN = 15      # poll every 15 min after hours
-    TRIGGER_SCORE     = 2       # combined keyword score to trigger a scan
+    SENTINEL_POLL_MIN    = 15   # poll every 15 min after hours
+    TRIGGER_SCORE        = 3   # combined keyword score to trigger a scan (raised from 2 — prevents
+                               # single low-weight headlines like RSS policy items from repeatedly
+                               # triggering expensive Ollama scans every 15 min after restarts)
+    SCAN_COOLDOWN_SECS   = 3600  # sentinel-triggered scans at most once per hour
 
     # Standard catalyst keyword scores (non-policy)
     _CATALYST_KEYWORDS = [
@@ -1024,6 +1080,7 @@ async def news_sentinel_loop() -> None:
 
     logger.info("News sentinel loop started")
     last_poll: float = 0.0
+    last_sentinel_scan: float = 0.0   # timestamp of last sentinel-triggered scan
 
     while app_state.is_running:
         try:
@@ -1127,19 +1184,31 @@ async def news_sentinel_loop() -> None:
                 new_catalysts, max_standard_score, max_policy_score, TRIGGER_SCORE
             )
 
-            # Trigger scanner if any catalyst exceeds threshold
+            # Trigger scanner if any catalyst exceeds threshold — but at most once per hour.
+            # Cooldown prevents a single persistent RSS headline from triggering a full
+            # Ollama scan every 15 minutes and causing memory pressure / process crashes.
             combined_max = max(max_standard_score, max_policy_score)
-            if combined_max >= TRIGGER_SCORE and not is_scan_in_progress():
+            secs_since_last = now_ts - last_sentinel_scan
+            if (combined_max >= TRIGGER_SCORE
+                    and not is_scan_in_progress()
+                    and secs_since_last >= SCAN_COOLDOWN_SECS):
                 logger.warning(
                     f"Sentinel: triggering scanner — catalyst score={combined_max} "
                     f"(threshold={TRIGGER_SCORE})"
                 )
+                last_sentinel_scan = now_ts
                 try:
                     result = await run_scan()
                     if result:
                         watchlist_manager.update_from_scan(result)
                 except Exception as e:
                     logger.error(f"Sentinel: scanner run failed: {e}")
+            elif combined_max >= TRIGGER_SCORE and secs_since_last < SCAN_COOLDOWN_SECS:
+                mins_remaining = int((SCAN_COOLDOWN_SECS - secs_since_last) / 60)
+                logger.info(
+                    f"Sentinel: catalyst score={combined_max} meets threshold but scan "
+                    f"cooldown active — next scan in {mins_remaining} min"
+                )
 
         except asyncio.CancelledError:
             break
@@ -1497,24 +1566,34 @@ async def _ensure_ollama_running() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown."""
+    import traceback as _traceback
     # Startup
     logger.info("Starting AI Trading Competition backend...")
+    _write_crash("[LIFESPAN] startup begin")
 
-    # Initialise authentication (no-op when APP_PASSWORD is empty)
-    auth.init_auth(config.APP_PASSWORD, config.SESSION_SECRET)
-    if auth.is_enabled():
-        logger.info("Authentication ENABLED — password protection is active.")
-    else:
-        logger.warning(
-            "Authentication DISABLED — set APP_PASSWORD and SESSION_SECRET in .env "
-            "to restrict access."
-        )
+    try:
+        # Initialise authentication (no-op when APP_PASSWORD is empty)
+        auth.init_auth(config.APP_PASSWORD, config.SESSION_SECRET)
+        if auth.is_enabled():
+            logger.info("Authentication ENABLED — password protection is active.")
+        else:
+            logger.warning(
+                "Authentication DISABLED — set APP_PASSWORD and SESSION_SECRET in .env "
+                "to restrict access."
+            )
 
-    await init_db()
-    await cleanup_token_log(hours=config.TOKEN_LOG_RETENTION_DAYS * 24)
-    await prune_performance_table(days=3)
-    await prune_news_price_snapshots(days=14)
-    await init_agents()
+        await init_db()
+        _write_crash("[LIFESPAN] init_db OK")
+        await cleanup_token_log(hours=config.TOKEN_LOG_RETENTION_DAYS * 24)
+        await prune_performance_table(days=3)
+        await prune_news_price_snapshots(days=14)
+        await init_agents()
+        _write_crash("[LIFESPAN] init_agents OK")
+    except Exception as _startup_exc:
+        _tb = _traceback.format_exc()
+        _write_crash(f"[LIFESPAN] STARTUP CRASHED:\n{_tb}")
+        logger.critical(f"Startup failed — see crash.log: {_startup_exc}", exc_info=True)
+        raise
 
     # Bootstrap fluid watchlist from cached scan (if available)
     try:
@@ -1530,6 +1609,7 @@ async def lifespan(app: FastAPI):
 
     # Ensure Ollama local model server is running before scans begin
     await _ensure_ollama_running()
+    _write_crash("[LIFESPAN] Ollama check OK")
 
     # Start WebSocket broadcast task
     app_state.ws_task = asyncio.create_task(ws_broadcast_loop())
@@ -1543,9 +1623,11 @@ async def lifespan(app: FastAPI):
     logger.info("Trading competition auto-started on launch (trading + scanner + sentinel).")
 
     logger.info("Backend ready. Visit http://localhost:8000/docs for API documentation.")
+    _write_crash("[LIFESPAN] startup complete — all tasks launched")
     yield
 
     # Shutdown
+    _write_crash("[LIFESPAN] shutdown begin")
     logger.info("Shutting down...")
     app_state.is_running = False
 
@@ -2023,10 +2105,8 @@ async def get_drift():
 @app.get("/api/cnn-diagnostics")
 async def get_cnn_diagnostics():
     """
-    CNN model training diagnostics — overfitting / underfitting detection.
-
-    Returns train and validation MSE curves (one value per epoch), the
-    final ratio (val/train), and a plain-English diagnosis.
+    CNN model training diagnostics — overfitting / underfitting detection
+    and Walk-Forward Efficiency (WFE) reporting.
 
     Diagnosis values:
       OK                  — healthy generalisation (ratio 1.0–2.5x)
@@ -2034,8 +2114,15 @@ async def get_cnn_diagnostics():
       OVERFIT_MEMORIZING  — train MSE < 1e-5 (memorised training data)
       UNDERFIT            — both MSEs > 0.005 (not learning signal)
       UNTRAINED           — model has not been trained yet
+
+    Walk-Forward Efficiency (OOS R²):
+      HEALTHY  — WFE >= 0.70 (model explains ≥ 70 % of OOS variance)
+      DEGRADED — WFE 0.50–0.70 (partially predictive)
+      POOR     — WFE < 0.50  (barely better than predicting the mean)
+      UNTRAINED — not yet computed
     """
     from data.cnn_model import signal_cnn
+    from data.regime_detector import regime_detector
     summary = signal_cnn.training_summary()
 
     # Downsample loss curves to at most 40 points for the frontend
@@ -2056,6 +2143,9 @@ async def get_cnn_diagnostics():
         "final_val_mse":    summary["final_val_mse"],
         "overfit_ratio":    summary["overfit_ratio"],
         "diagnosis":        summary["diagnosis"],
+        # Walk-Forward Efficiency
+        "walk_forward_efficiency": summary["walk_forward_efficiency"],
+        "wfe_status":              summary["wfe_status"],
         "train_loss_curve": _downsample(summary["train_loss_curve"]),
         "val_loss_curve":   _downsample(summary["val_loss_curve"]),
         "learned_weights":  summary["learned_weights"],
@@ -2066,6 +2156,8 @@ async def get_cnn_diagnostics():
                 tz=__import__("datetime").timezone.utc,
             ).isoformat() if summary["train_ts"] else None
         ),
+        # Regime detector state
+        "regime": regime_detector.summary(),
     }
 
 

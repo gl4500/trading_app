@@ -221,22 +221,66 @@ Base weights:
   MeanReversionAgent:     9%
   HistoricalTrendsAgent:  8%
 
-Regime detection (every 5 cycles, using SPY/QQQ bars):
-  Volatile  (ATR > 2.5%):
-    Claude ×1.40, Sentiment ×1.20, HistTrends ×0.80, Tech ×0.80,
-    Momentum ×0.65, MeanRev ×0.60
-  Trending  (2-of-3: SMA slope, consistency >60%, volume expansion):
-    Momentum ×1.50, Tech ×1.20, HistTrends ×1.20, Claude ×1.10,
-    Sentiment ×0.80, MeanRev ×0.40
-  Ranging   (default):
-    MeanRev ×1.60, HistTrends ×1.30, Sentiment ×1.20, Tech ×1.10,
-    Claude ×1.00, Momentum ×0.55
+Regime detection (every 5 cycles) — dual-signal conservative consensus:
+  Two independent regime classifiers; the more defensive result wins:
 
-Regime signals:
+  Method 1 — SMA/ATR (fast, intraday signal):
+    Volatile  if ATR > 2.5%
+    Trending  if 2-of-3 signals: SMA slope (abs > 0.004), consistency (>60%), volume expansion
+    Ranging   otherwise
+
+  Method 2 — HMM RegimeDetector (data/regime_detector.py, 20-day SPY):
+    high_vol  if annualized_vol >= 20%  →  maps to Volatile
+    bull      if 20d_momentum >= +2%    →  maps to Trending
+    bear      if 20d_momentum <= −2%    →  maps to Volatile
+    neutral   otherwise                  →  maps to Ranging
+
+  Consensus rule:  priority Volatile > Ranging > Trending
+    If either classifier says Volatile → final regime is Volatile
+    If neither says Volatile but one says Ranging → final regime is Ranging
+    Both say Trending → final regime is Trending
+
+  Regime multipliers:
+  Volatile:  Claude ×1.40, Sentiment ×1.20, HistTrends ×0.80, Tech ×0.80,
+             Momentum ×0.65, MeanRev ×0.60
+  Trending:  Momentum ×1.50, Tech ×1.20, HistTrends ×1.20, Claude ×1.10,
+             Sentiment ×0.80, MeanRev ×0.40
+  Ranging:   MeanRev ×1.60, HistTrends ×1.30, Sentiment ×1.20, Tech ×1.10,
+             Claude ×1.00, Momentum ×0.55
+
+Regime signals (SMA/ATR method):
   SMA slope  = (SMA20[-1] - SMA20[-10]) / current_price  (threshold abs > 0.004)
   ATR        = mean(high - low, last 14 bars) / current_price
   Consistency = pct of last 10 days returns in same direction as slope (>60%)
-  Volume     = recent 5-bar avg > 20-bar avg x 1.10
+  Volume     = recent 5-bar avg > 20-bar avg × 1.10
+
+Regime signals (HMM RegimeDetector):
+  momentum_20d  = (price[-1] / price[-21]) - 1.0
+  realized_vol  = std(log_daily_returns, last 20d) × sqrt(252)  [annualized]
+  Thresholds: vol_high=20%, momentum_bull=+2%, momentum_bear=−2%
+
+
+--------------------------------------------------------------------------------
+FRACTIONAL KELLY SIZING — applied to ALL agents (base_agent._execute_signal)
+--------------------------------------------------------------------------------
+Quarter-Kelly criterion computed from each agent's own closed trade history.
+Applied as a BUY CAP — agent-requested shares are reduced to Kelly maximum
+(never increased above what the agent already requested).
+
+Formula:
+  win_rate   = wins / total_closed_sells
+  loss_rate  = 1 - win_rate
+  avg_win    = mean(pnl for winning trades)
+  avg_loss   = mean(abs(pnl) for losing trades)
+  full_kelly = (win_rate × avg_win - loss_rate × avg_loss) / avg_win
+  kelly_pct  = full_kelly × 0.25        [quarter-Kelly]
+  kelly_pct  = clamp(kelly_pct, 0.02, MAX_POSITION_SIZE)
+
+  kelly_alloc  = min(total_portfolio_value × kelly_pct, cash × 0.95)
+  kelly_shares = max(1, floor(kelly_alloc / price))
+  final_shares = min(signal.shares, kelly_shares)
+
+Fallback: if < 10 closed trades → kelly_pct = 0.10 (10% default)
 
 
 --------------------------------------------------------------------------------
@@ -251,5 +295,24 @@ BUY:  scanner action == BUY AND confidence >= 0.60
 SELL (explicit):    scanner action == SELL for a held position
 SELL (stop-loss):   held position NOT in current BUY set
                     AND unrealized loss >= DEFAULT_STOP_LOSS_PCT (5%)
+
+--------------------------------------------------------------------------------
+CNN MODEL DIAGNOSTICS — Walk-Forward Efficiency (data/cnn_model.py)
+--------------------------------------------------------------------------------
+After each training run the CNN evaluates itself on the held-out validation set
+(20% of samples, never seen during training) and computes the OOS R²:
+
+  SS_res = sum((y_pred - y_true)²)
+  SS_tot = sum((y_true - mean(y_true))²)
+  WFE    = 1 - SS_res / SS_tot          [OOS R²]
+
+Status thresholds:
+  HEALTHY  : WFE >= 0.70   model explains ≥70% of out-of-sample variance
+  DEGRADED : WFE >= 0.50   partially predictive, monitor closely
+  POOR     : WFE <  0.50   barely better than predicting the mean
+  UNTRAINED: WFE = None    model has not been trained yet
+
+WFE is persisted in the checkpoint (signal_cnn.pt) and exposed via
+GET /api/cnn-diagnostics alongside the overfitting diagnosis.
 
 ================================================================================
