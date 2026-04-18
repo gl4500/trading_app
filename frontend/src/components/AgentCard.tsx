@@ -188,6 +188,8 @@ export default function AgentCard({ agent, prices }: AgentCardProps) {
                   <th className="table-header text-right">Value</th>
                   <th className="table-header text-right">P&L ($)</th>
                   <th className="table-header text-right">P&L (%)</th>
+                  <th className="table-header text-right">Entry Conf</th>
+                  <th className="table-header text-right">Bayes</th>
                 </tr>
               </thead>
               <tbody>
@@ -197,6 +199,11 @@ export default function AgentCard({ agent, prices }: AgentCardProps) {
                   const pnlAbs = Math.abs(pos.unrealized_pnl)
                   const pctSign = pos.unrealized_pnl_pct >= 0 ? '+' : '-'
                   const pctAbs = Math.abs(pos.unrealized_pnl_pct)
+                  const entryConf = pos.entry_confidence ?? 0.5
+                  const bayesConf = pos.bayes_confidence ?? entryConf
+                  const confDrop = entryConf - bayesConf
+                  // Color: green = stable, yellow = 10-20pp drop, red = 20pp+ drop (exit threshold is 30pp)
+                  const bayesColor = confDrop >= 0.20 ? 'text-red-400' : confDrop >= 0.10 ? 'text-yellow-400' : 'text-green-400'
                   return (
                     <tr key={pos.symbol} className="table-row">
                       <td className="table-cell font-bold text-blue-400">{pos.symbol}</td>
@@ -210,6 +217,8 @@ export default function AgentCard({ agent, prices }: AgentCardProps) {
                       <td className={`table-cell text-right font-bold ${pnlColor}`}>
                         {pctSign}{pctAbs.toFixed(2)}%
                       </td>
+                      <td className="table-cell text-right text-gray-400">{(entryConf * 100).toFixed(0)}%</td>
+                      <td className={`table-cell text-right font-medium ${bayesColor}`}>{(bayesConf * 100).toFixed(0)}%</td>
                     </tr>
                   )
                 })}
