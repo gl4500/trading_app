@@ -11,10 +11,10 @@ import numpy as np
 from config import config
 from data.stock_universe import get_sector
 
-CHURN_COOLOFF_MINUTES = 30
-SECTOR_CONCENTRATION_LIMIT = 0.35
-CORRELATION_LIMIT = 0.65   # max avg pairwise Pearson correlation across proposed holdings
-_MIN_CORR_BARS    = 20     # minimum return bars required for a reliable correlation
+CHURN_COOLOFF_MINUTES     = config.CHURN_COOLOFF_MINUTES
+SECTOR_CONCENTRATION_LIMIT = config.SECTOR_CONCENTRATION_LIMIT
+CORRELATION_LIMIT         = config.CORRELATION_LIMIT
+_MIN_CORR_BARS            = 20   # minimum return bars required for a reliable correlation
 
 logger = logging.getLogger(__name__)
 
