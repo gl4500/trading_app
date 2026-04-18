@@ -260,6 +260,29 @@ Then visit: `https://github.com/gl4500/trading_app/actions`
 
 ---
 
+## Find-List-Fix Rule — Required Whenever Issues Are Found
+
+Whenever bugs, test failures, stale assertions, or refactors are discovered during any task:
+
+1. **Stop** — do not fix inline without listing first
+2. **Write a numbered task list** of every issue found (all of them)
+3. **Fix each item in order**, marking it complete as you go
+4. **Commit after each fix** — do not batch unrelated fixes into one commit
+
+No fix is made silently. Every issue gets listed before it gets fixed.
+
+```
+Example:
+Found issues:
+1. [ ] test_scanner_tokens assertion uses stale count (expected 25000, got 35000)
+2. [ ] _hourly_call_limit hardcoded in __init__ — should be in config.py
+3. [ ] CORRELATION_LIMIT not exposed as config env var
+
+→ Fix 1 → commit. Fix 2 → commit. Fix 3 → commit.
+```
+
+---
+
 ## Standard Change Workflow — Required for Every Code Change
 
 Follow these steps in order for every feature, fix, or refactor:

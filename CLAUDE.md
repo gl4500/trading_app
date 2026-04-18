@@ -32,6 +32,31 @@ Never touch `radioconda\`, `.spyder-py3\`, or any other directory in the user's 
 
 ---
 
+## Find-List-Fix Workflow — Required whenever issues are identified
+
+Whenever bugs, test failures, stale assertions, or needed refactors are found during any task:
+
+```
+1. STOP — do not fix inline without listing first
+2. Write a numbered task list of every issue found (all of them, not just the current one)
+3. Fix each item in order, marking it complete as you go
+4. Do not move to the next task until the current one is green and committed
+```
+
+**Rule:** No fix is made silently. Every issue gets listed before it gets fixed. This prevents
+partial fixes, forgotten follow-ups, and scope creep mid-task.
+
+Example — found 3 issues while working on a feature:
+```
+Found issues:
+1. [ ] test_scanner_tokens assertion uses stale count (3 agents, now 5)
+2. [ ] _hourly_call_limit hardcoded — should be in config.py
+3. [ ] CORRELATION_LIMIT constant not exposed in config
+→ Fix 1, commit. Fix 2, commit. Fix 3, commit.
+```
+
+---
+
 ## TDD Workflow — Required for every change
 
 ```
