@@ -325,5 +325,89 @@ class TestCheckHourlyRateLimit(unittest.TestCase):
         self.assertTrue(agent._check_hourly_rate_limit(2))
 
 
+class TestBayesEarlyExit(unittest.IsolatedAsyncioTestCase):
+    """BaseAgent._check_bayes_exits sells positions whose bayes_confidence
+    has dropped far enough below entry_confidence."""
+
+    def _make_agent_with_position(self, entry_conf=0.75, bayes_conf=0.75):
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        agent = _StubAgent("TestAgent", "stub")
+        agent.portfolio.execute_buy("AAPL", 10, 100.0, entry_confidence=entry_conf)
+        # Override bayes_confidence directly to simulate drift
+        agent.portfolio.positions["AAPL"].bayes_confidence = bayes_conf
+        return agent
+
+    async def test_no_exit_when_confidence_stable(self):
+        """Entry=0.75, bayes=0.72 — drop < threshold → no exit."""
+        agent = self._make_agent_with_position(entry_conf=0.75, bayes_conf=0.72)
+        prices = {"AAPL": 105.0}
+        exits = await agent._check_bayes_exits(prices)
+        self.assertEqual(exits, [])
+        self.assertIn("AAPL", agent.portfolio.positions)
+
+    async def test_exit_triggered_when_confidence_drops(self):
+        """Entry=0.75, bayes=0.40 — drop > 0.30 threshold → exit fired."""
+        agent = self._make_agent_with_position(entry_conf=0.75, bayes_conf=0.40)
+        prices = {"AAPL": 95.0}
+        exits = await agent._check_bayes_exits(prices)
+        self.assertEqual(len(exits), 1)
+        self.assertEqual(exits[0].symbol, "AAPL")
+        self.assertEqual(exits[0].action, "SELL")
+        self.assertNotIn("AAPL", agent.portfolio.positions)
+
+    async def test_exit_reason_mentions_bayes(self):
+        """Sell reasoning must mention Bayesian confidence values."""
+        agent = self._make_agent_with_position(entry_conf=0.80, bayes_conf=0.35)
+        prices = {"AAPL": 90.0}
+        exits = await agent._check_bayes_exits(prices)
+        self.assertGreater(len(exits), 0)
+        self.assertIn("bayes", exits[0].reasoning.lower())
+
+    async def test_no_exit_without_price(self):
+        """No price available → skip the position gracefully."""
+        agent = self._make_agent_with_position(entry_conf=0.75, bayes_conf=0.30)
+        exits = await agent._check_bayes_exits({})   # empty prices
+        self.assertEqual(exits, [])
+        self.assertIn("AAPL", agent.portfolio.positions)
+
+    async def test_no_exit_when_no_positions(self):
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        agent = _StubAgent("TestAgent", "stub")
+        exits = await agent._check_bayes_exits({"AAPL": 100.0})
+        self.assertEqual(exits, [])
+
+    async def test_bayes_exits_called_in_run_cycle(self):
+        """run_cycle must call _check_bayes_exits each cycle."""
+        from unittest.mock import AsyncMock, patch
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        agent = _StubAgent("TestAgent", "stub")
+        prices = {"AAPL": 100.0}
+        ctx = {"AAPL": {"price": 100.0, "bars": None, "stats": {}, "news": []}}
+
+        with patch.object(agent, "_check_bayes_exits", new=AsyncMock(return_value=[])) as mock_bayes, \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(ctx, prices)
+
+        mock_bayes.assert_called_once_with(prices)
+
+
 if __name__ == "__main__":
     unittest.main()

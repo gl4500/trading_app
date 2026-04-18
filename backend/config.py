@@ -73,6 +73,10 @@ class Config:
     SECTOR_CONCENTRATION_LIMIT: float = float(os.getenv("SECTOR_CONCENTRATION_LIMIT", "0.35"))
     CORRELATION_LIMIT: float      = float(os.getenv("CORRELATION_LIMIT", "0.65"))
 
+    # Bayesian early-exit threshold: sell when bayes_confidence drops this far
+    # below entry_confidence (e.g. 0.30 = sell if conviction fell 30 pp since entry)
+    BAYES_EXIT_DROP: float = float(os.getenv("BAYES_EXIT_DROP", "0.30"))
+
     # Watchlist — static seed symbols used as fallback when the scanner pool is small.
     # Set WATCHLIST=* to disable static seeds entirely — the watchlist is then built
     # solely from scanner recommendations and momentum candidates (agent-driven).

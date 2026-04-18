@@ -212,6 +212,12 @@ class BaseAgent(ABC):
                 )
                 portfolio_returns = self._build_portfolio_returns(market_context, all_syms)
 
+                # Bayesian early exits — must run before agent signals so the
+                # position is already closed if the agent also emits a SELL.
+                bayes_exits = await self._check_bayes_exits(prices)
+                for sig in bayes_exits:
+                    self._last_signals[sig.symbol] = sig
+
                 # Execute actionable signals
                 executed = []
                 for signal in signals:
@@ -267,6 +273,42 @@ class BaseAgent(ABC):
             if len(log_rets) >= 20:
                 returns[sym] = log_rets
         return returns
+
+    async def _check_bayes_exits(self, prices: Dict[str, float]) -> List[Signal]:
+        """
+        Sell any open position whose Bayesian confidence has dropped more than
+        BAYES_EXIT_DROP below its entry_confidence.
+
+        This turns the per-cycle Bayesian update into an actionable exit signal:
+        if the market keeps moving against us and posterior conviction collapses,
+        we exit before the agent's next scheduled analysis cycle.
+        """
+        exits: List[Signal] = []
+        threshold = config.BAYES_EXIT_DROP
+        for sym, pos in list(self.portfolio.positions.items()):
+            if pos.entry_confidence <= 0:
+                continue
+            drop = pos.entry_confidence - pos.bayes_confidence
+            if drop < threshold:
+                continue
+            price = prices.get(sym)
+            if not price or price <= 0:
+                continue
+            reasoning = (
+                f"Bayes early exit: confidence dropped {drop:.0%} "
+                f"(entry={pos.entry_confidence:.2f} → now={pos.bayes_confidence:.2f})"
+            )
+            success = self.portfolio.execute_sell(sym, pos.shares, price, reasoning)
+            if success:
+                sig = Signal(
+                    action="SELL", symbol=sym,
+                    confidence=pos.bayes_confidence,
+                    shares=pos.shares, reasoning=reasoning,
+                    agent_name=self.name,
+                )
+                exits.append(sig)
+                logger.info(f"{self.name}: BAYES EXIT {sym} @ ${price:.2f} | {reasoning}")
+        return exits
 
     async def _execute_signal(
         self,
