@@ -304,6 +304,7 @@ class TestGeminiHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
 
     async def test_api_blocked_when_hourly_limit_reached(self):
         agent, mock_client = self._make_agent()
+        agent._hourly_call_limit = 2
         agent._call_timestamps = [time.time() - 100, time.time() - 50]
         with patch("agents.gemini_agent.HAS_GEMINI", True), \
              patch("agents.gemini_agent.config") as cfg, \
@@ -366,6 +367,7 @@ class TestGeminiHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
 
     async def test_rate_limit_warning_logged(self):
         agent, _ = self._make_agent()
+        agent._hourly_call_limit = 2
         agent._call_timestamps = [time.time() - 10, time.time() - 5]
         with patch("agents.gemini_agent.HAS_GEMINI", True), \
              patch("agents.gemini_agent.config") as cfg, \
@@ -385,6 +387,7 @@ class TestGeminiRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
 
     def _make_agent_rate_limited(self):
         agent = GeminiAgent()
+        agent._hourly_call_limit = 2
         agent._call_timestamps = [time.time() - 100, time.time() - 50]
         agent._last_decisions = {
             "market_analysis": "bullish",
@@ -413,6 +416,7 @@ class TestGeminiRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
 
     async def test_rate_limited_no_cache_still_returns_hold(self):
         agent = GeminiAgent()
+        agent._hourly_call_limit = 2
         agent._call_timestamps = [time.time() - 100, time.time() - 50]
         agent._last_decisions = {}
         agent._cycle_count = 0
@@ -462,6 +466,7 @@ class TestGeminiMarketView(unittest.IsolatedAsyncioTestCase):
 
     async def test_returns_none_when_rate_limited(self):
         agent = self._make_agent_with_response()
+        agent._hourly_call_limit = 2
         agent._call_timestamps = [time.time() - 10, time.time() - 5]
         with patch("agents.gemini_agent.HAS_GEMINI", True), \
              patch("agents.gemini_agent.config") as cfg, \

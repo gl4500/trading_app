@@ -357,7 +357,8 @@ class TestClaudeHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
 
     async def test_api_blocked_when_hourly_limit_reached(self):
         agent, mock_client = self._make_agent_with_client()
-        # Seed 2 calls made within the last hour
+        # Pin limit to 2 so 2 seeded timestamps hit the cap regardless of config
+        agent._hourly_call_limit = 2
         agent._call_timestamps = [time.time() - 100, time.time() - 50]
         with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
              patch("agents.claude_agent.config") as cfg, \
@@ -431,6 +432,7 @@ class TestClaudeHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
 
     async def test_rate_limit_warning_logged(self):
         agent, _ = self._make_agent_with_client()
+        agent._hourly_call_limit = 2
         agent._call_timestamps = [time.time() - 10, time.time() - 5]
         with patch("agents.claude_agent.HAS_ANTHROPIC", True), \
              patch("agents.claude_agent.config") as cfg, \
@@ -481,7 +483,8 @@ class TestClaudeRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
 
     def _make_agent_rate_limited(self):
         agent = ClaudeAgent()
-        # Seed 2 recent timestamps so rate limit fires immediately
+        # Pin limit to 2 so 2 seeded timestamps hit the cap regardless of config
+        agent._hourly_call_limit = 2
         agent._call_timestamps = [time.time() - 100, time.time() - 50]
         # Seed last good decisions
         agent._last_decisions = {
@@ -521,6 +524,7 @@ class TestClaudeRateLimitCacheReplay(unittest.IsolatedAsyncioTestCase):
 
     async def test_rate_limited_no_cache_still_returns_hold(self):
         agent = ClaudeAgent()
+        agent._hourly_call_limit = 2
         agent._call_timestamps = [time.time() - 100, time.time() - 50]
         # No last_decisions cached
         agent._last_decisions = {}

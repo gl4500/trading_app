@@ -62,6 +62,17 @@ class Config:
     DAILY_LOSS_LIMIT: float = float(os.getenv("DAILY_LOSS_LIMIT", "0.05"))  # 5% daily loss stops trading
     ANNUAL_GOAL: float = float(os.getenv("ANNUAL_GOAL", "50000"))  # annual P&L target in dollars
 
+    # AI agent call-rate limits (cloud mode only — Ollama is uncapped)
+    # Claude Opus 4.6: 10/hr lets _open_interval=5 control cadence (~12 calls/hr)
+    # Gemini Flash: 20/hr — very cheap, near-free per call
+    CLAUDE_HOURLY_CALL_LIMIT: int = int(os.getenv("CLAUDE_HOURLY_CALL_LIMIT", "10"))
+    GEMINI_HOURLY_CALL_LIMIT: int = int(os.getenv("GEMINI_HOURLY_CALL_LIMIT", "20"))
+
+    # Risk manager limits (tunable without code changes)
+    CHURN_COOLOFF_MINUTES: int    = int(float(os.getenv("CHURN_COOLOFF_MINUTES", "30")))
+    SECTOR_CONCENTRATION_LIMIT: float = float(os.getenv("SECTOR_CONCENTRATION_LIMIT", "0.35"))
+    CORRELATION_LIMIT: float      = float(os.getenv("CORRELATION_LIMIT", "0.65"))
+
     # Watchlist — static seed symbols used as fallback when the scanner pool is small.
     # Set WATCHLIST=* to disable static seeds entirely — the watchlist is then built
     # solely from scanner recommendations and momentum candidates (agent-driven).

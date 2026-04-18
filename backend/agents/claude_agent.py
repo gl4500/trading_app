@@ -65,7 +65,7 @@ class ClaudeAgent(BaseAgent):
         self._backoff_until: float = 0.0   # epoch seconds — skip API until this time
         self._backoff_seconds: float = 60.0  # current backoff duration (doubles on repeat errors)
         self._api_lock = asyncio.Lock()  # prevents duplicate concurrent API calls (separate from base _lock)
-        self._hourly_call_limit: int = 10
+        self._hourly_call_limit: int = config.CLAUDE_HOURLY_CALL_LIMIT
 
     async def seed_from_history(self) -> None:
         """Restore rolling 24h token window from DB after a restart."""
