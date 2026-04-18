@@ -709,8 +709,8 @@ class TestTokenUsageEndpoint(unittest.TestCase):
             client = TestClient(app)
             data = client.get("/api/tokens").json()
 
-        # 10000 (Claude) + 3 × 5000 (three scanner agents)
-        self.assertEqual(data["totals"]["daily_tokens"], 10000 + 3 * 5000)
+        # 10000 (Claude) + 5 × 5000 (ScannerAgent/Claude, /Gemini, /OpenAI, /Ollama, SummaryAgent)
+        self.assertEqual(data["totals"]["daily_tokens"], 10000 + 5 * 5000)
 
 
 class TestTokenLogEndpoint(unittest.TestCase):
