@@ -9,7 +9,8 @@ import re
 import time
 from typing import Dict, List, Optional, Any
 
-from agents.base_agent import BaseAgent, Signal
+from agents.base_agent import Signal
+from agents.cloud_agent import CloudAgent
 from agents.agent_utils import (
     extract_json,
     format_bars_for_prompt,
@@ -47,24 +48,18 @@ except ImportError:
     AsyncOpenAI = None  # type: ignore[assignment,misc]
 
 
-class GeminiAgent(BaseAgent):
+class GeminiAgent(CloudAgent):
     """AI trading agent using Google Gemini for market analysis."""
 
     def __init__(self):
         super().__init__(
             name="GeminiAgent",
             strategy_description="Google Gemini 2.0 Flash for fast, broad market analysis",
+            open_interval=10,    # API call every 10 cycles during market hours
+            closed_interval=50,  # API call every 50 cycles off-hours
+            hourly_call_limit=config.GEMINI_HOURLY_CALL_LIMIT,
+            initial_backoff_seconds=30.0,
         )
-        self._client: Optional[Any] = None
-        self._analysis_interval: int = 10  # overridden dynamically each cycle
-        self._open_interval: int = 10      # API call every N cycles during market hours (80% budget)
-        self._closed_interval: int = 50    # API call every N cycles during off hours  (20% budget)
-        self._cycle_count: int = 0
-        self._last_decisions: Dict = {}
-        self._backoff_until: float = 0.0   # epoch seconds — skip API until this time
-        self._backoff_seconds: float = 30.0   # current backoff duration (doubles on repeat 429s, capped at 60s)
-        self._api_lock = asyncio.Lock()  # prevents duplicate concurrent API calls (separate from base _lock)
-        self._hourly_call_limit: int = config.GEMINI_HOURLY_CALL_LIMIT
 
     async def seed_from_history(self) -> None:
         """Restore rolling 24h token window from DB after a restart."""

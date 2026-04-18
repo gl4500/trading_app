@@ -10,7 +10,8 @@ import re
 import time
 from typing import Dict, List, Optional, Any
 
-from agents.base_agent import BaseAgent, Signal
+from agents.base_agent import Signal
+from agents.cloud_agent import CloudAgent
 from agents.agent_utils import (
     extract_json,
     format_bars_for_prompt,
@@ -48,24 +49,18 @@ except ImportError:
     AsyncOpenAI = None  # type: ignore[assignment,misc]
 
 
-class ClaudeAgent(BaseAgent):
+class ClaudeAgent(CloudAgent):
     """AI trading agent using Claude Opus 4.6 with extended thinking."""
 
     def __init__(self):
         super().__init__(
             name="ClaudeAgent",
             strategy_description="Claude Opus 4.6 with adaptive thinking for deep market analysis",
+            open_interval=5,    # API call every 5 cycles during market hours
+            closed_interval=25, # API call every 25 cycles off-hours
+            hourly_call_limit=config.CLAUDE_HOURLY_CALL_LIMIT,
+            initial_backoff_seconds=60.0,
         )
-        self._client: Optional[Any] = None
-        self._analysis_interval: int = 5  # overridden dynamically each cycle
-        self._open_interval: int = 5      # API call every N cycles during market hours (80% budget)
-        self._closed_interval: int = 25   # API call every N cycles during off hours  (20% budget)
-        self._cycle_count: int = 0
-        self._last_decisions: Dict[str, Dict] = {}
-        self._backoff_until: float = 0.0   # epoch seconds — skip API until this time
-        self._backoff_seconds: float = 60.0  # current backoff duration (doubles on repeat errors)
-        self._api_lock = asyncio.Lock()  # prevents duplicate concurrent API calls (separate from base _lock)
-        self._hourly_call_limit: int = config.CLAUDE_HOURLY_CALL_LIMIT
 
     async def seed_from_history(self) -> None:
         """Restore rolling 24h token window from DB after a restart."""
