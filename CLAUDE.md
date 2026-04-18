@@ -189,6 +189,7 @@ PYTHONPATH=../site-packages ../runtime/python/python.exe -m bandit -r . -x ./tes
 | security surface (headers, CORS, SQL, secrets) | `test_security.py` | ✅ covered |
 | `data/regime_detector.py` | `test_regime_detector.py` | ✅ covered |
 | `trading/portfolio.py` (Kelly sizing) | `test_portfolio.py::TestKellyFraction` | ✅ covered |
+| `trading/portfolio.py` (Bayesian confidence) | `test_portfolio.py::TestBayesianConfidence` | ✅ covered |
 | `data/cnn_model.py` (WFE) | `test_cnn_model.py::TestWalkForwardEfficiency` | ✅ covered |
 
 ---

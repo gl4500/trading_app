@@ -351,9 +351,12 @@ class MarketDataService:
                         scores={k: ((_src.get(k) or {}).get("score")) for k in (
                             "analyst_consensus", "earnings_surprise",
                             "alpaca_news", "yahoo_news", "congressional_trades",
+                            "iv_rv_spread",
                         )},
                         composite_score=_comp_empty.get("composite_score", 0.0) or 0.0,
                         price=price or 0,
+                        rv_20d=None,
+                        rv_60d=None,
                     ))
                     asyncio.create_task(signal_history.update_outcomes(sym, price or 0))
                 except Exception:
@@ -421,6 +424,21 @@ class MarketDataService:
                 "sector_vs_market": svs,
                 "sector_context_text": sector_analysis.format_stock_sector_context(sym, svs),
             }
+            # Realized volatility from daily close prices (annualized, 252-day basis)
+            _rv_20d: Optional[float] = None
+            _rv_60d: Optional[float] = None
+            try:
+                _close = bars["close"].values.astype(float)
+                if len(_close) > 1:
+                    _log_rets = np.log(_close[1:] / np.where(_close[:-1] > 0, _close[:-1], np.nan))
+                    _log_rets = _log_rets[np.isfinite(_log_rets)]
+                    if len(_log_rets) >= 20:
+                        _rv_20d = float(np.std(_log_rets[-20:]) * np.sqrt(252))
+                    if len(_log_rets) >= 60:
+                        _rv_60d = float(np.std(_log_rets[-60:]) * np.sqrt(252))
+            except Exception:
+                pass
+
             # Record snapshot + update outcomes (fire-and-forget)
             try:
                 _src = (_comp.get("sources") or {})
@@ -429,9 +447,12 @@ class MarketDataService:
                     scores={k: ((_src.get(k) or {}).get("score")) for k in (
                         "analyst_consensus", "earnings_surprise",
                         "alpaca_news", "yahoo_news", "congressional_trades",
+                        "iv_rv_spread",
                     )},
                     composite_score=_comp.get("composite_score", 0.0) or 0.0,
                     price=stats["current_price"],
+                    rv_20d=_rv_20d,
+                    rv_60d=_rv_60d,
                 ))
                 asyncio.create_task(signal_history.update_outcomes(sym, stats["current_price"]))
             except Exception:

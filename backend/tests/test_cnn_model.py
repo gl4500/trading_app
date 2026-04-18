@@ -31,7 +31,8 @@ if HAS_TORCH:
     import torch.nn as nn
 
 
-def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True):
+def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True,
+             add_rv_cols=True, add_iv_rv=True):
     """Build a minimal labelled history DataFrame."""
     now = time.time()
     rows = []
@@ -49,10 +50,15 @@ def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True):
             "return_1d":       np.random.uniform(-0.05, 0.05) if add_outcomes else float("nan"),
             "return_5d":       float("nan"),
         }
+        if add_iv_rv:
+            row["iv_rv_score"] = np.random.uniform(-1, 1)
         if add_agent_cols:
             row["agent_consensus"]   = np.random.uniform(-1, 1)
             row["agent_agreement"]   = np.random.uniform(0, 1)
             row["top_agent_correct"] = float(np.random.randint(0, 2)) if add_outcomes else float("nan")
+        if add_rv_cols:
+            row["rv_20d"] = np.random.uniform(0.10, 0.40)
+            row["rv_60d"] = np.random.uniform(0.10, 0.40)
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -72,12 +78,22 @@ class TestBuildTrainingWindows(unittest.TestCase):
         self.assertEqual(X.shape[1], N_CHANNELS)
         self.assertEqual(X.shape[2], WINDOW_SIZE)
 
-    def test_x_shape_is_5_channels_without_agent_cols(self):
-        """DataFrames without agent columns produce 5-channel windows."""
-        df = _make_df(50, add_agent_cols=False)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], 5)
-        self.assertEqual(X.shape[2], WINDOW_SIZE)
+    def test_x_shape_degrades_without_optional_cols(self):
+        """Channel count degrades gracefully when optional columns are absent."""
+        # No iv_rv, no agent, no RV → 5 channels (base source only)
+        df_src = _make_df(50, add_iv_rv=False, add_agent_cols=False, add_rv_cols=False)
+        X_src, _, _ = build_training_windows(df_src, T=WINDOW_SIZE)
+        self.assertEqual(X_src.shape[1], 5)
+
+        # iv_rv + agent but no RV → 8 channels
+        df_agent = _make_df(50, add_iv_rv=True, add_agent_cols=True, add_rv_cols=False)
+        X_agent, _, _ = build_training_windows(df_agent, T=WINDOW_SIZE)
+        self.assertEqual(X_agent.shape[1], 8)
+
+        # All columns → 10 channels
+        df_full = _make_df(50, add_iv_rv=True, add_agent_cols=True, add_rv_cols=True)
+        X_full, _, _ = build_training_windows(df_full, T=WINDOW_SIZE)
+        self.assertEqual(X_full.shape[1], 10)
 
     def test_returns_empty_arrays_when_no_outcomes(self):
         df = _make_df(50, add_outcomes=False)
@@ -263,8 +279,8 @@ class TestSaveLoad(unittest.TestCase):
                 wb = model_b.get_learned_weights()
                 for k in SOURCE_NAMES:
                     self.assertAlmostEqual(wa[k], wb[k], places=5)
-                # Input channel count persisted
-                self.assertEqual(model_b._n_channels, N_CHANNELS)
+                # Input channel count persisted (matches what model_a was trained on)
+                self.assertEqual(model_b._n_channels, model_a._n_channels)
             finally:
                 cm._MODEL_PATH = orig_path
 

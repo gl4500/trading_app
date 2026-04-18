@@ -431,5 +431,100 @@ class TestKellyFraction(unittest.TestCase):
         self.assertAlmostEqual(f, 0.10)
 
 
+# ── Bayesian Confidence Tracking ─────────────────────────────────────────────
+
+class TestBayesianConfidence(unittest.TestCase):
+    """Within-trade Bayesian confidence update via logit-linear formula."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    # --- entry_confidence storage ---
+
+    def test_execute_buy_stores_entry_confidence(self):
+        self.p.execute_buy("AAPL", 10, 100.0, entry_confidence=0.8)
+        self.assertAlmostEqual(self.p.positions["AAPL"].entry_confidence, 0.8)
+
+    def test_execute_buy_default_entry_confidence_is_half(self):
+        """No confidence supplied → uninformed prior 0.5."""
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.assertAlmostEqual(self.p.positions["AAPL"].entry_confidence, 0.5)
+
+    def test_bayes_confidence_initialised_to_entry_confidence(self):
+        self.p.execute_buy("AAPL", 10, 100.0, entry_confidence=0.7)
+        self.assertAlmostEqual(self.p.positions["AAPL"].bayes_confidence, 0.7)
+
+    def test_add_to_position_does_not_change_entry_confidence(self):
+        """Averaging into a position must not overwrite the original entry_confidence."""
+        self.p.execute_buy("AAPL", 10, 100.0, entry_confidence=0.75)
+        self.p.execute_buy("AAPL", 5, 90.0, entry_confidence=0.50)
+        self.assertAlmostEqual(self.p.positions["AAPL"].entry_confidence, 0.75)
+
+    # --- live update via record_value ---
+
+    def test_bayes_confidence_increases_on_price_gain(self):
+        """Price rises after entry → posterior confidence rises."""
+        self.p.execute_buy("AAPL", 10, 100.0, entry_confidence=0.5)
+        self.p.record_value({"AAPL": 102.0})   # +2% gain
+        self.assertGreater(self.p.positions["AAPL"].bayes_confidence, 0.5)
+
+    def test_bayes_confidence_decreases_on_price_drop(self):
+        """Price falls after entry → posterior confidence drops."""
+        self.p.execute_buy("AAPL", 10, 100.0, entry_confidence=0.5)
+        self.p.record_value({"AAPL": 98.0})    # −2% loss
+        self.assertLess(self.p.positions["AAPL"].bayes_confidence, 0.5)
+
+    def test_bayes_confidence_unchanged_on_flat_price(self):
+        """No price move → posterior stays at prior."""
+        self.p.execute_buy("AAPL", 10, 100.0, entry_confidence=0.6)
+        self.p.record_value({"AAPL": 100.0})   # no change
+        self.assertAlmostEqual(self.p.positions["AAPL"].bayes_confidence, 0.6, places=6)
+
+    def test_bayes_confidence_clamped_above(self):
+        """Repeated price gains must not push confidence above 0.99."""
+        self.p.execute_buy("AAPL", 10, 100.0, entry_confidence=0.5)
+        price = 100.0
+        for _ in range(200):
+            price *= 1.05
+            self.p.record_value({"AAPL": price})
+        self.assertLessEqual(self.p.positions["AAPL"].bayes_confidence, 0.99)
+
+    def test_bayes_confidence_clamped_below(self):
+        """Repeated price drops must not push confidence below 0.01."""
+        self.p.execute_buy("AAPL", 10, 100.0, entry_confidence=0.5)
+        price = 100.0
+        for _ in range(200):
+            price *= 0.95
+            self.p.record_value({"AAPL": price})
+        self.assertGreaterEqual(self.p.positions["AAPL"].bayes_confidence, 0.01)
+
+    def test_bayes_confidence_cleared_on_sell(self):
+        """Selling the full position must clean up the last-price tracker."""
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 105.0})
+        self.p.execute_sell("AAPL", 10, 110.0)
+        self.assertNotIn("AAPL", self.p._position_last_price)
+
+    def test_metrics_include_bayes_confidence(self):
+        """calculate_metrics positions list must include bayes_confidence."""
+        self.p.execute_buy("AAPL", 10, 100.0, entry_confidence=0.65)
+        m = self.p.calculate_metrics({"AAPL": 100.0})
+        pos_entry = m["positions"][0]
+        self.assertIn("bayes_confidence", pos_entry)
+        self.assertAlmostEqual(pos_entry["bayes_confidence"], 0.65, places=2)
+
+    def test_bayes_confidence_monotone_with_sustained_gains(self):
+        """Sustained price appreciation must monotonically increase confidence."""
+        self.p.execute_buy("AAPL", 10, 100.0, entry_confidence=0.5)
+        prev = 0.5
+        price = 100.0
+        for _ in range(10):
+            price *= 1.01
+            self.p.record_value({"AAPL": price})
+            cur = self.p.positions["AAPL"].bayes_confidence
+            self.assertGreaterEqual(cur, prev)
+            prev = cur
+
+
 if __name__ == "__main__":
     unittest.main()

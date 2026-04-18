@@ -204,8 +204,8 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
             await self.store.record_snapshot("AAPL", _scores(), 0.4, 150.0)
         result = self.store.get_recent_window("AAPL", T=10)
         self.assertIsNotNone(result)
-        # 7 channels: 5 source + 2 agent (zeros when no agent signals recorded)
-        self.assertEqual(result.shape, (7, 10))
+        # 10 channels: 6 source + 2 agent + 2 RV (zeros when not recorded)
+        self.assertEqual(result.shape, (10, 10))
 
     async def test_get_recent_window_no_nans(self):
         scores = _scores()
@@ -268,19 +268,44 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
         self.assertIn("agent_agreement", df.columns)
         self.assertIn("top_agent_correct", df.columns)
 
-    async def test_get_recent_window_returns_7_channels(self):
+    async def test_get_recent_window_returns_10_channels(self):
         for _ in range(5):
-            await self.store.record_snapshot("AAPL", _scores(), 0.4, 150.0)
+            await self.store.record_snapshot("AAPL", _scores(), 0.4, 150.0,
+                                             rv_20d=0.18, rv_60d=0.22)
         for _ in range(5):
             await self.store.record_agent_signals("AAPL", 0.5, 0.8)
         result = self.store.get_recent_window("AAPL", T=5)
         self.assertIsNotNone(result)
-        self.assertEqual(result.shape, (7, 5))
+        # 10 channels: 6 source + 2 agent + 2 RV
+        self.assertEqual(result.shape, (10, 5))
 
-    async def test_get_recent_window_7_channels_zeros_for_missing_agent_cols(self):
-        """Old Parquet files without agent columns gracefully return 7-ch window with zeros."""
+    async def test_get_recent_window_rv_values_stored_and_retrieved(self):
+        await self.store.record_snapshot("AAPL", _scores(), 0.4, 150.0,
+                                         rv_20d=0.18, rv_60d=0.22)
+        for _ in range(4):
+            await self.store.record_snapshot("AAPL", _scores(), 0.4, 150.0)
+        result = self.store.get_recent_window("AAPL", T=5)
+        self.assertIsNotNone(result)
+        # Channel 7 = rv_20d, channel 8 = rv_60d (0-indexed)
+        # Most recent row is last column; first row had rv values
+        # Verify no NaN survived (nan_to_num converts to 0.0)
+        self.assertFalse(np.isnan(result).any())
+
+    async def test_get_recent_window_rv_zero_filled_when_absent(self):
+        """Old snapshots without rv columns should produce zeros, not errors."""
+        for _ in range(5):
+            await self.store.record_snapshot("AAPL", _scores(), 0.4, 150.0)
+        result = self.store.get_recent_window("AAPL", T=5)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.shape, (10, 5))
+        # RV channels (8 and 9) should be zeros when not recorded
+        self.assertTrue(np.all(result[8] == 0.0))
+        self.assertTrue(np.all(result[9] == 0.0))
+
+    async def test_get_recent_window_10_channels_zeros_for_missing_optional_cols(self):
+        """Old Parquet files without agent/RV columns return 10-ch window with zeros for those."""
         import pandas as pd, time as _time
-        # Write a minimal old-style row (no agent columns)
+        # Write a minimal old-style row (no agent or RV columns)
         for _ in range(5):
             row = {
                 "symbol": "AAPL", "snapshot_ts": _time.time(),
@@ -295,10 +320,14 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
 
         result = self.store.get_recent_window("AAPL", T=5)
         self.assertIsNotNone(result)
-        self.assertEqual(result.shape, (7, 5))
-        # Agent channels (index 5 and 6) should be zero
-        self.assertTrue((result[5] == 0.0).all())
+        # 10 channels: old files without agent/RV columns get zeros for channels 6-9
+        self.assertEqual(result.shape, (10, 5))
+        # Agent channels (index 6 and 7) should be zero
         self.assertTrue((result[6] == 0.0).all())
+        self.assertTrue((result[7] == 0.0).all())
+        # RV channels (index 8 and 9) should be zero
+        self.assertTrue((result[8] == 0.0).all())
+        self.assertTrue((result[9] == 0.0).all())
 
 
 if __name__ == "__main__":

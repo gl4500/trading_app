@@ -26,6 +26,7 @@ Training schedule
 import asyncio
 import json
 import logging
+import math
 import re
 import time
 from typing import Dict, List, Optional
@@ -43,12 +44,30 @@ RETRAIN_INTERVAL = 86_400        # seconds between retraining runs (24 h)
 _OLLAMA_BASE     = "http://localhost:11434/v1"
 
 _HARDCODED = {
-    "analyst_consensus":    35,
-    "earnings_surprise":    22,
-    "alpaca_news":          18,
-    "yahoo_news":           12,
-    "congressional_trades": 13,
+    "analyst_consensus":    30,
+    "earnings_surprise":    19,
+    "alpaca_news":          15,
+    "yahoo_news":           10,
+    "congressional_trades": 11,
+    "iv_rv_spread":         15,
 }
+
+# Entropy pre-filter thresholds
+# Skip Ollama when signal magnitude is below MIN_SIGNAL_MAGNITUDE AND CNN
+# confidence is below MIN_CNN_CONF.  This avoids ~50s Ollama calls on cycles
+# where all source scores are near zero (no information in the market context).
+_MIN_SIGNAL_MAGNITUDE = 0.08   # mean absolute value of fresh source scores
+_MIN_CNN_CONF         = 0.35   # CNN confidence below which we also require signal
+
+
+def _signal_magnitude(scores: Dict[str, Optional[float]]) -> float:
+    """
+    Mean absolute value of available (non-None) source scores.
+    Returns 0.0 when no scores are present.
+    Used as a proxy for information content — low magnitude = low-entropy setup.
+    """
+    vals = [abs(v) for v in scores.values() if v is not None and not math.isnan(v)]
+    return sum(vals) / len(vals) if vals else 0.0
 
 
 class CNNReasoningAgent(BaseAgent):
@@ -403,6 +422,28 @@ class CNNReasoningAgent(BaseAgent):
 
             # Macro context text (tactical + strategic summary)
             macro_text: str = market_context.get("__macro_context__", "") or ""
+
+            # ── Entropy pre-filter ────────────────────────────────────────────
+            # Skip Ollama when signal magnitude is too low AND CNN is uncertain.
+            # Saves ~50s Ollama calls on flat/noisy cycles with no real signal.
+            _magnitude = _signal_magnitude(current_scores)
+            if _magnitude < _MIN_SIGNAL_MAGNITUDE and cnn_conf < _MIN_CNN_CONF:
+                logger.debug(
+                    f"CNNReasoningAgent [{symbol}]: entropy pre-filter — "
+                    f"magnitude={_magnitude:.3f} conf={cnn_conf:.2f} → HOLD (skip Ollama)"
+                )
+                signals.append(Signal(
+                    symbol     = symbol,
+                    action     = "HOLD",
+                    shares     = 0,
+                    confidence = cnn_conf,
+                    reasoning  = (
+                        f"Entropy filter: signal magnitude {_magnitude:.2f} < "
+                        f"{_MIN_SIGNAL_MAGNITUDE} — no actionable information"
+                    ),
+                    agent_name = self.name,
+                ))
+                continue
 
             prompt   = self._build_prompt(
                 symbol, price, pred_return, direction, cnn_conf,

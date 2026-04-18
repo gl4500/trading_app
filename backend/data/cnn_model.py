@@ -3,7 +3,7 @@ Temporal 1-D CNN for learning optimal composite signal source weights.
 
 Architecture (GLU-gated)
 ------------------------
-  Input       : (batch, 7, T)  — 7 channels (5 source + 2 agent) × T time-steps
+  Input       : (batch, 10, T) — 10 channels (6 source + 2 agent + 2 RV) × T time-steps
   GatedConv1d : 7  → 16, k=3  — conv_main(x) * sigmoid(conv_gate(x))
   BatchNorm1d(16) + Dropout(0.2)
   GatedConv1d : 16 → 32, k=3  — higher-order cross-source patterns
@@ -72,23 +72,35 @@ SOURCE_NAMES: List[str] = [
     "alpaca_news",
     "yahoo_news",
     "congressional_trades",
+    "iv_rv_spread",      # channel 5: IV − RV_20d spread scored to [-1, +1]
 ]
 
-# Agent channels appended after the 5 source channels
+# Agent channels appended after the 6 source channels
 AGENT_CHANNEL_NAMES: List[str] = [
-    "agent_consensus",   # channel 5: performance-weighted directional vote  (-1 to +1)
-    "agent_agreement",   # channel 6: fraction of agents that agree (0 to 1)
+    "agent_consensus",   # channel 6: performance-weighted directional vote  (-1 to +1)
+    "agent_agreement",   # channel 7: fraction of agents that agree (0 to 1)
 ]
 
-# Total input channels: 5 source + 2 agent = 7
-N_CHANNELS = len(SOURCE_NAMES) + len(AGENT_CHANNEL_NAMES)   # 7
+# Realized volatility channels — annualized from daily close prices (252-day basis)
+# The GLU gates learn to suppress these in trending markets where RV is uninformative
+# and amplify them in high-vol regimes where BSM-style vol signals add edge.
+RV_CHANNEL_NAMES: List[str] = [
+    "rv_20d",   # channel 8: 20-day rolling realized vol (short-term vol regime)
+    "rv_60d",   # channel 9: 60-day rolling realized vol (medium-term vol regime)
+]
+
+# Total input channels: 6 source + 2 agent + 2 RV = 10
+# Old checkpoints (7- or 9-channel) load fine — predict() guards against shape mismatch
+# and the net auto-rebuilds to 10 channels on the next 24h retrain cycle.
+N_CHANNELS = len(SOURCE_NAMES) + len(AGENT_CHANNEL_NAMES) + len(RV_CHANNEL_NAMES)  # 10
 
 _DEFAULT_WEIGHTS: Dict[str, float] = {
-    "analyst_consensus":    0.35,
-    "earnings_surprise":    0.22,
-    "alpaca_news":          0.18,
-    "yahoo_news":           0.12,
-    "congressional_trades": 0.13,
+    "analyst_consensus":    0.30,
+    "earnings_surprise":    0.19,
+    "alpaca_news":          0.15,
+    "yahoo_news":           0.10,
+    "congressional_trades": 0.11,
+    "iv_rv_spread":         0.15,
 }
 
 MIN_TRAIN_SAMPLES = 30   # minimum labelled rows before training starts
@@ -271,21 +283,30 @@ def build_training_windows(
     df : pd.DataFrame
         Output of SignalHistoryStore.get_training_data() — must contain
         SOURCE_COLUMNS and 'return_1d'.  Optionally contains agent columns
-        ('agent_consensus', 'agent_agreement', 'top_agent_correct').
+        ('agent_consensus', 'agent_agreement', 'top_agent_correct') and RV
+        columns ('rv_20d', 'rv_60d').
     T  : int
         Rolling window size.
 
     Returns
     -------
-    X : (N, C, T)  float32  — C = 7 when agent cols present, 5 otherwise
+    X : (N, C, T)  float32  — C = 9 (5 source + 2 agent + 2 RV) when all
+                               columns present; degrades gracefully when older
+                               Parquet files lack agent/RV columns.
     y : (N,)       float32  — 1-day forward returns (clipped to ±20%)
     w : (N,)       float32  — sample weights (1.0 default; higher when top
                                agent was confirmed correct)
     """
-    from data.signal_history import SOURCE_COLUMNS, AGENT_COLUMNS  # avoid circular
+    from data.signal_history import SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS  # avoid circular
 
     has_agent = all(c in df.columns for c in AGENT_COLUMNS)
-    feat_cols = SOURCE_COLUMNS + AGENT_COLUMNS if has_agent else SOURCE_COLUMNS
+    has_rv    = all(c in df.columns for c in RV_COLUMNS)
+    # Source columns: filter to those present — old Parquet files may lack iv_rv_score
+    feat_cols = [c for c in SOURCE_COLUMNS if c in df.columns]
+    if has_agent:
+        feat_cols = feat_cols + AGENT_COLUMNS
+    if has_rv:
+        feat_cols = feat_cols + RV_COLUMNS
     n_feat    = len(feat_cols)
 
     X_list: List[np.ndarray] = []
@@ -517,6 +538,12 @@ class SignalCNN:
         confidence  : float 0–1   magnitude-scaled (5% return → 1.0)
         """
         if not HAS_TORCH or self._net is None or not self._trained:
+            return 0.0, "neutral", 0.0
+
+        # Guard against channel mismatch during the transition period when old
+        # 7-channel checkpoints are loaded but get_recent_window now returns 9
+        # channels.  The net rebuilds automatically on the next 24h retrain.
+        if x.shape[0] != self._n_channels:
             return 0.0, "neutral", 0.0
 
         self._net.eval()

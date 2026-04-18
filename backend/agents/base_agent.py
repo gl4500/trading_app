@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from typing import Deque, Dict, List, Optional, Any, Tuple
 from datetime import datetime, timezone
 
+import numpy as np
+
 from config import config
 from trading.portfolio import Portfolio
 from trading.risk_manager import RiskManager
@@ -203,6 +205,13 @@ class BaseAgent(ABC):
                 for stale in [k for k in self._last_signals if k not in current_symbols]:
                     del self._last_signals[stale]
 
+                # Build returns cache for Markowitz correlation gate (one pass per cycle)
+                all_syms = (
+                    list(self.portfolio.positions.keys()) +
+                    [s for s in market_context if isinstance(market_context.get(s), dict)]
+                )
+                portfolio_returns = self._build_portfolio_returns(market_context, all_syms)
+
                 # Execute actionable signals
                 executed = []
                 for signal in signals:
@@ -210,7 +219,9 @@ class BaseAgent(ABC):
                     self._last_signals[signal.symbol] = signal
 
                     if signal.is_actionable():
-                        success = await self._execute_signal(signal, prices)
+                        success = await self._execute_signal(
+                            signal, prices, portfolio_returns=portfolio_returns
+                        )
                         if success:
                             executed.append(signal)
 
@@ -227,7 +238,42 @@ class BaseAgent(ABC):
                     self._is_active = False
                 return []
 
-    async def _execute_signal(self, signal: Signal, prices: Dict[str, float]) -> bool:
+    @staticmethod
+    def _build_portfolio_returns(
+        market_context: Dict,
+        symbols: List[str],
+    ) -> Dict[str, np.ndarray]:
+        """
+        Extract log-return series from bars stored in market_context.
+
+        Used to supply the Markowitz correlation gate in RiskManager.
+        Returns an empty dict (gate skipped) when bars are unavailable.
+        """
+        returns: Dict[str, np.ndarray] = {}
+        for sym in symbols:
+            ctx = market_context.get(sym)
+            if not isinstance(ctx, dict):
+                continue
+            bars = ctx.get("bars")
+            if bars is None or not hasattr(bars, "empty") or bars.empty:
+                continue
+            if "close" not in bars.columns:
+                continue
+            closes = bars["close"].values.astype(float)
+            if len(closes) < 22:
+                continue
+            log_rets = np.log(closes[1:] / np.where(closes[:-1] > 0, closes[:-1], np.nan))
+            log_rets = log_rets[np.isfinite(log_rets)]
+            if len(log_rets) >= 20:
+                returns[sym] = log_rets
+        return returns
+
+    async def _execute_signal(
+        self,
+        signal: Signal,
+        prices: Dict[str, float],
+        portfolio_returns: Optional[Dict[str, np.ndarray]] = None,
+    ) -> bool:
         """Execute a trading signal after risk checks."""
         price = prices.get(signal.symbol)
         if not price or price <= 0:
@@ -257,14 +303,16 @@ class BaseAgent(ABC):
             )
 
             allowed, reason = self.risk_manager.check_buy_allowed(
-                signal.symbol, signal.shares, price, self.portfolio, prices
+                signal.symbol, signal.shares, price, self.portfolio, prices,
+                portfolio_returns=portfolio_returns,
             )
             if not allowed:
                 logger.debug(f"{self.name}: Buy rejected for {signal.symbol}: {reason}")
                 return False
 
             success = self.portfolio.execute_buy(
-                signal.symbol, signal.shares, price, signal.reasoning
+                signal.symbol, signal.shares, price, signal.reasoning,
+                entry_confidence=signal.confidence,
             )
             if success:
                 logger.info(f"{self.name}: BUY {signal.shares:.2f} {signal.symbol} @ ${price:.2f} | {signal.reasoning[:80]}")

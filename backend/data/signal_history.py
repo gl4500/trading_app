@@ -29,6 +29,7 @@ SOURCE_COLUMNS = [
     "alpaca_score",
     "yahoo_score",
     "congress_score",
+    "iv_rv_score",     # IV minus RV_20d spread, scored to [-1, +1]
 ]
 
 _DTYPE_MAP = {
@@ -39,6 +40,7 @@ _DTYPE_MAP = {
     "alpaca_score":      "float64",
     "yahoo_score":       "float64",
     "congress_score":    "float64",
+    "iv_rv_score":       "float64",  # IV/RV spread score [-1, +1]; NaN when options unavailable
     "composite_score":   "float64",
     "price":             "float64",
     "return_1d":         "float64",
@@ -47,10 +49,16 @@ _DTYPE_MAP = {
     "agent_consensus":   "float64",  # -1.0 to +1.0 performance-weighted vote
     "agent_agreement":   "float64",  # 0.0 to 1.0 fraction of agents that agree
     "top_agent_correct": "float64",  # NaN until 24h later; 1.0 = top agent was right
+    # Realized volatility channels (annualized, 252-day basis)
+    "rv_20d":            "float64",  # 20-day rolling realized vol
+    "rv_60d":            "float64",  # 60-day rolling realized vol
 }
 
 # Agent feature columns used as extra CNN input channels
 AGENT_COLUMNS = ["agent_consensus", "agent_agreement"]
+
+# Realized volatility columns — CNN channels 8 & 9
+RV_COLUMNS = ["rv_20d", "rv_60d"]
 
 # Rolling cap: keep at most 90 days × ~12 snapshots/hour = ~26 000 rows/symbol
 MAX_ROWS = 90 * 24 * 12
@@ -102,13 +110,19 @@ class SignalHistoryStore:
         scores: Dict[str, Optional[float]],
         composite_score: float,
         price: float,
+        rv_20d: Optional[float] = None,
+        rv_60d: Optional[float] = None,
     ) -> None:
         """
         Append one row to the symbol's Parquet file.
 
         scores keys must match the source names used in signal_aggregator:
           analyst_consensus, earnings_surprise, alpaca_news, yahoo_news,
-          congressional_trades
+          congressional_trades, iv_rv_spread
+
+        rv_20d / rv_60d: annualized realized volatility (252-day basis) computed
+          from the symbol's recent daily close prices.  Pass None when bars are
+          unavailable (will be stored as NaN and zero-filled in get_recent_window).
         """
         row = {
             "symbol":          symbol,
@@ -118,10 +132,13 @@ class SignalHistoryStore:
             "alpaca_score":    scores.get("alpaca_news"),
             "yahoo_score":     scores.get("yahoo_news"),
             "congress_score":  scores.get("congressional_trades"),
+            "iv_rv_score":     scores.get("iv_rv_spread"),
             "composite_score": composite_score,
             "price":           price,
             "return_1d":       np.nan,
             "return_5d":       np.nan,
+            "rv_20d":          rv_20d,
+            "rv_60d":          rv_60d,
         }
         async with _get_lock(symbol):
             df = _load(symbol)
@@ -278,9 +295,9 @@ class SignalHistoryStore:
     def get_recent_window(self, symbol: str, T: int = 10) -> Optional[np.ndarray]:
         """
         Return the most recent T snapshots as a (C, T) float array where
-        C = 7 (5 source channels + 2 agent channels).
+        C = 10 (6 source + 2 agent + 2 RV channels).
 
-        Old Parquet files without agent columns return zeros for those channels.
+        Old Parquet files without agent/RV/iv_rv columns return zeros for those channels.
         Returns None if fewer than 3 snapshots exist (insufficient context).
         """
         df = _load(symbol)
@@ -289,8 +306,14 @@ class SignalHistoryStore:
 
         recent = df.tail(T)
 
-        # Source channels (always present)
-        source_data = recent[SOURCE_COLUMNS].values.astype(float)   # (≤T, 5)
+        # Source channels — zero-fill when a column is absent (old Parquet files)
+        src_parts = []
+        for col in SOURCE_COLUMNS:
+            if col in df.columns:
+                src_parts.append(recent[col].values.astype(float).reshape(-1, 1))
+            else:
+                src_parts.append(np.zeros((len(recent), 1)))
+        source_data = np.hstack(src_parts)                           # (≤T, 6)
 
         # Agent channels — zero-fill when columns are absent (old files)
         agent_parts = []
@@ -301,14 +324,23 @@ class SignalHistoryStore:
                 agent_parts.append(np.zeros((len(recent), 1)))
         agent_data = np.hstack(agent_parts)                          # (≤T, 2)
 
-        combined = np.hstack([source_data, agent_data])              # (≤T, 7)
+        # RV channels — zero-fill when columns are absent (old files)
+        rv_parts = []
+        for col in RV_COLUMNS:
+            if col in df.columns:
+                rv_parts.append(recent[col].values.astype(float).reshape(-1, 1))
+            else:
+                rv_parts.append(np.zeros((len(recent), 1)))
+        rv_data = np.hstack(rv_parts)                                # (≤T, 2)
+
+        combined = np.hstack([source_data, agent_data, rv_data])     # (≤T, 9)
 
         if len(combined) < T:
             pad      = np.zeros((T - len(combined), combined.shape[1]))
             combined = np.vstack([pad, combined])
 
         combined = np.nan_to_num(combined, nan=0.0)
-        return combined.T   # (7, T)
+        return combined.T   # (9, T)
 
     def symbols_with_data(self) -> List[str]:
         """List all symbols that have at least one snapshot on disk."""

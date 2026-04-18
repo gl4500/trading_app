@@ -28,7 +28,9 @@ def _make_ctx(price=100.0, composite=0.0):
         "composite_signal": {
             "composite_score": composite,
             "sources": {
-                "analyst_consensus":    {"score": 0.1},
+                # analyst_consensus set high enough (0.5) so the entropy pre-filter
+                # (mean abs threshold = 0.08) does not suppress signals in tests.
+                "analyst_consensus":    {"score": 0.5},
                 "earnings_surprise":    {"score": 0.0},
                 "alpaca_news":          {"score": 0.0},
                 "yahoo_news":           {"score": 0.0},
@@ -277,7 +279,10 @@ class TestCNNAnalyzeCatalystPassthrough(unittest.IsolatedAsyncioTestCase):
         mkt = {
             "AAPL": {
                 "price": 150.0,
-                "composite_signal": {"composite_score": 0.1, "sources": {}},
+                "composite_signal": {
+                    "composite_score": 0.1,
+                    "sources": {"analyst_consensus": {"score": 0.5}},
+                },
             },
             "__overnight_catalysts__": [catalyst],
         }
@@ -299,7 +304,10 @@ class TestCNNAnalyzeCatalystPassthrough(unittest.IsolatedAsyncioTestCase):
         mkt = {
             "AAPL": {
                 "price": 150.0,
-                "composite_signal": {"composite_score": 0.1, "sources": {}},
+                "composite_signal": {
+                    "composite_score": 0.1,
+                    "sources": {"analyst_consensus": {"score": 0.5}},
+                },
             },
             "__macro_context__": "VIX=28 BEAR regime",
             "__overnight_catalysts__": [],

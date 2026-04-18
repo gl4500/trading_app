@@ -169,7 +169,7 @@ class TestGetMaxBuyShares(unittest.TestCase):
         self.assertEqual(shares, 0)
 
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 class TestChurnCooloff(unittest.TestCase):
@@ -189,7 +189,7 @@ class TestChurnCooloff(unittest.TestCase):
     def test_reentry_allowed_after_cooloff_expires(self):
         self.p.execute_buy("AAPL", 10, 100.0)
         self.p.execute_sell("AAPL", 10, 105.0)
-        self.p._recent_exits["AAPL"] = datetime.utcnow() - timedelta(minutes=31)
+        self.p._recent_exits["AAPL"] = datetime.now(timezone.utc) - timedelta(minutes=31)
         allowed, _ = self.rm.check_buy_allowed("AAPL", 5, 100.0, self.p, {"AAPL": 100.0})
         self.assertTrue(allowed)
 
@@ -229,6 +229,110 @@ class TestSectorConcentration(unittest.TestCase):
     def test_unknown_sector_not_blocked(self):
         allowed, _ = self.rm.check_buy_allowed("ZZZZ", 5, 100.0, self.p, {"ZZZZ": 100.0})
         self.assertTrue(allowed)
+
+
+class TestCorrelationGate(unittest.TestCase):
+    """Markowitz correlation gate: blocks BUY when adding a symbol raises
+    average pairwise portfolio correlation above CORRELATION_LIMIT."""
+
+    def setUp(self):
+        self.rm = RiskManager()
+        self.p = Portfolio(starting_capital=100_000)
+        # Two existing positions with enough cash remaining
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.execute_buy("MSFT", 10, 100.0)
+        self.prices = {"AAPL": 100.0, "MSFT": 100.0, "NVDA": 100.0}
+
+        rng = __import__("numpy.random", fromlist=["default_rng"]).default_rng(42)
+        base = rng.standard_normal(60)
+
+        # Highly correlated series — correlation ≈ 0.99
+        self.corr_aapl = base + rng.standard_normal(60) * 0.02
+        self.corr_msft = base + rng.standard_normal(60) * 0.02
+        self.corr_nvda = base + rng.standard_normal(60) * 0.02   # same factor → correlated
+
+        # Uncorrelated series — independent noise
+        self.uncorr_aapl = rng.standard_normal(60)
+        self.uncorr_msft = rng.standard_normal(60)
+        self.uncorr_nvda = rng.standard_normal(60)
+
+    def test_no_returns_provided_skips_gate(self):
+        """portfolio_returns=None → gate skipped, buy allowed."""
+        allowed, reason = self.rm.check_buy_allowed(
+            "NVDA", 5, 100.0, self.p, self.prices, portfolio_returns=None
+        )
+        self.assertTrue(allowed, reason)
+
+    def test_target_not_in_returns_skips_gate(self):
+        """Target symbol absent from returns dict → gate skipped, buy allowed."""
+        returns = {"AAPL": self.corr_aapl, "MSFT": self.corr_msft}
+        # NVDA not in returns
+        allowed, reason = self.rm.check_buy_allowed(
+            "NVDA", 5, 100.0, self.p, self.prices, portfolio_returns=returns
+        )
+        self.assertTrue(allowed, reason)
+
+    def test_no_held_positions_with_returns_skips_gate(self):
+        """No existing positions have returns data → gate skipped."""
+        p = Portfolio(starting_capital=100_000)
+        returns = {"NVDA": self.corr_nvda}   # only target in returns, no holdings
+        allowed, reason = self.rm.check_buy_allowed(
+            "NVDA", 5, 100.0, p, {"NVDA": 100.0}, portfolio_returns=returns
+        )
+        self.assertTrue(allowed, reason)
+
+    def test_allows_uncorrelated_asset(self):
+        """Adding a low-correlation asset → buy allowed."""
+        returns = {
+            "AAPL": self.uncorr_aapl,
+            "MSFT": self.uncorr_msft,
+            "NVDA": self.uncorr_nvda,
+        }
+        allowed, reason = self.rm.check_buy_allowed(
+            "NVDA", 5, 100.0, self.p, self.prices, portfolio_returns=returns
+        )
+        self.assertTrue(allowed, reason)
+
+    def test_blocks_highly_correlated_asset(self):
+        """Adding a highly correlated asset raises avg portfolio corr → buy blocked."""
+        returns = {
+            "AAPL": self.corr_aapl,
+            "MSFT": self.corr_msft,
+            "NVDA": self.corr_nvda,
+        }
+        allowed, reason = self.rm.check_buy_allowed(
+            "NVDA", 5, 100.0, self.p, self.prices, portfolio_returns=returns
+        )
+        self.assertFalse(allowed)
+        self.assertIn("Correlation", reason)
+
+    def test_correlation_reason_includes_value(self):
+        """Rejection reason must include the computed correlation value."""
+        returns = {
+            "AAPL": self.corr_aapl,
+            "MSFT": self.corr_msft,
+            "NVDA": self.corr_nvda,
+        }
+        _, reason = self.rm.check_buy_allowed(
+            "NVDA", 5, 100.0, self.p, self.prices, portfolio_returns=returns
+        )
+        # Reason should contain a correlation value like "0.99"
+        self.assertRegex(reason, r"0\.\d+")
+
+    def test_single_held_position_still_checked(self):
+        """Even with one held position + new symbol, gate still fires if correlated."""
+        p = Portfolio(starting_capital=100_000)
+        p.execute_buy("AAPL", 10, 100.0)
+        returns = {
+            "AAPL": self.corr_aapl,
+            "NVDA": self.corr_nvda,
+        }
+        prices = {"AAPL": 100.0, "NVDA": 100.0}
+        allowed, reason = self.rm.check_buy_allowed(
+            "NVDA", 5, 100.0, p, prices, portfolio_returns=returns
+        )
+        self.assertFalse(allowed)
+        self.assertIn("Correlation", reason)
 
 
 if __name__ == "__main__":

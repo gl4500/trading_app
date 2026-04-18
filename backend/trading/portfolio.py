@@ -17,6 +17,8 @@ class Position:
     symbol: str
     shares: float
     avg_cost: float  # average cost basis per share
+    entry_confidence: float = 0.5   # agent confidence at entry (0–1)
+    bayes_confidence: float = 0.5   # live Bayesian posterior (updated each candle)
 
     @property
     def total_cost(self) -> float:
@@ -61,8 +63,9 @@ class Portfolio:
             (datetime.now(timezone.utc), self.starting_capital)
         ]
         self._recent_exits: Dict[str, datetime] = {}
-        self._position_high: Dict[str, float] = {}  # MFE tracker: highest price seen since entry
-        self._position_low: Dict[str, float] = {}   # MAE tracker: lowest price seen since entry
+        self._position_high: Dict[str, float] = {}       # MFE tracker: highest price seen since entry
+        self._position_low: Dict[str, float] = {}        # MAE tracker: lowest price seen since entry
+        self._position_last_price: Dict[str, float] = {} # Bayesian update: last seen price per position
 
     def get_total_value(self, prices: Dict[str, float]) -> float:
         """Calculate total portfolio value (cash + positions)."""
@@ -85,7 +88,8 @@ class Portfolio:
             return False, f"Insufficient cash: need ${cost:.2f}, have ${self.cash:.2f}"
         return True, ""
 
-    def execute_buy(self, symbol: str, shares: float, price: float, reasoning: str = "") -> bool:
+    def execute_buy(self, symbol: str, shares: float, price: float, reasoning: str = "",
+                    entry_confidence: float = 0.5) -> bool:
         """Execute a buy order, return True if successful."""
         cost = shares * price
         if cost > self.cash:
@@ -95,16 +99,23 @@ class Portfolio:
         self.cash -= cost
 
         if symbol in self.positions:
+            # Averaging into existing position — preserve original entry_confidence/bayes_confidence
             pos = self.positions[symbol]
             new_shares = pos.shares + shares
             new_avg_cost = (pos.total_cost + cost) / new_shares
             pos.shares = new_shares
             pos.avg_cost = new_avg_cost
         else:
-            self.positions[symbol] = Position(symbol=symbol, shares=shares, avg_cost=price)
+            confidence = max(0.01, min(0.99, entry_confidence))
+            self.positions[symbol] = Position(
+                symbol=symbol, shares=shares, avg_cost=price,
+                entry_confidence=entry_confidence,
+                bayes_confidence=confidence,
+            )
             # Initialise excursion trackers for new position
             self._position_high[symbol] = price
             self._position_low[symbol] = price
+            self._position_last_price[symbol] = price
 
         record = TradeRecord(
             symbol=symbol,
@@ -148,6 +159,7 @@ class Portfolio:
             del self.positions[symbol]
             self._position_high.pop(symbol, None)
             self._position_low.pop(symbol, None)
+            self._position_last_price.pop(symbol, None)
 
         record = TradeRecord(
             symbol=symbol,
@@ -172,7 +184,8 @@ class Portfolio:
         if len(self._value_history) > 2000:
             self._value_history = self._value_history[-2000:]
 
-        # Update excursion trackers for all open positions
+        # Update excursion trackers and Bayesian confidence for all open positions
+        _K = 10.0  # logit sensitivity: k × log_return per candle
         for sym in self.positions:
             price = prices.get(sym)
             if price and price > 0:
@@ -180,6 +193,17 @@ class Portfolio:
                     self._position_high[sym] = price
                 if sym not in self._position_low or price < self._position_low[sym]:
                     self._position_low[sym] = price
+
+                # Bayesian confidence update (logit-linear, long-only so direction = +1)
+                last = self._position_last_price.get(sym)
+                if last and last > 0 and price != last:
+                    log_ret = math.log(price / last)
+                    pos = self.positions[sym]
+                    prior = max(0.01, min(0.99, pos.bayes_confidence))
+                    prior_logit = math.log(prior / (1.0 - prior))
+                    posterior_logit = prior_logit + _K * log_ret   # direction=+1 (long only)
+                    pos.bayes_confidence = max(0.01, min(0.99, 1.0 / (1.0 + math.exp(-posterior_logit))))
+                self._position_last_price[sym] = price
 
         return total_value
 
@@ -225,6 +249,8 @@ class Portfolio:
                 "current_value": pos.current_value(price),
                 "unrealized_pnl": pos.unrealized_pnl(price),
                 "unrealized_pnl_pct": pos.unrealized_pnl_pct(price),
+                "entry_confidence": pos.entry_confidence,
+                "bayes_confidence": pos.bayes_confidence,
             })
 
         # MAE / MFE analysis — only trades that have excursion data (post-feature trades)

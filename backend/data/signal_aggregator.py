@@ -42,12 +42,14 @@ YF_CACHE_TTL = 900
 _yf_cache: Dict[str, Tuple[float, Dict]] = {}
 
 # Source weights (must sum to 1.0)
+# iv_rv_spread added as a fresh real-time source; existing weights scaled proportionally.
 SOURCE_WEIGHTS = {
-    "analyst_consensus":   0.35,
-    "earnings_surprise":   0.22,
-    "alpaca_news":         0.18,
-    "yahoo_news":          0.12,
-    "congressional_trades": 0.13,
+    "analyst_consensus":   0.30,
+    "earnings_surprise":   0.19,
+    "alpaca_news":         0.15,
+    "yahoo_news":          0.10,
+    "congressional_trades": 0.11,
+    "iv_rv_spread":        0.15,   # IV minus RV_20d; high fear → bearish, low fear → bullish
 }
 
 # Sources excluded from the composite score — shown to the LLM as context only.
@@ -55,7 +57,11 @@ SOURCE_WEIGHTS = {
 # congressional_trades: SEC EDGAR Form 4 has a 90-day reporting window; filings
 #   can reflect trades from months ago and must not gate live decisions.
 CONTEXT_ONLY_SOURCES = {"earnings_surprise", "congressional_trades"}
-_FRESH_SOURCES = {"analyst_consensus", "alpaca_news", "yahoo_news"}
+_FRESH_SOURCES = {"analyst_consensus", "alpaca_news", "yahoo_news", "iv_rv_spread"}
+
+# Normalisation divisor for IV/RV spread → [-1, +1]:
+# A spread of ±0.20 (20 pp) maps to ±1.0.  Larger spreads are clamped.
+_IV_RV_NORM = 0.20
 
 # Simple bullish/bearish keyword sets for news scoring
 _BULLISH_WORDS = {
@@ -152,6 +158,42 @@ def _fetch_yf_data_sync(symbol: str) -> Dict:
     except Exception as e:
         logger.debug(f"yfinance news failed for {symbol}: {e}")
 
+    # ── IV / RV spread ─────────────────────────────────────────────────────
+    # Compares near-ATM implied volatility against 20-day realized vol.
+    # Both are annualized (252-day basis).  Score interpretation:
+    #   IV >> RV  → market is fearful / hedging → bearish lean → negative score
+    #   IV ~= RV  → fair pricing → neutral
+    #   IV << RV  → complacency / vol may expand → negative score (risk-off)
+    # Scoring: score = -clamp(spread / _IV_RV_NORM, -1, 1)
+    try:
+        import numpy as _np
+        hist_iv = ticker.history(period="3mo")
+        exps = ticker.options if hasattr(ticker, "options") else ()
+        if not hist_iv.empty and len(hist_iv) >= 21 and exps:
+            closes = hist_iv["Close"].values.astype(float)
+            log_rets = _np.log(closes[1:] / _np.where(closes[:-1] > 0, closes[:-1], _np.nan))
+            log_rets = log_rets[_np.isfinite(log_rets)]
+            if len(log_rets) >= 20:
+                rv_20d = float(log_rets[-20:].std() * _np.sqrt(252))
+                chain = ticker.option_chain(exps[0])
+                calls = chain.calls
+                spot  = float(closes[-1])
+                if not calls.empty and spot > 0:
+                    calls = calls.copy()
+                    calls["_dist"] = abs(calls["strike"] - spot)
+                    atm = calls.nsmallest(1, "_dist").iloc[0]
+                    iv  = atm.get("impliedVolatility")
+                    if iv is not None and _np.isfinite(float(iv)) and float(iv) > 0:
+                        iv     = float(iv)
+                        spread = iv - rv_20d
+                        score  = -max(-1.0, min(1.0, spread / _IV_RV_NORM))
+                        result["iv_atm"]       = round(iv, 4)
+                        result["rv_20d_iv"]    = round(rv_20d, 4)
+                        result["iv_rv_spread"] = round(spread, 4)
+                        result["iv_rv_score"]  = round(score, 3)
+    except Exception as e:
+        logger.debug(f"yfinance IV/RV failed for {symbol}: {e}")
+
     return result
 
 
@@ -182,6 +224,7 @@ def _aggregate_scores(
     alpaca_news_score:    Optional[float],
     yahoo_news_score:     Optional[float],
     congressional_score:  Optional[float] = None,
+    iv_rv_score:          Optional[float] = None,
 ) -> Tuple[float, float, str]:
     """
     Compute weighted composite score and confidence.
@@ -198,6 +241,7 @@ def _aggregate_scores(
         "alpaca_news":          alpaca_news_score,
         "yahoo_news":           yahoo_news_score,
         "congressional_trades": congressional_score,
+        "iv_rv_spread":         iv_rv_score,
     }
 
     # Only fresh sources drive the composite score
@@ -258,9 +302,11 @@ async def get_composite_signal(symbol: str, alpaca_news: List[Dict]) -> Dict:
     earnings_score    = yf_data.get("earnings_surprise_score")
     yahoo_score       = yf_data.get("yahoo_news_score")
     congress_score    = congress_data.get("score")
+    iv_rv_score       = yf_data.get("iv_rv_score")
 
     composite, confidence, verdict = _aggregate_scores(
-        analyst_score, earnings_score, alpaca_score, yahoo_score, congress_score
+        analyst_score, earnings_score, alpaca_score, yahoo_score,
+        congressional_score=congress_score, iv_rv_score=iv_rv_score,
     )
 
     return {
@@ -301,6 +347,13 @@ async def get_composite_signal(symbol: str, alpaca_news: List[Dict]) -> Dict:
                 "congress_total":  congress_data.get("congress_total", 0),
                 "total_filings":   congress_data.get("total_filings", 0),
                 "window_days":     congress_data.get("window_days", 90),
+            },
+            "iv_rv_spread": {
+                "score":       iv_rv_score,
+                "weight":      SOURCE_WEIGHTS["iv_rv_spread"],
+                "iv_atm":      yf_data.get("iv_atm"),
+                "rv_20d":      yf_data.get("rv_20d_iv"),
+                "spread":      yf_data.get("iv_rv_spread"),
             },
         },
         "yahoo_news_headlines": [
@@ -371,11 +424,26 @@ def format_for_prompt(signal: Dict) -> str:
         c_buys  = congress.get("congress_buys", 0)
         c_sells = congress.get("congress_sells", 0)
         lines.append(
-            f"    Congressional trades (13%): {congress['score']:+.2f} — "
+            f"    Congressional trades (11%): {congress['score']:+.2f} — "
             f"{c_buys} buy / {c_sells} sell (SEC EDGAR Form 4, 90 days)  [CONTEXT ONLY — 90-day window]"
         )
     else:
-        lines.append("    Congressional trades (13%): no filings found  [CONTEXT ONLY — 90-day window]")
+        lines.append("    Congressional trades (11%): no filings found  [CONTEXT ONLY — 90-day window]")
+
+    iv_rv = sources.get("iv_rv_spread", {})
+    if iv_rv.get("score") is not None:
+        iv_val  = iv_rv.get("iv_atm")
+        rv_val  = iv_rv.get("rv_20d_iv")
+        spread  = iv_rv.get("iv_rv_spread")
+        iv_str  = f"IV={iv_val:.1%} RV={rv_val:.1%} spread={spread:+.1%}" if (
+            iv_val is not None and rv_val is not None and spread is not None
+        ) else ""
+        lines.append(
+            f"    IV/RV spread        (15%): {iv_rv['score']:+.2f}"
+            + (f" — {iv_str}" if iv_str else "")
+        )
+    else:
+        lines.append("    IV/RV spread        (15%): no options data")
 
     extra_headlines = signal.get("yahoo_news_headlines", [])
     if extra_headlines:

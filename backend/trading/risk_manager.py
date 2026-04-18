@@ -3,16 +3,39 @@ Risk management: enforces position limits, concentration limits, and daily loss 
 """
 import logging
 import math
-from datetime import datetime
-from typing import Dict, Tuple
+from datetime import datetime, timezone
+from typing import Dict, Optional, Tuple
+
+import numpy as np
 
 from config import config
 from data.stock_universe import get_sector
 
 CHURN_COOLOFF_MINUTES = 30
 SECTOR_CONCENTRATION_LIMIT = 0.35
+CORRELATION_LIMIT = 0.65   # max avg pairwise Pearson correlation across proposed holdings
+_MIN_CORR_BARS    = 20     # minimum return bars required for a reliable correlation
 
 logger = logging.getLogger(__name__)
+
+
+def _avg_pairwise_correlation(returns_dict: Dict[str, np.ndarray]) -> float:
+    """
+    Compute the mean pairwise Pearson correlation across all return series.
+
+    Uses the shortest series length so all series are aligned.
+    Returns 0.0 when fewer than 2 series or insufficient bars.
+    """
+    symbols = list(returns_dict.keys())
+    if len(symbols) < 2:
+        return 0.0
+    min_len = min(len(returns_dict[s]) for s in symbols)
+    if min_len < _MIN_CORR_BARS:
+        return 0.0
+    matrix = np.array([returns_dict[s][-min_len:] for s in symbols])  # (n, min_len)
+    corr = np.corrcoef(matrix)                                          # (n, n)
+    upper = corr[np.triu_indices(len(symbols), k=1)]
+    return float(np.mean(upper))
 
 
 class RiskManager:
@@ -58,6 +81,7 @@ class RiskManager:
         price: float,
         portfolio,
         prices: Dict[str, float],
+        portfolio_returns: Optional[Dict[str, np.ndarray]] = None,
     ) -> Tuple[bool, str]:
         """
         Validate a potential buy order against all risk rules.
@@ -72,7 +96,7 @@ class RiskManager:
         recent_exits = getattr(portfolio, '_recent_exits', {})
         last_exit = recent_exits.get(symbol)
         if last_exit is not None:
-            elapsed_seconds = (datetime.utcnow() - last_exit).total_seconds()
+            elapsed_seconds = (datetime.now(timezone.utc) - last_exit).total_seconds()
             elapsed_minutes = elapsed_seconds / 60
             if elapsed_minutes < CHURN_COOLOFF_MINUTES:
                 remaining = int(CHURN_COOLOFF_MINUTES - elapsed_minutes)
@@ -129,6 +153,26 @@ class RiskManager:
                     f"Sector concentration limit: {sector} would be {sector_pct*100:.1f}% of portfolio "
                     f"(max {SECTOR_CONCENTRATION_LIMIT*100:.0f}%)",
                 )
+
+        # Markowitz correlation gate: block when adding this position raises average
+        # pairwise correlation of the portfolio above CORRELATION_LIMIT.
+        # Only fires when caller provides return series (optional — skipped when None).
+        if portfolio_returns is not None and symbol in portfolio_returns:
+            held_with_returns = {
+                s: portfolio_returns[s]
+                for s in portfolio.positions
+                if s in portfolio_returns
+            }
+            if held_with_returns:
+                proposed = {**held_with_returns, symbol: portfolio_returns[symbol]}
+                avg_corr = _avg_pairwise_correlation(proposed)
+                if avg_corr > CORRELATION_LIMIT:
+                    return (
+                        False,
+                        f"Correlation gate: adding {symbol} raises avg pairwise "
+                        f"correlation to {avg_corr:.2f} (limit {CORRELATION_LIMIT:.2f}) — "
+                        f"portfolio already highly correlated",
+                    )
 
         return True, ""
 
