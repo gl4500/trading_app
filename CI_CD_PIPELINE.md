@@ -260,6 +260,73 @@ Then visit: `https://github.com/gl4500/trading_app/actions`
 
 ---
 
+## Standard Change Workflow — Required for Every Code Change
+
+Follow these steps in order for every feature, fix, or refactor:
+
+### 1. Write the failing test (TDD)
+```bash
+# Edit backend/tests/test_<module>.py — add failing tests first
+cd backend
+PYTHONPATH="C:/Users/gl450/trading_app/site-packages;C:/Users/gl450/trading_app/backend" \
+  ../runtime/python/python.exe -m unittest tests.test_<module> -v
+# Confirm: tests FAIL before implementation
+```
+
+### 2. Implement the change
+Edit the source file(s) under `backend/` or `frontend/`.
+
+### 3. Run tests — confirm green
+```bash
+PYTHONPATH="C:/Users/gl450/trading_app/site-packages;C:/Users/gl450/trading_app/backend" \
+  ../runtime/python/python.exe -m unittest tests.test_<module> -v
+# Confirm: all tests PASS
+```
+
+### 4. Update associated files
+
+| What changed | Files to update |
+|---|---|
+| Architecture (new file, agent, endpoint, signal) | `memory/trading_app_architecture.md` |
+| Bug found and fixed | `memory/trading_app_bugs_fixed.md` — append session entry |
+| New rule or workflow | `CLAUDE.md` + matching `memory/*.md` file |
+| New test module | `CLAUDE.md` → Current Test Coverage table |
+| Agent threshold changed | `memory/trading_app_thresholds.md` |
+
+```bash
+# After updating files, verify CLAUDE.md and memory are in sync
+```
+
+### 5. Stage and commit
+```bash
+# Stage only the files you intentionally changed — never use git add -A
+git add backend/<changed_file>.py \
+        backend/tests/test_<module>.py \
+        CLAUDE.md                        # if updated
+
+git commit -m "feat|fix|test|docs|refactor: short description
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+```
+
+Commit message prefixes:
+- `feat:` — new feature
+- `fix:` — bug fix
+- `test:` — tests only
+- `docs:` — documentation / CLAUDE.md / memory
+- `refactor:` — internal cleanup, no behavior change
+- `security:` — SAST fixes, secret scanning
+
+### 6. Push to main
+```bash
+git push origin main
+```
+
+The CI pipeline runs automatically on push. Monitor at:
+`https://github.com/gl4500/trading_app/actions`
+
+---
+
 ## Key Constraints to Communicate to Any Agent Working on This Repo
 
 1. **Python runtime:** `C:\Users\gl450\trading_app\runtime\python\python.exe` — never use system Python or radioconda
