@@ -381,6 +381,8 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
             if not text:
                 logger.warning("ClaudeAgent(Ollama): empty response")
                 return None
+            # Track call so /api/tokens shows Ollama activity in stats
+            self._call_timestamps.append(time.time())
             logger.info(f"ClaudeAgent: received response from local model '{config.RESEARCH_MODEL}'")
 
             # Strip markdown code fences that smaller models emit despite instructions

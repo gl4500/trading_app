@@ -713,6 +713,46 @@ class TestTokenUsageEndpoint(unittest.TestCase):
         self.assertEqual(data["totals"]["daily_tokens"], 10000 + 5 * 5000)
 
 
+    def test_db_fallback_when_in_memory_daily_tokens_zero(self):
+        """When in-memory daily_tokens is 0, endpoint falls back to DB for the value."""
+        from main import app, app_state
+        # Agent with no in-memory tokens (fresh restart, no calls yet)
+        claude = self._make_ai_agent("ClaudeAgent", daily=0, session=0)
+        claude._daily_tokens = 0  # explicit zero
+
+        # DB reports 15000 tokens for ClaudeAgent
+        def _db_side_effect(name, **_kw):
+            if name == "ClaudeAgent":
+                return 15000
+            return 0
+
+        with patch.object(app_state, "agents", {"ClaudeAgent": claude}), \
+             patch.object(app_state, "gemini_news_agent", None), \
+             patch("main.get_daily_token_total",
+                   new=AsyncMock(side_effect=_db_side_effect)), \
+             patch("main.get_agent_calls_this_hour", new_callable=AsyncMock, return_value=0):
+            client = TestClient(app)
+            data = client.get("/api/tokens").json()
+
+        self.assertEqual(data["agents"]["ClaudeAgent"]["daily_tokens"], 15000)
+
+    def test_db_fallback_not_used_when_in_memory_nonzero(self):
+        """When in-memory daily_tokens > 0, DB value is NOT used (no double-counting)."""
+        from main import app, app_state
+        claude = self._make_ai_agent("ClaudeAgent", daily=5000, session=5000)
+
+        with patch.object(app_state, "agents", {"ClaudeAgent": claude}), \
+             patch.object(app_state, "gemini_news_agent", None), \
+             patch("main.get_daily_token_total",
+                   new=AsyncMock(return_value=99999)), \
+             patch("main.get_agent_calls_this_hour", new_callable=AsyncMock, return_value=0):
+            client = TestClient(app)
+            data = client.get("/api/tokens").json()
+
+        # DB value (99999) should NOT replace the in-memory value (5000)
+        self.assertEqual(data["agents"]["ClaudeAgent"]["daily_tokens"], 5000)
+
+
 class TestTokenLogEndpoint(unittest.TestCase):
     """GET /api/token-log returns DB token log entries with filtering."""
 

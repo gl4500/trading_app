@@ -216,6 +216,8 @@ Include an entry for every symbol: {', '.join(watchlist)}
             if not text:
                 logger.warning("GeminiAgent(Ollama): empty response")
                 return None
+            # Track call so /api/tokens shows Ollama activity in stats
+            self._call_timestamps.append(time.time())
             logger.info(f"GeminiAgent: received response from local model '{config.OLLAMA_MODEL}'")
             result = extract_json(text)
             if result is None:

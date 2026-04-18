@@ -343,6 +343,34 @@ class TestClaudeTokenLogging(unittest.IsolatedAsyncioTestCase):
             await agent._get_claude_decisions(_make_ctx(["AAPL"]), ["AAPL"])
         self.assertEqual(agent._daily_tokens, 8500)
 
+    async def test_ollama_call_tracked_in_call_timestamps(self):
+        """_get_ollama_decisions must append to _call_timestamps so /api/tokens shows activity."""
+        agent = ClaudeAgent()
+        mock_msg = MagicMock()
+        mock_msg.content = '{"market_analysis": "ok", "decisions": []}'
+        mock_choice = MagicMock()
+        mock_choice.message = mock_msg
+        mock_resp = MagicMock()
+        mock_resp.choices = [mock_choice]
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_resp)
+        with patch("agents.claude_agent.AsyncOpenAI", return_value=mock_client), \
+             patch("agents.claude_agent.config") as cfg, \
+             patch("agents.claude_agent.get_learning_summary", return_value=""), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value=""), \
+             patch("agents.claude_agent.format_composite", return_value=""), \
+             patch("data.learning_manager.get_few_shot_examples", return_value=""), \
+             patch("data.agent_performance_tracker.agent_performance_tracker"):
+            cfg.RESEARCH_MODEL = "qwen2.5:7b"
+            cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+            cfg.WATCHLIST = ["AAPL"]
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            before = len(agent._call_timestamps)
+            await agent._get_ollama_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertEqual(len(agent._call_timestamps), before + 1)
+
 
 class TestClaudeHourlyRateLimit(unittest.IsolatedAsyncioTestCase):
 

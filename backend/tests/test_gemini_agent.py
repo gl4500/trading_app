@@ -647,5 +647,51 @@ class TestGeminiOllamaMode(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(s.action == "HOLD" for s in signals))
 
 
+class TestGeminiOllamaCallTracking(unittest.IsolatedAsyncioTestCase):
+    """_get_ollama_decisions must record the call in _call_timestamps."""
+
+    async def test_ollama_call_tracked_in_call_timestamps(self):
+        """Successful Ollama response must append to _call_timestamps so stats show activity."""
+        agent = GeminiAgent()
+        mock_msg = MagicMock()
+        mock_msg.content = '{"market_analysis": "ok", "decisions": []}'
+        mock_choice = MagicMock()
+        mock_choice.message = mock_msg
+        mock_resp = MagicMock()
+        mock_resp.choices = [mock_choice]
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_resp)
+        with patch("agents.gemini_agent.AsyncOpenAI", return_value=mock_client), \
+             patch("agents.gemini_agent.config") as cfg, \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""), \
+             patch("agents.gemini_agent.build_portfolio_context", return_value=""):
+            cfg.OLLAMA_MODEL = "qwen2.5:7b"
+            cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+            cfg.MAX_POSITION_SIZE = 0.10
+            mock_news.format_for_prompt.return_value = ""
+            before = len(agent._call_timestamps)
+            await agent._get_ollama_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertEqual(len(agent._call_timestamps), before + 1)
+
+    async def test_failed_ollama_call_not_tracked(self):
+        """Timeout must NOT add to _call_timestamps — only successful calls count."""
+        agent = GeminiAgent()
+        with patch("agents.gemini_agent.AsyncOpenAI") as mock_oa, \
+             patch("agents.gemini_agent.config") as cfg:
+            cfg.OLLAMA_MODEL = "qwen2.5:7b"
+            cfg.OLLAMA_BASE_URL = "http://localhost:11434/v1"
+            mock_client = MagicMock()
+            import asyncio as _asyncio
+            mock_client.chat.completions.create = AsyncMock(
+                side_effect=_asyncio.TimeoutError()
+            )
+            mock_oa.return_value = mock_client
+            before = len(agent._call_timestamps)
+            await agent._get_ollama_decisions(_make_ctx(["AAPL"]), ["AAPL"])
+        self.assertEqual(len(agent._call_timestamps), before)
+
+
 if __name__ == "__main__":
     unittest.main()

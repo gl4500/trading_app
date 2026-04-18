@@ -2287,14 +2287,22 @@ async def get_token_usage():
 
     agents_out: dict = {}
 
-    # Trading agents that track tokens
+    # Trading agents that track tokens (in-memory stats + DB fallback for daily_tokens)
     for name, agent in app_state.agents.items():
         if name in _TOKEN_AGENTS:
-            agents_out[name] = _agent_stats(agent)
+            entry = _agent_stats(agent)
+            # If in-memory daily_tokens is 0, fall back to DB so the panel reflects
+            # any calls logged before this session (e.g. restart mid-day, Ollama mode)
+            if entry["daily_tokens"] == 0:
+                entry["daily_tokens"] = await get_daily_token_total(name, hours=24)
+            agents_out[name] = entry
 
     # Gemini runs as news agent outside app_state.agents
     if app_state.gemini_news_agent and "GeminiAgent" not in agents_out:
-        agents_out["GeminiAgent"] = _agent_stats(app_state.gemini_news_agent)
+        entry = _agent_stats(app_state.gemini_news_agent)
+        if entry["daily_tokens"] == 0:
+            entry["daily_tokens"] = await get_daily_token_total("GeminiAgent", hours=24)
+        agents_out["GeminiAgent"] = entry
 
     # Agents that are standalone functions with no in-memory state — query the DB
     _DB_AGENTS = (
