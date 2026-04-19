@@ -211,5 +211,6 @@ def get_fallback_signals(market_context: Dict, agent_prefix: str) -> List[Signal
     return [
         Signal(action="HOLD", symbol=symbol, confidence=0.5, shares=0,
                reasoning=f"{agent_prefix}: API unavailable, holding positions")
-        for symbol in market_context.keys()
+        for symbol, ctx in market_context.items()
+        if isinstance(ctx, dict)
     ]

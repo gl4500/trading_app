@@ -327,6 +327,13 @@ def build_training_windows(
     if has_macro:
         feat_cols = feat_cols + MACRO_CHANNEL_NAMES
     n_feat    = len(feat_cols)
+    if n_feat == 0:
+        logger.warning("build_training_windows: no recognised feature columns in df — returning empty")
+        return (
+            np.empty((0, 0, T), dtype=np.float32),
+            np.empty(0, dtype=np.float32),
+            np.empty(0, dtype=np.float32),
+        )
 
     X_list: List[np.ndarray] = []
     y_list: List[float]      = []

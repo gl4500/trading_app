@@ -216,6 +216,7 @@ PYTHONPATH=../site-packages ../runtime/python/python.exe -m bandit -r . -x ./tes
 | `trading/portfolio.py` (Kelly sizing) | `test_portfolio.py::TestKellyFraction` | ✅ covered |
 | `trading/portfolio.py` (Bayesian confidence) | `test_portfolio.py::TestBayesianConfidence` | ✅ covered |
 | `data/cnn_model.py` (WFE) | `test_cnn_model.py::TestWalkForwardEfficiency` | ✅ covered |
+| `data/macro_history.py` + `data/history_backfill.py` (macro) | `test_macro_history.py` | ✅ covered |
 
 ---
 
@@ -257,9 +258,9 @@ Relevant memory files for this repo:
 - **DB:** SQLite via aiosqlite (`trading.db`)
 - **Market data:** Alpaca Markets (paper trading)
 - **AI agents (cloud mode):** Claude Opus 4.6, Gemini 2.0 Flash, GPT-4o-mini
-- **AI agents (Ollama mode):** All three above route to local Ollama when `OLLAMA_ONLY_MODE=1`
+- **AI agents (Ollama mode):** All three above route to local Ollama when `OLLAMA_ONLY_MODE=1`; off-hours auto-scan runs every `OLLAMA_CLOSED_SCAN_MIN=30` min when market is closed (cloud mode is unchanged)
 - **Local inference:** Ollama at `http://localhost:11434/v1` (OpenAI-compatible); `OLLAMA_MODEL` for Sentiment/Gemini/CNN; `RESEARCH_MODEL` for Claude (defaults to `OLLAMA_MODEL`)
-- **Current Ollama model:** `qwen2.5:7b` (~4.5 GB Q4) — stronger structured JSON output and reasoning than llama3.1:8b, fits RTX 2060 with headroom.
+- **Current Ollama model:** `llama3.1:8b` (~4.7 GB Q4) — reliable instruction following and structured JSON; fits RTX 2060 with headroom.
 - **GPU constraint:** RTX 2060 = 6 GB VRAM — only one Q4 model fits at a time. Set `RESEARCH_MODEL=OLLAMA_MODEL` to share the single loaded model; never configure two different models simultaneously on this GPU.
 - **Config:** `.env` → `backend/config.py` → `config` singleton
 - **Agent context key:** `market_context["__overnight_catalysts__"]` is a `list` — all agents guard with `isinstance(ctx, dict)` when iterating
@@ -272,3 +273,4 @@ Relevant memory files for this repo:
 5. NYSE regular hours only: 9:30–16:00 ET — no pre/after-hours trading
 6. `OLLAMA_ONLY_MODE=1` must route ALL three AI agents (Claude, Gemini, Sentiment) through Ollama — never call cloud APIs in this mode; token logging is skipped (zero cost, no quota)
 7. `Portfolio` has no `get_position()` method — always access positions via `portfolio.positions[sym]` (check with `sym in portfolio.positions`; read shares with `.shares`)
+8. `__MACRO__.parquet` uses a `__`-prefixed filename — `symbols_with_data()` and `get_training_data()` must filter out any `__`-prefixed entries to prevent KeyError on per-symbol signal history calls
