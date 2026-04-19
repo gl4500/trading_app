@@ -17,8 +17,8 @@ from alpaca.data.requests import (
 )
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import AssetClass, OrderSide, TimeInForce
-from alpaca.trading.requests import GetAssetsRequest, MarketOrderRequest
+from alpaca.trading.enums import AssetClass, OrderSide, QueryOrderStatus, TimeInForce
+from alpaca.trading.requests import GetAssetsRequest, GetOrdersRequest, MarketOrderRequest
 
 from config import config
 
@@ -309,6 +309,61 @@ class AlpacaClient:
         except Exception as exc:
             logger.error("Error fetching assets: %s", exc)
             return []
+
+    async def get_filled_orders(self, year: int) -> List[Dict]:
+        """
+        Fetch all filled (closed) orders whose fill date falls within *year*.
+
+        Uses a ±2 month submission window around the calendar year to capture
+        orders submitted in one year but filled in another (e.g. end-of-year
+        orders). Client-side filtering on filled_at.year is authoritative.
+
+        Returns a list of dicts:
+            [{"symbol": str, "side": "buy"|"sell",
+              "shares": float, "price": float, "filled_at": datetime}, ...]
+
+        Raises the underlying exception on API failure so the caller
+        can return HTTP 503.
+        """
+        # Wide submission window: Nov 1 of prior year → Feb 1 of next year.
+        # filled_at is filtered client-side so year-boundary fills are never missed.
+        window_start = datetime(year - 1, 11, 1, tzinfo=timezone.utc)
+        window_end   = datetime(year + 1,  2, 1, tzinfo=timezone.utc)
+
+        request = GetOrdersRequest(
+            status=QueryOrderStatus.CLOSED,
+            after=window_start,
+            until=window_end,
+            limit=500,
+        )
+
+        batch = await asyncio.to_thread(self._trading.get_orders, request)
+
+        if len(batch) >= 500:
+            logger.warning(
+                "get_filled_orders(%d): returned 500 orders — result may be truncated; "
+                "pagination not yet implemented",
+                year,
+            )
+
+        result: List[Dict] = []
+        for order in batch:
+            if not order.filled_qty or not order.filled_avg_price:
+                continue
+            filled_qty = float(order.filled_qty)
+            if filled_qty <= 0:
+                continue
+            if not order.filled_at or order.filled_at.year != year:
+                continue                      # client-side year filter (authoritative)
+            result.append({
+                "symbol":    order.symbol,
+                "side":      order.side.value,
+                "shares":    filled_qty,
+                "price":     float(order.filled_avg_price),
+                "filled_at": order.filled_at,
+            })
+
+        return result
 
     async def close(self) -> None:
         """No persistent connections to close for the alpaca-py SDK."""

@@ -141,6 +141,8 @@ class EnsembleAgent(BaseAgent):
         bars = None
         for sym in ["SPY", "QQQ"] + list(market_context.keys()):
             ctx = market_context.get(sym, {})
+            if not isinstance(ctx, dict):
+                continue
             b = ctx.get("bars")
             if b is not None and not b.empty and len(b) >= 20:
                 bars = b

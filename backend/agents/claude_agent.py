@@ -182,7 +182,7 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
         market_data = "\n".join(market_sections)
 
         overnight = market_context.get("__overnight_catalysts__", [])
-        if overnight:
+        if isinstance(overnight, list) and overnight:
             overnight_lines = []
             for c in overnight[:10]:
                 sym_tag = f"[{c['symbol']}] " if c.get("symbol") else ""

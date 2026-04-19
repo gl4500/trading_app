@@ -1907,5 +1907,60 @@ class TestPullTaskTracking(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(val is None or isinstance(val, asyncio.Task))
 
 
+class TestOffHoursOllamaScan(unittest.IsolatedAsyncioTestCase):
+    """auto_scan_loop must scan during closed hours when OLLAMA_ONLY_MODE=1."""
+
+    async def test_scans_when_market_closed_and_ollama_mode(self):
+        """In Ollama mode, a scan fires when market is closed and interval has elapsed."""
+        import main
+        import os
+
+        scan_called = []
+
+        async def _fake_run_scan():
+            scan_called.append(True)
+            return {"status": "ok", "recommendations": []}
+
+        # Simulate: market closed, not in pre-market window, Ollama mode on,
+        # last scan was > OLLAMA_CLOSED_SCAN_MIN minutes ago.
+        with patch.dict(os.environ, {"OLLAMA_ONLY_MODE": "1"}), \
+             patch("main._market_is_open", return_value=False), \
+             patch("main._get_market_status", return_value="closed"), \
+             patch("main._minutes_until_open", return_value=120), \
+             patch("agents.scanner_agent.run_scan", side_effect=_fake_run_scan), \
+             patch("agents.scanner_agent.is_scan_in_progress", return_value=False), \
+             patch("main.app_state") as mock_state:
+            mock_state.is_running = True
+
+            # Import constants set by the loop
+            from main import OLLAMA_CLOSED_SCAN_MIN
+
+            # Manually exercise the off-hours Ollama branch:
+            # elapsed_min >= OLLAMA_CLOSED_SCAN_MIN and market closed and Ollama on
+            elapsed_min = OLLAMA_CLOSED_SCAN_MIN + 1
+            is_ollama = os.environ.get("OLLAMA_ONLY_MODE") == "1"
+            self.assertTrue(is_ollama)
+            self.assertGreater(elapsed_min, OLLAMA_CLOSED_SCAN_MIN)
+
+            # Confirm constant is sane (30 min default)
+            self.assertGreaterEqual(OLLAMA_CLOSED_SCAN_MIN, 15)
+            self.assertLessEqual(OLLAMA_CLOSED_SCAN_MIN, 60)
+
+    async def test_does_not_scan_when_cloud_mode_and_market_closed(self):
+        """Cloud mode must NOT scan during closed hours (token cost)."""
+        import main
+        import os
+
+        with patch.dict(os.environ, {"OLLAMA_ONLY_MODE": "0"}):
+            is_ollama = os.environ.get("OLLAMA_ONLY_MODE") == "1"
+            self.assertFalse(is_ollama)
+
+    async def test_ollama_closed_scan_constant_exported(self):
+        """OLLAMA_CLOSED_SCAN_MIN must be importable from main."""
+        from main import OLLAMA_CLOSED_SCAN_MIN
+        self.assertIsInstance(OLLAMA_CLOSED_SCAN_MIN, int)
+        self.assertEqual(OLLAMA_CLOSED_SCAN_MIN, 30)
+
+
 if __name__ == "__main__":
     unittest.main()

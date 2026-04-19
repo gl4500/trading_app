@@ -32,7 +32,7 @@ if HAS_TORCH:
 
 
 def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True,
-             add_rv_cols=True, add_iv_rv=True):
+             add_rv_cols=True, add_iv_rv=True, add_macro_cols=False):
     """Build a minimal labelled history DataFrame."""
     now = time.time()
     rows = []
@@ -59,6 +59,12 @@ def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True,
         if add_rv_cols:
             row["rv_20d"] = np.random.uniform(0.10, 0.40)
             row["rv_60d"] = np.random.uniform(0.10, 0.40)
+        if add_macro_cols:
+            row["macro_vix_norm"] = np.random.uniform(0.3, 1.5)
+            row["macro_gld_5d"]   = np.random.uniform(-0.05, 0.05)
+            row["macro_tlt_5d"]   = np.random.uniform(-0.05, 0.05)
+            row["macro_spy_5d"]   = np.random.uniform(-0.05, 0.05)
+            row["macro_breadth"]  = np.random.uniform(-0.05, 0.05)
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -73,9 +79,10 @@ class TestBuildTrainingWindows(unittest.TestCase):
         self.assertEqual(len(X), len(w))
 
     def test_x_shape_is_N_channels_by_T(self):
-        df = _make_df(50)
+        # Include macro cols so the full N_CHANNELS=15 channels are present
+        df = _make_df(50, add_macro_cols=True)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], N_CHANNELS)
+        self.assertEqual(X.shape[1], N_CHANNELS)  # 15
         self.assertEqual(X.shape[2], WINDOW_SIZE)
 
     def test_x_shape_degrades_without_optional_cols(self):
@@ -135,6 +142,17 @@ class TestBuildTrainingWindows(unittest.TestCase):
         df = _make_df(50, add_agent_cols=False)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
         self.assertTrue((w == 1.0).all())   # no agent col → uniform weight 1.0
+
+    def test_zero_feature_columns_returns_empty_with_warning(self):
+        """DataFrame with no recognised feature columns → shape (0, 0, T) and no crash."""
+        df = _make_df(50, add_outcomes=True, add_agent_cols=False, add_rv_cols=False,
+                      add_iv_rv=False, add_macro_cols=False)
+        # Drop all SOURCE_COLUMNS so n_feat == 0
+        from data.signal_history import SOURCE_COLUMNS
+        df = df.drop(columns=[c for c in SOURCE_COLUMNS if c in df.columns])
+        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        self.assertEqual(X.shape, (0, 0, WINDOW_SIZE))
+        self.assertEqual(len(y), 0)
 
 
 class TestSignalCNNPredict(unittest.TestCase):

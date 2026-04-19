@@ -63,6 +63,7 @@ from trading.portfolio import Position, TradeRecord
 from data.market_data import market_data_service
 from data.watchlist_manager import watchlist_manager
 from trading.alpaca_client import alpaca_client
+from data.tax_estimator import TaxEstimator
 
 from data.drift_detector import check_all_agents
 from data.risk_assessor import record_trade as record_risk_trade, run_periodic_assessment
@@ -132,6 +133,10 @@ def _parse_ts(s: str) -> datetime:
 # Ollama is the default primary model — always active unless explicitly disabled.
 # Set before any agent or scanner code runs so the flag is visible to all modules.
 os.environ.setdefault("OLLAMA_ONLY_MODE", "1")
+
+# Off-hours scan interval in Ollama mode — scanner runs even when market is closed
+# because local inference is free.  Cloud mode skips off-hours to avoid token cost.
+OLLAMA_CLOSED_SCAN_MIN: int = 30
 
 # Detect whether TLS certs exist (used to set the Secure cookie flag)
 _CERTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'certs')
@@ -936,10 +941,10 @@ async def auto_scan_loop() -> None:
     """
     from agents.scanner_agent import run_scan, get_cached_scan, is_scan_in_progress
 
-    OLLAMA_SCAN_INTERVAL_MIN = 5         # scan every 5 min when Ollama-only (free, local)
-    STANDARD_SCAN_INTERVAL_MIN = 30     # scan every 30 min with tokenized agents
-    PRE_MARKET_WARMUP_MIN  = 10         # run N minutes before open
-    POLL_SLEEP_SEC         = 60         # how often to wake up and check the schedule
+    OLLAMA_SCAN_INTERVAL_MIN  = 5    # scan every 5 min during market hours (Ollama-only)
+    STANDARD_SCAN_INTERVAL_MIN = 30  # scan every 30 min during market hours (cloud)
+    PRE_MARKET_WARMUP_MIN     = 10   # run N minutes before open
+    POLL_SLEEP_SEC             = 60  # how often to wake up and check the schedule
 
     logger.info("Auto-scan loop started")
 
@@ -986,13 +991,20 @@ async def auto_scan_loop() -> None:
                     await _do_scan(f"scheduled every {interval_min} min")
                     last_scan_triggered = now_ts
             else:
-                # Market closed: fire a warmup scan before the open
+                # Market closed
                 mins_to_open = _minutes_until_open()
                 if 0 < mins_to_open <= PRE_MARKET_WARMUP_MIN:
+                    # Pre-open warmup window: scan so agents have fresh picks at open
                     if elapsed_min >= interval_min:
                         await _do_scan(
                             f"pre-open warmup ({mins_to_open:.0f} min before 9:30 AM)"
                         )
+                        last_scan_triggered = now_ts
+                elif os.environ.get("OLLAMA_ONLY_MODE") == "1":
+                    # Ollama is free/local — keep scanning after hours so the model
+                    # processes overnight news and has updated picks ready at open.
+                    if elapsed_min >= OLLAMA_CLOSED_SCAN_MIN:
+                        await _do_scan("off-hours Ollama scan (free, local)")
                         last_scan_triggered = now_ts
 
         except asyncio.CancelledError:
@@ -2089,6 +2101,27 @@ async def get_scanner_results():
     }
 
 
+@app.get("/api/tax/estimate")
+async def get_tax_estimate(year: Optional[int] = Query(None)):
+    """
+    Estimate realized capital gains and losses for the given calendar year.
+
+    Returns short-term and long-term gain/loss figures, wash-sale count,
+    and quarterly net breakdown. Federal only — caller applies their own rate.
+    """
+    if year is None:
+        year = datetime.utcnow().year
+
+    try:
+        orders = await alpaca_client.get_filled_orders(year)
+    except Exception as exc:
+        logger.error("Tax estimate: Alpaca unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail={"error": "alpaca_unavailable"})
+
+    estimator = TaxEstimator(orders)
+    return estimator.summarize(year)
+
+
 @app.post("/api/scanner/run")
 async def trigger_scanner(request: Request):
     """Trigger a new agentic stock scan (or return cached result if fresh)."""
@@ -2227,6 +2260,28 @@ async def get_backfill_status():
         "total_samples":      total,
         "min_train_samples":  MIN_TRAIN_SAMPLES,
         "ready_to_train":     total >= MIN_TRAIN_SAMPLES,
+    }
+
+
+@app.post("/api/backfill/macro")
+async def trigger_macro_backfill(days: int = 365):
+    """
+    Seed __MACRO__.parquet with historical macro environment data.
+
+    Fetches GLD/TLT/UUP/USO/SPY/IWM/QQQ from Alpaca and ^VIX/^TNX from
+    yfinance, then computes per-day ETF returns, VIX normalisation,
+    breadth score, and regime label.
+
+    Query params:
+      days — calendar days of history to backfill (default 365, max 1825)
+    """
+    from data.history_backfill import backfill_macro_history
+    days = max(30, min(days, 1825))
+    result = await backfill_macro_history(days=days)
+    return {
+        "status":     "ok",
+        "days":       days,
+        "rows_added": result.get("rows_added", 0),
     }
 
 
