@@ -156,7 +156,7 @@ class TestSignalCNNPredict(unittest.TestCase):
 
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_predict_after_fit_returns_float(self):
-        df = _make_df(60)
+        df = _make_df(120)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
         self.model.fit(X, y, epochs=5)
         x = np.random.randn(N_CHANNELS, WINDOW_SIZE).astype(np.float32)
@@ -169,7 +169,7 @@ class TestSignalCNNPredict(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_predict_direction_bull_when_positive(self):
         """Direction is 'bull' when predicted return > 0.5%."""
-        n = 80
+        n = 120
         X = np.zeros((n, N_CHANNELS, WINDOW_SIZE), dtype=np.float32)
         X[:n//2, 0, :] =  1.0
         X[n//2:, 0, :] = -1.0
@@ -195,7 +195,7 @@ class TestSignalCNNFit(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_fit_accepts_sample_weights(self):
         """fit() with sample_weights does not raise and still trains."""
-        df = _make_df(60)
+        df = _make_df(120)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
         w[:len(w)//2] = 0.5
         self.model.fit(X, y, epochs=5, sample_weights=w)
@@ -203,21 +203,21 @@ class TestSignalCNNFit(unittest.TestCase):
 
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_fit_with_none_weights_behaves_same_as_no_weights(self):
-        df = _make_df(60)
+        df = _make_df(120)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
         self.model.fit(X, y, epochs=5, sample_weights=None)
         self.assertTrue(self.model.is_trained)
 
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_fit_sets_trained_flag(self):
-        df = _make_df(60)
+        df = _make_df(120)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
         self.model.fit(X, y, epochs=5)
         self.assertTrue(self.model.is_trained)
 
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_fit_loss_decreases(self):
-        df = _make_df(80)
+        df = _make_df(120)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
         self.model.fit(X, y, epochs=30)
         losses = self.model._train_loss
@@ -239,7 +239,7 @@ class TestGetLearnedWeights(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_weights_sum_to_one_after_training(self):
         model = SignalCNN()
-        df = _make_df(60)
+        df = _make_df(120)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
         model.fit(X, y, epochs=5)
         weights = model.get_learned_weights()
@@ -248,7 +248,7 @@ class TestGetLearnedWeights(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_weights_are_non_negative(self):
         model = SignalCNN()
-        df = _make_df(60)
+        df = _make_df(120)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
         model.fit(X, y, epochs=5)
         for wv in model.get_learned_weights().values():
@@ -264,7 +264,7 @@ class TestSaveLoad(unittest.TestCase):
             cm._MODEL_PATH = os.path.join(tmpdir, "signal_cnn.pt")
             try:
                 model_a = SignalCNN()
-                df = _make_df(60)
+                df = _make_df(120)
                 X, y, w = build_training_windows(df, T=WINDOW_SIZE)
                 model_a.fit(X, y, epochs=10)
                 model_a.save()
@@ -325,7 +325,7 @@ class TestTrainingSummary(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_val_loss_populated_after_training(self):
         """fit() must produce a non-empty val_loss_curve."""
-        df    = _make_df(n_rows=60)
+        df    = _make_df(n_rows=120)
         X, y, w = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
@@ -336,7 +336,7 @@ class TestTrainingSummary(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_n_train_plus_n_val_equals_total(self):
         """Train + val sample counts must sum to total samples used."""
-        df    = _make_df(n_rows=60)
+        df    = _make_df(n_rows=120)
         X, y, w = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
@@ -345,7 +345,7 @@ class TestTrainingSummary(unittest.TestCase):
 
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_overfit_ratio_is_positive(self):
-        df    = _make_df(n_rows=60)
+        df    = _make_df(n_rows=120)
         X, y, w = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
@@ -354,7 +354,7 @@ class TestTrainingSummary(unittest.TestCase):
 
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_diagnosis_is_valid_string(self):
-        df    = _make_df(n_rows=60)
+        df    = _make_df(n_rows=120)
         X, y, w = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
@@ -364,7 +364,7 @@ class TestTrainingSummary(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_val_loss_persisted_through_save_load(self):
         """Val loss curve must survive a save/load round-trip."""
-        df    = _make_df(n_rows=60)
+        df    = _make_df(n_rows=120)
         X, y, w = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
@@ -453,7 +453,7 @@ class TestGatedConv1d(unittest.TestCase):
     def test_glu_model_trains_and_predicts(self):
         """End-to-end: GLU model must fit without error and return valid predictions."""
         model = SignalCNN()
-        df = _make_df(60)
+        df = _make_df(120)
         X, y, w = build_training_windows(df)
         model.fit(X, y, epochs=5, sample_weights=w)
         self.assertTrue(model.is_trained)
@@ -471,7 +471,7 @@ class TestGatedConv1d(unittest.TestCase):
             cm._MODEL_PATH = os.path.join(tmpdir, "glu_cnn.pt")
             try:
                 model_a = SignalCNN()
-                df = _make_df(60)
+                df = _make_df(120)
                 X, y, w = build_training_windows(df)
                 model_a.fit(X, y, epochs=5, sample_weights=w)
                 model_a.save()
@@ -493,7 +493,7 @@ class TestGatedConv1d(unittest.TestCase):
     def test_learned_weights_sum_to_one_after_glu_training(self):
         """get_learned_weights() must still sum to 1.0 with GLU first layer."""
         model = SignalCNN()
-        df = _make_df(60)
+        df = _make_df(120)
         X, y, w = build_training_windows(df)
         model.fit(X, y, epochs=5, sample_weights=w)
         weights = model.get_learned_weights()
@@ -558,7 +558,7 @@ class TestWalkForwardEfficiency(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_wfe_is_float_after_training(self):
         """After fit(), WFE should be a float."""
-        df = _make_df(n_rows=60)
+        df = _make_df(n_rows=120)
         X, y, w = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
@@ -568,7 +568,7 @@ class TestWalkForwardEfficiency(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_wfe_bounded_below_minus_10(self):
         """WFE >= -10.0 even for a very bad model (sanity clamp)."""
-        df = _make_df(n_rows=60)
+        df = _make_df(n_rows=120)
         X, y, w = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=2, sample_weights=w)
@@ -578,7 +578,7 @@ class TestWalkForwardEfficiency(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_wfe_persisted_through_save_load(self):
         """WFE value survives a save/load round-trip."""
-        df = _make_df(n_rows=60)
+        df = _make_df(n_rows=120)
         X, y, w = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
@@ -600,7 +600,7 @@ class TestWalkForwardEfficiency(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_wfe_status_is_valid_string(self):
         """wfe_status must be one of the expected strings after training."""
-        df = _make_df(n_rows=60)
+        df = _make_df(n_rows=120)
         X, y, w = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
@@ -648,6 +648,99 @@ class TestWalkForwardEfficiency(unittest.TestCase):
         wfe, status = _compute_wfe([], [])
         self.assertIsNone(wfe)
         self.assertEqual(status, "UNTRAINED")
+
+
+class TestTrainingImprovements(unittest.TestCase):
+    """
+    TDD tests for the 6 training best-practice fixes:
+      1. MIN_TRAIN_SAMPLES raised 30 → 100
+      2. Optimizer changed to AdamW with weight_decay > 0
+      3. Dropout raised 0.2 → 0.3
+      4. Chronological (not random) train/val split
+      5. ReduceLROnPlateau scheduler attached after fit()
+      6. Early stopping with patience parameter
+    """
+
+    def test_min_train_samples_is_100(self):
+        """MIN_TRAIN_SAMPLES must be 100 after raising from 30."""
+        self.assertEqual(MIN_TRAIN_SAMPLES, 100)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_optimizer_is_adamw(self):
+        """Default optimizer must be AdamW (not plain Adam)."""
+        model = SignalCNN()
+        self.assertIsInstance(model._opt, torch.optim.AdamW)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_weight_decay_nonzero(self):
+        """AdamW must have weight_decay > 0."""
+        model = SignalCNN()
+        wd = model._opt.param_groups[0]["weight_decay"]
+        self.assertGreater(wd, 0.0)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_dropout_rate_is_0_3(self):
+        """All Dropout layers in _build_glu_net must use p=0.3."""
+        from data.cnn_model import _build_glu_net
+        net = _build_glu_net(N_CHANNELS)
+        dropout_layers = [m for m in net.modules() if isinstance(m, torch.nn.Dropout)]
+        self.assertGreater(len(dropout_layers), 0, "No Dropout layers found")
+        for layer in dropout_layers:
+            self.assertAlmostEqual(layer.p, 0.3, places=5,
+                                   msg=f"Expected p=0.3, got p={layer.p}")
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_val_split_is_chronological(self):
+        """Validation set must be the last 20% (chronological, not random)."""
+        df = _make_df(150)
+        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        model = SignalCNN()
+        model.fit(X, y, epochs=3, sample_weights=w)
+        N = len(X)
+        n_val = max(5, int(N * 0.2))
+        expected_split_idx = N - n_val
+        self.assertEqual(model._split_idx, expected_split_idx,
+                         f"Expected split at {expected_split_idx}, got {model._split_idx}")
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_scheduler_attached_after_fit(self):
+        """_scheduler must be non-None after fit() completes."""
+        df = _make_df(150)
+        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        model = SignalCNN()
+        model.fit(X, y, epochs=5, sample_weights=w)
+        self.assertIsNotNone(model._scheduler)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_early_stopping_accepts_patience_param(self):
+        """fit() must accept a patience parameter without error."""
+        df = _make_df(150)
+        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        model = SignalCNN()
+        model.fit(X, y, epochs=20, patience=5, sample_weights=w)
+        self.assertTrue(model.is_trained)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_early_stop_epoch_in_summary(self):
+        """training_summary() must include early_stop_epoch after fit()."""
+        df = _make_df(150)
+        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        model = SignalCNN()
+        model.fit(X, y, epochs=10, sample_weights=w)
+        s = model.training_summary()
+        self.assertIn("early_stop_epoch", s)
+        self.assertIsNotNone(s["early_stop_epoch"])
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_early_stopping_stops_before_max_epochs(self):
+        """With small patience, training must stop before all epochs when val stalls."""
+        df = _make_df(150)
+        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        model = SignalCNN()
+        max_epochs = 200
+        model.fit(X, y, epochs=max_epochs, patience=3, sample_weights=w)
+        # With patience=3 on noisy random data, should stop well before 200 epochs
+        self.assertLess(model._early_stop_epoch, max_epochs)
 
 
 if __name__ == "__main__":

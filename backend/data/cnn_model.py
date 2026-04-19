@@ -103,7 +103,7 @@ _DEFAULT_WEIGHTS: Dict[str, float] = {
     "iv_rv_spread":         0.15,
 }
 
-MIN_TRAIN_SAMPLES = 30   # minimum labelled rows before training starts
+MIN_TRAIN_SAMPLES = 100  # minimum labelled rows before training starts
 WINDOW_SIZE       = 10   # T: rolling window length fed to the CNN
 
 
@@ -226,11 +226,11 @@ def _build_glu_net(n_channels: int = N_CHANNELS) -> "nn.Module":
         # Block 1 — GLU gate replaces ReLU as the nonlinearity
         GatedConv1d(n_channels, 16, kernel_size=3, padding=1),
         nn.BatchNorm1d(16),
-        nn.Dropout(0.2),
+        nn.Dropout(0.3),
         # Block 2
         GatedConv1d(16, 32, kernel_size=3, padding=1),
         nn.BatchNorm1d(32),
-        nn.Dropout(0.2),
+        nn.Dropout(0.3),
         # Block 3 — compress
         GatedConv1d(32, 16, kernel_size=3, padding=1),
         # Global pool
@@ -367,21 +367,25 @@ class SignalCNN:
 
     def __init__(self, T: int = WINDOW_SIZE, lr: float = 3e-4,
                  n_channels: int = N_CHANNELS):
-        self.T           = T
-        self._n_channels = n_channels
-        self._trained    = False
-        self._train_ts   = 0.0
-        self._train_loss: List[float] = []
-        self._val_loss:   List[float] = []   # validation MSE per epoch
-        self._n_train:    int = 0            # samples used for training
-        self._n_val:      int = 0            # samples held out for validation
-        self._wfe:        Optional[float] = None   # Walk-Forward Efficiency (OOS R²)
-        self._wfe_status: str = "UNTRAINED"        # HEALTHY / DEGRADED / POOR / UNTRAINED
-        self._dev        = _device()
+        self.T                  = T
+        self._n_channels        = n_channels
+        self._trained           = False
+        self._train_ts          = 0.0
+        self._train_loss:       List[float] = []
+        self._val_loss:         List[float] = []   # validation MSE per epoch
+        self._n_train:          int = 0            # samples used for training
+        self._n_val:            int = 0            # samples held out for validation
+        self._split_idx:        int = 0            # index where val set begins (chronological split)
+        self._early_stop_epoch: Optional[int] = None  # epoch training stopped at (early stop)
+        self._wfe:              Optional[float] = None   # Walk-Forward Efficiency (OOS R²)
+        self._wfe_status:       str = "UNTRAINED"        # HEALTHY / DEGRADED / POOR / UNTRAINED
+        self._scheduler                        = None    # ReduceLROnPlateau instance
+        self._dev                              = _device()
 
         if HAS_TORCH:
             self._net = _build_glu_net(n_channels).to(self._dev)
-            self._opt = optim.Adam(self._net.parameters(), lr=lr)
+            # AdamW: correct weight decay for adaptive optimizers (unlike plain Adam)
+            self._opt = optim.AdamW(self._net.parameters(), lr=lr, weight_decay=1e-4)
         else:
             self._net = None
             self._opt = None
@@ -395,6 +399,7 @@ class SignalCNN:
         epochs: int = 80,
         batch_size: int = 32,
         sample_weights: Optional[np.ndarray] = None,
+        patience: int = 15,
     ) -> None:
         """
         Train on (X, y) arrays from build_training_windows().
@@ -409,6 +414,8 @@ class SignalCNN:
                          agent was confirmed correct get weight 1.0;
                          incorrect rows get 0.5; unknown rows get 0.75.
                          When None, all samples are weighted equally.
+        patience       : int — early stopping: stop if val loss doesn't
+                         improve for this many consecutive epochs.
         """
         if not HAS_TORCH or self._net is None:
             logger.warning("SignalCNN.fit: torch not available, skipping training")
@@ -427,22 +434,22 @@ class SignalCNN:
             self._n_channels = actual_channels
             lr = self._opt.param_groups[0]["lr"] if self._opt else 3e-4
             self._net = _build_glu_net(actual_channels).to(self._dev)
-            self._opt = optim.Adam(self._net.parameters(), lr=lr)
+            self._opt = optim.AdamW(self._net.parameters(), lr=lr, weight_decay=1e-4)
 
-        # ── Train / validation split (80 / 20) ───────────────────────────────
-        # Hold out 20% as a never-trained-on validation set so we can detect
-        # overfitting (val loss rises while train loss falls) vs underfitting
-        # (both stay high).  Need at least 5 val samples to be meaningful.
-        N        = len(X)
-        n_val    = max(5, int(N * 0.2))
-        n_train  = N - n_val
+        # ── Chronological train / validation split (80 / 20) ─────────────────
+        # Val set is the LAST 20% of samples to avoid temporal data leakage.
+        # Random shuffling across time would let the model train on future data,
+        # inflating val metrics and producing a model that doesn't generalise.
+        N       = len(X)
+        n_val   = max(5, int(N * 0.2))
+        n_train = N - n_val
 
-        perm       = torch.randperm(N)
-        val_idx    = perm[:n_val]
-        train_idx  = perm[n_val:]
+        train_idx = torch.arange(0, n_train)
+        val_idx   = torch.arange(n_train, N)
+        self._split_idx = n_train   # expose for tests / diagnostics
 
-        X_all = torch.from_numpy(X).to(self._dev)                   # (N, C, T)
-        y_all = torch.from_numpy(y).unsqueeze(1).to(self._dev)       # (N, 1)
+        X_all = torch.from_numpy(X).to(self._dev)                    # (N, C, T)
+        y_all = torch.from_numpy(y).unsqueeze(1).to(self._dev)        # (N, 1)
         w_all = torch.from_numpy(
             sample_weights.astype(np.float32)
         ).unsqueeze(1).to(self._dev) if sample_weights is not None else None
@@ -456,11 +463,21 @@ class SignalCNN:
             if w_train is None
             else TensorDataset(X_train, y_train, w_train)
         )
-        loader   = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=False)
-        loss_fn  = nn.MSELoss(reduction="none")
+        loader  = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=False)
+        loss_fn = nn.MSELoss(reduction="none")
+
+        # ── LR scheduler ─────────────────────────────────────────────────────
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            self._opt, mode="min", factor=0.5, patience=5, min_lr=1e-6
+        )
 
         train_losses: List[float] = []
         val_losses:   List[float] = []
+
+        # ── Early stopping state ──────────────────────────────────────────────
+        best_val_loss    = float("inf")
+        no_improve_count = 0
+        actual_epochs    = 0
 
         self._net.train()
         for epoch in range(epochs):
@@ -488,17 +505,36 @@ class SignalCNN:
             val_losses.append(val_mse)
             self._net.train()
 
-        self._train_loss = train_losses
-        self._val_loss   = val_losses
-        self._n_train    = n_train
-        self._n_val      = n_val
-        self._trained    = True
-        self._train_ts   = time.time()
+            # ── LR scheduler step ──────────────────────────────────────────
+            scheduler.step(val_mse)
 
-        final_train = train_losses[-1]
-        final_val   = val_losses[-1]
+            # ── Early stopping check ────────────────────────────────────────
+            actual_epochs = epoch + 1
+            if val_mse < best_val_loss - 1e-6:
+                best_val_loss    = val_mse
+                no_improve_count = 0
+            else:
+                no_improve_count += 1
+            if no_improve_count >= patience:
+                logger.info(
+                    f"SignalCNN: early stopping at epoch {actual_epochs} "
+                    f"(no val improvement for {patience} consecutive epochs)"
+                )
+                break
+
+        self._train_loss        = train_losses
+        self._val_loss          = val_losses
+        self._n_train           = n_train
+        self._n_val             = n_val
+        self._trained           = True
+        self._train_ts          = time.time()
+        self._scheduler         = scheduler
+        self._early_stop_epoch  = actual_epochs
+
+        final_train   = train_losses[-1]
+        final_val     = val_losses[-1]
         overfit_ratio = final_val / final_train if final_train > 1e-10 else float("inf")
-        diagnosis = _diagnose(final_train, final_val, overfit_ratio)
+        diagnosis     = _diagnose(final_train, final_val, overfit_ratio)
 
         # ── Walk-Forward Efficiency (OOS R²) ──────────────────────────────────
         # Run the trained model on the held-out validation set and compute R².
@@ -514,7 +550,7 @@ class SignalCNN:
 
         dev_name = str(self._dev) if self._dev else "cpu"
         logger.info(
-            f"SignalCNN: trained {epochs} epochs | "
+            f"SignalCNN: trained {actual_epochs}/{epochs} epochs | "
             f"train={n_train} val={n_val} ({dev_name}) | "
             f"train_MSE={final_train:.6f} val_MSE={final_val:.6f} "
             f"ratio={overfit_ratio:.2f} | {diagnosis} | "
@@ -597,19 +633,21 @@ class SignalCNN:
         os.makedirs(_MODEL_DIR, exist_ok=True)
         torch.save(
             {
-                "arch":       "glu",          # identifies the GLU architecture
-                "state_dict": self._net.state_dict(),
-                "opt_state":  self._opt.state_dict(),
-                "trained":    self._trained,
-                "train_ts":   self._train_ts,
-                "train_loss": self._train_loss,
-                "val_loss":   self._val_loss,
-                "n_train":    self._n_train,
-                "n_val":      self._n_val,
-                "T":          self.T,
-                "n_channels": self._n_channels,
-                "wfe":        self._wfe,
-                "wfe_status": self._wfe_status,
+                "arch":              "glu",   # identifies the GLU architecture
+                "state_dict":        self._net.state_dict(),
+                "opt_state":         self._opt.state_dict(),
+                "trained":           self._trained,
+                "train_ts":          self._train_ts,
+                "train_loss":        self._train_loss,
+                "val_loss":          self._val_loss,
+                "n_train":           self._n_train,
+                "n_val":             self._n_val,
+                "split_idx":         self._split_idx,
+                "early_stop_epoch":  self._early_stop_epoch,
+                "T":                 self.T,
+                "n_channels":        self._n_channels,
+                "wfe":               self._wfe,
+                "wfe_status":        self._wfe_status,
             },
             _MODEL_PATH,
         )
@@ -637,14 +675,16 @@ class SignalCNN:
                 self._opt = optim.Adam(self._net.parameters(), lr=lr)
             self._net.load_state_dict(ckpt["state_dict"])
             self._opt.load_state_dict(ckpt["opt_state"])
-            self._trained    = ckpt.get("trained", False)
-            self._train_ts   = ckpt.get("train_ts", 0.0)
-            self._train_loss = ckpt.get("train_loss", [])
-            self._val_loss   = ckpt.get("val_loss", [])
-            self._n_train    = ckpt.get("n_train", 0)
-            self._n_val      = ckpt.get("n_val", 0)
-            self._wfe        = ckpt.get("wfe", None)
-            self._wfe_status = ckpt.get("wfe_status", "UNTRAINED")
+            self._trained           = ckpt.get("trained", False)
+            self._train_ts          = ckpt.get("train_ts", 0.0)
+            self._train_loss        = ckpt.get("train_loss", [])
+            self._val_loss          = ckpt.get("val_loss", [])
+            self._n_train           = ckpt.get("n_train", 0)
+            self._n_val             = ckpt.get("n_val", 0)
+            self._split_idx         = ckpt.get("split_idx", 0)
+            self._early_stop_epoch  = ckpt.get("early_stop_epoch", None)
+            self._wfe               = ckpt.get("wfe", None)
+            self._wfe_status        = ckpt.get("wfe_status", "UNTRAINED")
             logger.info(f"SignalCNN: loaded ← {_MODEL_PATH} ({saved_ch}ch)")
             return True
         except Exception as exc:
@@ -688,6 +728,7 @@ class SignalCNN:
             # Sample counts
             "n_train":         self._n_train,
             "n_val":           self._n_val,
+            "split_idx":       self._split_idx,
             # Final MSE values
             "final_train_mse": final_train,
             "final_val_mse":   final_val,
@@ -697,6 +738,8 @@ class SignalCNN:
             # Walk-Forward Efficiency (OOS R²)
             "walk_forward_efficiency": self._wfe,        # None before training
             "wfe_status":              self._wfe_status,  # HEALTHY | DEGRADED | POOR | UNTRAINED
+            # Training controls
+            "early_stop_epoch": self._early_stop_epoch,  # epoch training stopped at
             # Full loss curves (one float per epoch) for plotting
             "train_loss_curve": self._train_loss,
             "val_loss_curve":   self._val_loss,
