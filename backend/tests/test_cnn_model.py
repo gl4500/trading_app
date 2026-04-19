@@ -143,6 +143,17 @@ class TestBuildTrainingWindows(unittest.TestCase):
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
         self.assertTrue((w == 1.0).all())   # no agent col → uniform weight 1.0
 
+    def test_zero_feature_columns_returns_empty_with_warning(self):
+        """DataFrame with no recognised feature columns → shape (0, 0, T) and no crash."""
+        df = _make_df(50, add_outcomes=True, add_agent_cols=False, add_rv_cols=False,
+                      add_iv_rv=False, add_macro_cols=False)
+        # Drop all SOURCE_COLUMNS so n_feat == 0
+        from data.signal_history import SOURCE_COLUMNS
+        df = df.drop(columns=[c for c in SOURCE_COLUMNS if c in df.columns])
+        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        self.assertEqual(X.shape, (0, 0, WINDOW_SIZE))
+        self.assertEqual(len(y), 0)
+
 
 class TestSignalCNNPredict(unittest.TestCase):
 

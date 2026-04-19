@@ -693,5 +693,55 @@ class TestGeminiOllamaCallTracking(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(agent._call_timestamps), before)
 
 
+class TestGeminiOvernightCatalysts(unittest.TestCase):
+    """isinstance(overnight, list) guard in _build_prompt."""
+
+    def _make_patch_ctx(self):
+        return {
+            "AAPL": {"price": 150.0, "bars": None, "news": [], "stats": {}},
+        }
+
+    def test_none_overnight_does_not_crash(self):
+        agent = GeminiAgent()
+        ctx = self._make_patch_ctx()
+        ctx["__overnight_catalysts__"] = None
+        with patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.format_bars_for_prompt", return_value=""), \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""):
+            mock_news.format_for_prompt.return_value = ""
+            prompt = agent._build_prompt(ctx, ["AAPL"])
+        self.assertNotIn("Overnight", prompt)
+
+    def test_string_overnight_does_not_crash(self):
+        agent = GeminiAgent()
+        ctx = self._make_patch_ctx()
+        ctx["__overnight_catalysts__"] = "unexpected string"
+        with patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.format_bars_for_prompt", return_value=""), \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""):
+            mock_news.format_for_prompt.return_value = ""
+            prompt = agent._build_prompt(ctx, ["AAPL"])
+        self.assertNotIn("Overnight", prompt)
+
+    def test_list_overnight_included_in_prompt(self):
+        agent = GeminiAgent()
+        ctx = self._make_patch_ctx()
+        ctx["__overnight_catalysts__"] = [
+            {"headline": "Rate cut expected", "score": 2, "category": "macro", "date": "2026-04-19"}
+        ]
+        with patch("agents.gemini_agent.build_portfolio_context", return_value=""), \
+             patch("agents.gemini_agent.format_bars_for_prompt", return_value=""), \
+             patch("agents.gemini_agent.news_service") as mock_news, \
+             patch("agents.gemini_agent.format_technicals", return_value=""), \
+             patch("agents.gemini_agent.format_composite", return_value=""):
+            mock_news.format_for_prompt.return_value = ""
+            prompt = agent._build_prompt(ctx, ["AAPL"])
+        self.assertIn("Rate cut expected", prompt)
+
+
 if __name__ == "__main__":
     unittest.main()

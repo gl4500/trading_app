@@ -152,6 +152,24 @@ class TestGetFallbackSignals(unittest.TestCase):
         signals = get_fallback_signals(ctx, "X")
         self.assertIsInstance(signals[0], Signal)
 
+    def test_special_keys_excluded_from_signals(self):
+        # __overnight_catalysts__ is a list, __macro_context__ is a str —
+        # neither is a tradeable symbol; both must be filtered out
+        ctx = _make_market_context(["AAPL"])
+        ctx["__overnight_catalysts__"] = [{"headline": "Breaking news"}]
+        ctx["__macro_context__"] = "VIX elevated"
+        signals = get_fallback_signals(ctx, "TestAgent")
+        syms = [s.symbol for s in signals]
+        self.assertEqual(syms, ["AAPL"])
+
+    def test_all_special_keys_returns_empty(self):
+        ctx = {
+            "__overnight_catalysts__": [{"headline": "test"}],
+            "__macro_context__": "some text",
+        }
+        signals = get_fallback_signals(ctx, "TestAgent")
+        self.assertEqual(signals, [])
+
 
 # ── parse_ai_decisions ────────────────────────────────────────────────────────
 

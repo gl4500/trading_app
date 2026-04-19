@@ -281,6 +281,38 @@ class TestClaudeAgentBuildPrompt(unittest.TestCase):
             prompt = self.agent._build_market_prompt(ctx, ["AAPL"])
         self.assertIn("Big news!", prompt)
 
+    def test_overnight_catalysts_none_does_not_crash(self):
+        # isinstance guard: None must not cause TypeError
+        with patch("agents.claude_agent.build_portfolio_context", return_value="portfolio"), \
+             patch("agents.claude_agent.format_bars_for_prompt", return_value="bars"), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value="tech"), \
+             patch("agents.claude_agent.format_composite", return_value="comp"), \
+             patch("agents.claude_agent.get_learning_summary", return_value=""):
+            mock_news.format_for_prompt.return_value = ""
+            ctx = {
+                "AAPL": {"price": 150.0, "bars": None, "news": [], "stats": {}},
+                "__overnight_catalysts__": None,
+            }
+            prompt = self.agent._build_market_prompt(ctx, ["AAPL"])
+        self.assertNotIn("Overnight", prompt)
+
+    def test_overnight_catalysts_non_list_does_not_crash(self):
+        # isinstance guard: a string or dict must not cause TypeError
+        with patch("agents.claude_agent.build_portfolio_context", return_value="portfolio"), \
+             patch("agents.claude_agent.format_bars_for_prompt", return_value="bars"), \
+             patch("agents.claude_agent.news_service") as mock_news, \
+             patch("agents.claude_agent.format_technicals", return_value="tech"), \
+             patch("agents.claude_agent.format_composite", return_value="comp"), \
+             patch("agents.claude_agent.get_learning_summary", return_value=""):
+            mock_news.format_for_prompt.return_value = ""
+            ctx = {
+                "AAPL": {"price": 150.0, "bars": None, "news": [], "stats": {}},
+                "__overnight_catalysts__": "unexpected string",
+            }
+            prompt = self.agent._build_market_prompt(ctx, ["AAPL"])
+        self.assertNotIn("Overnight", prompt)
+
 
 # ── Token logging & hourly rate limit tests ──────────────────────────────────
 

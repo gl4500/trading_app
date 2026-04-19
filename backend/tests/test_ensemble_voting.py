@@ -206,6 +206,25 @@ class TestDetectRegime(unittest.TestCase):
         result = self.ens._detect_regime(ctx)
         self.assertEqual(result, "ranging")
 
+    def test_non_dict_ctx_value_does_not_crash(self):
+        # __overnight_catalysts__ is a list — isinstance guard must skip it
+        bars = _make_trending_bars(30)
+        ctx = {
+            "__overnight_catalysts__": [{"headline": "test"}],
+            "SPY": {"bars": bars},
+        }
+        result = self.ens._detect_regime(ctx)
+        self.assertIn(result, ("trending", "ranging", "volatile"))
+
+    def test_all_non_dict_ctx_returns_ranging(self):
+        # All values are non-dict — no usable bars → falls back to ranging
+        ctx = {
+            "__overnight_catalysts__": [{"headline": "test"}],
+            "__macro_context__": "VIX elevated",
+        }
+        result = self.ens._detect_regime(ctx)
+        self.assertEqual(result, "ranging")
+
 
 # ── _compute_adaptive_weights() tests ────────────────────────────────────────
 
