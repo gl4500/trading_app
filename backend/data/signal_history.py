@@ -193,6 +193,8 @@ class SignalHistoryStore:
         """
         if symbol:
             df = _load(symbol)
+            if "return_1d" not in df.columns:
+                return _empty_df()
             return df.dropna(subset=["return_1d"]).reset_index(drop=True)
 
         parts: List[pd.DataFrame] = []
@@ -200,7 +202,11 @@ class SignalHistoryStore:
             for fname in os.listdir(_HISTORY_DIR):
                 if fname.endswith(".parquet"):
                     sym = fname[:-8]
+                    if sym.startswith("__"):
+                        continue   # skip __MACRO__ and any other meta files
                     df  = _load(sym)
+                    if "return_1d" not in df.columns:
+                        continue
                     ready = df.dropna(subset=["return_1d"])
                     if not ready.empty:
                         parts.append(ready)
@@ -346,7 +352,10 @@ class SignalHistoryStore:
         """List all symbols that have at least one snapshot on disk."""
         if not os.path.isdir(_HISTORY_DIR):
             return []
-        return [f[:-8] for f in os.listdir(_HISTORY_DIR) if f.endswith(".parquet")]
+        return [
+            f[:-8] for f in os.listdir(_HISTORY_DIR)
+            if f.endswith(".parquet") and not f.startswith("__")
+        ]
 
     def sample_count(self, symbol: Optional[str] = None) -> int:
         """Total rows with a known 1D outcome (across one or all symbols)."""

@@ -378,5 +378,36 @@ class TestMacroCNNChannels(unittest.TestCase):
         self.assertEqual(X.shape[1], N_CHANNELS)  # 15
 
 
+class TestSignalHistoryMacroCoexistence(unittest.TestCase):
+    """Verify signal_history ignores __MACRO__.parquet when listing symbols."""
+
+    def test_symbols_with_data_excludes_macro_file(self):
+        """symbols_with_data must not return __MACRO__ as a tradeable symbol."""
+        from data.signal_history import SignalHistoryStore
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.signal_history._HISTORY_DIR", tmpdir):
+            # Write a fake __MACRO__.parquet in the history dir
+            import pandas as pd
+            mac_path = os.path.join(tmpdir, "__MACRO__.parquet")
+            pd.DataFrame({"date_ts": [1.0], "vix": [18.0]}).to_parquet(mac_path)
+            store = SignalHistoryStore()
+            syms = store.symbols_with_data()
+        self.assertNotIn("__MACRO__", syms)
+
+    def test_get_training_data_skips_macro_file(self):
+        """get_training_data must not crash when __MACRO__.parquet is present."""
+        from data.signal_history import SignalHistoryStore
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.signal_history._HISTORY_DIR", tmpdir):
+            import pandas as pd
+            mac_path = os.path.join(tmpdir, "__MACRO__.parquet")
+            pd.DataFrame({"date_ts": [1.0], "vix": [18.0]}).to_parquet(mac_path)
+            store = SignalHistoryStore()
+            df = store.get_training_data()   # must not raise KeyError
+        self.assertIsNotNone(df)
+
+
 if __name__ == "__main__":
     unittest.main()
