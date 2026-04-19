@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Agent, Trade, SummaryLive } from '../App'
+import { Agent, Trade } from '../App'
 import Leaderboard from './Leaderboard'
 import AgentCard from './AgentCard'
 import PortfolioChart from './PortfolioChart'
@@ -21,7 +21,6 @@ interface DashboardProps {
   trades: Trade[]
   watchlist: string[]
   isRunning: boolean
-  summaryLive?: SummaryLive
 }
 
 export default function Dashboard({
@@ -32,7 +31,6 @@ export default function Dashboard({
   trades,
   watchlist,
   isRunning,
-  summaryLive,
 }: DashboardProps) {
   const [selectedAgentName, setSelectedAgentName] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'chart' | 'detail' | 'signals' | 'scanner' | 'summary' | 'sentinel' | 'trades' | 'tokens' | 'errors' | 'telemetry'>('chart')
@@ -249,7 +247,7 @@ export default function Dashboard({
 
           {activeTab === 'scanner' && <ScannerPanel />}
 
-          {activeTab === 'summary' && <SummaryPanel liveData={summaryLive} />}
+          {activeTab === 'summary' && <SummaryPanel />}
 
           {activeTab === 'sentinel' && <SentinelPanel />}
 

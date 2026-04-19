@@ -14,6 +14,8 @@ export interface Position {
   current_value: number
   unrealized_pnl: number
   unrealized_pnl_pct: number
+  entry_confidence?: number
+  bayes_confidence?: number
 }
 
 export interface Trade {
@@ -173,6 +175,7 @@ function AuthenticatedApp() {
   const [appData, setAppData] = useState<AppData>({
     agents: [],
     prices: {},
+    price_changes: {},
     leaderboard: [],
     is_running: false,
     cycle_count: 0,

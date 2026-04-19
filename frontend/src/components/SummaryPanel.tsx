@@ -34,7 +34,7 @@ interface TradeToday {
   reasoning: string
 }
 
-interface LeaderEntry { 0: string; 1: number }
+type LeaderEntry = [string, number]
 
 interface SummaryData {
   status: string
