@@ -63,6 +63,7 @@ from trading.portfolio import Position, TradeRecord
 from data.market_data import market_data_service
 from data.watchlist_manager import watchlist_manager
 from trading.alpaca_client import alpaca_client
+from data.tax_estimator import TaxEstimator
 
 from data.drift_detector import check_all_agents
 from data.risk_assessor import record_trade as record_risk_trade, run_periodic_assessment
@@ -2098,6 +2099,27 @@ async def get_scanner_results():
         "recommendations": [],
         "candidates": [],
     }
+
+
+@app.get("/api/tax/estimate")
+async def get_tax_estimate(year: Optional[int] = Query(None)):
+    """
+    Estimate realized capital gains and losses for the given calendar year.
+
+    Returns short-term and long-term gain/loss figures, wash-sale count,
+    and quarterly net breakdown. Federal only — caller applies their own rate.
+    """
+    if year is None:
+        year = datetime.utcnow().year
+
+    try:
+        orders = await alpaca_client.get_filled_orders(year)
+    except Exception as exc:
+        logger.error("Tax estimate: Alpaca unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail={"error": "alpaca_unavailable"})
+
+    estimator = TaxEstimator(orders)
+    return estimator.summarize(year)
 
 
 @app.post("/api/scanner/run")

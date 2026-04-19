@@ -27,19 +27,24 @@ import unittest.mock as _mock
 # Patch TradingClient and StockHistoricalDataClient at their source before
 # trading.alpaca_client is first imported so the module-level singleton
 # AlpacaClient() doesn't attempt a real API connection.
-with _mock.patch.dict("sys.modules", {}):
-    _tc_patcher  = _mock.patch("alpaca.trading.client.TradingClient")
-    _hdc_patcher = _mock.patch("alpaca.data.historical.StockHistoricalDataClient")
-    _tc_mock  = _tc_patcher.start()
-    _hdc_mock = _hdc_patcher.start()
-    _tc_mock.return_value  = MagicMock()
-    _hdc_mock.return_value = MagicMock()
-    try:
-        import trading.alpaca_client as _alpaca_mod
-        from trading.alpaca_client import AlpacaClient
-    finally:
-        _tc_patcher.stop()
-        _hdc_patcher.stop()
+#
+# NOTE: patch.dict("sys.modules", {}) restores sys.modules on exit, which
+# removes any modules imported inside the block.  We therefore run a second
+# patch block (without patch.dict) to import main — this ensures
+# trading.alpaca_client stays in sys.modules for the TestTaxEndpoint tests.
+_tc2_patcher  = _mock.patch("alpaca.trading.client.TradingClient")
+_hdc2_patcher = _mock.patch("alpaca.data.historical.StockHistoricalDataClient")
+_tc2_mock  = _tc2_patcher.start()
+_hdc2_mock = _hdc2_patcher.start()
+_tc2_mock.return_value  = MagicMock()
+_hdc2_mock.return_value = MagicMock()
+try:
+    import trading.alpaca_client as _alpaca_mod
+    from trading.alpaca_client import AlpacaClient
+    import main as _main_mod  # pre-import so TestTaxEndpoint's "from main import app" is cache-hit
+finally:
+    _tc2_patcher.stop()
+    _hdc2_patcher.stop()
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -280,3 +285,69 @@ class TestQuarterly(unittest.TestCase):
         self.assertAlmostEqual(result["quarterly"]["Q3"]["net"],  -30.0)
         self.assertAlmostEqual(result["quarterly"]["Q4"]["net"],   80.0)
         self.assertAlmostEqual(result["total_net"], 200.0)
+
+
+# ── /api/tax/estimate endpoint ────────────────────────────────────────────────
+
+class TestTaxEndpoint(unittest.IsolatedAsyncioTestCase):
+
+    async def test_endpoint_returns_summary(self):
+        """GET /api/tax/estimate?year=2025 returns correct JSON structure."""
+        from httpx import AsyncClient, ASGITransport
+        from main import app
+
+        mock_orders = [
+            _order("AAPL", "buy",  10, 100.0, _dt(2025, 1, 1)),
+            _order("AAPL", "sell", 10, 120.0, _dt(2025, 6, 1)),
+        ]
+
+        with patch("main.alpaca_client.get_filled_orders", new=AsyncMock(return_value=mock_orders)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get(
+                    "/api/tax/estimate?year=2025",
+                    cookies={"session": "test"},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["year"], 2025)
+        self.assertIn("short_term", data)
+        self.assertIn("long_term", data)
+        self.assertIn("total_net", data)
+        self.assertIn("quarterly", data)
+        self.assertAlmostEqual(data["short_term"]["gains"], 200.0)
+
+    async def test_endpoint_returns_503_on_alpaca_error(self):
+        """GET /api/tax/estimate returns 503 when Alpaca is unreachable."""
+        from httpx import AsyncClient, ASGITransport
+        from main import app
+
+        with patch("main.alpaca_client.get_filled_orders",
+                   new=AsyncMock(side_effect=Exception("API down"))):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get(
+                    "/api/tax/estimate?year=2025",
+                    cookies={"session": "test"},
+                )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("alpaca_unavailable", str(response.json()))
+
+    async def test_endpoint_defaults_to_current_year(self):
+        """Omitting ?year defaults to the current calendar year."""
+        from httpx import AsyncClient, ASGITransport
+        from main import app
+        import datetime as _dt_mod
+
+        with patch("main.alpaca_client.get_filled_orders", new=AsyncMock(return_value=[])):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get(
+                    "/api/tax/estimate",
+                    cookies={"session": "test"},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["year"], _dt_mod.datetime.now().year)
