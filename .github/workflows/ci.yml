@@ -37,13 +37,12 @@ jobs:
           cache: pip
 
       - name: Install backend dependencies
+        working-directory: backend
         run: |
-          pip install --quiet \
-            fastapi uvicorn aiosqlite httpx \
-            pandas numpy pyarrow \
-            alpaca-py yfinance \
-            anthropic openai google-genai \
-            pyportfolioopt
+          # Install everything from requirements.txt except torch (too large for CI)
+          grep -v '^torch' requirements.txt > /tmp/ci-requirements.txt
+          pip install --quiet -r /tmp/ci-requirements.txt
+          pip install --quiet google-genai
 
       - name: Run test suite
         working-directory: backend
