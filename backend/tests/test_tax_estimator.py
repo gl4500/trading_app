@@ -116,3 +116,100 @@ class TestGetFilledOrders(unittest.IsolatedAsyncioTestCase):
 
         result = await client.get_filled_orders(2025)
         self.assertEqual(result, [])
+
+
+# ── TaxEstimator — FIFO pairing and holding period ───────────────────────────
+
+from data.tax_estimator import TaxEstimator
+
+
+class TestFifoPairing(unittest.TestCase):
+
+    def test_short_term_gain(self):
+        """Sell within 365 days → classified short-term, gain correct."""
+        orders = [
+            _order("AAPL", "buy",  10, 100.0, _dt(2025, 1, 10)),
+            _order("AAPL", "sell", 10, 120.0, _dt(2025, 6, 10)),  # 150 days
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        self.assertAlmostEqual(result["short_term"]["gains"], 200.0)
+        self.assertAlmostEqual(result["short_term"]["net"],   200.0)
+        self.assertAlmostEqual(result["long_term"]["gains"],    0.0)
+        self.assertAlmostEqual(result["total_net"],           200.0)
+
+    def test_long_term_gain(self):
+        """Sell after 365 days → classified long-term."""
+        orders = [
+            _order("AAPL", "buy",  10, 100.0, _dt(2023, 1, 1)),
+            _order("AAPL", "sell", 10, 150.0, _dt(2025, 3, 1)),  # ~2 years
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        self.assertAlmostEqual(result["long_term"]["gains"],  500.0)
+        self.assertAlmostEqual(result["short_term"]["gains"],   0.0)
+
+    def test_loss_offset(self):
+        """Net is gains minus losses."""
+        orders = [
+            _order("AAPL", "buy",  10, 100.0, _dt(2025, 1, 1)),
+            _order("AAPL", "sell", 10,  80.0, _dt(2025, 3, 1)),   # -$200 loss
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        self.assertAlmostEqual(result["short_term"]["losses"], 200.0)
+        self.assertAlmostEqual(result["short_term"]["net"],   -200.0)
+        self.assertAlmostEqual(result["total_net"],           -200.0)
+
+    def test_fifo_partial_lot(self):
+        """Sell spans two buy lots — each classified independently."""
+        orders = [
+            _order("AAPL", "buy",  5, 100.0, _dt(2023, 1, 1)),   # lot 1: long-term by 2025-06-01
+            _order("AAPL", "buy",  5, 110.0, _dt(2025, 1, 15)),  # lot 2: short-term in 2025
+            _order("AAPL", "sell", 10, 130.0, _dt(2025, 6, 1)),
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        # lot 1: (130-100)*5 = 150 long-term
+        # lot 2: (130-110)*5 = 100 short-term
+        self.assertAlmostEqual(result["long_term"]["gains"],  150.0)
+        self.assertAlmostEqual(result["short_term"]["gains"], 100.0)
+        self.assertAlmostEqual(result["total_net"],           250.0)
+
+    def test_mixed_symbols(self):
+        """AAPL and TSLA lots are tracked independently."""
+        orders = [
+            _order("AAPL", "buy",  10, 100.0, _dt(2025, 1, 1)),
+            _order("TSLA", "buy",  10, 200.0, _dt(2025, 1, 1)),
+            _order("AAPL", "sell", 10, 120.0, _dt(2025, 4, 1)),  # +200
+            _order("TSLA", "sell", 10, 180.0, _dt(2025, 4, 1)),  # -200
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        self.assertAlmostEqual(result["short_term"]["gains"],  200.0)
+        self.assertAlmostEqual(result["short_term"]["losses"], 200.0)
+        self.assertAlmostEqual(result["short_term"]["net"],      0.0)
+
+    def test_empty_year_returns_zeros(self):
+        """No trades for the requested year → all zeros, no crash."""
+        orders = [
+            _order("AAPL", "buy",  10, 100.0, _dt(2024, 1, 1)),
+            _order("AAPL", "sell", 10, 120.0, _dt(2024, 6, 1)),
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        self.assertEqual(result["total_net"], 0.0)
+        self.assertEqual(result["trades_analyzed"], 0)
+
+    def test_year_filter(self):
+        """Trades from other years are excluded from the summary."""
+        orders = [
+            _order("AAPL", "buy",  10, 100.0, _dt(2024, 1, 1)),
+            _order("AAPL", "sell", 10, 150.0, _dt(2024, 6, 1)),  # 2024 — excluded
+            _order("AAPL", "buy",  10, 110.0, _dt(2024, 12, 1)),
+            _order("AAPL", "sell", 10, 130.0, _dt(2025, 3, 1)),  # 2025 — included
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        self.assertEqual(result["trades_analyzed"], 1)
+        self.assertAlmostEqual(result["short_term"]["gains"], 200.0)  # (130-110)*10
