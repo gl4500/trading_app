@@ -310,6 +310,49 @@ class AlpacaClient:
             logger.error("Error fetching assets: %s", exc)
             return []
 
+    async def get_filled_orders(self, year: int) -> List[Dict]:
+        """
+        Fetch all filled (closed) orders for the given calendar year.
+
+        Returns a list of dicts:
+            [{"symbol": str, "side": "buy"|"sell",
+              "shares": float, "price": float, "filled_at": datetime}, ...]
+
+        Raises the underlying exception on API failure so the caller
+        can return HTTP 503.
+        """
+        from alpaca.trading.requests import GetOrdersRequest
+        from alpaca.trading.enums import QueryOrderStatus
+
+        start = datetime(year, 1, 1, tzinfo=timezone.utc)
+        end   = datetime(year, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        request = GetOrdersRequest(
+            status=QueryOrderStatus.CLOSED,
+            after=start,
+            until=end,
+            limit=500,
+        )
+
+        batch = await asyncio.to_thread(self._trading.get_orders, request)
+
+        result: List[Dict] = []
+        for order in batch:
+            if not order.filled_qty or not order.filled_avg_price:
+                continue
+            filled_qty = float(order.filled_qty)
+            if filled_qty <= 0:
+                continue
+            result.append({
+                "symbol":    order.symbol,
+                "side":      order.side.value,
+                "shares":    filled_qty,
+                "price":     float(order.filled_avg_price),
+                "filled_at": order.filled_at,
+            })
+
+        return result
+
     async def close(self) -> None:
         """No persistent connections to close for the alpaca-py SDK."""
         pass
