@@ -213,3 +213,70 @@ class TestFifoPairing(unittest.TestCase):
         result = est.summarize(2025)
         self.assertEqual(result["trades_analyzed"], 1)
         self.assertAlmostEqual(result["short_term"]["gains"], 200.0)  # (130-110)*10
+
+
+# ── Wash sale detection ───────────────────────────────────────────────────────
+
+class TestWashSales(unittest.TestCase):
+
+    def test_wash_sale_detected(self):
+        """Loss sale + rebuy within 30 days → wash_sale_count = 1."""
+        orders = [
+            _order("AAPL", "buy",  10, 100.0, _dt(2025, 1, 1)),
+            _order("AAPL", "sell", 10,  80.0, _dt(2025, 3, 1)),   # -$200 loss
+            _order("AAPL", "buy",  10, 82.0,  _dt(2025, 3, 15)),  # rebuy 14 days later
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        self.assertEqual(result["wash_sale_count"], 1)
+
+    def test_no_wash_sale_outside_window(self):
+        """Loss sale + rebuy 31 days later → not flagged."""
+        orders = [
+            _order("AAPL", "buy",  10, 100.0, _dt(2025, 1, 1)),
+            _order("AAPL", "sell", 10,  80.0, _dt(2025, 3, 1)),
+            _order("AAPL", "buy",  10, 82.0,  _dt(2025, 4, 2)),   # 32 days after sell
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        self.assertEqual(result["wash_sale_count"], 0)
+
+    def test_gain_not_flagged_as_wash_sale(self):
+        """Profitable sale with rebuy within 30 days is NOT a wash sale."""
+        orders = [
+            _order("AAPL", "buy",  10, 100.0, _dt(2025, 1, 1)),
+            _order("AAPL", "sell", 10, 120.0, _dt(2025, 3, 1)),   # +$200 gain
+            _order("AAPL", "buy",  10, 115.0, _dt(2025, 3, 10)),
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        self.assertEqual(result["wash_sale_count"], 0)
+
+
+# ── Quarterly bucketing ───────────────────────────────────────────────────────
+
+class TestQuarterly(unittest.TestCase):
+
+    def test_quarterly_bucketing(self):
+        """Trades in each quarter land in the correct bucket."""
+        orders = [
+            # Q1 sell: +100
+            _order("AAPL", "buy",  1, 100.0, _dt(2025, 1, 1)),
+            _order("AAPL", "sell", 1, 200.0, _dt(2025, 2, 1)),
+            # Q2 sell: +50
+            _order("TSLA", "buy",  1, 100.0, _dt(2025, 1, 1)),
+            _order("TSLA", "sell", 1, 150.0, _dt(2025, 5, 1)),
+            # Q3 sell: -30
+            _order("MSFT", "buy",  1, 100.0, _dt(2025, 1, 1)),
+            _order("MSFT", "sell", 1,  70.0, _dt(2025, 8, 1)),
+            # Q4 sell: +80
+            _order("AMZN", "buy",  1, 100.0, _dt(2025, 1, 1)),
+            _order("AMZN", "sell", 1, 180.0, _dt(2025, 11, 1)),
+        ]
+        est = TaxEstimator(orders)
+        result = est.summarize(2025)
+        self.assertAlmostEqual(result["quarterly"]["Q1"]["net"],  100.0)
+        self.assertAlmostEqual(result["quarterly"]["Q2"]["net"],   50.0)
+        self.assertAlmostEqual(result["quarterly"]["Q3"]["net"],  -30.0)
+        self.assertAlmostEqual(result["quarterly"]["Q4"]["net"],   80.0)
+        self.assertAlmostEqual(result["total_net"], 200.0)
