@@ -217,6 +217,8 @@ PYTHONPATH=../site-packages ../runtime/python/python.exe -m bandit -r . -x ./tes
 | `trading/portfolio.py` (Bayesian confidence) | `test_portfolio.py::TestBayesianConfidence` | ✅ covered |
 | `data/cnn_model.py` (WFE) | `test_cnn_model.py::TestWalkForwardEfficiency` | ✅ covered |
 | `data/macro_history.py` + `data/history_backfill.py` (macro) | `test_macro_history.py` | ✅ covered |
+| `data/tax_estimator.py` | `test_tax_estimator.py` | ✅ covered |
+| `trading/alpaca_client.py` (get_filled_orders) | `test_tax_estimator.py` | ✅ covered |
 
 ---
 
@@ -264,6 +266,8 @@ Relevant memory files for this repo:
 - **GPU constraint:** RTX 2060 = 6 GB VRAM — only one Q4 model fits at a time. Set `RESEARCH_MODEL=OLLAMA_MODEL` to share the single loaded model; never configure two different models simultaneously on this GPU.
 - **Config:** `.env` → `backend/config.py` → `config` singleton
 - **Agent context key:** `market_context["__overnight_catalysts__"]` is a `list` — all agents guard with `isinstance(ctx, dict)` when iterating
+
+- **Tax estimate:** `GET /api/tax/estimate?year=YYYY` — federal capital gains summary (short/long-term, wash sales, quarterly) from real Alpaca trade history
 
 ## Key invariants (never break these)
 1. `market_context` values are `dict` per symbol, except `__overnight_catalysts__` which is a `list` — always use `isinstance(ctx, dict)` guard when iterating
