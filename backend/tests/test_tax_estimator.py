@@ -1,6 +1,7 @@
 """
-Unit tests for data/tax_estimator.py and the get_filled_orders()
-method on AlpacaClient. No live Alpaca API calls — all SDK calls mocked.
+Unit tests for data/tax_estimator.py and AlpacaClient.get_filled_orders().
+No live Alpaca API calls — all SDK calls mocked.
+data/tax_estimator.py tests are added in subsequent tasks.
 """
 import sys
 import os
@@ -82,6 +83,7 @@ class TestGetFilledOrders(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result[0]["side"], "buy")
         self.assertAlmostEqual(result[0]["shares"], 10.0)
         self.assertAlmostEqual(result[0]["price"], 150.0)
+        self.assertEqual(result[0]["filled_at"], _dt(2025, 3, 1))
 
     async def test_empty_year_returns_empty_list(self):
         """get_filled_orders returns [] when no orders exist."""
@@ -101,3 +103,16 @@ class TestGetFilledOrders(unittest.IsolatedAsyncioTestCase):
 
         with self.assertRaises(Exception):
             await client.get_filled_orders(2025)
+
+    async def test_orders_with_none_filled_qty_are_skipped(self):
+        """Orders with filled_qty=None (e.g. cancelled-but-closed) are skipped."""
+        mock_none_order = MagicMock()
+        mock_none_order.filled_qty = None
+        mock_none_order.filled_avg_price = "150.00"
+
+        client = AlpacaClient.__new__(AlpacaClient)
+        client._trading = MagicMock()
+        client._trading.get_orders = MagicMock(return_value=[mock_none_order])
+
+        result = await client.get_filled_orders(2025)
+        self.assertEqual(result, [])

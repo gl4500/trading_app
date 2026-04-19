@@ -17,8 +17,8 @@ from alpaca.data.requests import (
 )
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import AssetClass, OrderSide, TimeInForce
-from alpaca.trading.requests import GetAssetsRequest, MarketOrderRequest
+from alpaca.trading.enums import AssetClass, OrderSide, QueryOrderStatus, TimeInForce
+from alpaca.trading.requests import GetAssetsRequest, GetOrdersRequest, MarketOrderRequest
 
 from config import config
 
@@ -321,11 +321,8 @@ class AlpacaClient:
         Raises the underlying exception on API failure so the caller
         can return HTTP 503.
         """
-        from alpaca.trading.requests import GetOrdersRequest
-        from alpaca.trading.enums import QueryOrderStatus
-
         start = datetime(year, 1, 1, tzinfo=timezone.utc)
-        end   = datetime(year, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+        end   = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
 
         request = GetOrdersRequest(
             status=QueryOrderStatus.CLOSED,
@@ -350,6 +347,13 @@ class AlpacaClient:
                 "price":     float(order.filled_avg_price),
                 "filled_at": order.filled_at,
             })
+
+        if len(batch) >= 500:
+            logger.warning(
+                "get_filled_orders(%d): returned 500 orders — result may be truncated; "
+                "pagination not yet implemented",
+                year,
+            )
 
         return result
 
