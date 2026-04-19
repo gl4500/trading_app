@@ -40,6 +40,7 @@ class _ClosedTrade:
 
     @property
     def gain(self) -> float:
+        # Round to 10 dp as an intermediate precision anchor; summarize() rounds output to 2 dp.
         return round((self.sell_price - self.buy_price) * self.shares, 10)
 
     @property
@@ -69,7 +70,7 @@ class TaxEstimator:
         side      ("buy" | "sell")
         shares    (float)
         price     (float)
-        filled_at (datetime, timezone-aware or naive)
+        filled_at (datetime, timezone-aware UTC — matches AlpacaClient.get_filled_orders output)
     """
 
     def __init__(self, orders: List[Dict]) -> None:
@@ -97,7 +98,7 @@ class TaxEstimator:
         for t in year_trades:
             quarterly[_quarter(t.sell_date.month)] += t.gain
 
-        wash_count = self._detect_wash_sales(closed)
+        wash_count = self._detect_wash_sales(year_trades)
 
         return {
             "year": year,
