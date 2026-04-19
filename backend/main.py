@@ -1614,6 +1614,24 @@ async def lifespan(app: FastAPI):
     # Start WebSocket broadcast task
     app_state.ws_task = asyncio.create_task(ws_broadcast_loop())
 
+    # Auto-backfill signal history if CNN has fewer than MIN_TRAIN_SAMPLES rows
+    try:
+        from data.history_backfill import backfill_signal_history, get_sample_counts
+        from data.cnn_model import MIN_TRAIN_SAMPLES
+        counts = await get_sample_counts()
+        total  = sum(counts.values())
+        if total < MIN_TRAIN_SAMPLES:
+            logger.info(
+                f"CNN training data: {total} samples (< {MIN_TRAIN_SAMPLES} minimum) — "
+                f"auto-backfilling 365 days of history..."
+            )
+            symbols = watchlist_manager.get_active_watchlist() or config.WATCHLIST
+            asyncio.create_task(backfill_signal_history(symbols, days=365))
+        else:
+            logger.info(f"CNN training data: {total} samples available — skipping auto-backfill.")
+    except Exception as _bf_exc:
+        logger.warning(f"Auto-backfill check failed (non-fatal): {_bf_exc}")
+
     # Auto-start trading, scanning, and sentinel immediately on launch
     app_state.is_running = True
     app_state.start_time = datetime.utcnow()
@@ -2158,6 +2176,57 @@ async def get_cnn_diagnostics():
         ),
         # Regime detector state
         "regime": regime_detector.summary(),
+    }
+
+
+@app.post("/api/backfill")
+async def trigger_backfill(days: int = 365):
+    """
+    Seed signal-history Parquet files with historical bar data.
+
+    Fetches daily OHLCV bars for each watchlist symbol and computes
+    return_1d, return_5d, rv_20d, and rv_60d for each bar.  Source
+    scores are set to 0.0 (neutral prior — historical news is not
+    reliably available).
+
+    Use this to fast-seed the CNN training dataset without waiting
+    days for live trading cycles to accumulate enough samples.
+
+    Query params:
+      days  — how many calendar days of history to backfill (default 365)
+    """
+    from data.history_backfill import backfill_signal_history, get_sample_counts
+    symbols = watchlist_manager.get_active_watchlist()
+    if not symbols:
+        return {"status": "error", "message": "Watchlist is empty"}
+
+    days = max(30, min(days, 1825))   # clamp 30d – 5yr
+    results = await backfill_signal_history(symbols, days=days)
+    counts  = await get_sample_counts()
+
+    total_added = sum(results.values())
+    return {
+        "status":       "ok",
+        "days":         days,
+        "symbols":      len(symbols),
+        "rows_added":   total_added,
+        "per_symbol":   results,
+        "sample_counts": counts,
+    }
+
+
+@app.get("/api/backfill/status")
+async def get_backfill_status():
+    """Return current sample counts per symbol (how much CNN training data exists)."""
+    from data.history_backfill import get_sample_counts
+    from data.cnn_model import MIN_TRAIN_SAMPLES
+    counts = await get_sample_counts()
+    total  = sum(counts.values())
+    return {
+        "sample_counts":      counts,
+        "total_samples":      total,
+        "min_train_samples":  MIN_TRAIN_SAMPLES,
+        "ready_to_train":     total >= MIN_TRAIN_SAMPLES,
     }
 
 
