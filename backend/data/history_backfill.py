@@ -55,6 +55,11 @@ try:
 except Exception:
     stooq_client = None  # type: ignore
 
+try:
+    import yfinance as yf
+except Exception:
+    yf = None  # type: ignore
+
 from data.signal_history import _DTYPE_MAP, _get_lock
 
 
@@ -322,3 +327,238 @@ async def get_sample_counts() -> Dict[str, int]:
     for sym in signal_history.symbols_with_data():
         counts[sym] = signal_history.sample_count(sym)
     return counts
+
+
+# ── macro backfill helpers ────────────────────────────────────────────────────
+
+def _yf_to_day_map(df) -> Dict[int, float]:
+    """
+    Convert a yfinance download result to {day_key: close_value}.
+
+    day_key = int(unix_timestamp) // 86_400
+
+    Handles:
+      - Simple DataFrames with 'close' or 'Close' column + 'timestamp' column
+      - DataFrames with DatetimeIndex (standard yfinance output)
+      - MultiIndex columns from yfinance (e.g. ('Close', '^VIX'))
+    """
+    if df is None or (hasattr(df, "empty") and df.empty):
+        return {}
+
+    # Flatten MultiIndex columns (yfinance ≥ 0.2 returns these for single ticker)
+    if isinstance(df.columns, pd.MultiIndex):
+        try:
+            df = df.xs("Close", axis=1, level=0)
+            # Result now has ticker as only column — take first column as close
+        except Exception:
+            return {}
+
+    # Find the close column
+    close_col: Optional[str] = None
+    for c in ["close", "Close"]:
+        if c in df.columns:
+            close_col = c
+            break
+    if close_col is None and len(df.columns) > 0:
+        close_col = df.columns[0]   # last resort: take first column
+    if close_col is None:
+        return {}
+
+    result: Dict[int, float] = {}
+
+    # Try explicit 'timestamp' column first
+    if "timestamp" in df.columns:
+        ts_series = pd.to_datetime(df["timestamp"], utc=True)
+        for i, ts in enumerate(ts_series):
+            try:
+                key = int(ts.timestamp()) // 86_400
+                result[key] = float(df[close_col].iloc[i])
+            except Exception:
+                pass
+        return result
+
+    # Fall back to DataFrame index (yfinance default: DatetimeIndex)
+    try:
+        idx = pd.to_datetime(df.index, utc=True)
+        for i, ts in enumerate(idx):
+            try:
+                key = int(ts.timestamp()) // 86_400
+                result[key] = float(df[close_col].iloc[i])
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return result
+
+
+def _bars_to_close_map(bars: pd.DataFrame) -> tuple:
+    """
+    Convert an OHLCV bars DataFrame to (closes_array, day_to_idx_dict).
+
+    Returns (np.ndarray, dict) — the day_to_idx dict maps
+    day_key (int(ts)//86400) → integer index into closes_array.
+    """
+    closes = bars["close"].values.astype(float)
+    day_to_idx: Dict[int, int] = {}
+    for i, ts_val in enumerate(bars["timestamp"].values):
+        try:
+            t = pd.Timestamp(ts_val)
+            if t.tzinfo is None:
+                t = t.tz_localize("UTC")
+            day_to_idx[int(t.timestamp()) // 86_400] = i
+        except Exception:
+            pass
+    return closes, day_to_idx
+
+
+def _ret_nd(closes: np.ndarray, idx: int, n_ahead: int) -> float:
+    """Return n-day forward return or 0.0 when index is out of range."""
+    if idx + n_ahead < len(closes) and closes[idx] > 0:
+        return float((closes[idx + n_ahead] - closes[idx]) / closes[idx])
+    return 0.0
+
+
+# ── public macro backfill ─────────────────────────────────────────────────────
+
+async def backfill_macro_history(days: int = 365) -> Dict:
+    """
+    Seed __MACRO__.parquet with historical macro environment data.
+
+    Fetches:
+      - GLD, TLT, UUP, USO, SPY, IWM, QQQ from Alpaca (primary)
+      - ^VIX, ^TNX from yfinance
+
+    Computes per-date: ETF returns, VIX normalisation, breadth score,
+    and a simple regime label based on VIX level and SPY trend.
+
+    Parameters
+    ----------
+    days : calendar days of history to backfill
+
+    Returns
+    -------
+    {"rows_added": int}
+    """
+    from data.macro_history import MacroHistoryStore, _load as _load_macro
+
+    macro_store = MacroHistoryStore()
+
+    # Core ETFs — fetch from Alpaca
+    CORE_SYMS = ["GLD", "TLT", "UUP", "USO", "SPY", "IWM", "QQQ"]
+    etf_bars: Dict[str, pd.DataFrame] = {}
+    for sym in CORE_SYMS:
+        b = await _fetch_bars(sym, days)
+        if b is not None and not b.empty:
+            etf_bars[sym] = b.sort_values("timestamp").reset_index(drop=True)
+
+    if "SPY" not in etf_bars:
+        logger.warning("backfill_macro: SPY bars unavailable — skipping macro backfill")
+        return {"rows_added": 0}
+
+    # VIX and TNX from yfinance
+    vix_map: Dict[int, float] = {}
+    tnx_map: Dict[int, float] = {}
+    if yf is not None:
+        limit = days + 70
+        for ticker, dest in [("^VIX", vix_map), ("^TNX", tnx_map)]:
+            try:
+                raw = yf.download(ticker, period=f"{limit}d", progress=False)
+                dest.update(_yf_to_day_map(raw))
+            except Exception as exc:
+                logger.warning(f"backfill_macro: {ticker} fetch failed: {exc}")
+
+    # Build close maps for each ETF
+    etf_closes: Dict[str, np.ndarray] = {}
+    etf_day_to_idx: Dict[str, Dict[int, int]] = {}
+    for sym, bars in etf_bars.items():
+        closes, d2i = _bars_to_close_map(bars)
+        etf_closes[sym]    = closes
+        etf_day_to_idx[sym] = d2i
+
+    # Idempotency: load existing day-keys
+    existing = _load_macro()
+    existing_day_keys: set = set()
+    if not existing.empty and "date_ts" in existing.columns:
+        existing_day_keys = set(
+            (existing["date_ts"].astype(float) // 86_400).astype(int).tolist()
+        )
+
+    cutoff_ts = time.time() - days * 86_400
+    rows_added = 0
+
+    # Iterate over SPY bars as the date spine
+    spy_bars = etf_bars["SPY"]
+    for _, bar_row in spy_bars.iterrows():
+        try:
+            t = pd.Timestamp(bar_row["timestamp"])
+            if t.tzinfo is None:
+                t = t.tz_localize("UTC")
+            ts_unix = t.timestamp()
+        except Exception:
+            continue
+
+        if ts_unix < cutoff_ts:
+            continue
+
+        day_key = int(ts_unix) // 86_400
+        if day_key in existing_day_keys:
+            continue
+
+        # ── compute per-ETF forward returns ──────────────────────────────
+        def _get_ret(sym: str, ahead: int) -> float:
+            d2i = etf_day_to_idx.get(sym)
+            if d2i is None:
+                return 0.0
+            idx = d2i.get(day_key)
+            if idx is None:
+                return 0.0
+            return _ret_nd(etf_closes[sym], idx, ahead)
+
+        returns = {
+            "gld_1d": _get_ret("GLD", 1),
+            "gld_5d": _get_ret("GLD", 5),
+            "tlt_1d": _get_ret("TLT", 1),
+            "tlt_5d": _get_ret("TLT", 5),
+            "spy_1d": _get_ret("SPY", 1),
+            "spy_5d": _get_ret("SPY", 5),
+            "iwm_5d": _get_ret("IWM", 5),
+            "qqq_5d": _get_ret("QQQ", 5),
+            "uup_5d": _get_ret("UUP", 5),
+            "uso_5d": _get_ret("USO", 5),
+        }
+
+        # ── VIX and TNX levels ────────────────────────────────────────────
+        vix_val = vix_map.get(day_key)
+        tnx_val = tnx_map.get(day_key)
+        vix = float(vix_val) if vix_val is not None else float("nan")
+        tnx = float(tnx_val) if tnx_val is not None else float("nan")
+
+        # ── simple regime heuristic ───────────────────────────────────────
+        vix_level = vix if (vix_val is not None and not np.isnan(vix)) else 20.0
+        spy_5d    = returns["spy_5d"]
+        if vix_level > 30 and spy_5d < -0.01:
+            regime = "RISK_OFF"
+        elif vix_level < 20 and spy_5d > 0.01:
+            regime = "RISK_ON"
+        elif vix_level > 25:
+            regime = "HIGH_VOL"
+        else:
+            regime = "NEUTRAL"
+
+        # ── record snapshot ───────────────────────────────────────────────
+        vix_for_record = vix if (vix_val is not None and not np.isnan(vix)) else 20.0
+        tnx_for_record = tnx if (tnx_val is not None and not np.isnan(tnx)) else 4.0
+
+        await macro_store.record_snapshot(
+            date_ts=ts_unix,
+            vix=vix_for_record,
+            tnx=tnx_for_record,
+            returns=returns,
+            regime=regime,
+        )
+
+        existing_day_keys.add(day_key)
+        rows_added += 1
+
+    logger.info(f"backfill_macro: added {rows_added} macro rows ({days}d window)")
+    return {"rows_added": rows_added}

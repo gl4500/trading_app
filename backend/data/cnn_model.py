@@ -89,10 +89,26 @@ RV_CHANNEL_NAMES: List[str] = [
     "rv_60d",   # channel 9: 60-day rolling realized vol (medium-term vol regime)
 ]
 
-# Total input channels: 6 source + 2 agent + 2 RV = 10
-# Old checkpoints (7- or 9-channel) load fine — predict() guards against shape mismatch
-# and the net auto-rebuilds to 10 channels on the next 24h retrain cycle.
-N_CHANNELS = len(SOURCE_NAMES) + len(AGENT_CHANNEL_NAMES) + len(RV_CHANNEL_NAMES)  # 10
+# Macro environment channels — joined from __MACRO__.parquet by date
+# Absent in old Parquet files; build_training_windows degrades to 10ch without them.
+MACRO_CHANNEL_NAMES: List[str] = [
+    "macro_vix_norm",   # channel 10: VIX / 30 clipped to [0, 3]
+    "macro_gld_5d",     # channel 11: GLD 5-day forward return
+    "macro_tlt_5d",     # channel 12: TLT 5-day forward return
+    "macro_spy_5d",     # channel 13: SPY 5-day forward return
+    "macro_breadth",    # channel 14: (IWM_5d − SPY_5d) clipped to [-1, 1]
+]
+
+# Total full input channels: 6 source + 2 agent + 2 RV + 5 macro = 15
+# build_training_windows degrades gracefully to 10 channels when macro cols absent.
+# Old checkpoints load fine — predict() guards against shape mismatch and the net
+# auto-rebuilds to the correct channel count on the next 24h retrain cycle.
+N_CHANNELS = (
+    len(SOURCE_NAMES)
+    + len(AGENT_CHANNEL_NAMES)
+    + len(RV_CHANNEL_NAMES)
+    + len(MACRO_CHANNEL_NAMES)
+)  # 15
 
 _DEFAULT_WEIGHTS: Dict[str, float] = {
     "analyst_consensus":    0.30,
@@ -301,12 +317,15 @@ def build_training_windows(
 
     has_agent = all(c in df.columns for c in AGENT_COLUMNS)
     has_rv    = all(c in df.columns for c in RV_COLUMNS)
+    has_macro = all(c in df.columns for c in MACRO_CHANNEL_NAMES)
     # Source columns: filter to those present — old Parquet files may lack iv_rv_score
     feat_cols = [c for c in SOURCE_COLUMNS if c in df.columns]
     if has_agent:
         feat_cols = feat_cols + AGENT_COLUMNS
     if has_rv:
         feat_cols = feat_cols + RV_COLUMNS
+    if has_macro:
+        feat_cols = feat_cols + MACRO_CHANNEL_NAMES
     n_feat    = len(feat_cols)
 
     X_list: List[np.ndarray] = []

@@ -2230,6 +2230,28 @@ async def get_backfill_status():
     }
 
 
+@app.post("/api/backfill/macro")
+async def trigger_macro_backfill(days: int = 365):
+    """
+    Seed __MACRO__.parquet with historical macro environment data.
+
+    Fetches GLD/TLT/UUP/USO/SPY/IWM/QQQ from Alpaca and ^VIX/^TNX from
+    yfinance, then computes per-day ETF returns, VIX normalisation,
+    breadth score, and regime label.
+
+    Query params:
+      days — calendar days of history to backfill (default 365, max 1825)
+    """
+    from data.history_backfill import backfill_macro_history
+    days = max(30, min(days, 1825))
+    result = await backfill_macro_history(days=days)
+    return {
+        "status":     "ok",
+        "days":       days,
+        "rows_added": result.get("rows_added", 0),
+    }
+
+
 @app.get("/api/status")
 async def get_status():
     """Get application status."""
