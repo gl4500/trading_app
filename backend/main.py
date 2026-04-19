@@ -133,6 +133,10 @@ def _parse_ts(s: str) -> datetime:
 # Set before any agent or scanner code runs so the flag is visible to all modules.
 os.environ.setdefault("OLLAMA_ONLY_MODE", "1")
 
+# Off-hours scan interval in Ollama mode — scanner runs even when market is closed
+# because local inference is free.  Cloud mode skips off-hours to avoid token cost.
+OLLAMA_CLOSED_SCAN_MIN: int = 30
+
 # Detect whether TLS certs exist (used to set the Secure cookie flag)
 _CERTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'certs')
 _HTTPS_ENABLED = os.path.isfile(os.path.join(_CERTS_DIR, 'cert.pem'))
@@ -936,10 +940,10 @@ async def auto_scan_loop() -> None:
     """
     from agents.scanner_agent import run_scan, get_cached_scan, is_scan_in_progress
 
-    OLLAMA_SCAN_INTERVAL_MIN = 5         # scan every 5 min when Ollama-only (free, local)
-    STANDARD_SCAN_INTERVAL_MIN = 30     # scan every 30 min with tokenized agents
-    PRE_MARKET_WARMUP_MIN  = 10         # run N minutes before open
-    POLL_SLEEP_SEC         = 60         # how often to wake up and check the schedule
+    OLLAMA_SCAN_INTERVAL_MIN  = 5    # scan every 5 min during market hours (Ollama-only)
+    STANDARD_SCAN_INTERVAL_MIN = 30  # scan every 30 min during market hours (cloud)
+    PRE_MARKET_WARMUP_MIN     = 10   # run N minutes before open
+    POLL_SLEEP_SEC             = 60  # how often to wake up and check the schedule
 
     logger.info("Auto-scan loop started")
 
@@ -986,13 +990,20 @@ async def auto_scan_loop() -> None:
                     await _do_scan(f"scheduled every {interval_min} min")
                     last_scan_triggered = now_ts
             else:
-                # Market closed: fire a warmup scan before the open
+                # Market closed
                 mins_to_open = _minutes_until_open()
                 if 0 < mins_to_open <= PRE_MARKET_WARMUP_MIN:
+                    # Pre-open warmup window: scan so agents have fresh picks at open
                     if elapsed_min >= interval_min:
                         await _do_scan(
                             f"pre-open warmup ({mins_to_open:.0f} min before 9:30 AM)"
                         )
+                        last_scan_triggered = now_ts
+                elif os.environ.get("OLLAMA_ONLY_MODE") == "1":
+                    # Ollama is free/local — keep scanning after hours so the model
+                    # processes overnight news and has updated picks ready at open.
+                    if elapsed_min >= OLLAMA_CLOSED_SCAN_MIN:
+                        await _do_scan("off-hours Ollama scan (free, local)")
                         last_scan_triggered = now_ts
 
         except asyncio.CancelledError:
