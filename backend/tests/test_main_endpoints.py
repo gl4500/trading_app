@@ -136,6 +136,16 @@ class TestStatusEndpoint(unittest.TestCase):
 class TestAgentsEndpoint(unittest.TestCase):
     """GET /api/agents returns list of agents."""
 
+    def setUp(self):
+        self.patcher_db = patch("main.init_db", new_callable=AsyncMock)
+        self.patcher_agents = patch("main.init_agents", new_callable=AsyncMock)
+        self.patcher_db.start()
+        self.patcher_agents.start()
+
+    def tearDown(self):
+        self.patcher_db.stop()
+        self.patcher_agents.stop()
+
     def test_get_agents_returns_list(self):
         from main import app
         mock_agent = _make_mock_agent("TechAgent")
@@ -196,6 +206,16 @@ class TestAgentsEndpoint(unittest.TestCase):
 
 class TestStartStopEndpoints(unittest.TestCase):
     """POST /api/start and /api/stop control trading state."""
+
+    def setUp(self):
+        self.patcher_db = patch("main.init_db", new_callable=AsyncMock)
+        self.patcher_agents = patch("main.init_agents", new_callable=AsyncMock)
+        self.patcher_db.start()
+        self.patcher_agents.start()
+
+    def tearDown(self):
+        self.patcher_db.stop()
+        self.patcher_agents.stop()
 
     def test_start_when_already_running_returns_already_running(self):
         from main import app
@@ -274,6 +294,16 @@ class TestStartStopEndpoints(unittest.TestCase):
 
 class TestScannerEndpoints(unittest.TestCase):
     """GET /api/scanner returns cached scan; POST /api/scanner/run with rate-limit."""
+
+    def setUp(self):
+        self.patcher_db = patch("main.init_db", new_callable=AsyncMock)
+        self.patcher_agents = patch("main.init_agents", new_callable=AsyncMock)
+        self.patcher_db.start()
+        self.patcher_agents.start()
+
+    def tearDown(self):
+        self.patcher_db.stop()
+        self.patcher_agents.stop()
 
     def test_get_scanner_no_cache_returns_no_scan(self):
         from main import app
@@ -389,6 +419,16 @@ class TestScannerEndpoints(unittest.TestCase):
 
 class TestSentinelEndpoint(unittest.TestCase):
     """GET /api/sentinel returns catalyst list."""
+
+    def setUp(self):
+        self.patcher_db = patch("main.init_db", new_callable=AsyncMock)
+        self.patcher_agents = patch("main.init_agents", new_callable=AsyncMock)
+        self.patcher_db.start()
+        self.patcher_agents.start()
+
+    def tearDown(self):
+        self.patcher_db.stop()
+        self.patcher_agents.stop()
 
     def test_get_sentinel_returns_200(self):
         from main import app
@@ -1458,6 +1498,16 @@ class TestSentinelLoggingLevel(unittest.IsolatedAsyncioTestCase):
 class TestErrorLogEndpoint(unittest.TestCase):
     """GET /api/errors returns structured log entries parsed from the error log file."""
 
+    def setUp(self):
+        self.patcher_db = patch("main.init_db", new_callable=AsyncMock)
+        self.patcher_agents = patch("main.init_agents", new_callable=AsyncMock)
+        self.patcher_db.start()
+        self.patcher_agents.start()
+
+    def tearDown(self):
+        self.patcher_db.stop()
+        self.patcher_agents.stop()
+
     def _write_tmp_log(self, content: str) -> str:
         import tempfile
         f = tempfile.NamedTemporaryFile(
@@ -1550,6 +1600,16 @@ class TestErrorLogEndpoint(unittest.TestCase):
 
 class TestErrorAnalyzeEndpoint(unittest.TestCase):
     """GET /api/errors/analyze returns AI analysis of recent errors."""
+
+    def setUp(self):
+        self.patcher_db = patch("main.init_db", new_callable=AsyncMock)
+        self.patcher_agents = patch("main.init_agents", new_callable=AsyncMock)
+        self.patcher_db.start()
+        self.patcher_agents.start()
+
+    def tearDown(self):
+        self.patcher_db.stop()
+        self.patcher_agents.stop()
 
     def _write_tmp_log(self, content: str) -> str:
         import tempfile
