@@ -103,7 +103,6 @@ def _start_lifespan_patches():
         patch("main.trading_loop",              new_callable=AsyncMock),
         patch("main.auto_scan_loop",            new_callable=AsyncMock),
         patch("main.news_sentinel_loop",        new_callable=AsyncMock),
-        patch("main.asyncio.create_task"),
         # Keep auth disabled so tests don't require session cookies,
         # even if APP_PASSWORD is set in the local .env file.
         patch("auth._password_hash", ""),
@@ -448,7 +447,9 @@ class TestRateLimiting(unittest.TestCase):
             _mock_config(mc)
             with TestClient(app, raise_server_exceptions=False) as c:
                 with patch("main._check_rate_limit", return_value=True), \
-                     patch("main.asyncio.create_task"):
+                     patch("agents.scanner_agent.run_scan",
+                           new_callable=AsyncMock,
+                           return_value={"status": "ok", "recommendations": [], "candidates": []}):
                     resp = c.post("/api/scanner/run")
         self.assertNotEqual(resp.status_code, 429)
 

@@ -177,7 +177,6 @@ class TestAuthEndpointsIntegration(unittest.TestCase):
             patch("main.trading_loop",              new_callable=AsyncMock),
             patch("main.auto_scan_loop",            new_callable=AsyncMock),
             patch("main.news_sentinel_loop",        new_callable=AsyncMock),
-            patch("main.asyncio.create_task"),
             # Keep auth disabled so lifespan doesn't enable it with real .env password
             patch("auth._password_hash", ""),
         ]
@@ -200,50 +199,44 @@ class TestAuthEndpointsIntegration(unittest.TestCase):
 
     def test_auth_check_returns_ok_when_disabled(self):
         client = self._make_client()
-        with client:
-            resp = client.get("/api/auth/check")
+        resp = client.get("/api/auth/check")
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.json()["authenticated"])
         self.assertFalse(resp.json()["auth_enabled"])
 
     def test_login_succeeds_when_auth_disabled(self):
         client = self._make_client()
-        with client:
-            resp = client.post("/api/login", json={"password": "anything"})
+        resp = client.post("/api/login", json={"password": "anything"})
         self.assertEqual(resp.status_code, 200)
 
     def test_login_rejects_wrong_password_when_enabled(self):
         client = self._make_client()
-        with client:
-            self._enable_auth_in_test()
-            resp = client.post("/api/login", json={"password": "wrong"})
+        self._enable_auth_in_test()
+        resp = client.post("/api/login", json={"password": "wrong"})
         self.assertEqual(resp.status_code, 401)
 
     def test_login_sets_cookie_on_success(self):
         client = self._make_client()
-        with client:
-            self._enable_auth_in_test()
-            resp = client.post("/api/login", json={"password": "testpass"})
+        self._enable_auth_in_test()
+        resp = client.post("/api/login", json={"password": "testpass"})
         self.assertEqual(resp.status_code, 200)
         self.assertIn(auth.SESSION_COOKIE, resp.cookies)
 
     def test_logout_clears_cookie(self):
         client = self._make_client()
-        with client:
-            self._enable_auth_in_test()
-            login_resp = client.post("/api/login", json={"password": "testpass"})
-            self.assertEqual(login_resp.status_code, 200)
-            logout_resp = client.post("/api/logout")
+        self._enable_auth_in_test()
+        login_resp = client.post("/api/login", json={"password": "testpass"})
+        self.assertEqual(login_resp.status_code, 200)
+        logout_resp = client.post("/api/logout")
         self.assertEqual(logout_resp.status_code, 200)
 
     def test_login_rate_limit_enforced(self):
         client = self._make_client()
-        with client:
-            self._enable_auth_in_test()
-            # Exhaust the rate limit
-            for _ in range(auth._LOGIN_MAX):
-                client.post("/api/login", json={"password": "wrong"})
-            resp = client.post("/api/login", json={"password": "wrong"})
+        self._enable_auth_in_test()
+        # Exhaust the rate limit
+        for _ in range(auth._LOGIN_MAX):
+            client.post("/api/login", json={"password": "wrong"})
+        resp = client.post("/api/login", json={"password": "wrong"})
         self.assertEqual(resp.status_code, 429)
 
 
