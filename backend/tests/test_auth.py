@@ -61,6 +61,9 @@ class TestPasswordVerification(unittest.TestCase):
         _reset_auth()
         auth.init_auth("correct_password", "stable_secret")
 
+    def tearDown(self):
+        _reset_auth()
+
     def test_correct_password_accepted(self):
         self.assertTrue(auth.verify_password("correct_password"))
 
@@ -86,6 +89,9 @@ class TestSessionManagement(unittest.TestCase):
     def setUp(self):
         _reset_auth()
         auth.init_auth("pw", "secret")
+
+    def tearDown(self):
+        _reset_auth()
 
     def test_create_session_returns_string(self):
         token = auth.create_session()
@@ -127,6 +133,9 @@ class TestSessionManagement(unittest.TestCase):
 class TestLoginRateLimit(unittest.TestCase):
 
     def setUp(self):
+        _reset_auth()
+
+    def tearDown(self):
         _reset_auth()
 
     def test_allows_attempts_under_limit(self):
