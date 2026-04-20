@@ -17,7 +17,22 @@ for _p in (_BACKEND, _SITE):
 
 # We import the app WITHOUT triggering lifespan (no startup/shutdown) by using
 # fastapi.testclient.TestClient which does not invoke the lifespan by default.
+# IMPORTANT: Use _no_lifespan_client() instead of `with TestClient(app) as client:`
+# because the context-manager form DOES trigger the lifespan in this Starlette version.
+import contextlib
 from fastapi.testclient import TestClient
+
+
+@contextlib.contextmanager
+def _no_lifespan_client(app, raise_server_exceptions: bool = True):
+    """Context manager that yields a TestClient WITHOUT triggering the app lifespan.
+
+    Using `with TestClient(app) as client:` triggers lifespan startup/shutdown which
+    spawns background tasks (trading_loop, auto_scan_loop, etc.) — causing hangs in CI.
+    This helper uses TestClient without entering its context manager so the lifespan
+    never runs.
+    """
+    yield TestClient(app, raise_server_exceptions=raise_server_exceptions)
 
 
 def _make_mock_agent(name="TestAgent"):
@@ -80,7 +95,7 @@ class TestStatusEndpoint(unittest.TestCase):
 
     def test_get_status_returns_200(self):
         from main import app, app_state
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.is_running = False
                 mock_state.market_status = "closed"
@@ -107,7 +122,7 @@ class TestStatusEndpoint(unittest.TestCase):
 
     def test_status_fields_present(self):
         from main import app
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.is_running = True
                 mock_state.market_status = "open"
@@ -150,7 +165,7 @@ class TestAgentsEndpoint(unittest.TestCase):
         from main import app
         mock_agent = _make_mock_agent("TechAgent")
 
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.agents = {"TechAgent": mock_agent}
                 mock_state.last_prices = {"AAPL": 150.0}
@@ -181,7 +196,7 @@ class TestAgentsEndpoint(unittest.TestCase):
             "MomentumAgent": _make_mock_agent("MomentumAgent"),
         }
 
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.agents = agents
                 mock_state.last_prices = {}
@@ -219,7 +234,7 @@ class TestStartStopEndpoints(unittest.TestCase):
 
     def test_start_when_already_running_returns_already_running(self):
         from main import app
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.is_running = True
                 mock_state.agents = {}
@@ -244,7 +259,7 @@ class TestStartStopEndpoints(unittest.TestCase):
 
     def test_start_without_alpaca_key_returns_warning(self):
         from main import app
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.is_running = False
                 mock_state.agents = {}
@@ -269,7 +284,7 @@ class TestStartStopEndpoints(unittest.TestCase):
 
     def test_stop_when_not_running_returns_not_running(self):
         from main import app
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.is_running = False
                 mock_state.agents = {}
@@ -307,7 +322,7 @@ class TestScannerEndpoints(unittest.TestCase):
 
     def test_get_scanner_no_cache_returns_no_scan(self):
         from main import app
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.is_running = False
                 mock_state.agents = {}
@@ -339,7 +354,7 @@ class TestScannerEndpoints(unittest.TestCase):
             "scanned_at": "2024-01-01T10:00:00",
         }
 
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.is_running = False
                 mock_state.agents = {}
@@ -365,7 +380,7 @@ class TestScannerEndpoints(unittest.TestCase):
         """POST /api/scanner/run returns 429 when rate limit exceeded."""
         from main import app, _rate_limit_store
 
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.is_running = False
                 mock_state.agents = {}
@@ -395,7 +410,7 @@ class TestScannerEndpoints(unittest.TestCase):
             "scanned_at": "2024-01-01T10:00:00",
         }
 
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.is_running = False
                 mock_state.agents = {}
@@ -433,7 +448,7 @@ class TestSentinelEndpoint(unittest.TestCase):
     def test_get_sentinel_returns_200(self):
         from main import app
 
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main.app_state") as mock_state:
                 mock_state.is_running = False
                 mock_state.agents = {}
@@ -1526,7 +1541,7 @@ class TestErrorLogEndpoint(unittest.TestCase):
         if os.path.exists(nonexistent):
             os.remove(nonexistent)
 
-        with TestClient(app, raise_server_exceptions=True) as client:
+        with _no_lifespan_client(app) as client:
             with patch("main._ERROR_LOG_PATH", nonexistent):
                 response = client.get("/api/errors")
 
@@ -1543,7 +1558,7 @@ class TestErrorLogEndpoint(unittest.TestCase):
         )
         tmp = self._write_tmp_log(log_content)
         try:
-            with TestClient(app, raise_server_exceptions=True) as client:
+            with _no_lifespan_client(app) as client:
                 with patch("main._ERROR_LOG_PATH", tmp):
                     response = client.get("/api/errors")
         finally:
@@ -1568,7 +1583,7 @@ class TestErrorLogEndpoint(unittest.TestCase):
         )
         tmp = self._write_tmp_log(log_content)
         try:
-            with TestClient(app, raise_server_exceptions=True) as client:
+            with _no_lifespan_client(app) as client:
                 with patch("main._ERROR_LOG_PATH", tmp):
                     response = client.get("/api/errors")
         finally:
@@ -1588,7 +1603,7 @@ class TestErrorLogEndpoint(unittest.TestCase):
         ) + "\n"
         tmp = self._write_tmp_log(log_content)
         try:
-            with TestClient(app, raise_server_exceptions=True) as client:
+            with _no_lifespan_client(app) as client:
                 with patch("main._ERROR_LOG_PATH", tmp):
                     response = client.get("/api/errors?limit=2")
         finally:
@@ -1627,7 +1642,7 @@ class TestErrorAnalyzeEndpoint(unittest.TestCase):
         log_content = "2026-04-04 10:00:01 [WARNING] main: Minor warning\n"
         tmp = self._write_tmp_log(log_content)
         try:
-            with TestClient(app, raise_server_exceptions=True) as client:
+            with _no_lifespan_client(app) as client:
                 with patch("main._ERROR_LOG_PATH", tmp):
                     response = client.get("/api/errors/analyze")
         finally:
@@ -1652,7 +1667,7 @@ class TestErrorAnalyzeEndpoint(unittest.TestCase):
         mock_msg.content = [MagicMock(text="Check your network connection.")]
 
         try:
-            with TestClient(app, raise_server_exceptions=True) as client:
+            with _no_lifespan_client(app) as client:
                 with patch("main._ERROR_LOG_PATH", tmp):
                     with patch("main.config") as mock_cfg:
                         mock_cfg.ANTHROPIC_API_KEY = "fake-key"
