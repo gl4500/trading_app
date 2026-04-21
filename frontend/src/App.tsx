@@ -3,6 +3,8 @@ import Dashboard from './components/Dashboard'
 import LoginPage from './components/LoginPage'
 import { TimezoneProvider } from './context/TimezoneContext'
 import TimezoneSelector from './components/TimezoneSelector'
+import AppShellV2 from './v2/AppShellV2'
+import { isV2Enabled } from './v2/switch'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -316,6 +318,18 @@ function AuthenticatedApp() {
       setIsLoading(false)
       setTimeout(() => setStatusMessage(''), 3000)
     }
+  }
+
+  // v2 prototype: render the new shell behind ?v=2 (legacy UI is the default)
+  if (isV2Enabled()) {
+    return (
+      <AppShellV2
+        data={appData}
+        trades={trades}
+        wsConnected={wsConnected}
+        ollamaOnly={ollamaOnlyMode}
+      />
+    )
   }
 
   return (
