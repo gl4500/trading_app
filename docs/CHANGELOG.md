@@ -9,6 +9,41 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2026-04-21] — CI Green · Tax Estimator · Ollama Off-Hours Scan · Auth Hardening
+
+### Added
+
+- **Federal tax estimator** (`backend/data/tax_estimator.py`, `backend/trading/alpaca_client.py`)
+  - `GET /api/tax/estimate?year=YYYY` — federal capital gains summary from real Alpaca trade history
+  - FIFO lot pairing, short/long-term classification, wash sale detection, quarterly estimated payments
+  - `get_filled_orders()` on `AlpacaClient` with wide date window (Nov year−1 → Feb year+1) filtered client-side to the requested year
+  - Tests: `backend/tests/test_tax_estimator.py`
+
+- **Off-hours Ollama auto-scan** (`backend/main.py`, `backend/config.py`)
+  - `auto_scan_loop` fires every `OLLAMA_CLOSED_SCAN_MIN=30` minutes when market is closed and `OLLAMA_ONLY_MODE=1`
+  - Keeps the watchlist fresh overnight without cloud API costs
+
+- **Session authentication** (`backend/auth.py`) — PBKDF2-HMAC-SHA256, httpOnly cookies, 24h TTL, per-IP rate limiting (5 attempts / 5 min); covered by `test_auth.py`
+
+### Fixed
+
+- **CI pipeline fully green** — 1372 tests, 0 failures, 0 errors after a multi-session repair effort:
+  - Removed `patch("main.asyncio.create_task")` from all persistent test patchers — it patched `asyncio.create_task` globally (same module object), breaking anyio's `BlockingPortal` and causing 2+ hour hangs
+  - Switched `TestTokenLogEndpoint`, `TestTelemetryEndpoint`, `TestOllamaModeEndpoint` from `with TestClient(app) as client:` to `_no_lifespan_client()` — prevents lifespan running `cleanup_token_log()` on uninitialized DB
+  - Added `tearDown: _reset_auth()` to `TestPasswordVerification`, `TestSessionManagement`, `TestLoginRateLimit` — auth state was left enabled between test files causing 401s on all subsequent requests
+  - `AlpacaClient.__init__` now guards on non-empty credentials — module-level instantiation no longer raises `ValueError` in CI where no `.env` exists
+  - Fixed `test_security.py::test_token_log_no_raw_sql_parameter` — was referencing `database.get_token_log_entries` (non-existent); correct name is `database.get_token_log`
+  - Fixed error-log endpoint tests patching `_ERROR_LOG_PATH` instead of `_ERRORS_ONLY_LOG_PATH` (endpoint default is `errors_only=True`)
+  - Fixed `test_does_nothing_when_already_running` — implementation now calls `subprocess.run(["ollama","list"])` to check model even when server is up; test updated to provide the model in stdout
+  - Fixed `test_app_state_has_pull_task_attribute` — `test_pulls_model_when_not_in_list` was leaving a `MagicMock` in `app_state.pull_task` via global `asyncio.create_task` patch; reset to `None` after assertion
+  - `tag-release` job granted `permissions: contents: write` — GitHub token defaults to read-only, `github.rest.git.createRef` was returning `HttpError: Resource not accessible by integration`
+
+### Removed
+
+- `feature/tax-estimator` branch — fully merged into `main`, deleted locally and from GitHub
+
+---
+
 ## [2026-04-14] — HMM Regime Detection · Fractional Kelly Sizing · Walk-Forward Efficiency
 
 ### Added
