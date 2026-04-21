@@ -1,0 +1,143 @@
+import React, { useEffect, useMemo, useState } from 'react'
+import SidebarV2, { TabId } from './SidebarV2'
+import CommandStripV2 from './CommandStripV2'
+import LeaderboardV2 from './LeaderboardV2'
+import PortfolioChartV2 from './PortfolioChartV2'
+import type { AppData, Trade } from '../App'
+
+import AgentCard from '../components/AgentCard'
+import TradeLog from '../components/TradeLog'
+import SignalsPanel from '../components/SignalsPanel'
+import ScannerPanel from '../components/ScannerPanel'
+import SummaryPanel from '../components/SummaryPanel'
+import SentinelPanel from '../components/SentinelPanel'
+import TokensPanel from '../components/TokensPanel'
+import ErrorLogPanel from '../components/ErrorLogPanel'
+import TelemetryPanel from '../components/TelemetryPanel'
+
+interface Props {
+  data: AppData
+  trades: Trade[]
+  wsConnected: boolean
+  ollamaOnly: boolean
+}
+
+function todayKey() {
+  const d = new Date()
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
+function realizedPnlToday(trades: Trade[]) {
+  const today = todayKey()
+  return trades
+    .filter(t => {
+      const d = new Date(t.timestamp)
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` === today && t.action === 'SELL'
+    })
+    .reduce((s, t) => s + (t.pnl ?? 0), 0)
+}
+
+function Placeholder({ label }: { label: string }) {
+  return (
+    <div style={{
+      padding: 32, textAlign: 'center',
+      color: 'var(--text-dim)', fontFamily: 'var(--font-mono)',
+      fontSize: 12, letterSpacing: '0.15em',
+      border: '1px dashed var(--border-soft)',
+      borderRadius: 'var(--radius-md)',
+      background: 'var(--bg-panel)',
+    }}>
+      {label} · NOT YET WIRED
+    </div>
+  )
+}
+
+export default function AppShellV2({ data, trades, wsConnected, ollamaOnly }: Props) {
+  const [activeTab, setActiveTab] = useState<TabId>('chart')
+  const [selectedName, setSelectedName] = useState<string | null>(null)
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-ui', 'v2')
+    return () => { document.documentElement.removeAttribute('data-ui') }
+  }, [])
+
+  const haltedCount = useMemo(
+    () => data.agents.filter(a => !a.is_active).length,
+    [data.agents]
+  )
+
+  const pnlToday = useMemo(() => realizedPnlToday(trades), [trades])
+
+  const selectedAgent = data.agents.find(a => a.name === selectedName)
+                      ?? (data.leaderboard.length > 0 ? data.leaderboard[0] : null)
+
+  function handleSelect(name: string) {
+    setSelectedName(name)
+    setActiveTab('detail')
+  }
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '200px 1fr',
+      minHeight: '100vh',
+      background: 'var(--bg-base)',
+      color: 'var(--text-primary)',
+      fontFamily: 'var(--font-display)',
+    }}>
+      <SidebarV2 active={activeTab} onSelect={setActiveTab} />
+
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <CommandStripV2
+          wsConnected={wsConnected}
+          isRunning={data.is_running}
+          ollamaOnly={ollamaOnly}
+          haltedAgentCount={haltedCount}
+          driftWarningCount={0}
+          realizedPnlToday={pnlToday}
+          cycleCount={data.cycle_count}
+        />
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(280px, 320px) 1fr',
+          gap: 12,
+          padding: 12,
+          minHeight: 0,
+        }}>
+          <div style={{ minWidth: 0 }}>
+            <LeaderboardV2
+              leaderboard={data.leaderboard}
+              selected={selectedName}
+              onSelect={handleSelect}
+            />
+          </div>
+
+          <div style={{ minWidth: 0 }}>
+            {activeTab === 'chart' && (
+              <PortfolioChartV2 agents={data.agents} selectedName={selectedName} />
+            )}
+            {activeTab === 'detail' && selectedAgent && (
+              <AgentCard agent={selectedAgent} prices={data.prices} />
+            )}
+            {activeTab === 'detail' && !selectedAgent && (
+              <Placeholder label="SELECT AN AGENT" />
+            )}
+            {activeTab === 'trades' && <TradeLog trades={trades} agents={data.agents} />}
+            {activeTab === 'rollup' && <SummaryPanel />}
+            {activeTab === 'signals' && <SignalsPanel />}
+            {activeTab === 'scanner' && <ScannerPanel />}
+            {activeTab === 'sentinel' && <SentinelPanel />}
+            {activeTab === 'regime' && <Placeholder label="REGIME PANEL" />}
+            {activeTab === 'cnn' && <Placeholder label="CNN DIAGNOSTICS PANEL" />}
+            {activeTab === 'drift' && <Placeholder label="DRIFT PANEL" />}
+            {activeTab === 'tax' && <Placeholder label="TAX PANEL" />}
+            {activeTab === 'tokens' && <TokensPanel />}
+            {activeTab === 'errors' && <ErrorLogPanel />}
+            {activeTab === 'telemetry' && <TelemetryPanel />}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
