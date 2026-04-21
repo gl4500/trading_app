@@ -68,7 +68,7 @@ export default function LeaderboardV2({ leaderboard, selected, onSelect }: Props
         LEADERBOARD · {leaderboard.length}
       </div>
 
-      <div role="list">
+      <div>
         {leaderboard.map((agent, idx) => {
           const isSelected = agent.name === selected
           const positive   = agent.total_return_pct >= 0
@@ -86,13 +86,13 @@ export default function LeaderboardV2({ leaderboard, selected, onSelect }: Props
                 width: '100%',
                 padding: '10px 12px',
                 background: isSelected ? 'var(--bg-panel-hi)' : 'transparent',
-                borderLeft: `2px solid ${isSelected ? 'var(--accent-amber)' : 'transparent'}`,
                 borderTop: idx === 0 ? 'none' : '1px solid var(--border-hair)',
+                borderRight: 'none',
+                borderBottom: 'none',
+                borderLeft: `2px solid ${isSelected ? 'var(--accent-amber)' : 'transparent'}`,
                 color: 'var(--text-primary)',
                 cursor: 'pointer',
                 textAlign: 'left',
-                border: 'none',
-                borderLeftStyle: 'solid', borderLeftWidth: 2,
               }}
             >
               <span className="num" style={{

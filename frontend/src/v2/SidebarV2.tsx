@@ -91,15 +91,15 @@ export default function SidebarV2({ active, onSelect }: Props) {
                   width: '100%',
                   padding: '6px 14px',
                   background: isActive ? 'var(--bg-panel-hi)' : 'transparent',
+                  borderTop: 'none',
+                  borderRight: 'none',
+                  borderBottom: 'none',
                   borderLeft: `2px solid ${isActive ? 'var(--accent-amber)' : 'transparent'}`,
                   color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
                   fontSize: 13,
                   fontFamily: 'var(--font-display)',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  border: 'none',
-                  borderLeftWidth: 2,
-                  borderLeftStyle: 'solid',
                 }}
               >
                 <Icon style={{ color: isActive ? 'var(--accent-amber)' : 'var(--text-dim)' }} />
