@@ -405,7 +405,7 @@ class TestSQLHardening(unittest.TestCase):
         """
         import inspect
         import database
-        sig = inspect.signature(database.get_token_log_entries)
+        sig = inspect.signature(database.get_token_log)
         forbidden = {"where", "where_clause", "sql", "query", "filter"}
         exposed = forbidden & set(sig.parameters.keys())
         self.assertFalse(

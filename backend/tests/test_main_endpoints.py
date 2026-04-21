@@ -840,14 +840,14 @@ class TestTokenLogEndpoint(unittest.TestCase):
     def test_returns_200(self):
         from main import app
         with patch("main.get_token_log", new_callable=AsyncMock, return_value=self._sample_entries()):
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 resp = client.get("/api/token-log")
         self.assertEqual(resp.status_code, 200)
 
     def test_response_has_entries_key(self):
         from main import app
         with patch("main.get_token_log", new_callable=AsyncMock, return_value=self._sample_entries()):
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 data = client.get("/api/token-log").json()
         self.assertIn("entries", data)
         self.assertEqual(len(data["entries"]), 1)
@@ -855,7 +855,7 @@ class TestTokenLogEndpoint(unittest.TestCase):
     def test_entry_has_expected_fields(self):
         from main import app
         with patch("main.get_token_log", new_callable=AsyncMock, return_value=self._sample_entries()):
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 data = client.get("/api/token-log").json()
         entry = data["entries"][0]
         for field in ("timestamp", "agent", "model", "prompt_tokens", "completion_tokens", "total_tokens", "limit_hit"):
@@ -864,7 +864,7 @@ class TestTokenLogEndpoint(unittest.TestCase):
     def test_agent_query_param_forwarded(self):
         from main import app
         with patch("main.get_token_log", new_callable=AsyncMock, return_value=[]) as mock_fn:
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 client.get("/api/token-log?agent=SentimentAgent")
         call_kwargs = mock_fn.call_args[1]
         self.assertEqual(call_kwargs.get("agent"), "SentimentAgent")
@@ -872,7 +872,7 @@ class TestTokenLogEndpoint(unittest.TestCase):
     def test_hours_query_param_forwarded(self):
         from main import app
         with patch("main.get_token_log", new_callable=AsyncMock, return_value=[]) as mock_fn:
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 client.get("/api/token-log?hours=12")
         call_kwargs = mock_fn.call_args[1]
         self.assertEqual(call_kwargs.get("hours"), 12)
@@ -880,7 +880,7 @@ class TestTokenLogEndpoint(unittest.TestCase):
     def test_limit_hit_filter_forwarded(self):
         from main import app
         with patch("main.get_token_log", new_callable=AsyncMock, return_value=[]) as mock_fn:
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 client.get("/api/token-log?limit_hit=true")
         call_kwargs = mock_fn.call_args[1]
         self.assertTrue(call_kwargs.get("limit_hit_only"))
@@ -888,7 +888,7 @@ class TestTokenLogEndpoint(unittest.TestCase):
     def test_empty_returns_empty_list(self):
         from main import app
         with patch("main.get_token_log", new_callable=AsyncMock, return_value=[]):
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 data = client.get("/api/token-log").json()
         self.assertEqual(data["entries"], [])
 
@@ -896,7 +896,7 @@ class TestTokenLogEndpoint(unittest.TestCase):
         """hours=0 is forwarded to get_token_log — signals all-time query."""
         from main import app
         with patch("main.get_token_log", new_callable=AsyncMock, return_value=[]) as mock_fn:
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 client.get("/api/token-log?hours=0")
         call_kwargs = mock_fn.call_args[1]
         self.assertEqual(call_kwargs.get("hours"), 0)
@@ -1343,16 +1343,20 @@ class TestEnsureOllamaRunning(unittest.IsolatedAsyncioTestCase):
     """_ensure_ollama_running() starts Ollama when needed and pulls the model if missing."""
 
     async def test_does_nothing_when_already_running(self):
-        """No subprocess calls when Ollama is already up."""
+        """No server start when Ollama is already up and model is available."""
         import main
+        # Model IS in the list — no pull needed
+        list_result = MagicMock(stdout=f"{main.config.OLLAMA_MODEL}  latest  abc123")
         with patch("agents.scanner_agent._ollama_is_available",
-                   new_callable=AsyncMock, return_value=True) as mock_avail, \
+                   new_callable=AsyncMock, return_value=True), \
              patch("subprocess.Popen") as mock_popen, \
-             patch("subprocess.run") as mock_run:
+             patch("subprocess.run", return_value=list_result), \
+             patch("asyncio.create_task") as mock_create_task:
             await main._ensure_ollama_running()
 
         mock_popen.assert_not_called()
-        mock_run.assert_not_called()
+        mock_create_task.assert_not_called()
+        main.app_state.pull_task = None  # clean up any state
 
     async def test_warns_and_returns_when_ollama_not_installed(self):
         """Logs a warning and returns cleanly if 'ollama' binary is not in PATH."""
@@ -1410,6 +1414,7 @@ class TestEnsureOllamaRunning(unittest.IsolatedAsyncioTestCase):
                 await main._ensure_ollama_running()
 
         mock_create_task.assert_called_once()
+        main.app_state.pull_task = None  # prevent MagicMock from leaking to later tests
 
 
 class TestFileHandlerDeduplication(unittest.TestCase):
@@ -1542,11 +1547,11 @@ class TestErrorLogEndpoint(unittest.TestCase):
             os.remove(nonexistent)
 
         with _no_lifespan_client(app) as client:
-            with patch("main._ERROR_LOG_PATH", nonexistent):
+            with patch("main._ERRORS_ONLY_LOG_PATH",nonexistent):
                 response = client.get("/api/errors")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"entries": []})
+        self.assertEqual(response.json()["entries"], [])
 
     def test_returns_parsed_entries(self):
         """Log lines are parsed into timestamp/level/logger/message dicts."""
@@ -1559,7 +1564,7 @@ class TestErrorLogEndpoint(unittest.TestCase):
         tmp = self._write_tmp_log(log_content)
         try:
             with _no_lifespan_client(app) as client:
-                with patch("main._ERROR_LOG_PATH", tmp):
+                with patch("main._ERRORS_ONLY_LOG_PATH",tmp):
                     response = client.get("/api/errors")
         finally:
             os.unlink(tmp)
@@ -1584,7 +1589,7 @@ class TestErrorLogEndpoint(unittest.TestCase):
         tmp = self._write_tmp_log(log_content)
         try:
             with _no_lifespan_client(app) as client:
-                with patch("main._ERROR_LOG_PATH", tmp):
+                with patch("main._ERRORS_ONLY_LOG_PATH",tmp):
                     response = client.get("/api/errors")
         finally:
             os.unlink(tmp)
@@ -1604,7 +1609,7 @@ class TestErrorLogEndpoint(unittest.TestCase):
         tmp = self._write_tmp_log(log_content)
         try:
             with _no_lifespan_client(app) as client:
-                with patch("main._ERROR_LOG_PATH", tmp):
+                with patch("main._ERRORS_ONLY_LOG_PATH",tmp):
                     response = client.get("/api/errors?limit=2")
         finally:
             os.unlink(tmp)
@@ -1643,7 +1648,7 @@ class TestErrorAnalyzeEndpoint(unittest.TestCase):
         tmp = self._write_tmp_log(log_content)
         try:
             with _no_lifespan_client(app) as client:
-                with patch("main._ERROR_LOG_PATH", tmp):
+                with patch("main._ERRORS_ONLY_LOG_PATH",tmp):
                     response = client.get("/api/errors/analyze")
         finally:
             os.unlink(tmp)
@@ -1668,7 +1673,7 @@ class TestErrorAnalyzeEndpoint(unittest.TestCase):
 
         try:
             with _no_lifespan_client(app) as client:
-                with patch("main._ERROR_LOG_PATH", tmp):
+                with patch("main._ERRORS_ONLY_LOG_PATH",tmp):
                     with patch("main.config") as mock_cfg:
                         mock_cfg.ANTHROPIC_API_KEY = "fake-key"
                         with patch("anthropic.AsyncAnthropic") as mock_cls:
@@ -1718,7 +1723,7 @@ class TestTelemetryEndpoint(unittest.TestCase):
             mock_client.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_resp)
             mock_httpx.AsyncClient.return_value = mock_client
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 return client.get("/api/telemetry").json()
 
     def test_returns_200(self):
@@ -1735,7 +1740,7 @@ class TestTelemetryEndpoint(unittest.TestCase):
             mock_client.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_resp)
             mock_httpx.AsyncClient.return_value = mock_client
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 resp = client.get("/api/telemetry")
         self.assertEqual(resp.status_code, 200)
 
@@ -1782,7 +1787,7 @@ class TestTelemetryEndpoint(unittest.TestCase):
             mock_client.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(side_effect=Exception("connection refused"))
             mock_httpx.AsyncClient.return_value = mock_client
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 data = client.get("/api/telemetry").json()
         self.assertEqual(data["ollama"]["models"], [])
 
@@ -1812,7 +1817,7 @@ class TestTelemetryEndpoint(unittest.TestCase):
             mock_client.__aexit__ = AsyncMock(return_value=False)
             mock_client.get = AsyncMock(return_value=mock_resp)
             mock_httpx.AsyncClient.return_value = mock_client
-            with TestClient(app) as client:
+            with _no_lifespan_client(app) as client:
                 return client.get("/api/telemetry").json()
 
     def test_has_gpu_key(self):
@@ -1871,7 +1876,7 @@ class TestOllamaModeEndpoint(unittest.TestCase):
     def test_enable_sets_env_flag(self):
         """POST enabled=true must set OLLAMA_ONLY_MODE=1 in os.environ."""
         from main import app
-        with TestClient(app) as client:
+        with _no_lifespan_client(app) as client:
             resp = client.post("/api/ollama-mode?enabled=true&hours=24")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(os.environ.get("OLLAMA_ONLY_MODE"), "1")
@@ -1879,7 +1884,7 @@ class TestOllamaModeEndpoint(unittest.TestCase):
     def test_enable_response_has_expected_fields(self):
         """Response must include enabled, message, and expires_at."""
         from main import app
-        with TestClient(app) as client:
+        with _no_lifespan_client(app) as client:
             data = client.post("/api/ollama-mode?enabled=true&hours=24").json()
         self.assertTrue(data["enabled"])
         self.assertIn("expires_at", data)
@@ -1889,7 +1894,7 @@ class TestOllamaModeEndpoint(unittest.TestCase):
         """POST enabled=false must remove OLLAMA_ONLY_MODE from os.environ."""
         os.environ["OLLAMA_ONLY_MODE"] = "1"
         from main import app
-        with TestClient(app) as client:
+        with _no_lifespan_client(app) as client:
             resp = client.post("/api/ollama-mode?enabled=false")
         self.assertEqual(resp.status_code, 200)
         self.assertNotIn("OLLAMA_ONLY_MODE", os.environ)
@@ -1897,7 +1902,7 @@ class TestOllamaModeEndpoint(unittest.TestCase):
     def test_disable_response_shows_not_enabled(self):
         """Response on disable must show enabled=False and no expiry."""
         from main import app
-        with TestClient(app) as client:
+        with _no_lifespan_client(app) as client:
             data = client.post("/api/ollama-mode?enabled=false").json()
         self.assertFalse(data["enabled"])
         self.assertIsNone(data["expires_at"])
@@ -1905,7 +1910,7 @@ class TestOllamaModeEndpoint(unittest.TestCase):
     def test_custom_hours(self):
         """hours parameter controls expiry window (default 24 if omitted)."""
         from main import app
-        with TestClient(app) as client:
+        with _no_lifespan_client(app) as client:
             data = client.post("/api/ollama-mode?enabled=true&hours=4").json()
         self.assertTrue(data["enabled"])
         self.assertIsNotNone(data["expires_at"])

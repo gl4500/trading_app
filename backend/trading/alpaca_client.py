@@ -43,15 +43,19 @@ class AlpacaClient:
     """
 
     def __init__(self) -> None:
-        self._trading = TradingClient(
-            api_key=config.ALPACA_API_KEY,
-            secret_key=config.ALPACA_SECRET_KEY,
-            paper=True,          # always paper trading
-        )
-        self._data = StockHistoricalDataClient(
-            api_key=config.ALPACA_API_KEY,
-            secret_key=config.ALPACA_SECRET_KEY,
-        )
+        if config.ALPACA_API_KEY and config.ALPACA_SECRET_KEY:
+            self._trading = TradingClient(
+                api_key=config.ALPACA_API_KEY,
+                secret_key=config.ALPACA_SECRET_KEY,
+                paper=True,          # always paper trading
+            )
+            self._data = StockHistoricalDataClient(
+                api_key=config.ALPACA_API_KEY,
+                secret_key=config.ALPACA_SECRET_KEY,
+            )
+        else:
+            self._trading = None  # type: ignore[assignment]
+            self._data = None     # type: ignore[assignment]
 
     # ------------------------------------------------------------------
     # Account
