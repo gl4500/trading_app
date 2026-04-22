@@ -6,7 +6,7 @@ import PortfolioChartV2 from './PortfolioChartV2'
 import type { AppData, Trade } from '../App'
 
 import AgentCardV2 from './AgentCardV2'
-import TradeLog from '../components/TradeLog'
+import TradeLogV2 from './TradeLogV2'
 import SignalsPanel from '../components/SignalsPanel'
 import ScannerPanel from '../components/ScannerPanel'
 import SummaryPanel from '../components/SummaryPanel'
@@ -123,7 +123,7 @@ export default function AppShellV2({ data, trades, wsConnected, ollamaOnly }: Pr
             {activeTab === 'detail' && !selectedAgent && (
               <Placeholder label="SELECT AN AGENT" />
             )}
-            {activeTab === 'trades' && <TradeLog trades={trades} agents={data.agents} />}
+            {activeTab === 'trades' && <TradeLogV2 trades={trades} agents={data.agents} />}
             {activeTab === 'rollup' && <SummaryPanel />}
             {activeTab === 'signals' && <SignalsPanel />}
             {activeTab === 'scanner' && <ScannerPanel />}
