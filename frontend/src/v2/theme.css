@@ -45,7 +45,7 @@
   background: var(--bg-panel);
   border: 1px solid var(--border-hair);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 6px 10px;
   color: var(--text-primary);
 }
 
@@ -135,7 +135,13 @@
 
 :root[data-ui="v2"] .rounded-xl,
 :root[data-ui="v2"] .rounded-lg,
-:root[data-ui="v2"] .rounded-md {
+:root[data-ui="v2"] .rounded-md,
+:root[data-ui="v2"] .rounded,
+:root[data-ui="v2"] .rounded-sm {
+  border-radius: var(--radius-sm) !important;
+}
+
+:root[data-ui="v2"] .rounded-full {
   border-radius: var(--radius-sm) !important;
 }
 
