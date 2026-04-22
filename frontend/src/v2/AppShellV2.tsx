@@ -7,7 +7,7 @@ import type { AppData, Trade } from '../App'
 
 import AgentCardV2 from './AgentCardV2'
 import TradeLogV2 from './TradeLogV2'
-import SignalsPanel from '../components/SignalsPanel'
+import SignalsPanelV2 from './SignalsPanelV2'
 import ScannerPanel from '../components/ScannerPanel'
 import SummaryPanel from '../components/SummaryPanel'
 import SentinelPanel from '../components/SentinelPanel'
@@ -125,7 +125,7 @@ export default function AppShellV2({ data, trades, wsConnected, ollamaOnly }: Pr
             )}
             {activeTab === 'trades' && <TradeLogV2 trades={trades} agents={data.agents} />}
             {activeTab === 'rollup' && <SummaryPanel />}
-            {activeTab === 'signals' && <SignalsPanel />}
+            {activeTab === 'signals' && <SignalsPanelV2 />}
             {activeTab === 'scanner' && <ScannerPanel />}
             {activeTab === 'sentinel' && <SentinelPanel />}
             {activeTab === 'regime' && <Placeholder label="REGIME PANEL" />}
