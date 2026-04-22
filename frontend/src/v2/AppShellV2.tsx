@@ -10,7 +10,7 @@ import TradeLogV2 from './TradeLogV2'
 import SignalsPanelV2 from './SignalsPanelV2'
 import ScannerPanelV2 from './ScannerPanelV2'
 import SummaryPanel from '../components/SummaryPanel'
-import SentinelPanel from '../components/SentinelPanel'
+import SentinelPanelV2 from './SentinelPanelV2'
 import TokensPanel from '../components/TokensPanel'
 import ErrorLogPanel from '../components/ErrorLogPanel'
 import TelemetryPanel from '../components/TelemetryPanel'
@@ -127,7 +127,7 @@ export default function AppShellV2({ data, trades, wsConnected, ollamaOnly }: Pr
             {activeTab === 'rollup' && <SummaryPanel />}
             {activeTab === 'signals' && <SignalsPanelV2 />}
             {activeTab === 'scanner' && <ScannerPanelV2 />}
-            {activeTab === 'sentinel' && <SentinelPanel />}
+            {activeTab === 'sentinel' && <SentinelPanelV2 />}
             {activeTab === 'regime' && <Placeholder label="REGIME PANEL" />}
             {activeTab === 'cnn' && <Placeholder label="CNN DIAGNOSTICS PANEL" />}
             {activeTab === 'drift' && <Placeholder label="DRIFT PANEL" />}
