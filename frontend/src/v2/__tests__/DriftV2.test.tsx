@@ -65,6 +65,48 @@ describe('DriftV2', () => {
     expect(screen.getByText(/MomentumAgent/)).toBeInTheDocument()
   })
 
+  it('renders grouped numeric columns with base/now/delta values', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        reports: [{
+          agent_name: 'ClaudeAgent',
+          is_drifting: true,
+          alerts: ['Win rate dropped 14.9pp'],
+          baseline_win_rate: 55.2,
+          recent_win_rate: 40.3,
+          win_rate_change: -14.9,
+          baseline_avg_pnl_pct: 0.85,
+          recent_avg_pnl_pct: 0.12,
+          avg_pnl_change: -0.73,
+          total_trades: 32,
+          recent_window: 20,
+        }],
+        drifting_agents: 1,
+        all_clear: false,
+      }),
+    }))
+    render(<DriftV2 />)
+    await waitFor(() => {
+      expect(screen.getByText(/ClaudeAgent/)).toBeInTheDocument()
+    })
+    // Grouped headers
+    expect(screen.getByText(/Win Rate %/i)).toBeInTheDocument()
+    expect(screen.getByText(/Avg P&L %/i)).toBeInTheDocument()
+    // Numeric cells appear in their own columns
+    expect(screen.getByText(/55\.2%/)).toBeInTheDocument()
+    expect(screen.getByText(/40\.3%/)).toBeInTheDocument()
+    expect(screen.getByText(/-14\.9/)).toBeInTheDocument()
+    expect(screen.getByText(/0\.85%/)).toBeInTheDocument()
+    expect(screen.getByText(/0\.12%/)).toBeInTheDocument()
+    expect(screen.getByText(/-0\.73/)).toBeInTheDocument()
+    // Trade counts
+    expect(screen.getByText(/^32$/)).toBeInTheDocument()
+    expect(screen.getByText(/^20$/)).toBeInTheDocument()
+    // Alerts row
+    expect(screen.getByText(/Win rate dropped 14\.9pp/)).toBeInTheDocument()
+  })
+
   it('refetches on refresh click', async () => {
     render(<DriftV2 />)
     await waitFor(() => {
