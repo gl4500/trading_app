@@ -17,6 +17,7 @@ import TelemetryPanelV2 from './TelemetryPanelV2'
 import RegimeV2 from './RegimeV2'
 import CNNDiagnosticsV2 from './CNNDiagnosticsV2'
 import DriftV2 from './DriftV2'
+import TaxV2 from './TaxV2'
 
 interface Props {
   data: AppData
@@ -134,7 +135,7 @@ export default function AppShellV2({ data, trades, wsConnected, ollamaOnly }: Pr
             {activeTab === 'regime' && <RegimeV2 />}
             {activeTab === 'cnn' && <CNNDiagnosticsV2 />}
             {activeTab === 'drift' && <DriftV2 />}
-            {activeTab === 'tax' && <Placeholder label="TAX PANEL" />}
+            {activeTab === 'tax' && <TaxV2 />}
             {activeTab === 'tokens' && <TokensPanelV2 />}
             {activeTab === 'errors' && <ErrorLogPanelV2 />}
             {activeTab === 'telemetry' && <TelemetryPanelV2 />}
