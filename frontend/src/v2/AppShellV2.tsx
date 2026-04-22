@@ -15,6 +15,7 @@ import TokensPanelV2 from './TokensPanelV2'
 import ErrorLogPanelV2 from './ErrorLogPanelV2'
 import TelemetryPanelV2 from './TelemetryPanelV2'
 import RegimeV2 from './RegimeV2'
+import CNNDiagnosticsV2 from './CNNDiagnosticsV2'
 
 interface Props {
   data: AppData
@@ -130,7 +131,7 @@ export default function AppShellV2({ data, trades, wsConnected, ollamaOnly }: Pr
             {activeTab === 'scanner' && <ScannerPanelV2 />}
             {activeTab === 'sentinel' && <SentinelPanelV2 />}
             {activeTab === 'regime' && <RegimeV2 />}
-            {activeTab === 'cnn' && <Placeholder label="CNN DIAGNOSTICS PANEL" />}
+            {activeTab === 'cnn' && <CNNDiagnosticsV2 />}
             {activeTab === 'drift' && <Placeholder label="DRIFT PANEL" />}
             {activeTab === 'tax' && <Placeholder label="TAX PANEL" />}
             {activeTab === 'tokens' && <TokensPanelV2 />}
