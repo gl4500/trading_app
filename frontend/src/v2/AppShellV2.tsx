@@ -13,7 +13,7 @@ import SummaryPanelV2 from './SummaryPanelV2'
 import SentinelPanelV2 from './SentinelPanelV2'
 import TokensPanelV2 from './TokensPanelV2'
 import ErrorLogPanelV2 from './ErrorLogPanelV2'
-import TelemetryPanel from '../components/TelemetryPanel'
+import TelemetryPanelV2 from './TelemetryPanelV2'
 
 interface Props {
   data: AppData
@@ -134,7 +134,7 @@ export default function AppShellV2({ data, trades, wsConnected, ollamaOnly }: Pr
             {activeTab === 'tax' && <Placeholder label="TAX PANEL" />}
             {activeTab === 'tokens' && <TokensPanelV2 />}
             {activeTab === 'errors' && <ErrorLogPanelV2 />}
-            {activeTab === 'telemetry' && <TelemetryPanel />}
+            {activeTab === 'telemetry' && <TelemetryPanelV2 />}
           </div>
         </div>
       </div>
