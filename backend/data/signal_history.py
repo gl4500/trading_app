@@ -308,14 +308,17 @@ class SignalHistoryStore:
         symbol: str,
         agent_consensus: float,
         agent_agreement: float,
-        max_age_secs: float = 120.0,
+        max_age_secs: float = 100_000.0,
     ) -> bool:
         """
         Update the most recent snapshot for symbol with agent signal data.
 
-        Looks back at most max_age_secs to find the row to update.
-        Returns True if a qualifying row was found and updated.
+        Looks back at most max_age_secs (default ≈28 hours) to find the row to update.
+        The default covers the observed once-per-trading-day snapshot cadence plus a
+        weekend buffer; the prior 120 s default rejected every call in production
+        because snapshots arrive far less frequently than agent runs (median gap ~1 day).
 
+        Returns True if a qualifying row was found and updated.
         Called from main.py after all agents have run each cycle.
         """
         async with _get_lock(symbol):

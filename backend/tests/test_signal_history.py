@@ -246,8 +246,9 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result)
 
     async def test_record_agent_signals_returns_false_when_snapshot_too_old(self):
-        # Write a row with an old snapshot_ts
-        old_ts = __import__("time").time() - 200  # older than 120s default window
+        """Snapshots older than the default freshness window get rejected."""
+        # 200,000s ≈ 55 hours, comfortably past the widened ~28h default.
+        old_ts = __import__("time").time() - 200_000
         import pandas as pd
         row = {
             "symbol": "AAPL", "snapshot_ts": old_ts,
@@ -259,6 +260,48 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
         sh._save("AAPL", pd.DataFrame([row]))
         result = await self.store.record_agent_signals("AAPL", 0.5, 0.5)
         self.assertFalse(result)
+
+    async def test_record_agent_signals_updates_row_aged_one_hour(self):
+        """Rows aged 1 hour must be updated under the widened default window.
+
+        Prevents regressing to the 120s gate that caused 100% miss in production.
+        """
+        import pandas as pd, time as _time
+        old_ts = _time.time() - 3600  # 1 hour ago
+        row = {
+            "symbol": "AAPL", "snapshot_ts": old_ts,
+            "analyst_score": 0.1, "earnings_score": 0.1,
+            "alpaca_score": 0.1, "yahoo_score": 0.1, "congress_score": 0.1,
+            "composite_score": 0.4, "price": 150.0,
+            "return_1d": float("nan"), "return_5d": float("nan"),
+        }
+        sh._save("AAPL", pd.DataFrame([row]))
+        result = await self.store.record_agent_signals("AAPL", 0.5, 0.7)
+        self.assertTrue(result)
+        df = sh._load("AAPL")
+        self.assertAlmostEqual(df.iloc[-1]["agent_consensus"], 0.5, places=5)
+        self.assertAlmostEqual(df.iloc[-1]["agent_agreement"], 0.7, places=5)
+
+    async def test_record_agent_signals_updates_row_aged_one_day(self):
+        """Production snapshot cadence is roughly 1/day; the default window must cover it.
+
+        Median gap between consecutive AAPL snapshots in production is 86,400 s.
+        If the freshness gate < 1 day, every agent recording attempt misses.
+        """
+        import pandas as pd, time as _time
+        old_ts = _time.time() - 86_400  # 24 hours ago
+        row = {
+            "symbol": "AAPL", "snapshot_ts": old_ts,
+            "analyst_score": 0.1, "earnings_score": 0.1,
+            "alpaca_score": 0.1, "yahoo_score": 0.1, "congress_score": 0.1,
+            "composite_score": 0.4, "price": 150.0,
+            "return_1d": float("nan"), "return_5d": float("nan"),
+        }
+        sh._save("AAPL", pd.DataFrame([row]))
+        result = await self.store.record_agent_signals("AAPL", -0.3, 0.6)
+        self.assertTrue(result)
+        df = sh._load("AAPL")
+        self.assertAlmostEqual(df.iloc[-1]["agent_consensus"], -0.3, places=5)
 
     async def test_agent_columns_persisted_in_parquet(self):
         await self.store.record_snapshot("MSFT", _scores(), 0.3, 300.0)
