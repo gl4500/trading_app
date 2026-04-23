@@ -219,6 +219,7 @@ PYTHONPATH=../site-packages ../runtime/python/python.exe -m bandit -r . -x ./tes
 | `data/macro_history.py` + `data/history_backfill.py` (macro) | `test_macro_history.py` | ✅ covered |
 | `data/tax_estimator.py` | `test_tax_estimator.py` | ✅ covered |
 | `trading/alpaca_client.py` (get_filled_orders) | `test_tax_estimator.py` | ✅ covered |
+| `data/news_service.py` (retry, circuit breaker, timeout) | `test_news_service.py` | ✅ covered |
 
 ---
 
