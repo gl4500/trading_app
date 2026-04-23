@@ -78,6 +78,30 @@ describe('CNNDiagnosticsV2', () => {
     expect(document.querySelector('svg')).not.toBeNull()
   })
 
+  it('renders Train vs Val comparison table with grouped columns', async () => {
+    render(<CNNDiagnosticsV2 />)
+    await waitFor(() => {
+      expect(screen.getByText('Training')).toBeInTheDocument()
+    })
+    // Column headers
+    expect(screen.getByText('Validation')).toBeInTheDocument()
+    expect(screen.getByText(/Val ÷ Train/i)).toBeInTheDocument()
+    // Row labels
+    expect(screen.getByText('Samples')).toBeInTheDocument()
+    expect(screen.getByText('Final MSE')).toBeInTheDocument()
+    // Sample counts side-by-side
+    expect(screen.getByText('1,024')).toBeInTheDocument()
+    expect(screen.getByText('256')).toBeInTheDocument()
+    // Final MSE values
+    expect(screen.getByText('0.0123')).toBeInTheDocument()
+    expect(screen.getByText('0.0234')).toBeInTheDocument()
+    // Overfit ratio appears in the Val ÷ Train column for the MSE row
+    expect(screen.getByText('1.90')).toBeInTheDocument()
+    // Env chips
+    expect(screen.getByText(/Channels/i)).toBeInTheDocument()
+    expect(screen.getByText('CUDA')).toBeInTheDocument()
+  })
+
   it('refetches on refresh click', async () => {
     render(<CNNDiagnosticsV2 />)
     await waitFor(() => {

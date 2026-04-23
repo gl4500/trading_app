@@ -108,6 +108,19 @@ function fmtNum(v: number | undefined | null, decimals = 4): string {
   return v.toFixed(decimals)
 }
 
+function ratio(num: number | undefined | null, den: number | undefined | null, decimals = 2): string {
+  if (num == null || den == null || den === 0 || Number.isNaN(num) || Number.isNaN(den)) return '—'
+  return (num / den).toFixed(decimals)
+}
+
+function overfitColor(r: number | undefined | null): string {
+  if (r == null || Number.isNaN(r) || r === 0) return 'var(--text-dim)'
+  if (r > 3.5) return 'var(--accent-red)'
+  if (r > 2.5) return 'var(--accent-amber)'
+  if (r < 1.5) return 'var(--accent-green)'
+  return 'var(--text-primary)'
+}
+
 function StatusPill({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div style={{
@@ -132,15 +145,26 @@ function StatusPill({ label, value, color }: { label: string; value: string; col
   )
 }
 
-function MetricTile({ label, value, color }: { label: string; value: string; color?: string }) {
+function KVChip({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
     <div style={{
-      border: '1px solid var(--border-hair)',
+      flex: 1,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      gap: 8,
       padding: '4px 8px',
+      border: '1px solid var(--border-hair)',
       background: 'var(--bg-input)',
     }}>
-      <div style={{ ...NUM, color: color ?? 'var(--text-primary)' }}>{value}</div>
-      <div style={LABEL}>{label}</div>
+      <span style={LABEL}>{label}</span>
+      <span style={{
+        fontFamily: 'var(--font-mono)',
+        fontSize: 12,
+        fontWeight: 600,
+        fontVariantNumeric: 'tabular-nums',
+        color: valueColor ?? 'var(--text-primary)',
+      }}>{value}</span>
     </div>
   )
 }
@@ -293,35 +317,111 @@ export default function CNNDiagnosticsV2() {
             />
           </div>
 
-          {/* Primary metric grid (5-up) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 8 }}>
-            <MetricTile label="N CHANNELS"  value={fmtNum(diag.n_channels, 0)} />
-            <MetricTile label="N TRAIN"     value={fmtNum(diag.n_train, 0)} />
-            <MetricTile label="N VAL"       value={fmtNum(diag.n_val, 0)} />
-            <MetricTile label="TRAIN MSE"   value={fmtNum(diag.final_train_mse, 4)} />
-            <MetricTile label="VAL MSE"     value={fmtNum(diag.final_val_mse, 4)} />
+          {/* Train vs Val comparison table */}
+          <div style={{
+            border: '1px solid var(--border-hair)',
+            background: 'var(--bg-input)',
+            marginBottom: 10,
+          }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 10,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: 'var(--text-dim)', fontWeight: 500,
+                    padding: '4px 8px', textAlign: 'left',
+                    borderBottom: '1px solid var(--border-hair)',
+                  }}>Metric</th>
+                  <th style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 10,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: 'var(--accent-cyan)', fontWeight: 600,
+                    padding: '4px 8px', textAlign: 'right',
+                    borderBottom: '1px solid var(--border-hair)',
+                  }}>Training</th>
+                  <th style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 10,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: 'var(--accent-amber)', fontWeight: 600,
+                    padding: '4px 8px', textAlign: 'right',
+                    borderBottom: '1px solid var(--border-hair)',
+                  }}>Validation</th>
+                  <th style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 10,
+                    letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: 'var(--text-dim)', fontWeight: 500,
+                    padding: '4px 8px', textAlign: 'right',
+                    borderBottom: '1px solid var(--border-hair)',
+                  }}>Val ÷ Train</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 11,
+                    color: 'var(--text-secondary)', padding: '4px 8px',
+                    letterSpacing: '0.05em',
+                  }}>Samples</td>
+                  <td style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 12,
+                    fontVariantNumeric: 'tabular-nums', fontWeight: 600,
+                    color: 'var(--text-primary)', padding: '4px 8px',
+                    textAlign: 'right',
+                  }}>{fmtNum(diag.n_train, 0)}</td>
+                  <td style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 12,
+                    fontVariantNumeric: 'tabular-nums', fontWeight: 600,
+                    color: 'var(--text-primary)', padding: '4px 8px',
+                    textAlign: 'right',
+                  }}>{fmtNum(diag.n_val, 0)}</td>
+                  <td style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 12,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: 'var(--text-dim)', padding: '4px 8px',
+                    textAlign: 'right',
+                  }}>{ratio(diag.n_val, diag.n_train, 2)}</td>
+                </tr>
+                <tr style={{ borderTop: '1px solid var(--border-hair)' }}>
+                  <td style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 11,
+                    color: 'var(--text-secondary)', padding: '4px 8px',
+                    letterSpacing: '0.05em',
+                  }}>Final MSE</td>
+                  <td style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 12,
+                    fontVariantNumeric: 'tabular-nums', fontWeight: 600,
+                    color: 'var(--text-primary)', padding: '4px 8px',
+                    textAlign: 'right',
+                  }}>{fmtNum(diag.final_train_mse, 4)}</td>
+                  <td style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 12,
+                    fontVariantNumeric: 'tabular-nums', fontWeight: 600,
+                    color: 'var(--text-primary)', padding: '4px 8px',
+                    textAlign: 'right',
+                  }}>{fmtNum(diag.final_val_mse, 4)}</td>
+                  <td style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 12,
+                    fontVariantNumeric: 'tabular-nums', fontWeight: 700,
+                    color: overfitColor(diag.overfit_ratio),
+                    padding: '4px 8px', textAlign: 'right',
+                  }}>{fmtNum(diag.overfit_ratio, 2)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          {/* Secondary metric row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 10 }}>
-            <MetricTile
-              label="OVERFIT RATIO"
-              value={fmtNum(diag.overfit_ratio, 2)}
-              color={typeof diag.overfit_ratio === 'number' && diag.overfit_ratio > 2
-                ? 'var(--accent-red)'
-                : 'var(--text-primary)'}
-            />
-            <MetricTile
-              label="WFE"
-              value={fmtNum(diag.walk_forward_efficiency, 3)}
-            />
-            <MetricTile
-              label="DEVICE"
+          {/* Model & environment chips */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+            <KVChip label="Channels" value={fmtNum(diag.n_channels, 0)} />
+            <KVChip label="WFE" value={fmtNum(diag.walk_forward_efficiency, 3)} />
+            <KVChip
+              label="Device"
               value={(diag.device || '—').toUpperCase()}
-              color="var(--accent-cyan)"
+              valueColor="var(--accent-cyan)"
             />
-            <MetricTile
-              label="LAST TRAINED"
+            <KVChip
+              label="Last Trained"
               value={diag.last_trained
                 ? formatTs(diag.last_trained, timeZone, {
                     month: 'short', day: 'numeric',
