@@ -20,7 +20,22 @@ logger = logging.getLogger(__name__)
 
 # ── paths ─────────────────────────────────────────────────────────────────────
 
-_HISTORY_DIR = os.path.join(os.path.dirname(__file__), "history")
+_HISTORY_DIR    = os.path.join(os.path.dirname(__file__), "history")
+_MACRO_FILENAME = "__MACRO__.parquet"
+
+# As-of join tolerance for the macro merge: 4 days covers long weekends + holidays.
+_MACRO_AS_OF_TOLERANCE_SECS = 4 * 86_400
+
+# Mapping from __MACRO__.parquet columns → CNN macro channel names.
+# Defined locally (not imported from cnn_model) to keep signal_history independent
+# of the CNN module — cnn_model already imports from this file.
+_MACRO_COLUMN_MAP: Dict[str, str] = {
+    "vix_norm":      "macro_vix_norm",
+    "gld_5d":        "macro_gld_5d",
+    "tlt_5d":        "macro_tlt_5d",
+    "spy_5d":        "macro_spy_5d",
+    "breadth_score": "macro_breadth",
+}
 
 # Source score column names (order must match cnn_model.SOURCE_NAMES)
 SOURCE_COLUMNS = [
@@ -97,6 +112,73 @@ def _save(symbol: str, df: pd.DataFrame) -> None:
     if len(df) > MAX_ROWS:
         df = df.tail(MAX_ROWS).reset_index(drop=True)
     df.to_parquet(_symbol_path(symbol), compression="zstd", index=False)
+
+
+# ── macro join ───────────────────────────────────────────────────────────────
+
+def _macro_file_path() -> str:
+    return os.path.join(_HISTORY_DIR, _MACRO_FILENAME)
+
+
+def _load_macro_features() -> Optional[pd.DataFrame]:
+    """Return a date-sorted DataFrame of macro CNN features, or None when unavailable.
+
+    Columns: date_ts plus the 5 macro_* CNN channel names (renamed from
+    __MACRO__.parquet's vix_norm/gld_5d/tlt_5d/spy_5d/breadth_score).
+    """
+    path = _macro_file_path()
+    if not os.path.exists(path):
+        return None
+    try:
+        macro = pd.read_parquet(path)
+    except Exception as exc:
+        logger.warning("signal_history: could not read macro file %s: %s", path, exc)
+        return None
+    if macro.empty or "date_ts" not in macro.columns:
+        return None
+
+    src_cols = [c for c in _MACRO_COLUMN_MAP if c in macro.columns]
+    if not src_cols:
+        return None
+
+    keep = macro[["date_ts"] + src_cols].rename(columns=_MACRO_COLUMN_MAP)
+    keep = keep.dropna(subset=["date_ts"]).copy()
+    keep["date_ts"] = keep["date_ts"].astype("float64")
+    return keep.sort_values("date_ts").reset_index(drop=True)
+
+
+def _attach_macro_features(df: pd.DataFrame) -> pd.DataFrame:
+    """As-of-backward-join macro features onto per-symbol training rows.
+
+    Each snapshot at time T picks up the macro row with the largest date_ts ≤ T,
+    within _MACRO_AS_OF_TOLERANCE_SECS. Rows outside the tolerance get 0.0 for all
+    macro columns (matches macro_history.get_features_for_date semantics).
+    Returns df unchanged when the macro file is missing or empty.
+    """
+    if df.empty or "snapshot_ts" not in df.columns:
+        return df
+    macro = _load_macro_features()
+    if macro is None or macro.empty:
+        return df
+
+    target_cols = list(_MACRO_COLUMN_MAP.values())
+    left = df.copy()
+    left["snapshot_ts"] = left["snapshot_ts"].astype("float64")
+    left = left.sort_values("snapshot_ts").reset_index(drop=True)
+
+    merged = pd.merge_asof(
+        left,
+        macro,
+        left_on="snapshot_ts",
+        right_on="date_ts",
+        direction="backward",
+        tolerance=float(_MACRO_AS_OF_TOLERANCE_SECS),
+    )
+    merged = merged.drop(columns=["date_ts"], errors="ignore")
+    for col in target_cols:
+        if col in merged.columns:
+            merged[col] = merged[col].fillna(0.0)
+    return merged
 
 
 # ── public store ──────────────────────────────────────────────────────────────
@@ -190,12 +272,17 @@ class SignalHistoryStore:
         """
         Return all rows that have a known 1D outcome.
         Pass symbol=None to aggregate across every stored symbol.
+
+        Macro features (5 CNN channels) are joined as-of date from
+        __MACRO__.parquet when present; absent macro file → no macro columns
+        added (CNN degrades to 10ch).
         """
         if symbol:
             df = _load(symbol)
             if "return_1d" not in df.columns:
                 return _empty_df()
-            return df.dropna(subset=["return_1d"]).reset_index(drop=True)
+            ready = df.dropna(subset=["return_1d"]).reset_index(drop=True)
+            return _attach_macro_features(ready)
 
         parts: List[pd.DataFrame] = []
         if os.path.isdir(_HISTORY_DIR):
@@ -213,7 +300,8 @@ class SignalHistoryStore:
 
         if not parts:
             return _empty_df()
-        return pd.concat(parts, ignore_index=True)
+        combined = pd.concat(parts, ignore_index=True)
+        return _attach_macro_features(combined)
 
     async def record_agent_signals(
         self,

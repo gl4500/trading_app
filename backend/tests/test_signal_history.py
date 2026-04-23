@@ -330,5 +330,174 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
         self.assertTrue((result[9] == 0.0).all())
 
 
+class TestMacroJoinIntoTrainingData(unittest.IsolatedAsyncioTestCase):
+    """get_training_data() must join the 5 macro CNN channels from __MACRO__.parquet.
+
+    Why: without this join, build_training_windows can never assemble the 15-channel
+    input the CNN was designed for — 5 macro channels stay zero, model degrades to 10ch.
+    """
+
+    _MACRO_CHANNELS = [
+        "macro_vix_norm",
+        "macro_gld_5d",
+        "macro_tlt_5d",
+        "macro_spy_5d",
+        "macro_breadth",
+    ]
+
+    def setUp(self):
+        self._tmpdir   = tempfile.mkdtemp()
+        self._orig_dir = sh._HISTORY_DIR
+        sh._HISTORY_DIR = self._tmpdir
+        sh._LOCKS.clear()
+        self.store = sh.SignalHistoryStore()
+
+    def tearDown(self):
+        sh._HISTORY_DIR = self._orig_dir
+        sh._LOCKS.clear()
+
+    def _write_macro(
+        self,
+        dates_ts,
+        vix_norm=None,
+        gld_5d=None,
+        tlt_5d=None,
+        spy_5d=None,
+        breadth=None,
+    ):
+        n = len(dates_ts)
+        df = pd.DataFrame({
+            "date_ts":       list(dates_ts),
+            "vix":           [18.0] * n,
+            "tnx":           [4.3]  * n,
+            "vix_norm":      vix_norm if vix_norm is not None else [0.6]   * n,
+            "gld_1d":        [0.0]   * n,
+            "gld_5d":        gld_5d  if gld_5d  is not None else [0.01]  * n,
+            "tlt_1d":        [0.0]   * n,
+            "tlt_5d":        tlt_5d  if tlt_5d  is not None else [0.005] * n,
+            "spy_1d":        [0.0]   * n,
+            "spy_5d":        spy_5d  if spy_5d  is not None else [0.012] * n,
+            "iwm_5d":        [0.014] * n,
+            "qqq_5d":        [0.011] * n,
+            "uup_5d":        [0.001] * n,
+            "uso_5d":        [0.02]  * n,
+            "breadth_score": breadth if breadth is not None else [0.002] * n,
+            "regime":        ["NEUTRAL"] * n,
+            "regime_score":  [0.0] * n,
+        })
+        df.to_parquet(
+            os.path.join(self._tmpdir, "__MACRO__.parquet"),
+            compression="zstd",
+            index=False,
+        )
+
+    def _write_full_labelled_row(self, symbol, snapshot_ts, return_1d=0.02):
+        row = {
+            "symbol":            symbol,
+            "snapshot_ts":       float(snapshot_ts),
+            "analyst_score":     0.5,
+            "earnings_score":    0.3,
+            "alpaca_score":      0.1,
+            "yahoo_score":      -0.1,
+            "congress_score":    0.2,
+            "iv_rv_score":       0.05,
+            "composite_score":   0.4,
+            "price":             100.0,
+            "return_1d":         return_1d,
+            "return_5d":         float("nan"),
+            "agent_consensus":   0.5,
+            "agent_agreement":   0.7,
+            "top_agent_correct": 1.0,
+            "rv_20d":            0.18,
+            "rv_60d":            0.22,
+        }
+        sh._save(symbol, pd.DataFrame([row]))
+
+    async def test_macro_columns_attached_when_file_present(self):
+        ts = time.time() - 90_000
+        self._write_macro([ts])
+        self._write_full_labelled_row("AAPL", ts)
+
+        df = self.store.get_training_data()
+        for col in self._MACRO_CHANNELS:
+            self.assertIn(col, df.columns)
+
+    async def test_macro_columns_take_values_from_macro_file(self):
+        ts = time.time() - 90_000
+        self._write_macro(
+            [ts],
+            vix_norm=[0.85],
+            gld_5d=[0.03],
+            tlt_5d=[-0.01],
+            spy_5d=[0.02],
+            breadth=[0.005],
+        )
+        self._write_full_labelled_row("AAPL", ts)
+
+        df = self.store.get_training_data()
+        self.assertAlmostEqual(df.iloc[0]["macro_vix_norm"],  0.85,  places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_gld_5d"],    0.03,  places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_tlt_5d"],   -0.01,  places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_spy_5d"],    0.02,  places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_breadth"],   0.005, places=5)
+
+    async def test_macro_join_uses_backward_asof(self):
+        """Snapshot at T joins to macro at T-1d, never to macro at T+1d."""
+        snap_ts      = time.time() - 90_000
+        macro_before = snap_ts - 86_400
+        macro_after  = snap_ts + 86_400
+        self._write_macro(
+            [macro_before, macro_after],
+            vix_norm=[0.7,  0.9],
+            gld_5d  =[0.01, 0.05],
+            tlt_5d  =[0.0,  0.0],
+            spy_5d  =[0.0,  0.0],
+            breadth =[0.0,  0.0],
+        )
+        self._write_full_labelled_row("AAPL", snap_ts)
+
+        df = self.store.get_training_data()
+        self.assertAlmostEqual(df.iloc[0]["macro_vix_norm"], 0.7,  places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_gld_5d"],   0.01, places=5)
+
+    async def test_macro_columns_absent_when_macro_file_missing(self):
+        """No __MACRO__.parquet → no macro columns added (CNN degrades to 10ch)."""
+        ts = time.time() - 90_000
+        self._write_full_labelled_row("AAPL", ts)
+
+        df = self.store.get_training_data()
+        for col in self._MACRO_CHANNELS:
+            self.assertNotIn(col, df.columns)
+
+    async def test_macro_columns_zero_filled_outside_tolerance(self):
+        """Snapshot 30 days from any macro row → macro values are 0.0, not NaN."""
+        snap_ts   = time.time() - 90_000
+        macro_far = snap_ts - 30 * 86_400
+        self._write_macro(
+            [macro_far],
+            vix_norm=[0.85],
+            gld_5d  =[0.03],
+            tlt_5d  =[-0.01],
+            spy_5d  =[0.02],
+            breadth =[0.005],
+        )
+        self._write_full_labelled_row("AAPL", snap_ts)
+
+        df = self.store.get_training_data()
+        for col in self._MACRO_CHANNELS:
+            self.assertEqual(df.iloc[0][col], 0.0)
+
+    async def test_build_training_windows_yields_15_channels_after_macro_join(self):
+        """End-to-end: get_training_data + build_training_windows → 15-channel X."""
+        from data.cnn_model import build_training_windows
+        ts0 = time.time() - 90_000
+        self._write_macro([ts0])
+        self._write_full_labelled_row("AAPL", ts0)
+
+        df = self.store.get_training_data()
+        X, _y, _w = build_training_windows(df)
+        self.assertEqual(X.shape[1], 15)
+
+
 if __name__ == "__main__":
     unittest.main()
