@@ -2172,7 +2172,7 @@ async def get_cnn_diagnostics():
       POOR     — WFE < 0.50  (barely better than predicting the mean)
       UNTRAINED — not yet computed
     """
-    from data.cnn_model import signal_cnn
+    from data.cnn_model import signal_cnn, load_training_history
     from data.regime_detector import regime_detector
     summary = signal_cnn.training_summary()
 
@@ -2209,6 +2209,8 @@ async def get_cnn_diagnostics():
         ),
         # Regime detector state
         "regime": regime_detector.summary(),
+        # Last 30 retrains (oldest → newest) for day-over-day trajectory
+        "training_history": load_training_history(limit=30),
     }
 
 

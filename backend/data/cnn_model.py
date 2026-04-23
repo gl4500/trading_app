@@ -39,9 +39,11 @@ Device selection
   MPS   → elif torch.backends.mps.is_available()  (Apple Silicon)
   CPU   → otherwise
 """
+import json
 import logging
 import os
 import time
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -63,8 +65,16 @@ except ImportError:
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
-_MODEL_DIR  = os.path.join(os.path.dirname(__file__), "models")
-_MODEL_PATH = os.path.join(_MODEL_DIR, "signal_cnn.pt")
+_MODEL_DIR             = os.path.join(os.path.dirname(__file__), "models")
+_MODEL_PATH            = os.path.join(_MODEL_DIR, "signal_cnn.pt")
+_HISTORY_FILENAME      = "training_history.jsonl"
+
+
+def _training_history_path() -> str:
+    """Path to the append-only training-history JSONL, sibling to the model checkpoint.
+    Derived from _MODEL_PATH at call time so test patches of _MODEL_PATH alone reroute
+    both files together."""
+    return os.path.join(os.path.dirname(_MODEL_PATH), _HISTORY_FILENAME)
 
 SOURCE_NAMES: List[str] = [
     "analyst_consensus",
@@ -118,6 +128,52 @@ _DEFAULT_WEIGHTS: Dict[str, float] = {
     "congressional_trades": 0.11,
     "iv_rv_spread":         0.15,
 }
+
+
+def _append_training_history(record: Dict) -> None:
+    """Append a single JSON record (one line) to the training-history log."""
+    path = _training_history_path()
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, default=str) + "\n")
+    except Exception as exc:
+        logger.warning("SignalCNN: failed to append training history: %s", exc)
+
+
+def load_training_history(limit: Optional[int] = None) -> List[Dict]:
+    """
+    Read training-history records (oldest first, newest last).
+
+    Parameters
+    ----------
+    limit : int, optional — return only the most recent `limit` records.
+
+    Returns
+    -------
+    List of dicts. Empty list if the file does not yet exist.
+    Malformed lines are skipped silently.
+    """
+    path = _training_history_path()
+    if not os.path.exists(path):
+        return []
+    records: List[Dict] = []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    records.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    except Exception as exc:
+        logger.warning("SignalCNN: failed to read training history: %s", exc)
+        return []
+    if limit is not None and limit > 0:
+        return records[-limit:]
+    return records
 
 MIN_TRAIN_SAMPLES = 100  # minimum labelled rows before training starts
 WINDOW_SIZE       = 10   # T: rolling window length fed to the CNN
@@ -678,6 +734,38 @@ class SignalCNN:
             _MODEL_PATH,
         )
         logger.info(f"SignalCNN: saved → {_MODEL_PATH}")
+
+        # Append to the training-history log (per-retrain JSONL) for trajectory analysis.
+        # signal_cnn.pt is overwritten each run; this log is append-only.
+        if self._trained:
+            final_train = self._train_loss[-1] if self._train_loss else None
+            final_val   = self._val_loss[-1]   if self._val_loss   else None
+            overfit_ratio = (
+                round(final_val / final_train, 4)
+                if final_train is not None and final_val is not None and final_train > 1e-10
+                else None
+            )
+            weights = self.get_learned_weights()
+            delta   = {k: round(weights[k] - _DEFAULT_WEIGHTS[k], 4) for k in SOURCE_NAMES}
+            ts_iso  = (
+                datetime.fromtimestamp(self._train_ts, tz=timezone.utc).isoformat()
+                if self._train_ts else None
+            )
+            _append_training_history({
+                "train_ts":         self._train_ts,
+                "train_ts_iso":     ts_iso,
+                "n_train":          self._n_train,
+                "n_val":            self._n_val,
+                "n_channels":       self._n_channels,
+                "epochs_completed": self._early_stop_epoch,
+                "final_train_mse":  final_train,
+                "final_val_mse":    final_val,
+                "overfit_ratio":    overfit_ratio,
+                "wfe":              self._wfe,
+                "wfe_status":       self._wfe_status,
+                "learned_weights":  weights,
+                "weight_delta":     delta,
+            })
 
     def load(self) -> bool:
         if not HAS_TORCH or self._net is None:

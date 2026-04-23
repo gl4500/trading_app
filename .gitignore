@@ -16,6 +16,9 @@ backend/learning.json
 backend/data/scan_cache.json
 backend/data/agent_picks.json
 
+# Trained model checkpoints + per-retrain history (machine-local state)
+backend/data/models/
+
 # Runtime & deps (large binaries — downloaded by scripts/setup_fresh.ps1)
 site-packages/
 runtime/

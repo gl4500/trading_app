@@ -404,6 +404,119 @@ class TestTrainingSummary(unittest.TestCase):
                 _cm._MODEL_PATH = orig_path
 
 
+class TestTrainingHistoryPersistence(unittest.TestCase):
+    """
+    Per-run training history is appended to a JSONL log so we can compare
+    metrics (loss, WFE, learned weights) across retrains over time.
+    The model checkpoint itself is overwritten each run; this log is not.
+
+    History path is derived from _MODEL_PATH at call time, so patching
+    _MODEL_PATH alone reroutes both files together.
+    """
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def _train_and_save(self, tmpdir):
+        cm._MODEL_PATH = os.path.join(tmpdir, "signal_cnn.pt")
+        df = _make_df(n_rows=120)
+        X, y, _ = build_training_windows(df)
+        model = SignalCNN()
+        model.fit(X, y, epochs=3)
+        model.save()
+        return model
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_save_appends_training_history_jsonl(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orig_model = cm._MODEL_PATH
+            try:
+                self._train_and_save(tmpdir)
+                hist_path = os.path.join(tmpdir, "training_history.jsonl")
+                self.assertTrue(os.path.exists(hist_path))
+                with open(hist_path, "r", encoding="utf-8") as f:
+                    lines = [ln for ln in f.read().splitlines() if ln.strip()]
+                self.assertEqual(len(lines), 1)
+                import json as _json
+                self.assertIsInstance(_json.loads(lines[0]), dict)
+            finally:
+                cm._MODEL_PATH = orig_model
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_history_record_has_required_fields(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orig_model = cm._MODEL_PATH
+            try:
+                self._train_and_save(tmpdir)
+                rec = cm.load_training_history()[0]
+                for key in (
+                    "train_ts", "train_ts_iso",
+                    "n_train", "n_val", "n_channels",
+                    "epochs_completed",
+                    "final_train_mse", "final_val_mse",
+                    "overfit_ratio",
+                    "wfe", "wfe_status",
+                    "learned_weights", "weight_delta",
+                ):
+                    self.assertIn(key, rec, f"missing field: {key}")
+                self.assertIsInstance(rec["learned_weights"], dict)
+                self.assertIsInstance(rec["weight_delta"], dict)
+                self.assertIsInstance(rec["n_train"], int)
+                self.assertIsInstance(rec["train_ts_iso"], str)
+            finally:
+                cm._MODEL_PATH = orig_model
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_two_saves_produce_two_records_in_order(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orig_model = cm._MODEL_PATH
+            try:
+                cm._MODEL_PATH = os.path.join(tmpdir, "signal_cnn.pt")
+                df = _make_df(n_rows=120)
+                X, y, _ = build_training_windows(df)
+                m1 = SignalCNN(); m1.fit(X, y, epochs=2); m1.save()
+                m2 = SignalCNN(); m2.fit(X, y, epochs=2)
+                m2._train_ts = m1._train_ts + 1.0   # force strictly later
+                m2.save()
+
+                history = cm.load_training_history()
+                self.assertEqual(len(history), 2)
+                self.assertLess(history[0]["train_ts"], history[1]["train_ts"])
+            finally:
+                cm._MODEL_PATH = orig_model
+
+    def test_load_training_history_empty_when_no_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orig_model = cm._MODEL_PATH
+            try:
+                cm._MODEL_PATH = os.path.join(tmpdir, "nope.pt")
+                self.assertEqual(cm.load_training_history(), [])
+            finally:
+                cm._MODEL_PATH = orig_model
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_load_training_history_respects_limit(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orig_model = cm._MODEL_PATH
+            try:
+                cm._MODEL_PATH = os.path.join(tmpdir, "signal_cnn.pt")
+                df = _make_df(n_rows=120)
+                X, y, _ = build_training_windows(df)
+                base_ts = None
+                for i in range(3):
+                    m = SignalCNN()
+                    m.fit(X, y, epochs=2)
+                    if base_ts is None:
+                        base_ts = m._train_ts
+                    m._train_ts = base_ts + i      # strictly distinct
+                    m.save()
+                tail = cm.load_training_history(limit=2)
+                full = cm.load_training_history()
+                self.assertEqual(len(full), 3)
+                self.assertEqual(len(tail), 2)
+                self.assertEqual(tail, full[-2:])
+            finally:
+                cm._MODEL_PATH = orig_model
+
+
 class TestGatedConv1d(unittest.TestCase):
     """Unit tests for the GatedConv1d module and _build_glu_net factory."""
 
