@@ -204,8 +204,9 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
             await self.store.record_snapshot("AAPL", _scores(), 0.4, 150.0)
         result = self.store.get_recent_window("AAPL", T=10)
         self.assertIsNotNone(result)
-        # 10 channels: 6 source + 2 agent + 2 RV (zeros when not recorded)
-        self.assertEqual(result.shape, (10, 10))
+        # 9 channels: 5 source + 2 agent + 2 RV (zeros when not recorded).
+        # Was 10 before Task #20 demoted congress_score from CNN inputs.
+        self.assertEqual(result.shape, (9, 10))
 
     async def test_get_recent_window_no_nans(self):
         scores = _scores()
@@ -311,7 +312,7 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
         self.assertIn("agent_agreement", df.columns)
         self.assertIn("top_agent_correct", df.columns)
 
-    async def test_get_recent_window_returns_10_channels(self):
+    async def test_get_recent_window_returns_9_channels(self):
         for _ in range(5):
             await self.store.record_snapshot("AAPL", _scores(), 0.4, 150.0,
                                              rv_20d=0.18, rv_60d=0.22)
@@ -319,8 +320,8 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
             await self.store.record_agent_signals("AAPL", 0.5, 0.8)
         result = self.store.get_recent_window("AAPL", T=5)
         self.assertIsNotNone(result)
-        # 10 channels: 6 source + 2 agent + 2 RV
-        self.assertEqual(result.shape, (10, 5))
+        # 9 channels: 5 source + 2 agent + 2 RV (Task #20 dropped congress_score)
+        self.assertEqual(result.shape, (9, 5))
 
     async def test_get_recent_window_rv_values_stored_and_retrieved(self):
         await self.store.record_snapshot("AAPL", _scores(), 0.4, 150.0,
@@ -340,13 +341,13 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
             await self.store.record_snapshot("AAPL", _scores(), 0.4, 150.0)
         result = self.store.get_recent_window("AAPL", T=5)
         self.assertIsNotNone(result)
-        self.assertEqual(result.shape, (10, 5))
-        # RV channels (8 and 9) should be zeros when not recorded
+        self.assertEqual(result.shape, (9, 5))
+        # RV channels (7 and 8) should be zeros when not recorded
+        self.assertTrue(np.all(result[7] == 0.0))
         self.assertTrue(np.all(result[8] == 0.0))
-        self.assertTrue(np.all(result[9] == 0.0))
 
-    async def test_get_recent_window_10_channels_zeros_for_missing_optional_cols(self):
-        """Old Parquet files without agent/RV columns return 10-ch window with zeros for those."""
+    async def test_get_recent_window_9_channels_zeros_for_missing_optional_cols(self):
+        """Old Parquet files without agent/RV columns return 9-ch window with zeros for those."""
         import pandas as pd, time as _time
         # Write a minimal old-style row (no agent or RV columns)
         for _ in range(5):
@@ -363,14 +364,16 @@ class TestSignalHistoryStore(unittest.IsolatedAsyncioTestCase):
 
         result = self.store.get_recent_window("AAPL", T=5)
         self.assertIsNotNone(result)
-        # 10 channels: old files without agent/RV columns get zeros for channels 6-9
-        self.assertEqual(result.shape, (10, 5))
-        # Agent channels (index 6 and 7) should be zero
+        # 9 channels: old files without agent/RV columns get zeros for channels 5-8.
+        # Note: congress_score column is present in the old row but no longer fed
+        # into the CNN input — Task #20 dropped it from SOURCE_COLUMNS.
+        self.assertEqual(result.shape, (9, 5))
+        # Agent channels (index 5 and 6) should be zero
+        self.assertTrue((result[5] == 0.0).all())
         self.assertTrue((result[6] == 0.0).all())
+        # RV channels (index 7 and 8) should be zero
         self.assertTrue((result[7] == 0.0).all())
-        # RV channels (index 8 and 9) should be zero
         self.assertTrue((result[8] == 0.0).all())
-        self.assertTrue((result[9] == 0.0).all())
 
 
 class TestMacroJoinIntoTrainingData(unittest.IsolatedAsyncioTestCase):
@@ -530,8 +533,9 @@ class TestMacroJoinIntoTrainingData(unittest.IsolatedAsyncioTestCase):
         for col in self._MACRO_CHANNELS:
             self.assertEqual(df.iloc[0][col], 0.0)
 
-    async def test_build_training_windows_yields_15_channels_after_macro_join(self):
-        """End-to-end: get_training_data + build_training_windows → 15-channel X."""
+    async def test_build_training_windows_yields_14_channels_after_macro_join(self):
+        """End-to-end: get_training_data + build_training_windows → 14-channel X.
+        Was 15 before Task #20 demoted congressional_trades from CNN input."""
         from data.cnn_model import build_training_windows
         ts0 = time.time() - 90_000
         self._write_macro([ts0])
@@ -539,7 +543,37 @@ class TestMacroJoinIntoTrainingData(unittest.IsolatedAsyncioTestCase):
 
         df = self.store.get_training_data()
         X, _y, _w = build_training_windows(df)
-        self.assertEqual(X.shape[1], 15)
+        self.assertEqual(X.shape[1], 14)
+
+
+class TestCongressColumnDemoted(unittest.IsolatedAsyncioTestCase):
+    """Task #20: congressional_trades is demoted from a CNN input channel to
+    LLM context-only. SOURCE_COLUMNS (CNN training-input list) drops
+    congress_score; record_snapshot still persists it so the LLM keeps
+    catalyst-style visibility into Form 4 disclosures."""
+
+    def setUp(self):
+        self._tmpdir = tempfile.mkdtemp()
+        self._orig_dir = sh._HISTORY_DIR
+        sh._HISTORY_DIR = self._tmpdir
+        sh._LOCKS.clear()
+        self.store = sh.SignalHistoryStore()
+
+    def tearDown(self):
+        sh._HISTORY_DIR = self._orig_dir
+        sh._LOCKS.clear()
+
+    def test_source_columns_excludes_congress_score(self):
+        self.assertNotIn("congress_score", sh.SOURCE_COLUMNS)
+
+    def test_dtype_map_still_contains_congress_score(self):
+        # We keep recording the value for LLM context — only CNN training drops it.
+        self.assertIn("congress_score", sh._DTYPE_MAP)
+
+    async def test_record_snapshot_still_writes_congress_score(self):
+        await self.store.record_snapshot("AAPL", _scores(congress=0.42), 0.3, 100.0)
+        df = sh._load("AAPL")
+        self.assertAlmostEqual(df.iloc[0]["congress_score"], 0.42)
 
 
 if __name__ == "__main__":

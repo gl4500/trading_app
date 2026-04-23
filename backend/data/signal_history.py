@@ -38,12 +38,14 @@ _MACRO_COLUMN_MAP: Dict[str, str] = {
 }
 
 # Source score column names (order must match cnn_model.SOURCE_NAMES)
+# Task #20: congress_score dropped from CNN training inputs (3% coverage,
+# corr -0.001). The column is still persisted by record_snapshot — see
+# _DTYPE_MAP — and shown to the LLM for catalyst-style context.
 SOURCE_COLUMNS = [
     "analyst_score",
     "earnings_score",
     "alpaca_score",
     "yahoo_score",
-    "congress_score",
     "iv_rv_score",     # IV minus RV_20d spread, scored to [-1, +1]
 ]
 
@@ -392,7 +394,7 @@ class SignalHistoryStore:
     def get_recent_window(self, symbol: str, T: int = 10) -> Optional[np.ndarray]:
         """
         Return the most recent T snapshots as a (C, T) float array where
-        C = 10 (6 source + 2 agent + 2 RV channels).
+        C = 9 (5 source + 2 agent + 2 RV channels).
 
         Old Parquet files without agent/RV/iv_rv columns return zeros for those channels.
         Returns None if fewer than 3 snapshots exist (insufficient context).

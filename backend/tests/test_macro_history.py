@@ -312,10 +312,11 @@ class TestMacroBackfill(unittest.IsolatedAsyncioTestCase):
 
 class TestMacroCNNChannels(unittest.TestCase):
 
-    def test_n_channels_is_15(self):
-        """N_CHANNELS must be 15 after adding 5 macro channels."""
+    def test_n_channels_is_14(self):
+        """N_CHANNELS must be 14: 5 source + 2 agent + 2 RV + 5 macro.
+        Was 15 before Task #20 demoted congressional_trades from CNN inputs."""
         from data.cnn_model import N_CHANNELS
-        self.assertEqual(N_CHANNELS, 15)
+        self.assertEqual(N_CHANNELS, 14)
 
     def test_macro_channel_names_defined(self):
         """MACRO_CHANNEL_NAMES must be a list of 5 strings."""
@@ -323,7 +324,8 @@ class TestMacroCNNChannels(unittest.TestCase):
         self.assertEqual(len(MACRO_CHANNEL_NAMES), 5)
 
     def test_build_training_windows_degrades_without_macro(self):
-        """build_training_windows must return 10 channels when macro absent."""
+        """build_training_windows must return 9 channels when macro absent
+        (5 source + 2 agent + 2 RV). Was 10 before Task #20 demoted congress."""
         import time
         from data.cnn_model import build_training_windows, WINDOW_SIZE
         n = 120
@@ -345,11 +347,12 @@ class TestMacroCNNChannels(unittest.TestCase):
         import pandas as pd
         df = pd.DataFrame(rows)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
-        # No macro columns in df → degrades to 10 channels (no macro)
-        self.assertEqual(X.shape[1], 10)
+        # No macro columns in df → degrades to 9 channels (5 source + 2 agent + 2 RV)
+        self.assertEqual(X.shape[1], 9)
 
     def test_build_training_windows_uses_macro_when_present(self):
-        """build_training_windows must return 15 channels when macro cols present."""
+        """build_training_windows must return 14 channels when macro cols present.
+        Was 15 before Task #20 demoted congressional_trades from CNN inputs."""
         import time
         from data.cnn_model import build_training_windows, WINDOW_SIZE, N_CHANNELS
         n = 120
@@ -375,7 +378,7 @@ class TestMacroCNNChannels(unittest.TestCase):
         import pandas as pd
         df = pd.DataFrame(rows)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], N_CHANNELS)  # 15
+        self.assertEqual(X.shape[1], N_CHANNELS)  # 14
 
 
 class TestSignalHistoryMacroCoexistence(unittest.TestCase):

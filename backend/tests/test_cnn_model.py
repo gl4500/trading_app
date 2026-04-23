@@ -79,28 +79,28 @@ class TestBuildTrainingWindows(unittest.TestCase):
         self.assertEqual(len(X), len(w))
 
     def test_x_shape_is_N_channels_by_T(self):
-        # Include macro cols so the full N_CHANNELS=15 channels are present
+        # Include macro cols so the full N_CHANNELS=14 channels are present
         df = _make_df(50, add_macro_cols=True)
         X, y, w = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], N_CHANNELS)  # 15
+        self.assertEqual(X.shape[1], N_CHANNELS)  # 14
         self.assertEqual(X.shape[2], WINDOW_SIZE)
 
     def test_x_shape_degrades_without_optional_cols(self):
         """Channel count degrades gracefully when optional columns are absent."""
-        # No iv_rv, no agent, no RV → 5 channels (base source only)
+        # No iv_rv, no agent, no RV → 4 channels (base source only: analyst/earnings/alpaca/yahoo)
         df_src = _make_df(50, add_iv_rv=False, add_agent_cols=False, add_rv_cols=False)
         X_src, _, _ = build_training_windows(df_src, T=WINDOW_SIZE)
-        self.assertEqual(X_src.shape[1], 5)
+        self.assertEqual(X_src.shape[1], 4)
 
-        # iv_rv + agent but no RV → 8 channels
+        # iv_rv + agent but no RV → 7 channels (5 source + 2 agent)
         df_agent = _make_df(50, add_iv_rv=True, add_agent_cols=True, add_rv_cols=False)
         X_agent, _, _ = build_training_windows(df_agent, T=WINDOW_SIZE)
-        self.assertEqual(X_agent.shape[1], 8)
+        self.assertEqual(X_agent.shape[1], 7)
 
-        # All columns → 10 channels
+        # All columns (no macro) → 9 channels (5 source + 2 agent + 2 RV)
         df_full = _make_df(50, add_iv_rv=True, add_agent_cols=True, add_rv_cols=True)
         X_full, _, _ = build_training_windows(df_full, T=WINDOW_SIZE)
-        self.assertEqual(X_full.shape[1], 10)
+        self.assertEqual(X_full.shape[1], 9)
 
     def test_returns_empty_arrays_when_no_outcomes(self):
         df = _make_df(50, add_outcomes=False)
@@ -271,6 +271,29 @@ class TestGetLearnedWeights(unittest.TestCase):
         model.fit(X, y, epochs=5)
         for wv in model.get_learned_weights().values():
             self.assertGreaterEqual(wv, 0.0)
+
+
+class TestCongressDemotedFromCNN(unittest.TestCase):
+    """Task #20: congressional_trades is demoted from a CNN channel to LLM
+    context-only. 3% coverage with corr -0.001 means it carries no usable
+    signal for the CNN — feeding it dilutes the gradient. The score is still
+    captured into snapshots and shown to the LLM for catalyst reasoning."""
+
+    def test_source_names_excludes_congressional_trades(self):
+        self.assertNotIn("congressional_trades", SOURCE_NAMES)
+
+    def test_default_weights_excludes_congressional_trades(self):
+        self.assertNotIn("congressional_trades", _DEFAULT_WEIGHTS)
+
+    def test_default_weights_sum_to_one_after_renormalization(self):
+        self.assertAlmostEqual(sum(_DEFAULT_WEIGHTS.values()), 1.0, places=5)
+
+    def test_default_weights_keys_match_source_names(self):
+        self.assertEqual(set(_DEFAULT_WEIGHTS.keys()), set(SOURCE_NAMES))
+
+    def test_n_channels_is_14_after_demotion(self):
+        # 5 source (analyst/earnings/alpaca/yahoo/iv_rv) + 2 agent + 2 RV + 5 macro
+        self.assertEqual(N_CHANNELS, 14)
 
 
 class TestSaveLoad(unittest.TestCase):

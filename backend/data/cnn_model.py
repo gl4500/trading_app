@@ -81,52 +81,57 @@ SOURCE_NAMES: List[str] = [
     "earnings_surprise",
     "alpaca_news",
     "yahoo_news",
-    "congressional_trades",
-    "iv_rv_spread",      # channel 5: IV − RV_20d spread scored to [-1, +1]
+    "iv_rv_spread",      # channel 4: IV − RV_20d spread scored to [-1, +1]
 ]
+# Note: congressional_trades was demoted from CNN input → LLM context-only
+# (Task #20). 3% coverage with corr -0.001 means it carried no usable signal
+# for the CNN. signal_aggregator still scores it; signal_history still records
+# congress_score; the LLM still receives it for catalyst-style reasoning.
 
-# Agent channels appended after the 6 source channels
+# Agent channels appended after the 5 source channels
 AGENT_CHANNEL_NAMES: List[str] = [
-    "agent_consensus",   # channel 6: performance-weighted directional vote  (-1 to +1)
-    "agent_agreement",   # channel 7: fraction of agents that agree (0 to 1)
+    "agent_consensus",   # channel 5: performance-weighted directional vote  (-1 to +1)
+    "agent_agreement",   # channel 6: fraction of agents that agree (0 to 1)
 ]
 
 # Realized volatility channels — annualized from daily close prices (252-day basis)
 # The GLU gates learn to suppress these in trending markets where RV is uninformative
 # and amplify them in high-vol regimes where BSM-style vol signals add edge.
 RV_CHANNEL_NAMES: List[str] = [
-    "rv_20d",   # channel 8: 20-day rolling realized vol (short-term vol regime)
-    "rv_60d",   # channel 9: 60-day rolling realized vol (medium-term vol regime)
+    "rv_20d",   # channel 7: 20-day rolling realized vol (short-term vol regime)
+    "rv_60d",   # channel 8: 60-day rolling realized vol (medium-term vol regime)
 ]
 
 # Macro environment channels — joined from __MACRO__.parquet by date
-# Absent in old Parquet files; build_training_windows degrades to 10ch without them.
+# Absent in old Parquet files; build_training_windows degrades to 9ch without them.
 MACRO_CHANNEL_NAMES: List[str] = [
-    "macro_vix_norm",   # channel 10: VIX / 30 clipped to [0, 3]
-    "macro_gld_5d",     # channel 11: GLD 5-day forward return
-    "macro_tlt_5d",     # channel 12: TLT 5-day forward return
-    "macro_spy_5d",     # channel 13: SPY 5-day forward return
-    "macro_breadth",    # channel 14: (IWM_5d − SPY_5d) clipped to [-1, 1]
+    "macro_vix_norm",   # channel 9:  VIX / 30 clipped to [0, 3]
+    "macro_gld_5d",     # channel 10: GLD 5-day forward return
+    "macro_tlt_5d",     # channel 11: TLT 5-day forward return
+    "macro_spy_5d",     # channel 12: SPY 5-day forward return
+    "macro_breadth",    # channel 13: (IWM_5d − SPY_5d) clipped to [-1, 1]
 ]
 
-# Total full input channels: 6 source + 2 agent + 2 RV + 5 macro = 15
-# build_training_windows degrades gracefully to 10 channels when macro cols absent.
-# Old checkpoints load fine — predict() guards against shape mismatch and the net
-# auto-rebuilds to the correct channel count on the next 24h retrain cycle.
+# Total full input channels: 5 source + 2 agent + 2 RV + 5 macro = 14
+# build_training_windows degrades gracefully to 9 channels when macro cols absent.
+# Old checkpoints (15ch from before Task #20) load fine — predict() guards against
+# shape mismatch and the net auto-rebuilds to the correct channel count on the
+# next 24h retrain cycle.
 N_CHANNELS = (
     len(SOURCE_NAMES)
     + len(AGENT_CHANNEL_NAMES)
     + len(RV_CHANNEL_NAMES)
     + len(MACRO_CHANNEL_NAMES)
-)  # 15
+)  # 14
 
+# Renormalized after dropping congressional_trades (was 0.11; remaining sum 0.89).
+# Each weight = old_weight / 0.89.
 _DEFAULT_WEIGHTS: Dict[str, float] = {
-    "analyst_consensus":    0.30,
-    "earnings_surprise":    0.19,
-    "alpaca_news":          0.15,
-    "yahoo_news":           0.10,
-    "congressional_trades": 0.11,
-    "iv_rv_spread":         0.15,
+    "analyst_consensus":    0.337,
+    "earnings_surprise":    0.213,
+    "alpaca_news":          0.169,
+    "yahoo_news":           0.112,
+    "iv_rv_spread":         0.169,
 }
 
 
