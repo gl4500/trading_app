@@ -296,6 +296,78 @@ class TestCongressDemotedFromCNN(unittest.TestCase):
         self.assertEqual(N_CHANNELS, 14)
 
 
+class TestEarningsReframedToMagnitude(unittest.TestCase):
+    """Task #22: earnings_surprise direction has corr -0.029 with y (noise);
+    magnitude has corr +0.143 (the strongest single-feature volatility
+    predictor). The CNN channel is renamed to 'earnings_magnitude' and
+    receives |earnings_score| via _apply_cnn_feature_transforms()."""
+
+    def test_source_names_uses_earnings_magnitude_label(self):
+        # Renamed from "earnings_surprise" so the channel intent is explicit.
+        self.assertIn("earnings_magnitude", SOURCE_NAMES)
+        self.assertNotIn("earnings_surprise", SOURCE_NAMES)
+
+    def test_default_weights_uses_earnings_magnitude_key(self):
+        self.assertIn("earnings_magnitude", _DEFAULT_WEIGHTS)
+        self.assertNotIn("earnings_surprise", _DEFAULT_WEIGHTS)
+
+    def test_default_weights_keys_still_match_source_names(self):
+        # Sanity: rename must be consistent across both.
+        self.assertEqual(set(_DEFAULT_WEIGHTS.keys()), set(SOURCE_NAMES))
+
+    def test_default_weights_still_sum_to_one(self):
+        self.assertAlmostEqual(sum(_DEFAULT_WEIGHTS.values()), 1.0, places=5)
+
+    def test_build_training_windows_uses_abs_earnings(self):
+        # Construct a df with a known signed earnings_score column; the
+        # earnings channel of the resulting X tensor must be the absolute value.
+        n = WINDOW_SIZE + 5
+        signed = np.array(
+            [-0.8, 0.3, -0.5, 0.0, 0.6] * ((n // 5) + 1)
+        )[:n]
+        df = pd.DataFrame({
+            "symbol":          ["AAPL"] * n,
+            "snapshot_ts":     np.arange(n).astype(float),
+            "analyst_score":   np.zeros(n),
+            "earnings_score":  signed,
+            "alpaca_score":    np.zeros(n),
+            "yahoo_score":     np.zeros(n),
+            "iv_rv_score":     np.zeros(n),
+            "return_1d":       np.full(n, 0.01),
+        })
+        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        # Channel 1 == earnings (per SOURCE_COLUMNS order). All values must be
+        # >= 0 — the abs transform ran.
+        self.assertEqual(X.shape[0], len(y))
+        self.assertGreater(X.shape[0], 0)
+        earnings_channel = X[:, 1, :].ravel()
+        nonzero = earnings_channel[earnings_channel != 0.0]
+        self.assertTrue(
+            (nonzero > 0).all(),
+            f"Found negative earnings values in CNN channel 1: {nonzero[nonzero < 0]}"
+        )
+
+    def test_build_training_windows_does_not_mutate_input_df(self):
+        # The transform must operate on a copy so caller's df keeps signed values.
+        n = WINDOW_SIZE + 5
+        signed = np.full(n, -0.5)
+        df = pd.DataFrame({
+            "symbol":          ["AAPL"] * n,
+            "snapshot_ts":     np.arange(n).astype(float),
+            "analyst_score":   np.zeros(n),
+            "earnings_score":  signed,
+            "alpaca_score":    np.zeros(n),
+            "yahoo_score":     np.zeros(n),
+            "iv_rv_score":     np.zeros(n),
+            "return_1d":       np.full(n, 0.01),
+        })
+        before = df["earnings_score"].copy()
+        build_training_windows(df, T=WINDOW_SIZE)
+        np.testing.assert_array_almost_equal(
+            df["earnings_score"].values, before.values
+        )
+
+
 class TestSaveLoad(unittest.TestCase):
 
     @unittest.skipUnless(HAS_TORCH, "torch not installed")

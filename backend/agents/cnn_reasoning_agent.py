@@ -45,7 +45,7 @@ _OLLAMA_BASE     = "http://localhost:11434/v1"
 
 _HARDCODED = {
     "analyst_consensus":    30,
-    "earnings_surprise":    19,
+    "earnings_magnitude":   19,   # Task #22: was "earnings_surprise" (CNN channel renamed; |value|)
     "alpaca_news":          15,
     "yahoo_news":           10,
     "congressional_trades": 11,
@@ -152,7 +152,11 @@ class CNNReasoningAgent(BaseAgent):
         macro_text:      str = "",
         portfolio_context: Optional[Dict] = None,
     ) -> str:
-        _CONTEXT_ONLY_KEYS = {"earnings_surprise", "congressional_trades"}
+        # The display loop iterates two dicts with different naming conventions:
+        #   • learned_weights uses CNN channel names — "earnings_magnitude" (Task #22)
+        #   • current_scores uses LLM-source names    — "earnings_surprise" (signed value)
+        # Both names refer to the same underlying source; tag both for consistency.
+        _CONTEXT_ONLY_KEYS = {"earnings_surprise", "earnings_magnitude", "congressional_trades"}
         weight_lines = "\n".join(
             f"  • {name:<25} learned={w*100:5.1f}%  hardcoded={_HARDCODED[name]}%  "
             f"{'▲ elevated' if w*100 > _HARDCODED[name]+2 else ('▼ reduced' if w*100 < _HARDCODED[name]-2 else '≈ same')}"

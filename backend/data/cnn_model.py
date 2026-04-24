@@ -78,10 +78,10 @@ def _training_history_path() -> str:
 
 SOURCE_NAMES: List[str] = [
     "analyst_consensus",
-    "earnings_surprise",
+    "earnings_magnitude",  # channel 1: |earnings_score| — Task #22, see _apply_cnn_feature_transforms
     "alpaca_news",
     "yahoo_news",
-    "iv_rv_spread",      # channel 4: IV − RV_20d spread scored to [-1, +1]
+    "iv_rv_spread",        # channel 4: IV − RV_20d spread scored to [-1, +1]
 ]
 # Note: congressional_trades was demoted from CNN input → LLM context-only
 # (Task #20). 3% coverage with corr -0.001 means it carried no usable signal
@@ -128,7 +128,7 @@ N_CHANNELS = (
 # Each weight = old_weight / 0.89.
 _DEFAULT_WEIGHTS: Dict[str, float] = {
     "analyst_consensus":    0.337,
-    "earnings_surprise":    0.213,
+    "earnings_magnitude":   0.213,   # Task #22: was "earnings_surprise" (signed); now |earnings_score|
     "alpaca_news":          0.169,
     "yahoo_news":           0.112,
     "iv_rv_spread":         0.169,
@@ -374,7 +374,15 @@ def build_training_windows(
     w : (N,)       float32  — sample weights (1.0 default; higher when top
                                agent was confirmed correct)
     """
-    from data.signal_history import SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS  # avoid circular
+    from data.signal_history import (  # avoid circular
+        SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS,
+        _apply_cnn_feature_transforms,
+    )
+
+    # Task #22: feed |earnings_score| to the CNN. Direction has corr -0.029 with
+    # 1d return (noise); magnitude has corr +0.143 with realized vol (signal).
+    # Returns a copy — caller's df keeps signed values.
+    df = _apply_cnn_feature_transforms(df)
 
     has_agent = all(c in df.columns for c in AGENT_COLUMNS)
     has_rv    = all(c in df.columns for c in RV_COLUMNS)

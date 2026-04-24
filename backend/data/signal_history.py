@@ -98,6 +98,25 @@ def _empty_df() -> pd.DataFrame:
     return pd.DataFrame({col: pd.Series(dtype=dt) for col, dt in _DTYPE_MAP.items()})
 
 
+def _apply_cnn_feature_transforms(df: pd.DataFrame) -> pd.DataFrame:
+    """Per-feature transforms applied to a snapshot df before it feeds the CNN.
+
+    Currently:
+      - earnings_score → |earnings_score|  (Task #22). The signed value's
+        correlation with 1d forward return is -0.029 (noise — direction is
+        dominated by post-event mean reversion), but |earnings_score|
+        correlates +0.143 with realized volatility, the strongest single-
+        feature predictor in the system. We feed magnitude to the CNN and
+        keep the signed value on disk for LLM beat/miss context.
+
+    Operates on a copy — the caller's df keeps its signed values.
+    """
+    if "earnings_score" in df.columns:
+        df = df.copy()
+        df["earnings_score"] = df["earnings_score"].abs()
+    return df
+
+
 def _load(symbol: str) -> pd.DataFrame:
     path = _symbol_path(symbol)
     if not os.path.exists(path):
@@ -403,6 +422,9 @@ class SignalHistoryStore:
         if len(df) < 3:
             return None
 
+        # Task #22: feed |earnings_score| to the CNN (direction is noise; magnitude
+        # is the real signal). On-disk earnings_score remains signed for LLM context.
+        df = _apply_cnn_feature_transforms(df)
         recent = df.tail(T)
 
         # Source channels — zero-fill when a column is absent (old Parquet files)

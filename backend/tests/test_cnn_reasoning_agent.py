@@ -153,7 +153,9 @@ class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
         self.base_kwargs = dict(
             symbol="AAPL", price=150.0, pred_return=0.01, direction="bull",
             cnn_conf=0.7,
-            learned_weights={"analyst_consensus": 0.35, "earnings_surprise": 0.22,
+            # learned_weights keys are CNN channel names (Task #22 renamed earnings).
+            # current_scores keys are LLM-source names (signed values for prompt context).
+            learned_weights={"analyst_consensus": 0.35, "earnings_magnitude": 0.22,
                              "alpaca_news": 0.18, "yahoo_news": 0.12,
                              "congressional_trades": 0.13},
             current_scores={"analyst_consensus": 0.1, "earnings_surprise": None,
@@ -392,7 +394,8 @@ class TestCNNPromptPortfolioSection(unittest.TestCase):
         self.base_kwargs = dict(
             symbol="AAPL", price=150.0, pred_return=0.01, direction="bull",
             cnn_conf=0.7,
-            learned_weights={"analyst_consensus": 0.35, "earnings_surprise": 0.22,
+            # learned_weights keys are CNN channel names (Task #22 renamed earnings).
+            learned_weights={"analyst_consensus": 0.35, "earnings_magnitude": 0.22,
                              "alpaca_news": 0.18, "yahoo_news": 0.12,
                              "congressional_trades": 0.13},
             current_scores={"analyst_consensus": 0.1, "earnings_surprise": None,

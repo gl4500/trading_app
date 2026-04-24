@@ -546,6 +546,85 @@ class TestMacroJoinIntoTrainingData(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(X.shape[1], 14)
 
 
+class TestEarningsMagnitudeTransform(unittest.IsolatedAsyncioTestCase):
+    """Task #22: earnings_surprise direction is noise (corr -0.029) but
+    magnitude is the strongest volatility predictor (corr +0.143). The CNN
+    must see |earnings_score|; the signed value stays on disk so the LLM
+    still gets beat/miss context."""
+
+    def setUp(self):
+        self._tmpdir = tempfile.mkdtemp()
+        self._orig_dir = sh._HISTORY_DIR
+        sh._HISTORY_DIR = self._tmpdir
+        sh._LOCKS.clear()
+        self.store = sh.SignalHistoryStore()
+
+    def tearDown(self):
+        sh._HISTORY_DIR = self._orig_dir
+        sh._LOCKS.clear()
+
+    # ── helper: _apply_cnn_feature_transforms ─────────────────────────────────
+
+    def test_apply_cnn_feature_transforms_takes_abs_of_earnings_score(self):
+        df = pd.DataFrame({"earnings_score": [-0.7, 0.4, -0.0, 0.0]})
+        out = sh._apply_cnn_feature_transforms(df)
+        np.testing.assert_array_almost_equal(
+            out["earnings_score"].values, [0.7, 0.4, 0.0, 0.0]
+        )
+
+    def test_apply_cnn_feature_transforms_does_not_mutate_input(self):
+        df = pd.DataFrame({"earnings_score": [-0.5, 0.3]})
+        sh._apply_cnn_feature_transforms(df)
+        # Original df must still hold signed values.
+        np.testing.assert_array_almost_equal(
+            df["earnings_score"].values, [-0.5, 0.3]
+        )
+
+    def test_apply_cnn_feature_transforms_preserves_nan(self):
+        df = pd.DataFrame({"earnings_score": [-0.4, np.nan, 0.2]})
+        out = sh._apply_cnn_feature_transforms(df)
+        self.assertTrue(np.isnan(out["earnings_score"].iloc[1]))
+        self.assertAlmostEqual(out["earnings_score"].iloc[0], 0.4)
+        self.assertAlmostEqual(out["earnings_score"].iloc[2], 0.2)
+
+    def test_apply_cnn_feature_transforms_no_op_when_earnings_missing(self):
+        df = pd.DataFrame({"analyst_score": [0.1, 0.2]})
+        out = sh._apply_cnn_feature_transforms(df)
+        # No KeyError, no spurious columns added.
+        self.assertNotIn("earnings_score", out.columns)
+        self.assertEqual(list(out.columns), ["analyst_score"])
+
+    # ── disk format unchanged ─────────────────────────────────────────────────
+
+    async def test_record_snapshot_persists_signed_earnings(self):
+        # record_snapshot must still write the signed value — only the CNN
+        # tensor sees abs(). LLM context displays the signed surprise.
+        await self.store.record_snapshot(
+            "AAPL", _scores(earnings=-0.62), 0.0, 100.0
+        )
+        df = sh._load("AAPL")
+        self.assertAlmostEqual(df.iloc[0]["earnings_score"], -0.62)
+
+    def test_source_columns_still_references_earnings_score(self):
+        # Storage column name stays "earnings_score" — transform applied at
+        # read time, not at write time.
+        self.assertIn("earnings_score", sh.SOURCE_COLUMNS)
+
+    # ── full read path ────────────────────────────────────────────────────────
+
+    async def test_get_recent_window_uses_abs_earnings(self):
+        # Write three snapshots with mixed-sign earnings; the CNN tensor must
+        # see all positive values in channel 1.
+        for earn in (-0.8, 0.4, -0.2):
+            await self.store.record_snapshot(
+                "AAPL", _scores(earnings=earn), 0.0, 100.0
+            )
+        window = self.store.get_recent_window("AAPL", T=3)
+        self.assertIsNotNone(window)
+        # Channel index 1 is earnings (slot 1 in SOURCE_COLUMNS).
+        np.testing.assert_array_almost_equal(window[1], [0.8, 0.4, 0.2])
+
+
 class TestCongressColumnDemoted(unittest.IsolatedAsyncioTestCase):
     """Task #20: congressional_trades is demoted from a CNN input channel to
     LLM context-only. SOURCE_COLUMNS (CNN training-input list) drops
