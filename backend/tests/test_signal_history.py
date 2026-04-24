@@ -594,6 +594,23 @@ class TestEarningsMagnitudeTransform(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("earnings_score", out.columns)
         self.assertEqual(list(out.columns), ["analyst_score"])
 
+    def test_apply_cnn_feature_transforms_handles_object_dtype_with_none(self):
+        # Real per-symbol parquets from before _DTYPE_MAP enforcement contain
+        # object-dtype earnings_score columns mixing floats with Python None.
+        # Concatenated training dfs inherit the object dtype. The transform
+        # must coerce safely instead of raising "bad operand type for abs()".
+        df = pd.DataFrame({
+            "earnings_score": pd.Series([-0.7, None, 0.4, None, 0.0], dtype=object),
+        })
+        out = sh._apply_cnn_feature_transforms(df)
+        # Numeric values get abs(); None positions become NaN (zero-filled
+        # downstream by build_training_windows / get_recent_window).
+        self.assertAlmostEqual(out["earnings_score"].iloc[0], 0.7)
+        self.assertTrue(pd.isna(out["earnings_score"].iloc[1]))
+        self.assertAlmostEqual(out["earnings_score"].iloc[2], 0.4)
+        self.assertTrue(pd.isna(out["earnings_score"].iloc[3]))
+        self.assertAlmostEqual(out["earnings_score"].iloc[4], 0.0)
+
     # ── disk format unchanged ─────────────────────────────────────────────────
 
     async def test_record_snapshot_persists_signed_earnings(self):

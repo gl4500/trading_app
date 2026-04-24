@@ -113,7 +113,14 @@ def _apply_cnn_feature_transforms(df: pd.DataFrame) -> pd.DataFrame:
     """
     if "earnings_score" in df.columns:
         df = df.copy()
-        df["earnings_score"] = df["earnings_score"].abs()
+        # Real concatenated training dfs may carry object dtype with Python None
+        # values (legacy parquets pre-_DTYPE_MAP enforcement). pd.to_numeric
+        # coerces safely — non-numeric / None become NaN, and downstream
+        # zero-filling in get_recent_window / build_training_windows handles
+        # the resulting NaN.
+        df["earnings_score"] = pd.to_numeric(
+            df["earnings_score"], errors="coerce"
+        ).abs()
     return df
 
 
