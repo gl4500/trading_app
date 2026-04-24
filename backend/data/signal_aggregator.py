@@ -20,6 +20,8 @@ import time
 import math
 from typing import Dict, List, Optional, Tuple
 
+from data import finbert_scorer
+
 logger = logging.getLogger(__name__)
 
 # Suppress yfinance's verbose HTTP error logging — we handle errors ourselves
@@ -79,7 +81,9 @@ _BEARISH_WORDS = {
 
 
 def _score_headlines(articles: List[Dict]) -> Optional[float]:
-    """Score a list of news articles in [-1, +1] using keyword matching."""
+    """Score a list of news articles in [-1, +1] using keyword matching.
+    Retained as a fallback for `_score_yahoo_news` when FinBERT is
+    unavailable; previously the only scorer for the yahoo_news channel."""
     if not articles:
         return None
     scores = []
@@ -92,6 +96,20 @@ def _score_headlines(articles: List[Dict]) -> Optional[float]:
         if total > 0:
             scores.append((bull - bear) / total)
     return sum(scores) / len(scores) if scores else None
+
+
+def _score_yahoo_news(articles: List[Dict]) -> Optional[float]:
+    """Score yahoo_news headlines via FinBERT, with the keyword counter as a
+    fallback when FinBERT is unavailable. Task #21 swap — the keyword
+    scorer's directional hit-rate (49.1%, corr +0.024) was indistinguishable
+    from random; FinBERT (ProsusAI/finbert, Apache 2.0) replaces it as the
+    primary scorer for the CNN's `yahoo_news` input channel."""
+    if not articles:
+        return None
+    score = finbert_scorer.score_headlines(articles)
+    if score is not None:
+        return score
+    return _score_headlines(articles)
 
 
 def _fetch_yf_data_sync(symbol: str) -> Dict:
@@ -152,7 +170,7 @@ def _fetch_yf_data_sync(symbol: str) -> Dict:
             if headline:
                 articles.append({"headline": headline, "summary": summary})
         result["yahoo_news"] = articles
-        score = _score_headlines(articles)
+        score = _score_yahoo_news(articles)
         if score is not None:
             result["yahoo_news_score"] = round(score, 3)
     except Exception as e:

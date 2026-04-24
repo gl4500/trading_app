@@ -7,11 +7,14 @@ require integration tests with mocked HTTP clients.
 import sys
 import os
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import data.signal_aggregator as sa
 from data.signal_aggregator import (
     _score_headlines,
+    _score_yahoo_news,
     _aggregate_scores,
     format_for_prompt,
     SOURCE_WEIGHTS,
@@ -68,6 +71,52 @@ class TestScoreHeadlines(unittest.TestCase):
         if result is not None:
             self.assertGreater(result, -1.0)
             self.assertLess(result, 1.0)
+
+
+# ── _score_yahoo_news (FinBERT with keyword fallback) ────────────────────────
+
+class TestScoreYahooNews(unittest.TestCase):
+    """Task #21: yahoo_news now scored by FinBERT, with the legacy keyword
+    counter as a fallback. The wrapper makes the policy unit-testable
+    without spinning up yfinance."""
+
+    def test_returns_none_when_no_articles(self):
+        self.assertIsNone(_score_yahoo_news([]))
+
+    def test_uses_finbert_when_available(self):
+        articles = [{"headline": "AAPL up", "summary": ""}]
+        # FinBERT returns 0.42; keyword scorer should NOT be consulted.
+        with patch.object(sa.finbert_scorer, "score_headlines", return_value=0.42) as fb, \
+             patch.object(sa, "_score_headlines") as kw:
+            result = _score_yahoo_news(articles)
+        self.assertAlmostEqual(result, 0.42, places=5)
+        fb.assert_called_once_with(articles)
+        kw.assert_not_called()
+
+    def test_falls_back_to_keyword_when_finbert_returns_none(self):
+        articles = [{"headline": "AAPL beats earnings", "summary": ""}]
+        with patch.object(sa.finbert_scorer, "score_headlines", return_value=None), \
+             patch.object(sa, "_score_headlines", return_value=0.31) as kw:
+            result = _score_yahoo_news(articles)
+        self.assertAlmostEqual(result, 0.31, places=5)
+        kw.assert_called_once_with(articles)
+
+    def test_returns_none_when_both_scorers_return_none(self):
+        articles = [{"headline": "annual meeting date", "summary": ""}]
+        with patch.object(sa.finbert_scorer, "score_headlines", return_value=None), \
+             patch.object(sa, "_score_headlines", return_value=None):
+            result = _score_yahoo_news(articles)
+        self.assertIsNone(result)
+
+    def test_finbert_zero_score_does_not_trigger_fallback(self):
+        # 0.0 is a legitimate FinBERT output (genuinely neutral) — must not
+        # be treated as "unavailable" and fall through to the keyword scorer.
+        articles = [{"headline": "AAPL announces date for conference call", "summary": ""}]
+        with patch.object(sa.finbert_scorer, "score_headlines", return_value=0.0), \
+             patch.object(sa, "_score_headlines") as kw:
+            result = _score_yahoo_news(articles)
+        self.assertEqual(result, 0.0)
+        kw.assert_not_called()
 
 
 # ── _aggregate_scores tests ───────────────────────────────────────────────────
