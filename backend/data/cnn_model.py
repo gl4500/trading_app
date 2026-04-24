@@ -105,11 +105,14 @@ RV_CHANNEL_NAMES: List[str] = [
 # Macro environment channels — joined from __MACRO__.parquet by date
 # Absent in old Parquet files; build_training_windows degrades to 9ch without them.
 MACRO_CHANNEL_NAMES: List[str] = [
-    "macro_vix_norm",   # channel 9:  VIX / 30 clipped to [0, 3]
-    "macro_gld_5d",     # channel 10: GLD 5-day forward return
-    "macro_tlt_5d",     # channel 11: TLT 5-day forward return
-    "macro_spy_5d",     # channel 12: SPY 5-day forward return
-    "macro_breadth",    # channel 13: (IWM_5d − SPY_5d) clipped to [-1, 1]
+    "macro_vix_norm",       # channel 9:  VIX / 30 clipped to [0, 3]
+    # Task #24: trailing (was forward — leaked future direction into training,
+    # collapsed val WFE from -0.034 to -0.346). `_back` suffix is permanent
+    # to make the semantics unambiguous in code review and force re-backfill.
+    "macro_gld_5d_back",    # channel 10: GLD 5-day TRAILING return
+    "macro_tlt_5d_back",    # channel 11: TLT 5-day trailing return
+    "macro_spy_5d_back",    # channel 12: SPY 5-day trailing return
+    "macro_breadth_back",   # channel 13: (IWM - SPY) trailing 5d, clipped [-1, 1]
 ]
 
 # Total full input channels: 5 source + 2 agent + 2 RV + 5 macro = 14

@@ -412,10 +412,31 @@ def _bars_to_close_map(bars: pd.DataFrame) -> tuple:
 
 
 def _ret_nd(closes: np.ndarray, idx: int, n_ahead: int) -> float:
-    """Return n-day forward return or 0.0 when index is out of range."""
+    """Return n-day forward return or 0.0 when index is out of range.
+
+    Used for the per-symbol training labels (return_1d, return_5d) where the
+    label MUST be forward-looking — that's the prediction target.
+    Do NOT use this for CNN INPUT macro channels: see Task #24 and use
+    `_ret_nd_trailing` instead to avoid lookahead leakage."""
     if idx + n_ahead < len(closes) and closes[idx] > 0:
         return float((closes[idx + n_ahead] - closes[idx]) / closes[idx])
     return 0.0
+
+
+def _ret_nd_trailing(closes: np.ndarray, idx: int, n_back: int) -> float:
+    """Return n-day TRAILING return or 0.0 when no historical anchor exists.
+
+    Task #24: use this for any value that becomes a CNN input feature.
+    A trailing return at index `idx` looks at `closes[idx-n_back]` as the
+    denominator — only past data, so it's inference-safe and doesn't leak
+    future direction into training (which collapsed val WFE from -0.034 to
+    -0.346 when forward 5d returns were added in Task #17)."""
+    if idx - n_back < 0:
+        return 0.0
+    anchor = closes[idx - n_back]
+    if anchor <= 0:
+        return 0.0
+    return float((closes[idx] - anchor) / anchor)
 
 
 # ── public macro backfill ─────────────────────────────────────────────────────
@@ -504,8 +525,11 @@ async def backfill_macro_history(days: int = 365) -> Dict:
         if day_key in existing_day_keys:
             continue
 
-        # ── compute per-ETF forward returns ──────────────────────────────
-        def _get_ret(sym: str, ahead: int) -> float:
+        # ── compute per-ETF returns ───────────────────────────────────────
+        # 1d returns stay forward (not CNN inputs — referenced for regime
+        # heuristics elsewhere). 5d returns are TRAILING (Task #24) so the
+        # CNN never sees future ETF moves.
+        def _get_ret_fwd(sym: str, ahead: int) -> float:
             d2i = etf_day_to_idx.get(sym)
             if d2i is None:
                 return 0.0
@@ -514,17 +538,26 @@ async def backfill_macro_history(days: int = 365) -> Dict:
                 return 0.0
             return _ret_nd(etf_closes[sym], idx, ahead)
 
+        def _get_ret_back(sym: str, n_back: int) -> float:
+            d2i = etf_day_to_idx.get(sym)
+            if d2i is None:
+                return 0.0
+            idx = d2i.get(day_key)
+            if idx is None:
+                return 0.0
+            return _ret_nd_trailing(etf_closes[sym], idx, n_back)
+
         returns = {
-            "gld_1d": _get_ret("GLD", 1),
-            "gld_5d": _get_ret("GLD", 5),
-            "tlt_1d": _get_ret("TLT", 1),
-            "tlt_5d": _get_ret("TLT", 5),
-            "spy_1d": _get_ret("SPY", 1),
-            "spy_5d": _get_ret("SPY", 5),
-            "iwm_5d": _get_ret("IWM", 5),
-            "qqq_5d": _get_ret("QQQ", 5),
-            "uup_5d": _get_ret("UUP", 5),
-            "uso_5d": _get_ret("USO", 5),
+            "gld_1d":      _get_ret_fwd("GLD", 1),
+            "tlt_1d":      _get_ret_fwd("TLT", 1),
+            "spy_1d":      _get_ret_fwd("SPY", 1),
+            "gld_5d_back": _get_ret_back("GLD", 5),
+            "tlt_5d_back": _get_ret_back("TLT", 5),
+            "spy_5d_back": _get_ret_back("SPY", 5),
+            "iwm_5d_back": _get_ret_back("IWM", 5),
+            "qqq_5d_back": _get_ret_back("QQQ", 5),
+            "uup_5d_back": _get_ret_back("UUP", 5),
+            "uso_5d_back": _get_ret_back("USO", 5),
         }
 
         # ── VIX and TNX levels ────────────────────────────────────────────
@@ -534,8 +567,10 @@ async def backfill_macro_history(days: int = 365) -> Dict:
         tnx = float(tnx_val) if tnx_val is not None else float("nan")
 
         # ── simple regime heuristic ───────────────────────────────────────
+        # Use the trailing 5d SPY return — regime should be a snapshot of
+        # the recent past, not the unknown future.
         vix_level = vix if (vix_val is not None and not np.isnan(vix)) else 20.0
-        spy_5d    = returns["spy_5d"]
+        spy_5d    = returns["spy_5d_back"]
         if vix_level > 30 and spy_5d < -0.01:
             regime = "RISK_OFF"
         elif vix_level < 20 and spy_5d > 0.01:

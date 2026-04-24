@@ -383,12 +383,13 @@ class TestMacroJoinIntoTrainingData(unittest.IsolatedAsyncioTestCase):
     input the CNN was designed for — 5 macro channels stay zero, model degrades to 10ch.
     """
 
+    # Task #24: 5d return channels are now trailing — `_back` suffix.
     _MACRO_CHANNELS = [
         "macro_vix_norm",
-        "macro_gld_5d",
-        "macro_tlt_5d",
-        "macro_spy_5d",
-        "macro_breadth",
+        "macro_gld_5d_back",
+        "macro_tlt_5d_back",
+        "macro_spy_5d_back",
+        "macro_breadth_back",
     ]
 
     def setUp(self):
@@ -412,24 +413,25 @@ class TestMacroJoinIntoTrainingData(unittest.IsolatedAsyncioTestCase):
         breadth=None,
     ):
         n = len(dates_ts)
+        # Task #24: parquet uses trailing _back columns now.
         df = pd.DataFrame({
-            "date_ts":       list(dates_ts),
-            "vix":           [18.0] * n,
-            "tnx":           [4.3]  * n,
-            "vix_norm":      vix_norm if vix_norm is not None else [0.6]   * n,
-            "gld_1d":        [0.0]   * n,
-            "gld_5d":        gld_5d  if gld_5d  is not None else [0.01]  * n,
-            "tlt_1d":        [0.0]   * n,
-            "tlt_5d":        tlt_5d  if tlt_5d  is not None else [0.005] * n,
-            "spy_1d":        [0.0]   * n,
-            "spy_5d":        spy_5d  if spy_5d  is not None else [0.012] * n,
-            "iwm_5d":        [0.014] * n,
-            "qqq_5d":        [0.011] * n,
-            "uup_5d":        [0.001] * n,
-            "uso_5d":        [0.02]  * n,
-            "breadth_score": breadth if breadth is not None else [0.002] * n,
-            "regime":        ["NEUTRAL"] * n,
-            "regime_score":  [0.0] * n,
+            "date_ts":            list(dates_ts),
+            "vix":                [18.0] * n,
+            "tnx":                [4.3]  * n,
+            "vix_norm":           vix_norm if vix_norm is not None else [0.6]   * n,
+            "gld_1d":             [0.0]   * n,
+            "tlt_1d":             [0.0]   * n,
+            "spy_1d":             [0.0]   * n,
+            "gld_5d_back":        gld_5d  if gld_5d  is not None else [0.01]  * n,
+            "tlt_5d_back":        tlt_5d  if tlt_5d  is not None else [0.005] * n,
+            "spy_5d_back":        spy_5d  if spy_5d  is not None else [0.012] * n,
+            "iwm_5d_back":        [0.014] * n,
+            "qqq_5d_back":        [0.011] * n,
+            "uup_5d_back":        [0.001] * n,
+            "uso_5d_back":        [0.02]  * n,
+            "breadth_score_back": breadth if breadth is not None else [0.002] * n,
+            "regime":             ["NEUTRAL"] * n,
+            "regime_score":       [0.0] * n,
         })
         df.to_parquet(
             os.path.join(self._tmpdir, "__MACRO__.parquet"),
@@ -481,11 +483,11 @@ class TestMacroJoinIntoTrainingData(unittest.IsolatedAsyncioTestCase):
         self._write_full_labelled_row("AAPL", ts)
 
         df = self.store.get_training_data()
-        self.assertAlmostEqual(df.iloc[0]["macro_vix_norm"],  0.85,  places=5)
-        self.assertAlmostEqual(df.iloc[0]["macro_gld_5d"],    0.03,  places=5)
-        self.assertAlmostEqual(df.iloc[0]["macro_tlt_5d"],   -0.01,  places=5)
-        self.assertAlmostEqual(df.iloc[0]["macro_spy_5d"],    0.02,  places=5)
-        self.assertAlmostEqual(df.iloc[0]["macro_breadth"],   0.005, places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_vix_norm"],       0.85,  places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_gld_5d_back"],    0.03,  places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_tlt_5d_back"],   -0.01,  places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_spy_5d_back"],    0.02,  places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_breadth_back"],   0.005, places=5)
 
     async def test_macro_join_uses_backward_asof(self):
         """Snapshot at T joins to macro at T-1d, never to macro at T+1d."""
@@ -503,8 +505,8 @@ class TestMacroJoinIntoTrainingData(unittest.IsolatedAsyncioTestCase):
         self._write_full_labelled_row("AAPL", snap_ts)
 
         df = self.store.get_training_data()
-        self.assertAlmostEqual(df.iloc[0]["macro_vix_norm"], 0.7,  places=5)
-        self.assertAlmostEqual(df.iloc[0]["macro_gld_5d"],   0.01, places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_vix_norm"],    0.7,  places=5)
+        self.assertAlmostEqual(df.iloc[0]["macro_gld_5d_back"], 0.01, places=5)
 
     async def test_macro_columns_absent_when_macro_file_missing(self):
         """No __MACRO__.parquet → no macro columns added (CNN degrades to 10ch)."""

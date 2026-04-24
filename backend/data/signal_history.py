@@ -30,11 +30,13 @@ _MACRO_AS_OF_TOLERANCE_SECS = 4 * 86_400
 # Defined locally (not imported from cnn_model) to keep signal_history independent
 # of the CNN module — cnn_model already imports from this file.
 _MACRO_COLUMN_MAP: Dict[str, str] = {
-    "vix_norm":      "macro_vix_norm",
-    "gld_5d":        "macro_gld_5d",
-    "tlt_5d":        "macro_tlt_5d",
-    "spy_5d":        "macro_spy_5d",
-    "breadth_score": "macro_breadth",
+    "vix_norm":           "macro_vix_norm",
+    # Task #24: 5d columns are now TRAILING (was forward) — `_back` suffix
+    # documents the lookahead-leak fix and forces re-backfill.
+    "gld_5d_back":        "macro_gld_5d_back",
+    "tlt_5d_back":        "macro_tlt_5d_back",
+    "spy_5d_back":        "macro_spy_5d_back",
+    "breadth_score_back": "macro_breadth_back",
 }
 
 # Source score column names (order must match cnn_model.SOURCE_NAMES)

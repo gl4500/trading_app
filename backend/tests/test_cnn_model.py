@@ -60,11 +60,12 @@ def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True,
             row["rv_20d"] = np.random.uniform(0.10, 0.40)
             row["rv_60d"] = np.random.uniform(0.10, 0.40)
         if add_macro_cols:
-            row["macro_vix_norm"] = np.random.uniform(0.3, 1.5)
-            row["macro_gld_5d"]   = np.random.uniform(-0.05, 0.05)
-            row["macro_tlt_5d"]   = np.random.uniform(-0.05, 0.05)
-            row["macro_spy_5d"]   = np.random.uniform(-0.05, 0.05)
-            row["macro_breadth"]  = np.random.uniform(-0.05, 0.05)
+            # Task #24: trailing _back columns.
+            row["macro_vix_norm"]      = np.random.uniform(0.3, 1.5)
+            row["macro_gld_5d_back"]   = np.random.uniform(-0.05, 0.05)
+            row["macro_tlt_5d_back"]   = np.random.uniform(-0.05, 0.05)
+            row["macro_spy_5d_back"]   = np.random.uniform(-0.05, 0.05)
+            row["macro_breadth_back"]  = np.random.uniform(-0.05, 0.05)
         rows.append(row)
     return pd.DataFrame(rows)
 
