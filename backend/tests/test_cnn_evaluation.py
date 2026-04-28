@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from data.cnn_evaluation import compute_ic, compute_ir, compute_calibration
+from data.cnn_evaluation import compute_ic, compute_ir, compute_calibration, walkforward_folds
 
 
 class TestComputeIC(unittest.TestCase):
@@ -115,6 +115,51 @@ class TestComputeCalibration(unittest.TestCase):
         buckets = compute_calibration(pred, true, n_buckets=5)
         means = [b["mean_pred"] for b in buckets]
         self.assertEqual(means, sorted(means))
+
+
+ONE_DAY = 86400.0
+
+
+class TestWalkforwardFolds(unittest.TestCase):
+    """Time-ordered fold generator: each fold's val window ≥ min_val_days, 1-bar embargo."""
+
+    def test_fold_count_matches_request(self):
+        # 60 days of daily timestamps
+        ts = np.arange(0, 60 * ONE_DAY, ONE_DAY, dtype=np.float64)
+        folds = walkforward_folds(ts, n_folds=3, min_val_days=14, embargo_bars=1)
+        self.assertEqual(len(folds), 3)
+
+    def test_train_always_precedes_val(self):
+        ts = np.arange(0, 90 * ONE_DAY, ONE_DAY, dtype=np.float64)
+        for tr, va in walkforward_folds(ts, n_folds=3, min_val_days=14, embargo_bars=1):
+            self.assertGreater(ts[va].min(), ts[tr].max(),
+                               "validation must start strictly after training ends")
+
+    def test_embargo_gap_enforced(self):
+        ts = np.arange(0, 90 * ONE_DAY, ONE_DAY, dtype=np.float64)
+        for tr, va in walkforward_folds(ts, n_folds=3, min_val_days=14, embargo_bars=2):
+            gap = ts[va].min() - ts[tr].max()
+            self.assertGreaterEqual(gap, 2 * ONE_DAY - 1e-3)
+
+    def test_min_val_days_respected(self):
+        ts = np.arange(0, 90 * ONE_DAY, ONE_DAY, dtype=np.float64)
+        for tr, va in walkforward_folds(ts, n_folds=3, min_val_days=14, embargo_bars=1):
+            val_window = ts[va].max() - ts[va].min()
+            self.assertGreaterEqual(val_window, 13 * ONE_DAY,
+                                    "val window must span at least min_val_days")
+
+    def test_too_short_dataset_returns_empty(self):
+        # 10 days with min_val_days=14 → impossible
+        ts = np.arange(0, 10 * ONE_DAY, ONE_DAY, dtype=np.float64)
+        folds = walkforward_folds(ts, n_folds=3, min_val_days=14, embargo_bars=1)
+        self.assertEqual(folds, [])
+
+    def test_unsorted_timestamps_are_handled(self):
+        # Pass deliberately scrambled timestamps; fold generator must sort first
+        ts = np.array([5, 3, 1, 8, 2, 6, 9, 4, 7, 0], dtype=np.float64) * ONE_DAY
+        folds = walkforward_folds(ts, n_folds=3, min_val_days=1, embargo_bars=0)
+        for tr, va in folds:
+            self.assertGreater(ts[va].min(), ts[tr].max())
 
 
 if __name__ == "__main__":

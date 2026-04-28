@@ -98,3 +98,78 @@ def compute_calibration(
             "mean_actual": float(y_true[mask].mean()),
         })
     return out
+
+
+_SECS_PER_DAY = 86_400.0
+
+
+def walkforward_folds(
+    timestamps: np.ndarray,
+    n_folds: int = 3,
+    min_val_days: int = 14,
+    embargo_bars: int = 1,
+) -> List[Tuple[np.ndarray, np.ndarray]]:
+    """
+    Generate (train_idx, val_idx) tuples for walk-forward cross-validation.
+
+    Each fold:
+      - Train set is everything strictly before the fold's val start.
+      - Val set spans at least `min_val_days` calendar days.
+      - `embargo_bars` rows between train end and val start are excluded from
+        both — prevents the model from seeing samples whose forward outcome
+        overlaps the val period.
+
+    Folds are anchored to the END of the data (rolling-origin from the back),
+    so the most recent fold's val is always the last `min_val_days` of data
+    and earlier folds shift backward by the val window. This is more honest
+    than expanding-origin CV when data density is uneven over time.
+
+    Parameters
+    ----------
+    timestamps   : (N,) float seconds since epoch
+    n_folds      : how many CV folds to produce
+    min_val_days : minimum calendar days the val window must span
+    embargo_bars : rows to exclude between train end and val start
+
+    Returns
+    -------
+    List of (train_idx, val_idx) numpy index arrays. Empty list when the
+    dataset is too short to satisfy min_val_days for n_folds.
+    """
+    ts = np.asarray(timestamps, dtype=np.float64)
+    if ts.size == 0:
+        return []
+
+    sort_idx = np.argsort(ts)
+    sorted_ts = ts[sort_idx]
+
+    val_secs = min_val_days * _SECS_PER_DAY
+    total_secs = sorted_ts[-1] - sorted_ts[0]
+    if total_secs < val_secs * (n_folds + 1):
+        # Can't fit n_folds val windows AND any training data
+        return []
+
+    folds: List[Tuple[np.ndarray, np.ndarray]] = []
+    end_ts = sorted_ts[-1]
+    for fold_i in range(n_folds):
+        val_end = end_ts - fold_i * val_secs
+        val_start = val_end - val_secs
+        if val_start <= sorted_ts[0]:
+            break
+
+        val_mask_sorted = (sorted_ts >= val_start) & (sorted_ts <= val_end)
+        train_cutoff_idx = int(np.searchsorted(sorted_ts, val_start, side="left"))
+        train_end_idx = max(0, train_cutoff_idx - embargo_bars)
+        if train_end_idx < 1 or not val_mask_sorted.any():
+            continue
+        train_idx_sorted = np.arange(0, train_end_idx)
+        val_idx_sorted = np.where(val_mask_sorted)[0]
+
+        # Map back to original (unsorted) indices
+        train_idx = sort_idx[train_idx_sorted]
+        val_idx = sort_idx[val_idx_sorted]
+        folds.append((train_idx, val_idx))
+
+    # Reverse so folds are in chronological order (oldest val first)
+    folds.reverse()
+    return folds
