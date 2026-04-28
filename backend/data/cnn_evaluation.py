@@ -28,14 +28,14 @@ def compute_ic(y_pred: np.ndarray, y_true: np.ndarray) -> float:
     y_true = np.asarray(y_true).ravel()
     if y_pred.size == 0 or y_true.size == 0 or y_pred.size != y_true.size:
         return 0.0
-
-    # Check for constant values (no variance → no correlation)
-    if np.std(y_pred) == 0 or np.std(y_true) == 0:
+    s_pred = pd.Series(y_pred)
+    s_true = pd.Series(y_true)
+    if s_pred.nunique() < 2 or s_true.nunique() < 2:
         return 0.0
 
-    # Compute Spearman correlation using rank data
-    rank_pred = np.argsort(np.argsort(y_pred)).astype(np.float64) + 1
-    rank_true = np.argsort(np.argsort(y_true)).astype(np.float64) + 1
+    # Use pandas rank with average method to handle ties correctly
+    rank_pred = s_pred.rank(method="average").values
+    rank_true = s_true.rank(method="average").values
 
     # Pearson correlation on ranks = Spearman correlation
     mean_rank_pred = np.mean(rank_pred)
@@ -51,7 +51,7 @@ def compute_ic(y_pred: np.ndarray, y_true: np.ndarray) -> float:
         return 0.0
 
     ic = numerator / denominator
-    return 0.0 if not math.isfinite(ic) else float(ic)
+    return 0.0 if (ic is None or not math.isfinite(ic)) else float(ic)
 
 
 def compute_ir(ics: Sequence[float]) -> float:

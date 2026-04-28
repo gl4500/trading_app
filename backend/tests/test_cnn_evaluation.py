@@ -64,5 +64,24 @@ class TestComputeIR(unittest.TestCase):
         self.assertEqual(compute_ir([0.05]), 0.0)
 
 
+class TestComputeICTieHandling(unittest.TestCase):
+    """Spearman correlation must use average ranks for ties (not order-dependent)."""
+
+    def test_ties_are_handled_with_average_ranks(self):
+        # With ties, naive argsort assigns arbitrary ranks. Pandas Spearman
+        # uses average ranks. The IC should be order-independent.
+        y_pred_a = np.array([1.0, 1.0, 2.0, 3.0], dtype=np.float32)
+        y_pred_b = np.array([1.0, 1.0, 2.0, 3.0], dtype=np.float32)
+        y_true_a = np.array([0.0, 1.0, 2.0, 3.0], dtype=np.float32)
+        y_true_b = np.array([1.0, 0.0, 2.0, 3.0], dtype=np.float32)
+        # The two y_true vectors only differ in the order of values that
+        # tie in y_pred — so the IC should be identical.
+        self.assertAlmostEqual(
+            compute_ic(y_pred_a, y_true_a),
+            compute_ic(y_pred_b, y_true_b),
+            places=6,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
