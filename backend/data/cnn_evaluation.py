@@ -32,25 +32,9 @@ def compute_ic(y_pred: np.ndarray, y_true: np.ndarray) -> float:
     s_true = pd.Series(y_true)
     if s_pred.nunique() < 2 or s_true.nunique() < 2:
         return 0.0
-
-    # Use pandas rank with average method to handle ties correctly
-    rank_pred = s_pred.rank(method="average").values
-    rank_true = s_true.rank(method="average").values
-
-    # Pearson correlation on ranks = Spearman correlation
-    mean_rank_pred = np.mean(rank_pred)
-    mean_rank_true = np.mean(rank_true)
-
-    numerator = np.sum((rank_pred - mean_rank_pred) * (rank_true - mean_rank_true))
-    denominator = np.sqrt(
-        np.sum((rank_pred - mean_rank_pred) ** 2)
-        * np.sum((rank_true - mean_rank_true) ** 2)
-    )
-
-    if denominator < 1e-12:
-        return 0.0
-
-    ic = numerator / denominator
+    # Pearson on average ranks = Spearman, and avoids scipy dependency
+    # (pd.Series.corr(method="spearman") imports scipy.stats internally)
+    ic = s_pred.rank(method="average").corr(s_true.rank(method="average"))
     return 0.0 if (ic is None or not math.isfinite(ic)) else float(ic)
 
 
