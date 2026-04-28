@@ -74,7 +74,7 @@ class TestBuildTrainingWindows(unittest.TestCase):
 
     def test_returns_arrays_for_labelled_data(self):
         df = _make_df(50)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.assertGreater(len(X), 0)
         self.assertEqual(len(X), len(y))
         self.assertEqual(len(X), len(w))
@@ -82,7 +82,7 @@ class TestBuildTrainingWindows(unittest.TestCase):
     def test_x_shape_is_N_channels_by_T(self):
         # Include macro cols so the full N_CHANNELS=14 channels are present
         df = _make_df(50, add_macro_cols=True)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.assertEqual(X.shape[1], N_CHANNELS)  # 14
         self.assertEqual(X.shape[2], WINDOW_SIZE)
 
@@ -90,58 +90,58 @@ class TestBuildTrainingWindows(unittest.TestCase):
         """Channel count degrades gracefully when optional columns are absent."""
         # No iv_rv, no agent, no RV → 4 channels (base source only: analyst/earnings/alpaca/yahoo)
         df_src = _make_df(50, add_iv_rv=False, add_agent_cols=False, add_rv_cols=False)
-        X_src, _, _ = build_training_windows(df_src, T=WINDOW_SIZE)
+        X_src, _, _, _ = build_training_windows(df_src, T=WINDOW_SIZE)
         self.assertEqual(X_src.shape[1], 4)
 
         # iv_rv + agent but no RV → 7 channels (5 source + 2 agent)
         df_agent = _make_df(50, add_iv_rv=True, add_agent_cols=True, add_rv_cols=False)
-        X_agent, _, _ = build_training_windows(df_agent, T=WINDOW_SIZE)
+        X_agent, _, _, _ = build_training_windows(df_agent, T=WINDOW_SIZE)
         self.assertEqual(X_agent.shape[1], 7)
 
         # All columns (no macro) → 9 channels (5 source + 2 agent + 2 RV)
         df_full = _make_df(50, add_iv_rv=True, add_agent_cols=True, add_rv_cols=True)
-        X_full, _, _ = build_training_windows(df_full, T=WINDOW_SIZE)
+        X_full, _, _, _ = build_training_windows(df_full, T=WINDOW_SIZE)
         self.assertEqual(X_full.shape[1], 9)
 
     def test_returns_empty_arrays_when_no_outcomes(self):
         df = _make_df(50, add_outcomes=False)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.assertEqual(len(X), 0)
 
     def test_no_nans_in_X(self):
         df = _make_df(50)
         df.loc[df.index[:5], "analyst_score"] = float("nan")
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.assertFalse(np.isnan(X).any())
 
     def test_y_clipped_to_20_pct(self):
         df = _make_df(50)
         df["return_1d"] = 0.50
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.assertTrue((y <= 0.20).all())
         self.assertTrue((y >= -0.20).all())
 
     def test_multi_symbol_aggregated(self):
         df = pd.concat([_make_df(40, "AAPL"), _make_df(40, "MSFT")], ignore_index=True)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.assertGreater(len(X), 40)
 
     def test_x_dtype_float32(self):
         df = _make_df(40)
-        X, _, _w = build_training_windows(df, T=WINDOW_SIZE)
+        X, _, _w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.assertEqual(X.dtype, np.float32)
 
     def test_sample_weights_higher_when_top_agent_correct(self):
         """Rows with top_agent_correct=1.0 get weight 1.0; incorrect get 0.5."""
         df = _make_df(50, add_agent_cols=True)
         df["top_agent_correct"] = 1.0   # all correct
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.assertTrue((w == 1.0).all(), f"Expected all 1.0, got: {w[:5]}")
 
     def test_sample_weights_neutral_when_no_top_agent_col(self):
         """Missing top_agent_correct column → all weights 0.75 (neutral)."""
         df = _make_df(50, add_agent_cols=False)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.assertTrue((w == 1.0).all())   # no agent col → uniform weight 1.0
 
     def test_zero_feature_columns_returns_empty_with_warning(self):
@@ -151,7 +151,7 @@ class TestBuildTrainingWindows(unittest.TestCase):
         # Drop all SOURCE_COLUMNS so n_feat == 0
         from data.signal_history import SOURCE_COLUMNS
         df = df.drop(columns=[c for c in SOURCE_COLUMNS if c in df.columns])
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.assertEqual(X.shape, (0, 0, WINDOW_SIZE))
         self.assertEqual(len(y), 0)
 
@@ -176,7 +176,7 @@ class TestSignalCNNPredict(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_predict_after_fit_returns_float(self):
         df = _make_df(120)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.model.fit(X, y, epochs=5)
         x = np.random.randn(N_CHANNELS, WINDOW_SIZE).astype(np.float32)
         pred, direction, conf = self.model.predict(x)
@@ -215,7 +215,7 @@ class TestSignalCNNFit(unittest.TestCase):
     def test_fit_accepts_sample_weights(self):
         """fit() with sample_weights does not raise and still trains."""
         df = _make_df(120)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         w[:len(w)//2] = 0.5
         self.model.fit(X, y, epochs=5, sample_weights=w)
         self.assertTrue(self.model.is_trained)
@@ -223,21 +223,21 @@ class TestSignalCNNFit(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_fit_with_none_weights_behaves_same_as_no_weights(self):
         df = _make_df(120)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.model.fit(X, y, epochs=5, sample_weights=None)
         self.assertTrue(self.model.is_trained)
 
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_fit_sets_trained_flag(self):
         df = _make_df(120)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.model.fit(X, y, epochs=5)
         self.assertTrue(self.model.is_trained)
 
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_fit_loss_decreases(self):
         df = _make_df(120)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         self.model.fit(X, y, epochs=30)
         losses = self.model._train_loss
         self.assertLess(losses[-1], losses[0])
@@ -259,7 +259,7 @@ class TestGetLearnedWeights(unittest.TestCase):
     def test_weights_sum_to_one_after_training(self):
         model = SignalCNN()
         df = _make_df(120)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         model.fit(X, y, epochs=5)
         weights = model.get_learned_weights()
         self.assertAlmostEqual(sum(weights.values()), 1.0, places=5)
@@ -268,7 +268,7 @@ class TestGetLearnedWeights(unittest.TestCase):
     def test_weights_are_non_negative(self):
         model = SignalCNN()
         df = _make_df(120)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         model.fit(X, y, epochs=5)
         for wv in model.get_learned_weights().values():
             self.assertGreaterEqual(wv, 0.0)
@@ -336,7 +336,7 @@ class TestEarningsReframedToMagnitude(unittest.TestCase):
             "iv_rv_score":     np.zeros(n),
             "return_1d":       np.full(n, 0.01),
         })
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         # Channel 1 == earnings (per SOURCE_COLUMNS order). All values must be
         # >= 0 — the abs transform ran.
         self.assertEqual(X.shape[0], len(y))
@@ -379,7 +379,7 @@ class TestSaveLoad(unittest.TestCase):
             try:
                 model_a = SignalCNN()
                 df = _make_df(120)
-                X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+                X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
                 model_a.fit(X, y, epochs=10)
                 model_a.save()
 
@@ -440,7 +440,7 @@ class TestTrainingSummary(unittest.TestCase):
     def test_val_loss_populated_after_training(self):
         """fit() must produce a non-empty val_loss_curve."""
         df    = _make_df(n_rows=120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
         s = model.training_summary()
@@ -451,7 +451,7 @@ class TestTrainingSummary(unittest.TestCase):
     def test_n_train_plus_n_val_equals_total(self):
         """Train + val sample counts must sum to total samples used."""
         df    = _make_df(n_rows=120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
         s = model.training_summary()
@@ -460,7 +460,7 @@ class TestTrainingSummary(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_overfit_ratio_is_positive(self):
         df    = _make_df(n_rows=120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
         s = model.training_summary()
@@ -469,7 +469,7 @@ class TestTrainingSummary(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_diagnosis_is_valid_string(self):
         df    = _make_df(n_rows=120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
         valid = {"OK", "OVERFIT", "OVERFIT_MEMORIZING", "UNDERFIT", "UNTRAINED"}
@@ -479,7 +479,7 @@ class TestTrainingSummary(unittest.TestCase):
     def test_val_loss_persisted_through_save_load(self):
         """Val loss curve must survive a save/load round-trip."""
         df    = _make_df(n_rows=120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
         original_val = model.training_summary()["val_loss_curve"]
@@ -514,7 +514,7 @@ class TestTrainingHistoryPersistence(unittest.TestCase):
     def _train_and_save(self, tmpdir):
         cm._MODEL_PATH = os.path.join(tmpdir, "signal_cnn.pt")
         df = _make_df(n_rows=120)
-        X, y, _ = build_training_windows(df)
+        X, y, _, _ = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=3)
         model.save()
@@ -567,7 +567,7 @@ class TestTrainingHistoryPersistence(unittest.TestCase):
             try:
                 cm._MODEL_PATH = os.path.join(tmpdir, "signal_cnn.pt")
                 df = _make_df(n_rows=120)
-                X, y, _ = build_training_windows(df)
+                X, y, _, _ = build_training_windows(df)
                 m1 = SignalCNN(); m1.fit(X, y, epochs=2); m1.save()
                 m2 = SignalCNN(); m2.fit(X, y, epochs=2)
                 m2._train_ts = m1._train_ts + 1.0   # force strictly later
@@ -595,7 +595,7 @@ class TestTrainingHistoryPersistence(unittest.TestCase):
             try:
                 cm._MODEL_PATH = os.path.join(tmpdir, "signal_cnn.pt")
                 df = _make_df(n_rows=120)
-                X, y, _ = build_training_windows(df)
+                X, y, _, _ = build_training_windows(df)
                 base_ts = None
                 for i in range(3):
                     m = SignalCNN()
@@ -681,7 +681,7 @@ class TestGatedConv1d(unittest.TestCase):
         """End-to-end: GLU model must fit without error and return valid predictions."""
         model = SignalCNN()
         df = _make_df(120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model.fit(X, y, epochs=5, sample_weights=w)
         self.assertTrue(model.is_trained)
         x = np.random.randn(N_CHANNELS, WINDOW_SIZE).astype(np.float32)
@@ -699,7 +699,7 @@ class TestGatedConv1d(unittest.TestCase):
             try:
                 model_a = SignalCNN()
                 df = _make_df(120)
-                X, y, w = build_training_windows(df)
+                X, y, w, _ = build_training_windows(df)
                 model_a.fit(X, y, epochs=5, sample_weights=w)
                 model_a.save()
 
@@ -721,7 +721,7 @@ class TestGatedConv1d(unittest.TestCase):
         """get_learned_weights() must still sum to 1.0 with GLU first layer."""
         model = SignalCNN()
         df = _make_df(120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model.fit(X, y, epochs=5, sample_weights=w)
         weights = model.get_learned_weights()
         self.assertAlmostEqual(sum(weights.values()), 1.0, places=5)
@@ -786,7 +786,7 @@ class TestWalkForwardEfficiency(unittest.TestCase):
     def test_wfe_is_float_after_training(self):
         """After fit(), WFE should be a float."""
         df = _make_df(n_rows=120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
         s = model.training_summary()
@@ -796,7 +796,7 @@ class TestWalkForwardEfficiency(unittest.TestCase):
     def test_wfe_bounded_below_minus_10(self):
         """WFE >= -10.0 even for a very bad model (sanity clamp)."""
         df = _make_df(n_rows=120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=2, sample_weights=w)
         s = model.training_summary()
@@ -806,7 +806,7 @@ class TestWalkForwardEfficiency(unittest.TestCase):
     def test_wfe_persisted_through_save_load(self):
         """WFE value survives a save/load round-trip."""
         df = _make_df(n_rows=120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
         original_wfe = model.training_summary()["walk_forward_efficiency"]
@@ -828,7 +828,7 @@ class TestWalkForwardEfficiency(unittest.TestCase):
     def test_wfe_status_is_valid_string(self):
         """wfe_status must be one of the expected strings after training."""
         df = _make_df(n_rows=120)
-        X, y, w = build_training_windows(df)
+        X, y, w, _ = build_training_windows(df)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
         valid = {"HEALTHY", "DEGRADED", "POOR", "UNTRAINED"}
@@ -920,7 +920,7 @@ class TestTrainingImprovements(unittest.TestCase):
     def test_val_split_is_chronological(self):
         """Validation set must be the last 20% (chronological, not random)."""
         df = _make_df(150)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         model = SignalCNN()
         model.fit(X, y, epochs=3, sample_weights=w)
         N = len(X)
@@ -933,7 +933,7 @@ class TestTrainingImprovements(unittest.TestCase):
     def test_scheduler_attached_after_fit(self):
         """_scheduler must be non-None after fit() completes."""
         df = _make_df(150)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         model = SignalCNN()
         model.fit(X, y, epochs=5, sample_weights=w)
         self.assertIsNotNone(model._scheduler)
@@ -942,7 +942,7 @@ class TestTrainingImprovements(unittest.TestCase):
     def test_early_stopping_accepts_patience_param(self):
         """fit() must accept a patience parameter without error."""
         df = _make_df(150)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         model = SignalCNN()
         model.fit(X, y, epochs=20, patience=5, sample_weights=w)
         self.assertTrue(model.is_trained)
@@ -951,7 +951,7 @@ class TestTrainingImprovements(unittest.TestCase):
     def test_early_stop_epoch_in_summary(self):
         """training_summary() must include early_stop_epoch after fit()."""
         df = _make_df(150)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         model = SignalCNN()
         model.fit(X, y, epochs=10, sample_weights=w)
         s = model.training_summary()
@@ -962,12 +962,53 @@ class TestTrainingImprovements(unittest.TestCase):
     def test_early_stopping_stops_before_max_epochs(self):
         """With small patience, training must stop before all epochs when val stalls."""
         df = _make_df(150)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
         model = SignalCNN()
         max_epochs = 200
         model.fit(X, y, epochs=max_epochs, patience=3, sample_weights=w)
         # With patience=3 on noisy random data, should stop well before 200 epochs
         self.assertLess(model._early_stop_epoch, max_epochs)
+
+
+class TestBuildTrainingWindowsReturnsTimestamps(unittest.TestCase):
+    """build_training_windows must return per-window snapshot timestamps for walk-forward CV."""
+
+    def test_returns_four_element_tuple(self):
+        import pandas as pd
+        from data.cnn_model import build_training_windows, WINDOW_SIZE
+
+        n = 12
+        df = pd.DataFrame({
+            "symbol":          ["AAPL"] * n,
+            "snapshot_ts":     np.arange(n, dtype=np.float64) * 86400.0,
+            "analyst_score":   np.zeros(n),
+            "earnings_score":  np.zeros(n),
+            "alpaca_score":    np.zeros(n),
+            "yahoo_score":     np.zeros(n),
+            "iv_rv_score":     np.zeros(n),
+            "return_1d":       np.linspace(-0.01, 0.01, n),
+        })
+        result = build_training_windows(df, T=WINDOW_SIZE)
+        self.assertEqual(len(result), 4, "expected (X, y, w, t)")
+
+    def test_timestamps_match_row_count(self):
+        import pandas as pd
+        from data.cnn_model import build_training_windows, WINDOW_SIZE
+
+        n = 15
+        df = pd.DataFrame({
+            "symbol":          ["AAPL"] * n,
+            "snapshot_ts":     np.arange(n, dtype=np.float64) * 86400.0,
+            "analyst_score":   np.zeros(n),
+            "earnings_score":  np.zeros(n),
+            "alpaca_score":    np.zeros(n),
+            "yahoo_score":     np.zeros(n),
+            "iv_rv_score":     np.zeros(n),
+            "return_1d":       np.full(n, 0.001),
+        })
+        X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
+        self.assertEqual(len(X), len(t))
+        self.assertEqual(len(y), len(t))
 
 
 if __name__ == "__main__":

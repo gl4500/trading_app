@@ -354,9 +354,9 @@ def _build_net(n_channels: int = N_CHANNELS) -> "nn.Module":
 def build_training_windows(
     df: pd.DataFrame,
     T: int = WINDOW_SIZE,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Convert a labelled history DataFrame into (X, y, w) numpy arrays.
+    Convert a labelled history DataFrame into (X, y, w, t) numpy arrays.
 
     Parameters
     ----------
@@ -370,12 +370,12 @@ def build_training_windows(
 
     Returns
     -------
-    X : (N, C, T)  float32  — C = 9 (5 source + 2 agent + 2 RV) when all
-                               columns present; degrades gracefully when older
-                               Parquet files lack agent/RV columns.
+    X : (N, C, T)  float32  — feature windows
     y : (N,)       float32  — 1-day forward returns (clipped to ±20%)
     w : (N,)       float32  — sample weights (1.0 default; higher when top
-                               agent was confirmed correct)
+                              agent was confirmed correct)
+    t : (N,)       float64  — snapshot_ts of each window's last row,
+                              for walk-forward CV
     """
     from data.signal_history import (  # avoid circular
         SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS,
@@ -390,7 +390,6 @@ def build_training_windows(
     has_agent = all(c in df.columns for c in AGENT_COLUMNS)
     has_rv    = all(c in df.columns for c in RV_COLUMNS)
     has_macro = all(c in df.columns for c in MACRO_CHANNEL_NAMES)
-    # Source columns: filter to those present — old Parquet files may lack iv_rv_score
     feat_cols = [c for c in SOURCE_COLUMNS if c in df.columns]
     if has_agent:
         feat_cols = feat_cols + AGENT_COLUMNS
@@ -405,21 +404,22 @@ def build_training_windows(
             np.empty((0, 0, T), dtype=np.float32),
             np.empty(0, dtype=np.float32),
             np.empty(0, dtype=np.float32),
+            np.empty(0, dtype=np.float64),
         )
 
     X_list: List[np.ndarray] = []
     y_list: List[float]      = []
     w_list: List[float]      = []
+    t_list: List[float]      = []
 
     for symbol, grp in df.groupby("symbol"):
         grp    = grp.sort_values("snapshot_ts").reset_index(drop=True)
-        feats  = grp[feat_cols].values.astype(np.float32)         # (n, C)
-        rets   = grp["return_1d"].values.astype(np.float32)        # (n,)
+        feats  = grp[feat_cols].values.astype(np.float32)
+        rets   = grp["return_1d"].values.astype(np.float32)
+        ts     = grp["snapshot_ts"].values.astype(np.float64)
 
-        # Sample weights: boost rows where top agent was confirmed correct
         if "top_agent_correct" in grp.columns:
             correct = grp["top_agent_correct"].values.astype(float)
-            # weight = 0.5 (wrong) + 0.5 (correct) = 1.0 max; NaN → 0.75 (neutral)
             weights = np.where(np.isnan(correct), 0.75,
                                np.where(correct == 1.0, 1.0, 0.5))
         else:
@@ -429,26 +429,29 @@ def build_training_windows(
             if np.isnan(rets[i]):
                 continue
             start  = max(0, i - T + 1)
-            window = feats[start : i + 1]                          # (≤T, C)
+            window = feats[start : i + 1]
             if len(window) < T:
                 pad    = np.zeros((T - len(window), n_feat), dtype=np.float32)
                 window = np.vstack([pad, window])
             window = np.nan_to_num(window, nan=0.0)
-            X_list.append(window.T)                                # (C, T)
+            X_list.append(window.T)
             y_list.append(float(np.clip(rets[i], -0.20, 0.20)))
             w_list.append(float(weights[i]))
+            t_list.append(float(ts[i]))
 
     if not X_list:
         return (
             np.empty((0, n_feat, T), dtype=np.float32),
             np.empty(0, dtype=np.float32),
             np.empty(0, dtype=np.float32),
+            np.empty(0, dtype=np.float64),
         )
 
     return (
         np.stack(X_list).astype(np.float32),
         np.array(y_list, dtype=np.float32),
         np.array(w_list, dtype=np.float32),
+        np.array(t_list, dtype=np.float64),
     )
 
 

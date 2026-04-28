@@ -119,12 +119,12 @@ class CNNReasoningAgent(BaseAgent):
                     f"(need {MIN_TRAIN_SAMPLES}) — skipping training"
                 )
                 return
-            X, y, w = build_training_windows(df)
+            X, y, w, t = build_training_windows(df)
             if len(X) < MIN_TRAIN_SAMPLES:
                 return
             # Use sample weights so rows where top-performing agents were
             # confirmed correct have higher training influence
-            signal_cnn.fit(X, y, epochs=80, batch_size=32, sample_weights=w)
+            signal_cnn.fit(X, y, t, epochs=80, batch_size=32, sample_weights=w)
             signal_cnn.save()
             summary = signal_cnn.training_summary()
             logger.info(
