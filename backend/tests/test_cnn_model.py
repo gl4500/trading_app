@@ -1078,5 +1078,40 @@ class TestFitProducesWalkforwardMetrics(unittest.TestCase):
         self.assertLessEqual(len(summary["calibration"]), 5)
 
 
+class TestTrainingHistoryRecordSchema(unittest.TestCase):
+    """save() appends a record with walk-forward metrics."""
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_record_has_walkforward_fields(self):
+        import json
+        import os
+        import tempfile
+        from unittest.mock import patch
+
+        from data.cnn_model import SignalCNN
+
+        rng = np.random.default_rng(0)
+        n, c, T = 600, 10, 10
+        X = rng.standard_normal((n, c, T)).astype(np.float32) * 0.5
+        y = (X[:, 0, :].mean(axis=1) * 0.05).astype(np.float32)
+        t = np.linspace(0, 90 * 86400.0, n, dtype=np.float64)
+
+        with tempfile.TemporaryDirectory() as td:
+            model_path = os.path.join(td, "signal_cnn.pt")
+            with patch("data.cnn_model._MODEL_PATH", model_path):
+                cnn = SignalCNN(T=T, n_channels=c)
+                cnn.fit(X, y, t, epochs=3, batch_size=32, n_folds=3, min_val_days=14)
+                cnn.save()
+
+                history_path = os.path.join(td, "training_history.jsonl")
+                self.assertTrue(os.path.exists(history_path))
+                with open(history_path) as f:
+                    rec = json.loads(f.readlines()[-1])
+
+        for key in ("fold_metrics", "mean_ic", "ir", "mean_wfe", "calibration"):
+            self.assertIn(key, rec)
+        self.assertEqual(len(rec["fold_metrics"]), 3)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2211,6 +2211,12 @@ async def get_cnn_diagnostics():
         "regime": regime_detector.summary(),
         # Last 30 retrains (oldest → newest) for day-over-day trajectory
         "training_history": load_training_history(limit=30),
+        # Walk-forward CV metrics (added 2026-04-27)
+        "fold_metrics":   summary["fold_metrics"],
+        "mean_ic":        summary["mean_ic"],
+        "ir":             summary["ir"],
+        "mean_wfe":       summary["mean_wfe"],
+        "calibration":    summary["calibration"],
     }
 
 

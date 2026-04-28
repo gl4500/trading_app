@@ -823,6 +823,12 @@ class SignalCNN:
                 "wfe_status":       self._wfe_status,
                 "learned_weights":  weights,
                 "weight_delta":     delta,
+                # Walk-forward CV metrics (added 2026-04-27)
+                "fold_metrics":     self._fold_metrics,
+                "mean_ic":          self._mean_ic,
+                "ir":               self._ir,
+                "mean_wfe":         self._mean_wfe,
+                "calibration":      self._calibration,
             })
 
     def load(self) -> bool:
