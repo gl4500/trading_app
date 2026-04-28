@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from data.cnn_evaluation import compute_ic, compute_ir
+from data.cnn_evaluation import compute_ic, compute_ir, compute_calibration
 
 
 class TestComputeIC(unittest.TestCase):
@@ -81,6 +81,40 @@ class TestComputeICTieHandling(unittest.TestCase):
             compute_ic(y_pred_b, y_true_b),
             places=6,
         )
+
+
+class TestComputeCalibration(unittest.TestCase):
+    """Quintile calibration: bucket predictions, compare mean pred vs mean realized per bucket."""
+
+    def test_perfect_calibration(self):
+        # If pred == true exactly, every bucket has mean_pred ≈ mean_actual
+        rng = np.random.default_rng(7)
+        y = rng.standard_normal(1000).astype(np.float32) * 0.02
+        buckets = compute_calibration(y, y, n_buckets=5)
+        self.assertEqual(len(buckets), 5)
+        for b in buckets:
+            self.assertAlmostEqual(b["mean_pred"], b["mean_actual"], places=4)
+            self.assertGreater(b["count"], 0)
+
+    def test_bucket_count_matches_request(self):
+        rng = np.random.default_rng(0)
+        pred = rng.standard_normal(500)
+        true = rng.standard_normal(500)
+        buckets = compute_calibration(pred, true, n_buckets=5)
+        self.assertEqual(len(buckets), 5)
+        self.assertEqual(sum(b["count"] for b in buckets), 500)
+
+    def test_empty_input_returns_empty_list(self):
+        self.assertEqual(compute_calibration(np.array([]), np.array([])), [])
+
+    def test_buckets_ordered_by_predicted_quantile(self):
+        # Bucket 0 should have lowest mean_pred, bucket -1 highest
+        rng = np.random.default_rng(1)
+        pred = rng.standard_normal(1000)
+        true = rng.standard_normal(1000)
+        buckets = compute_calibration(pred, true, n_buckets=5)
+        means = [b["mean_pred"] for b in buckets]
+        self.assertEqual(means, sorted(means))
 
 
 if __name__ == "__main__":
