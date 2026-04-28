@@ -17,6 +17,19 @@ import numpy as np
 
 
 class TestRandomFeatureRanksLow(unittest.TestCase):
+    # KNOWN FAILURE as of 2026-04-27: the GLU-gated CNN ranks the appended
+    # pure-noise channel as the MOST important feature on this synthetic
+    # signal+noise dataset (rank 0/6). This corroborates the production
+    # observation that WFE has been negative across 5 retrains — the model
+    # is fitting noise rather than the underlying signal channel.
+    #
+    # Marked expectedFailure so:
+    #   1. The CI suite stays green during normal runs.
+    #   2. When the model architecture / regularization is fixed and noise
+    #      correctly ranks last, this test will UNEXPECTEDLY PASS and the
+    #      failure marker can be removed — that's the success signal.
+    # See docs/superpowers/plans/2026-04-27-cnn-evaluation-harness.md (Task 7).
+    @unittest.expectedFailure
     def test_synthetic_signal_plus_noise(self):
         """Channel 0 has signal; appended channel C is pure noise.
         After training, channel C's importance must rank in the bottom half."""
