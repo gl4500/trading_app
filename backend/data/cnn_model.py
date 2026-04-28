@@ -183,8 +183,12 @@ def load_training_history(limit: Optional[int] = None) -> List[Dict]:
         return records[-limit:]
     return records
 
-MIN_TRAIN_SAMPLES = 100  # minimum labelled rows before training starts
-WINDOW_SIZE       = 10   # T: rolling window length fed to the CNN
+MIN_TRAIN_SAMPLES             = 100  # minimum labelled rows before training starts
+WINDOW_SIZE                   = 10   # T: rolling window length fed to the CNN
+WALKFORWARD_FOLDS             = 3
+WALKFORWARD_MIN_VAL_DAYS      = 14
+WALKFORWARD_EMBARGO_BARS      = 1
+_SECS_PER_DAY                 = 86_400.0
 
 
 def _compute_wfe(
@@ -482,6 +486,11 @@ class SignalCNN:
         self._wfe_status:       str = "UNTRAINED"        # HEALTHY / DEGRADED / POOR / UNTRAINED
         self._scheduler                        = None    # ReduceLROnPlateau instance
         self._dev                              = _device()
+        self._fold_metrics:     List[Dict] = []
+        self._mean_ic:          Optional[float] = None
+        self._ir:               Optional[float] = None
+        self._mean_wfe:         Optional[float] = None
+        self._calibration:      List[Dict] = []
 
         if HAS_TORCH:
             self._net = _build_glu_net(n_channels).to(self._dev)
@@ -497,27 +506,32 @@ class SignalCNN:
         self,
         X: np.ndarray,
         y: np.ndarray,
+        t: np.ndarray,
         epochs: int = 80,
         batch_size: int = 32,
         sample_weights: Optional[np.ndarray] = None,
         patience: int = 15,
+        n_folds: int = WALKFORWARD_FOLDS,
+        min_val_days: int = WALKFORWARD_MIN_VAL_DAYS,
+        embargo_bars: int = WALKFORWARD_EMBARGO_BARS,
     ) -> None:
         """
-        Train on (X, y) arrays from build_training_windows().
-        Runs entirely in the calling thread — use asyncio.to_thread() for
-        non-blocking execution from async code.
+        Train using walk-forward cross-validation.
 
-        Parameters
-        ----------
-        X              : (N, C, T) float32
-        y              : (N,)      float32
-        sample_weights : (N,)      float32, optional — rows where the top
-                         agent was confirmed correct get weight 1.0;
-                         incorrect rows get 0.5; unknown rows get 0.75.
-                         When None, all samples are weighted equally.
-        patience       : int — early stopping: stop if val loss doesn't
-                         improve for this many consecutive epochs.
+        For each of `n_folds` folds, train a fresh net on the fold's train set
+        and evaluate on its val set. The FINAL fold's trained net is the one
+        kept on `self._net` (it has the most data + most recent training).
+
+        Aggregate metrics across folds:
+          mean_wfe : average OOS R² across folds (more stable than single split)
+          mean_ic  : average Spearman rank corr across folds
+          ir       : mean(IC) / std(IC) — edge stability
+          calibration : quintile buckets from the last fold's val predictions
         """
+        from data.cnn_evaluation import (
+            compute_ic, compute_ir, compute_calibration, walkforward_folds,
+        )
+
         if not HAS_TORCH or self._net is None:
             logger.warning("SignalCNN.fit: torch not available, skipping training")
             return
@@ -525,7 +539,6 @@ class SignalCNN:
             logger.info(f"SignalCNN.fit: only {len(X)} samples (need {MIN_TRAIN_SAMPLES}), skipping")
             return
 
-        # Rebuild net if channel count changed (e.g. first run with agent cols)
         actual_channels = X.shape[1]
         if actual_channels != self._n_channels:
             logger.info(
@@ -537,125 +550,151 @@ class SignalCNN:
             self._net = _build_glu_net(actual_channels).to(self._dev)
             self._opt = optim.AdamW(self._net.parameters(), lr=lr, weight_decay=1e-4)
 
-        # ── Chronological train / validation split (80 / 20) ─────────────────
-        # Val set is the LAST 20% of samples to avoid temporal data leakage.
-        # Random shuffling across time would let the model train on future data,
-        # inflating val metrics and producing a model that doesn't generalise.
-        N       = len(X)
-        n_val   = max(5, int(N * 0.2))
-        n_train = N - n_val
-
-        train_idx = torch.arange(0, n_train)
-        val_idx   = torch.arange(n_train, N)
-        self._split_idx = n_train   # expose for tests / diagnostics
-
-        X_all = torch.from_numpy(X).to(self._dev)                    # (N, C, T)
-        y_all = torch.from_numpy(y).unsqueeze(1).to(self._dev)        # (N, 1)
-        w_all = torch.from_numpy(
-            sample_weights.astype(np.float32)
-        ).unsqueeze(1).to(self._dev) if sample_weights is not None else None
-
-        X_train, y_train = X_all[train_idx], y_all[train_idx]
-        X_val,   y_val   = X_all[val_idx],   y_all[val_idx]
-        w_train          = w_all[train_idx] if w_all is not None else None
-
-        dataset = (
-            TensorDataset(X_train, y_train)
-            if w_train is None
-            else TensorDataset(X_train, y_train, w_train)
+        folds = walkforward_folds(
+            t, n_folds=n_folds,
+            min_val_days=min_val_days,
+            embargo_bars=embargo_bars,
         )
-        loader  = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=False)
-        loss_fn = nn.MSELoss(reduction="none")
+        if not folds:
+            logger.warning(
+                f"SignalCNN.fit: dataset too short for {n_folds} folds × "
+                f"{min_val_days}d val — skipping training"
+            )
+            return
 
-        # ── LR scheduler ─────────────────────────────────────────────────────
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            self._opt, mode="min", factor=0.5, patience=5, min_lr=1e-6
-        )
+        fold_metrics: List[Dict] = []
+        ics: List[float] = []
+        wfes: List[float] = []
+        last_val_pred: List[float] = []
+        last_val_true: List[float] = []
+        last_train_loss: List[float] = []
+        last_val_loss:   List[float] = []
+        last_n_train = 0
+        last_n_val   = 0
+        last_actual_epochs = 0
 
-        train_losses: List[float] = []
-        val_losses:   List[float] = []
+        for fold_i, (tr_idx, va_idx) in enumerate(folds):
+            net = _build_glu_net(actual_channels).to(self._dev)
+            opt = optim.AdamW(net.parameters(), lr=3e-4, weight_decay=1e-4)
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                opt, mode="min", factor=0.5, patience=5, min_lr=1e-6
+            )
 
-        # ── Early stopping state ──────────────────────────────────────────────
-        best_val_loss    = float("inf")
-        no_improve_count = 0
-        actual_epochs    = 0
+            X_train = torch.from_numpy(X[tr_idx]).to(self._dev)
+            y_train = torch.from_numpy(y[tr_idx]).unsqueeze(1).to(self._dev)
+            X_val   = torch.from_numpy(X[va_idx]).to(self._dev)
+            y_val   = torch.from_numpy(y[va_idx]).unsqueeze(1).to(self._dev)
+            w_train = (
+                torch.from_numpy(sample_weights[tr_idx].astype(np.float32))
+                     .unsqueeze(1).to(self._dev)
+                if sample_weights is not None else None
+            )
 
-        self._net.train()
-        for epoch in range(epochs):
-            # ── training step ──────────────────────────────────────────────
-            total, n = 0.0, 0
-            for batch in loader:
-                xb, yb = batch[0], batch[1]
-                wb     = batch[2] if len(batch) == 3 else None
-                self._opt.zero_grad()
-                pred     = self._net(xb)
-                per_loss = loss_fn(pred, yb)
-                loss     = (per_loss * wb).mean() if wb is not None else per_loss.mean()
-                loss.backward()
-                nn.utils.clip_grad_norm_(self._net.parameters(), max_norm=1.0)
-                self._opt.step()
-                total += loss.item() * len(xb)
-                n     += len(xb)
-            train_losses.append(total / n)
+            ds = (TensorDataset(X_train, y_train) if w_train is None
+                  else TensorDataset(X_train, y_train, w_train))
+            loader  = DataLoader(ds, batch_size=batch_size, shuffle=True, drop_last=False)
+            loss_fn = nn.MSELoss(reduction="none")
 
-            # ── validation step (no gradient) ──────────────────────────────
-            self._net.eval()
+            train_losses: List[float] = []
+            val_losses:   List[float] = []
+            best_val   = float("inf")
+            no_improve = 0
+            actual_epochs = 0
+
+            net.train()
+            for epoch in range(epochs):
+                total, n_seen = 0.0, 0
+                for batch in loader:
+                    xb, yb = batch[0], batch[1]
+                    wb = batch[2] if len(batch) == 3 else None
+                    opt.zero_grad()
+                    pred     = net(xb)
+                    per_loss = loss_fn(pred, yb)
+                    loss     = (per_loss * wb).mean() if wb is not None else per_loss.mean()
+                    loss.backward()
+                    nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
+                    opt.step()
+                    total  += loss.item() * len(xb)
+                    n_seen += len(xb)
+                train_losses.append(total / max(1, n_seen))
+
+                net.eval()
+                with torch.no_grad():
+                    val_pred = net(X_val)
+                    val_mse  = float(loss_fn(val_pred, y_val).mean().item())
+                val_losses.append(val_mse)
+                net.train()
+                scheduler.step(val_mse)
+
+                actual_epochs = epoch + 1
+                if val_mse < best_val - 1e-6:
+                    best_val   = val_mse
+                    no_improve = 0
+                else:
+                    no_improve += 1
+                if no_improve >= patience:
+                    break
+
+            net.eval()
             with torch.no_grad():
-                val_pred = self._net(X_val)
-                val_mse  = float(loss_fn(val_pred, y_val).mean().item())
-            val_losses.append(val_mse)
-            self._net.train()
+                vp = net(X_val).squeeze().cpu().numpy().reshape(-1)
+            vt = y_val.squeeze().cpu().numpy().reshape(-1)
+            wfe_val, _ = _compute_wfe(vt.tolist(), vp.tolist())
+            ic_val = compute_ic(vp, vt)
+            val_window_days = float((t[va_idx].max() - t[va_idx].min()) / _SECS_PER_DAY)
 
-            # ── LR scheduler step ──────────────────────────────────────────
-            scheduler.step(val_mse)
+            fold_metrics.append({
+                "fold":            fold_i,
+                "n_train":         int(len(tr_idx)),
+                "n_val":           int(len(va_idx)),
+                "val_window_days": round(val_window_days, 2),
+                "val_mse":         float(val_losses[-1]) if val_losses else None,
+                "wfe":             wfe_val,
+                "ic":              ic_val,
+                "epochs":          actual_epochs,
+            })
+            if wfe_val is not None:
+                wfes.append(wfe_val)
+            ics.append(ic_val)
 
-            # ── Early stopping check ────────────────────────────────────────
-            actual_epochs = epoch + 1
-            if val_mse < best_val_loss - 1e-6:
-                best_val_loss    = val_mse
-                no_improve_count = 0
-            else:
-                no_improve_count += 1
-            if no_improve_count >= patience:
-                logger.info(
-                    f"SignalCNN: early stopping at epoch {actual_epochs} "
-                    f"(no val improvement for {patience} consecutive epochs)"
-                )
-                break
+            if fold_i == len(folds) - 1:
+                self._net = net
+                self._opt = opt
+                self._scheduler = scheduler
+                last_train_loss   = train_losses
+                last_val_loss     = val_losses
+                last_n_train      = int(len(tr_idx))
+                last_n_val        = int(len(va_idx))
+                last_actual_epochs = actual_epochs
+                last_val_pred = vp.tolist()
+                last_val_true = vt.tolist()
 
-        self._train_loss        = train_losses
-        self._val_loss          = val_losses
-        self._n_train           = n_train
-        self._n_val             = n_val
+        # Aggregate metrics
+        self._fold_metrics = fold_metrics
+        self._mean_ic      = float(np.mean(ics)) if ics else 0.0
+        self._ir           = compute_ir(ics)
+        self._mean_wfe     = float(np.mean(wfes)) if wfes else None
+        self._calibration  = compute_calibration(
+            np.asarray(last_val_pred), np.asarray(last_val_true), n_buckets=5
+        )
+
+        # Last-fold legacy fields (used by /api/cnn-diagnostics + checkpoint)
+        self._train_loss        = last_train_loss
+        self._val_loss          = last_val_loss
+        self._n_train           = last_n_train
+        self._n_val             = last_n_val
         self._trained           = True
         self._train_ts          = time.time()
-        self._scheduler         = scheduler
-        self._early_stop_epoch  = actual_epochs
+        self._early_stop_epoch  = last_actual_epochs
+        self._wfe, self._wfe_status = _compute_wfe(last_val_true, last_val_pred)
+        self._split_idx         = last_n_train
 
-        final_train   = train_losses[-1]
-        final_val     = val_losses[-1]
-        overfit_ratio = final_val / final_train if final_train > 1e-10 else float("inf")
-        diagnosis     = _diagnose(final_train, final_val, overfit_ratio)
-
-        # ── Walk-Forward Efficiency (OOS R²) ──────────────────────────────────
-        # Run the trained model on the held-out validation set and compute R².
-        self._net.eval()
-        with torch.no_grad():
-            val_preds_t = self._net(X_val).squeeze().cpu().tolist()
-        y_val_list = y_val.squeeze().cpu().tolist()
-        if not isinstance(val_preds_t, list):
-            val_preds_t = [float(val_preds_t)]
-        if not isinstance(y_val_list, list):
-            y_val_list = [float(y_val_list)]
-        self._wfe, self._wfe_status = _compute_wfe(y_val_list, val_preds_t)
-
-        dev_name = str(self._dev) if self._dev else "cpu"
+        mean_ic_str = f"{self._mean_ic:.4f}" if self._mean_ic is not None else "n/a"
+        ir_str      = f"{self._ir:.2f}"      if self._ir      is not None else "n/a"
         logger.info(
-            f"SignalCNN: trained {actual_epochs}/{epochs} epochs | "
-            f"train={n_train} val={n_val} ({dev_name}) | "
-            f"train_MSE={final_train:.6f} val_MSE={final_val:.6f} "
-            f"ratio={overfit_ratio:.2f} | {diagnosis} | "
-            f"WFE={self._wfe} [{self._wfe_status}]"
+            f"SignalCNN: walk-forward fit complete | folds={len(folds)} | "
+            f"mean_WFE={self._mean_wfe} mean_IC={mean_ic_str} IR={ir_str} | "
+            f"last_fold WFE={self._wfe} [{self._wfe_status}]"
         )
 
     # ── inference ─────────────────────────────────────────────────────────────
@@ -881,6 +920,12 @@ class SignalCNN:
             "weight_delta":    delta,
             # Legacy key kept for backward compatibility
             "final_mse":       final_train,
+            # Walk-forward CV metrics (added 2026-04-27)
+            "fold_metrics":  self._fold_metrics,
+            "mean_ic":       self._mean_ic if self._mean_ic is not None else 0.0,
+            "ir":            self._ir if self._ir is not None else 0.0,
+            "mean_wfe":      self._mean_wfe,
+            "calibration":   self._calibration,
         }
 
 
