@@ -519,6 +519,30 @@ class CNNReasoningAgent(BaseAgent):
                 raw_pct  = decision.get("size_pct")
                 size_pct = float(raw_pct) if raw_pct is not None else 0.10
                 size_pct = max(0.02, min(config.MAX_POSITION_SIZE, size_pct))
+
+                # Lone-wolf discount (Backlog 0.6): if fewer than
+                # LONEWOLF_MIN_CORROBORATORS other agents are also signaling BUY
+                # on this symbol, scale size by LONEWOLF_MULTIPLIER. Caps damage
+                # when the CNN's noise-fitting tendency produces false positives
+                # that the rest of the ensemble doesn't see.
+                corroborators = sum(
+                    1 for (a, c) in (other_agent_signals or {}).values()
+                    if a == "BUY"
+                )
+                lonewolf_marker = ""
+                if corroborators < config.LONEWOLF_MIN_CORROBORATORS:
+                    pre_size = size_pct
+                    size_pct = max(0.02, size_pct * config.LONEWOLF_MULTIPLIER)
+                    lonewolf_marker = (
+                        f" [LONE-WOLF: {corroborators} BUY corroborator(s) "
+                        f"< {config.LONEWOLF_MIN_CORROBORATORS}, "
+                        f"size_pct {pre_size:.0%} → {size_pct:.0%}]"
+                    )
+                    logger.info(
+                        f"CNNReasoningAgent [{symbol}]: lone-wolf discount "
+                        f"({corroborators} BUY corroborators) {pre_size:.0%} → {size_pct:.0%}"
+                    )
+
                 alloc    = min(portfolio_val * size_pct, self.portfolio.cash * 0.95)
                 shares   = max(1, int(alloc / price))
                 signals.append(Signal(
@@ -526,7 +550,7 @@ class CNNReasoningAgent(BaseAgent):
                     action    = "BUY",
                     shares    = shares,
                     confidence = confidence,
-                    reasoning  = f"CNN+Ollama: {reasoning}",
+                    reasoning  = f"CNN+Ollama: {reasoning}{lonewolf_marker}",
                     agent_name = self.name,
                 ))
             elif action == "SELL" and symbol in self.portfolio.positions:

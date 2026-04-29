@@ -94,6 +94,16 @@ class Config:
     # Set HARD_STOP_PCT=0 (or any negative) to disable.
     HARD_STOP_PCT: float = float(os.getenv("HARD_STOP_PCT", "0.08"))
 
+    # Lone-wolf BUY discount (Backlog 0.6, 2026-04-29):
+    # When CNNReasoningAgent fires a BUY but fewer than LONEWOLF_MIN_CORROBORATORS
+    # other agents agree on the same symbol, multiply the position size by
+    # LONEWOLF_MULTIPLIER. CNN's WFE has been negative across retrains, so
+    # uncorroborated BUYs are exactly the trades most likely to be noise-driven
+    # false positives. Halving the size limits damage when the model is wrong
+    # without blocking lone-wolf trades entirely.
+    LONEWOLF_MIN_CORROBORATORS: int   = int(os.getenv("LONEWOLF_MIN_CORROBORATORS", "2"))
+    LONEWOLF_MULTIPLIER:        float = float(os.getenv("LONEWOLF_MULTIPLIER", "0.5"))
+
     # Watchlist — static seed symbols used as fallback when the scanner pool is small.
     # Set WATCHLIST=* to disable static seeds entirely — the watchlist is then built
     # solely from scanner recommendations and momentum candidates (agent-driven).

@@ -200,6 +200,60 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
         finally:
             signal_cnn._mean_wfe = original_mean_wfe
 
+    async def test_lonewolf_discount_when_no_corroborators(self):
+        """BUY with 0 other agents agreeing → size_pct halved; reasoning has marker."""
+        mkt = _make_market(["AAPL"], price=150.0)
+        # No __agent_signals__ → no corroborators
+        buy_resp = {"action": "BUY", "confidence": 0.85, "size_pct": 0.10, "reasoning": "strong"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision",
+                          new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        self.assertEqual(len(buys), 1)
+        self.assertIn("LONE-WOLF", buys[0].reasoning)
+        # 10% × 0.5 = 5% of $100k = $5k → $5k / $150 ≈ 33 shares
+        self.assertLessEqual(buys[0].shares, 35,
+                             "lone-wolf discount must reduce shares")
+
+    async def test_lonewolf_discount_skipped_when_corroborated(self):
+        """BUY with 2+ other BUY signals → no discount, no marker."""
+        mkt = _make_market(["AAPL"], price=150.0)
+        # Inject corroborating BUY signals from two other agents
+        mkt["__agent_signals__"] = {
+            "AAPL": {
+                "TechAgent":     ("BUY", 0.7),
+                "MomentumAgent": ("BUY", 0.6),
+            }
+        }
+        buy_resp = {"action": "BUY", "confidence": 0.85, "size_pct": 0.10, "reasoning": "strong"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision",
+                          new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        self.assertEqual(len(buys), 1)
+        self.assertNotIn("LONE-WOLF", buys[0].reasoning)
+
+    async def test_lonewolf_discount_only_counts_BUY_signals(self):
+        """SELL/HOLD signals from other agents do NOT count as corroboration."""
+        mkt = _make_market(["AAPL"], price=150.0)
+        mkt["__agent_signals__"] = {
+            "AAPL": {
+                "TechAgent":     ("SELL", 0.7),  # disagreement
+                "MomentumAgent": ("HOLD", 0.5),  # neutral, not a buy
+            }
+        }
+        buy_resp = {"action": "BUY", "confidence": 0.85, "size_pct": 0.10, "reasoning": "strong"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision",
+                          new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        self.assertEqual(len(buys), 1)
+        self.assertIn("LONE-WOLF", buys[0].reasoning,
+                      "SELL/HOLD must not count as corroboration")
+
 
 class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
     """_build_prompt includes sentinel catalysts and macro context when present."""
@@ -518,8 +572,13 @@ class TestCNNGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
         self.agent.portfolio.cash = 100_000.0
 
     async def test_buy_uses_size_pct_from_ollama(self):
-        """size_pct=0.10 → 10% of $100k portfolio at $100/share = 100 shares."""
+        """size_pct=0.10 → 10% of $100k portfolio at $100/share = 100 shares.
+        Inject 2 corroborators so the lone-wolf discount doesn't apply."""
         mkt = _make_market(["AAPL"], price=100.0)
+        mkt["__agent_signals__"] = {"AAPL": {
+            "TechAgent":     ("BUY", 0.7),
+            "MomentumAgent": ("BUY", 0.6),
+        }}
         buy_resp = {"action": "BUY", "confidence": 0.80, "size_pct": 0.10, "reasoning": "strong"}
         with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
              patch.object(self.agent, "_ollama_decision", new=AsyncMock(return_value=buy_resp)):
@@ -552,8 +611,13 @@ class TestCNNGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(buys[0].shares, 20)
 
     async def test_missing_size_pct_defaults_to_10pct(self):
-        """If Ollama omits size_pct, fall back to 10% of portfolio value."""
+        """If Ollama omits size_pct, fall back to 10% of portfolio value.
+        Inject 2 corroborators so the lone-wolf discount doesn't apply."""
         mkt = _make_market(["AAPL"], price=100.0)
+        mkt["__agent_signals__"] = {"AAPL": {
+            "TechAgent":     ("BUY", 0.7),
+            "MomentumAgent": ("BUY", 0.6),
+        }}
         buy_resp = {"action": "BUY", "confidence": 0.75, "reasoning": "no size"}
         with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
              patch.object(self.agent, "_ollama_decision", new=AsyncMock(return_value=buy_resp)):

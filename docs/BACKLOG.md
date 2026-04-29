@@ -120,20 +120,24 @@ of whether the catalyst feed has caught up.
 
 ---
 
-### 0.6 Lone-wolf trade discount — downsize when CNN is alone on a BUY
+### 0.6 Lone-wolf trade discount — downsize when CNN is alone on a BUY ✅ DONE 2026-04-29
 
-**Why:** ASML position was held by CNN only; no other agent (TechAgent, Momentum,
-Scanner, HistoricalTrends, Ensemble, Claude, MeanReversion, Sentiment) bought it.
-With CNN's WFE < 0 and the model fitting noise, lone-wolf trades are exactly the
-ones we should be most skeptical of. They have the highest probability of being
-noise-driven false positives.
+**Why:** ASML was held by CNN only; no other agent corroborated. With CNN's WFE < 0
+and the model fitting noise, lone-wolf trades are the highest-risk class.
 
-- [ ] Before CNN executes a BUY, count agents currently signaling BUY on the same symbol
-- [ ] If <2 other agents agree, halve `size_pct` (or apply a configurable lone-wolf multiplier)
-- [ ] Log a marker in `recent_trades` reasoning so the trade is auditable
-- [ ] Test: CNN BUYs alone → shares allocation halved; CNN BUYs with 2+ corroborators → unchanged
+**Implementation:** before allocating shares for a BUY, count `__agent_signals__`
+entries for the symbol with action=="BUY". If count < `LONEWOLF_MIN_CORROBORATORS`
+(default 2), multiply `size_pct` by `LONEWOLF_MULTIPLIER` (default 0.5). Final
+share count clamped to ≥ 2% of portfolio (the existing floor). Marker
+`[LONE-WOLF: N BUY corroborator(s) < M, size_pct X% → Y%]` appended to `Signal.reasoning`
+so the discount is auditable in `recent_trades`.
 
-**Files:** `backend/agents/cnn_reasoning_agent.py`
+- [x] `LONEWOLF_MIN_CORROBORATORS` and `LONEWOLF_MULTIPLIER` env vars
+- [x] Implement in `cnn_reasoning_agent.analyze` BUY block
+- [x] 3 new tests: 0 corroborators (discount applied), 2+ (no discount), only-SELL/HOLD signals don't count
+- [x] Updated 2 pre-existing sizing tests to inject corroborators (so they exercise the non-discounted path)
+
+**Files:** `backend/agents/cnn_reasoning_agent.py`, `backend/config.py`
 
 ---
 
