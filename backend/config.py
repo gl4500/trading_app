@@ -86,6 +86,14 @@ class Config:
     TRAIL_GIVEBACK_PCT: float = float(os.getenv("TRAIL_GIVEBACK_PCT", "0.20"))
     TRAIL_ARM_USD:      float = float(os.getenv("TRAIL_ARM_USD",      "25.0"))
 
+    # Hard stop-loss (Backlog 0.4, 2026-04-29):
+    # Defensive floor — sell when (avg_cost - current_price) / avg_cost >=
+    # HARD_STOP_PCT, regardless of Bayes / trailing / LLM. Catches positions
+    # that drop sharply from entry without ever being profitable (the case
+    # the trailing stop CAN'T catch since trail only arms on positive PnL).
+    # Set HARD_STOP_PCT=0 (or any negative) to disable.
+    HARD_STOP_PCT: float = float(os.getenv("HARD_STOP_PCT", "0.08"))
+
     # Watchlist — static seed symbols used as fallback when the scanner pool is small.
     # Set WATCHLIST=* to disable static seeds entirely — the watchlist is then built
     # solely from scanner recommendations and momentum candidates (agent-driven).

@@ -212,6 +212,14 @@ class BaseAgent(ABC):
                 )
                 portfolio_returns = self._build_portfolio_returns(market_context, all_syms)
 
+                # Hard stop-loss — first defense layer. Sells positions that
+                # have dropped HARD_STOP_PCT or more from entry, regardless of
+                # any other exit logic. Runs first so a clearly broken position
+                # is gone before the slower exits even evaluate.
+                hard_exits = await self._check_hard_stops(prices)
+                for sig in hard_exits:
+                    self._last_signals[sig.symbol] = sig
+
                 # Bayesian early exits — must run before agent signals so the
                 # position is already closed if the agent also emits a SELL.
                 bayes_exits = await self._check_bayes_exits(prices)
@@ -316,6 +324,42 @@ class BaseAgent(ABC):
                 )
                 exits.append(sig)
                 logger.info(f"{self.name}: BAYES EXIT {sym} @ ${price:.2f} | {reasoning}")
+        return exits
+
+    async def _check_hard_stops(self, prices: Dict[str, float]) -> List[Signal]:
+        """
+        Sell positions that have dropped HARD_STOP_PCT or more below entry.
+
+        Defensive floor independent of Bayes / trailing / LLM. Catches the
+        case the trailing stop misses — positions that drop sharply from entry
+        without ever being profitable (so peak_unrealized_pnl never armed
+        the trail). Set HARD_STOP_PCT <= 0 in .env to disable.
+        """
+        exits: List[Signal] = []
+        threshold = config.HARD_STOP_PCT
+        if threshold <= 0:
+            return exits   # disabled
+        for sym, pos in list(self.portfolio.positions.items()):
+            price = prices.get(sym)
+            if not price or price <= 0 or pos.avg_cost <= 0:
+                continue
+            drawdown_pct = (pos.avg_cost - price) / pos.avg_cost
+            if drawdown_pct < threshold:
+                continue
+            reasoning = (
+                f"Hard stop: down {drawdown_pct:.1%} from entry "
+                f"(${pos.avg_cost:.2f} → ${price:.2f}; threshold {threshold:.1%})"
+            )
+            success = self.portfolio.execute_sell(sym, pos.shares, price, reasoning)
+            if success:
+                sig = Signal(
+                    action="SELL", symbol=sym,
+                    confidence=pos.bayes_confidence,
+                    shares=pos.shares, reasoning=reasoning,
+                    agent_name=self.name,
+                )
+                exits.append(sig)
+                logger.info(f"{self.name}: HARD STOP {sym} @ ${price:.2f} | {reasoning}")
         return exits
 
     async def _check_trailing_stops(self, prices: Dict[str, float]) -> List[Signal]:

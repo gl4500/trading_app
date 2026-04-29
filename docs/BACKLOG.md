@@ -12,24 +12,27 @@ These were uncovered while investigating why CNNReasoningAgent gave back unreali
 on ASML in one day with no exit firing. Trailing stop (commit `74fb330`) was the first fix;
 these are the others.
 
-### 0.1 `entry_confidence = 0.50` bug — CNN positions all show threshold value
+### 0.1 `entry_confidence = 0.50` bug — CNN positions all show threshold value ✅ DONE 2026-04-29 (`4a2f8ab`)
 
 **Why:** Every CNN position currently held shows `entry_confidence = 0.50` exactly — the
-minimum BUY-gate threshold. Statistically implausible across 9 BUYs over weeks. Either
-the value isn't being persisted from Ollama's response, or it's being clamped/defaulted
-somewhere before reaching `Position`.
+minimum BUY-gate threshold. Statistically implausible across 9 BUYs over weeks.
 
-This breaks Bayes early-exit calibration: the `_check_bayes_exits` logic compares
-`entry_confidence − bayes_confidence ≥ 0.30`. With every entry pinned at 0.50, the
-floor is 0.20 — requires ~13% drop from entry to fire. High-conviction positions that
-should exit faster don't.
+**Root cause:** the `portfolios` DB table never had an `entry_confidence` column. Every
+backend restart silently wiped the agent's original conviction back to the dataclass
+default (0.5). The chain `Ollama → Signal.confidence → execute_buy → Position` was
+correct on the *write* side; the bug was on persistence/restore.
 
-- [ ] Reproduce: log a CNN BUY's confidence chain from Ollama response → `Signal.confidence` → `execute_buy(entry_confidence=…)` → `Position.entry_confidence`
-- [ ] Identify where 0.50 is substituted (likely in `_execute_signal` or `execute_buy`)
-- [ ] Add test: BUY with Ollama confidence 0.78 → Position.entry_confidence == 0.78
-- [ ] Fix and verify on next CNN entry
+- [x] Add `entry_confidence` column to `portfolios` table (migration)
+- [x] Extend `upsert_portfolio_position` to save it
+- [x] Extend `get_portfolio_positions` to read it
+- [x] Update main.py restore loop to pass it to `Position(...)`
+- [x] Update main.py persist loop to forward `pos.entry_confidence`
+- [x] 3 new DB tests: round-trip, default, update-on-upsert
 
-**Files:** `backend/agents/cnn_reasoning_agent.py`, `backend/agents/base_agent.py:_execute_signal`, `backend/trading/portfolio.py:execute_buy`
+**Note:** existing positions stuck at 0.5 — original conviction unrecoverable from trade
+history (confidence not logged in `trades` table). They self-correct on next SELL+BUY.
+
+**Files:** `backend/database.py`, `backend/main.py`
 
 ---
 
@@ -73,18 +76,22 @@ specific symbols. Multiple symbols affected the same day (LAC, CLF, NTLA, FORM, 
 
 ---
 
-### 0.4 Hard stop-loss for CNNReasoningAgent (defense in depth)
+### 0.4 Hard stop-loss for CNNReasoningAgent (defense in depth) ✅ DONE 2026-04-29
 
-**Why:** CNN currently has zero hard stops. Other agents (TechAgent) have ATR-based
-stops. The trailing stop just shipped covers the give-back-of-gains case, but not
+**Why:** CNN had zero hard stops. The trailing stop covers give-back-of-gains, but not
 "position drops to −X% from entry without ever being profitable." Need a final floor.
 
-- [ ] Add `CNN_HARD_STOP_PCT` env var (default −8% from entry)
-- [ ] Implement in `cnn_reasoning_agent.analyze` or as another `BaseAgent` check method
-- [ ] Test: position drops to −9% from entry → SELL fires regardless of Bayes/LLM/trail
-- [ ] Verify it composes correctly with the other exits (no double-sell)
+**Implementation:** Added `_check_hard_stops` to `BaseAgent` (so all agents benefit, not
+just CNN). Runs FIRST in run_cycle (before Bayes and trailing) so a clearly-broken
+position is gone before slower exits even evaluate. Threshold is `HARD_STOP_PCT` env var
+(default 0.08 = 8%). Set to 0 to disable.
 
-**Files:** `backend/agents/cnn_reasoning_agent.py`, `backend/agents/base_agent.py`, `backend/config.py`, `.env.example`
+- [x] Add `HARD_STOP_PCT` env var (default 0.08)
+- [x] Implement `BaseAgent._check_hard_stops`
+- [x] Wire into `run_cycle` before bayes/trailing
+- [x] 8 tests covering threshold boundaries, no-trigger paths, disable, run_cycle integration
+
+**Files:** `backend/agents/base_agent.py`, `backend/config.py`, `.env.example`
 
 ---
 

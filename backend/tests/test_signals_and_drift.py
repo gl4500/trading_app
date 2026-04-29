@@ -498,6 +498,7 @@ class TestTrailingStopExit(unittest.IsolatedAsyncioTestCase):
 
         with patch.object(agent, "_check_bayes_exits", new=AsyncMock(return_value=[])), \
              patch.object(agent, "_check_trailing_stops", new=AsyncMock(return_value=[])) as mock_trail, \
+             patch.object(agent, "_check_hard_stops", new=AsyncMock(return_value=[])), \
              patch.object(agent.portfolio, "record_value"), \
              patch.object(agent.portfolio, "reset_daily_tracking"), \
              patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
@@ -505,6 +506,99 @@ class TestTrailingStopExit(unittest.IsolatedAsyncioTestCase):
             await agent.run_cycle(ctx, prices)
 
         mock_trail.assert_called_once_with(prices)
+
+
+class TestHardStopExit(unittest.IsolatedAsyncioTestCase):
+    """BaseAgent._check_hard_stops sells positions that have dropped
+    HARD_STOP_PCT or more from entry — defensive floor."""
+
+    def _make_agent(self):
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        return _StubAgent("TestAgent", "stub")
+
+    async def test_no_exit_above_threshold(self):
+        """Position down 5% — below 8% threshold → hold."""
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({"AAPL": 95.0})  # -5%
+        self.assertEqual(exits, [])
+        self.assertIn("AAPL", agent.portfolio.positions)
+
+    async def test_exit_at_threshold(self):
+        """Position down exactly 8% (threshold) → SELL."""
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({"AAPL": 92.0})  # -8%
+        self.assertEqual(len(exits), 1)
+        self.assertEqual(exits[0].action, "SELL")
+        self.assertNotIn("AAPL", agent.portfolio.positions)
+
+    async def test_exit_far_below_threshold(self):
+        """Position down 20% → SELL."""
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({"AAPL": 80.0})  # -20%
+        self.assertEqual(len(exits), 1)
+
+    async def test_no_exit_for_profitable_position(self):
+        """Position up 10% — never triggers hard stop."""
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({"AAPL": 110.0})
+        self.assertEqual(exits, [])
+
+    async def test_reasoning_mentions_drawdown(self):
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({"AAPL": 85.0})
+        self.assertGreater(len(exits), 0)
+        self.assertIn("Hard stop", exits[0].reasoning)
+        self.assertIn("entry", exits[0].reasoning)
+
+    async def test_disabled_when_threshold_zero(self):
+        """HARD_STOP_PCT=0 disables the gate entirely."""
+        from unittest.mock import patch
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        with patch("config.config.HARD_STOP_PCT", 0.0):
+            exits = await agent._check_hard_stops({"AAPL": 50.0})  # -50%
+        self.assertEqual(exits, [])
+        self.assertIn("AAPL", agent.portfolio.positions)
+
+    async def test_no_exit_without_price(self):
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({})
+        self.assertEqual(exits, [])
+
+    async def test_hard_stop_called_in_run_cycle(self):
+        """run_cycle must call _check_hard_stops each cycle."""
+        from unittest.mock import AsyncMock, patch
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        agent = _StubAgent("TestAgent", "stub")
+        prices = {"AAPL": 100.0}
+        ctx = {"AAPL": {"price": 100.0, "bars": None, "stats": {}, "news": []}}
+
+        with patch.object(agent, "_check_bayes_exits", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_trailing_stops", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_hard_stops", new=AsyncMock(return_value=[])) as mock_hard, \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(ctx, prices)
+
+        mock_hard.assert_called_once_with(prices)
 
 
 if __name__ == "__main__":
