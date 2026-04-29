@@ -308,10 +308,17 @@ async def init_agents() -> None:
             # Always restore open positions — saved independently of performance snapshots
             db_positions = await get_portfolio_positions(agent_id)
             for pos in db_positions:
+                # entry_confidence: was historically dropped on restore (Backlog 0.1).
+                # Now persisted in the portfolios table so Bayes early-exit retains
+                # its calibration across backend restarts.
+                ec = pos.get("entry_confidence")
+                ec = float(ec) if ec is not None else 0.5
                 agent.portfolio.positions[pos["symbol"]] = Position(
                     symbol=pos["symbol"],
                     shares=pos["shares"],
                     avg_cost=pos["avg_cost"],
+                    entry_confidence=ec,
+                    bayes_confidence=ec,  # bayes resets to entry on restart; will re-track from here
                 )
                 # Seed last_prices so first WS broadcast uses closing price, not avg_cost
                 lp = pos.get("last_price", 0.0)
@@ -1300,6 +1307,7 @@ async def run_agent_cycle(agent, market_context: Dict, prices: Dict[str, float])
                 current_value=pos.current_value(price),
                 unrealized_pnl=pos.unrealized_pnl(price),
                 last_price=price if sym in prices else 0.0,
+                entry_confidence=pos.entry_confidence,
             )
 
     except Exception as e:

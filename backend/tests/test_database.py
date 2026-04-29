@@ -283,6 +283,36 @@ class TestUpsertPortfolioPosition(TestDatabaseBase):
         result = run(database.get_portfolio_positions(self.aid))
         self.assertAlmostEqual(result[0]["last_price"], 175.0)
 
+    # --- entry_confidence persistence (Backlog 0.1) ---
+
+    def test_entry_confidence_stored_and_returned(self):
+        """entry_confidence persists across upsert→get round-trip."""
+        run(database.upsert_portfolio_position(
+            self.aid, "AAPL", 10, 150.0, 1600.0, 100.0,
+            last_price=160.0, entry_confidence=0.78
+        ))
+        result = run(database.get_portfolio_positions(self.aid))
+        self.assertEqual(len(result), 1)
+        self.assertAlmostEqual(result[0]["entry_confidence"], 0.78, places=4)
+
+    def test_entry_confidence_defaults_to_half(self):
+        """Omitting entry_confidence defaults to 0.5 (backward-compatible callers)."""
+        run(database.upsert_portfolio_position(self.aid, "MSFT", 5, 300.0, 1550.0, 50.0))
+        result = run(database.get_portfolio_positions(self.aid))
+        self.assertAlmostEqual(result[0]["entry_confidence"], 0.5, places=4)
+
+    def test_entry_confidence_updated_on_upsert(self):
+        """Upserting a position updates entry_confidence (e.g., averaging up)."""
+        run(database.upsert_portfolio_position(
+            self.aid, "AAPL", 10, 150.0, 1600.0, 100.0, entry_confidence=0.65
+        ))
+        run(database.upsert_portfolio_position(
+            self.aid, "AAPL", 15, 150.0, 1700.0, 200.0, entry_confidence=0.82
+        ))
+        result = run(database.get_portfolio_positions(self.aid))
+        self.assertEqual(len(result), 1)
+        self.assertAlmostEqual(result[0]["entry_confidence"], 0.82, places=4)
+
 
 class TestGetLatestCash(TestDatabaseBase):
 

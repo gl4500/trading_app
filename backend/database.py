@@ -95,6 +95,18 @@ async def init_db() -> None:
             if "duplicate column" not in str(e).lower() and "already exists" not in str(e).lower():
                 logger.warning(f"Database migration warning (add last_price column): {e}")
 
+        # Migration: add entry_confidence column to portfolios (Backlog 0.1, 2026-04-29)
+        # Without this column, restoring positions across backend restarts wiped the
+        # agent's original entry conviction back to 0.5, which broke Bayes early-exit
+        # calibration (every position floored at the BUY-gate threshold).
+        try:
+            await db.execute("ALTER TABLE portfolios ADD COLUMN entry_confidence REAL DEFAULT 0.5")
+            await db.commit()
+            logger.info("Database migration: added entry_confidence column to portfolios")
+        except Exception as e:
+            if "duplicate column" not in str(e).lower() and "already exists" not in str(e).lower():
+                logger.warning(f"Database migration warning (add entry_confidence column): {e}")
+
         await db.execute("""
             CREATE TABLE IF NOT EXISTS token_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -195,8 +207,15 @@ async def save_performance(agent_id: int, total_value: float, cash: float,
 
 async def upsert_portfolio_position(agent_id: int, symbol: str, shares: float,
                                     avg_cost: float, current_value: float, unrealized_pnl: float,
-                                    last_price: float = 0.0) -> None:
-    """Update or insert a portfolio position."""
+                                    last_price: float = 0.0,
+                                    entry_confidence: float = 0.5) -> None:
+    """Update or insert a portfolio position.
+
+    `entry_confidence` is persisted so the agent's original BUY conviction
+    survives backend restarts — the Bayes early-exit logic compares
+    Position.entry_confidence to live bayes_confidence, and silent default
+    to 0.5 across restarts pinned every position at the BUY-gate floor.
+    """
     async with aiosqlite.connect(DB_PATH) as db:
         if shares <= 0:
             await db.execute(
@@ -205,15 +224,16 @@ async def upsert_portfolio_position(agent_id: int, symbol: str, shares: float,
             )
         else:
             await db.execute(
-                """INSERT INTO portfolios (agent_id, symbol, shares, avg_cost, current_value, unrealized_pnl, last_price)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                """INSERT INTO portfolios (agent_id, symbol, shares, avg_cost, current_value, unrealized_pnl, last_price, entry_confidence)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(agent_id, symbol) DO UPDATE SET
                    shares = excluded.shares,
                    avg_cost = excluded.avg_cost,
                    current_value = excluded.current_value,
                    unrealized_pnl = excluded.unrealized_pnl,
-                   last_price = excluded.last_price""",
-                (agent_id, symbol, shares, avg_cost, current_value, unrealized_pnl, last_price)
+                   last_price = excluded.last_price,
+                   entry_confidence = excluded.entry_confidence""",
+                (agent_id, symbol, shares, avg_cost, current_value, unrealized_pnl, last_price, entry_confidence)
             )
         await db.commit()
 
@@ -271,7 +291,7 @@ async def get_portfolio_positions(agent_id: int) -> List[Dict]:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
-            "SELECT symbol, shares, avg_cost, last_price FROM portfolios WHERE agent_id = ?",
+            "SELECT symbol, shares, avg_cost, last_price, entry_confidence FROM portfolios WHERE agent_id = ?",
             (agent_id,)
         )
         rows = await cursor.fetchall()
