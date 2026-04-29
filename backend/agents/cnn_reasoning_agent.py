@@ -282,9 +282,14 @@ class CNNReasoningAgent(BaseAgent):
             f"headwind for growth stocks; breakeven inflation above 3% = rate-hike risk).\n"
             f"Step 5 — Decision: Choose BUY, SELL, or HOLD. "
             f"If CNN and composite conflict, prefer HOLD unless agent consensus is strong. "
-            f"Set confidence to the CNN confidence value; reduce by up to 0.15 only if a FRESH "
-            f"macro signal is a clear headwind; increase by up to 0.10 only if FRESH macro is "
-            f"clearly supportive. Stale macro data must not move the confidence number. "
+            f"Set your OWN confidence (0.0–1.0) based on the AGREEMENT of evidence above: "
+            f"CNN direction, composite score sign, agent consensus, FRESH catalysts and "
+            f"FRESH macro. Strong agreement across all of these → high confidence (0.7–0.9). "
+            f"Mixed or contradictory evidence → low confidence (0.3–0.5). "
+            f"Treat the CNN confidence value as ONE input among many, NOT as a default — "
+            f"a high CNN confidence with weak/contradictory agent and macro evidence should "
+            f"NOT translate to a high final confidence. Stale macro data must not move the "
+            f"confidence number in either direction. "
             f"For BUY signals, also set size_pct: the fraction of total portfolio value to deploy (0.0–1.0). "
             f"Consider signal strength, goal pace, and idle cash together — "
             f"strong signal + behind pace + ample idle cash → higher size_pct (0.10–0.15); "
@@ -479,6 +484,26 @@ class CNNReasoningAgent(BaseAgent):
             action     = decision.get("action", "HOLD")
             confidence = float(decision.get("confidence") or cnn_conf)
             reasoning  = str(decision.get("reasoning", ""))
+
+            # WFE safety gate: block BUYs when the walk-forward CV reports a
+            # negative mean_wfe (model is worse than predicting the mean).
+            # mean_wfe is None when the model hasn't completed a walk-forward
+            # fit yet — in that case we let the regime/confidence gates below
+            # decide, preserving pre-walk-forward behavior. Once the first
+            # walk-forward retrain runs, mean_wfe is populated and the gate
+            # becomes active.
+            mean_wfe_val = signal_cnn.mean_wfe
+            if action == "BUY" and mean_wfe_val is not None and mean_wfe_val < 0.0:
+                logger.info(
+                    f"CNNReasoningAgent [{symbol}]: WFE gate blocked BUY "
+                    f"(mean_wfe={mean_wfe_val:.4f} < 0)"
+                )
+                reasoning = (
+                    f"WFE gate: original BUY blocked because mean_wfe="
+                    f"{mean_wfe_val:.4f} < 0 (model has no measurable edge). "
+                    f"Original reasoning: {reasoning}"
+                )
+                action = "HOLD"
 
             # Regime-aware buy gate: bear/high_vol markets require higher confidence
             from data.regime_detector import regime_detector

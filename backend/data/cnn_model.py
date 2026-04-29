@@ -894,6 +894,16 @@ class SignalCNN:
     def device(self) -> str:
         return str(self._dev) if self._dev else "unavailable"
 
+    @property
+    def mean_wfe(self) -> Optional[float]:
+        """Mean walk-forward WFE across folds — None until first fit() completes."""
+        return self._mean_wfe
+
+    @property
+    def wfe_status(self) -> str:
+        """Last-fold WFE status: HEALTHY | DEGRADED | POOR | UNTRAINED."""
+        return self._wfe_status
+
     def training_summary(self) -> Dict:
         weights   = self.get_learned_weights()
         hardcoded = _DEFAULT_WEIGHTS

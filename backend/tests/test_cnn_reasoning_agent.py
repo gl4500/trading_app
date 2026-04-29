@@ -144,6 +144,62 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
         buys = [s for s in signals if s.action == "BUY"]
         self.assertEqual(len(buys), 0)
 
+    async def test_buy_blocked_when_mean_wfe_negative(self):
+        """High-conviction BUY must be downgraded to HOLD when mean_wfe < 0."""
+        from data.cnn_model import signal_cnn
+        mkt = _make_market(["AAPL"], price=150.0)
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
+        # Simulate a completed walk-forward retrain with a bad mean_wfe
+        original_mean_wfe = signal_cnn._mean_wfe
+        try:
+            signal_cnn._mean_wfe = -0.43
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            buys = [s for s in signals if s.action == "BUY"]
+            holds = [s for s in signals if s.action == "HOLD"]
+            self.assertEqual(len(buys), 0,
+                             "WFE gate must downgrade BUY to HOLD when mean_wfe < 0")
+            self.assertEqual(len(holds), 1)
+            self.assertIn("WFE gate", holds[0].reasoning)
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+
+    async def test_buy_allowed_when_mean_wfe_positive(self):
+        """When mean_wfe >= 0, BUY signals should pass the gate."""
+        from data.cnn_model import signal_cnn
+        mkt = _make_market(["AAPL"], price=150.0)
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
+        original_mean_wfe = signal_cnn._mean_wfe
+        try:
+            signal_cnn._mean_wfe = 0.10
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            buys = [s for s in signals if s.action == "BUY"]
+            self.assertEqual(len(buys), 1, "WFE gate must not block when mean_wfe >= 0")
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+
+    async def test_buy_allowed_when_mean_wfe_unmeasured(self):
+        """When mean_wfe is None (no walk-forward retrain yet), gate is inactive."""
+        from data.cnn_model import signal_cnn
+        mkt = _make_market(["AAPL"], price=150.0)
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
+        original_mean_wfe = signal_cnn._mean_wfe
+        try:
+            signal_cnn._mean_wfe = None
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            buys = [s for s in signals if s.action == "BUY"]
+            self.assertEqual(len(buys), 1, "WFE gate must be inactive when mean_wfe is None")
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+
 
 class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
     """_build_prompt includes sentinel catalysts and macro context when present."""
@@ -239,11 +295,14 @@ class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
         prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
         self.assertIn("Stale macro data must not move the confidence", prompt)
 
-    def test_macro_step_confidence_adjustment_mentioned(self):
-        """Step 5 must state the confidence adjustment bounds."""
+    def test_step5_treats_cnn_confidence_as_one_input(self):
+        """Step 5 must instruct Ollama to compute its OWN confidence from
+        evidence agreement, not copy the CNN confidence as a default."""
         prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
-        self.assertIn("0.15", prompt)
-        self.assertIn("0.10", prompt)
+        self.assertIn("Set your OWN confidence", prompt)
+        self.assertIn("ONE input among many", prompt)
+        # Must NOT instruct the LLM to set confidence to CNN value
+        self.assertNotIn("Set confidence to the CNN confidence value", prompt)
 
     def test_stale_sources_labeled_context_only_in_prompt(self):
         """Earnings surprise and congressional trades must appear under CONTEXT ONLY."""
