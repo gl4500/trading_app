@@ -218,6 +218,14 @@ class BaseAgent(ABC):
                 for sig in bayes_exits:
                     self._last_signals[sig.symbol] = sig
 
+                # Trailing stop exits — locks in gains by selling positions
+                # that have given back >= TRAIL_GIVEBACK_PCT of their peak
+                # unrealized profit. Runs after bayes so closed positions
+                # don't double-trigger.
+                trail_exits = await self._check_trailing_stops(prices)
+                for sig in trail_exits:
+                    self._last_signals[sig.symbol] = sig
+
                 # Execute actionable signals
                 executed = []
                 for signal in signals:
@@ -308,6 +316,49 @@ class BaseAgent(ABC):
                 )
                 exits.append(sig)
                 logger.info(f"{self.name}: BAYES EXIT {sym} @ ${price:.2f} | {reasoning}")
+        return exits
+
+    async def _check_trailing_stops(self, prices: Dict[str, float]) -> List[Signal]:
+        """
+        Sell positions that have given back too much of their peak unrealized profit.
+
+        A position is sold when:
+            (peak_unrealized_pnl − current_unrealized_pnl) ≥ peak_unrealized_pnl × TRAIL_GIVEBACK_PCT
+            AND peak_unrealized_pnl ≥ TRAIL_ARM_USD
+
+        The arm threshold avoids whipsawing on small noise around break-even.
+        Captures gains that would otherwise be given back while waiting for
+        Bayes (slow) or LLM SELL (unreliable) to fire.
+        """
+        exits: List[Signal] = []
+        giveback_pct = config.TRAIL_GIVEBACK_PCT
+        arm_usd      = config.TRAIL_ARM_USD
+        for sym, pos in list(self.portfolio.positions.items()):
+            price = prices.get(sym)
+            if not price or price <= 0:
+                continue
+            peak = self.portfolio.get_peak_unrealized(sym)
+            if peak < arm_usd:
+                continue  # not yet armed — peak hasn't crossed arm threshold
+            current = pos.unrealized_pnl(price)
+            giveback = peak - current
+            trigger = peak * giveback_pct
+            if giveback < trigger:
+                continue
+            reasoning = (
+                f"Trailing stop: gave back ${giveback:,.0f} of ${peak:,.0f} "
+                f"peak unrealized ({giveback/peak:.0%} ≥ {giveback_pct:.0%})"
+            )
+            success = self.portfolio.execute_sell(sym, pos.shares, price, reasoning)
+            if success:
+                sig = Signal(
+                    action="SELL", symbol=sym,
+                    confidence=pos.bayes_confidence,
+                    shares=pos.shares, reasoning=reasoning,
+                    agent_name=self.name,
+                )
+                exits.append(sig)
+                logger.info(f"{self.name}: TRAIL EXIT {sym} @ ${price:.2f} | {reasoning}")
         return exits
 
     async def _execute_signal(

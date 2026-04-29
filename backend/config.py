@@ -77,6 +77,15 @@ class Config:
     # below entry_confidence (e.g. 0.30 = sell if conviction fell 30 pp since entry)
     BAYES_EXIT_DROP: float = float(os.getenv("BAYES_EXIT_DROP", "0.30"))
 
+    # Trailing stop on UNREALIZED PnL (added 2026-04-29):
+    # Sell when (peak_unrealized_pnl - current_unrealized_pnl) >=
+    #          peak_unrealized_pnl × TRAIL_GIVEBACK_PCT,
+    # but only after peak first reaches TRAIL_ARM_USD (avoids whipsawing
+    # on tiny noise around break-even). Goal: lock in gains by selling when
+    # a profitable position has given back X% of its peak unrealized profit.
+    TRAIL_GIVEBACK_PCT: float = float(os.getenv("TRAIL_GIVEBACK_PCT", "0.20"))
+    TRAIL_ARM_USD:      float = float(os.getenv("TRAIL_ARM_USD",      "25.0"))
+
     # Watchlist — static seed symbols used as fallback when the scanner pool is small.
     # Set WATCHLIST=* to disable static seeds entirely — the watchlist is then built
     # solely from scanner recommendations and momentum candidates (agent-driven).

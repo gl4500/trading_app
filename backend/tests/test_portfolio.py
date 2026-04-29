@@ -526,5 +526,55 @@ class TestBayesianConfidence(unittest.TestCase):
             prev = cur
 
 
+class TestPeakUnrealizedTracking(unittest.TestCase):
+    """Trailing stop relies on peak_unrealized_pnl tracked per position."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_buy_initialises_peak_to_zero(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 0.0)
+        self.assertIn("AAPL", self.p._position_peak_unrealized)
+
+    def test_peak_grows_with_price(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        # +$50 unrealized (10 × $5)
+        self.p.record_value({"AAPL": 105.0})
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 50.0)
+        # +$200 unrealized (10 × $20)
+        self.p.record_value({"AAPL": 120.0})
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 200.0)
+
+    def test_peak_is_monotonic_does_not_decrease(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 120.0})  # peak = $200
+        self.p.record_value({"AAPL": 110.0})  # gave back, peak unchanged
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 200.0)
+
+    def test_peak_stays_zero_when_position_never_profits(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 95.0})   # underwater
+        self.p.record_value({"AAPL": 90.0})   # deeper underwater
+        # Peak never went positive; remains at the initialised 0.0
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 0.0)
+
+    def test_sell_clears_peak_tracker(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 120.0})
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 200.0)
+        self.p.execute_sell("AAPL", 10, 115.0)
+        # After full close, tracker is gone
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 0.0)
+        self.assertNotIn("AAPL", self.p._position_peak_unrealized)
+
+    def test_peak_per_symbol_independent(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.execute_buy("MSFT", 5, 200.0)
+        self.p.record_value({"AAPL": 110.0, "MSFT": 195.0})
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 100.0)
+        self.assertEqual(self.p.get_peak_unrealized("MSFT"), 0.0)  # never positive
+
+
 if __name__ == "__main__":
     unittest.main()

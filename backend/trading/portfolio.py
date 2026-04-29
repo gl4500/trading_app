@@ -66,6 +66,7 @@ class Portfolio:
         self._position_high: Dict[str, float] = {}       # MFE tracker: highest price seen since entry
         self._position_low: Dict[str, float] = {}        # MAE tracker: lowest price seen since entry
         self._position_last_price: Dict[str, float] = {} # Bayesian update: last seen price per position
+        self._position_peak_unrealized: Dict[str, float] = {} # Trailing stop: highest unrealized PnL ($) since entry
 
     def get_total_value(self, prices: Dict[str, float]) -> float:
         """Calculate total portfolio value (cash + positions)."""
@@ -116,6 +117,7 @@ class Portfolio:
             self._position_high[symbol] = price
             self._position_low[symbol] = price
             self._position_last_price[symbol] = price
+            self._position_peak_unrealized[symbol] = 0.0
 
         record = TradeRecord(
             symbol=symbol,
@@ -160,6 +162,7 @@ class Portfolio:
             self._position_high.pop(symbol, None)
             self._position_low.pop(symbol, None)
             self._position_last_price.pop(symbol, None)
+            self._position_peak_unrealized.pop(symbol, None)
 
         record = TradeRecord(
             symbol=symbol,
@@ -186,7 +189,7 @@ class Portfolio:
 
         # Update excursion trackers and Bayesian confidence for all open positions
         _K = 10.0  # logit sensitivity: k × log_return per candle
-        for sym in self.positions:
+        for sym, pos in self.positions.items():
             price = prices.get(sym)
             if price and price > 0:
                 if sym not in self._position_high or price > self._position_high[sym]:
@@ -194,11 +197,17 @@ class Portfolio:
                 if sym not in self._position_low or price < self._position_low[sym]:
                     self._position_low[sym] = price
 
+                # Trailing stop: track the highest unrealized PnL ($) ever reached on this position.
+                # Updated each cycle so _check_trailing_stops can compare current PnL to peak.
+                unreal = pos.unrealized_pnl(price)
+                prev_peak = self._position_peak_unrealized.get(sym, 0.0)
+                if unreal > prev_peak:
+                    self._position_peak_unrealized[sym] = unreal
+
                 # Bayesian confidence update (logit-linear, long-only so direction = +1)
                 last = self._position_last_price.get(sym)
                 if last and last > 0 and price != last:
                     log_ret = math.log(price / last)
-                    pos = self.positions[sym]
                     prior = max(0.01, min(0.99, pos.bayes_confidence))
                     prior_logit = math.log(prior / (1.0 - prior))
                     posterior_logit = prior_logit + _K * log_ret   # direction=+1 (long only)
@@ -206,6 +215,11 @@ class Portfolio:
                 self._position_last_price[sym] = price
 
         return total_value
+
+    def get_peak_unrealized(self, symbol: str) -> float:
+        """Highest unrealized PnL ($) ever recorded for the open position in `symbol`.
+        Returns 0.0 if no position or peak never went positive."""
+        return self._position_peak_unrealized.get(symbol, 0.0)
 
     def reset_daily_tracking(self, prices: Dict[str, float]) -> None:
         """Reset daily tracking at market open."""
