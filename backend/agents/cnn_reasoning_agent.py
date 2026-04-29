@@ -19,7 +19,8 @@ Data flow per cycle
 Training schedule
 -----------------
   • Triggered at most once per 24 h (RETRAIN_INTERVAL)
-  • Requires ≥ MIN_TRAIN_SAMPLES rows with known 1-day outcomes
+  • Requires ≥ MIN_TRAIN_SAMPLES rows with known forward outcomes
+    (horizon configured by data.cnn_model.LABEL_HORIZON_COL — 5-day default)
   • Runs in a background thread via asyncio.to_thread so the trading loop
     is never blocked
 """
@@ -151,6 +152,7 @@ class CNNReasoningAgent(BaseAgent):
         catalysts:       Optional[List[Dict]] = None,
         macro_text:      str = "",
         portfolio_context: Optional[Dict] = None,
+        horizon_label:   str = "5-day",
     ) -> str:
         # The display loop iterates two dicts with different naming conventions:
         #   • learned_weights uses CNN channel names — "earnings_magnitude" (Task #22)
@@ -247,7 +249,7 @@ class CNNReasoningAgent(BaseAgent):
             f"You are an expert quantitative trader. "
             f"A trained temporal CNN has produced the following signal for {symbol}.\n\n"
             f"## CNN Prediction\n"
-            f"  Predicted 1-day return : {pred_return*100:+.2f}%\n"
+            f"  Predicted {horizon_label} return : {pred_return*100:+.2f}%\n"
             f"  Direction              : {direction.upper()}\n"
             f"  CNN confidence         : {cnn_conf:.0%}  "
             f"(this is the model's certainty in the predicted direction — do NOT invert it)\n\n"
@@ -477,7 +479,7 @@ class CNNReasoningAgent(BaseAgent):
                     "size_pct":   0.10,
                     "reasoning":  (
                         f"CNN-only ({signal_cnn.device}): "
-                        f"predicted {pred_return*100:+.1f}% 1D return ({direction})"
+                        f"predicted {pred_return*100:+.1f}% 5D return ({direction})"
                     ),
                 }
 

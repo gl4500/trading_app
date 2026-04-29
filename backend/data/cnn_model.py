@@ -190,6 +190,23 @@ WALKFORWARD_MIN_VAL_DAYS      = 14
 WALKFORWARD_EMBARGO_BARS      = 1
 _SECS_PER_DAY                 = 86_400.0
 
+# Label horizon (added 2026-04-27 / Layer 2.4)
+# Switched from "return_1d" → "return_5d" because:
+#   - 1-day forward returns are dominated by noise (efficient market, signals
+#     already priced in by the time analyst/news scores update)
+#   - 5-day forward returns have ~sqrt(5) better signal-to-noise ratio
+#   - return_5d is already populated by signal_history (no backfill needed)
+#
+# A label horizon switch invalidates the currently-saved checkpoint's
+# predictions until the next walk-forward retrain rebuilds with 5d targets.
+# predict() loads fine but its outputs are 1d-scale until then.
+LABEL_HORIZON_COL             = "return_5d"
+# Confidence calibration: 5d returns scale wider than 1d (rough sqrt(5) ≈ 2.2x).
+# A "max-confidence" predicted return at 5d is ~10% rather than 5% at 1d.
+LABEL_HORIZON_FULL_CONF_RET   = 0.10
+# Direction threshold scales similarly: 1d used 0.5%, 5d uses 1.0%.
+LABEL_HORIZON_DIR_THRESHOLD   = 0.010
+
 
 def _compute_wfe(
     y_true: list,
@@ -375,7 +392,8 @@ def build_training_windows(
     Returns
     -------
     X : (N, C, T)  float32  — feature windows
-    y : (N,)       float32  — 1-day forward returns (clipped to ±20%)
+    y : (N,)       float32  — forward returns at LABEL_HORIZON_COL horizon,
+                              clipped to ±20%
     w : (N,)       float32  — sample weights (1.0 default; higher when top
                               agent was confirmed correct)
     t : (N,)       float64  — snapshot_ts of each window's last row,
@@ -410,6 +428,15 @@ def build_training_windows(
             np.empty(0, dtype=np.float32),
             np.empty(0, dtype=np.float64),
         )
+    # Layer 2.4: label horizon is configurable via LABEL_HORIZON_COL (default
+    # "return_5d"). Falls back to "return_1d" if the configured column isn't
+    # present (e.g. very early signal_history rows written before backfill).
+    label_col = LABEL_HORIZON_COL if LABEL_HORIZON_COL in df.columns else "return_1d"
+    if label_col != LABEL_HORIZON_COL:
+        logger.warning(
+            f"build_training_windows: {LABEL_HORIZON_COL} missing from df — "
+            f"falling back to return_1d (model will train on shorter horizon)"
+        )
 
     X_list: List[np.ndarray] = []
     y_list: List[float]      = []
@@ -419,7 +446,7 @@ def build_training_windows(
     for symbol, grp in df.groupby("symbol"):
         grp    = grp.sort_values("snapshot_ts").reset_index(drop=True)
         feats  = grp[feat_cols].values.astype(np.float32)
-        rets   = grp["return_1d"].values.astype(np.float32)
+        rets   = grp[label_col].values.astype(np.float32)
         ts     = grp["snapshot_ts"].values.astype(np.float64)
 
         if "top_agent_correct" in grp.columns:
@@ -716,20 +743,22 @@ class SignalCNN:
 
         Parameters
         ----------
-        x : (5, T) float array — from SignalHistoryStore.get_recent_window()
+        x : (C, T) float array — from SignalHistoryStore.get_recent_window()
 
         Returns
         -------
-        pred_return : float       predicted 1-day return (e.g. 0.023 = +2.3%)
+        pred_return : float       predicted forward return at LABEL_HORIZON_COL
+                                  (default 5-day; e.g. 0.04 = +4%)
         direction   : str         'bull' | 'neutral' | 'bear'
-        confidence  : float 0–1   magnitude-scaled (5% return → 1.0)
+        confidence  : float 0–1   magnitude-scaled
+                                  (LABEL_HORIZON_FULL_CONF_RET → 1.0)
         """
         if not HAS_TORCH or self._net is None or not self._trained:
             return 0.0, "neutral", 0.0
 
         # Guard against channel mismatch during the transition period when old
-        # 7-channel checkpoints are loaded but get_recent_window now returns 9
-        # channels.  The net rebuilds automatically on the next 24h retrain.
+        # checkpoints are loaded but get_recent_window now returns more channels.
+        # The net rebuilds automatically on the next walk-forward retrain.
         if x.shape[0] != self._n_channels:
             return 0.0, "neutral", 0.0
 
@@ -738,8 +767,18 @@ class SignalCNN:
             x_t    = torch.from_numpy(x.astype(np.float32)).unsqueeze(0).to(self._dev)
             pred   = float(self._net(x_t).squeeze().cpu().item())
 
-        direction  = "bull" if pred > 0.005 else ("bear" if pred < -0.005 else "neutral")
-        confidence = float(min(1.0, abs(pred) / 0.05))   # 5% → max confidence
+        # Direction + confidence calibration scales with the label horizon
+        # (Layer 2.4): 5d returns are ~sqrt(5) wider than 1d. The constants
+        # LABEL_HORIZON_DIR_THRESHOLD and LABEL_HORIZON_FULL_CONF_RET capture
+        # the per-horizon scale so callers don't need to know which horizon
+        # the model was trained on.
+        if pred > LABEL_HORIZON_DIR_THRESHOLD:
+            direction = "bull"
+        elif pred < -LABEL_HORIZON_DIR_THRESHOLD:
+            direction = "bear"
+        else:
+            direction = "neutral"
+        confidence = float(min(1.0, abs(pred) / LABEL_HORIZON_FULL_CONF_RET))
         return pred, direction, confidence
 
     # ── learned weights ───────────────────────────────────────────────────────

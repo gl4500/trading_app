@@ -53,7 +53,7 @@ def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True,
             "composite_score": np.random.uniform(-1, 1),
             "price":           100.0 + i * 0.1,
             "return_1d":       np.random.uniform(-0.05, 0.05) if add_outcomes else float("nan"),
-            "return_5d":       float("nan"),
+            "return_5d":       np.random.uniform(-0.10, 0.10) if add_outcomes else float("nan"),
         }
         if add_iv_rv:
             row["iv_rv_score"] = np.random.uniform(-1, 1)
