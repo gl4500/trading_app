@@ -668,6 +668,17 @@ class SignalCNN:
                 last_actual_epochs = actual_epochs
                 last_val_pred = vp.tolist()
                 last_val_true = vt.tolist()
+            else:
+                # Release per-fold tensors + net before the next fold builds new
+                # ones. Critical on the RTX 2060 (6 GB VRAM) where llama3.1:8b
+                # already occupies ~4.7 GB; without this, three fold trainings
+                # can OOM mid-retrain.
+                del net, opt, scheduler, ds, loader
+                del X_train, y_train, X_val, y_val
+                if w_train is not None:
+                    del w_train
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
         # Aggregate metrics
         self._fold_metrics = fold_metrics

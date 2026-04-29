@@ -157,7 +157,13 @@ def walkforward_folds(
         if val_start <= sorted_ts[0]:
             break
 
-        val_mask_sorted = (sorted_ts >= val_start) & (sorted_ts <= val_end)
+        # Half-open intervals [val_start, val_end) for fold_i > 0 so consecutive
+        # folds don't share the boundary sample. Fold 0 (the most recent) keeps
+        # the closed upper bound so the very last sample is always covered.
+        if fold_i == 0:
+            val_mask_sorted = (sorted_ts >= val_start) & (sorted_ts <= val_end)
+        else:
+            val_mask_sorted = (sorted_ts >= val_start) & (sorted_ts < val_end)
         train_cutoff_idx = int(np.searchsorted(sorted_ts, val_start, side="left"))
         train_end_idx = max(0, train_cutoff_idx - embargo_bars)
         if train_end_idx < 1 or not val_mask_sorted.any():

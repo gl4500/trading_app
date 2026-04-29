@@ -161,6 +161,19 @@ class TestWalkforwardFolds(unittest.TestCase):
         for tr, va in folds:
             self.assertGreater(ts[va].min(), ts[tr].max())
 
+    def test_val_sets_are_disjoint_at_fold_boundaries(self):
+        # Place a sample exactly on a fold boundary. Previously both fold 0
+        # and fold 1 would include it (closed-closed intervals). Now fold 0
+        # claims it (closed upper bound) and fold 1 excludes it (half-open).
+        ts = np.arange(0, 90 * ONE_DAY, ONE_DAY, dtype=np.float64)
+        folds = walkforward_folds(ts, n_folds=3, min_val_days=14, embargo_bars=1)
+        all_val_idx: set = set()
+        for _tr, va in folds:
+            for idx in va.tolist():
+                self.assertNotIn(idx, all_val_idx,
+                                 f"sample idx {idx} appeared in multiple val folds")
+                all_val_idx.add(idx)
+
 
 if __name__ == "__main__":
     unittest.main()
