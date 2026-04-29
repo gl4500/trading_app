@@ -2,7 +2,141 @@
 
 Status key: `[ ]` open · `[x]` done · `[-]` deferred · `[!]` blocked
 
-Last updated: 2026-04-11 (session 2)
+Last updated: 2026-04-29 (risk management gaps identified during ASML give-back review)
+
+---
+
+## Priority 0 — Risk management gaps (identified 2026-04-29)
+
+These were uncovered while investigating why CNNReasoningAgent gave back unrealized gains
+on ASML in one day with no exit firing. Trailing stop (commit `74fb330`) was the first fix;
+these are the others.
+
+### 0.1 `entry_confidence = 0.50` bug — CNN positions all show threshold value
+
+**Why:** Every CNN position currently held shows `entry_confidence = 0.50` exactly — the
+minimum BUY-gate threshold. Statistically implausible across 9 BUYs over weeks. Either
+the value isn't being persisted from Ollama's response, or it's being clamped/defaulted
+somewhere before reaching `Position`.
+
+This breaks Bayes early-exit calibration: the `_check_bayes_exits` logic compares
+`entry_confidence − bayes_confidence ≥ 0.30`. With every entry pinned at 0.50, the
+floor is 0.20 — requires ~13% drop from entry to fire. High-conviction positions that
+should exit faster don't.
+
+- [ ] Reproduce: log a CNN BUY's confidence chain from Ollama response → `Signal.confidence` → `execute_buy(entry_confidence=…)` → `Position.entry_confidence`
+- [ ] Identify where 0.50 is substituted (likely in `_execute_signal` or `execute_buy`)
+- [ ] Add test: BUY with Ollama confidence 0.78 → Position.entry_confidence == 0.78
+- [ ] Fix and verify on next CNN entry
+
+**Files:** `backend/agents/cnn_reasoning_agent.py`, `backend/agents/base_agent.py:_execute_signal`, `backend/trading/portfolio.py:execute_buy`
+
+---
+
+### 0.2 BKNG split-adjustment bug — stale avg_cost across stock splits
+
+**Why:** MeanReversionAgent shows BKNG `avg_cost=$4,060.12` while TechAgent shows
+the same symbol at `avg_cost=$191.96`. Both report the same `current_price=$176.88`.
+The disparity is consistent with a stock split (BKNG ~20:1 would produce these
+numbers) where the agent's `avg_cost` was not adjusted but the live price was.
+
+This silently miscalculates unrealized P&L for any agent that holds a position
+through a corporate action. MeanReversion's reported -$7,805 unrealized on
+BKNG (-95.6%) is mostly an accounting artifact, not a real loss.
+
+- [ ] Add corporate action handling: when Alpaca reports a split, update all agents'
+      `avg_cost` and `shares` for affected symbols proportionally
+- [ ] Sweep current positions for split-disagreement (any symbol where two agents
+      have avg_cost differing by >2× is suspect)
+- [ ] One-time correction script for already-stale positions, OR document that
+      stale positions will self-clear when they SELL (since SELL clears the position)
+- [ ] Test: simulate a 20:1 split on a held position; assert avg_cost and shares
+      are both rescaled
+
+**Files:** `backend/trading/portfolio.py`, `backend/trading/alpaca_client.py` (split detection)
+
+---
+
+### 0.3 Scanner crash on ASML — `'NoneType' object has no attribute 'get'`
+
+**Why:** From `error.log` 2026-04-28 10:18 EDT:
+`scanner_agent: scanner tool get_stock_analysis(ASML): 'NoneType' object has no attribute 'get'`.
+A defense layer that's supposed to evaluate held positions is silently broken on
+specific symbols. Multiple symbols affected the same day (LAC, CLF, NTLA, FORM, SNAP, SPOT, W, ARM also hit).
+
+- [ ] Locate the call site in scanner tool; trace what returns `None`
+- [ ] Likely candidates: a market-data fetch returning None on rate-limit / missing symbol
+- [ ] Add defensive `if x is None: return ...` guard (with logging — don't swallow)
+- [ ] Test with a mocked None return — assert graceful skip, no exception
+
+**Files:** `backend/agents/scanner_agent.py`
+
+---
+
+### 0.4 Hard stop-loss for CNNReasoningAgent (defense in depth)
+
+**Why:** CNN currently has zero hard stops. Other agents (TechAgent) have ATR-based
+stops. The trailing stop just shipped covers the give-back-of-gains case, but not
+"position drops to −X% from entry without ever being profitable." Need a final floor.
+
+- [ ] Add `CNN_HARD_STOP_PCT` env var (default −8% from entry)
+- [ ] Implement in `cnn_reasoning_agent.analyze` or as another `BaseAgent` check method
+- [ ] Test: position drops to −9% from entry → SELL fires regardless of Bayes/LLM/trail
+- [ ] Verify it composes correctly with the other exits (no double-sell)
+
+**Files:** `backend/agents/cnn_reasoning_agent.py`, `backend/agents/base_agent.py`, `backend/config.py`, `.env.example`
+
+---
+
+### 0.5 "Daily move" risk re-evaluation — escalate big intraday drops to LLM
+
+**Why:** When ASML dropped −7% on 2026-04-28, the bearish "Semi Mania Backtracks"
+catalyst arrived AFTER market close (16:53 EDT). The agent had no opportunity to
+incorporate it during the trading window. A daily-move trigger would force an
+explicit LLM re-evaluation when a position drops more than X% intraday, regardless
+of whether the catalyst feed has caught up.
+
+- [ ] Track daily P&L change per position (need today_open_price persisted per cycle)
+- [ ] If `(today_open_price − current_price) / today_open_price ≥ DAILY_REVIEW_PCT`,
+      inject `## RISK ALERT` block into Ollama prompt with explicit ask to reconsider
+- [ ] Default `DAILY_REVIEW_PCT = 0.05` (5%) — env-tunable
+- [ ] Test with a synthetic price drop sequence
+
+**Files:** `backend/trading/portfolio.py`, `backend/agents/cnn_reasoning_agent.py`
+
+---
+
+### 0.6 Lone-wolf trade discount — downsize when CNN is alone on a BUY
+
+**Why:** ASML position was held by CNN only; no other agent (TechAgent, Momentum,
+Scanner, HistoricalTrends, Ensemble, Claude, MeanReversion, Sentiment) bought it.
+With CNN's WFE < 0 and the model fitting noise, lone-wolf trades are exactly the
+ones we should be most skeptical of. They have the highest probability of being
+noise-driven false positives.
+
+- [ ] Before CNN executes a BUY, count agents currently signaling BUY on the same symbol
+- [ ] If <2 other agents agree, halve `size_pct` (or apply a configurable lone-wolf multiplier)
+- [ ] Log a marker in `recent_trades` reasoning so the trade is auditable
+- [ ] Test: CNN BUYs alone → shares allocation halved; CNN BUYs with 2+ corroborators → unchanged
+
+**Files:** `backend/agents/cnn_reasoning_agent.py`
+
+---
+
+### 0.7 GPU/Ollama coordination across apps (Layer 2.3 — DESIGN DONE)
+
+**Why:** Ollama latencies of 15–50s + timeouts in `error.log` because trading_app
+and polymarket_app compete for the single RTX 2060. Design approved: dollar-at-risk
+priority via shared coord file. Implementation queued — needs polymarket_app side
+mirror, which is outside trading_app's scope rule and requires explicit override.
+
+- [ ] Implement `backend/data/gpu_coord.py` (Option H: dollar-at-risk priority + asyncio.Lock per app)
+- [ ] Wrap call sites in `cnn_reasoning_agent._ollama_decision`, `sentiment_agent`, `claude_agent`, `gemini_agent`
+- [ ] Add training mutex (Option F) around `signal_cnn.fit()`
+- [ ] Mirror in polymarket_app (out of scope without override)
+- [ ] Tests: concurrent acquire serializes, higher exposure preempts, stale lock recovered
+
+**Design doc:** `docs/superpowers/plans/2026-04-28-gpu-sequencing-design.md`
 
 ---
 
