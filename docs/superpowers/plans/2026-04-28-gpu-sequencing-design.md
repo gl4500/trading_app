@@ -1,8 +1,10 @@
 # GPU Sequencing Across trading_app and polymarket_app — Design
 
-**Status:** Design only. No code change in either app yet — implementation pending review.
+**Status:** Design only. Queued for future implementation — picked up after the user wakes up to non-CNN priorities.
+**Recommended approach:** Option H (dollar-at-risk priority) + Option E (per-app asyncio.Lock) + Option F (training mutex). See "Final recommendation" at the end.
 **Author:** Claude (Layer 2.3)
 **Date:** 2026-04-28
+**Last updated:** 2026-04-28 (added Option H after user feedback that priority should be capital-weighted, not time-of-day)
 
 ## Problem
 
@@ -127,20 +129,61 @@ Each call site adds ~3 lines.
 - `test_gpu_coord_heartbeat_keeps_lock_fresh`
 - `test_gpu_coord_timeout_returns_false` — acquire with 100ms timeout when held by another app
 
-## Open Questions for Approval
+## Final Recommendation (post user feedback, 2026-04-28)
 
-1. **Scope acknowledgment.** Implementing Option B requires changes in BOTH `trading_app` and `polymarket_app` to be effective. Per the `feedback_scope_restriction.md` rule I won't touch polymarket_app without explicit override. Do you want me to:
-   - (a) Implement only the trading_app side and you mirror it manually in polymarket_app, OR
-   - (b) Override the scope rule for this one cross-cutting change?
-2. **Priority schedule.** Is `trading_app priority=10 during 09:30–16:00 ET` correct? Polymarket markets are 24/7 — should its off-hours priority be `8` instead of `10`?
-3. **Coordination file location.** `C:\ProgramData\ollama-coord\state.json` works on Windows. Long-term portability — should it be in user-home (`~/.ollama-coord/`) instead?
-4. **Heartbeat cadence.** 5-second heartbeat with 2× expected_ms staleness threshold is conservative. Faster heartbeat catches crashed apps sooner but adds file writes. Acceptable?
+User feedback rejected time-of-day priority: "depends on the dollar amount at stake." Recommendation revised to **Option H + Option E + Option F**, composed:
 
-## Decision Required
+### Option H — Dollar-at-risk priority (replaces Option B)
 
-Approve Option B and answer Q1–Q4. Implementation effort estimate:
-- trading_app side: 1 module, ~150 lines, 5 tests, 1 day of work
-- polymarket_app side (mirror): same scope
-- Each call-site wrapping: 5 minutes per site, ~5 sites total per app
+Each app continuously publishes its current capital exposure to a shared coord file. Whichever app has more dollars at stake gets the next Ollama call.
 
-Once approved, this plan slots in as a follow-up to the Layer 2 work just shipped.
+**Coord file (`~/.ollama-coord/state.json`):**
+```json
+{
+  "trading_app":   {"exposure_usd": 12500.00, "updated_at": 1714230050.0},
+  "polymarket_app":{"exposure_usd":  3200.00, "updated_at": 1714230048.0}
+}
+```
+
+**Acquisition logic per Ollama call:**
+1. Read coord file. Treat any entry with `now - updated_at > 60s` as `exposure_usd = 0` (app is down or stuck — auto-yield).
+2. If `self.exposure >= other.exposure` → fire immediately.
+3. Else → wait `min(other.expected_ms, 1s)` and re-check. Bounded retry, 10s max. On timeout → skip cycle, return HOLD.
+
+**Each app updates its own line** every 30s (or every cycle, whichever is shorter):
+- trading_app: `exposure = sum(pos.shares × current_price for pos in portfolio.positions)`
+- polymarket_app: equivalent against Coinbase positions
+
+**Why this beats time-of-day priority:**
+- Capital itself decides who's important right now — no human-set numbers, no calendar rules.
+- Cash-heavy app yields to invested app naturally.
+- One app crashes → its exposure stales out → other app gets full priority.
+
+### Composed stack (full picture)
+
+| Layer | Function | Why |
+|---|---|---|
+| Per-app `asyncio.Lock` (Option E) | At most 1 Ollama call in-flight per app | Prevents within-app self-contention |
+| Dollar-at-risk priority (Option H) | Cross-app fairness | Capital-weighted, not time-weighted |
+| Training mutex (Option F) | Only one app retrains at a time | The 30-min retrains can't both run |
+| WFE BUY-gate (already shipped) | Skip cycles when LLM is slow | Last line of defense |
+
+### Open Questions for Implementation
+
+1. **Scope acknowledgment.** Implementing Option H requires changes in BOTH apps. Per `feedback_scope_restriction.md` we won't touch polymarket_app without explicit override. Implement trading_app side first, mirror later.
+2. **Exposure definition.** Three options for what counts as "exposure":
+   - **(a) Total notional** — `sum(|shares × price|)`. Simple. (Recommended starting point.)
+   - **(b) Notional × volatility** — weights high-vol positions higher. More accurate.
+   - **(c) Marginal-decision size** — `size_pct × portfolio` for the BUY about to fire. Most aggressive.
+3. **Coord file location.** `~/.ollama-coord/state.json` (user-home, portable) vs `C:\ProgramData\ollama-coord\state.json` (Windows-native).
+4. **Update cadence.** 30s feels right; faster increases I/O, slower lets exposures get stale during fast-moving markets.
+
+### Implementation Effort
+
+- trading_app side: ~1 day (module + integration into `_ollama_decision` call sites + 5 tests)
+- polymarket_app side (mirror): same
+- Once both ship, monitor for a week; fall back to Option B (time-priority) only if Option H produces unfair outcomes.
+
+### Status
+
+**Queued.** Pick up after current trading-app priorities clear.
