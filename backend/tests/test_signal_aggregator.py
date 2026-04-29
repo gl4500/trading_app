@@ -308,5 +308,63 @@ class TestFormatForPrompt(unittest.TestCase):
         self.assertIn("CONTEXT ONLY", earnings_line)
 
 
+class TestGetCompositeSignalDefenseInDepth(unittest.IsolatedAsyncioTestCase):
+    """get_composite_signal must coerce gather() failures into empty dicts
+    so downstream `.get(...)` calls never crash with NoneType (Backlog 0.3)."""
+
+    async def test_yf_data_exception_does_not_crash(self):
+        """If _get_yf_data raises, gather hands back the exception — must coerce to {}."""
+        from data.signal_aggregator import get_composite_signal
+
+        async def _raises(symbol):
+            raise RuntimeError("yfinance is sad")
+
+        async def _ok(symbol):
+            return {"score": 0.1}
+
+        with patch("data.signal_aggregator._get_yf_data", side_effect=_raises), \
+             patch("data.congressional_trading.get_congressional_signal", side_effect=_ok):
+            result = await get_composite_signal("AAPL", [])
+
+        # Must return a dict with the expected shape — no crash
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["symbol"], "AAPL")
+        self.assertIn("composite_score", result)
+        self.assertIn("sources", result)
+
+    async def test_congress_data_exception_does_not_crash(self):
+        """If get_congressional_signal raises, gather hands back the exception — must coerce."""
+        from data.signal_aggregator import get_composite_signal
+
+        async def _ok(symbol):
+            return {"analyst_score": 0.5}
+
+        async def _raises(symbol):
+            raise ValueError("EDGAR is sad")
+
+        with patch("data.signal_aggregator._get_yf_data", side_effect=_ok), \
+             patch("data.congressional_trading.get_congressional_signal", side_effect=_raises):
+            result = await get_composite_signal("AAPL", [])
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["symbol"], "AAPL")
+
+    async def test_both_sources_failing_returns_neutral_dict(self):
+        """Worst case: both fetches raise — function must still return a usable dict."""
+        from data.signal_aggregator import get_composite_signal
+
+        async def _raises(symbol):
+            raise RuntimeError("everything is broken")
+
+        with patch("data.signal_aggregator._get_yf_data", side_effect=_raises), \
+             patch("data.congressional_trading.get_congressional_signal", side_effect=_raises):
+            result = await get_composite_signal("AAPL", [])
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["symbol"], "AAPL")
+        # composite_score may be None (no usable inputs) but the dict shape is intact
+        self.assertIn("sources", result)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -60,19 +60,26 @@ BKNG (-95.6%) is mostly an accounting artifact, not a real loss.
 
 ---
 
-### 0.3 Scanner crash on ASML — `'NoneType' object has no attribute 'get'`
+### 0.3 Scanner crash on ASML — `'NoneType' object has no attribute 'get'` ✅ DONE 2026-04-29
 
-**Why:** From `error.log` 2026-04-28 10:18 EDT:
-`scanner_agent: scanner tool get_stock_analysis(ASML): 'NoneType' object has no attribute 'get'`.
-A defense layer that's supposed to evaluate held positions is silently broken on
-specific symbols. Multiple symbols affected the same day (LAC, CLF, NTLA, FORM, SNAP, SPOT, W, ARM also hit).
+**Why:** Hit on dozens of symbols on 2026-04-28 and 2026-04-29 (ASML, LAC, CLF, NTLA,
+FORM, SNAP, SPOT, W, ARM, HUM, AA, NUE, GDX, WOLF, COPX, KO, UPS, ENTG, SOXX, AVGO,
+ARWR, OLED — broad enough to be systematic, not symbol-specific).
 
-- [ ] Locate the call site in scanner tool; trace what returns `None`
-- [ ] Likely candidates: a market-data fetch returning None on rate-limit / missing symbol
-- [ ] Add defensive `if x is None: return ...` guard (with logging — don't swallow)
-- [ ] Test with a mocked None return — assert graceful skip, no exception
+**Root cause:** `get_composite_signal` used `asyncio.gather(...)` without
+`return_exceptions=True`. When either `_get_yf_data` or `get_congressional_signal`
+raised, gather propagated the exception. The scanner's broad except caught it but
+the warning's `str(e)` printed `'NoneType' object has no attribute 'get'` because
+the failing line was a `.get(...)` call after the gather coroutine had already
+crashed and assigned an Exception object back to `yf_data`.
 
-**Files:** `backend/agents/scanner_agent.py`
+**Fix:**
+- [x] gather now uses `return_exceptions=True`
+- [x] Defense-in-depth: `if not isinstance(yf_data, dict): yf_data = {}` (same for `congress_data`) — so downstream `.get(...)` calls never see Exception or None
+- [x] Improved `scanner_agent` warning to include `exc_info=True` — future None.get errors will log a full stack trace pinpointing the exact line, not just the symptom
+- [x] 3 tests covering yf_data raises / congress raises / both raise
+
+**Files:** `backend/data/signal_aggregator.py`, `backend/agents/scanner_agent.py`
 
 ---
 

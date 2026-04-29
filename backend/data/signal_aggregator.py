@@ -313,7 +313,19 @@ async def get_composite_signal(symbol: str, alpaca_news: List[Dict]) -> Dict:
     yf_data, congress_data = await asyncio.gather(
         _get_yf_data(symbol),
         get_congressional_signal(symbol),
+        return_exceptions=True,
     )
+    # Defense in depth: gather with return_exceptions=True can hand back
+    # an Exception in place of a dict if either coroutine raised. Coerce
+    # to {} so downstream `.get(...)` calls don't crash with the diagnosis-
+    # eating "'NoneType' object has no attribute 'get'" error we saw on
+    # 2026-04-28 across many symbols (Backlog 0.3).
+    if not isinstance(yf_data, dict):
+        logger.warning(f"signal_aggregator: yf_data fallback to {{}} for {symbol} ({type(yf_data).__name__}: {yf_data!r:.120})")
+        yf_data = {}
+    if not isinstance(congress_data, dict):
+        logger.warning(f"signal_aggregator: congress_data fallback to {{}} for {symbol} ({type(congress_data).__name__}: {congress_data!r:.120})")
+        congress_data = {}
 
     alpaca_score      = _score_headlines(alpaca_news)
     analyst_score     = yf_data.get("analyst_score")

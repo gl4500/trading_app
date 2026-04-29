@@ -354,7 +354,13 @@ async def _tool_get_stock_analysis(symbol: str) -> Dict:
             "recent_news_count": len(news) if isinstance(news, list) else 0,
         }
     except Exception as e:
-        logger.warning(f"scanner tool get_stock_analysis({symbol}): {e}")
+        # exc_info=True captures the stack trace so we can pinpoint the
+        # source of "'NoneType' object has no attribute 'get'"-style errors
+        # instead of just the symptom (Backlog 0.3, 2026-04-29).
+        logger.warning(
+            f"scanner tool get_stock_analysis({symbol}): {e}",
+            exc_info=True,
+        )
         _record_pull(symbol, success=False)
         return {"symbol": symbol, "data_available": False, "error": str(e)}
 
