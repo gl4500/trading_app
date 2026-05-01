@@ -254,6 +254,89 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
         self.assertIn("LONE-WOLF", buys[0].reasoning,
                       "SELL/HOLD must not count as corroboration")
 
+    async def test_daily_move_risk_alert_injected_when_position_drops(self):
+        """Held position down >5% today triggers risk alert injected into prompt."""
+        # Setup: buy AAPL at $100, then today's price drops to $94 (-6%)
+        self.agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        mkt = _make_market(["AAPL"], price=94.0)
+        hold_resp = {"action": "HOLD", "confidence": 0.5, "reasoning": "test"}
+        captured_prompts = []
+
+        async def _capture(prompt):
+            captured_prompts.append(prompt)
+            return hold_resp
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", side_effect=_capture):
+            await self.agent.analyze(mkt)
+
+        self.assertEqual(len(captured_prompts), 1)
+        self.assertIn("RISK ALERT", captured_prompts[0])
+        self.assertIn("6.0% TODAY", captured_prompts[0])
+
+    async def test_daily_move_risk_alert_not_injected_below_threshold(self):
+        """Held position down 3% (below 5% threshold) → no risk alert."""
+        self.agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        mkt = _make_market(["AAPL"], price=97.0)  # only -3%
+        hold_resp = {"action": "HOLD", "confidence": 0.5, "reasoning": "test"}
+        captured_prompts = []
+
+        async def _capture(prompt):
+            captured_prompts.append(prompt)
+            return hold_resp
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", side_effect=_capture):
+            await self.agent.analyze(mkt)
+
+        self.assertEqual(len(captured_prompts), 1)
+        self.assertNotIn("RISK ALERT", captured_prompts[0])
+
+    async def test_daily_move_risk_alert_not_for_unowned_symbol(self):
+        """Symbol we don't hold → never triggers a risk alert (no position to alert on)."""
+        # No execute_buy — we don't hold AAPL
+        mkt = _make_market(["AAPL"], price=50.0)  # massive "drop" from non-existent open
+        hold_resp = {"action": "HOLD", "confidence": 0.5, "reasoning": "test"}
+        captured_prompts = []
+
+        async def _capture(prompt):
+            captured_prompts.append(prompt)
+            return hold_resp
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", side_effect=_capture):
+            await self.agent.analyze(mkt)
+
+        self.assertEqual(len(captured_prompts), 1)
+        self.assertNotIn("RISK ALERT", captured_prompts[0])
+
+    async def test_risk_alert_bypasses_entropy_prefilter(self):
+        """When a risk alert fires, the entropy pre-filter must NOT skip Ollama."""
+        self.agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        # Build a market context with low source magnitudes (would normally
+        # trigger entropy skip)
+        ctx = _make_ctx(price=92.0)  # -8% drop today
+        ctx["composite_signal"] = {
+            "composite_score": 0.0,
+            "sources": {
+                "analyst_consensus":    {"score": 0.0},
+                "earnings_surprise":    {"score": 0.0},
+                "alpaca_news":          {"score": 0.0},
+                "yahoo_news":           {"score": 0.0},
+                "congressional_trades": {"score": 0.0},
+            },
+        }
+        mkt = {"AAPL": ctx}
+        hold_resp = {"action": "HOLD", "confidence": 0.5, "reasoning": "test"}
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision",
+                          new=AsyncMock(return_value=hold_resp)) as mock_ollama:
+            await self.agent.analyze(mkt)
+
+        # Ollama must have been called despite low magnitude — risk alert overrides
+        self.assertEqual(mock_ollama.await_count, 1)
+
 
 class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
     """_build_prompt includes sentinel catalysts and macro context when present."""

@@ -576,5 +576,48 @@ class TestPeakUnrealizedTracking(unittest.TestCase):
         self.assertEqual(self.p.get_peak_unrealized("MSFT"), 0.0)  # never positive
 
 
+class TestDailyMoveTracking(unittest.TestCase):
+    """Daily-move risk gate (Backlog 0.5) needs today_open per position."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_buy_initialises_today_open_to_entry(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.assertEqual(self.p.get_today_open("AAPL"), 150.0)
+
+    def test_daily_drawdown_returns_fraction(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        # Today's open = 100 (entry), current = 95 → drawdown 5%
+        drop = self.p.daily_drawdown_pct("AAPL", 95.0)
+        self.assertAlmostEqual(drop, 0.05, places=4)
+
+    def test_daily_drawdown_negative_when_position_up(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        # Up 10% → drawdown is -0.10 (negative = up)
+        drop = self.p.daily_drawdown_pct("AAPL", 110.0)
+        self.assertAlmostEqual(drop, -0.10, places=4)
+
+    def test_daily_drawdown_none_for_unknown_symbol(self):
+        self.assertIsNone(self.p.daily_drawdown_pct("MSFT", 100.0))
+
+    def test_reset_daily_tracking_snapshots_open_for_held_positions(self):
+        from datetime import date, timedelta
+        self.p.execute_buy("AAPL", 10, 100.0)
+        # Force a date rollover so reset_daily_tracking takes the new-day path
+        self.p.daily_start_date = date.today() - timedelta(days=1)
+        # Open the next day at $108 (overnight gap up)
+        self.p.reset_daily_tracking({"AAPL": 108.0})
+        self.assertEqual(self.p.get_today_open("AAPL"), 108.0)
+        # Mid-day drop to $102 → 5.5% drawdown from today's open
+        drop = self.p.daily_drawdown_pct("AAPL", 102.0)
+        self.assertAlmostEqual(drop, (108.0 - 102.0) / 108.0, places=4)
+
+    def test_sell_clears_today_open_tracker(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.execute_sell("AAPL", 10, 110.0)
+        self.assertIsNone(self.p.get_today_open("AAPL"))
+
+
 if __name__ == "__main__":
     unittest.main()

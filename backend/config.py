@@ -94,6 +94,15 @@ class Config:
     # Set HARD_STOP_PCT=0 (or any negative) to disable.
     HARD_STOP_PCT: float = float(os.getenv("HARD_STOP_PCT", "0.08"))
 
+    # Daily-move risk re-evaluation (Backlog 0.5, 2026-04-29):
+    # When a held position drops more than DAILY_REVIEW_PCT from today's open,
+    # the CNN agent injects a "## RISK ALERT" block into the Ollama prompt
+    # telling the LLM to explicitly reconsider whether to exit. Defends
+    # against catalysts that arrive after market close (the 2026-04-28
+    # ASML "Semi Mania Backtracks" headline hit at 16:53 EDT, after close).
+    # Set to 0 to disable the gate.
+    DAILY_REVIEW_PCT: float = float(os.getenv("DAILY_REVIEW_PCT", "0.05"))
+
     # Lone-wolf BUY discount (Backlog 0.6, 2026-04-29):
     # When CNNReasoningAgent fires a BUY but fewer than LONEWOLF_MIN_CORROBORATORS
     # other agents agree on the same symbol, multiply the position size by

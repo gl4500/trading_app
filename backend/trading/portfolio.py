@@ -67,6 +67,7 @@ class Portfolio:
         self._position_low: Dict[str, float] = {}        # MAE tracker: lowest price seen since entry
         self._position_last_price: Dict[str, float] = {} # Bayesian update: last seen price per position
         self._position_peak_unrealized: Dict[str, float] = {} # Trailing stop: highest unrealized PnL ($) since entry
+        self._position_today_open: Dict[str, float] = {} # Daily-move risk gate: price seen at this trading day's first cycle (Backlog 0.5)
 
     def get_total_value(self, prices: Dict[str, float]) -> float:
         """Calculate total portfolio value (cash + positions)."""
@@ -118,6 +119,7 @@ class Portfolio:
             self._position_low[symbol] = price
             self._position_last_price[symbol] = price
             self._position_peak_unrealized[symbol] = 0.0
+            self._position_today_open[symbol] = price
 
         record = TradeRecord(
             symbol=symbol,
@@ -163,6 +165,7 @@ class Portfolio:
             self._position_low.pop(symbol, None)
             self._position_last_price.pop(symbol, None)
             self._position_peak_unrealized.pop(symbol, None)
+            self._position_today_open.pop(symbol, None)
 
         record = TradeRecord(
             symbol=symbol,
@@ -227,6 +230,30 @@ class Portfolio:
         if today != self.daily_start_date:
             self.daily_starting_value = self.get_total_value(prices)
             self.daily_start_date = today
+            # Snapshot today's opening price for each held position so the
+            # daily-move risk gate (Backlog 0.5) can compute intraday drawdown.
+            # Falls back to avg_cost when the symbol's price isn't in the
+            # current prices dict (rare — happens when a held symbol drops
+            # off the watchlist).
+            for sym, pos in self.positions.items():
+                price = prices.get(sym)
+                if price and price > 0:
+                    self._position_today_open[sym] = price
+                else:
+                    self._position_today_open.setdefault(sym, pos.avg_cost)
+
+    def get_today_open(self, symbol: str) -> Optional[float]:
+        """Today's opening price for an open position, or None if not tracked."""
+        return self._position_today_open.get(symbol)
+
+    def daily_drawdown_pct(self, symbol: str, current_price: float) -> Optional[float]:
+        """Today's intraday drawdown for the position in `symbol`, as a fraction
+        (e.g., 0.05 = down 5% from today's open). Returns None when today_open
+        is unknown or non-positive. Negative values mean the position is UP today."""
+        open_price = self._position_today_open.get(symbol)
+        if open_price is None or open_price <= 0:
+            return None
+        return (open_price - current_price) / open_price
 
     def get_daily_return(self, prices: Dict[str, float]) -> float:
         """Get today's return percentage."""

@@ -102,21 +102,30 @@ position is gone before slower exits even evaluate. Threshold is `HARD_STOP_PCT`
 
 ---
 
-### 0.5 "Daily move" risk re-evaluation — escalate big intraday drops to LLM
+### 0.5 "Daily move" risk re-evaluation — escalate big intraday drops to LLM ✅ DONE 2026-05-01
 
 **Why:** When ASML dropped −7% on 2026-04-28, the bearish "Semi Mania Backtracks"
 catalyst arrived AFTER market close (16:53 EDT). The agent had no opportunity to
-incorporate it during the trading window. A daily-move trigger would force an
-explicit LLM re-evaluation when a position drops more than X% intraday, regardless
-of whether the catalyst feed has caught up.
+incorporate it during the trading window.
 
-- [ ] Track daily P&L change per position (need today_open_price persisted per cycle)
-- [ ] If `(today_open_price − current_price) / today_open_price ≥ DAILY_REVIEW_PCT`,
-      inject `## RISK ALERT` block into Ollama prompt with explicit ask to reconsider
-- [ ] Default `DAILY_REVIEW_PCT = 0.05` (5%) — env-tunable
-- [ ] Test with a synthetic price drop sequence
+**Implementation:** `Portfolio` now tracks `_position_today_open` per held position
+(initialised at BUY, refreshed by `reset_daily_tracking` at each new trading day).
+New methods `get_today_open(symbol)` and `daily_drawdown_pct(symbol, current_price)`.
+In `cnn_reasoning_agent.analyze`, when a held position's daily drawdown ≥
+`DAILY_REVIEW_PCT` (default 5%), build a `risk_alert` dict and pass it to
+`_build_prompt`, which renders a `## RISK ALERT` block instructing Ollama to
+re-evaluate explicitly. Also bypasses the entropy pre-filter so the LLM is
+consulted even when source magnitudes are low — the moment the safety net
+matters most.
 
-**Files:** `backend/trading/portfolio.py`, `backend/agents/cnn_reasoning_agent.py`
+- [x] `Portfolio._position_today_open` + `get_today_open` + `daily_drawdown_pct`
+- [x] `reset_daily_tracking` snapshots opening price for held positions
+- [x] `DAILY_REVIEW_PCT` env var (default 0.05)
+- [x] `_build_prompt(risk_alert=…)` parameter; renders RISK ALERT block
+- [x] Entropy pre-filter bypassed when risk alert active
+- [x] 6 portfolio tests + 4 CNN agent tests covering: alert injected on drop, not below threshold, not for unowned symbols, entropy bypass
+
+**Files:** `backend/trading/portfolio.py`, `backend/agents/cnn_reasoning_agent.py`, `backend/config.py`
 
 ---
 

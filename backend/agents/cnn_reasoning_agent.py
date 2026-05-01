@@ -153,6 +153,7 @@ class CNNReasoningAgent(BaseAgent):
         macro_text:      str = "",
         portfolio_context: Optional[Dict] = None,
         horizon_label:   str = "5-day",
+        risk_alert:      Optional[Dict] = None,
     ) -> str:
         # The display loop iterates two dicts with different naming conventions:
         #   • learned_weights uses CNN channel names — "earnings_magnitude" (Task #22)
@@ -221,6 +222,27 @@ class CNNReasoningAgent(BaseAgent):
 
         macro_section = f"\n## Macro Context\n{macro_text}\n" if macro_text else ""
 
+        # ── Risk alert (Backlog 0.5) ──────────────────────────────────────────
+        # Forces the LLM to explicitly reconsider an open position when it has
+        # dropped more than DAILY_REVIEW_PCT today. Defends against catalysts
+        # arriving after market close (the agent might still see stale-positive
+        # source scores while the price tells a different story).
+        risk_alert_section = ""
+        if risk_alert:
+            today_open = risk_alert.get("today_open", 0.0)
+            current    = risk_alert.get("current_price", 0.0)
+            drop_pct   = risk_alert.get("drop_pct", 0.0)
+            risk_alert_section = (
+                f"\n## RISK ALERT\n"
+                f"  This position has dropped {drop_pct*100:.1f}% TODAY "
+                f"(open ${today_open:.2f} -> current ${current:.2f}).\n"
+                f"  RE-EVALUATE EXPLICITLY: does the original BUY thesis still hold?\n"
+                f"  If you decide to SELL, justify the action based on what changed today\n"
+                f"  (catalysts, broader sector move, or the price action itself).\n"
+                f"  The drop alone is not automatic grounds for SELL — but the position\n"
+                f"  must clear a higher bar to remain HOLD when down this much in one day.\n"
+            )
+
         # ── Portfolio & goal context ──────────────────────────────────────────
         portfolio_section = ""
         if portfolio_context:
@@ -261,7 +283,8 @@ class CNNReasoningAgent(BaseAgent):
             f"{agent_section}"
             f"{catalyst_section}"
             f"{macro_section}"
-            f"{portfolio_section}\n"
+            f"{portfolio_section}"
+            f"{risk_alert_section}\n"
             f"## Stock\n"
             f"  Symbol: {symbol}   Price: ${price:.2f}\n\n"
             f"## Task\n"
@@ -434,11 +457,35 @@ class CNNReasoningAgent(BaseAgent):
             # Macro context text (tactical + strategic summary)
             macro_text: str = market_context.get("__macro_context__", "") or ""
 
+            # Daily-move risk gate (Backlog 0.5): if this is a held position
+            # and it's down >= DAILY_REVIEW_PCT today, build a risk_alert dict
+            # to inject into the Ollama prompt. Only fires for positions we
+            # actually hold (no signal to alert about for unowned symbols).
+            risk_alert: Optional[Dict] = None
+            if symbol in self.portfolio.positions and price > 0:
+                drop = self.portfolio.daily_drawdown_pct(symbol, price)
+                if drop is not None and drop >= config.DAILY_REVIEW_PCT > 0:
+                    risk_alert = {
+                        "today_open":    self.portfolio.get_today_open(symbol) or 0.0,
+                        "current_price": price,
+                        "drop_pct":      drop,
+                    }
+                    logger.info(
+                        f"CNNReasoningAgent [{symbol}]: daily-move risk alert "
+                        f"(down {drop*100:.1f}% today, threshold {config.DAILY_REVIEW_PCT*100:.0f}%)"
+                    )
+
             # ── Entropy pre-filter ────────────────────────────────────────────
             # Skip Ollama when signal magnitude is too low AND CNN is uncertain.
             # Saves ~50s Ollama calls on flat/noisy cycles with no real signal.
+            # BUT: never skip when a risk alert is active — that's exactly the
+            # moment the LLM safety net matters most.
             _magnitude = _signal_magnitude(current_scores)
-            if _magnitude < _MIN_SIGNAL_MAGNITUDE and cnn_conf < _MIN_CNN_CONF:
+            if (
+                risk_alert is None
+                and _magnitude < _MIN_SIGNAL_MAGNITUDE
+                and cnn_conf < _MIN_CNN_CONF
+            ):
                 logger.debug(
                     f"CNNReasoningAgent [{symbol}]: entropy pre-filter — "
                     f"magnitude={_magnitude:.3f} conf={cnn_conf:.2f} → HOLD (skip Ollama)"
@@ -463,6 +510,7 @@ class CNNReasoningAgent(BaseAgent):
                 catalysts=catalysts,
                 macro_text=macro_text,
                 portfolio_context=portfolio_context,
+                risk_alert=risk_alert,
             )
             decision = await self._ollama_decision(prompt)
 
