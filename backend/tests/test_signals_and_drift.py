@@ -600,6 +600,54 @@ class TestHardStopExit(unittest.IsolatedAsyncioTestCase):
 
         mock_hard.assert_called_once_with(prices)
 
+    async def test_hard_stop_runs_after_agent_signals(self):
+        """Hard stop is a FALLBACK — must run AFTER agent signals execute,
+        so the agent's primary decision (e.g., averaging down) gets a chance
+        to lower avg_cost out of the danger zone before the mechanical floor
+        fires. This is the order contract that makes the hard stop a safety
+        net, not a primary trigger."""
+        from unittest.mock import AsyncMock, patch
+        from agents.base_agent import BaseAgent as _BaseAgent
+        from agents.base_agent import Signal as _Signal
+
+        order_log = []
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                # Simulate the agent's primary decision arriving as a signal.
+                # The signal is non-actionable here (HOLD) so we don't need
+                # to fully exercise the executor; we just record that the
+                # analyze step was reached.
+                order_log.append("analyze")
+                return [_Signal(action="HOLD", symbol="AAPL", confidence=0.5,
+                                shares=0, reasoning="primary decision")]
+
+        agent = _StubAgent("TestAgent", "stub")
+        prices = {"AAPL": 100.0}
+        ctx = {"AAPL": {"price": 100.0, "bars": None, "stats": {}, "news": []}}
+
+        async def _hard_stop_marker(_):
+            order_log.append("hard_stop")
+            return []
+
+        with patch.object(agent, "_check_bayes_exits", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_trailing_stops", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_hard_stops", side_effect=_hard_stop_marker), \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(ctx, prices)
+
+        # The contract: analyze must precede hard_stop in the call order.
+        self.assertIn("analyze", order_log)
+        self.assertIn("hard_stop", order_log)
+        self.assertLess(
+            order_log.index("analyze"),
+            order_log.index("hard_stop"),
+            "hard stop must run AFTER agent signals (primary decision); current order: " + str(order_log),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

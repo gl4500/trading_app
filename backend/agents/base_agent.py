@@ -212,14 +212,6 @@ class BaseAgent(ABC):
                 )
                 portfolio_returns = self._build_portfolio_returns(market_context, all_syms)
 
-                # Hard stop-loss — first defense layer. Sells positions that
-                # have dropped HARD_STOP_PCT or more from entry, regardless of
-                # any other exit logic. Runs first so a clearly broken position
-                # is gone before the slower exits even evaluate.
-                hard_exits = await self._check_hard_stops(prices)
-                for sig in hard_exits:
-                    self._last_signals[sig.symbol] = sig
-
                 # Bayesian early exits — must run before agent signals so the
                 # position is already closed if the agent also emits a SELL.
                 bayes_exits = await self._check_bayes_exits(prices)
@@ -234,7 +226,8 @@ class BaseAgent(ABC):
                 for sig in trail_exits:
                     self._last_signals[sig.symbol] = sig
 
-                # Execute actionable signals
+                # Execute actionable signals (the agent's primary decision —
+                # LLM-driven BUY / SELL / HOLD).
                 executed = []
                 for signal in signals:
                     signal.agent_name = self.name
@@ -246,6 +239,18 @@ class BaseAgent(ABC):
                         )
                         if success:
                             executed.append(signal)
+
+                # Hard stop-loss — fallback safety net (Backlog 0.4, refined 2026-05-02).
+                # Runs LAST, after the agent's primary decision (LLM signals)
+                # has had a chance to act. Catches positions that none of the
+                # primary mechanisms (Bayes / trailing / LLM SELL) closed and
+                # that are still down >= HARD_STOP_PCT from entry. If the
+                # agent already SELLed or averaged-down (which can lower
+                # avg_cost out of the danger zone), the hard stop naturally
+                # becomes a no-op or re-evaluates against the new avg_cost.
+                hard_exits = await self._check_hard_stops(prices)
+                for sig in hard_exits:
+                    self._last_signals[sig.symbol] = sig
 
                 # Record portfolio value
                 self.portfolio.record_value(prices)
@@ -328,12 +333,17 @@ class BaseAgent(ABC):
 
     async def _check_hard_stops(self, prices: Dict[str, float]) -> List[Signal]:
         """
-        Sell positions that have dropped HARD_STOP_PCT or more below entry.
+        Fallback safety net — sell positions still down HARD_STOP_PCT or more
+        below entry AFTER the agent's primary decision has been executed.
 
-        Defensive floor independent of Bayes / trailing / LLM. Catches the
-        case the trailing stop misses — positions that drop sharply from entry
-        without ever being profitable (so peak_unrealized_pnl never armed
-        the trail). Set HARD_STOP_PCT <= 0 in .env to disable.
+        Runs LAST in the cycle (after Bayes, trailing, and LLM signals) so
+        the agent's primary decision gets first say. If the LLM has already
+        SELLed or averaged-down to bring avg_cost out of the danger zone,
+        this hook naturally becomes a no-op. When the LLM holds (or times
+        out) on a position that has bled past the threshold, this is the
+        final mechanical floor.
+
+        Set HARD_STOP_PCT <= 0 in .env to disable.
         """
         exits: List[Signal] = []
         threshold = config.HARD_STOP_PCT
