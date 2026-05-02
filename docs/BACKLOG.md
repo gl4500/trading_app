@@ -191,10 +191,19 @@ and polymarket_app compete for the single RTX 2060.
       layer. Cross-app priority remains a no-op until polymarket also writes to
       the coord file.
 
-**Deferred (separate scope):**
-- [ ] Training mutex (Option F) around `signal_cnn.fit()`
-- [ ] Wrap remaining Ollama call sites: `sentiment_agent`, `claude_agent` (in
-      OLLAMA_ONLY_MODE), `gemini_agent`
+**Wired into all Ollama call sites (2026-05-02):**
+- [x] `cnn_reasoning_agent._ollama_decision` (PR #6)
+- [x] `sentiment_agent._analyze_one`
+- [x] `claude_agent._ollama_research`
+- [x] `gemini_agent._ollama_inference`
+- [x] `scanner_agent._run_ollama_scanner`
+
+**Training mutex (Option F) ✅ done 2026-05-02:**
+- [x] `acquire_training_mutex` / `release_training_mutex` in `gpu_coord.py`
+- [x] Wrapped around `signal_cnn.fit() + signal_cnn.save()` in `cnn_reasoning_agent._train_blocking`
+- [x] Cross-app exclusivity via `~/.ollama-coord/training.lock`
+- [x] PID + age stale-reclaim (2h staleness threshold)
+- [x] 6 mutex tests covering acquire/release/timeout/stale-reclaim/re-entrant/safe-release
 
 **Design doc:** `docs/superpowers/plans/2026-04-28-gpu-sequencing-design.md`
 

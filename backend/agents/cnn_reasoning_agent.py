@@ -111,7 +111,15 @@ class CNNReasoningAgent(BaseAgent):
             await asyncio.to_thread(self._train_blocking)
 
     def _train_blocking(self) -> None:
-        """Blocking training call — executed via asyncio.to_thread."""
+        """Blocking training call — executed via asyncio.to_thread.
+
+        Wrapped in the cross-app training mutex (Backlog 0.7, Option F).
+        Only one app trains at a time across trading_app + polymarket_app
+        because a single retrain consumes the GPU for 10–30 minutes; two
+        concurrent retrains would either OOM or thrash. Mutex stale-PID
+        reclaim handles a peer crashing mid-train.
+        """
+        from data.gpu_coord import acquire_training_mutex, release_training_mutex
         try:
             df = signal_history.get_training_data()
             if df.empty or len(df) < MIN_TRAIN_SAMPLES:
@@ -123,16 +131,30 @@ class CNNReasoningAgent(BaseAgent):
             X, y, w, t = build_training_windows(df)
             if len(X) < MIN_TRAIN_SAMPLES:
                 return
-            # Use sample weights so rows where top-performing agents were
-            # confirmed correct have higher training influence
-            signal_cnn.fit(X, y, t, epochs=80, batch_size=32, sample_weights=w)
-            signal_cnn.save()
-            summary = signal_cnn.training_summary()
-            logger.info(
-                f"CNNReasoningAgent: training complete on {len(X)} samples | "
-                f"channels={X.shape[1]} | MSE={summary['final_mse']:.6f} | "
-                f"device={summary['device']} | learned weights: {summary['learned_weights']}"
-            )
+
+            # Block until we hold the cross-app training mutex (or timeout
+            # after 1h waiting on a live peer). Skip training if the mutex
+            # is contended for too long — better to defer than fight.
+            if not acquire_training_mutex(app_name="trading_app"):
+                logger.warning(
+                    "CNNReasoningAgent: could not acquire training mutex within timeout "
+                    "— another app is training. Skipping this retrain."
+                )
+                return
+
+            try:
+                # Use sample weights so rows where top-performing agents were
+                # confirmed correct have higher training influence
+                signal_cnn.fit(X, y, t, epochs=80, batch_size=32, sample_weights=w)
+                signal_cnn.save()
+                summary = signal_cnn.training_summary()
+                logger.info(
+                    f"CNNReasoningAgent: training complete on {len(X)} samples | "
+                    f"channels={X.shape[1]} | MSE={summary['final_mse']:.6f} | "
+                    f"device={summary['device']} | learned weights: {summary['learned_weights']}"
+                )
+            finally:
+                release_training_mutex(app_name="trading_app")
         except Exception as exc:
             logger.error(f"CNNReasoningAgent: training failed: {exc}", exc_info=True)
 

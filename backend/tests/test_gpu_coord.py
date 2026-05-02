@@ -180,5 +180,105 @@ class TestOllamaCoordinatorMissingFile(unittest.IsolatedAsyncioTestCase):
             self.assertLess(time.monotonic() - t0, 0.2)
 
 
+class TestTrainingMutex(unittest.TestCase):
+    """Sync-API training mutex for cross-app exclusivity around long retrains."""
+
+    def test_acquire_when_lock_missing(self):
+        from data.gpu_coord import acquire_training_mutex, release_training_mutex
+        with tempfile.TemporaryDirectory() as td:
+            lock_path = os.path.join(td, "training.lock")
+            try:
+                ok = acquire_training_mutex(app_name="trading_app", lock_path=lock_path)
+                self.assertTrue(ok)
+                self.assertTrue(os.path.exists(lock_path))
+            finally:
+                release_training_mutex(app_name="trading_app", lock_path=lock_path)
+
+    def test_release_removes_lock_file(self):
+        from data.gpu_coord import acquire_training_mutex, release_training_mutex
+        with tempfile.TemporaryDirectory() as td:
+            lock_path = os.path.join(td, "training.lock")
+            acquire_training_mutex(app_name="trading_app", lock_path=lock_path)
+            release_training_mutex(app_name="trading_app", lock_path=lock_path)
+            self.assertFalse(os.path.exists(lock_path))
+
+    def test_release_when_not_holder_does_not_raise(self):
+        """Release is safe to call even when we don't hold the lock."""
+        from data.gpu_coord import release_training_mutex
+        with tempfile.TemporaryDirectory() as td:
+            lock_path = os.path.join(td, "training.lock")
+            # Lock exists but is held by a different app/pid
+            with open(lock_path, "w") as f:
+                json.dump({"app": "polymarket_app", "pid": 99999, "started_at": time.time()}, f)
+            release_training_mutex(app_name="trading_app", lock_path=lock_path)
+            # The other app's lock is preserved
+            self.assertTrue(os.path.exists(lock_path))
+
+    def test_reclaim_when_holder_pid_dead(self):
+        """If the holder's PID is not alive, reclaim immediately."""
+        from data.gpu_coord import acquire_training_mutex, release_training_mutex
+        with tempfile.TemporaryDirectory() as td:
+            lock_path = os.path.join(td, "training.lock")
+            # Use a PID guaranteed not to exist
+            with open(lock_path, "w") as f:
+                json.dump({"app": "polymarket_app", "pid": 1, "started_at": time.time()}, f)
+            try:
+                # Should reclaim because pid=1 is unlikely to be alive on this dev machine
+                # (init's PID on Linux). On Windows, pid=1 doesn't exist.
+                # If pid_exists returns True for pid=1, fall back to staleness.
+                # Set started_at far in the past to ensure stale-reclaim kicks in.
+                with open(lock_path, "w") as f:
+                    json.dump({
+                        "app": "polymarket_app",
+                        "pid": 1,
+                        "started_at": time.time() - (3 * 60 * 60),  # 3h ago — stale
+                    }, f)
+                ok = acquire_training_mutex(
+                    app_name="trading_app", lock_path=lock_path, max_wait_secs=1
+                )
+                self.assertTrue(ok)
+            finally:
+                release_training_mutex(app_name="trading_app", lock_path=lock_path)
+
+    def test_timeout_when_held_by_live_peer(self):
+        """When held by a live peer (this very test process) and not stale,
+        max_wait_secs=0.5 → returns False after the wait."""
+        from unittest.mock import patch
+        from data.gpu_coord import acquire_training_mutex
+        with tempfile.TemporaryDirectory() as td:
+            lock_path = os.path.join(td, "training.lock")
+            # Pre-populate with this very process's PID (definitely alive)
+            # but a DIFFERENT app name so it's not re-entrant
+            with open(lock_path, "w") as f:
+                json.dump({
+                    "app": "polymarket_app",
+                    "pid": os.getpid(),
+                    "started_at": time.time(),  # fresh
+                }, f)
+            # Speed up the test by shortening the poll interval (default 30s)
+            with patch("data.gpu_coord.TRAINING_LOCK_POLL_SECS", 0.05):
+                t0 = time.monotonic()
+                ok = acquire_training_mutex(
+                    app_name="trading_app", lock_path=lock_path, max_wait_secs=0.3
+                )
+                elapsed = time.monotonic() - t0
+            self.assertFalse(ok)
+            self.assertGreaterEqual(elapsed, 0.25)
+            self.assertLess(elapsed, 1.0)
+
+    def test_reentrant_same_app_same_pid(self):
+        """If we already hold the lock, acquire returns True without rewriting."""
+        from data.gpu_coord import acquire_training_mutex, release_training_mutex
+        with tempfile.TemporaryDirectory() as td:
+            lock_path = os.path.join(td, "training.lock")
+            try:
+                first  = acquire_training_mutex(app_name="trading_app", lock_path=lock_path)
+                second = acquire_training_mutex(app_name="trading_app", lock_path=lock_path)
+                self.assertTrue(first)
+                self.assertTrue(second)
+            finally:
+                release_training_mutex(app_name="trading_app", lock_path=lock_path)
+
+
 if __name__ == "__main__":
     unittest.main()

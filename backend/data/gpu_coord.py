@@ -1,6 +1,18 @@
 """
 GPU/Ollama coordination across apps (Backlog 0.7).
 
+This module provides two coordination primitives:
+
+  • OllamaCoordinator — for inference (seconds-long calls). Layered as
+    per-app asyncio.Lock + cross-app dollar-at-risk priority via shared
+    coord file. Designed to be best-effort: missing file is fine,
+    stale entries are fine, never raises.
+
+  • acquire_training_mutex / release_training_mutex — for retraining
+    (minutes-long blocking GPU events). Sync API (training runs in a
+    thread). One holder at a time across apps via a separate lock
+    file. Stale-PID reclaim handles crashed peers.
+
 Coordinates Ollama call serialization across `trading_app` and
 `polymarket_app`, both of which run on the same machine and compete
 for one Ollama instance / RTX 2060 GPU.
@@ -179,3 +191,126 @@ class OllamaCoordinator:
 # Defaults to app_name="trading_app". Other call sites import this
 # instance directly so they share the same per-process lock.
 ollama_coord = OllamaCoordinator(app_name="trading_app")
+
+
+# ── Training mutex (Option F) ─────────────────────────────────────────────
+# Separate from inference coordination because retrains take MINUTES (not
+# seconds) and must be exclusive. Implemented as a sync API since training
+# runs in a worker thread (signal_cnn.fit is CPU/GPU-bound, blocks the
+# thread for the duration).
+
+# A held training lock older than this is assumed crashed and is reclaimed.
+TRAINING_LOCK_STALE_SECS = 2 * 60 * 60  # 2 hours
+# Maximum total wait when contending for the training lock.
+TRAINING_LOCK_MAX_WAIT_SECS = 60 * 60   # 1 hour
+# Poll interval while waiting.
+TRAINING_LOCK_POLL_SECS = 30.0
+
+
+def _training_lock_path() -> str:
+    return os.path.join(os.path.dirname(_default_coord_path()), "training.lock")
+
+
+def _pid_alive(pid: int) -> bool:
+    """True when a process with this PID is alive on the local machine.
+    Returns True on any error so we don't spuriously steal a live lock."""
+    if pid <= 0:
+        return False
+    try:
+        # psutil is in site-packages (used elsewhere in the app)
+        import psutil  # type: ignore
+        return psutil.pid_exists(pid)
+    except Exception:
+        # If we can't check, conservatively assume alive — never steal a
+        # lock just because the check itself failed.
+        return True
+
+
+def acquire_training_mutex(
+    app_name: str = "trading_app",
+    lock_path: Optional[str] = None,
+    max_wait_secs: float = TRAINING_LOCK_MAX_WAIT_SECS,
+) -> bool:
+    """Sync-API training mutex. Returns True when acquired, False on timeout.
+
+    Acquisition rules:
+      • If lock file is missing → claim it.
+      • If lock file holds another app's PID and that PID is alive AND
+        the lock is fresh (< TRAINING_LOCK_STALE_SECS) → wait + retry.
+      • If the holder's PID is dead OR the lock is older than the stale
+        threshold → reclaim (the holder crashed mid-train).
+      • Re-entrant: if same app + same PID already holds, return True
+        immediately without rewriting.
+
+    Caller is responsible for calling release_training_mutex() in a
+    finally block.
+    """
+    path = lock_path or _training_lock_path()
+    pid = os.getpid()
+    t_start = time.monotonic()
+    while True:
+        existing = _read_json(path)
+        if not existing:
+            # Free → claim
+            try:
+                _atomic_write_json(path, {
+                    "app": app_name, "pid": pid, "started_at": time.time(),
+                })
+                logger.info(f"gpu_coord: training mutex acquired by {app_name} pid={pid}")
+                return True
+            except Exception as exc:
+                logger.warning(f"gpu_coord: could not write training mutex: {exc}")
+                return False
+
+        held_app = existing.get("app", "")
+        held_pid = int(existing.get("pid", 0) or 0)
+        held_started = float(existing.get("started_at", 0) or 0)
+        age = time.time() - held_started
+
+        # Re-entrant case: we already hold it
+        if held_app == app_name and held_pid == pid:
+            return True
+
+        # Reclaim on stale or dead-holder
+        if age > TRAINING_LOCK_STALE_SECS or not _pid_alive(held_pid):
+            logger.warning(
+                f"gpu_coord: reclaiming stale training mutex held by "
+                f"{held_app} pid={held_pid} age={age:.0f}s "
+                f"(alive={_pid_alive(held_pid)})"
+            )
+            try:
+                _atomic_write_json(path, {
+                    "app": app_name, "pid": pid, "started_at": time.time(),
+                })
+                return True
+            except Exception as exc:
+                logger.warning(f"gpu_coord: reclaim write failed: {exc}")
+                return False
+
+        # Held by a live peer — wait
+        if time.monotonic() - t_start >= max_wait_secs:
+            logger.warning(
+                f"gpu_coord: training mutex contention timeout — "
+                f"{held_app} pid={held_pid} still holds (age={age:.0f}s)"
+            )
+            return False
+        time.sleep(TRAINING_LOCK_POLL_SECS)
+
+
+def release_training_mutex(
+    app_name: str = "trading_app",
+    lock_path: Optional[str] = None,
+) -> None:
+    """Release the training mutex if we hold it. Safe to call when we don't —
+    silently no-ops in that case so finally-blocks are simple."""
+    path = lock_path or _training_lock_path()
+    try:
+        existing = _read_json(path)
+        if (existing.get("app") == app_name
+                and int(existing.get("pid", 0) or 0) == os.getpid()):
+            os.remove(path)
+            logger.info(f"gpu_coord: training mutex released by {app_name}")
+    except FileNotFoundError:
+        pass
+    except Exception as exc:
+        logger.warning(f"gpu_coord: failed to release training mutex: {exc}")

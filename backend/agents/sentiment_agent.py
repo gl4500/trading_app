@@ -196,16 +196,22 @@ Respond with ONLY valid JSON in this exact format:
 }}"""
 
         try:
-            response = await client.chat.completions.create(
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": "You are a quantitative market analyst. Respond only with valid JSON."},
-                    {"role": "user", "content": prompt},
-                ],
-                max_tokens=300,
-                temperature=0.3,
-                response_format={"type": "json_object"},
-            )
+            # Backlog 0.7: serialize Ollama calls per-app + yield to higher-
+            # exposure apps. No-op for cloud-mode calls (we still take the
+            # asyncio.Lock briefly, which is harmless for cloud since the
+            # cloud client doesn't share GPU).
+            from data.gpu_coord import ollama_coord
+            async with ollama_coord.acquire(expected_ms=20_000):
+                response = await client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": "You are a quantitative market analyst. Respond only with valid JSON."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    max_tokens=300,
+                    temperature=0.3,
+                    response_format={"type": "json_object"},
+                )
 
             content = response.choices[0].message.content
             result = json.loads(content)

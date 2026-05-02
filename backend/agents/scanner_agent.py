@@ -1051,14 +1051,17 @@ async def _run_ollama_scanner(
         # return a plain-text response and exit with 0 recommendations.
         _tool_choice = "required" if rounds == 1 else "auto"
         response = None
+        # Backlog 0.7: per-app serialization + cross-app priority for Ollama.
+        from data.gpu_coord import ollama_coord
         for _attempt in range(3):  # up to 3 attempts per round (handles 500 crashes)
             try:
-                response = await client.chat.completions.create(
-                    model=config.OLLAMA_MODEL,
-                    messages=messages,
-                    tools=_OPENAI_TOOLS,
-                    tool_choice=_tool_choice,
-                )
+                async with ollama_coord.acquire(expected_ms=60_000):
+                    response = await client.chat.completions.create(
+                        model=config.OLLAMA_MODEL,
+                        messages=messages,
+                        tools=_OPENAI_TOOLS,
+                        tool_choice=_tool_choice,
+                    )
                 break  # success
             except Exception as e:
                 err_str = str(e)
