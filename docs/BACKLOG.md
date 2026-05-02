@@ -161,18 +161,40 @@ so the discount is auditable in `recent_trades`.
 
 ---
 
-### 0.7 GPU/Ollama coordination across apps (Layer 2.3 — DESIGN DONE)
+### 0.7 GPU/Ollama coordination across apps (Layer 2.3) ⚠️ TRADING_APP SIDE DONE 2026-05-02
 
 **Why:** Ollama latencies of 15–50s + timeouts in `error.log` because trading_app
-and polymarket_app compete for the single RTX 2060. Design approved: dollar-at-risk
-priority via shared coord file. Implementation queued — needs polymarket_app side
-mirror, which is outside trading_app's scope rule and requires explicit override.
+and polymarket_app compete for the single RTX 2060.
 
-- [ ] Implement `backend/data/gpu_coord.py` (Option H: dollar-at-risk priority + asyncio.Lock per app)
-- [ ] Wrap call sites in `cnn_reasoning_agent._ollama_decision`, `sentiment_agent`, `claude_agent`, `gemini_agent`
-- [ ] Add training mutex (Option F) around `signal_cnn.fit()`
-- [ ] Mirror in polymarket_app (out of scope without override)
-- [ ] Tests: concurrent acquire serializes, higher exposure preempts, stale lock recovered
+**trading_app side (done):**
+- `backend/data/gpu_coord.py` with `OllamaCoordinator` class + module-level
+  `ollama_coord` singleton.
+- Layer 1 — `asyncio.Lock` serializes Ollama calls within the trading_app process
+  (immediate benefit; CNN agent + future sentiment/claude calls won't pile up).
+- Layer 2 — `~/.ollama-coord/state.json` (env-overridable via `OLLAMA_COORD_FILE`)
+  tracks `exposure_usd` and `updated_at` per app. `acquire()` yields up to 10s
+  when another app's fresh exposure is higher; fires anyway after timeout (better
+  to miss priority than skip a cycle).
+- Wired into `cnn_reasoning_agent._ollama_decision` (highest-volume caller).
+- Trading loop publishes total deployed capital to the coord file each cycle.
+- Stale entries (>60s) treated as exposure=0 — handles the case where
+  polymarket_app crashes / is stopped.
+- 9 tests: concurrent serialization, exposure round-trip, multi-app preservation,
+  stale-entry handling, immediate-fire when we win, bounded wait when we lose,
+  missing-file fallback.
+
+**polymarket_app side (still open — needs scope override):**
+- [ ] Mirror `OllamaCoordinator` in polymarket_app pointing to same coord file
+- [ ] Wrap polymarket's Ollama call sites with `acquire()`
+- [ ] Update polymarket's exposure each cycle
+- [ ] Without this mirror, trading_app's per-process lock is the only effective
+      layer. Cross-app priority remains a no-op until polymarket also writes to
+      the coord file.
+
+**Deferred (separate scope):**
+- [ ] Training mutex (Option F) around `signal_cnn.fit()`
+- [ ] Wrap remaining Ollama call sites: `sentiment_agent`, `claude_agent` (in
+      OLLAMA_ONLY_MODE), `gemini_agent`
 
 **Design doc:** `docs/superpowers/plans/2026-04-28-gpu-sequencing-design.md`
 

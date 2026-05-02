@@ -716,6 +716,25 @@ async def trading_loop() -> None:
             # Update news-price correlation snapshots with live prices
             await _update_news_price_snapshots(prices)
 
+            # Publish trading_app's current dollar-at-risk to the GPU coord
+            # file (Backlog 0.7). Sums deployed capital across all agents so
+            # cross-app priority compares apples to apples with polymarket.
+            # Failures here must not block the trading loop.
+            try:
+                from data.gpu_coord import ollama_coord
+                total_exposure = 0.0
+                for _agent in app_state.agents.values():
+                    portfolio = getattr(_agent, "portfolio", None)
+                    if portfolio is None:
+                        continue
+                    for sym, pos in portfolio.positions.items():
+                        px = prices.get(sym, pos.avg_cost)
+                        if px and px > 0:
+                            total_exposure += abs(pos.shares) * px
+                ollama_coord.update_exposure(total_exposure)
+            except Exception as _exp_exc:
+                logger.debug(f"gpu_coord exposure update failed: {_exp_exc}")
+
             # Filter out agents that are ensemble (it runs sub-agents internally)
             # Run all agents concurrently (excluding ensemble's sub-agents which it runs itself)
             non_ensemble_agents = [

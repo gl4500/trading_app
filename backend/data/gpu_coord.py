@@ -1,0 +1,181 @@
+"""
+GPU/Ollama coordination across apps (Backlog 0.7).
+
+Coordinates Ollama call serialization across `trading_app` and
+`polymarket_app`, both of which run on the same machine and compete
+for one Ollama instance / RTX 2060 GPU.
+
+Two layers:
+
+1. **Per-app asyncio.Lock** (Option E in the design doc) — at most one
+   Ollama call from this app is in-flight at a time. Trivially correct
+   within a single process; benefits: no concurrent CNN-agent +
+   sentiment-agent + claude-agent calls hammering Ollama from inside
+   trading_app.
+
+2. **Cross-app dollar-at-risk priority** (Option H) — the coord file
+   `~/.ollama-coord/state.json` (or `OLLAMA_COORD_FILE` env override)
+   tracks each app's current `exposure_usd`. Whichever app has more
+   capital deployed gets the next call. The other app yields up to a
+   bounded wait, then fires anyway (better to miss the priority than
+   to skip a cycle entirely).
+
+Idempotent and tolerant: if the coord file is missing or unreadable,
+the coordinator falls back to lock-only behavior and logs at debug.
+The other app being absent simply means we always win the priority
+contest — also fine.
+
+Design doc: `docs/superpowers/plans/2026-04-28-gpu-sequencing-design.md`.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import os
+import time
+from contextlib import asynccontextmanager
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+# How long an entry in the coord file is considered fresh. Beyond this,
+# the entry is treated as if exposure_usd=0 (the other app is down or stuck).
+STALE_AFTER_SECS = 60.0
+
+# Maximum total wait in acquire() before firing anyway.
+MAX_WAIT_SECS = 10.0
+
+# Per-poll wait when yielding to a higher-priority app.
+POLL_WAIT_SECS = 1.0
+
+
+def _default_coord_path() -> str:
+    """Default coord file location: ~/.ollama-coord/state.json.
+    Override via the OLLAMA_COORD_FILE env var."""
+    override = os.getenv("OLLAMA_COORD_FILE")
+    if override:
+        return override
+    return os.path.join(os.path.expanduser("~"), ".ollama-coord", "state.json")
+
+
+def _atomic_write_json(path: str, payload: dict) -> None:
+    """Best-effort atomic JSON write: write to .tmp, then rename. On Windows,
+    rename across the same directory is atomic."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(payload, f)
+    os.replace(tmp, path)
+
+
+def _read_json(path: str) -> dict:
+    """Best-effort JSON read. Returns {} on any IO/parse error."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+
+
+class OllamaCoordinator:
+    """Coordinates Ollama access for one app.
+
+    Usage:
+        coord = OllamaCoordinator(app_name="trading_app")
+        coord.update_exposure(12_500.0)
+        async with coord.acquire(expected_ms=30_000):
+            response = await ollama_client.chat.completions.create(...)
+    """
+
+    def __init__(
+        self,
+        app_name: str,
+        coord_path: Optional[str] = None,
+    ):
+        self._app_name = app_name
+        self._coord_path = coord_path or _default_coord_path()
+        # Per-process serializer: at most one outstanding Ollama call from this app.
+        self._lock = asyncio.Lock()
+        # Cached last known exposure for telemetry.
+        self._last_exposure: float = 0.0
+
+    @property
+    def coord_path(self) -> str:
+        return self._coord_path
+
+    @property
+    def last_exposure(self) -> float:
+        return self._last_exposure
+
+    def update_exposure(self, exposure_usd: float) -> None:
+        """Record this app's current capital at risk to the coord file.
+        Call periodically (every cycle or every 30s) so cross-app priority
+        reflects current state. Failures here are logged at debug and
+        don't raise — coordination is best-effort."""
+        try:
+            now = time.time()
+            state = _read_json(self._coord_path)
+            state[self._app_name] = {
+                "exposure_usd": float(exposure_usd),
+                "updated_at":   now,
+            }
+            _atomic_write_json(self._coord_path, state)
+            self._last_exposure = float(exposure_usd)
+        except Exception as exc:
+            logger.debug(f"gpu_coord: failed to update exposure for {self._app_name}: {exc}")
+
+    def _other_app_priority_exposure(self) -> float:
+        """Sum of OTHER apps' fresh exposures. Stale entries (>STALE_AFTER_SECS)
+        are excluded — they likely belong to a crashed/stopped app."""
+        try:
+            state = _read_json(self._coord_path)
+            now = time.time()
+            total = 0.0
+            for name, entry in state.items():
+                if name == self._app_name:
+                    continue
+                if not isinstance(entry, dict):
+                    continue
+                ts = float(entry.get("updated_at", 0) or 0)
+                if now - ts > STALE_AFTER_SECS:
+                    continue
+                total += float(entry.get("exposure_usd", 0) or 0)
+            return total
+        except Exception:
+            return 0.0
+
+    @asynccontextmanager
+    async def acquire(self, expected_ms: int = 30_000):
+        """Async context manager: serialize Ollama calls per-app, yield to
+        any other app whose fresh exposure exceeds ours, with a bounded wait.
+
+        Always yields control eventually — if the bounded wait expires while
+        another app is winning priority, fires anyway rather than skipping
+        the cycle. Better to miss priority than starve the agent.
+        """
+        async with self._lock:  # Layer 1: per-app serializer (always applies)
+            # Layer 2: cross-app priority wait (best-effort)
+            t_start = time.monotonic()
+            while True:
+                other_exposure = self._other_app_priority_exposure()
+                if self._last_exposure >= other_exposure:
+                    break  # we win or tie — fire now
+                elapsed = time.monotonic() - t_start
+                if elapsed >= MAX_WAIT_SECS:
+                    logger.debug(
+                        f"gpu_coord: {self._app_name} exceeded "
+                        f"{MAX_WAIT_SECS:.0f}s wait — firing anyway "
+                        f"(our exposure ${self._last_exposure:,.0f} < "
+                        f"other ${other_exposure:,.0f})"
+                    )
+                    break
+                # Wait briefly for the other app to release, then re-check
+                await asyncio.sleep(POLL_WAIT_SECS)
+            yield  # caller now makes the Ollama call
+
+
+# ── Module-level singleton for trading_app ────────────────────────────────
+# Defaults to app_name="trading_app". Other call sites import this
+# instance directly so they share the same per-process lock.
+ollama_coord = OllamaCoordinator(app_name="trading_app")

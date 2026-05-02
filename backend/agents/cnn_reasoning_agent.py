@@ -324,22 +324,32 @@ class CNNReasoningAgent(BaseAgent):
         )
 
     async def _ollama_decision(self, prompt: str) -> Optional[Dict]:
-        """Call local Ollama and parse JSON response. Returns None on any failure."""
+        """Call local Ollama and parse JSON response. Returns None on any failure.
+
+        Wrapped in `gpu_coord.ollama_coord.acquire()` so:
+          - At most one Ollama call from trading_app is in-flight at a time
+            (per-app asyncio.Lock).
+          - Cross-app priority: yields to polymarket_app when polymarket has
+            higher exposure (Backlog 0.7 — only effective once polymarket is
+            also wired into the same coord file).
+        """
         if not config.OLLAMA_MODEL:
             return None
         try:
+            from data.gpu_coord import ollama_coord
             from openai import AsyncOpenAI
             client   = AsyncOpenAI(base_url=_OLLAMA_BASE, api_key="ollama")
             _t0 = time.perf_counter()
-            response = await asyncio.wait_for(
-                client.chat.completions.create(
-                    model=config.OLLAMA_MODEL,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.3,
-                    max_tokens=350,
-                ),
-                timeout=50.0,
-            )
+            async with ollama_coord.acquire(expected_ms=50_000):
+                response = await asyncio.wait_for(
+                    client.chat.completions.create(
+                        model=config.OLLAMA_MODEL,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.3,
+                        max_tokens=350,
+                    ),
+                    timeout=50.0,
+                )
             _elapsed = time.perf_counter() - _t0
             if _elapsed > 15:
                 logger.warning(f"[OLLAMA_LATENCY] app=trading_app caller=CNNReasoningAgent model={config.OLLAMA_MODEL} elapsed={_elapsed:.2f}s (SLOW)")
