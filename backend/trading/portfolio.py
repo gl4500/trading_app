@@ -246,6 +246,72 @@ class Portfolio:
         """Today's opening price for an open position, or None if not tracked."""
         return self._position_today_open.get(symbol)
 
+    def apply_split(self, symbol: str, ratio: float) -> bool:
+        """Apply a stock-split adjustment to the position in `symbol` (Backlog 0.2).
+
+        For a 20-for-1 split: ratio = 20 → shares ×20, avg_cost ÷20.
+        For a reverse 1-for-10 split: ratio = 0.1 → shares ÷10, avg_cost ×10.
+
+        Adjusts every per-position tracker (high, low, last price, peak unrealized,
+        today's open) so existing data structures stay self-consistent.
+
+        Records a synthetic "SPLIT" entry in trade_history (price=0, shares=delta)
+        so the adjustment is auditable and the agent's win-rate / total-trades
+        counters do not include it.
+
+        Returns True when the split was applied; False when the symbol is not held
+        or the ratio is invalid.
+        """
+        if symbol not in self.positions:
+            return False
+        if ratio is None or ratio <= 0 or not math.isfinite(ratio):
+            logger.warning(f"Portfolio.apply_split: rejecting invalid ratio {ratio} for {symbol}")
+            return False
+        if abs(ratio - 1.0) < 1e-9:
+            return False  # 1:1 split is a no-op
+
+        pos = self.positions[symbol]
+        old_shares = pos.shares
+        old_avg_cost = pos.avg_cost
+        new_shares = old_shares * ratio
+        new_avg_cost = old_avg_cost / ratio
+        pos.shares = new_shares
+        pos.avg_cost = new_avg_cost
+
+        # Rescale price-based trackers (they record actual prices, all of which
+        # are now scaled by 1/ratio in the post-split world).
+        for tracker in (
+            self._position_high,
+            self._position_low,
+            self._position_last_price,
+            self._position_today_open,
+        ):
+            if symbol in tracker:
+                tracker[symbol] = tracker[symbol] / ratio
+
+        # Peak unrealized PnL stays in dollar terms; total_value (shares × price)
+        # is invariant under a split, so the peak doesn't actually change. Leave it.
+
+        # Record an audit trail entry. Using a "SPLIT" action keeps it out of the
+        # win-rate / total_trades counters which filter on action == "SELL".
+        self.trade_history.append(TradeRecord(
+            symbol=symbol,
+            action="SPLIT",
+            shares=(new_shares - old_shares),
+            price=0.0,
+            timestamp=datetime.now(timezone.utc),
+            reasoning=(
+                f"Split applied: ratio={ratio:g} | shares {old_shares:g}→{new_shares:g} "
+                f"| avg_cost ${old_avg_cost:.4f}→${new_avg_cost:.4f}"
+            ),
+            pnl=0.0,
+        ))
+        logger.info(
+            f"Portfolio: applied {ratio:g}-for-1 split on {symbol} "
+            f"(shares {old_shares:g}→{new_shares:g}, avg_cost ${old_avg_cost:.2f}→${new_avg_cost:.2f})"
+        )
+        return True
+
     def daily_drawdown_pct(self, symbol: str, current_price: float) -> Optional[float]:
         """Today's intraday drawdown for the position in `symbol`, as a fraction
         (e.g., 0.05 = down 5% from today's open). Returns None when today_open

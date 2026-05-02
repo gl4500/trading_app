@@ -36,27 +36,38 @@ history (confidence not logged in `trades` table). They self-correct on next SEL
 
 ---
 
-### 0.2 BKNG split-adjustment bug — stale avg_cost across stock splits
+### 0.2 BKNG split-adjustment bug — stale avg_cost across stock splits ✅ DONE 2026-05-01
 
 **Why:** MeanReversionAgent shows BKNG `avg_cost=$4,060.12` while TechAgent shows
-the same symbol at `avg_cost=$191.96`. Both report the same `current_price=$176.88`.
-The disparity is consistent with a stock split (BKNG ~20:1 would produce these
-numbers) where the agent's `avg_cost` was not adjusted but the live price was.
+$191.96 for the same symbol/current price. The 20× disparity is consistent with a
+stock split where one agent's `avg_cost` wasn't adjusted but the live price was.
+The reported -$7,805 unrealized is an accounting artifact, not a real loss.
 
-This silently miscalculates unrealized P&L for any agent that holds a position
-through a corporate action. MeanReversion's reported -$7,805 unrealized on
-BKNG (-95.6%) is mostly an accounting artifact, not a real loss.
+**Implementation (3 layers):**
+1. `Portfolio.apply_split(symbol, ratio)` — primitive: rescales shares, avg_cost,
+   and every per-position price tracker (high/low/last/today_open). Records a
+   "SPLIT" entry in `trade_history` (separate from win-rate-counting "SELL"
+   entries). Idempotent: rejects ratio≤0, ratio=1, or unknown symbols.
+2. `alpaca_client.get_recent_splits(symbols, since_days)` — wraps Alpaca's
+   corporate-actions API; filters to splits, returns `{symbol, ex_date,
+   payable_date, old_rate, new_rate, ratio, sub_type}` records.
+3. `data/split_adjuster.py` — orchestrator. Idempotency via price-anchor
+   heuristic: a position needs adjustment when `avg_cost / ratio` matches the
+   current (split-adjusted) live price within 30% AND raw `avg_cost` doesn't.
+   No new schema; just a heuristic check on each pass.
 
-- [ ] Add corporate action handling: when Alpaca reports a split, update all agents'
-      `avg_cost` and `shares` for affected symbols proportionally
-- [ ] Sweep current positions for split-disagreement (any symbol where two agents
-      have avg_cost differing by >2× is suspect)
-- [ ] One-time correction script for already-stale positions, OR document that
-      stale positions will self-clear when they SELL (since SELL clears the position)
-- [ ] Test: simulate a 20:1 split on a held position; assert avg_cost and shares
-      are both rescaled
+Wired into `main.py` lifespan startup: after all positions restore from DB,
+detect splits in the last 90 days and apply to stale positions across all
+agents. Fails open — startup never blocks on this sweep.
 
-**Files:** `backend/trading/portfolio.py`, `backend/trading/alpaca_client.py` (split detection)
+- [x] `Portfolio.apply_split` with full tracker rescale + audit record
+- [x] `alpaca_client.get_recent_splits` (90-day API window)
+- [x] `data/split_adjuster.detect_and_apply_splits` orchestrator with idempotent heuristic
+- [x] Startup hook in `main.py`
+- [x] 8 portfolio tests (forward, reverse, tracker rescale, audit trail, invalid ratios, P&L preservation)
+- [x] 10 split_adjuster tests (heuristic boundary, multi-agent dispatch, idempotency, missing-price safety)
+
+**Files:** `backend/trading/portfolio.py`, `backend/trading/alpaca_client.py`, `backend/data/split_adjuster.py`, `backend/main.py`
 
 ---
 

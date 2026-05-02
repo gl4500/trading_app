@@ -619,5 +619,83 @@ class TestDailyMoveTracking(unittest.TestCase):
         self.assertIsNone(self.p.get_today_open("AAPL"))
 
 
+class TestApplySplit(unittest.TestCase):
+    """Backlog 0.2 — stock-split adjustments."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_forward_split_scales_shares_and_avg_cost(self):
+        """20-for-1 split: shares ×20, avg_cost ÷20, total cost invariant."""
+        self.p.execute_buy("BKNG", 2, 4060.00)
+        ok = self.p.apply_split("BKNG", 20.0)
+        self.assertTrue(ok)
+        pos = self.p.positions["BKNG"]
+        self.assertAlmostEqual(pos.shares, 40.0)
+        self.assertAlmostEqual(pos.avg_cost, 203.00)
+        # Total cost basis must be unchanged
+        self.assertAlmostEqual(pos.shares * pos.avg_cost, 2 * 4060.00, places=2)
+
+    def test_reverse_split_scales_shares_down_and_cost_up(self):
+        """1-for-10 reverse: shares ÷10, avg_cost ×10."""
+        self.p.execute_buy("XYZ", 100, 1.50)
+        self.p.apply_split("XYZ", 0.1)
+        pos = self.p.positions["XYZ"]
+        self.assertAlmostEqual(pos.shares, 10.0)
+        self.assertAlmostEqual(pos.avg_cost, 15.0)
+
+    def test_split_rescales_price_trackers(self):
+        """All price-based per-position trackers must be rescaled by 1/ratio."""
+        self.p.execute_buy("AAPL", 10, 200.0)
+        self.p.record_value({"AAPL": 220.0})  # high=220, peak=$200 unrealized
+        self.p.apply_split("AAPL", 4.0)  # 4-for-1
+        # Price trackers all scaled by 1/4
+        self.assertAlmostEqual(self.p._position_high["AAPL"],       220.0 / 4)
+        self.assertAlmostEqual(self.p._position_low["AAPL"],        200.0 / 4)
+        self.assertAlmostEqual(self.p._position_last_price["AAPL"], 220.0 / 4)
+        self.assertAlmostEqual(self.p._position_today_open["AAPL"], 200.0 / 4)
+        # Peak unrealized PnL is dollar-denominated; total value invariant
+        # so peak (= max value − cost) is also invariant. Leave it.
+
+    def test_split_records_audit_trade(self):
+        self.p.execute_buy("BKNG", 2, 4060.00)
+        self.p.apply_split("BKNG", 20.0)
+        splits = [t for t in self.p.trade_history if t.action == "SPLIT"]
+        self.assertEqual(len(splits), 1)
+        self.assertEqual(splits[0].symbol, "BKNG")
+        self.assertIn("ratio=20", splits[0].reasoning)
+        # SPLIT must NOT inflate win-rate (filter on action=="SELL")
+        sells = [t for t in self.p.trade_history if t.action == "SELL"]
+        self.assertEqual(sells, [])
+
+    def test_split_returns_false_for_unknown_symbol(self):
+        self.assertFalse(self.p.apply_split("NOPE", 2.0))
+
+    def test_split_returns_false_for_invalid_ratio(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.assertFalse(self.p.apply_split("AAPL", 0.0))
+        self.assertFalse(self.p.apply_split("AAPL", -2.0))
+        # Position untouched
+        self.assertEqual(self.p.positions["AAPL"].shares, 10)
+        self.assertEqual(self.p.positions["AAPL"].avg_cost, 100.0)
+
+    def test_split_1_to_1_is_noop(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        result = self.p.apply_split("AAPL", 1.0)
+        self.assertFalse(result)
+        # No SPLIT trade record either
+        self.assertEqual([t for t in self.p.trade_history if t.action == "SPLIT"], [])
+
+    def test_split_preserves_unrealized_pnl(self):
+        """Pre- and post-split unrealized P&L at the SAME (rescaled) price must match."""
+        self.p.execute_buy("BKNG", 2, 4060.00)
+        # Pre-split: price $4500, unrealized = (4500-4060) × 2 = $880
+        pre_pnl = self.p.positions["BKNG"].unrealized_pnl(4500.0)
+        self.p.apply_split("BKNG", 20.0)
+        # Post-split equivalent price = 4500 / 20 = 225
+        post_pnl = self.p.positions["BKNG"].unrealized_pnl(225.0)
+        self.assertAlmostEqual(pre_pnl, post_pnl, places=2)
+
+
 if __name__ == "__main__":
     unittest.main()

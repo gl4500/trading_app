@@ -382,6 +382,26 @@ async def init_agents() -> None:
 
     logger.info(f"Initialized {len(all_agents)} agents")
 
+    # ── Stock-split sweep (Backlog 0.2) ───────────────────────────────────
+    # After all positions are restored from DB, detect any stock splits
+    # within the last 90 days and apply proportional adjustments to held
+    # positions whose avg_cost is still pre-split. Idempotent — if avg_cost
+    # already matches the (split-adjusted) live price, the position is left
+    # alone. Errors here must not block startup.
+    try:
+        from data.split_adjuster import detect_and_apply_splits
+        from trading.alpaca_client import alpaca_client
+        applied = await detect_and_apply_splits(
+            portfolios   = [a.portfolio for a in all_agents],
+            agent_names  = [a.name      for a in all_agents],
+            alpaca_client = alpaca_client,
+            since_days   = 90,
+        )
+        if applied:
+            logger.info(f"split_adjuster: applied {applied} stock-split adjustment(s) at startup")
+    except Exception as _split_exc:
+        logger.warning(f"split_adjuster: startup sweep failed: {_split_exc}", exc_info=True)
+
     # Restore news-price snapshots from DB so in-progress tracking
     # survives restarts (price_open / price_1h continue filling in)
     try:
