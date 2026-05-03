@@ -202,17 +202,16 @@ WALKFORWARD_MIN_VAL_DAYS      = 14
 WALKFORWARD_EMBARGO_BARS      = 1
 _SECS_PER_DAY                 = 86_400.0
 
-# Label horizon (added 2026-04-27 / Layer 2.4)
-# Switched from "return_1d" → "return_5d" because:
-#   - 1-day forward returns are dominated by noise (efficient market, signals
-#     already priced in by the time analyst/news scores update)
-#   - 5-day forward returns have ~sqrt(5) better signal-to-noise ratio
-#   - return_5d is already populated by signal_history (no backfill needed)
+# Label horizon — production switched 2026-05-03 from 5d to 10d.
+# XGBoost ablation (docs/equity_feature_engineering_audit.md follow-up):
+#   5d, 6-channel:  mean_IC=+0.21, last_WFE=+0.07,  $5,232/yr/$10k
+#  10d, 8-channel:  mean_IC=+0.40, last_WFE=+0.25,  $5,640/yr/$10k
+# 10d wins on every metric (last_WFE 5x better) and halves turnover.
 #
-# A label horizon switch invalidates the currently-saved checkpoint's
-# predictions until the next walk-forward retrain rebuilds with 5d targets.
-# predict() loads fine but its outputs are 1d-scale until then.
-LABEL_HORIZON_COL             = "return_5d"
+# A horizon switch invalidates any currently-saved booster's predictions
+# until the next walk-forward retrain rebuilds with the new targets.
+# predict() loads fine but its outputs are old-scale until then.
+LABEL_HORIZON_COL             = "return_10d"
 # Days in the horizon, parsed from LABEL_HORIZON_COL ("return_<N>d"). Single
 # source of truth so changing LABEL_HORIZON_COL automatically rescales the
 # direction/confidence thresholds below.

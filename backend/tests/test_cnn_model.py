@@ -1174,6 +1174,46 @@ class TestReturnChannelsExposed(unittest.TestCase):
         self.assertEqual(X.shape[1], 19)
 
 
+class TestProductionLabelIs10d(unittest.TestCase):
+    """Production label horizon is 10d. The XGB ablation showed:
+        5d  6-channel: mean_IC=+0.21, last_WFE=+0.07
+       10d  8-channel: mean_IC=+0.40, last_WFE=+0.25  <-- ship
+    """
+
+    def test_label_horizon_col_is_return_10d(self):
+        from data.cnn_model import LABEL_HORIZON_COL
+        self.assertEqual(LABEL_HORIZON_COL, "return_10d",
+                         "Production label horizon is 10d (per audit doc)")
+
+    def test_label_horizon_days_is_10(self):
+        from data.cnn_model import LABEL_HORIZON_DAYS
+        self.assertEqual(LABEL_HORIZON_DAYS, 10)
+
+    def test_build_training_windows_uses_return_10d_when_present(self):
+        """When return_10d is present, build_training_windows must select it
+        as the label, not return_1d or return_5d."""
+        from data.cnn_model import build_training_windows, WINDOW_SIZE
+        n = 60
+        df = pd.DataFrame({
+            "symbol":          ["AAPL"] * n,
+            "snapshot_ts":     np.arange(n, dtype=np.float64) * 86400.0,
+            "analyst_score":   np.zeros(n),
+            "earnings_score":  np.zeros(n),
+            "alpaca_score":    np.zeros(n),
+            "yahoo_score":     np.zeros(n),
+            "iv_rv_score":     np.zeros(n),
+            "price":           np.linspace(100, 150, n),
+            "return_1d":       np.full(n, 0.001),    # distinguishable
+            "return_5d":       np.full(n, 0.005),    # distinguishable
+            "return_10d":      np.full(n, 0.010),    # the label we expect
+        })
+        X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
+        self.assertGreater(len(X), 0, "must produce at least one window")
+        # All y values should equal the return_10d value (0.010), clipped to ±0.20
+        np.testing.assert_allclose(y, 0.010, atol=1e-5,
+                                   err_msg="build_training_windows should label with return_10d, not 5d/1d")
+
+
 class TestLabelHorizonScaling(unittest.TestCase):
     """LABEL_HORIZON_DAYS, LABEL_HORIZON_FULL_CONF_RET, LABEL_HORIZON_DIR_THRESHOLD
     must derive from LABEL_HORIZON_COL so flipping the col cascades to thresholds.
