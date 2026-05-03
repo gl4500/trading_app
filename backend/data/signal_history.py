@@ -205,6 +205,35 @@ def _load_macro_features() -> Optional[pd.DataFrame]:
     return keep.sort_values("date_ts").reset_index(drop=True)
 
 
+def compute_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Canonical feature pipeline. Single entry point used by BOTH the
+    training path (get_training_data) and the serving path (get_recent_window).
+
+    Per docs/feature_engineering_pipeline.md Stage 6:
+        "If your training pipeline and your trading bot ever call different
+         code to compute the 'same' feature, you have a bug waiting to happen."
+
+    Applies in fixed order:
+        1. _apply_cnn_feature_transforms — per-row column transforms
+           (currently: abs(earnings_score)).
+        2. _compute_return_features      — per-symbol lagged log returns
+           (r_1, r_5, r_20, r_60, r_120).
+        3. _attach_macro_features        — as-of-backward join from
+           __MACRO__.parquet (macro_vix_norm, macro_*_5d_back, macro_breadth_back).
+
+    Each step returns a fresh df; the caller's df is unchanged.
+
+    Lookahead-safe: every step uses only data with snapshot_ts <= row's ts.
+    Verified by tests/test_lookahead.py.
+    """
+    if df.empty:
+        return df
+    out = _apply_cnn_feature_transforms(df)
+    out = _compute_return_features(out)
+    out = _attach_macro_features(out)
+    return out
+
+
 def _attach_macro_features(df: pd.DataFrame) -> pd.DataFrame:
     """As-of-backward-join macro features onto per-symbol training rows.
 
@@ -352,9 +381,7 @@ class SignalHistoryStore:
             if "return_1d" not in df.columns:
                 return _empty_df()
             ready = df.dropna(subset=["return_1d"]).reset_index(drop=True)
-            ready = _attach_macro_features(ready)
-            ready = _compute_return_features(ready)
-            return ready
+            return compute_features(ready)
 
         parts: List[pd.DataFrame] = []
         if os.path.isdir(_HISTORY_DIR):
@@ -373,9 +400,7 @@ class SignalHistoryStore:
         if not parts:
             return _empty_df()
         combined = pd.concat(parts, ignore_index=True)
-        combined = _attach_macro_features(combined)
-        combined = _compute_return_features(combined)
-        return combined
+        return compute_features(combined)
 
     async def record_agent_signals(
         self,
@@ -475,61 +500,31 @@ class SignalHistoryStore:
         if len(df) < 3:
             return None
 
-        # Task #22: feed |earnings_score| to the CNN (direction is noise; magnitude
-        # is the real signal). On-disk earnings_score remains signed for LLM context.
-        df = _apply_cnn_feature_transforms(df)
-        # Tier 1 (Backlog): augment with multi-horizon lagged returns so inference
-        # matches the 19-channel training shape.
-        df = _compute_return_features(df)
+        # Single entry point — same pipeline as get_training_data (Stage 6
+        # of docs/feature_engineering_pipeline.md). compute_features applies
+        # apply_cnn_feature_transforms -> compute_return_features ->
+        # attach_macro_features in canonical order on the full per-symbol
+        # history (lagged returns require it), and we tail() the result.
+        df = compute_features(df)
         recent = df.tail(T)
 
-        # Source channels — zero-fill when a column is absent (old Parquet files)
-        src_parts = []
-        for col in SOURCE_COLUMNS:
-            if col in df.columns:
-                src_parts.append(recent[col].values.astype(float).reshape(-1, 1))
-            else:
-                src_parts.append(np.zeros((len(recent), 1)))
-        source_data = np.hstack(src_parts)
+        # Compose channel arrays in the canonical layout
+        # (SOURCE 5 + AGENT 2 + RV 2 + RETURNS 5 + MACRO 5 = 19).
+        # Zero-fill when a column is absent (old Parquet files / no macro file).
+        def _column_block(cols):
+            parts = []
+            for col in cols:
+                if col in recent.columns:
+                    parts.append(recent[col].values.astype(float).reshape(-1, 1))
+                else:
+                    parts.append(np.zeros((len(recent), 1)))
+            return np.hstack(parts)
 
-        # Agent channels — zero-fill when columns are absent
-        agent_parts = []
-        for col in AGENT_COLUMNS:
-            if col in df.columns:
-                agent_parts.append(recent[col].values.astype(float).reshape(-1, 1))
-            else:
-                agent_parts.append(np.zeros((len(recent), 1)))
-        agent_data = np.hstack(agent_parts)
-
-        # RV channels — zero-fill when columns are absent
-        rv_parts = []
-        for col in RV_COLUMNS:
-            if col in df.columns:
-                rv_parts.append(recent[col].values.astype(float).reshape(-1, 1))
-            else:
-                rv_parts.append(np.zeros((len(recent), 1)))
-        rv_data = np.hstack(rv_parts)
-
-        # NEW: return channels — zero-fill when columns are absent
-        return_parts = []
-        for col in RETURN_COLUMNS:
-            if col in df.columns:
-                return_parts.append(recent[col].values.astype(float).reshape(-1, 1))
-            else:
-                return_parts.append(np.zeros((len(recent), 1)))
-        return_data = np.hstack(return_parts)
-
-        # NEW: macro channels — join the latest macro row per snapshot from
-        # __MACRO__.parquet so inference matches training. Reuses
-        # _attach_macro_features (which does merge_asof under the hood).
-        macro_df = _attach_macro_features(recent[["snapshot_ts"]].copy())
-        macro_parts = []
-        for col in _MACRO_COLUMN_MAP.values():   # the 5 macro_ channel names
-            if col in macro_df.columns:
-                macro_parts.append(macro_df[col].values.astype(float).reshape(-1, 1))
-            else:
-                macro_parts.append(np.zeros((len(recent), 1)))
-        macro_data = np.hstack(macro_parts)
+        source_data = _column_block(SOURCE_COLUMNS)
+        agent_data  = _column_block(AGENT_COLUMNS)
+        rv_data     = _column_block(RV_COLUMNS)
+        return_data = _column_block(RETURN_COLUMNS)
+        macro_data  = _column_block(list(_MACRO_COLUMN_MAP.values()))
 
         combined = np.hstack([
             source_data, agent_data, rv_data, return_data, macro_data

@@ -219,5 +219,116 @@ class TestReturn10dSchema(unittest.IsolatedAsyncioTestCase):
                 )
 
 
+class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
+    """Pipeline Stage 6 (per docs/feature_engineering_pipeline.md): training
+    and serving must use the *same* feature computation. The doc names this
+    as the highest-leverage architectural property — train-serve skew is
+    the single most common silent failure mode in hobbyist quant systems.
+
+    compute_features(df) is the single entry point. get_training_data and
+    get_recent_window both delegate to it.
+    """
+
+    def test_compute_features_exists_and_is_callable(self):
+        """The single entry point must exist with the canonical signature."""
+        from data.signal_history import compute_features
+        # Pure function — accepts a df, returns a df, no side effects
+        import pandas as pd
+        empty = pd.DataFrame({"symbol": [], "snapshot_ts": []})
+        out = compute_features(empty)
+        self.assertIsInstance(out, pd.DataFrame)
+
+    def test_compute_features_applies_canonical_transforms(self):
+        """compute_features applies all three transforms in fixed order:
+            1. _apply_cnn_feature_transforms (abs(earnings_score))
+            2. _compute_return_features (r_1..r_120)
+            3. _attach_macro_features (macro_*)
+        """
+        import pandas as pd
+        from data.signal_history import compute_features, RETURN_COLUMNS
+        rows = 130   # enough for r_120
+        df = pd.DataFrame({
+            "symbol":          ["AAPL"] * rows,
+            "snapshot_ts":     np.arange(rows, dtype=np.float64) * 86400.0,
+            "earnings_score":  np.full(rows, -0.5),   # signed; expect abs after transform
+            "price":           np.linspace(100, 150, rows),
+        })
+        out = compute_features(df)
+
+        # 1. abs(earnings_score) was applied
+        self.assertTrue((out["earnings_score"] >= 0).all(),
+                        "compute_features must apply abs(earnings_score)")
+        # 2. r_120 was added
+        for col in RETURN_COLUMNS:
+            self.assertIn(col, out.columns,
+                          f"compute_features must add lagged return column {col}")
+        # 3. r_120 has values past row 120 (and NaN before)
+        self.assertTrue(out["r_120"].iloc[125:].notna().all())
+        self.assertTrue(out["r_120"].iloc[:120].isna().all())
+
+    def test_train_and_serve_paths_produce_identical_channel_values(self):
+        """The headline test: run the SAME synthesized history through both
+        the training path (get_training_data → build_training_windows → compose)
+        and the serving path (get_recent_window) — for the same (symbol, ts)
+        the 19 channel values must be identical.
+
+        This pins train-serve consistency: any future refactor that diverges
+        the two code paths will fail this test.
+        """
+        import pandas as pd
+        from unittest.mock import patch
+        from data.signal_history import signal_history
+        from data.cnn_model import build_training_windows, ALL_CHANNEL_COLUMNS, WINDOW_SIZE
+
+        rows = 130   # enough for r_120 lookback
+        synthetic = pd.DataFrame({
+            "symbol":          ["AAPL"] * rows,
+            "snapshot_ts":     np.arange(rows, dtype=np.float64) * 86400.0,
+            "analyst_score":   np.linspace(-0.1, 0.1, rows),
+            "earnings_score":  np.linspace(-0.5, 0.5, rows),
+            "alpaca_score":    np.linspace(-0.2, 0.2, rows),
+            "yahoo_score":     np.linspace(-0.3, 0.3, rows),
+            "iv_rv_score":     np.linspace(-0.05, 0.05, rows),
+            "agent_consensus": np.linspace(-0.4, 0.4, rows),
+            "agent_agreement": np.linspace(0.0, 1.0, rows),
+            "rv_20d":          np.linspace(0.10, 0.30, rows),
+            "rv_60d":          np.linspace(0.12, 0.28, rows),
+            "price":           np.linspace(100.0, 150.0, rows),
+            "return_1d":       np.full(rows, 0.001),
+            "return_5d":       np.full(rows, 0.005),
+            "return_10d":      np.full(rows, 0.010),
+        })
+
+        # ── Serving path: get_recent_window ────────────────────────────
+        with patch("data.signal_history._load", return_value=synthetic):
+            window = signal_history.get_recent_window("AAPL", T=WINDOW_SIZE)
+        self.assertIsNotNone(window)
+        self.assertEqual(window.shape, (19, WINDOW_SIZE))
+
+        # ── Training path: get_training_data → build_training_windows ─
+        # Use the symbol-scoped variant (get_training_data("AAPL")) so the
+        # data is a single synthetic copy rather than 212 copies of it (the
+        # default code path iterates os.listdir(_HISTORY_DIR) which patching
+        # symbols_with_data does NOT redirect).
+        with patch("data.signal_history._load", return_value=synthetic):
+            df_trained = signal_history.get_training_data(symbol="AAPL")
+        X, _y, _w, _t = build_training_windows(df_trained, T=WINDOW_SIZE)
+        self.assertGreater(len(X), 0)
+        # The serving path's window corresponds to the LAST training window
+        # for this symbol — same input rows, same transforms.
+        last_train_window = X[-1]   # (19, T)
+
+        # ── Compare channel-by-channel ────────────────────────────────
+        np.testing.assert_allclose(
+            window, last_train_window,
+            atol=1e-6, equal_nan=True,
+            err_msg=("TRAIN-SERVE SKEW: get_recent_window and "
+                     "build_training_windows produced different values for the "
+                     "same input rows. compute_features() is supposed to be "
+                     "the single entry point — check that both paths delegate "
+                     "to it in the same order."),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
