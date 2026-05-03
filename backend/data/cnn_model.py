@@ -3,7 +3,7 @@ Temporal 1-D CNN for learning optimal composite signal source weights.
 
 Architecture (GLU-gated)
 ------------------------
-  Input       : (batch, 10, T) — 10 channels (6 source + 2 agent + 2 RV) × T time-steps
+  Input       : (batch, 19, T) — 19 channels (5 source + 2 agent + 2 RV + 5 returns + 5 macro) × T time-steps
   GatedConv1d : 7  → 16, k=3  — conv_main(x) * sigmoid(conv_gate(x))
   BatchNorm1d(16) + Dropout(0.2)
   GatedConv1d : 16 → 32, k=3  — higher-order cross-source patterns
@@ -126,8 +126,8 @@ MACRO_CHANNEL_NAMES: List[str] = [
     "macro_breadth_back",   # channel 13: (IWM - SPY) trailing 5d, clipped [-1, 1]
 ]
 
-# Total full input channels: 5 source + 2 agent + 2 RV + 5 macro = 14
-# build_training_windows degrades gracefully to 9 channels when macro cols absent.
+# Total full input channels: 5 source + 2 agent + 2 RV + 5 returns + 5 macro = 19
+# build_training_windows degrades gracefully (drops 5 returns or 5 macro) when those cols absent.
 # Old checkpoints (15ch from before Task #20) load fine — predict() guards against
 # shape mismatch and the net auto-rebuilds to the correct channel count on the
 # next 24h retrain cycle.
