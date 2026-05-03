@@ -64,6 +64,7 @@ _DTYPE_MAP = {
     "price":             "float64",
     "return_1d":         "float64",
     "return_5d":         "float64",
+    "return_10d":        "float64",
     # Agent consensus columns — filled after agents run each cycle
     "agent_consensus":   "float64",  # -1.0 to +1.0 performance-weighted vote
     "agent_agreement":   "float64",  # 0.0 to 1.0 fraction of agents that agree
@@ -276,6 +277,7 @@ class SignalHistoryStore:
             "price":           price,
             "return_1d":       np.nan,
             "return_5d":       np.nan,
+            "return_10d":      np.nan,
             "rv_20d":          rv_20d,
             "rv_60d":          rv_60d,
         }
@@ -286,15 +288,16 @@ class SignalHistoryStore:
 
     async def update_outcomes(self, symbol: str, current_price: float) -> int:
         """
-        Fill in return_1d / return_5d for any snapshots whose outcome window
-        has now elapsed.  Returns the number of rows updated.
+        Fill in return_1d / return_5d / return_10d for any snapshots whose
+        outcome window has now elapsed. Returns the number of rows updated.
 
-        Uses wall-clock time: 1 day = 86 400 s, 5 days = 432 000 s.
-        For true trading-day accuracy you would filter weekends, but the
-        approximation is fine for the CNN training signal.
+        Uses wall-clock time: 1 day = 86 400 s. For true trading-day accuracy
+        you would filter weekends, but the approximation is fine for the
+        training signal — the model trains on what's persisted.
         """
         ONE_DAY   = 86_400
         FIVE_DAYS = 5 * ONE_DAY
+        TEN_DAYS  = 10 * ONE_DAY
         now       = time.time()
         updated   = 0
 
@@ -302,11 +305,15 @@ class SignalHistoryStore:
             df = _load(symbol)
             if df.empty:
                 return 0
+            # Old parquets predate return_10d — add it as NaN so the mask works.
+            if "return_10d" not in df.columns:
+                df["return_10d"] = np.nan
 
             age = now - df["snapshot_ts"]
 
-            mask_1d = df["return_1d"].isna() & (age >= ONE_DAY)
-            mask_5d = df["return_5d"].isna() & (age >= FIVE_DAYS)
+            mask_1d  = df["return_1d"].isna()  & (age >= ONE_DAY)
+            mask_5d  = df["return_5d"].isna()  & (age >= FIVE_DAYS)
+            mask_10d = df["return_10d"].isna() & (age >= TEN_DAYS)
 
             for idx in df.index[mask_1d]:
                 snap_price = df.at[idx, "price"]
@@ -318,6 +325,12 @@ class SignalHistoryStore:
                 snap_price = df.at[idx, "price"]
                 if snap_price and snap_price > 0:
                     df.at[idx, "return_5d"] = (current_price - snap_price) / snap_price
+                    updated += 1
+
+            for idx in df.index[mask_10d]:
+                snap_price = df.at[idx, "price"]
+                if snap_price and snap_price > 0:
+                    df.at[idx, "return_10d"] = (current_price - snap_price) / snap_price
                     updated += 1
 
             if updated:
