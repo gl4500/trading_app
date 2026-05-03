@@ -79,6 +79,11 @@ AGENT_COLUMNS = ["agent_consensus", "agent_agreement"]
 # Realized volatility columns — CNN channels 8 & 9
 RV_COLUMNS = ["rv_20d", "rv_60d"]
 
+# Lagged log-return columns — augmented at read time by _compute_return_features
+# from the per-symbol `price` column. Order matters: must match
+# cnn_model.RETURN_CHANNEL_NAMES.
+RETURN_COLUMNS = ["r_1", "r_5", "r_20", "r_60", "r_120"]
+
 # Rolling cap: keep at most 90 days × ~12 snapshots/hour = ~26 000 rows/symbol
 MAX_ROWS = 90 * 24 * 12
 
@@ -124,6 +129,28 @@ def _apply_cnn_feature_transforms(df: pd.DataFrame) -> pd.DataFrame:
             df["earnings_score"], errors="coerce"
         ).abs()
     return df
+
+
+def _compute_return_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Augment df with per-symbol multi-horizon lagged log returns.
+
+    Adds columns RETURN_COLUMNS = ['r_1', 'r_5', 'r_20', 'r_60', 'r_120'].
+    Each row's r_N is `log(price / price.shift(N))` within the symbol's
+    own chronological history. Zero-or-negative prices produce NaN/inf,
+    which the downstream `np.nan_to_num` zero-fills in build_training_windows.
+
+    Returns a copy — caller's df is unchanged.
+    """
+    if "price" not in df.columns or "symbol" not in df.columns:
+        return df
+    out = df.copy()
+    for n in (1, 5, 20, 60, 120):
+        col = f"r_{n}"
+        out[col] = (
+            out.groupby("symbol", sort=False)["price"]
+               .transform(lambda s: np.log(s / s.shift(n)))
+        )
+    return out
 
 
 def _load(symbol: str) -> pd.DataFrame:
