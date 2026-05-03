@@ -287,7 +287,7 @@ class TestBackfillCNNCompatibility(unittest.IsolatedAsyncioTestCase):
 
         # Drop rows without return_1d (last row has no next bar)
         df = df.dropna(subset=["return_1d"]).reset_index(drop=True)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
+        X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
 
         self.assertGreaterEqual(len(X), MIN_TRAIN_SAMPLES,
                                 f"Expected ≥{MIN_TRAIN_SAMPLES} samples, got {len(X)}")

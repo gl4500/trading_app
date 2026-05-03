@@ -1174,6 +1174,109 @@ class TestReturnChannelsExposed(unittest.TestCase):
         self.assertEqual(X.shape[1], 19)
 
 
+class TestChannelDefinitionsConsistent(unittest.TestCase):
+    """Cross-file consistency: channel names defined in signal_history.py
+    (the column-name source of truth) must compose into exactly the same
+    list as cnn_model.ALL_CHANNEL_COLUMNS (the index-order source of truth
+    used by build_training_windows / SignalXGBoost / get_recent_window).
+
+    The doc-audit follow-up: 'validate features across the different code
+    structures' — without this test, signal_history could grow a new
+    column and ALL_CHANNEL_COLUMNS could drift silently, training the
+    model on phantom features.
+    """
+
+    def test_all_channel_columns_composed_from_signal_history_blocks(self):
+        from data.signal_history import (
+            SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
+            _MACRO_COLUMN_MAP,
+        )
+        from data.cnn_model import ALL_CHANNEL_COLUMNS, N_CHANNELS
+        expected = (
+            list(SOURCE_COLUMNS)
+            + list(AGENT_COLUMNS)
+            + list(RV_COLUMNS)
+            + list(RETURN_COLUMNS)
+            + list(_MACRO_COLUMN_MAP.values())
+        )
+        self.assertEqual(
+            ALL_CHANNEL_COLUMNS, expected,
+            "cnn_model.ALL_CHANNEL_COLUMNS has drifted from "
+            "signal_history's column blocks. Both sources must agree on "
+            "exact name AND order — XGB_FEATURE_FILTER index resolution "
+            "depends on it.",
+        )
+        self.assertEqual(len(ALL_CHANNEL_COLUMNS), N_CHANNELS,
+                         "ALL_CHANNEL_COLUMNS length must equal N_CHANNELS")
+
+    def test_per_block_name_count_matches_column_count(self):
+        """Display *_NAMES lists in cnn_model.py must have the same length
+        as the corresponding column lists in signal_history.py — they
+        index-align (channel i's name in cnn_model corresponds to channel
+        i's column in signal_history)."""
+        from data.signal_history import (
+            SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
+            _MACRO_COLUMN_MAP,
+        )
+        from data.cnn_model import (
+            SOURCE_NAMES, AGENT_CHANNEL_NAMES, RV_CHANNEL_NAMES,
+            RETURN_CHANNEL_NAMES, MACRO_CHANNEL_NAMES,
+        )
+        self.assertEqual(len(SOURCE_NAMES), len(SOURCE_COLUMNS))
+        self.assertEqual(len(AGENT_CHANNEL_NAMES), len(AGENT_COLUMNS))
+        self.assertEqual(len(RV_CHANNEL_NAMES), len(RV_COLUMNS))
+        self.assertEqual(len(RETURN_CHANNEL_NAMES), len(RETURN_COLUMNS))
+        self.assertEqual(len(MACRO_CHANNEL_NAMES), len(_MACRO_COLUMN_MAP))
+
+    def test_agent_rv_return_macro_blocks_use_same_strings(self):
+        """Where signal_history's column name == cnn_model's display name
+        (which is intentional for AGENT/RV/RETURN/MACRO blocks — the
+        deliberate divergence is only SOURCE_NAMES vs SOURCE_COLUMNS),
+        the lists must be identical."""
+        from data.signal_history import (
+            AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS, _MACRO_COLUMN_MAP,
+        )
+        from data.cnn_model import (
+            AGENT_CHANNEL_NAMES, RV_CHANNEL_NAMES,
+            RETURN_CHANNEL_NAMES, MACRO_CHANNEL_NAMES,
+        )
+        self.assertEqual(list(AGENT_COLUMNS), list(AGENT_CHANNEL_NAMES))
+        self.assertEqual(list(RV_COLUMNS), list(RV_CHANNEL_NAMES))
+        self.assertEqual(list(RETURN_COLUMNS), list(RETURN_CHANNEL_NAMES))
+        self.assertEqual(list(_MACRO_COLUMN_MAP.values()), list(MACRO_CHANNEL_NAMES))
+
+    def test_xgb_production_feature_filter_subset_of_all_channels(self):
+        """The 8-channel production filter (XGB_FEATURE_FILTER) names must
+        all exist in ALL_CHANNEL_COLUMNS. A typo like 'analyst_scoree'
+        would silently fail at runtime; this catches it at test time."""
+        from data.cnn_model import ALL_CHANNEL_COLUMNS
+        production_8 = [
+            "analyst_score", "earnings_score", "alpaca_score", "iv_rv_score",
+            "r_120", "macro_vix_norm", "macro_spy_5d_back", "macro_breadth_back",
+        ]
+        for name in production_8:
+            self.assertIn(name, ALL_CHANNEL_COLUMNS,
+                          f"Production XGB_FEATURE_FILTER name '{name}' "
+                          f"not found in ALL_CHANNEL_COLUMNS")
+
+    def test_dtype_map_includes_all_persisted_columns(self):
+        """signal_history._DTYPE_MAP is the persistence schema; it must
+        carry every channel-column ALL_CHANNEL_COLUMNS expects to read,
+        OR the column must be derived at read-time (returns and macros)."""
+        from data.signal_history import (
+            _DTYPE_MAP, SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS,
+        )
+        # Persisted-at-write-time blocks: SOURCE, AGENT, RV.
+        # (RETURNS are computed by _compute_return_features at read-time;
+        # MACROS are joined from __MACRO__.parquet — both intentionally
+        # not in _DTYPE_MAP for per-symbol parquets.)
+        for col in list(SOURCE_COLUMNS) + list(AGENT_COLUMNS) + list(RV_COLUMNS):
+            self.assertIn(col, _DTYPE_MAP,
+                          f"Column '{col}' is in ALL_CHANNEL_COLUMNS but "
+                          f"missing from _DTYPE_MAP — record_snapshot will "
+                          f"not persist it correctly")
+
+
 class TestProductionLabelIs10d(unittest.TestCase):
     """Production label horizon is 10d. The XGB ablation showed:
         5d  6-channel: mean_IC=+0.21, last_WFE=+0.07

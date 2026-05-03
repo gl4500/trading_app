@@ -100,11 +100,13 @@ class TestGetTrainingDataIncludesReturns(unittest.TestCase):
             "return_5d":       np.full(rows, 0.005),
         })
 
-        # Patch symbols_with_data + _load to return our synthetic frame
-        with patch.object(signal_history, "symbols_with_data",
-                          return_value=["AAPL"]), \
-             patch("data.signal_history._load", return_value=synthetic):
-            df = signal_history.get_training_data()
+        # Use the symbol-scoped variant — the unscoped get_training_data()
+        # iterates os.listdir(_HISTORY_DIR), which is empty in CI but holds
+        # 212 real parquets locally. The "scoped" path goes _load(sym) →
+        # compute_features → returns df with r_* attached, deterministically
+        # in either environment.
+        with patch("data.signal_history._load", return_value=synthetic):
+            df = signal_history.get_training_data(symbol="AAPL")
 
         for col in RETURN_COLUMNS:
             self.assertIn(col, df.columns,
@@ -281,36 +283,51 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
         from data.cnn_model import build_training_windows, ALL_CHANNEL_COLUMNS, WINDOW_SIZE
 
         rows = 130   # enough for r_120 lookback
+        # Pre-fill all 5 macro columns. _attach_macro_features is a no-op
+        # when __MACRO__.parquet doesn't exist (CI's bare _HISTORY_DIR);
+        # without these prefilled, build_training_windows would produce 14
+        # channels (no macro) while get_recent_window zero-pads to 19,
+        # causing a shape mismatch in CI but not locally.
         synthetic = pd.DataFrame({
-            "symbol":          ["AAPL"] * rows,
-            "snapshot_ts":     np.arange(rows, dtype=np.float64) * 86400.0,
-            "analyst_score":   np.linspace(-0.1, 0.1, rows),
-            "earnings_score":  np.linspace(-0.5, 0.5, rows),
-            "alpaca_score":    np.linspace(-0.2, 0.2, rows),
-            "yahoo_score":     np.linspace(-0.3, 0.3, rows),
-            "iv_rv_score":     np.linspace(-0.05, 0.05, rows),
-            "agent_consensus": np.linspace(-0.4, 0.4, rows),
-            "agent_agreement": np.linspace(0.0, 1.0, rows),
-            "rv_20d":          np.linspace(0.10, 0.30, rows),
-            "rv_60d":          np.linspace(0.12, 0.28, rows),
-            "price":           np.linspace(100.0, 150.0, rows),
-            "return_1d":       np.full(rows, 0.001),
-            "return_5d":       np.full(rows, 0.005),
-            "return_10d":      np.full(rows, 0.010),
+            "symbol":             ["AAPL"] * rows,
+            "snapshot_ts":        np.arange(rows, dtype=np.float64) * 86400.0,
+            "analyst_score":      np.linspace(-0.1, 0.1, rows),
+            "earnings_score":     np.linspace(-0.5, 0.5, rows),
+            "alpaca_score":       np.linspace(-0.2, 0.2, rows),
+            "yahoo_score":        np.linspace(-0.3, 0.3, rows),
+            "iv_rv_score":        np.linspace(-0.05, 0.05, rows),
+            "agent_consensus":    np.linspace(-0.4, 0.4, rows),
+            "agent_agreement":    np.linspace(0.0, 1.0, rows),
+            "rv_20d":             np.linspace(0.10, 0.30, rows),
+            "rv_60d":             np.linspace(0.12, 0.28, rows),
+            "price":              np.linspace(100.0, 150.0, rows),
+            "return_1d":          np.full(rows, 0.001),
+            "return_5d":          np.full(rows, 0.005),
+            "return_10d":         np.full(rows, 0.010),
+            # Macro cols — values deterministic per row so the train/serve
+            # comparison is well-defined regardless of macro file presence.
+            "macro_vix_norm":     np.linspace(0.5, 0.7, rows),
+            "macro_gld_5d_back":  np.linspace(-0.01, 0.01, rows),
+            "macro_tlt_5d_back":  np.linspace(-0.005, 0.005, rows),
+            "macro_spy_5d_back":  np.linspace(0.0, 0.02, rows),
+            "macro_breadth_back": np.linspace(-0.005, 0.005, rows),
         })
 
-        # ── Serving path: get_recent_window ────────────────────────────
-        with patch("data.signal_history._load", return_value=synthetic):
+        # Mock _load_macro_features to None so _attach_macro_features is a
+        # no-op (otherwise it merges __MACRO__.parquet on top of our
+        # pre-filled macro cols, producing _x/_y suffix collisions and
+        # losing has_macro=True). With None, both paths use the synthetic
+        # macros as-is.
+        with patch("data.signal_history._load", return_value=synthetic), \
+             patch("data.signal_history._load_macro_features", return_value=None):
+            # ── Serving path: get_recent_window ────────────────────────
             window = signal_history.get_recent_window("AAPL", T=WINDOW_SIZE)
-        self.assertIsNotNone(window)
-        self.assertEqual(window.shape, (19, WINDOW_SIZE))
+            self.assertIsNotNone(window)
+            self.assertEqual(window.shape, (19, WINDOW_SIZE))
 
-        # ── Training path: get_training_data → build_training_windows ─
-        # Use the symbol-scoped variant (get_training_data("AAPL")) so the
-        # data is a single synthetic copy rather than 212 copies of it (the
-        # default code path iterates os.listdir(_HISTORY_DIR) which patching
-        # symbols_with_data does NOT redirect).
-        with patch("data.signal_history._load", return_value=synthetic):
+            # ── Training path: get_training_data → build_training_windows
+            # Symbol-scoped variant — unscoped iterates os.listdir which is
+            # 212 real files locally vs empty in CI.
             df_trained = signal_history.get_training_data(symbol="AAPL")
         X, _y, _w, _t = build_training_windows(df_trained, T=WINDOW_SIZE)
         self.assertGreater(len(X), 0)
