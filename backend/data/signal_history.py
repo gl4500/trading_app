@@ -339,7 +339,9 @@ class SignalHistoryStore:
             if "return_1d" not in df.columns:
                 return _empty_df()
             ready = df.dropna(subset=["return_1d"]).reset_index(drop=True)
-            return _attach_macro_features(ready)
+            ready = _attach_macro_features(ready)
+            ready = _compute_return_features(ready)
+            return ready
 
         parts: List[pd.DataFrame] = []
         if os.path.isdir(_HISTORY_DIR):
@@ -358,7 +360,9 @@ class SignalHistoryStore:
         if not parts:
             return _empty_df()
         combined = pd.concat(parts, ignore_index=True)
-        return _attach_macro_features(combined)
+        combined = _attach_macro_features(combined)
+        combined = _compute_return_features(combined)
+        return combined
 
     async def record_agent_signals(
         self,
@@ -448,10 +452,10 @@ class SignalHistoryStore:
 
     def get_recent_window(self, symbol: str, T: int = 10) -> Optional[np.ndarray]:
         """
-        Return the most recent T snapshots as a (C, T) float array where
-        C = 9 (5 source + 2 agent + 2 RV channels).
+        Return the most recent T snapshots as a (19, T) float array:
+        5 source + 2 agent + 2 rv + 5 returns + 5 macro channels.
 
-        Old Parquet files without agent/RV/iv_rv columns return zeros for those channels.
+        Old Parquet files without a column return zeros for that channel.
         Returns None if fewer than 3 snapshots exist (insufficient context).
         """
         df = _load(symbol)
@@ -461,6 +465,9 @@ class SignalHistoryStore:
         # Task #22: feed |earnings_score| to the CNN (direction is noise; magnitude
         # is the real signal). On-disk earnings_score remains signed for LLM context.
         df = _apply_cnn_feature_transforms(df)
+        # Tier 1 (Backlog): augment with multi-horizon lagged returns so inference
+        # matches the 19-channel training shape.
+        df = _compute_return_features(df)
         recent = df.tail(T)
 
         # Source channels — zero-fill when a column is absent (old Parquet files)
@@ -470,34 +477,57 @@ class SignalHistoryStore:
                 src_parts.append(recent[col].values.astype(float).reshape(-1, 1))
             else:
                 src_parts.append(np.zeros((len(recent), 1)))
-        source_data = np.hstack(src_parts)                           # (≤T, 6)
+        source_data = np.hstack(src_parts)
 
-        # Agent channels — zero-fill when columns are absent (old files)
+        # Agent channels — zero-fill when columns are absent
         agent_parts = []
         for col in AGENT_COLUMNS:
             if col in df.columns:
                 agent_parts.append(recent[col].values.astype(float).reshape(-1, 1))
             else:
                 agent_parts.append(np.zeros((len(recent), 1)))
-        agent_data = np.hstack(agent_parts)                          # (≤T, 2)
+        agent_data = np.hstack(agent_parts)
 
-        # RV channels — zero-fill when columns are absent (old files)
+        # RV channels — zero-fill when columns are absent
         rv_parts = []
         for col in RV_COLUMNS:
             if col in df.columns:
                 rv_parts.append(recent[col].values.astype(float).reshape(-1, 1))
             else:
                 rv_parts.append(np.zeros((len(recent), 1)))
-        rv_data = np.hstack(rv_parts)                                # (≤T, 2)
+        rv_data = np.hstack(rv_parts)
 
-        combined = np.hstack([source_data, agent_data, rv_data])     # (≤T, 9)
+        # NEW: return channels — zero-fill when columns are absent
+        return_parts = []
+        for col in RETURN_COLUMNS:
+            if col in df.columns:
+                return_parts.append(recent[col].values.astype(float).reshape(-1, 1))
+            else:
+                return_parts.append(np.zeros((len(recent), 1)))
+        return_data = np.hstack(return_parts)
+
+        # NEW: macro channels — join the latest macro row per snapshot from
+        # __MACRO__.parquet so inference matches training. Reuses
+        # _attach_macro_features (which does merge_asof under the hood).
+        macro_df = _attach_macro_features(recent[["snapshot_ts"]].copy())
+        macro_parts = []
+        for col in _MACRO_COLUMN_MAP.values():   # the 5 macro_ channel names
+            if col in macro_df.columns:
+                macro_parts.append(macro_df[col].values.astype(float).reshape(-1, 1))
+            else:
+                macro_parts.append(np.zeros((len(recent), 1)))
+        macro_data = np.hstack(macro_parts)
+
+        combined = np.hstack([
+            source_data, agent_data, rv_data, return_data, macro_data
+        ])  # (≤T, 19)
 
         if len(combined) < T:
             pad      = np.zeros((T - len(combined), combined.shape[1]))
             combined = np.vstack([pad, combined])
 
         combined = np.nan_to_num(combined, nan=0.0)
-        return combined.T   # (9, T)
+        return combined.T   # (19, T)
 
     def symbols_with_data(self) -> List[str]:
         """List all symbols that have at least one snapshot on disk."""

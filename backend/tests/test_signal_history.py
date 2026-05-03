@@ -74,5 +74,78 @@ class TestComputeReturnFeatures(unittest.TestCase):
         self.assertEqual(len(out), 7)
 
 
+class TestGetTrainingDataIncludesReturns(unittest.TestCase):
+    """get_training_data must yield the 5 lagged-return columns alongside
+    the existing source/agent/rv/macro columns."""
+
+    def test_returns_columns_present(self):
+        from data.signal_history import (
+            signal_history, RETURN_COLUMNS,
+        )
+        from unittest.mock import patch
+        import pandas as pd
+
+        # Synthesise a small per-symbol df with enough rows for r_5
+        rows = 50
+        synthetic = pd.DataFrame({
+            "symbol":          ["AAPL"] * rows,
+            "snapshot_ts":     np.arange(rows, dtype=np.float64) * 86400.0,
+            "analyst_score":   np.zeros(rows),
+            "earnings_score":  np.zeros(rows),
+            "alpaca_score":    np.zeros(rows),
+            "yahoo_score":     np.zeros(rows),
+            "iv_rv_score":     np.zeros(rows),
+            "price":           np.linspace(100, 150, rows),
+            "return_1d":       np.full(rows, 0.001),
+            "return_5d":       np.full(rows, 0.005),
+        })
+
+        # Patch symbols_with_data + _load to return our synthetic frame
+        with patch.object(signal_history, "symbols_with_data",
+                          return_value=["AAPL"]), \
+             patch("data.signal_history._load", return_value=synthetic):
+            df = signal_history.get_training_data()
+
+        for col in RETURN_COLUMNS:
+            self.assertIn(col, df.columns,
+                          f"get_training_data must include {col}")
+
+
+class TestGetRecentWindowReturns19Channels(unittest.TestCase):
+    """get_recent_window must return a (19, T) array matching training shape:
+    5 source + 2 agent + 2 rv + 5 returns + 5 macro."""
+
+    def test_recent_window_has_19_rows(self):
+        from data.signal_history import signal_history
+        from unittest.mock import patch
+        import pandas as pd
+
+        # Need at least T+max_lag=10+120=130 rows for full r_120 coverage,
+        # but the helper handles partial coverage with NaN→0 fill.
+        rows = 130
+        synthetic = pd.DataFrame({
+            "symbol":          ["AAPL"] * rows,
+            "snapshot_ts":     np.arange(rows, dtype=np.float64) * 86400.0,
+            "analyst_score":   np.zeros(rows),
+            "earnings_score":  np.zeros(rows),
+            "alpaca_score":    np.zeros(rows),
+            "yahoo_score":     np.zeros(rows),
+            "iv_rv_score":     np.zeros(rows),
+            "agent_consensus": np.zeros(rows),
+            "agent_agreement": np.zeros(rows),
+            "rv_20d":          np.full(rows, 0.20),
+            "rv_60d":          np.full(rows, 0.20),
+            "price":           np.linspace(100, 150, rows),
+            "return_1d":       np.full(rows, 0.001),
+            "return_5d":       np.full(rows, 0.005),
+        })
+        with patch("data.signal_history._load", return_value=synthetic):
+            window = signal_history.get_recent_window("AAPL", T=10)
+
+        self.assertIsNotNone(window, "window must not be None for 130-row symbol")
+        self.assertEqual(window.shape, (19, 10),
+                         f"expected (19, 10), got {window.shape}")
+
+
 if __name__ == "__main__":
     unittest.main()
