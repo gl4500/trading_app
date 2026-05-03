@@ -3,6 +3,7 @@ import math
 import unittest
 
 import numpy as np
+import pandas as pd
 
 
 class TestLastTimestepFeatures(unittest.TestCase):
@@ -319,6 +320,177 @@ class TestXGBoostFitsWith19Channels(unittest.TestCase):
             m._booster.num_features(), c,
             f"Booster must see {c} features (one per channel), not {c*T} flattened",
         )
+
+
+class TestXGBFeatureFilter(unittest.TestCase):
+    """XGB_FEATURE_FILTER env: comma-separated channel names that signal_xgb
+    must slice the 19-channel input down to. Production setting (10d):
+        analyst_score,earnings_score,alpaca_score,iv_rv_score,
+        r_120,macro_vix_norm,macro_spy_5d_back,macro_breadth_back
+    Reduces booster input from 19 → 8 features per sample.
+    """
+
+    WINNING_8 = [
+        "analyst_score", "earnings_score", "alpaca_score", "iv_rv_score",
+        "r_120", "macro_vix_norm", "macro_spy_5d_back", "macro_breadth_back",
+    ]
+    WINNING_8_INDICES = [0, 1, 2, 4, 13, 14, 17, 18]   # against ALL_CHANNEL_COLUMNS
+
+    def test_parse_filter_resolves_names_to_indices(self):
+        """Helper that parses 'a,b,c' -> [0,1,2] using ALL_CHANNEL_COLUMNS."""
+        from data.xgboost_model import _parse_feature_filter
+        from unittest.mock import patch
+        with patch.dict("os.environ", {"XGB_FEATURE_FILTER": ",".join(self.WINNING_8)}):
+            idx = _parse_feature_filter()
+        self.assertEqual(idx, self.WINNING_8_INDICES)
+
+    def test_parse_filter_empty_returns_none(self):
+        """Default (empty env var) returns None — use all 19 channels."""
+        from data.xgboost_model import _parse_feature_filter
+        from unittest.mock import patch
+        with patch.dict("os.environ", {"XGB_FEATURE_FILTER": ""}):
+            self.assertIsNone(_parse_feature_filter())
+
+    def test_parse_filter_unknown_name_raises(self):
+        """Typos in the env should fail loudly, not silently degrade."""
+        from data.xgboost_model import _parse_feature_filter
+        from unittest.mock import patch
+        with patch.dict("os.environ", {"XGB_FEATURE_FILTER": "rv_20d,not_a_real_channel"}):
+            with self.assertRaises(ValueError):
+                _parse_feature_filter()
+
+    def test_fit_with_filter_reduces_booster_features(self):
+        """When feature_filter is set, the trained booster should see
+        len(filter) features per sample, not the full 19."""
+        from data.xgboost_model import SignalXGBoost
+        rng = np.random.default_rng(0)
+        n, c, T = 600, 19, 10
+        X = rng.standard_normal((n, c, T)).astype(np.float32) * 0.5
+        y = (X[:, 0, :].mean(axis=1) * 0.05).astype(np.float32)
+        t = np.linspace(0, 90 * 86400.0, n, dtype=np.float64)
+
+        m = SignalXGBoost(T=T, n_channels=c, feature_filter=self.WINNING_8_INDICES)
+        m.fit(X, y, t, n_folds=3, min_val_days=14)
+        self.assertEqual(
+            m._booster.num_features(), len(self.WINNING_8_INDICES),
+            "Booster must see 8 features when feature_filter has 8 entries",
+        )
+
+    def test_predict_with_filter_accepts_full_window_input(self):
+        """predict() input is the FULL (19, T) window from get_recent_window;
+        the filter is applied internally before passing to the booster."""
+        from data.xgboost_model import SignalXGBoost
+        rng = np.random.default_rng(0)
+        n, c, T = 600, 19, 10
+        X = rng.standard_normal((n, c, T)).astype(np.float32) * 0.5
+        y = (X[:, 0, :].mean(axis=1) * 0.05).astype(np.float32)
+        t = np.linspace(0, 90 * 86400.0, n, dtype=np.float64)
+        m = SignalXGBoost(T=T, n_channels=c, feature_filter=self.WINNING_8_INDICES)
+        m.fit(X, y, t, n_folds=3, min_val_days=14)
+        # Caller passes the FULL 19-channel window
+        x_full = X[0]                      # (19, 10)
+        pred, direction, conf = m.predict(x_full)
+        self.assertIsInstance(pred, float)
+        self.assertIn(direction, ("bull", "bear", "neutral"))
+
+    def test_filter_persisted_through_save_load(self):
+        """save/load must round-trip the feature_filter so a reloaded
+        booster slices predict input identically."""
+        import tempfile, os
+        from unittest.mock import patch
+        from data.xgboost_model import SignalXGBoost
+        rng = np.random.default_rng(0)
+        n, c, T = 600, 19, 10
+        X = rng.standard_normal((n, c, T)).astype(np.float32) * 0.5
+        y = (X[:, 0, :].mean(axis=1) * 0.05).astype(np.float32)
+        t = np.linspace(0, 90 * 86400.0, n, dtype=np.float64)
+
+        with tempfile.TemporaryDirectory() as td:
+            mp = os.path.join(td, "signal_xgb.json")
+            with patch("data.xgboost_model._MODEL_PATH", mp):
+                m = SignalXGBoost(T=T, n_channels=c, feature_filter=self.WINNING_8_INDICES)
+                m.fit(X, y, t, n_folds=3, min_val_days=14)
+                pred_pre, _, _ = m.predict(X[0])
+                m.save()
+
+                m2 = SignalXGBoost(T=T, n_channels=c)   # fresh, no env, no filter
+                ok = m2.load()
+                self.assertTrue(ok)
+                self.assertEqual(m2._feature_filter, self.WINNING_8_INDICES,
+                                 "load() must restore the saved feature_filter")
+                pred_post, _, _ = m2.predict(X[0])
+                self.assertAlmostEqual(pred_pre, pred_post, places=5)
+
+
+class TestEndToEnd10dWith8ChFilter(unittest.TestCase):
+    """End-to-end: 10d label + 8-channel filter going through the real
+    build_training_windows pipeline. Pins the production data flow."""
+
+    def test_full_pipeline_10d_label_8ch_filter(self):
+        from data.cnn_model import (
+            build_training_windows, WINDOW_SIZE, LABEL_HORIZON_COL,
+        )
+        from data.xgboost_model import SignalXGBoost
+        # Sanity: T3 shipped, label is 10d
+        self.assertEqual(LABEL_HORIZON_COL, "return_10d")
+
+        n = 600
+        rng = np.random.default_rng(0)
+        # Synthesize a df with all 19 channel columns + 10d label populated.
+        # Use 2 symbols × 300 rows so build_training_windows has per-symbol scope.
+        rows = []
+        for sym in ("AAPL", "MSFT"):
+            base = rng.standard_normal((n // 2, 19)).astype(np.float64) * 0.1
+            df_sym = {
+                "symbol":          [sym] * (n // 2),
+                "snapshot_ts":     np.arange(n // 2, dtype=np.float64) * 86_400.0,
+                "price":           np.linspace(100.0, 200.0, n // 2),
+                # 19 raw channel columns
+                "analyst_score":     base[:, 0],
+                "earnings_score":    base[:, 1],
+                "alpaca_score":      base[:, 2],
+                "yahoo_score":       base[:, 3],
+                "iv_rv_score":       base[:, 4],
+                "agent_consensus":   base[:, 5],
+                "agent_agreement":   np.abs(base[:, 6]),
+                "rv_20d":            np.abs(base[:, 7]) + 0.10,
+                "rv_60d":            np.abs(base[:, 8]) + 0.10,
+                # The lagged-return columns will be recomputed by
+                # _compute_return_features at read time, but we provide them
+                # directly here for the synthetic test.
+                "r_1":   base[:, 9],
+                "r_5":   base[:, 10],
+                "r_20":  base[:, 11],
+                "r_60":  base[:, 12],
+                "r_120": base[:, 13],
+                "macro_vix_norm":     np.abs(base[:, 14]),
+                "macro_gld_5d_back":  base[:, 15],
+                "macro_tlt_5d_back":  base[:, 16],
+                "macro_spy_5d_back":  base[:, 17],
+                "macro_breadth_back": base[:, 18],
+                # 10d label — small noise around channel 0 for learnable signal
+                "return_10d":  base[:, 0] * 0.05 + rng.standard_normal(n // 2) * 0.01,
+                "return_1d":   np.full(n // 2, 0.001),  # fallback if 10d missing
+            }
+            rows.append(pd.DataFrame(df_sym))
+        df = pd.concat(rows, ignore_index=True)
+
+        X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
+        self.assertEqual(X.shape[1], 19, "build_training_windows should emit 19 channels")
+
+        # Production 8-channel 10d winner
+        WINNING_8_INDICES = [0, 1, 2, 4, 13, 14, 17, 18]
+        m = SignalXGBoost(T=WINDOW_SIZE, n_channels=19, feature_filter=WINNING_8_INDICES)
+        m.fit(X, y, t, n_folds=3, min_val_days=14)
+        self.assertTrue(m.is_trained)
+        self.assertEqual(m._booster.num_features(), 8)
+
+        # predict on a full 19-channel window (matches get_recent_window output)
+        x_full = X[0]
+        self.assertEqual(x_full.shape, (19, WINDOW_SIZE))
+        pred, direction, conf = m.predict(x_full)
+        self.assertIsInstance(pred, float)
+        self.assertIn(direction, ("bull", "bear", "neutral"))
 
 
 if __name__ == "__main__":

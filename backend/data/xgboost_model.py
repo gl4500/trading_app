@@ -16,8 +16,10 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 from data.cnn_model import (
+    ALL_CHANNEL_COLUMNS,
     LABEL_HORIZON_DIR_THRESHOLD,
     LABEL_HORIZON_FULL_CONF_RET,
+    N_CHANNELS,
     SOURCE_NAMES,
     WALKFORWARD_FOLDS,
     WALKFORWARD_MIN_VAL_DAYS,
@@ -42,6 +44,37 @@ XGB_EARLY_STOPPING   = int(os.getenv("XGB_EARLY_STOPPING",  "30"))
 _MODEL_DIR        = os.path.join(os.path.dirname(__file__), "models")
 _MODEL_PATH       = os.path.join(_MODEL_DIR, "signal_xgb.json")
 _HISTORY_FILENAME = "training_history_xgb.jsonl"
+
+
+def _parse_feature_filter() -> Optional[List[int]]:
+    """Resolve XGB_FEATURE_FILTER env (comma-separated channel names) into
+    integer channel indices against ALL_CHANNEL_COLUMNS.
+
+    Empty / unset → None (model uses all 19 channels).
+    Unknown channel name → ValueError (typos must fail loudly, not silently
+    degrade to a wrong subset).
+
+    Production setting for the 10d label horizon (8 channels):
+        analyst_score,earnings_score,alpaca_score,iv_rv_score,
+        r_120,macro_vix_norm,macro_spy_5d_back,macro_breadth_back
+    Reduces booster input from 19 → 8 features per sample. See
+    docs/equity_feature_engineering_audit.md follow-up for the ablation.
+    """
+    raw = os.getenv("XGB_FEATURE_FILTER", "").strip()
+    if not raw:
+        return None
+    names = [n.strip() for n in raw.split(",") if n.strip()]
+    if not names:
+        return None
+    indices: List[int] = []
+    for name in names:
+        if name not in ALL_CHANNEL_COLUMNS:
+            raise ValueError(
+                f"XGB_FEATURE_FILTER: unknown channel name '{name}'. "
+                f"Valid names: {ALL_CHANNEL_COLUMNS}"
+            )
+        indices.append(ALL_CHANNEL_COLUMNS.index(name))
+    return indices
 
 
 def last_timestep_features(x: np.ndarray) -> np.ndarray:
@@ -74,9 +107,21 @@ class SignalXGBoost:
     booster is kept as the production model.
     """
 
-    def __init__(self, T: int = WINDOW_SIZE, n_channels: int = 14):
+    def __init__(
+        self,
+        T: int = WINDOW_SIZE,
+        n_channels: int = 14,
+        feature_filter: Optional[List[int]] = None,
+    ):
         self.T = T
         self._n_channels = n_channels
+        # When set, fit/predict slice the (C, T) input to feature_filter
+        # along the channel axis BEFORE last_timestep_features. n_channels
+        # remains the SHAPE the caller hands us (typically 19); the booster
+        # sees len(feature_filter) features.
+        self._feature_filter: Optional[List[int]] = (
+            list(feature_filter) if feature_filter else None
+        )
         self._booster = None                  # xgboost.XGBRegressor instance
         self._trained = False
         self._train_ts = 0.0
@@ -121,7 +166,8 @@ class SignalXGBoost:
             return 0.0, "neutral", 0.0
         if x.shape[0] != self._n_channels:
             return 0.0, "neutral", 0.0
-        feat = last_timestep_features(x).reshape(1, -1)
+        x_in = x[self._feature_filter, :] if self._feature_filter else x
+        feat = last_timestep_features(x_in).reshape(1, -1)
         pred = float(self._booster.predict(xgb.DMatrix(feat))[0])
         if pred > LABEL_HORIZON_DIR_THRESHOLD:
             direction = "bull"
@@ -154,6 +200,11 @@ class SignalXGBoost:
             return
 
         self._n_channels = X.shape[1]
+        # Apply optional channel filter (e.g. ship the 8-channel 10d winner)
+        # BEFORE flattening to last-timestep so the booster only sees the
+        # selected features.
+        if self._feature_filter:
+            X = X[:, self._feature_filter, :]
         folds = walkforward_folds(
             t, n_folds=n_folds, min_val_days=min_val_days, embargo_bars=embargo_bars,
         )
@@ -279,16 +330,27 @@ class SignalXGBoost:
         if not self._trained or self._booster is None:
             return _DEFAULT_WEIGHTS.copy()
 
-        n_feat = self._n_channels
-        importances = np.zeros(n_feat, dtype=np.float64)
+        # Importances are indexed by ORIGINAL channel position (0..n_channels-1)
+        # even when a feature_filter is active — that lets us restrict to the
+        # 5 source channels (always at indices 0..4 in ALL_CHANNEL_COLUMNS)
+        # regardless of which were selected.
+        importances = np.zeros(self._n_channels, dtype=np.float64)
         scores = self._booster.get_score(importance_type="gain")
         for fname, imp in scores.items():
             try:
-                idx = int(fname.lstrip("f"))
+                f_idx = int(fname.lstrip("f"))   # booster feature index
             except ValueError:
                 continue
-            if 0 <= idx < n_feat:
-                importances[idx] = float(imp)
+            # Map booster feature index → original channel index via filter
+            if self._feature_filter:
+                if 0 <= f_idx < len(self._feature_filter):
+                    chan_idx = self._feature_filter[f_idx]
+                else:
+                    continue
+            else:
+                chan_idx = f_idx
+            if 0 <= chan_idx < self._n_channels:
+                importances[chan_idx] = float(imp)
 
         # Source channels are the first len(SOURCE_NAMES) features
         source_imp = importances[: len(SOURCE_NAMES)]
@@ -315,6 +377,7 @@ class SignalXGBoost:
                 "train_ts":        self._train_ts,
                 "T":               self.T,
                 "n_channels":      self._n_channels,
+                "feature_filter":  self._feature_filter,
                 "n_train":         self._n_train,
                 "n_val":           self._n_val,
                 "wfe":             self._wfe,
@@ -346,6 +409,10 @@ class SignalXGBoost:
                 self._train_ts        = float(meta.get("train_ts", 0.0))
                 self.T                = int(meta.get("T", self.T))
                 self._n_channels      = int(meta.get("n_channels", self._n_channels))
+                # Restore feature_filter saved at fit time so predict slices
+                # the input window identically to training. None = no filter.
+                ff = meta.get("feature_filter")
+                self._feature_filter  = list(ff) if ff else None
                 self._n_train         = int(meta.get("n_train", 0))
                 self._n_val           = int(meta.get("n_val", 0))
                 self._wfe             = meta.get("wfe")
@@ -403,4 +470,7 @@ class SignalXGBoost:
 
 
 # ── Module-level singleton ────────────────────────────────────────────────
-signal_xgb = SignalXGBoost()
+signal_xgb = SignalXGBoost(
+    n_channels=N_CHANNELS,
+    feature_filter=_parse_feature_filter(),
+)

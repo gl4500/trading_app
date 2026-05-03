@@ -147,5 +147,77 @@ class TestGetRecentWindowReturns19Channels(unittest.TestCase):
                          f"expected (19, 10), got {window.shape}")
 
 
+class TestReturn10dSchema(unittest.IsolatedAsyncioTestCase):
+    """return_10d as a first-class outcome alongside return_1d and return_5d.
+    Required for the 10d label-horizon switch (XGBoost ablation showed
+    10d 8-channel produces mean_IC=+0.40, last_WFE=+0.25 vs 5d's +0.21/+0.07)."""
+
+    def test_return_10d_in_dtype_map(self):
+        """The persistence schema must declare return_10d so existing
+        parquets pick up the column on next write/read."""
+        from data.signal_history import _DTYPE_MAP
+        self.assertIn("return_10d", _DTYPE_MAP,
+                      "_DTYPE_MAP must declare return_10d alongside return_1d/return_5d")
+        self.assertEqual(_DTYPE_MAP["return_10d"], "float64")
+
+    async def test_record_snapshot_writes_return_10d_nan(self):
+        """A freshly recorded snapshot has return_10d=NaN — we don't know
+        the future yet."""
+        import tempfile, os, pandas as pd
+        from unittest.mock import patch
+        from data.signal_history import SignalHistoryStore
+
+        with tempfile.TemporaryDirectory() as td:
+            with patch("data.signal_history._HISTORY_DIR", td):
+                store = SignalHistoryStore()
+                await store.record_snapshot(
+                    symbol="AAPL",
+                    scores={"analyst_recommendations": 0.5},
+                    composite_score=0.3,
+                    price=100.0,
+                    rv_20d=0.20,
+                    rv_60d=0.25,
+                )
+                df = pd.read_parquet(os.path.join(td, "AAPL.parquet"))
+                self.assertIn("return_10d", df.columns,
+                              "record_snapshot must persist return_10d column")
+                self.assertTrue(pd.isna(df["return_10d"].iloc[0]),
+                                "return_10d must be NaN at write time")
+
+    async def test_update_outcomes_fills_return_10d_after_10_days(self):
+        """update_outcomes must populate return_10d for any snapshot
+        whose 10-day window has elapsed."""
+        import tempfile, os, time, pandas as pd
+        from unittest.mock import patch
+        from data.signal_history import SignalHistoryStore, _DTYPE_MAP
+
+        with tempfile.TemporaryDirectory() as td:
+            with patch("data.signal_history._HISTORY_DIR", td):
+                # Build a parquet with one snapshot 11 days old; price=100.
+                # Return columns intentionally start NaN.
+                eleven_days_ago = time.time() - 11 * 86_400
+                # Use full _DTYPE_MAP columns so the round-trip preserves dtypes
+                row = {col: pd.NA for col in _DTYPE_MAP}
+                row.update({
+                    "symbol":     "AAPL",
+                    "snapshot_ts": eleven_days_ago,
+                    "price":      100.0,
+                })
+                df = pd.DataFrame([row])
+                df.to_parquet(os.path.join(td, "AAPL.parquet"), index=False)
+
+                store = SignalHistoryStore()
+                # Current price is 110 → 10% return
+                updated = await store.update_outcomes(symbol="AAPL", current_price=110.0)
+                self.assertGreater(updated, 0)
+
+                df_after = pd.read_parquet(os.path.join(td, "AAPL.parquet"))
+                self.assertIn("return_10d", df_after.columns)
+                self.assertAlmostEqual(
+                    float(df_after["return_10d"].iloc[0]), 0.10, places=4,
+                    msg="11-day-old snapshot should have return_10d ≈ +10%",
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

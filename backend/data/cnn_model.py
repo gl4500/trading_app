@@ -139,6 +139,19 @@ N_CHANNELS = (
     + len(MACRO_CHANNEL_NAMES)
 )  # 19
 
+# Fixed-order list of the 19 channel COLUMN names (df column keys, not the
+# pretty *_NAMES used for the LLM display). Used by XGB_FEATURE_FILTER to
+# resolve channel names → indices. Order MUST match build_training_windows.
+ALL_CHANNEL_COLUMNS: List[str] = [
+    "analyst_score", "earnings_score", "alpaca_score", "yahoo_score", "iv_rv_score",
+    "agent_consensus", "agent_agreement",
+    "rv_20d", "rv_60d",
+    "r_1", "r_5", "r_20", "r_60", "r_120",
+    "macro_vix_norm", "macro_gld_5d_back", "macro_tlt_5d_back",
+    "macro_spy_5d_back", "macro_breadth_back",
+]
+assert len(ALL_CHANNEL_COLUMNS) == N_CHANNELS
+
 # Renormalized after dropping congressional_trades (was 0.11; remaining sum 0.89).
 # Each weight = old_weight / 0.89.
 _DEFAULT_WEIGHTS: Dict[str, float] = {
@@ -202,22 +215,28 @@ WALKFORWARD_MIN_VAL_DAYS      = 14
 WALKFORWARD_EMBARGO_BARS      = 1
 _SECS_PER_DAY                 = 86_400.0
 
-# Label horizon (added 2026-04-27 / Layer 2.4)
-# Switched from "return_1d" → "return_5d" because:
-#   - 1-day forward returns are dominated by noise (efficient market, signals
-#     already priced in by the time analyst/news scores update)
-#   - 5-day forward returns have ~sqrt(5) better signal-to-noise ratio
-#   - return_5d is already populated by signal_history (no backfill needed)
+# Label horizon — production switched 2026-05-03 from 5d to 10d.
+# XGBoost ablation (docs/equity_feature_engineering_audit.md follow-up):
+#   5d, 6-channel:  mean_IC=+0.21, last_WFE=+0.07,  $5,232/yr/$10k
+#  10d, 8-channel:  mean_IC=+0.40, last_WFE=+0.25,  $5,640/yr/$10k
+# 10d wins on every metric (last_WFE 5x better) and halves turnover.
 #
-# A label horizon switch invalidates the currently-saved checkpoint's
-# predictions until the next walk-forward retrain rebuilds with 5d targets.
-# predict() loads fine but its outputs are 1d-scale until then.
-LABEL_HORIZON_COL             = "return_5d"
-# Confidence calibration: 5d returns scale wider than 1d (rough sqrt(5) ≈ 2.2x).
-# A "max-confidence" predicted return at 5d is ~10% rather than 5% at 1d.
-LABEL_HORIZON_FULL_CONF_RET   = 0.10
-# Direction threshold scales similarly: 1d used 0.5%, 5d uses 1.0%.
-LABEL_HORIZON_DIR_THRESHOLD   = 0.010
+# A horizon switch invalidates any currently-saved booster's predictions
+# until the next walk-forward retrain rebuilds with the new targets.
+# predict() loads fine but its outputs are old-scale until then.
+LABEL_HORIZON_COL             = "return_10d"
+# Days in the horizon, parsed from LABEL_HORIZON_COL ("return_<N>d"). Single
+# source of truth so changing LABEL_HORIZON_COL automatically rescales the
+# direction/confidence thresholds below.
+LABEL_HORIZON_DAYS            = int(LABEL_HORIZON_COL.removeprefix("return_").removesuffix("d"))
+# Confidence + direction thresholds scale with sqrt(time) since cross-sectional
+# return vol scales the same way. Anchored to the 5d production values:
+#   5d  → FULL_CONF_RET = 0.10,   DIR_THRESHOLD = 0.010
+#   10d → FULL_CONF_RET ≈ 0.141,  DIR_THRESHOLD ≈ 0.0141
+import math as _math   # local import — keep module-level imports clean
+_HORIZON_SCALE                = _math.sqrt(LABEL_HORIZON_DAYS / 5.0)
+LABEL_HORIZON_FULL_CONF_RET   = 0.10  * _HORIZON_SCALE
+LABEL_HORIZON_DIR_THRESHOLD   = 0.010 * _HORIZON_SCALE
 
 
 def _compute_wfe(

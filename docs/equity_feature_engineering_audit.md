@@ -119,6 +119,54 @@ Same parquets, same walk-forward, same XGB hyperparameters. Flipping to the last
 
 Reproducer: `scripts/xgb_native_vs_flatten.py`. Shipped via `feat/xgb-native-features` (PR stacked on PR #9).
 
+## Follow-up (2026-05-03b): 10d label horizon + 8-channel filter
+
+After the XGB-native switch landed, two more knobs gave another step-change:
+**(1) flip the label from 5d to 10d**, and **(2) drop to an 8-channel
+forward-selected subset** that's 10d-specific.
+
+### Forward selection at 10d
+
+Same XGB-native + walk-forward harness. 10d horizon has 22k usable samples
+(vs 28k at 5d). Forward selection peaks at 8 channels:
+
+```
+1. analyst_score          (sentiment, slow-moving — useful at 10d, dead weight at 5d)
+2. macro_spy_5d_back      (market direction)
+3. r_120                  (long momentum)
+4. macro_vix_norm         (vol regime)
+5. earnings_score         (fundamentals)
+6. iv_rv_score            (options-implied vol)
+7. macro_breadth_back     (market internals)
+8. alpaca_score           (news sentiment)
+```
+
+Notably the 10d winners include **3 macro features** (vs 0 at 5d) and **2 sentiment scores** (vs 0 at 5d). Slow-moving signals matter when the prediction window is longer.
+
+### Comparison
+
+| config | IC | last_WFE | tr/yr | net/yr/$10k |
+|---|---:|---:|---:|---:|
+| 5d 19-ch (old prod) | +0.08 | +0.01 | 50 | $1,616 |
+| 5d 6-ch winner | +0.21 | +0.07 | 50 | $5,232 |
+| 10d 19-ch | +0.28 | +0.18 | 25 | $3,904 |
+| **10d 8-ch winner** | **+0.40** | **+0.25** | **25** | **$5,640** |
+
+10d 8-channel is the winner: highest IC, highest last_WFE, half the turnover. Shipped via `feat/10d-label-horizon`.
+
+### Production retrain result (after the switch)
+
+```
+mean_IC   : +0.318   (forecast +0.40)
+IR        : +1.55    (forecast +2.17)
+mean_WFE  : +0.102
+last_WFE  : +0.163   (was -0.007 before the switch)
+```
+
+Slightly below the forecast (forward selection had some overfit to the eval folds; sample mix differs at 22k vs experiment), but **last_WFE flipped positive** — Kelly sizing now uses genuine magnitude predictions rather than rank-only. **+94% IC lift** vs the 5d 19-channel production model.
+
+Reproducers: `scripts/xgb_horizon_ablation.py`, `scripts/xgb_10d_feature_select.py`, `scripts/backfill_return_10d.py`.
+
 ## What's surprising
 
 1. **Just adding lagged returns is the single biggest win.** This matches the doc's claim that "price/return-based features" are the foundation, but the magnitude of the lift on actual production data is striking.
