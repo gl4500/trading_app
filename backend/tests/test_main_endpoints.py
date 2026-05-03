@@ -2072,5 +2072,74 @@ class TestCnnDiagnosticsExposesWalkforward(unittest.TestCase):
             self.assertIn(key, body)
 
 
+class TestCnnDiagnosticsReflectsActiveBackend(unittest.TestCase):
+    """The diagnostics endpoint must report the *currently active* backend
+    (signal_model selector), not always the CNN. Before this fix it imported
+    `signal_cnn` directly from data.cnn_model, so when MODEL_BACKEND=xgboost
+    was the live setting the endpoint still showed CNN device='cuda' / CNN
+    training stats — wildly misleading during the 24h watch."""
+
+    def test_response_includes_backend_type_field(self):
+        """A `backend_type` field tells the frontend which model is actually
+        running. Required to disambiguate when both signal_cnn.pt and
+        signal_xgb.json exist on disk."""
+        from main import app
+        with _no_lifespan_client(app) as client:
+            with patch("data.regime_detector.regime_detector") as mock_regime:
+                mock_regime.summary.return_value = {}
+                r = client.get("/api/cnn-diagnostics")
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertIn("backend_type", body)
+        self.assertIn(body["backend_type"], ("cnn", "xgboost"))
+
+    def test_endpoint_reads_signal_model_selector_not_signal_cnn(self):
+        """When the selector is patched to a SignalXGBoost mock, the
+        endpoint must use the mock — proving it goes through the selector,
+        not directly to data.cnn_model.signal_cnn."""
+        from unittest.mock import MagicMock
+        from main import app
+        sentinel_summary = {
+            "trained":         True,
+            "device":          "cpu",                  # XGBoost-distinctive
+            "n_channels":      19,
+            "n_train":         100,
+            "n_val":           50,
+            "final_train_mse": 0.001,
+            "final_val_mse":   0.002,
+            "train_ts":        1.0,
+            "learned_weights": {"analyst_consensus": 1.0},
+            "walk_forward_efficiency": 0.16,
+            "wfe_status":      "POOR",
+            "fold_metrics":    [],
+            "mean_ic":         0.32,
+            "ir":              1.55,
+            "mean_wfe":        0.10,
+            "calibration":     [],
+            # XGBoost lacks these CNN-specific fields; endpoint must default
+            # rather than KeyError:
+            #   overfit_ratio, diagnosis, train_loss_curve, val_loss_curve, weight_delta
+        }
+        mock = MagicMock()
+        mock.training_summary.return_value = sentinel_summary
+        # Indicate the mock is the XGBoost backend by class name
+        mock.__class__.__name__ = "SignalXGBoost"
+        with _no_lifespan_client(app) as client, \
+             patch("data.signal_model.signal_model", mock), \
+             patch("data.regime_detector.regime_detector") as mock_regime:
+            mock_regime.summary.return_value = {}
+            r = client.get("/api/cnn-diagnostics")
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        # The mock's distinctive values must appear — proving the endpoint
+        # read from the selector, not from signal_cnn directly.
+        self.assertEqual(body["device"], "cpu")
+        self.assertEqual(body["walk_forward_efficiency"], 0.16)
+        self.assertEqual(body["mean_ic"], 0.32)
+        # CNN-specific fields default to None / [] when missing
+        self.assertIsNone(body.get("overfit_ratio"))
+        self.assertEqual(body.get("train_loss_curve", []), [])
+
+
 if __name__ == "__main__":
     unittest.main()
