@@ -131,6 +131,7 @@ class SignalXGBoost:
         n_folds: int = WALKFORWARD_FOLDS,
         min_val_days: int = WALKFORWARD_MIN_VAL_DAYS,
         embargo_bars: int = WALKFORWARD_EMBARGO_BARS,
+        **kwargs,   # silently ignore CNN-specific kwargs (epochs, batch_size, patience)
     ) -> None:
         """Train via walk-forward CV. Last fold's booster becomes production."""
         import xgboost as xgb
@@ -373,6 +374,10 @@ class SignalXGBoost:
             "n_val":           self._n_val,
             "final_train_mse": self._final_train_mse,
             "final_val_mse":   self._final_val_mse,
+            # Aliases for parity with SignalCNN.training_summary so the
+            # agent's _train_blocking log line works backend-agnostically.
+            "final_mse":       self._final_train_mse,
+            "learned_weights": self.get_learned_weights(),
             "walk_forward_efficiency": self._wfe,
             "wfe_status":      self._wfe_status,
             # Walk-forward CV aggregate

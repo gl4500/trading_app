@@ -156,5 +156,106 @@ class TestLearnedWeights(unittest.TestCase):
         self.assertEqual(set(w.keys()), set(_DEFAULT_WEIGHTS.keys()))
 
 
+class TestTrainBlockingPathUnderXGBoost(unittest.IsolatedAsyncioTestCase):
+    """When MODEL_BACKEND='xgboost', _train_blocking must call signal_xgb.fit
+    and signal_xgb.save without raising on CNN-specific kwargs or missing
+    summary keys. Pins the contract that swapping backends doesn't break the
+    agent's training entry point."""
+
+    async def test_train_blocking_calls_xgb_fit_and_save(self):
+        import importlib
+        from unittest.mock import patch
+
+        with patch("config.config.MODEL_BACKEND", "xgboost"):
+            import data.signal_model as sm
+            importlib.reload(sm)
+
+            import agents.cnn_reasoning_agent as cra
+            importlib.reload(cra)
+
+            agent = cra.CNNReasoningAgent()
+
+            # Synthesise a minimal training df (200 rows × 1 symbol) with
+            # all the columns build_training_windows expects.
+            import pandas as pd
+            n = 200
+            df = pd.DataFrame({
+                "symbol":          ["AAPL"] * n,
+                "snapshot_ts":     np.arange(n, dtype=np.float64) * 86400.0,
+                "analyst_score":   np.zeros(n),
+                "earnings_score":  np.zeros(n),
+                "alpaca_score":    np.zeros(n),
+                "yahoo_score":     np.zeros(n),
+                "iv_rv_score":     np.zeros(n),
+                "return_1d":       np.full(n, 0.001),
+                "return_5d":       np.full(n, 0.005),
+            })
+
+            with patch("data.signal_history.signal_history.get_training_data",
+                       return_value=df), \
+                 patch("data.gpu_coord.acquire_training_mutex", return_value=True), \
+                 patch("data.gpu_coord.release_training_mutex"), \
+                 patch.object(cra.signal_cnn, "fit") as mock_fit, \
+                 patch.object(cra.signal_cnn, "save") as mock_save, \
+                 patch.object(cra.signal_cnn, "training_summary",
+                              return_value={
+                                  "final_mse": 0.001,
+                                  "device": "cpu",
+                                  "learned_weights": {},
+                              }):
+                # _train_blocking is sync; run it in a thread executor so the
+                # asyncio test infrastructure doesn't complain.
+                import asyncio
+                await asyncio.to_thread(agent._train_blocking)
+
+            # cra.signal_cnn here resolves to signal_xgb because the selector
+            # was reloaded under MODEL_BACKEND=xgboost. Patching .fit on it
+            # patches signal_xgb.fit; _train_blocking must have hit it.
+            self.assertTrue(
+                mock_fit.called,
+                "_train_blocking must call signal_model.fit() under MODEL_BACKEND=xgboost",
+            )
+            self.assertTrue(
+                mock_save.called,
+                "_train_blocking must persist after a successful fit",
+            )
+
+            # Real (unpatched) signal_xgb.fit must accept the kwargs the agent
+            # actually passes (epochs, batch_size, sample_weights) without
+            # raising. We don't actually run training; we check the call site
+            # would work by inspecting the signature acceptance.
+            import inspect
+            from data.xgboost_model import signal_xgb
+            sig = inspect.signature(signal_xgb.fit)
+            # Either the kwargs are explicit parameters, or the signature
+            # accepts **kwargs. Check both.
+            has_var_kw = any(
+                p.kind == inspect.Parameter.VAR_KEYWORD
+                for p in sig.parameters.values()
+            )
+            params = sig.parameters
+            self.assertTrue(
+                has_var_kw or "epochs" in params,
+                "SignalXGBoost.fit must accept 'epochs' kwarg "
+                "(either explicit or via **kwargs) — agent passes epochs=80",
+            )
+            self.assertTrue(
+                has_var_kw or "batch_size" in params,
+                "SignalXGBoost.fit must accept 'batch_size' kwarg",
+            )
+
+    def test_xgb_training_summary_has_legacy_keys(self):
+        """The agent's _train_blocking reads summary['final_mse'] and
+        summary['learned_weights']. SignalXGBoost.training_summary must
+        include both for log compatibility with the CNN backend."""
+        from data.xgboost_model import signal_xgb
+        s = signal_xgb.training_summary()
+        self.assertIn("final_mse", s,
+                      "training_summary must include 'final_mse' for agent log compatibility")
+        self.assertIn("learned_weights", s,
+                      "training_summary must include 'learned_weights' for agent log compatibility")
+        self.assertIn("device", s)
+
+
 if __name__ == "__main__":
     unittest.main()
