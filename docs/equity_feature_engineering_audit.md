@@ -105,6 +105,20 @@ Five XGBoost variants on the same walk-forward folds. Hyperparameters identical 
 
 ---
 
+## Follow-up (2026-05-03): XGB-native vs CNN-flatten
+
+After landing variant B in production, a follow-on A/B exposed a second, larger source of leak: the XGBoost backend was being fed the (C=19, T=10) windows **flattened to (N, 190)** — a CNN-shaped input. The lagged-return channels at the last timestep already encode the temporal lookback, so the other 9 timesteps of every channel were redundant.
+
+| path | #feat | mean_IC | IR | mean_WFE | val_MSE |
+|---|---:|---:|---:|---:|---:|
+| flatten 190 (CNN-shape) | 190 | +0.136 | **+1.57** | −0.059 | 0.00458 |
+| **last-t 19 (XGB-native)** | **19** | **+0.154** | +0.94 | **+0.003** | **0.00436** |
+| last + mean over T (38) | 38 | +0.153 | +1.64 | −0.017 | 0.00442 |
+
+Same parquets, same walk-forward, same XGB hyperparameters. Flipping to the last-timestep slice **lifts IC +13.6%, flips WFE positive (the flatten was the single thing keeping it negative), and trains 5× faster**. IR drops because fold-to-fold IC variance rises with 10× fewer features, but for a tree model the WFE direction matters more.
+
+Reproducer: `scripts/xgb_native_vs_flatten.py`. Shipped via `feat/xgb-native-features` (PR stacked on PR #9).
+
 ## What's surprising
 
 1. **Just adding lagged returns is the single biggest win.** This matches the doc's claim that "price/return-based features" are the foundation, but the magnitude of the lift on actual production data is striking.
