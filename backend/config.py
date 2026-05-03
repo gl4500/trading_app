@@ -94,6 +94,10 @@ class Config:
     # Set HARD_STOP_PCT=0 (or any negative) to disable.
     HARD_STOP_PCT: float = float(os.getenv("HARD_STOP_PCT", "0.08"))
 
+    # Model backend selector (added 2026-05-02). Default keeps the legacy
+    # CNN; set to "xgboost" to switch to the gradient-boosted regressor.
+    MODEL_BACKEND: str = os.getenv("MODEL_BACKEND", "cnn").lower().strip()
+
     # Daily-move risk re-evaluation (Backlog 0.5, 2026-04-29):
     # When a held position drops more than DAILY_REVIEW_PCT from today's open,
     # the CNN agent injects a "## RISK ALERT" block into the Ollama prompt

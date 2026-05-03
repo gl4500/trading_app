@@ -36,7 +36,8 @@ from agents.base_agent import BaseAgent, Signal
 from agents.agent_utils import get_fallback_signals
 from config import config
 from data.signal_history import signal_history
-from data.cnn_model import signal_cnn, build_training_windows, MIN_TRAIN_SAMPLES
+from data.cnn_model import build_training_windows, MIN_TRAIN_SAMPLES
+from data.signal_model import signal_model as signal_cnn
 from data.agent_performance_tracker import agent_performance_tracker
 
 logger = logging.getLogger(__name__)
