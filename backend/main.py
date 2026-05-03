@@ -2219,12 +2219,22 @@ async def get_cnn_diagnostics():
       POOR     — WFE < 0.50  (barely better than predicting the mean)
       UNTRAINED — not yet computed
     """
-    from data.cnn_model import signal_cnn, load_training_history
+    # Use the selector so this endpoint reflects the *active* backend
+    # (CNN or XGBoost) instead of always reading signal_cnn directly.
+    # The fix that landed 2026-05-03 — before it, MODEL_BACKEND=xgboost
+    # would still report CNN's frozen state to the frontend.
+    import data.signal_model as _sm   # late import to pick up env-driven selector
+    from data.cnn_model import load_training_history
     from data.regime_detector import regime_detector
-    summary = signal_cnn.training_summary()
+    model = _sm.signal_model
+    summary = model.training_summary()
 
-    # Downsample loss curves to at most 40 points for the frontend
-    # (avoids sending 80 floats when a sparkline only needs ~20)
+    # backend_type: "cnn" | "xgboost". Derived from the selector's class name
+    # so the frontend can label the diagnostics panel correctly.
+    cls_name = type(model).__name__
+    backend_type = "xgboost" if "XGBoost" in cls_name else "cnn"
+
+    # Downsample loss curves to at most 40 points for the frontend.
     def _downsample(curve, n=40):
         if not curve or len(curve) <= n:
             return curve
@@ -2232,38 +2242,43 @@ async def get_cnn_diagnostics():
         return [curve[int(i * step)] for i in range(n)]
 
     return {
-        "trained":          summary["trained"],
-        "device":           summary["device"],
-        "n_channels":       summary["n_channels"],
-        "n_train":          summary["n_train"],
-        "n_val":            summary["n_val"],
-        "final_train_mse":  summary["final_train_mse"],
-        "final_val_mse":    summary["final_val_mse"],
-        "overfit_ratio":    summary["overfit_ratio"],
-        "diagnosis":        summary["diagnosis"],
-        # Walk-Forward Efficiency
-        "walk_forward_efficiency": summary["walk_forward_efficiency"],
-        "wfe_status":              summary["wfe_status"],
-        "train_loss_curve": _downsample(summary["train_loss_curve"]),
-        "val_loss_curve":   _downsample(summary["val_loss_curve"]),
-        "learned_weights":  summary["learned_weights"],
-        "weight_delta":     summary["weight_delta"],
+        "backend_type":     backend_type,
+        "trained":          summary.get("trained", False),
+        "device":           summary.get("device", "unknown"),
+        "n_channels":       summary.get("n_channels", 0),
+        "n_train":          summary.get("n_train", 0),
+        "n_val":            summary.get("n_val", 0),
+        "final_train_mse":  summary.get("final_train_mse"),
+        "final_val_mse":    summary.get("final_val_mse"),
+        # CNN-only fields — XGBoost summary doesn't carry them.
+        "overfit_ratio":    summary.get("overfit_ratio"),
+        "diagnosis":        summary.get("diagnosis"),
+        # Walk-Forward Efficiency (both backends)
+        "walk_forward_efficiency": summary.get("walk_forward_efficiency"),
+        "wfe_status":              summary.get("wfe_status", "UNTRAINED"),
+        # CNN-only loss curves
+        "train_loss_curve": _downsample(summary.get("train_loss_curve", [])),
+        "val_loss_curve":   _downsample(summary.get("val_loss_curve", [])),
+        # Both backends
+        "learned_weights":  summary.get("learned_weights", {}),
+        # CNN-only delta-vs-prior-train; XGBoost recomputes from scratch each fit.
+        "weight_delta":     summary.get("weight_delta", {}),
         "last_trained":     (
             __import__("datetime").datetime.fromtimestamp(
                 summary["train_ts"],
                 tz=__import__("datetime").timezone.utc,
-            ).isoformat() if summary["train_ts"] else None
+            ).isoformat() if summary.get("train_ts") else None
         ),
         # Regime detector state
         "regime": regime_detector.summary(),
         # Last 30 retrains (oldest → newest) for day-over-day trajectory
         "training_history": load_training_history(limit=30),
         # Walk-forward CV metrics (added 2026-04-27)
-        "fold_metrics":   summary["fold_metrics"],
-        "mean_ic":        summary["mean_ic"],
-        "ir":             summary["ir"],
-        "mean_wfe":       summary["mean_wfe"],
-        "calibration":    summary["calibration"],
+        "fold_metrics":   summary.get("fold_metrics", []),
+        "mean_ic":        summary.get("mean_ic", 0.0),
+        "ir":             summary.get("ir", 0.0),
+        "mean_wfe":       summary.get("mean_wfe"),
+        "calibration":    summary.get("calibration", []),
     }
 
 
