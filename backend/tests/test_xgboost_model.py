@@ -3,6 +3,7 @@ import math
 import unittest
 
 import numpy as np
+import pandas as pd
 
 
 class TestLastTimestepFeatures(unittest.TestCase):
@@ -419,6 +420,77 @@ class TestXGBFeatureFilter(unittest.TestCase):
                                  "load() must restore the saved feature_filter")
                 pred_post, _, _ = m2.predict(X[0])
                 self.assertAlmostEqual(pred_pre, pred_post, places=5)
+
+
+class TestEndToEnd10dWith8ChFilter(unittest.TestCase):
+    """End-to-end: 10d label + 8-channel filter going through the real
+    build_training_windows pipeline. Pins the production data flow."""
+
+    def test_full_pipeline_10d_label_8ch_filter(self):
+        from data.cnn_model import (
+            build_training_windows, WINDOW_SIZE, LABEL_HORIZON_COL,
+        )
+        from data.xgboost_model import SignalXGBoost
+        # Sanity: T3 shipped, label is 10d
+        self.assertEqual(LABEL_HORIZON_COL, "return_10d")
+
+        n = 600
+        rng = np.random.default_rng(0)
+        # Synthesize a df with all 19 channel columns + 10d label populated.
+        # Use 2 symbols × 300 rows so build_training_windows has per-symbol scope.
+        rows = []
+        for sym in ("AAPL", "MSFT"):
+            base = rng.standard_normal((n // 2, 19)).astype(np.float64) * 0.1
+            df_sym = {
+                "symbol":          [sym] * (n // 2),
+                "snapshot_ts":     np.arange(n // 2, dtype=np.float64) * 86_400.0,
+                "price":           np.linspace(100.0, 200.0, n // 2),
+                # 19 raw channel columns
+                "analyst_score":     base[:, 0],
+                "earnings_score":    base[:, 1],
+                "alpaca_score":      base[:, 2],
+                "yahoo_score":       base[:, 3],
+                "iv_rv_score":       base[:, 4],
+                "agent_consensus":   base[:, 5],
+                "agent_agreement":   np.abs(base[:, 6]),
+                "rv_20d":            np.abs(base[:, 7]) + 0.10,
+                "rv_60d":            np.abs(base[:, 8]) + 0.10,
+                # The lagged-return columns will be recomputed by
+                # _compute_return_features at read time, but we provide them
+                # directly here for the synthetic test.
+                "r_1":   base[:, 9],
+                "r_5":   base[:, 10],
+                "r_20":  base[:, 11],
+                "r_60":  base[:, 12],
+                "r_120": base[:, 13],
+                "macro_vix_norm":     np.abs(base[:, 14]),
+                "macro_gld_5d_back":  base[:, 15],
+                "macro_tlt_5d_back":  base[:, 16],
+                "macro_spy_5d_back":  base[:, 17],
+                "macro_breadth_back": base[:, 18],
+                # 10d label — small noise around channel 0 for learnable signal
+                "return_10d":  base[:, 0] * 0.05 + rng.standard_normal(n // 2) * 0.01,
+                "return_1d":   np.full(n // 2, 0.001),  # fallback if 10d missing
+            }
+            rows.append(pd.DataFrame(df_sym))
+        df = pd.concat(rows, ignore_index=True)
+
+        X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
+        self.assertEqual(X.shape[1], 19, "build_training_windows should emit 19 channels")
+
+        # Production 8-channel 10d winner
+        WINNING_8_INDICES = [0, 1, 2, 4, 13, 14, 17, 18]
+        m = SignalXGBoost(T=WINDOW_SIZE, n_channels=19, feature_filter=WINNING_8_INDICES)
+        m.fit(X, y, t, n_folds=3, min_val_days=14)
+        self.assertTrue(m.is_trained)
+        self.assertEqual(m._booster.num_features(), 8)
+
+        # predict on a full 19-channel window (matches get_recent_window output)
+        x_full = X[0]
+        self.assertEqual(x_full.shape, (19, WINDOW_SIZE))
+        pred, direction, conf = m.predict(x_full)
+        self.assertIsInstance(pred, float)
+        self.assertIn(direction, ("bull", "bear", "neutral"))
 
 
 if __name__ == "__main__":
