@@ -213,11 +213,18 @@ _SECS_PER_DAY                 = 86_400.0
 # predictions until the next walk-forward retrain rebuilds with 5d targets.
 # predict() loads fine but its outputs are 1d-scale until then.
 LABEL_HORIZON_COL             = "return_5d"
-# Confidence calibration: 5d returns scale wider than 1d (rough sqrt(5) ≈ 2.2x).
-# A "max-confidence" predicted return at 5d is ~10% rather than 5% at 1d.
-LABEL_HORIZON_FULL_CONF_RET   = 0.10
-# Direction threshold scales similarly: 1d used 0.5%, 5d uses 1.0%.
-LABEL_HORIZON_DIR_THRESHOLD   = 0.010
+# Days in the horizon, parsed from LABEL_HORIZON_COL ("return_<N>d"). Single
+# source of truth so changing LABEL_HORIZON_COL automatically rescales the
+# direction/confidence thresholds below.
+LABEL_HORIZON_DAYS            = int(LABEL_HORIZON_COL.removeprefix("return_").removesuffix("d"))
+# Confidence + direction thresholds scale with sqrt(time) since cross-sectional
+# return vol scales the same way. Anchored to the 5d production values:
+#   5d  → FULL_CONF_RET = 0.10,   DIR_THRESHOLD = 0.010
+#   10d → FULL_CONF_RET ≈ 0.141,  DIR_THRESHOLD ≈ 0.0141
+import math as _math   # local import — keep module-level imports clean
+_HORIZON_SCALE                = _math.sqrt(LABEL_HORIZON_DAYS / 5.0)
+LABEL_HORIZON_FULL_CONF_RET   = 0.10  * _HORIZON_SCALE
+LABEL_HORIZON_DIR_THRESHOLD   = 0.010 * _HORIZON_SCALE
 
 
 def _compute_wfe(

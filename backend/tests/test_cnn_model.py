@@ -1174,5 +1174,42 @@ class TestReturnChannelsExposed(unittest.TestCase):
         self.assertEqual(X.shape[1], 19)
 
 
+class TestLabelHorizonScaling(unittest.TestCase):
+    """LABEL_HORIZON_DAYS, LABEL_HORIZON_FULL_CONF_RET, LABEL_HORIZON_DIR_THRESHOLD
+    must derive from LABEL_HORIZON_COL so flipping the col cascades to thresholds.
+
+    Volatility scales with sqrt(time), so 10d thresholds = 5d thresholds × sqrt(2).
+    """
+
+    def test_label_horizon_days_derived_from_col(self):
+        """LABEL_HORIZON_DAYS exists and matches the integer in LABEL_HORIZON_COL."""
+        from data.cnn_model import LABEL_HORIZON_COL, LABEL_HORIZON_DAYS
+        # Parse the integer day-count from "return_<N>d"
+        prefix, suffix = "return_", "d"
+        self.assertTrue(LABEL_HORIZON_COL.startswith(prefix))
+        self.assertTrue(LABEL_HORIZON_COL.endswith(suffix))
+        n = int(LABEL_HORIZON_COL[len(prefix):-len(suffix)])
+        self.assertEqual(LABEL_HORIZON_DAYS, n,
+                         f"LABEL_HORIZON_DAYS ({LABEL_HORIZON_DAYS}) must match "
+                         f"col '{LABEL_HORIZON_COL}' (parsed: {n})")
+
+    def test_thresholds_scale_with_sqrt_horizon(self):
+        """Thresholds scale by sqrt(LABEL_HORIZON_DAYS / 5) since vol scales with sqrt(time).
+        At 5d:  FULL_CONF_RET = 0.10,  DIR_THRESHOLD = 0.010 (legacy values).
+        At 10d: FULL_CONF_RET ≈ 0.141, DIR_THRESHOLD ≈ 0.0141.
+        """
+        import math
+        from data.cnn_model import (
+            LABEL_HORIZON_DAYS,
+            LABEL_HORIZON_FULL_CONF_RET,
+            LABEL_HORIZON_DIR_THRESHOLD,
+        )
+        scale = math.sqrt(LABEL_HORIZON_DAYS / 5.0)
+        self.assertAlmostEqual(LABEL_HORIZON_FULL_CONF_RET, 0.10 * scale, places=4,
+                               msg=f"FULL_CONF_RET should be 0.10 * sqrt({LABEL_HORIZON_DAYS}/5)")
+        self.assertAlmostEqual(LABEL_HORIZON_DIR_THRESHOLD, 0.010 * scale, places=4,
+                               msg=f"DIR_THRESHOLD should be 0.010 * sqrt({LABEL_HORIZON_DAYS}/5)")
+
+
 if __name__ == "__main__":
     unittest.main()
