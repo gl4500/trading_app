@@ -44,17 +44,27 @@ _MODEL_PATH       = os.path.join(_MODEL_DIR, "signal_xgb.json")
 _HISTORY_FILENAME = "training_history_xgb.jsonl"
 
 
-def flatten_window(x: np.ndarray) -> np.ndarray:
-    """Flatten a (C, T) window or a (N, C, T) batch into (C*T,) / (N, C*T).
-    Row-major: each channel's full timeseries laid out contiguously.
-    XGBoost requires tabular features, so this is how we hand it the
-    same data the CNN sees as a 2-D tensor."""
+def last_timestep_features(x: np.ndarray) -> np.ndarray:
+    """Extract the last timestep from a (C, T) window or (N, C, T) batch.
+
+    XGB-native: lagged-return channels (r_1..r_120) at the last timestep
+    already encode temporal lookback, so the other T-1 timesteps are
+    redundant for tree models and dilute split capacity. Reduces feature
+    count from C*T to C.
+
+    A/B on production parquets (28k samples, 3-fold walk-forward):
+        flatten 190     → mean_IC +0.136 / IR +1.57 / WFE −0.059
+        last-t  19      → mean_IC +0.154 / IR +0.94 / WFE +0.003
+
+    The flatten was the single thing keeping production WFE negative.
+    See scripts/xgb_native_vs_flatten.py for reproducibility.
+    """
     a = np.asarray(x)
     if a.ndim == 2:
-        return a.ravel().astype(np.float32, copy=False)
+        return a[:, -1].astype(np.float32, copy=False)        # (C,)
     if a.ndim == 3:
-        return a.reshape(a.shape[0], -1).astype(np.float32, copy=False)
-    raise ValueError(f"flatten_window: expected 2D or 3D, got shape {a.shape}")
+        return a[:, :, -1].astype(np.float32, copy=False)     # (N, C)
+    raise ValueError(f"last_timestep_features: expected 2D or 3D, got shape {a.shape}")
 
 
 class SignalXGBoost:
@@ -111,7 +121,7 @@ class SignalXGBoost:
             return 0.0, "neutral", 0.0
         if x.shape[0] != self._n_channels:
             return 0.0, "neutral", 0.0
-        feat = flatten_window(x).reshape(1, -1)
+        feat = last_timestep_features(x).reshape(1, -1)
         pred = float(self._booster.predict(xgb.DMatrix(feat))[0])
         if pred > LABEL_HORIZON_DIR_THRESHOLD:
             direction = "bull"
@@ -165,7 +175,7 @@ class SignalXGBoost:
         last_n_val     = 0
         last_booster   = None
 
-        X_flat = flatten_window(X)            # (N, C*T)
+        X_native = last_timestep_features(X)  # (N, C) — XGB-native tabular
         _params = {
             "max_depth":        XGB_MAX_DEPTH,
             "eta":              XGB_LEARNING_RATE,
@@ -180,8 +190,8 @@ class SignalXGBoost:
             "verbosity":        0,
         }
         for fold_i, (tr_idx, va_idx) in enumerate(folds):
-            X_tr, y_tr = X_flat[tr_idx], y[tr_idx]
-            X_va, y_va = X_flat[va_idx], y[va_idx]
+            X_tr, y_tr = X_native[tr_idx], y[tr_idx]
+            X_va, y_va = X_native[va_idx], y[va_idx]
             w_tr = sample_weights[tr_idx] if sample_weights is not None else None
 
             dtrain = xgb.DMatrix(X_tr, label=y_tr, weight=w_tr)
@@ -254,30 +264,25 @@ class SignalXGBoost:
         )
 
     def get_learned_weights(self) -> Dict[str, float]:
-        """Per-source feature importance, aggregated over the T timesteps
-        for each of the 5 source channels and normalised to sum 1.
+        """Per-source feature importance, restricted to the 5 source channels
+        and normalised to sum 1.
 
-        Mirrors SignalCNN.get_learned_weights — same dict shape so the
-        LLM prompt that displays learned-vs-hardcoded weights doesn't
-        care which backend it came from.
+        XGB-native: feature index i maps directly to channel i (no T-axis
+        aggregation needed) because we feed only the last timestep.
 
         Native xgboost.Booster doesn't expose `feature_importances_` (that's
         XGBRegressor). We use Booster.get_score(importance_type='gain'),
         which returns a sparse dict {f-name: importance} keyed by features
-        that actually had splits. Map those back to (channel, timestep)
-        positions and aggregate.
+        that actually had splits.
         """
         from data.cnn_model import _DEFAULT_WEIGHTS
         if not self._trained or self._booster is None:
             return _DEFAULT_WEIGHTS.copy()
 
-        n_feat = self._n_channels * self.T
+        n_feat = self._n_channels
         importances = np.zeros(n_feat, dtype=np.float64)
-        # get_score returns {'f0': 12.3, 'f5': 7.8, ...} — only features
-        # that participated in any split. Missing features → importance 0.
         scores = self._booster.get_score(importance_type="gain")
         for fname, imp in scores.items():
-            # Default DMatrix feature names are 'f0', 'f1', ...
             try:
                 idx = int(fname.lstrip("f"))
             except ValueError:
@@ -285,11 +290,8 @@ class SignalXGBoost:
             if 0 <= idx < n_feat:
                 importances[idx] = float(imp)
 
-        importances = importances.reshape(self._n_channels, self.T)
-        # Sum across timesteps → per-channel importance
-        per_channel = importances.sum(axis=1)
-        # Restrict to the 5 source channels (first 5)
-        source_imp = per_channel[: len(SOURCE_NAMES)]
+        # Source channels are the first len(SOURCE_NAMES) features
+        source_imp = importances[: len(SOURCE_NAMES)]
         total = float(source_imp.sum())
         if total < 1e-12:
             return _DEFAULT_WEIGHTS.copy()

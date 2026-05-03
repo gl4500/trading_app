@@ -5,20 +5,42 @@ import unittest
 import numpy as np
 
 
-class TestFlattenWindow(unittest.TestCase):
-    def test_2d_window_flattens_to_row_major(self):
-        from data.xgboost_model import flatten_window
-        x = np.arange(12, dtype=np.float32).reshape(3, 4)  # 3 channels × 4 timesteps
-        flat = flatten_window(x)
-        self.assertEqual(flat.shape, (12,))
-        # Row-major: channel 0's 4 values first, then channel 1, etc.
-        np.testing.assert_array_equal(flat, np.arange(12, dtype=np.float32))
+class TestLastTimestepFeatures(unittest.TestCase):
+    """XGB-native: feed XGBoost the last timestep of each (C, T) window
+    rather than flattening all T into C*T features. Lagged-return channels
+    (r_1..r_120) at the last timestep already encode temporal lookback,
+    so the other T-1 timesteps are redundant for trees and dilute splits.
+    A/B on production parquets: flatten 190 → mean_IC +0.136 / WFE −0.059;
+    last-t 19 → mean_IC +0.154 / WFE +0.003. See scripts/xgb_native_vs_flatten.py."""
 
-    def test_3d_batch_flattens_to_2d(self):
-        from data.xgboost_model import flatten_window
-        x = np.zeros((5, 3, 4), dtype=np.float32)  # batch of 5 windows
-        flat = flatten_window(x)
-        self.assertEqual(flat.shape, (5, 12))
+    def test_2d_window_returns_last_column(self):
+        from data.xgboost_model import last_timestep_features
+        x = np.arange(12, dtype=np.float32).reshape(3, 4)  # 3 channels × 4 timesteps
+        feats = last_timestep_features(x)
+        self.assertEqual(feats.shape, (3,))
+        # Each channel's LAST timestep value
+        np.testing.assert_array_equal(feats, np.array([3, 7, 11], dtype=np.float32))
+
+    def test_3d_batch_returns_last_timestep(self):
+        from data.xgboost_model import last_timestep_features
+        x = np.arange(60, dtype=np.float32).reshape(5, 3, 4)  # batch=5, 3 channels, T=4
+        feats = last_timestep_features(x)
+        self.assertEqual(feats.shape, (5, 3))
+        # Sample 0, channel 0 last value = index 3; channel 1 = 7; channel 2 = 11
+        np.testing.assert_array_equal(feats[0], np.array([3, 7, 11], dtype=np.float32))
+
+    def test_invalid_shape_raises(self):
+        from data.xgboost_model import last_timestep_features
+        with self.assertRaises(ValueError):
+            last_timestep_features(np.zeros(5))    # 1-D
+
+    def test_flatten_window_deprecated_alias_removed(self):
+        """The old flatten_window helper produced 190-feature CNN-shaped input.
+        It should no longer exist — using it would silently revive the
+        WFE-negative production behaviour."""
+        import data.xgboost_model as xm
+        self.assertFalse(hasattr(xm, "flatten_window"),
+                         "flatten_window must be removed; use last_timestep_features")
 
 
 class TestSignalXGBoostInit(unittest.TestCase):
@@ -280,6 +302,23 @@ class TestXGBoostFitsWith19Channels(unittest.TestCase):
         pred, direction, conf = m.predict(X[0])
         self.assertIsInstance(pred, float)
         self.assertIn(direction, ("bull", "bear", "neutral"))
+
+    def test_booster_sees_19_features_not_190(self):
+        """XGB-native: booster should be trained on C features, not C*T.
+        With 19 channels the booster's num_features() must equal 19, not 190."""
+        from data.xgboost_model import SignalXGBoost
+        rng = np.random.default_rng(0)
+        n, c, T = 600, 19, 10
+        X = rng.standard_normal((n, c, T)).astype(np.float32) * 0.5
+        y = (X[:, 0, :].mean(axis=1) * 0.05).astype(np.float32)
+        t = np.linspace(0, 90 * 86400.0, n, dtype=np.float64)
+
+        m = SignalXGBoost(T=T, n_channels=c)
+        m.fit(X, y, t, n_folds=3, min_val_days=14)
+        self.assertEqual(
+            m._booster.num_features(), c,
+            f"Booster must see {c} features (one per channel), not {c*T} flattened",
+        )
 
 
 if __name__ == "__main__":
