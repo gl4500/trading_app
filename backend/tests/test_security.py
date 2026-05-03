@@ -512,7 +512,9 @@ class TestSecretPatterns(unittest.TestCase):
         gitignore = os.path.join(self._PROJECT_ROOT, ".gitignore")
         if not os.path.exists(gitignore):
             self.skipTest(".gitignore not found at project root")
-        with open(gitignore) as fh:
+        # encoding='utf-8' so Windows (cp1252) can read a .gitignore that
+        # contains UTF-8 byte sequences (e.g. non-ASCII path comments).
+        with open(gitignore, encoding="utf-8") as fh:
             content = fh.read()
         self.assertIn(
             ".env", content,

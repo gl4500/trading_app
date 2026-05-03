@@ -143,12 +143,16 @@ def _bars_to_backfill_rows(
         return pd.DataFrame(columns=list(_DTYPE_MAP.keys()))
 
     # ── forward returns ───────────────────────────────────────────────────
-    ret_1d = np.full(n, np.nan)
-    ret_5d = np.full(n, np.nan)
+    # Includes return_10d to match the production label horizon (Tier 1).
+    ret_1d  = np.full(n, np.nan)
+    ret_5d  = np.full(n, np.nan)
+    ret_10d = np.full(n, np.nan)
     for i in range(n - 1):
         ret_1d[i] = (closes[i + 1] - closes[i]) / closes[i]
     for i in range(n - 5):
         ret_5d[i] = (closes[i + 5] - closes[i]) / closes[i]
+    for i in range(n - 10):
+        ret_10d[i] = (closes[i + 10] - closes[i]) / closes[i]
 
     # ── realised volatility ───────────────────────────────────────────────
     rv_20 = _rolling_rv(closes, 20)
@@ -171,6 +175,7 @@ def _bars_to_backfill_rows(
         "price":           closes,
         "return_1d":       ret_1d,
         "return_5d":       ret_5d,
+        "return_10d":      ret_10d,
         "rv_20d":          rv_20,
         "rv_60d":          rv_60,
         # Source scores — 0.0 (neutral prior; historical signals unavailable)

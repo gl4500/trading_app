@@ -321,11 +321,14 @@ class TestMacroBackfill(unittest.IsolatedAsyncioTestCase):
 
 class TestMacroCNNChannels(unittest.TestCase):
 
-    def test_n_channels_is_14(self):
-        """N_CHANNELS must be 14: 5 source + 2 agent + 2 RV + 5 macro.
-        Was 15 before Task #20 demoted congressional_trades from CNN inputs."""
+    def test_n_channels_is_19(self):
+        """N_CHANNELS must be 19: 5 source + 2 agent + 2 RV + 5 returns + 5 macro.
+        History:
+          15 → 14: Task #20 demoted congressional_trades from CNN inputs.
+          14 → 19: Tier 1 added 5 lagged-return channels (r_1, r_5, r_20, r_60, r_120).
+        """
         from data.cnn_model import N_CHANNELS
-        self.assertEqual(N_CHANNELS, 14)
+        self.assertEqual(N_CHANNELS, 19)
 
     def test_macro_channel_names_defined(self):
         """MACRO_CHANNEL_NAMES must be a list of 5 strings."""
@@ -355,13 +358,17 @@ class TestMacroCNNChannels(unittest.TestCase):
             rows.append(row)
         import pandas as pd
         df = pd.DataFrame(rows)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
-        # No macro columns in df → degrades to 9 channels (5 source + 2 agent + 2 RV)
+        X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
+        # df has no r_* cols and no macro_* cols → degrades to 9 channels
+        # (5 source + 2 agent + 2 RV). Build_training_windows does NOT
+        # itself add lagged returns; that's compute_features' job upstream.
         self.assertEqual(X.shape[1], 9)
 
     def test_build_training_windows_uses_macro_when_present(self):
-        """build_training_windows must return 14 channels when macro cols present.
-        Was 15 before Task #20 demoted congressional_trades from CNN inputs."""
+        """build_training_windows must return 14 channels when macro cols
+        are in df (5 source + 2 agent + 2 RV + 5 macro). The 5 lagged-return
+        channels would push this to 19, but they require compute_features
+        to be applied upstream — this isolated test bypasses that pipeline."""
         import time
         from data.cnn_model import build_training_windows, WINDOW_SIZE, N_CHANNELS
         n = 120
@@ -386,8 +393,8 @@ class TestMacroCNNChannels(unittest.TestCase):
             rows.append(row)
         import pandas as pd
         df = pd.DataFrame(rows)
-        X, y, w = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], N_CHANNELS)  # 14
+        X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
+        self.assertEqual(X.shape[1], 14)   # 5 + 2 + 2 + 5 (no r_*)
 
 
 # ── Task #24: backward-looking macro returns (lookahead-leak fix) ─────────────
