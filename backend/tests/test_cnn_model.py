@@ -32,7 +32,8 @@ if HAS_TORCH:
 
 
 def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True,
-             add_rv_cols=True, add_iv_rv=True, add_macro_cols=False):
+             add_rv_cols=True, add_iv_rv=True, add_macro_cols=False,
+             add_return_cols=False):
     """Build a minimal labelled history DataFrame.
 
     Uses daily timestamps (86400s steps) so that walk-forward CV
@@ -64,6 +65,13 @@ def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True,
         if add_rv_cols:
             row["rv_20d"] = np.random.uniform(0.10, 0.40)
             row["rv_60d"] = np.random.uniform(0.10, 0.40)
+        if add_return_cols:
+            # Tier 1: lagged log-return channels
+            row["r_1"]   = np.random.uniform(-0.02, 0.02)
+            row["r_5"]   = np.random.uniform(-0.05, 0.05)
+            row["r_20"]  = np.random.uniform(-0.10, 0.10)
+            row["r_60"]  = np.random.uniform(-0.15, 0.15)
+            row["r_120"] = np.random.uniform(-0.20, 0.20)
         if add_macro_cols:
             # Task #24: trailing _back columns.
             row["macro_vix_norm"]      = np.random.uniform(0.3, 1.5)
@@ -85,10 +93,10 @@ class TestBuildTrainingWindows(unittest.TestCase):
         self.assertEqual(len(X), len(w))
 
     def test_x_shape_is_N_channels_by_T(self):
-        # Include macro cols so the full N_CHANNELS=14 channels are present
-        df = _make_df(50, add_macro_cols=True)
+        # Include all optional cols so the full N_CHANNELS=19 channels are present
+        df = _make_df(50, add_macro_cols=True, add_return_cols=True)
         X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], N_CHANNELS)  # 14
+        self.assertEqual(X.shape[1], N_CHANNELS)  # 19
         self.assertEqual(X.shape[2], WINDOW_SIZE)
 
     def test_x_shape_degrades_without_optional_cols(self):
@@ -299,9 +307,9 @@ class TestCongressDemotedFromCNN(unittest.TestCase):
     def test_default_weights_keys_match_source_names(self):
         self.assertEqual(set(_DEFAULT_WEIGHTS.keys()), set(SOURCE_NAMES))
 
-    def test_n_channels_is_14_after_demotion(self):
-        # 5 source (analyst/earnings/alpaca/yahoo/iv_rv) + 2 agent + 2 RV + 5 macro
-        self.assertEqual(N_CHANNELS, 14)
+    def test_n_channels_is_19_after_return_channels(self):
+        # 5 source (analyst/earnings/alpaca/yahoo/iv_rv) + 2 agent + 2 RV + 5 ret + 5 macro
+        self.assertEqual(N_CHANNELS, 19)
 
 
 class TestEarningsReframedToMagnitude(unittest.TestCase):
@@ -1111,6 +1119,59 @@ class TestTrainingHistoryRecordSchema(unittest.TestCase):
         for key in ("fold_metrics", "mean_ic", "ir", "mean_wfe", "calibration"):
             self.assertIn(key, rec)
         self.assertEqual(len(rec["fold_metrics"]), 3)
+
+
+class TestReturnChannelsExposed(unittest.TestCase):
+    """Tier 1 from docs/equity_feature_engineering_audit.md — five lagged
+    return channels become part of N_CHANNELS."""
+
+    def test_n_channels_is_19(self):
+        from data.cnn_model import N_CHANNELS, RETURN_CHANNEL_NAMES
+        self.assertEqual(len(RETURN_CHANNEL_NAMES), 5)
+        self.assertEqual(N_CHANNELS, 19)  # 5 src + 2 agent + 2 rv + 5 ret + 5 macro
+
+    def test_return_channel_order(self):
+        from data.cnn_model import RETURN_CHANNEL_NAMES
+        self.assertEqual(
+            RETURN_CHANNEL_NAMES,
+            ["r_1", "r_5", "r_20", "r_60", "r_120"],
+        )
+
+    def test_build_training_windows_includes_return_columns(self):
+        """When the df has return columns, build_training_windows packs them
+        into the (C, T) tensor between RV and MACRO blocks."""
+        import pandas as pd
+        from data.cnn_model import build_training_windows, WINDOW_SIZE, N_CHANNELS
+
+        n = WINDOW_SIZE + 50
+        df = pd.DataFrame({
+            "symbol":          ["AAPL"] * n,
+            "snapshot_ts":     np.arange(n, dtype=np.float64) * 86400.0,
+            "analyst_score":   np.zeros(n),
+            "earnings_score":  np.zeros(n),
+            "alpaca_score":    np.zeros(n),
+            "yahoo_score":     np.zeros(n),
+            "iv_rv_score":     np.zeros(n),
+            "agent_consensus": np.zeros(n),
+            "agent_agreement": np.zeros(n),
+            "rv_20d":          np.full(n, 0.20),
+            "rv_60d":          np.full(n, 0.20),
+            "r_1":             np.full(n, 0.001),
+            "r_5":             np.full(n, 0.005),
+            "r_20":            np.full(n, 0.02),
+            "r_60":            np.full(n, 0.06),
+            "r_120":           np.full(n, 0.12),
+            "macro_vix_norm":      np.full(n, 0.5),
+            "macro_gld_5d_back":   np.zeros(n),
+            "macro_tlt_5d_back":   np.zeros(n),
+            "macro_spy_5d_back":   np.zeros(n),
+            "macro_breadth_back":  np.zeros(n),
+            "return_1d":       np.full(n, 0.001),
+            "return_5d":       np.full(n, 0.005),
+        })
+        X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
+        self.assertEqual(X.shape[1], N_CHANNELS)
+        self.assertEqual(X.shape[1], 19)
 
 
 if __name__ == "__main__":

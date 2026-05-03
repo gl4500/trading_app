@@ -102,6 +102,17 @@ RV_CHANNEL_NAMES: List[str] = [
     "rv_60d",   # channel 8: 60-day rolling realized vol (medium-term vol regime)
 ]
 
+# Per-symbol lagged log-return channels — Tier 1 from
+# docs/equity_feature_engineering_audit.md. Order must match
+# data.signal_history.RETURN_COLUMNS.
+RETURN_CHANNEL_NAMES: List[str] = [
+    "r_1",    # 1-row lagged log return
+    "r_5",    # 5-row
+    "r_20",   # 20-row
+    "r_60",   # 60-row
+    "r_120",  # 120-row
+]
+
 # Macro environment channels — joined from __MACRO__.parquet by date
 # Absent in old Parquet files; build_training_windows degrades to 9ch without them.
 MACRO_CHANNEL_NAMES: List[str] = [
@@ -124,8 +135,9 @@ N_CHANNELS = (
     len(SOURCE_NAMES)
     + len(AGENT_CHANNEL_NAMES)
     + len(RV_CHANNEL_NAMES)
+    + len(RETURN_CHANNEL_NAMES)
     + len(MACRO_CHANNEL_NAMES)
-)  # 14
+)  # 19
 
 # Renormalized after dropping congressional_trades (was 0.11; remaining sum 0.89).
 # Each weight = old_weight / 0.89.
@@ -400,7 +412,7 @@ def build_training_windows(
                               for walk-forward CV
     """
     from data.signal_history import (  # avoid circular
-        SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS,
+        SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
         _apply_cnn_feature_transforms,
     )
 
@@ -409,14 +421,17 @@ def build_training_windows(
     # Returns a copy — caller's df keeps signed values.
     df = _apply_cnn_feature_transforms(df)
 
-    has_agent = all(c in df.columns for c in AGENT_COLUMNS)
-    has_rv    = all(c in df.columns for c in RV_COLUMNS)
-    has_macro = all(c in df.columns for c in MACRO_CHANNEL_NAMES)
+    has_agent   = all(c in df.columns for c in AGENT_COLUMNS)
+    has_rv      = all(c in df.columns for c in RV_COLUMNS)
+    has_returns = all(c in df.columns for c in RETURN_COLUMNS)
+    has_macro   = all(c in df.columns for c in MACRO_CHANNEL_NAMES)
     feat_cols = [c for c in SOURCE_COLUMNS if c in df.columns]
     if has_agent:
         feat_cols = feat_cols + AGENT_COLUMNS
     if has_rv:
         feat_cols = feat_cols + RV_COLUMNS
+    if has_returns:
+        feat_cols = feat_cols + RETURN_COLUMNS
     if has_macro:
         feat_cols = feat_cols + MACRO_CHANNEL_NAMES
     n_feat    = len(feat_cols)
