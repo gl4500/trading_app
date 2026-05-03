@@ -252,6 +252,117 @@ class SignalXGBoost:
             f"last_fold WFE={self._wfe} [{self._wfe_status}]"
         )
 
+    def get_learned_weights(self) -> Dict[str, float]:
+        """Per-source feature importance, aggregated over the T timesteps
+        for each of the 5 source channels and normalised to sum 1.
+
+        Mirrors SignalCNN.get_learned_weights — same dict shape so the
+        LLM prompt that displays learned-vs-hardcoded weights doesn't
+        care which backend it came from.
+
+        Native xgboost.Booster doesn't expose `feature_importances_` (that's
+        XGBRegressor). We use Booster.get_score(importance_type='gain'),
+        which returns a sparse dict {f-name: importance} keyed by features
+        that actually had splits. Map those back to (channel, timestep)
+        positions and aggregate.
+        """
+        from data.cnn_model import _DEFAULT_WEIGHTS
+        if not self._trained or self._booster is None:
+            return _DEFAULT_WEIGHTS.copy()
+
+        n_feat = self._n_channels * self.T
+        importances = np.zeros(n_feat, dtype=np.float64)
+        # get_score returns {'f0': 12.3, 'f5': 7.8, ...} — only features
+        # that participated in any split. Missing features → importance 0.
+        scores = self._booster.get_score(importance_type="gain")
+        for fname, imp in scores.items():
+            # Default DMatrix feature names are 'f0', 'f1', ...
+            try:
+                idx = int(fname.lstrip("f"))
+            except ValueError:
+                continue
+            if 0 <= idx < n_feat:
+                importances[idx] = float(imp)
+
+        importances = importances.reshape(self._n_channels, self.T)
+        # Sum across timesteps → per-channel importance
+        per_channel = importances.sum(axis=1)
+        # Restrict to the 5 source channels (first 5)
+        source_imp = per_channel[: len(SOURCE_NAMES)]
+        total = float(source_imp.sum())
+        if total < 1e-12:
+            return _DEFAULT_WEIGHTS.copy()
+        normed = source_imp / total
+        return dict(zip(SOURCE_NAMES, normed.tolist()))
+
+    def save(self) -> None:
+        """Persist the booster to _MODEL_PATH alongside training metadata.
+        Uses the native Booster's save_model (JSON or UBJ format)."""
+        if self._booster is None or not self._trained:
+            return
+        os.makedirs(_MODEL_DIR, exist_ok=True)
+        # Native Booster.save_model — file extension determines format.
+        # .json gives a human-readable model (preferred for diffing).
+        self._booster.save_model(_MODEL_PATH)
+        # Sidecar JSON with our wrapper's metadata.
+        meta_path = _MODEL_PATH + ".meta.json"
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "trained":         self._trained,
+                "train_ts":        self._train_ts,
+                "T":               self.T,
+                "n_channels":      self._n_channels,
+                "n_train":         self._n_train,
+                "n_val":           self._n_val,
+                "wfe":             self._wfe,
+                "wfe_status":      self._wfe_status,
+                "mean_ic":         self._mean_ic,
+                "ir":              self._ir,
+                "mean_wfe":        self._mean_wfe,
+                "calibration":     self._calibration,
+                "fold_metrics":    self._fold_metrics,
+                "final_train_mse": self._final_train_mse,
+                "final_val_mse":   self._final_val_mse,
+            }, f)
+        logger.info(f"SignalXGBoost: saved → {_MODEL_PATH}")
+
+    def load(self) -> bool:
+        """Load the booster + metadata from _MODEL_PATH. Returns True on success.
+        Uses the native Booster's load_model (we never have sklearn here)."""
+        if not os.path.exists(_MODEL_PATH):
+            return False
+        try:
+            import xgboost as xgb
+            self._booster = xgb.Booster()
+            self._booster.load_model(_MODEL_PATH)
+            meta_path = _MODEL_PATH + ".meta.json"
+            if os.path.exists(meta_path):
+                with open(meta_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                self._trained         = meta.get("trained", True)
+                self._train_ts        = float(meta.get("train_ts", 0.0))
+                self.T                = int(meta.get("T", self.T))
+                self._n_channels      = int(meta.get("n_channels", self._n_channels))
+                self._n_train         = int(meta.get("n_train", 0))
+                self._n_val           = int(meta.get("n_val", 0))
+                self._wfe             = meta.get("wfe")
+                self._wfe_status      = meta.get("wfe_status", "UNTRAINED")
+                self._mean_ic         = meta.get("mean_ic")
+                self._ir              = meta.get("ir")
+                self._mean_wfe        = meta.get("mean_wfe")
+                self._calibration     = meta.get("calibration", [])
+                self._fold_metrics    = meta.get("fold_metrics", [])
+                self._final_train_mse = meta.get("final_train_mse")
+                self._final_val_mse   = meta.get("final_val_mse")
+            else:
+                # No sidecar — assume trained but lose the aggregate metrics.
+                self._trained = True
+            logger.info(f"SignalXGBoost: loaded ← {_MODEL_PATH}")
+            return True
+        except Exception as exc:
+            logger.warning(f"SignalXGBoost: load failed: {exc}")
+            return False
+
     def training_summary(self) -> Dict:
         return {
             "trained":         self._trained,
