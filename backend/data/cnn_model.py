@@ -139,6 +139,19 @@ N_CHANNELS = (
     + len(MACRO_CHANNEL_NAMES)
 )  # 19
 
+# Fixed-order list of the 19 channel COLUMN names (df column keys, not the
+# pretty *_NAMES used for the LLM display). Used by XGB_FEATURE_FILTER to
+# resolve channel names → indices. Order MUST match build_training_windows.
+ALL_CHANNEL_COLUMNS: List[str] = [
+    "analyst_score", "earnings_score", "alpaca_score", "yahoo_score", "iv_rv_score",
+    "agent_consensus", "agent_agreement",
+    "rv_20d", "rv_60d",
+    "r_1", "r_5", "r_20", "r_60", "r_120",
+    "macro_vix_norm", "macro_gld_5d_back", "macro_tlt_5d_back",
+    "macro_spy_5d_back", "macro_breadth_back",
+]
+assert len(ALL_CHANNEL_COLUMNS) == N_CHANNELS
+
 # Renormalized after dropping congressional_trades (was 0.11; remaining sum 0.89).
 # Each weight = old_weight / 0.89.
 _DEFAULT_WEIGHTS: Dict[str, float] = {
