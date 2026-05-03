@@ -45,5 +45,59 @@ class TestSignalXGBoostInit(unittest.TestCase):
         self.assertEqual(m.wfe_status, "UNTRAINED")
 
 
+class TestFitProducesWalkforwardMetrics(unittest.TestCase):
+    def _make_synthetic(self, n=600, c=14, T=10, seed=0):
+        rng = np.random.default_rng(seed)
+        # X with weak signal in channel 0
+        X = rng.standard_normal((n, c, T)).astype(np.float32) * 0.5
+        y = (X[:, 0, :].mean(axis=1) * 0.05
+             + rng.standard_normal(n) * 0.01).astype(np.float32)
+        t = np.linspace(0, 90 * 86400.0, n, dtype=np.float64)
+        return X, y, t
+
+    def test_fit_records_per_fold_metrics(self):
+        from data.xgboost_model import SignalXGBoost
+        X, y, t = self._make_synthetic()
+        m = SignalXGBoost(T=10, n_channels=14)
+        m.fit(X, y, t, n_folds=3, min_val_days=14)
+        s = m.training_summary()
+        self.assertEqual(len(s["fold_metrics"]), 3)
+        for fm in s["fold_metrics"]:
+            for k in ("wfe", "ic", "val_mse", "n_train", "n_val", "val_window_days"):
+                self.assertIn(k, fm)
+
+    def test_fit_records_aggregate_metrics(self):
+        from data.xgboost_model import SignalXGBoost
+        X, y, t = self._make_synthetic()
+        m = SignalXGBoost(T=10, n_channels=14)
+        m.fit(X, y, t, n_folds=3, min_val_days=14)
+        s = m.training_summary()
+        for k in ("mean_ic", "ir", "mean_wfe", "calibration"):
+            self.assertIn(k, s)
+        self.assertTrue(math.isfinite(s["mean_ic"]))
+
+    def test_fit_marks_trained(self):
+        from data.xgboost_model import SignalXGBoost
+        X, y, t = self._make_synthetic()
+        m = SignalXGBoost(T=10, n_channels=14)
+        self.assertFalse(m.is_trained)
+        m.fit(X, y, t, n_folds=3, min_val_days=14)
+        self.assertTrue(m.is_trained)
+        self.assertGreater(m.last_train_time, 0)
+
+    def test_predict_after_fit_returns_floats(self):
+        from data.xgboost_model import SignalXGBoost
+        X, y, t = self._make_synthetic()
+        m = SignalXGBoost(T=10, n_channels=14)
+        m.fit(X, y, t, n_folds=3, min_val_days=14)
+        x = X[0]   # single window
+        pred, direction, conf = m.predict(x)
+        self.assertIsInstance(pred, float)
+        self.assertIn(direction, ("bull", "bear", "neutral"))
+        self.assertIsInstance(conf, float)
+        self.assertGreaterEqual(conf, 0.0)
+        self.assertLessEqual(conf, 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()
