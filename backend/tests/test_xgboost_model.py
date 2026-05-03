@@ -244,6 +244,10 @@ class TestTrainBlockingPathUnderXGBoost(unittest.IsolatedAsyncioTestCase):
                 "SignalXGBoost.fit must accept 'batch_size' kwarg",
             )
 
+        # Restore CNN backend by reloading modules with default config
+        importlib.reload(sm)
+        importlib.reload(cra)
+
     def test_xgb_training_summary_has_legacy_keys(self):
         """The agent's _train_blocking reads summary['final_mse'] and
         summary['learned_weights']. SignalXGBoost.training_summary must
@@ -255,6 +259,27 @@ class TestTrainBlockingPathUnderXGBoost(unittest.IsolatedAsyncioTestCase):
         self.assertIn("learned_weights", s,
                       "training_summary must include 'learned_weights' for agent log compatibility")
         self.assertIn("device", s)
+
+
+class TestXGBoostFitsWith19Channels(unittest.TestCase):
+    """Integration: SignalXGBoost.fit succeeds on 19-channel input
+    (5 src + 2 agent + 2 rv + 5 returns + 5 macro)."""
+
+    def test_fit_accepts_19_channels(self):
+        from data.xgboost_model import SignalXGBoost
+        rng = np.random.default_rng(0)
+        n, c, T = 600, 19, 10
+        X = rng.standard_normal((n, c, T)).astype(np.float32) * 0.5
+        y = (X[:, 0, :].mean(axis=1) * 0.05).astype(np.float32)
+        t = np.linspace(0, 90 * 86400.0, n, dtype=np.float64)
+
+        m = SignalXGBoost(T=T, n_channels=c)
+        m.fit(X, y, t, n_folds=3, min_val_days=14)
+        self.assertTrue(m.is_trained)
+        # Predict on a single 19-channel window must work
+        pred, direction, conf = m.predict(X[0])
+        self.assertIsInstance(pred, float)
+        self.assertIn(direction, ("bull", "bear", "neutral"))
 
 
 if __name__ == "__main__":
