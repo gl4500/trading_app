@@ -17,8 +17,13 @@ from alpaca.data.requests import (
 )
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import AssetClass, OrderSide, QueryOrderStatus, TimeInForce
-from alpaca.trading.requests import GetAssetsRequest, GetOrdersRequest, MarketOrderRequest
+from alpaca.trading.enums import AssetClass, CorporateActionType, OrderSide, QueryOrderStatus, TimeInForce
+from alpaca.trading.requests import (
+    GetAssetsRequest,
+    GetCorporateAnnouncementsRequest,
+    GetOrdersRequest,
+    MarketOrderRequest,
+)
 
 from config import config
 
@@ -312,6 +317,66 @@ class AlpacaClient:
             return [a.model_dump() for a in assets if a.tradable]
         except Exception as exc:
             logger.error("Error fetching assets: %s", exc)
+            return []
+
+    async def get_recent_splits(
+        self,
+        symbols: Optional[List[str]] = None,
+        since_days: int = 90,
+    ) -> List[Dict]:
+        """
+        Fetch stock splits from Alpaca's corporate-actions API (Backlog 0.2).
+
+        Returns a list of dicts shaped:
+            {symbol, ex_date, payable_date, old_rate, new_rate, ratio, sub_type}
+        where ratio = new_rate / old_rate (so 20-for-1 split → ratio=20.0).
+
+        The Alpaca API restricts each call to a 90-day window. `since_days` is
+        clamped to 90 — for longer lookbacks the caller must page (this method
+        intentionally stays single-window to keep the surface small; multi-page
+        recovery for stale-since-startup positions can be done by iterating
+        90-day windows).
+
+        Filters to splits only (CorporateActionType.SPLIT). Optionally narrows
+        to `symbols` if provided.
+
+        Returns [] on any API error.
+        """
+        from datetime import date as _date
+        try:
+            since_days = max(1, min(int(since_days), 90))
+            until_d = _date.today()
+            since_d = until_d - timedelta(days=since_days)
+            req = GetCorporateAnnouncementsRequest(
+                ca_types=[CorporateActionType.SPLIT],
+                since=since_d,
+                until=until_d,
+            )
+            announcements = await asyncio.to_thread(
+                self._trading.get_corporate_announcements, req
+            )
+            wanted = {s.upper() for s in symbols} if symbols else None
+            out: List[Dict] = []
+            for a in announcements:
+                sym = (a.initiating_symbol or "").upper()
+                if wanted is not None and sym not in wanted:
+                    continue
+                old_rate = float(getattr(a, "old_rate", 0) or 0)
+                new_rate = float(getattr(a, "new_rate", 0) or 0)
+                if old_rate <= 0 or new_rate <= 0:
+                    continue
+                out.append({
+                    "symbol":       sym,
+                    "ex_date":      a.ex_date,
+                    "payable_date": a.payable_date,
+                    "old_rate":     old_rate,
+                    "new_rate":     new_rate,
+                    "ratio":        new_rate / old_rate,
+                    "sub_type":     getattr(a.ca_sub_type, "value", str(a.ca_sub_type)),
+                })
+            return out
+        except Exception as exc:
+            logger.error("Error fetching corporate-action splits: %s", exc)
             return []
 
     async def get_filled_orders(self, year: int) -> List[Dict]:

@@ -218,7 +218,16 @@ class BaseAgent(ABC):
                 for sig in bayes_exits:
                     self._last_signals[sig.symbol] = sig
 
-                # Execute actionable signals
+                # Trailing stop exits — locks in gains by selling positions
+                # that have given back >= TRAIL_GIVEBACK_PCT of their peak
+                # unrealized profit. Runs after bayes so closed positions
+                # don't double-trigger.
+                trail_exits = await self._check_trailing_stops(prices)
+                for sig in trail_exits:
+                    self._last_signals[sig.symbol] = sig
+
+                # Execute actionable signals (the agent's primary decision —
+                # LLM-driven BUY / SELL / HOLD).
                 executed = []
                 for signal in signals:
                     signal.agent_name = self.name
@@ -230,6 +239,18 @@ class BaseAgent(ABC):
                         )
                         if success:
                             executed.append(signal)
+
+                # Hard stop-loss — fallback safety net (Backlog 0.4, refined 2026-05-02).
+                # Runs LAST, after the agent's primary decision (LLM signals)
+                # has had a chance to act. Catches positions that none of the
+                # primary mechanisms (Bayes / trailing / LLM SELL) closed and
+                # that are still down >= HARD_STOP_PCT from entry. If the
+                # agent already SELLed or averaged-down (which can lower
+                # avg_cost out of the danger zone), the hard stop naturally
+                # becomes a no-op or re-evaluates against the new avg_cost.
+                hard_exits = await self._check_hard_stops(prices)
+                for sig in hard_exits:
+                    self._last_signals[sig.symbol] = sig
 
                 # Record portfolio value
                 self.portfolio.record_value(prices)
@@ -308,6 +329,90 @@ class BaseAgent(ABC):
                 )
                 exits.append(sig)
                 logger.info(f"{self.name}: BAYES EXIT {sym} @ ${price:.2f} | {reasoning}")
+        return exits
+
+    async def _check_hard_stops(self, prices: Dict[str, float]) -> List[Signal]:
+        """
+        Fallback safety net — sell positions still down HARD_STOP_PCT or more
+        below entry AFTER the agent's primary decision has been executed.
+
+        Runs LAST in the cycle (after Bayes, trailing, and LLM signals) so
+        the agent's primary decision gets first say. If the LLM has already
+        SELLed or averaged-down to bring avg_cost out of the danger zone,
+        this hook naturally becomes a no-op. When the LLM holds (or times
+        out) on a position that has bled past the threshold, this is the
+        final mechanical floor.
+
+        Set HARD_STOP_PCT <= 0 in .env to disable.
+        """
+        exits: List[Signal] = []
+        threshold = config.HARD_STOP_PCT
+        if threshold <= 0:
+            return exits   # disabled
+        for sym, pos in list(self.portfolio.positions.items()):
+            price = prices.get(sym)
+            if not price or price <= 0 or pos.avg_cost <= 0:
+                continue
+            drawdown_pct = (pos.avg_cost - price) / pos.avg_cost
+            if drawdown_pct < threshold:
+                continue
+            reasoning = (
+                f"Hard stop: down {drawdown_pct:.1%} from entry "
+                f"(${pos.avg_cost:.2f} → ${price:.2f}; threshold {threshold:.1%})"
+            )
+            success = self.portfolio.execute_sell(sym, pos.shares, price, reasoning)
+            if success:
+                sig = Signal(
+                    action="SELL", symbol=sym,
+                    confidence=pos.bayes_confidence,
+                    shares=pos.shares, reasoning=reasoning,
+                    agent_name=self.name,
+                )
+                exits.append(sig)
+                logger.info(f"{self.name}: HARD STOP {sym} @ ${price:.2f} | {reasoning}")
+        return exits
+
+    async def _check_trailing_stops(self, prices: Dict[str, float]) -> List[Signal]:
+        """
+        Sell positions that have given back too much of their peak unrealized profit.
+
+        A position is sold when:
+            (peak_unrealized_pnl − current_unrealized_pnl) ≥ peak_unrealized_pnl × TRAIL_GIVEBACK_PCT
+            AND peak_unrealized_pnl ≥ TRAIL_ARM_USD
+
+        The arm threshold avoids whipsawing on small noise around break-even.
+        Captures gains that would otherwise be given back while waiting for
+        Bayes (slow) or LLM SELL (unreliable) to fire.
+        """
+        exits: List[Signal] = []
+        giveback_pct = config.TRAIL_GIVEBACK_PCT
+        arm_usd      = config.TRAIL_ARM_USD
+        for sym, pos in list(self.portfolio.positions.items()):
+            price = prices.get(sym)
+            if not price or price <= 0:
+                continue
+            peak = self.portfolio.get_peak_unrealized(sym)
+            if peak < arm_usd:
+                continue  # not yet armed — peak hasn't crossed arm threshold
+            current = pos.unrealized_pnl(price)
+            giveback = peak - current
+            trigger = peak * giveback_pct
+            if giveback < trigger:
+                continue
+            reasoning = (
+                f"Trailing stop: gave back ${giveback:,.0f} of ${peak:,.0f} "
+                f"peak unrealized ({giveback/peak:.0%} ≥ {giveback_pct:.0%})"
+            )
+            success = self.portfolio.execute_sell(sym, pos.shares, price, reasoning)
+            if success:
+                sig = Signal(
+                    action="SELL", symbol=sym,
+                    confidence=pos.bayes_confidence,
+                    shares=pos.shares, reasoning=reasoning,
+                    agent_name=self.name,
+                )
+                exits.append(sig)
+                logger.info(f"{self.name}: TRAIL EXIT {sym} @ ${price:.2f} | {reasoning}")
         return exits
 
     async def _execute_signal(

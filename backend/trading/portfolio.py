@@ -66,6 +66,8 @@ class Portfolio:
         self._position_high: Dict[str, float] = {}       # MFE tracker: highest price seen since entry
         self._position_low: Dict[str, float] = {}        # MAE tracker: lowest price seen since entry
         self._position_last_price: Dict[str, float] = {} # Bayesian update: last seen price per position
+        self._position_peak_unrealized: Dict[str, float] = {} # Trailing stop: highest unrealized PnL ($) since entry
+        self._position_today_open: Dict[str, float] = {} # Daily-move risk gate: price seen at this trading day's first cycle (Backlog 0.5)
 
     def get_total_value(self, prices: Dict[str, float]) -> float:
         """Calculate total portfolio value (cash + positions)."""
@@ -116,6 +118,8 @@ class Portfolio:
             self._position_high[symbol] = price
             self._position_low[symbol] = price
             self._position_last_price[symbol] = price
+            self._position_peak_unrealized[symbol] = 0.0
+            self._position_today_open[symbol] = price
 
         record = TradeRecord(
             symbol=symbol,
@@ -160,6 +164,8 @@ class Portfolio:
             self._position_high.pop(symbol, None)
             self._position_low.pop(symbol, None)
             self._position_last_price.pop(symbol, None)
+            self._position_peak_unrealized.pop(symbol, None)
+            self._position_today_open.pop(symbol, None)
 
         record = TradeRecord(
             symbol=symbol,
@@ -186,7 +192,7 @@ class Portfolio:
 
         # Update excursion trackers and Bayesian confidence for all open positions
         _K = 10.0  # logit sensitivity: k × log_return per candle
-        for sym in self.positions:
+        for sym, pos in self.positions.items():
             price = prices.get(sym)
             if price and price > 0:
                 if sym not in self._position_high or price > self._position_high[sym]:
@@ -194,11 +200,17 @@ class Portfolio:
                 if sym not in self._position_low or price < self._position_low[sym]:
                     self._position_low[sym] = price
 
+                # Trailing stop: track the highest unrealized PnL ($) ever reached on this position.
+                # Updated each cycle so _check_trailing_stops can compare current PnL to peak.
+                unreal = pos.unrealized_pnl(price)
+                prev_peak = self._position_peak_unrealized.get(sym, 0.0)
+                if unreal > prev_peak:
+                    self._position_peak_unrealized[sym] = unreal
+
                 # Bayesian confidence update (logit-linear, long-only so direction = +1)
                 last = self._position_last_price.get(sym)
                 if last and last > 0 and price != last:
                     log_ret = math.log(price / last)
-                    pos = self.positions[sym]
                     prior = max(0.01, min(0.99, pos.bayes_confidence))
                     prior_logit = math.log(prior / (1.0 - prior))
                     posterior_logit = prior_logit + _K * log_ret   # direction=+1 (long only)
@@ -207,12 +219,107 @@ class Portfolio:
 
         return total_value
 
+    def get_peak_unrealized(self, symbol: str) -> float:
+        """Highest unrealized PnL ($) ever recorded for the open position in `symbol`.
+        Returns 0.0 if no position or peak never went positive."""
+        return self._position_peak_unrealized.get(symbol, 0.0)
+
     def reset_daily_tracking(self, prices: Dict[str, float]) -> None:
         """Reset daily tracking at market open."""
         today = date.today()
         if today != self.daily_start_date:
             self.daily_starting_value = self.get_total_value(prices)
             self.daily_start_date = today
+            # Snapshot today's opening price for each held position so the
+            # daily-move risk gate (Backlog 0.5) can compute intraday drawdown.
+            # Falls back to avg_cost when the symbol's price isn't in the
+            # current prices dict (rare — happens when a held symbol drops
+            # off the watchlist).
+            for sym, pos in self.positions.items():
+                price = prices.get(sym)
+                if price and price > 0:
+                    self._position_today_open[sym] = price
+                else:
+                    self._position_today_open.setdefault(sym, pos.avg_cost)
+
+    def get_today_open(self, symbol: str) -> Optional[float]:
+        """Today's opening price for an open position, or None if not tracked."""
+        return self._position_today_open.get(symbol)
+
+    def apply_split(self, symbol: str, ratio: float) -> bool:
+        """Apply a stock-split adjustment to the position in `symbol` (Backlog 0.2).
+
+        For a 20-for-1 split: ratio = 20 → shares ×20, avg_cost ÷20.
+        For a reverse 1-for-10 split: ratio = 0.1 → shares ÷10, avg_cost ×10.
+
+        Adjusts every per-position tracker (high, low, last price, peak unrealized,
+        today's open) so existing data structures stay self-consistent.
+
+        Records a synthetic "SPLIT" entry in trade_history (price=0, shares=delta)
+        so the adjustment is auditable and the agent's win-rate / total-trades
+        counters do not include it.
+
+        Returns True when the split was applied; False when the symbol is not held
+        or the ratio is invalid.
+        """
+        if symbol not in self.positions:
+            return False
+        if ratio is None or ratio <= 0 or not math.isfinite(ratio):
+            logger.warning(f"Portfolio.apply_split: rejecting invalid ratio {ratio} for {symbol}")
+            return False
+        if abs(ratio - 1.0) < 1e-9:
+            return False  # 1:1 split is a no-op
+
+        pos = self.positions[symbol]
+        old_shares = pos.shares
+        old_avg_cost = pos.avg_cost
+        new_shares = old_shares * ratio
+        new_avg_cost = old_avg_cost / ratio
+        pos.shares = new_shares
+        pos.avg_cost = new_avg_cost
+
+        # Rescale price-based trackers (they record actual prices, all of which
+        # are now scaled by 1/ratio in the post-split world).
+        for tracker in (
+            self._position_high,
+            self._position_low,
+            self._position_last_price,
+            self._position_today_open,
+        ):
+            if symbol in tracker:
+                tracker[symbol] = tracker[symbol] / ratio
+
+        # Peak unrealized PnL stays in dollar terms; total_value (shares × price)
+        # is invariant under a split, so the peak doesn't actually change. Leave it.
+
+        # Record an audit trail entry. Using a "SPLIT" action keeps it out of the
+        # win-rate / total_trades counters which filter on action == "SELL".
+        self.trade_history.append(TradeRecord(
+            symbol=symbol,
+            action="SPLIT",
+            shares=(new_shares - old_shares),
+            price=0.0,
+            timestamp=datetime.now(timezone.utc),
+            reasoning=(
+                f"Split applied: ratio={ratio:g} | shares {old_shares:g}→{new_shares:g} "
+                f"| avg_cost ${old_avg_cost:.4f}→${new_avg_cost:.4f}"
+            ),
+            pnl=0.0,
+        ))
+        logger.info(
+            f"Portfolio: applied {ratio:g}-for-1 split on {symbol} "
+            f"(shares {old_shares:g}→{new_shares:g}, avg_cost ${old_avg_cost:.2f}→${new_avg_cost:.2f})"
+        )
+        return True
+
+    def daily_drawdown_pct(self, symbol: str, current_price: float) -> Optional[float]:
+        """Today's intraday drawdown for the position in `symbol`, as a fraction
+        (e.g., 0.05 = down 5% from today's open). Returns None when today_open
+        is unknown or non-positive. Negative values mean the position is UP today."""
+        open_price = self._position_today_open.get(symbol)
+        if open_price is None or open_price <= 0:
+            return None
+        return (open_price - current_price) / open_price
 
     def get_daily_return(self, prices: Dict[str, float]) -> float:
         """Get today's return percentage."""

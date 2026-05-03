@@ -400,6 +400,7 @@ class TestBayesEarlyExit(unittest.IsolatedAsyncioTestCase):
         ctx = {"AAPL": {"price": 100.0, "bars": None, "stats": {}, "news": []}}
 
         with patch.object(agent, "_check_bayes_exits", new=AsyncMock(return_value=[])) as mock_bayes, \
+             patch.object(agent, "_check_trailing_stops", new=AsyncMock(return_value=[])), \
              patch.object(agent.portfolio, "record_value"), \
              patch.object(agent.portfolio, "reset_daily_tracking"), \
              patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
@@ -407,6 +408,245 @@ class TestBayesEarlyExit(unittest.IsolatedAsyncioTestCase):
             await agent.run_cycle(ctx, prices)
 
         mock_bayes.assert_called_once_with(prices)
+
+
+class TestTrailingStopExit(unittest.IsolatedAsyncioTestCase):
+    """BaseAgent._check_trailing_stops sells positions that have given back
+    >= TRAIL_GIVEBACK_PCT of their peak unrealized profit."""
+
+    def _make_agent_with_position(self, shares=10, entry_price=100.0):
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        agent = _StubAgent("TestAgent", "stub")
+        agent.portfolio.execute_buy("AAPL", shares, entry_price)
+        return agent
+
+    async def test_no_exit_when_peak_below_arm_threshold(self):
+        """Tiny peak ($10) below TRAIL_ARM_USD ($25) → trailing not armed."""
+        agent = self._make_agent_with_position(shares=10, entry_price=100.0)
+        # Push price up briefly: peak = 10 × $1 = $10 (below $25 arm)
+        agent.portfolio.record_value({"AAPL": 101.0})
+        # Drop back hard
+        exits = await agent._check_trailing_stops({"AAPL": 95.0})
+        self.assertEqual(exits, [])
+        self.assertIn("AAPL", agent.portfolio.positions)
+
+    async def test_no_exit_when_giveback_below_threshold(self):
+        """Peak $300, current $250 — gave back $50 = 17% < 20% threshold → hold."""
+        agent = self._make_agent_with_position(shares=10, entry_price=100.0)
+        agent.portfolio.record_value({"AAPL": 130.0})  # peak = $300
+        exits = await agent._check_trailing_stops({"AAPL": 125.0})  # gave back $50
+        self.assertEqual(exits, [])
+        self.assertIn("AAPL", agent.portfolio.positions)
+
+    async def test_exit_when_giveback_meets_threshold(self):
+        """Peak $300, current $240 — gave back $60 = 20% = threshold → SELL."""
+        agent = self._make_agent_with_position(shares=10, entry_price=100.0)
+        agent.portfolio.record_value({"AAPL": 130.0})  # peak = $300
+        exits = await agent._check_trailing_stops({"AAPL": 124.0})  # gave back $60
+        self.assertEqual(len(exits), 1)
+        self.assertEqual(exits[0].symbol, "AAPL")
+        self.assertEqual(exits[0].action, "SELL")
+        self.assertNotIn("AAPL", agent.portfolio.positions)
+
+    async def test_exit_reasoning_mentions_trail_amounts(self):
+        agent = self._make_agent_with_position(shares=10, entry_price=100.0)
+        agent.portfolio.record_value({"AAPL": 140.0})  # peak = $400
+        exits = await agent._check_trailing_stops({"AAPL": 110.0})  # gave back $300
+        self.assertGreater(len(exits), 0)
+        self.assertIn("Trailing stop", exits[0].reasoning)
+        self.assertIn("peak", exits[0].reasoning.lower())
+
+    async def test_exit_when_position_drops_below_entry(self):
+        """ASML-like scenario: peak +$1000, now −$500 → 100%+ giveback → SELL."""
+        agent = self._make_agent_with_position(shares=10, entry_price=1000.0)
+        agent.portfolio.record_value({"AAPL": 1100.0})  # peak = +$1000
+        exits = await agent._check_trailing_stops({"AAPL": 950.0})  # now −$500
+        self.assertEqual(len(exits), 1)
+        self.assertEqual(exits[0].action, "SELL")
+
+    async def test_no_exit_when_position_never_armed(self):
+        """Position is underwater the entire time — never armed → never exits."""
+        agent = self._make_agent_with_position(shares=10, entry_price=100.0)
+        agent.portfolio.record_value({"AAPL": 90.0})
+        exits = await agent._check_trailing_stops({"AAPL": 85.0})
+        self.assertEqual(exits, [])
+        self.assertIn("AAPL", agent.portfolio.positions)
+
+    async def test_no_exit_without_price(self):
+        agent = self._make_agent_with_position()
+        agent.portfolio.record_value({"AAPL": 200.0})  # arm with high peak
+        exits = await agent._check_trailing_stops({})  # no price available
+        self.assertEqual(exits, [])
+
+    async def test_trailing_called_in_run_cycle(self):
+        """run_cycle must call _check_trailing_stops each cycle."""
+        from unittest.mock import AsyncMock, patch
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        agent = _StubAgent("TestAgent", "stub")
+        prices = {"AAPL": 100.0}
+        ctx = {"AAPL": {"price": 100.0, "bars": None, "stats": {}, "news": []}}
+
+        with patch.object(agent, "_check_bayes_exits", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_trailing_stops", new=AsyncMock(return_value=[])) as mock_trail, \
+             patch.object(agent, "_check_hard_stops", new=AsyncMock(return_value=[])), \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(ctx, prices)
+
+        mock_trail.assert_called_once_with(prices)
+
+
+class TestHardStopExit(unittest.IsolatedAsyncioTestCase):
+    """BaseAgent._check_hard_stops sells positions that have dropped
+    HARD_STOP_PCT or more from entry — defensive floor."""
+
+    def _make_agent(self):
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        return _StubAgent("TestAgent", "stub")
+
+    async def test_no_exit_above_threshold(self):
+        """Position down 5% — below 8% threshold → hold."""
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({"AAPL": 95.0})  # -5%
+        self.assertEqual(exits, [])
+        self.assertIn("AAPL", agent.portfolio.positions)
+
+    async def test_exit_at_threshold(self):
+        """Position down exactly 8% (threshold) → SELL."""
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({"AAPL": 92.0})  # -8%
+        self.assertEqual(len(exits), 1)
+        self.assertEqual(exits[0].action, "SELL")
+        self.assertNotIn("AAPL", agent.portfolio.positions)
+
+    async def test_exit_far_below_threshold(self):
+        """Position down 20% → SELL."""
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({"AAPL": 80.0})  # -20%
+        self.assertEqual(len(exits), 1)
+
+    async def test_no_exit_for_profitable_position(self):
+        """Position up 10% — never triggers hard stop."""
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({"AAPL": 110.0})
+        self.assertEqual(exits, [])
+
+    async def test_reasoning_mentions_drawdown(self):
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({"AAPL": 85.0})
+        self.assertGreater(len(exits), 0)
+        self.assertIn("Hard stop", exits[0].reasoning)
+        self.assertIn("entry", exits[0].reasoning)
+
+    async def test_disabled_when_threshold_zero(self):
+        """HARD_STOP_PCT=0 disables the gate entirely."""
+        from unittest.mock import patch
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        with patch("config.config.HARD_STOP_PCT", 0.0):
+            exits = await agent._check_hard_stops({"AAPL": 50.0})  # -50%
+        self.assertEqual(exits, [])
+        self.assertIn("AAPL", agent.portfolio.positions)
+
+    async def test_no_exit_without_price(self):
+        agent = self._make_agent()
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        exits = await agent._check_hard_stops({})
+        self.assertEqual(exits, [])
+
+    async def test_hard_stop_called_in_run_cycle(self):
+        """run_cycle must call _check_hard_stops each cycle."""
+        from unittest.mock import AsyncMock, patch
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        agent = _StubAgent("TestAgent", "stub")
+        prices = {"AAPL": 100.0}
+        ctx = {"AAPL": {"price": 100.0, "bars": None, "stats": {}, "news": []}}
+
+        with patch.object(agent, "_check_bayes_exits", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_trailing_stops", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_hard_stops", new=AsyncMock(return_value=[])) as mock_hard, \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(ctx, prices)
+
+        mock_hard.assert_called_once_with(prices)
+
+    async def test_hard_stop_runs_after_agent_signals(self):
+        """Hard stop is a FALLBACK — must run AFTER agent signals execute,
+        so the agent's primary decision (e.g., averaging down) gets a chance
+        to lower avg_cost out of the danger zone before the mechanical floor
+        fires. This is the order contract that makes the hard stop a safety
+        net, not a primary trigger."""
+        from unittest.mock import AsyncMock, patch
+        from agents.base_agent import BaseAgent as _BaseAgent
+        from agents.base_agent import Signal as _Signal
+
+        order_log = []
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                # Simulate the agent's primary decision arriving as a signal.
+                # The signal is non-actionable here (HOLD) so we don't need
+                # to fully exercise the executor; we just record that the
+                # analyze step was reached.
+                order_log.append("analyze")
+                return [_Signal(action="HOLD", symbol="AAPL", confidence=0.5,
+                                shares=0, reasoning="primary decision")]
+
+        agent = _StubAgent("TestAgent", "stub")
+        prices = {"AAPL": 100.0}
+        ctx = {"AAPL": {"price": 100.0, "bars": None, "stats": {}, "news": []}}
+
+        async def _hard_stop_marker(_):
+            order_log.append("hard_stop")
+            return []
+
+        with patch.object(agent, "_check_bayes_exits", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_trailing_stops", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_hard_stops", side_effect=_hard_stop_marker), \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(ctx, prices)
+
+        # The contract: analyze must precede hard_stop in the call order.
+        self.assertIn("analyze", order_log)
+        self.assertIn("hard_stop", order_log)
+        self.assertLess(
+            order_log.index("analyze"),
+            order_log.index("hard_stop"),
+            "hard stop must run AFTER agent signals (primary decision); current order: " + str(order_log),
+        )
 
 
 if __name__ == "__main__":

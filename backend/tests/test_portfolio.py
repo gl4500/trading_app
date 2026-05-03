@@ -526,5 +526,176 @@ class TestBayesianConfidence(unittest.TestCase):
             prev = cur
 
 
+class TestPeakUnrealizedTracking(unittest.TestCase):
+    """Trailing stop relies on peak_unrealized_pnl tracked per position."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_buy_initialises_peak_to_zero(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 0.0)
+        self.assertIn("AAPL", self.p._position_peak_unrealized)
+
+    def test_peak_grows_with_price(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        # +$50 unrealized (10 × $5)
+        self.p.record_value({"AAPL": 105.0})
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 50.0)
+        # +$200 unrealized (10 × $20)
+        self.p.record_value({"AAPL": 120.0})
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 200.0)
+
+    def test_peak_is_monotonic_does_not_decrease(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 120.0})  # peak = $200
+        self.p.record_value({"AAPL": 110.0})  # gave back, peak unchanged
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 200.0)
+
+    def test_peak_stays_zero_when_position_never_profits(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 95.0})   # underwater
+        self.p.record_value({"AAPL": 90.0})   # deeper underwater
+        # Peak never went positive; remains at the initialised 0.0
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 0.0)
+
+    def test_sell_clears_peak_tracker(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 120.0})
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 200.0)
+        self.p.execute_sell("AAPL", 10, 115.0)
+        # After full close, tracker is gone
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 0.0)
+        self.assertNotIn("AAPL", self.p._position_peak_unrealized)
+
+    def test_peak_per_symbol_independent(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.execute_buy("MSFT", 5, 200.0)
+        self.p.record_value({"AAPL": 110.0, "MSFT": 195.0})
+        self.assertEqual(self.p.get_peak_unrealized("AAPL"), 100.0)
+        self.assertEqual(self.p.get_peak_unrealized("MSFT"), 0.0)  # never positive
+
+
+class TestDailyMoveTracking(unittest.TestCase):
+    """Daily-move risk gate (Backlog 0.5) needs today_open per position."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_buy_initialises_today_open_to_entry(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.assertEqual(self.p.get_today_open("AAPL"), 150.0)
+
+    def test_daily_drawdown_returns_fraction(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        # Today's open = 100 (entry), current = 95 → drawdown 5%
+        drop = self.p.daily_drawdown_pct("AAPL", 95.0)
+        self.assertAlmostEqual(drop, 0.05, places=4)
+
+    def test_daily_drawdown_negative_when_position_up(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        # Up 10% → drawdown is -0.10 (negative = up)
+        drop = self.p.daily_drawdown_pct("AAPL", 110.0)
+        self.assertAlmostEqual(drop, -0.10, places=4)
+
+    def test_daily_drawdown_none_for_unknown_symbol(self):
+        self.assertIsNone(self.p.daily_drawdown_pct("MSFT", 100.0))
+
+    def test_reset_daily_tracking_snapshots_open_for_held_positions(self):
+        from datetime import date, timedelta
+        self.p.execute_buy("AAPL", 10, 100.0)
+        # Force a date rollover so reset_daily_tracking takes the new-day path
+        self.p.daily_start_date = date.today() - timedelta(days=1)
+        # Open the next day at $108 (overnight gap up)
+        self.p.reset_daily_tracking({"AAPL": 108.0})
+        self.assertEqual(self.p.get_today_open("AAPL"), 108.0)
+        # Mid-day drop to $102 → 5.5% drawdown from today's open
+        drop = self.p.daily_drawdown_pct("AAPL", 102.0)
+        self.assertAlmostEqual(drop, (108.0 - 102.0) / 108.0, places=4)
+
+    def test_sell_clears_today_open_tracker(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.execute_sell("AAPL", 10, 110.0)
+        self.assertIsNone(self.p.get_today_open("AAPL"))
+
+
+class TestApplySplit(unittest.TestCase):
+    """Backlog 0.2 — stock-split adjustments."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_forward_split_scales_shares_and_avg_cost(self):
+        """20-for-1 split: shares ×20, avg_cost ÷20, total cost invariant."""
+        self.p.execute_buy("BKNG", 2, 4060.00)
+        ok = self.p.apply_split("BKNG", 20.0)
+        self.assertTrue(ok)
+        pos = self.p.positions["BKNG"]
+        self.assertAlmostEqual(pos.shares, 40.0)
+        self.assertAlmostEqual(pos.avg_cost, 203.00)
+        # Total cost basis must be unchanged
+        self.assertAlmostEqual(pos.shares * pos.avg_cost, 2 * 4060.00, places=2)
+
+    def test_reverse_split_scales_shares_down_and_cost_up(self):
+        """1-for-10 reverse: shares ÷10, avg_cost ×10."""
+        self.p.execute_buy("XYZ", 100, 1.50)
+        self.p.apply_split("XYZ", 0.1)
+        pos = self.p.positions["XYZ"]
+        self.assertAlmostEqual(pos.shares, 10.0)
+        self.assertAlmostEqual(pos.avg_cost, 15.0)
+
+    def test_split_rescales_price_trackers(self):
+        """All price-based per-position trackers must be rescaled by 1/ratio."""
+        self.p.execute_buy("AAPL", 10, 200.0)
+        self.p.record_value({"AAPL": 220.0})  # high=220, peak=$200 unrealized
+        self.p.apply_split("AAPL", 4.0)  # 4-for-1
+        # Price trackers all scaled by 1/4
+        self.assertAlmostEqual(self.p._position_high["AAPL"],       220.0 / 4)
+        self.assertAlmostEqual(self.p._position_low["AAPL"],        200.0 / 4)
+        self.assertAlmostEqual(self.p._position_last_price["AAPL"], 220.0 / 4)
+        self.assertAlmostEqual(self.p._position_today_open["AAPL"], 200.0 / 4)
+        # Peak unrealized PnL is dollar-denominated; total value invariant
+        # so peak (= max value − cost) is also invariant. Leave it.
+
+    def test_split_records_audit_trade(self):
+        self.p.execute_buy("BKNG", 2, 4060.00)
+        self.p.apply_split("BKNG", 20.0)
+        splits = [t for t in self.p.trade_history if t.action == "SPLIT"]
+        self.assertEqual(len(splits), 1)
+        self.assertEqual(splits[0].symbol, "BKNG")
+        self.assertIn("ratio=20", splits[0].reasoning)
+        # SPLIT must NOT inflate win-rate (filter on action=="SELL")
+        sells = [t for t in self.p.trade_history if t.action == "SELL"]
+        self.assertEqual(sells, [])
+
+    def test_split_returns_false_for_unknown_symbol(self):
+        self.assertFalse(self.p.apply_split("NOPE", 2.0))
+
+    def test_split_returns_false_for_invalid_ratio(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.assertFalse(self.p.apply_split("AAPL", 0.0))
+        self.assertFalse(self.p.apply_split("AAPL", -2.0))
+        # Position untouched
+        self.assertEqual(self.p.positions["AAPL"].shares, 10)
+        self.assertEqual(self.p.positions["AAPL"].avg_cost, 100.0)
+
+    def test_split_1_to_1_is_noop(self):
+        self.p.execute_buy("AAPL", 10, 100.0)
+        result = self.p.apply_split("AAPL", 1.0)
+        self.assertFalse(result)
+        # No SPLIT trade record either
+        self.assertEqual([t for t in self.p.trade_history if t.action == "SPLIT"], [])
+
+    def test_split_preserves_unrealized_pnl(self):
+        """Pre- and post-split unrealized P&L at the SAME (rescaled) price must match."""
+        self.p.execute_buy("BKNG", 2, 4060.00)
+        # Pre-split: price $4500, unrealized = (4500-4060) × 2 = $880
+        pre_pnl = self.p.positions["BKNG"].unrealized_pnl(4500.0)
+        self.p.apply_split("BKNG", 20.0)
+        # Post-split equivalent price = 4500 / 20 = 225
+        post_pnl = self.p.positions["BKNG"].unrealized_pnl(225.0)
+        self.assertAlmostEqual(pre_pnl, post_pnl, places=2)
+
+
 if __name__ == "__main__":
     unittest.main()

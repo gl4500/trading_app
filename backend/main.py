@@ -308,10 +308,17 @@ async def init_agents() -> None:
             # Always restore open positions — saved independently of performance snapshots
             db_positions = await get_portfolio_positions(agent_id)
             for pos in db_positions:
+                # entry_confidence: was historically dropped on restore (Backlog 0.1).
+                # Now persisted in the portfolios table so Bayes early-exit retains
+                # its calibration across backend restarts.
+                ec = pos.get("entry_confidence")
+                ec = float(ec) if ec is not None else 0.5
                 agent.portfolio.positions[pos["symbol"]] = Position(
                     symbol=pos["symbol"],
                     shares=pos["shares"],
                     avg_cost=pos["avg_cost"],
+                    entry_confidence=ec,
+                    bayes_confidence=ec,  # bayes resets to entry on restart; will re-track from here
                 )
                 # Seed last_prices so first WS broadcast uses closing price, not avg_cost
                 lp = pos.get("last_price", 0.0)
@@ -374,6 +381,26 @@ async def init_agents() -> None:
             app_state.agents[agent.name] = agent
 
     logger.info(f"Initialized {len(all_agents)} agents")
+
+    # ── Stock-split sweep (Backlog 0.2) ───────────────────────────────────
+    # After all positions are restored from DB, detect any stock splits
+    # within the last 90 days and apply proportional adjustments to held
+    # positions whose avg_cost is still pre-split. Idempotent — if avg_cost
+    # already matches the (split-adjusted) live price, the position is left
+    # alone. Errors here must not block startup.
+    try:
+        from data.split_adjuster import detect_and_apply_splits
+        from trading.alpaca_client import alpaca_client
+        applied = await detect_and_apply_splits(
+            portfolios   = [a.portfolio for a in all_agents],
+            agent_names  = [a.name      for a in all_agents],
+            alpaca_client = alpaca_client,
+            since_days   = 90,
+        )
+        if applied:
+            logger.info(f"split_adjuster: applied {applied} stock-split adjustment(s) at startup")
+    except Exception as _split_exc:
+        logger.warning(f"split_adjuster: startup sweep failed: {_split_exc}", exc_info=True)
 
     # Restore news-price snapshots from DB so in-progress tracking
     # survives restarts (price_open / price_1h continue filling in)
@@ -688,6 +715,25 @@ async def trading_loop() -> None:
 
             # Update news-price correlation snapshots with live prices
             await _update_news_price_snapshots(prices)
+
+            # Publish trading_app's current dollar-at-risk to the GPU coord
+            # file (Backlog 0.7). Sums deployed capital across all agents so
+            # cross-app priority compares apples to apples with polymarket.
+            # Failures here must not block the trading loop.
+            try:
+                from data.gpu_coord import ollama_coord
+                total_exposure = 0.0
+                for _agent in app_state.agents.values():
+                    portfolio = getattr(_agent, "portfolio", None)
+                    if portfolio is None:
+                        continue
+                    for sym, pos in portfolio.positions.items():
+                        px = prices.get(sym, pos.avg_cost)
+                        if px and px > 0:
+                            total_exposure += abs(pos.shares) * px
+                ollama_coord.update_exposure(total_exposure)
+            except Exception as _exp_exc:
+                logger.debug(f"gpu_coord exposure update failed: {_exp_exc}")
 
             # Filter out agents that are ensemble (it runs sub-agents internally)
             # Run all agents concurrently (excluding ensemble's sub-agents which it runs itself)
@@ -1300,6 +1346,7 @@ async def run_agent_cycle(agent, market_context: Dict, prices: Dict[str, float])
                 current_value=pos.current_value(price),
                 unrealized_pnl=pos.unrealized_pnl(price),
                 last_price=price if sym in prices else 0.0,
+                entry_confidence=pos.entry_confidence,
             )
 
     except Exception as e:
@@ -2172,7 +2219,7 @@ async def get_cnn_diagnostics():
       POOR     — WFE < 0.50  (barely better than predicting the mean)
       UNTRAINED — not yet computed
     """
-    from data.cnn_model import signal_cnn
+    from data.cnn_model import signal_cnn, load_training_history
     from data.regime_detector import regime_detector
     summary = signal_cnn.training_summary()
 
@@ -2209,6 +2256,14 @@ async def get_cnn_diagnostics():
         ),
         # Regime detector state
         "regime": regime_detector.summary(),
+        # Last 30 retrains (oldest → newest) for day-over-day trajectory
+        "training_history": load_training_history(limit=30),
+        # Walk-forward CV metrics (added 2026-04-27)
+        "fold_metrics":   summary["fold_metrics"],
+        "mean_ic":        summary["mean_ic"],
+        "ir":             summary["ir"],
+        "mean_wfe":       summary["mean_wfe"],
+        "calibration":    summary["calibration"],
     }
 
 

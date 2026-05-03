@@ -2,7 +2,210 @@
 
 Status key: `[ ]` open · `[x]` done · `[-]` deferred · `[!]` blocked
 
-Last updated: 2026-04-11 (session 2)
+Last updated: 2026-04-29 (risk management gaps identified during ASML give-back review)
+
+---
+
+## Priority 0 — Risk management gaps (identified 2026-04-29)
+
+These were uncovered while investigating why CNNReasoningAgent gave back unrealized gains
+on ASML in one day with no exit firing. Trailing stop (commit `74fb330`) was the first fix;
+these are the others.
+
+### 0.1 `entry_confidence = 0.50` bug — CNN positions all show threshold value ✅ DONE 2026-04-29 (`4a2f8ab`)
+
+**Why:** Every CNN position currently held shows `entry_confidence = 0.50` exactly — the
+minimum BUY-gate threshold. Statistically implausible across 9 BUYs over weeks.
+
+**Root cause:** the `portfolios` DB table never had an `entry_confidence` column. Every
+backend restart silently wiped the agent's original conviction back to the dataclass
+default (0.5). The chain `Ollama → Signal.confidence → execute_buy → Position` was
+correct on the *write* side; the bug was on persistence/restore.
+
+- [x] Add `entry_confidence` column to `portfolios` table (migration)
+- [x] Extend `upsert_portfolio_position` to save it
+- [x] Extend `get_portfolio_positions` to read it
+- [x] Update main.py restore loop to pass it to `Position(...)`
+- [x] Update main.py persist loop to forward `pos.entry_confidence`
+- [x] 3 new DB tests: round-trip, default, update-on-upsert
+
+**Note:** existing positions stuck at 0.5 — original conviction unrecoverable from trade
+history (confidence not logged in `trades` table). They self-correct on next SELL+BUY.
+
+**Files:** `backend/database.py`, `backend/main.py`
+
+---
+
+### 0.2 BKNG split-adjustment bug — stale avg_cost across stock splits ✅ DONE 2026-05-01
+
+**Why:** MeanReversionAgent shows BKNG `avg_cost=$4,060.12` while TechAgent shows
+$191.96 for the same symbol/current price. The 20× disparity is consistent with a
+stock split where one agent's `avg_cost` wasn't adjusted but the live price was.
+The reported -$7,805 unrealized is an accounting artifact, not a real loss.
+
+**Implementation (3 layers):**
+1. `Portfolio.apply_split(symbol, ratio)` — primitive: rescales shares, avg_cost,
+   and every per-position price tracker (high/low/last/today_open). Records a
+   "SPLIT" entry in `trade_history` (separate from win-rate-counting "SELL"
+   entries). Idempotent: rejects ratio≤0, ratio=1, or unknown symbols.
+2. `alpaca_client.get_recent_splits(symbols, since_days)` — wraps Alpaca's
+   corporate-actions API; filters to splits, returns `{symbol, ex_date,
+   payable_date, old_rate, new_rate, ratio, sub_type}` records.
+3. `data/split_adjuster.py` — orchestrator. Idempotency via price-anchor
+   heuristic: a position needs adjustment when `avg_cost / ratio` matches the
+   current (split-adjusted) live price within 30% AND raw `avg_cost` doesn't.
+   No new schema; just a heuristic check on each pass.
+
+Wired into `main.py` lifespan startup: after all positions restore from DB,
+detect splits in the last 90 days and apply to stale positions across all
+agents. Fails open — startup never blocks on this sweep.
+
+- [x] `Portfolio.apply_split` with full tracker rescale + audit record
+- [x] `alpaca_client.get_recent_splits` (90-day API window)
+- [x] `data/split_adjuster.detect_and_apply_splits` orchestrator with idempotent heuristic
+- [x] Startup hook in `main.py`
+- [x] 8 portfolio tests (forward, reverse, tracker rescale, audit trail, invalid ratios, P&L preservation)
+- [x] 10 split_adjuster tests (heuristic boundary, multi-agent dispatch, idempotency, missing-price safety)
+
+**Files:** `backend/trading/portfolio.py`, `backend/trading/alpaca_client.py`, `backend/data/split_adjuster.py`, `backend/main.py`
+
+---
+
+### 0.3 Scanner crash on ASML — `'NoneType' object has no attribute 'get'` ✅ DONE 2026-04-29
+
+**Why:** Hit on dozens of symbols on 2026-04-28 and 2026-04-29 (ASML, LAC, CLF, NTLA,
+FORM, SNAP, SPOT, W, ARM, HUM, AA, NUE, GDX, WOLF, COPX, KO, UPS, ENTG, SOXX, AVGO,
+ARWR, OLED — broad enough to be systematic, not symbol-specific).
+
+**Root cause:** `get_composite_signal` used `asyncio.gather(...)` without
+`return_exceptions=True`. When either `_get_yf_data` or `get_congressional_signal`
+raised, gather propagated the exception. The scanner's broad except caught it but
+the warning's `str(e)` printed `'NoneType' object has no attribute 'get'` because
+the failing line was a `.get(...)` call after the gather coroutine had already
+crashed and assigned an Exception object back to `yf_data`.
+
+**Fix:**
+- [x] gather now uses `return_exceptions=True`
+- [x] Defense-in-depth: `if not isinstance(yf_data, dict): yf_data = {}` (same for `congress_data`) — so downstream `.get(...)` calls never see Exception or None
+- [x] Improved `scanner_agent` warning to include `exc_info=True` — future None.get errors will log a full stack trace pinpointing the exact line, not just the symptom
+- [x] 3 tests covering yf_data raises / congress raises / both raise
+
+**Files:** `backend/data/signal_aggregator.py`, `backend/agents/scanner_agent.py`
+
+---
+
+### 0.4 Hard stop-loss for CNNReasoningAgent (defense in depth) ✅ DONE 2026-04-29
+
+**Why:** CNN had zero hard stops. The trailing stop covers give-back-of-gains, but not
+"position drops to −X% from entry without ever being profitable." Need a final floor.
+
+**Implementation:** Added `_check_hard_stops` to `BaseAgent` (so all agents benefit, not
+just CNN). Runs FIRST in run_cycle (before Bayes and trailing) so a clearly-broken
+position is gone before slower exits even evaluate. Threshold is `HARD_STOP_PCT` env var
+(default 0.08 = 8%). Set to 0 to disable.
+
+- [x] Add `HARD_STOP_PCT` env var (default 0.08)
+- [x] Implement `BaseAgent._check_hard_stops`
+- [x] Wire into `run_cycle` before bayes/trailing
+- [x] 8 tests covering threshold boundaries, no-trigger paths, disable, run_cycle integration
+
+**Files:** `backend/agents/base_agent.py`, `backend/config.py`, `.env.example`
+
+---
+
+### 0.5 "Daily move" risk re-evaluation — escalate big intraday drops to LLM ✅ DONE 2026-05-01
+
+**Why:** When ASML dropped −7% on 2026-04-28, the bearish "Semi Mania Backtracks"
+catalyst arrived AFTER market close (16:53 EDT). The agent had no opportunity to
+incorporate it during the trading window.
+
+**Implementation:** `Portfolio` now tracks `_position_today_open` per held position
+(initialised at BUY, refreshed by `reset_daily_tracking` at each new trading day).
+New methods `get_today_open(symbol)` and `daily_drawdown_pct(symbol, current_price)`.
+In `cnn_reasoning_agent.analyze`, when a held position's daily drawdown ≥
+`DAILY_REVIEW_PCT` (default 5%), build a `risk_alert` dict and pass it to
+`_build_prompt`, which renders a `## RISK ALERT` block instructing Ollama to
+re-evaluate explicitly. Also bypasses the entropy pre-filter so the LLM is
+consulted even when source magnitudes are low — the moment the safety net
+matters most.
+
+- [x] `Portfolio._position_today_open` + `get_today_open` + `daily_drawdown_pct`
+- [x] `reset_daily_tracking` snapshots opening price for held positions
+- [x] `DAILY_REVIEW_PCT` env var (default 0.05)
+- [x] `_build_prompt(risk_alert=…)` parameter; renders RISK ALERT block
+- [x] Entropy pre-filter bypassed when risk alert active
+- [x] 6 portfolio tests + 4 CNN agent tests covering: alert injected on drop, not below threshold, not for unowned symbols, entropy bypass
+
+**Files:** `backend/trading/portfolio.py`, `backend/agents/cnn_reasoning_agent.py`, `backend/config.py`
+
+---
+
+### 0.6 Lone-wolf trade discount — downsize when CNN is alone on a BUY ✅ DONE 2026-04-29
+
+**Why:** ASML was held by CNN only; no other agent corroborated. With CNN's WFE < 0
+and the model fitting noise, lone-wolf trades are the highest-risk class.
+
+**Implementation:** before allocating shares for a BUY, count `__agent_signals__`
+entries for the symbol with action=="BUY". If count < `LONEWOLF_MIN_CORROBORATORS`
+(default 2), multiply `size_pct` by `LONEWOLF_MULTIPLIER` (default 0.5). Final
+share count clamped to ≥ 2% of portfolio (the existing floor). Marker
+`[LONE-WOLF: N BUY corroborator(s) < M, size_pct X% → Y%]` appended to `Signal.reasoning`
+so the discount is auditable in `recent_trades`.
+
+- [x] `LONEWOLF_MIN_CORROBORATORS` and `LONEWOLF_MULTIPLIER` env vars
+- [x] Implement in `cnn_reasoning_agent.analyze` BUY block
+- [x] 3 new tests: 0 corroborators (discount applied), 2+ (no discount), only-SELL/HOLD signals don't count
+- [x] Updated 2 pre-existing sizing tests to inject corroborators (so they exercise the non-discounted path)
+
+**Files:** `backend/agents/cnn_reasoning_agent.py`, `backend/config.py`
+
+---
+
+### 0.7 GPU/Ollama coordination across apps (Layer 2.3) ⚠️ TRADING_APP SIDE DONE 2026-05-02
+
+**Why:** Ollama latencies of 15–50s + timeouts in `error.log` because trading_app
+and polymarket_app compete for the single RTX 2060.
+
+**trading_app side (done):**
+- `backend/data/gpu_coord.py` with `OllamaCoordinator` class + module-level
+  `ollama_coord` singleton.
+- Layer 1 — `asyncio.Lock` serializes Ollama calls within the trading_app process
+  (immediate benefit; CNN agent + future sentiment/claude calls won't pile up).
+- Layer 2 — `~/.ollama-coord/state.json` (env-overridable via `OLLAMA_COORD_FILE`)
+  tracks `exposure_usd` and `updated_at` per app. `acquire()` yields up to 10s
+  when another app's fresh exposure is higher; fires anyway after timeout (better
+  to miss priority than skip a cycle).
+- Wired into `cnn_reasoning_agent._ollama_decision` (highest-volume caller).
+- Trading loop publishes total deployed capital to the coord file each cycle.
+- Stale entries (>60s) treated as exposure=0 — handles the case where
+  polymarket_app crashes / is stopped.
+- 9 tests: concurrent serialization, exposure round-trip, multi-app preservation,
+  stale-entry handling, immediate-fire when we win, bounded wait when we lose,
+  missing-file fallback.
+
+**polymarket_app side (still open — needs scope override):**
+- [ ] Mirror `OllamaCoordinator` in polymarket_app pointing to same coord file
+- [ ] Wrap polymarket's Ollama call sites with `acquire()`
+- [ ] Update polymarket's exposure each cycle
+- [ ] Without this mirror, trading_app's per-process lock is the only effective
+      layer. Cross-app priority remains a no-op until polymarket also writes to
+      the coord file.
+
+**Wired into all Ollama call sites (2026-05-02):**
+- [x] `cnn_reasoning_agent._ollama_decision` (PR #6)
+- [x] `sentiment_agent._analyze_one`
+- [x] `claude_agent._ollama_research`
+- [x] `gemini_agent._ollama_inference`
+- [x] `scanner_agent._run_ollama_scanner`
+
+**Training mutex (Option F) ✅ done 2026-05-02:**
+- [x] `acquire_training_mutex` / `release_training_mutex` in `gpu_coord.py`
+- [x] Wrapped around `signal_cnn.fit() + signal_cnn.save()` in `cnn_reasoning_agent._train_blocking`
+- [x] Cross-app exclusivity via `~/.ollama-coord/training.lock`
+- [x] PID + age stale-reclaim (2h staleness threshold)
+- [x] 6 mutex tests covering acquire/release/timeout/stale-reclaim/re-entrant/safe-release
+
+**Design doc:** `docs/superpowers/plans/2026-04-28-gpu-sequencing-design.md`
 
 ---
 

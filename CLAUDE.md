@@ -216,9 +216,15 @@ PYTHONPATH=../site-packages ../runtime/python/python.exe -m bandit -r . -x ./tes
 | `trading/portfolio.py` (Kelly sizing) | `test_portfolio.py::TestKellyFraction` | ✅ covered |
 | `trading/portfolio.py` (Bayesian confidence) | `test_portfolio.py::TestBayesianConfidence` | ✅ covered |
 | `data/cnn_model.py` (WFE) | `test_cnn_model.py::TestWalkForwardEfficiency` | ✅ covered |
+| `data/cnn_model.py` (walk-forward CV) | `test_cnn_model.py::TestFitProducesWalkforwardMetrics`, `TestBuildTrainingWindowsReturnsTimestamps`, `TestTrainingHistoryRecordSchema` | ✅ covered |
+| `data/xgboost_model.py` | `test_xgboost_model.py` | ✅ covered |
+| `data/signal_model.py` | `test_signal_model_selector.py` | ✅ covered |
+| `data/cnn_evaluation.py` | `test_cnn_evaluation.py` | ✅ covered |
+| CNN random-feature sanity (one-off) | `test_cnn_random_feature.py` | ⚠️ expected-failure diagnostic |
 | `data/macro_history.py` + `data/history_backfill.py` (macro) | `test_macro_history.py` | ✅ covered |
 | `data/tax_estimator.py` | `test_tax_estimator.py` | ✅ covered |
 | `trading/alpaca_client.py` (get_filled_orders) | `test_tax_estimator.py` | ✅ covered |
+| `data/news_service.py` (retry, circuit breaker, timeout) | `test_news_service.py` | ✅ covered |
 
 ---
 

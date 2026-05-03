@@ -144,6 +144,199 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
         buys = [s for s in signals if s.action == "BUY"]
         self.assertEqual(len(buys), 0)
 
+    async def test_buy_blocked_when_mean_wfe_negative(self):
+        """High-conviction BUY must be downgraded to HOLD when mean_wfe < 0."""
+        from data.cnn_model import signal_cnn
+        mkt = _make_market(["AAPL"], price=150.0)
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
+        # Simulate a completed walk-forward retrain with a bad mean_wfe
+        original_mean_wfe = signal_cnn._mean_wfe
+        try:
+            signal_cnn._mean_wfe = -0.43
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            buys = [s for s in signals if s.action == "BUY"]
+            holds = [s for s in signals if s.action == "HOLD"]
+            self.assertEqual(len(buys), 0,
+                             "WFE gate must downgrade BUY to HOLD when mean_wfe < 0")
+            self.assertEqual(len(holds), 1)
+            self.assertIn("WFE gate", holds[0].reasoning)
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+
+    async def test_buy_allowed_when_mean_wfe_positive(self):
+        """When mean_wfe >= 0, BUY signals should pass the gate."""
+        from data.cnn_model import signal_cnn
+        mkt = _make_market(["AAPL"], price=150.0)
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
+        original_mean_wfe = signal_cnn._mean_wfe
+        try:
+            signal_cnn._mean_wfe = 0.10
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            buys = [s for s in signals if s.action == "BUY"]
+            self.assertEqual(len(buys), 1, "WFE gate must not block when mean_wfe >= 0")
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+
+    async def test_buy_allowed_when_mean_wfe_unmeasured(self):
+        """When mean_wfe is None (no walk-forward retrain yet), gate is inactive."""
+        from data.cnn_model import signal_cnn
+        mkt = _make_market(["AAPL"], price=150.0)
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
+        original_mean_wfe = signal_cnn._mean_wfe
+        try:
+            signal_cnn._mean_wfe = None
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            buys = [s for s in signals if s.action == "BUY"]
+            self.assertEqual(len(buys), 1, "WFE gate must be inactive when mean_wfe is None")
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+
+    async def test_lonewolf_discount_when_no_corroborators(self):
+        """BUY with 0 other agents agreeing → size_pct halved; reasoning has marker."""
+        mkt = _make_market(["AAPL"], price=150.0)
+        # No __agent_signals__ → no corroborators
+        buy_resp = {"action": "BUY", "confidence": 0.85, "size_pct": 0.10, "reasoning": "strong"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision",
+                          new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        self.assertEqual(len(buys), 1)
+        self.assertIn("LONE-WOLF", buys[0].reasoning)
+        # 10% × 0.5 = 5% of $100k = $5k → $5k / $150 ≈ 33 shares
+        self.assertLessEqual(buys[0].shares, 35,
+                             "lone-wolf discount must reduce shares")
+
+    async def test_lonewolf_discount_skipped_when_corroborated(self):
+        """BUY with 2+ other BUY signals → no discount, no marker."""
+        mkt = _make_market(["AAPL"], price=150.0)
+        # Inject corroborating BUY signals from two other agents
+        mkt["__agent_signals__"] = {
+            "AAPL": {
+                "TechAgent":     ("BUY", 0.7),
+                "MomentumAgent": ("BUY", 0.6),
+            }
+        }
+        buy_resp = {"action": "BUY", "confidence": 0.85, "size_pct": 0.10, "reasoning": "strong"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision",
+                          new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        self.assertEqual(len(buys), 1)
+        self.assertNotIn("LONE-WOLF", buys[0].reasoning)
+
+    async def test_lonewolf_discount_only_counts_BUY_signals(self):
+        """SELL/HOLD signals from other agents do NOT count as corroboration."""
+        mkt = _make_market(["AAPL"], price=150.0)
+        mkt["__agent_signals__"] = {
+            "AAPL": {
+                "TechAgent":     ("SELL", 0.7),  # disagreement
+                "MomentumAgent": ("HOLD", 0.5),  # neutral, not a buy
+            }
+        }
+        buy_resp = {"action": "BUY", "confidence": 0.85, "size_pct": 0.10, "reasoning": "strong"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision",
+                          new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        self.assertEqual(len(buys), 1)
+        self.assertIn("LONE-WOLF", buys[0].reasoning,
+                      "SELL/HOLD must not count as corroboration")
+
+    async def test_daily_move_risk_alert_injected_when_position_drops(self):
+        """Held position down >5% today triggers risk alert injected into prompt."""
+        # Setup: buy AAPL at $100, then today's price drops to $94 (-6%)
+        self.agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        mkt = _make_market(["AAPL"], price=94.0)
+        hold_resp = {"action": "HOLD", "confidence": 0.5, "reasoning": "test"}
+        captured_prompts = []
+
+        async def _capture(prompt):
+            captured_prompts.append(prompt)
+            return hold_resp
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", side_effect=_capture):
+            await self.agent.analyze(mkt)
+
+        self.assertEqual(len(captured_prompts), 1)
+        self.assertIn("RISK ALERT", captured_prompts[0])
+        self.assertIn("6.0% TODAY", captured_prompts[0])
+
+    async def test_daily_move_risk_alert_not_injected_below_threshold(self):
+        """Held position down 3% (below 5% threshold) → no risk alert."""
+        self.agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        mkt = _make_market(["AAPL"], price=97.0)  # only -3%
+        hold_resp = {"action": "HOLD", "confidence": 0.5, "reasoning": "test"}
+        captured_prompts = []
+
+        async def _capture(prompt):
+            captured_prompts.append(prompt)
+            return hold_resp
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", side_effect=_capture):
+            await self.agent.analyze(mkt)
+
+        self.assertEqual(len(captured_prompts), 1)
+        self.assertNotIn("RISK ALERT", captured_prompts[0])
+
+    async def test_daily_move_risk_alert_not_for_unowned_symbol(self):
+        """Symbol we don't hold → never triggers a risk alert (no position to alert on)."""
+        # No execute_buy — we don't hold AAPL
+        mkt = _make_market(["AAPL"], price=50.0)  # massive "drop" from non-existent open
+        hold_resp = {"action": "HOLD", "confidence": 0.5, "reasoning": "test"}
+        captured_prompts = []
+
+        async def _capture(prompt):
+            captured_prompts.append(prompt)
+            return hold_resp
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", side_effect=_capture):
+            await self.agent.analyze(mkt)
+
+        self.assertEqual(len(captured_prompts), 1)
+        self.assertNotIn("RISK ALERT", captured_prompts[0])
+
+    async def test_risk_alert_bypasses_entropy_prefilter(self):
+        """When a risk alert fires, the entropy pre-filter must NOT skip Ollama."""
+        self.agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        # Build a market context with low source magnitudes (would normally
+        # trigger entropy skip)
+        ctx = _make_ctx(price=92.0)  # -8% drop today
+        ctx["composite_signal"] = {
+            "composite_score": 0.0,
+            "sources": {
+                "analyst_consensus":    {"score": 0.0},
+                "earnings_surprise":    {"score": 0.0},
+                "alpaca_news":          {"score": 0.0},
+                "yahoo_news":           {"score": 0.0},
+                "congressional_trades": {"score": 0.0},
+            },
+        }
+        mkt = {"AAPL": ctx}
+        hold_resp = {"action": "HOLD", "confidence": 0.5, "reasoning": "test"}
+
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision",
+                          new=AsyncMock(return_value=hold_resp)) as mock_ollama:
+            await self.agent.analyze(mkt)
+
+        # Ollama must have been called despite low magnitude — risk alert overrides
+        self.assertEqual(mock_ollama.await_count, 1)
+
 
 class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
     """_build_prompt includes sentinel catalysts and macro context when present."""
@@ -153,7 +346,9 @@ class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
         self.base_kwargs = dict(
             symbol="AAPL", price=150.0, pred_return=0.01, direction="bull",
             cnn_conf=0.7,
-            learned_weights={"analyst_consensus": 0.35, "earnings_surprise": 0.22,
+            # learned_weights keys are CNN channel names (Task #22 renamed earnings).
+            # current_scores keys are LLM-source names (signed values for prompt context).
+            learned_weights={"analyst_consensus": 0.35, "earnings_magnitude": 0.22,
                              "alpaca_news": 0.18, "yahoo_news": 0.12,
                              "congressional_trades": 0.13},
             current_scores={"analyst_consensus": 0.1, "earnings_surprise": None,
@@ -237,11 +432,14 @@ class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
         prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
         self.assertIn("Stale macro data must not move the confidence", prompt)
 
-    def test_macro_step_confidence_adjustment_mentioned(self):
-        """Step 5 must state the confidence adjustment bounds."""
+    def test_step5_treats_cnn_confidence_as_one_input(self):
+        """Step 5 must instruct Ollama to compute its OWN confidence from
+        evidence agreement, not copy the CNN confidence as a default."""
         prompt = self.agent._build_prompt(**self.base_kwargs, catalysts=None, macro_text="")
-        self.assertIn("0.15", prompt)
-        self.assertIn("0.10", prompt)
+        self.assertIn("Set your OWN confidence", prompt)
+        self.assertIn("ONE input among many", prompt)
+        # Must NOT instruct the LLM to set confidence to CNN value
+        self.assertNotIn("Set confidence to the CNN confidence value", prompt)
 
     def test_stale_sources_labeled_context_only_in_prompt(self):
         """Earnings surprise and congressional trades must appear under CONTEXT ONLY."""
@@ -392,7 +590,8 @@ class TestCNNPromptPortfolioSection(unittest.TestCase):
         self.base_kwargs = dict(
             symbol="AAPL", price=150.0, pred_return=0.01, direction="bull",
             cnn_conf=0.7,
-            learned_weights={"analyst_consensus": 0.35, "earnings_surprise": 0.22,
+            # learned_weights keys are CNN channel names (Task #22 renamed earnings).
+            learned_weights={"analyst_consensus": 0.35, "earnings_magnitude": 0.22,
                              "alpaca_news": 0.18, "yahoo_news": 0.12,
                              "congressional_trades": 0.13},
             current_scores={"analyst_consensus": 0.1, "earnings_surprise": None,
@@ -456,8 +655,13 @@ class TestCNNGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
         self.agent.portfolio.cash = 100_000.0
 
     async def test_buy_uses_size_pct_from_ollama(self):
-        """size_pct=0.10 → 10% of $100k portfolio at $100/share = 100 shares."""
+        """size_pct=0.10 → 10% of $100k portfolio at $100/share = 100 shares.
+        Inject 2 corroborators so the lone-wolf discount doesn't apply."""
         mkt = _make_market(["AAPL"], price=100.0)
+        mkt["__agent_signals__"] = {"AAPL": {
+            "TechAgent":     ("BUY", 0.7),
+            "MomentumAgent": ("BUY", 0.6),
+        }}
         buy_resp = {"action": "BUY", "confidence": 0.80, "size_pct": 0.10, "reasoning": "strong"}
         with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
              patch.object(self.agent, "_ollama_decision", new=AsyncMock(return_value=buy_resp)):
@@ -490,8 +694,13 @@ class TestCNNGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(buys[0].shares, 20)
 
     async def test_missing_size_pct_defaults_to_10pct(self):
-        """If Ollama omits size_pct, fall back to 10% of portfolio value."""
+        """If Ollama omits size_pct, fall back to 10% of portfolio value.
+        Inject 2 corroborators so the lone-wolf discount doesn't apply."""
         mkt = _make_market(["AAPL"], price=100.0)
+        mkt["__agent_signals__"] = {"AAPL": {
+            "TechAgent":     ("BUY", 0.7),
+            "MomentumAgent": ("BUY", 0.6),
+        }}
         buy_resp = {"action": "BUY", "confidence": 0.75, "reasoning": "no size"}
         with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
              patch.object(self.agent, "_ollama_decision", new=AsyncMock(return_value=buy_resp)):

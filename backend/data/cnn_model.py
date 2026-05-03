@@ -3,7 +3,7 @@ Temporal 1-D CNN for learning optimal composite signal source weights.
 
 Architecture (GLU-gated)
 ------------------------
-  Input       : (batch, 10, T) — 10 channels (6 source + 2 agent + 2 RV) × T time-steps
+  Input       : (batch, 19, T) — 19 channels (5 source + 2 agent + 2 RV + 5 returns + 5 macro) × T time-steps
   GatedConv1d : 7  → 16, k=3  — conv_main(x) * sigmoid(conv_gate(x))
   BatchNorm1d(16) + Dropout(0.2)
   GatedConv1d : 16 → 32, k=3  — higher-order cross-source patterns
@@ -39,9 +39,11 @@ Device selection
   MPS   → elif torch.backends.mps.is_available()  (Apple Silicon)
   CPU   → otherwise
 """
+import json
 import logging
 import os
 import time
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -63,64 +65,159 @@ except ImportError:
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
-_MODEL_DIR  = os.path.join(os.path.dirname(__file__), "models")
-_MODEL_PATH = os.path.join(_MODEL_DIR, "signal_cnn.pt")
+_MODEL_DIR             = os.path.join(os.path.dirname(__file__), "models")
+_MODEL_PATH            = os.path.join(_MODEL_DIR, "signal_cnn.pt")
+_HISTORY_FILENAME      = "training_history.jsonl"
+
+
+def _training_history_path() -> str:
+    """Path to the append-only training-history JSONL, sibling to the model checkpoint.
+    Derived from _MODEL_PATH at call time so test patches of _MODEL_PATH alone reroute
+    both files together."""
+    return os.path.join(os.path.dirname(_MODEL_PATH), _HISTORY_FILENAME)
 
 SOURCE_NAMES: List[str] = [
     "analyst_consensus",
-    "earnings_surprise",
+    "earnings_magnitude",  # channel 1: |earnings_score| — Task #22, see _apply_cnn_feature_transforms
     "alpaca_news",
     "yahoo_news",
-    "congressional_trades",
-    "iv_rv_spread",      # channel 5: IV − RV_20d spread scored to [-1, +1]
+    "iv_rv_spread",        # channel 4: IV − RV_20d spread scored to [-1, +1]
 ]
+# Note: congressional_trades was demoted from CNN input → LLM context-only
+# (Task #20). 3% coverage with corr -0.001 means it carried no usable signal
+# for the CNN. signal_aggregator still scores it; signal_history still records
+# congress_score; the LLM still receives it for catalyst-style reasoning.
 
-# Agent channels appended after the 6 source channels
+# Agent channels appended after the 5 source channels
 AGENT_CHANNEL_NAMES: List[str] = [
-    "agent_consensus",   # channel 6: performance-weighted directional vote  (-1 to +1)
-    "agent_agreement",   # channel 7: fraction of agents that agree (0 to 1)
+    "agent_consensus",   # channel 5: performance-weighted directional vote  (-1 to +1)
+    "agent_agreement",   # channel 6: fraction of agents that agree (0 to 1)
 ]
 
 # Realized volatility channels — annualized from daily close prices (252-day basis)
 # The GLU gates learn to suppress these in trending markets where RV is uninformative
 # and amplify them in high-vol regimes where BSM-style vol signals add edge.
 RV_CHANNEL_NAMES: List[str] = [
-    "rv_20d",   # channel 8: 20-day rolling realized vol (short-term vol regime)
-    "rv_60d",   # channel 9: 60-day rolling realized vol (medium-term vol regime)
+    "rv_20d",   # channel 7: 20-day rolling realized vol (short-term vol regime)
+    "rv_60d",   # channel 8: 60-day rolling realized vol (medium-term vol regime)
+]
+
+# Per-symbol lagged log-return channels — Tier 1 from
+# docs/equity_feature_engineering_audit.md. Order must match
+# data.signal_history.RETURN_COLUMNS.
+RETURN_CHANNEL_NAMES: List[str] = [
+    "r_1",    # 1-row lagged log return
+    "r_5",    # 5-row
+    "r_20",   # 20-row
+    "r_60",   # 60-row
+    "r_120",  # 120-row
 ]
 
 # Macro environment channels — joined from __MACRO__.parquet by date
-# Absent in old Parquet files; build_training_windows degrades to 10ch without them.
+# Absent in old Parquet files; build_training_windows degrades to 9ch without them.
 MACRO_CHANNEL_NAMES: List[str] = [
-    "macro_vix_norm",   # channel 10: VIX / 30 clipped to [0, 3]
-    "macro_gld_5d",     # channel 11: GLD 5-day forward return
-    "macro_tlt_5d",     # channel 12: TLT 5-day forward return
-    "macro_spy_5d",     # channel 13: SPY 5-day forward return
-    "macro_breadth",    # channel 14: (IWM_5d − SPY_5d) clipped to [-1, 1]
+    "macro_vix_norm",       # channel 9:  VIX / 30 clipped to [0, 3]
+    # Task #24: trailing (was forward — leaked future direction into training,
+    # collapsed val WFE from -0.034 to -0.346). `_back` suffix is permanent
+    # to make the semantics unambiguous in code review and force re-backfill.
+    "macro_gld_5d_back",    # channel 10: GLD 5-day TRAILING return
+    "macro_tlt_5d_back",    # channel 11: TLT 5-day trailing return
+    "macro_spy_5d_back",    # channel 12: SPY 5-day trailing return
+    "macro_breadth_back",   # channel 13: (IWM - SPY) trailing 5d, clipped [-1, 1]
 ]
 
-# Total full input channels: 6 source + 2 agent + 2 RV + 5 macro = 15
-# build_training_windows degrades gracefully to 10 channels when macro cols absent.
-# Old checkpoints load fine — predict() guards against shape mismatch and the net
-# auto-rebuilds to the correct channel count on the next 24h retrain cycle.
+# Total full input channels: 5 source + 2 agent + 2 RV + 5 returns + 5 macro = 19
+# build_training_windows degrades gracefully (drops 5 returns or 5 macro) when those cols absent.
+# Old checkpoints (15ch from before Task #20) load fine — predict() guards against
+# shape mismatch and the net auto-rebuilds to the correct channel count on the
+# next 24h retrain cycle.
 N_CHANNELS = (
     len(SOURCE_NAMES)
     + len(AGENT_CHANNEL_NAMES)
     + len(RV_CHANNEL_NAMES)
+    + len(RETURN_CHANNEL_NAMES)
     + len(MACRO_CHANNEL_NAMES)
-)  # 15
+)  # 19
 
+# Renormalized after dropping congressional_trades (was 0.11; remaining sum 0.89).
+# Each weight = old_weight / 0.89.
 _DEFAULT_WEIGHTS: Dict[str, float] = {
-    "analyst_consensus":    0.30,
-    "earnings_surprise":    0.19,
-    "alpaca_news":          0.15,
-    "yahoo_news":           0.10,
-    "congressional_trades": 0.11,
-    "iv_rv_spread":         0.15,
+    "analyst_consensus":    0.337,
+    "earnings_magnitude":   0.213,   # Task #22: was "earnings_surprise" (signed); now |earnings_score|
+    "alpaca_news":          0.169,
+    "yahoo_news":           0.112,
+    "iv_rv_spread":         0.169,
 }
 
-MIN_TRAIN_SAMPLES = 100  # minimum labelled rows before training starts
-WINDOW_SIZE       = 10   # T: rolling window length fed to the CNN
+
+def _append_training_history(record: Dict) -> None:
+    """Append a single JSON record (one line) to the training-history log."""
+    path = _training_history_path()
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, default=str) + "\n")
+    except Exception as exc:
+        logger.warning("SignalCNN: failed to append training history: %s", exc)
+
+
+def load_training_history(limit: Optional[int] = None) -> List[Dict]:
+    """
+    Read training-history records (oldest first, newest last).
+
+    Parameters
+    ----------
+    limit : int, optional — return only the most recent `limit` records.
+
+    Returns
+    -------
+    List of dicts. Empty list if the file does not yet exist.
+    Malformed lines are skipped silently.
+    """
+    path = _training_history_path()
+    if not os.path.exists(path):
+        return []
+    records: List[Dict] = []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    records.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    except Exception as exc:
+        logger.warning("SignalCNN: failed to read training history: %s", exc)
+        return []
+    if limit is not None and limit > 0:
+        return records[-limit:]
+    return records
+
+MIN_TRAIN_SAMPLES             = 100  # minimum labelled rows before training starts
+WINDOW_SIZE                   = 10   # T: rolling window length fed to the CNN
+WALKFORWARD_FOLDS             = 3
+WALKFORWARD_MIN_VAL_DAYS      = 14
+WALKFORWARD_EMBARGO_BARS      = 1
+_SECS_PER_DAY                 = 86_400.0
+
+# Label horizon (added 2026-04-27 / Layer 2.4)
+# Switched from "return_1d" → "return_5d" because:
+#   - 1-day forward returns are dominated by noise (efficient market, signals
+#     already priced in by the time analyst/news scores update)
+#   - 5-day forward returns have ~sqrt(5) better signal-to-noise ratio
+#   - return_5d is already populated by signal_history (no backfill needed)
+#
+# A label horizon switch invalidates the currently-saved checkpoint's
+# predictions until the next walk-forward retrain rebuilds with 5d targets.
+# predict() loads fine but its outputs are 1d-scale until then.
+LABEL_HORIZON_COL             = "return_5d"
+# Confidence calibration: 5d returns scale wider than 1d (rough sqrt(5) ≈ 2.2x).
+# A "max-confidence" predicted return at 5d is ~10% rather than 5% at 1d.
+LABEL_HORIZON_FULL_CONF_RET   = 0.10
+# Direction threshold scales similarly: 1d used 0.5%, 5d uses 1.0%.
+LABEL_HORIZON_DIR_THRESHOLD   = 0.010
 
 
 def _compute_wfe(
@@ -290,9 +387,9 @@ def _build_net(n_channels: int = N_CHANNELS) -> "nn.Module":
 def build_training_windows(
     df: pd.DataFrame,
     T: int = WINDOW_SIZE,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Convert a labelled history DataFrame into (X, y, w) numpy arrays.
+    Convert a labelled history DataFrame into (X, y, w, t) numpy arrays.
 
     Parameters
     ----------
@@ -306,24 +403,35 @@ def build_training_windows(
 
     Returns
     -------
-    X : (N, C, T)  float32  — C = 9 (5 source + 2 agent + 2 RV) when all
-                               columns present; degrades gracefully when older
-                               Parquet files lack agent/RV columns.
-    y : (N,)       float32  — 1-day forward returns (clipped to ±20%)
+    X : (N, C, T)  float32  — feature windows
+    y : (N,)       float32  — forward returns at LABEL_HORIZON_COL horizon,
+                              clipped to ±20%
     w : (N,)       float32  — sample weights (1.0 default; higher when top
-                               agent was confirmed correct)
+                              agent was confirmed correct)
+    t : (N,)       float64  — snapshot_ts of each window's last row,
+                              for walk-forward CV
     """
-    from data.signal_history import SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS  # avoid circular
+    from data.signal_history import (  # avoid circular
+        SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
+        _apply_cnn_feature_transforms,
+    )
 
-    has_agent = all(c in df.columns for c in AGENT_COLUMNS)
-    has_rv    = all(c in df.columns for c in RV_COLUMNS)
-    has_macro = all(c in df.columns for c in MACRO_CHANNEL_NAMES)
-    # Source columns: filter to those present — old Parquet files may lack iv_rv_score
+    # Task #22: feed |earnings_score| to the CNN. Direction has corr -0.029 with
+    # 1d return (noise); magnitude has corr +0.143 with realized vol (signal).
+    # Returns a copy — caller's df keeps signed values.
+    df = _apply_cnn_feature_transforms(df)
+
+    has_agent   = all(c in df.columns for c in AGENT_COLUMNS)
+    has_rv      = all(c in df.columns for c in RV_COLUMNS)
+    has_returns = all(c in df.columns for c in RETURN_COLUMNS)
+    has_macro   = all(c in df.columns for c in MACRO_CHANNEL_NAMES)
     feat_cols = [c for c in SOURCE_COLUMNS if c in df.columns]
     if has_agent:
         feat_cols = feat_cols + AGENT_COLUMNS
     if has_rv:
         feat_cols = feat_cols + RV_COLUMNS
+    if has_returns:
+        feat_cols = feat_cols + RETURN_COLUMNS
     if has_macro:
         feat_cols = feat_cols + MACRO_CHANNEL_NAMES
     n_feat    = len(feat_cols)
@@ -333,21 +441,31 @@ def build_training_windows(
             np.empty((0, 0, T), dtype=np.float32),
             np.empty(0, dtype=np.float32),
             np.empty(0, dtype=np.float32),
+            np.empty(0, dtype=np.float64),
+        )
+    # Layer 2.4: label horizon is configurable via LABEL_HORIZON_COL (default
+    # "return_5d"). Falls back to "return_1d" if the configured column isn't
+    # present (e.g. very early signal_history rows written before backfill).
+    label_col = LABEL_HORIZON_COL if LABEL_HORIZON_COL in df.columns else "return_1d"
+    if label_col != LABEL_HORIZON_COL:
+        logger.warning(
+            f"build_training_windows: {LABEL_HORIZON_COL} missing from df — "
+            f"falling back to return_1d (model will train on shorter horizon)"
         )
 
     X_list: List[np.ndarray] = []
     y_list: List[float]      = []
     w_list: List[float]      = []
+    t_list: List[float]      = []
 
     for symbol, grp in df.groupby("symbol"):
         grp    = grp.sort_values("snapshot_ts").reset_index(drop=True)
-        feats  = grp[feat_cols].values.astype(np.float32)         # (n, C)
-        rets   = grp["return_1d"].values.astype(np.float32)        # (n,)
+        feats  = grp[feat_cols].values.astype(np.float32)
+        rets   = grp[label_col].values.astype(np.float32)
+        ts     = grp["snapshot_ts"].values.astype(np.float64)
 
-        # Sample weights: boost rows where top agent was confirmed correct
         if "top_agent_correct" in grp.columns:
             correct = grp["top_agent_correct"].values.astype(float)
-            # weight = 0.5 (wrong) + 0.5 (correct) = 1.0 max; NaN → 0.75 (neutral)
             weights = np.where(np.isnan(correct), 0.75,
                                np.where(correct == 1.0, 1.0, 0.5))
         else:
@@ -357,26 +475,29 @@ def build_training_windows(
             if np.isnan(rets[i]):
                 continue
             start  = max(0, i - T + 1)
-            window = feats[start : i + 1]                          # (≤T, C)
+            window = feats[start : i + 1]
             if len(window) < T:
                 pad    = np.zeros((T - len(window), n_feat), dtype=np.float32)
                 window = np.vstack([pad, window])
             window = np.nan_to_num(window, nan=0.0)
-            X_list.append(window.T)                                # (C, T)
+            X_list.append(window.T)
             y_list.append(float(np.clip(rets[i], -0.20, 0.20)))
             w_list.append(float(weights[i]))
+            t_list.append(float(ts[i]))
 
     if not X_list:
         return (
             np.empty((0, n_feat, T), dtype=np.float32),
             np.empty(0, dtype=np.float32),
             np.empty(0, dtype=np.float32),
+            np.empty(0, dtype=np.float64),
         )
 
     return (
         np.stack(X_list).astype(np.float32),
         np.array(y_list, dtype=np.float32),
         np.array(w_list, dtype=np.float32),
+        np.array(t_list, dtype=np.float64),
     )
 
 
@@ -407,6 +528,11 @@ class SignalCNN:
         self._wfe_status:       str = "UNTRAINED"        # HEALTHY / DEGRADED / POOR / UNTRAINED
         self._scheduler                        = None    # ReduceLROnPlateau instance
         self._dev                              = _device()
+        self._fold_metrics:     List[Dict] = []
+        self._mean_ic:          Optional[float] = None
+        self._ir:               Optional[float] = None
+        self._mean_wfe:         Optional[float] = None
+        self._calibration:      List[Dict] = []
 
         if HAS_TORCH:
             self._net = _build_glu_net(n_channels).to(self._dev)
@@ -422,27 +548,32 @@ class SignalCNN:
         self,
         X: np.ndarray,
         y: np.ndarray,
+        t: np.ndarray,
         epochs: int = 80,
         batch_size: int = 32,
         sample_weights: Optional[np.ndarray] = None,
         patience: int = 15,
+        n_folds: int = WALKFORWARD_FOLDS,
+        min_val_days: int = WALKFORWARD_MIN_VAL_DAYS,
+        embargo_bars: int = WALKFORWARD_EMBARGO_BARS,
     ) -> None:
         """
-        Train on (X, y) arrays from build_training_windows().
-        Runs entirely in the calling thread — use asyncio.to_thread() for
-        non-blocking execution from async code.
+        Train using walk-forward cross-validation.
 
-        Parameters
-        ----------
-        X              : (N, C, T) float32
-        y              : (N,)      float32
-        sample_weights : (N,)      float32, optional — rows where the top
-                         agent was confirmed correct get weight 1.0;
-                         incorrect rows get 0.5; unknown rows get 0.75.
-                         When None, all samples are weighted equally.
-        patience       : int — early stopping: stop if val loss doesn't
-                         improve for this many consecutive epochs.
+        For each of `n_folds` folds, train a fresh net on the fold's train set
+        and evaluate on its val set. The FINAL fold's trained net is the one
+        kept on `self._net` (it has the most data + most recent training).
+
+        Aggregate metrics across folds:
+          mean_wfe : average OOS R² across folds (more stable than single split)
+          mean_ic  : average Spearman rank corr across folds
+          ir       : mean(IC) / std(IC) — edge stability
+          calibration : quintile buckets from the last fold's val predictions
         """
+        from data.cnn_evaluation import (
+            compute_ic, compute_ir, compute_calibration, walkforward_folds,
+        )
+
         if not HAS_TORCH or self._net is None:
             logger.warning("SignalCNN.fit: torch not available, skipping training")
             return
@@ -450,7 +581,6 @@ class SignalCNN:
             logger.info(f"SignalCNN.fit: only {len(X)} samples (need {MIN_TRAIN_SAMPLES}), skipping")
             return
 
-        # Rebuild net if channel count changed (e.g. first run with agent cols)
         actual_channels = X.shape[1]
         if actual_channels != self._n_channels:
             logger.info(
@@ -462,125 +592,162 @@ class SignalCNN:
             self._net = _build_glu_net(actual_channels).to(self._dev)
             self._opt = optim.AdamW(self._net.parameters(), lr=lr, weight_decay=1e-4)
 
-        # ── Chronological train / validation split (80 / 20) ─────────────────
-        # Val set is the LAST 20% of samples to avoid temporal data leakage.
-        # Random shuffling across time would let the model train on future data,
-        # inflating val metrics and producing a model that doesn't generalise.
-        N       = len(X)
-        n_val   = max(5, int(N * 0.2))
-        n_train = N - n_val
-
-        train_idx = torch.arange(0, n_train)
-        val_idx   = torch.arange(n_train, N)
-        self._split_idx = n_train   # expose for tests / diagnostics
-
-        X_all = torch.from_numpy(X).to(self._dev)                    # (N, C, T)
-        y_all = torch.from_numpy(y).unsqueeze(1).to(self._dev)        # (N, 1)
-        w_all = torch.from_numpy(
-            sample_weights.astype(np.float32)
-        ).unsqueeze(1).to(self._dev) if sample_weights is not None else None
-
-        X_train, y_train = X_all[train_idx], y_all[train_idx]
-        X_val,   y_val   = X_all[val_idx],   y_all[val_idx]
-        w_train          = w_all[train_idx] if w_all is not None else None
-
-        dataset = (
-            TensorDataset(X_train, y_train)
-            if w_train is None
-            else TensorDataset(X_train, y_train, w_train)
+        folds = walkforward_folds(
+            t, n_folds=n_folds,
+            min_val_days=min_val_days,
+            embargo_bars=embargo_bars,
         )
-        loader  = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=False)
-        loss_fn = nn.MSELoss(reduction="none")
+        if not folds:
+            logger.warning(
+                f"SignalCNN.fit: dataset too short for {n_folds} folds × "
+                f"{min_val_days}d val — skipping training"
+            )
+            return
 
-        # ── LR scheduler ─────────────────────────────────────────────────────
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            self._opt, mode="min", factor=0.5, patience=5, min_lr=1e-6
-        )
+        fold_metrics: List[Dict] = []
+        ics: List[float] = []
+        wfes: List[float] = []
+        last_val_pred: List[float] = []
+        last_val_true: List[float] = []
+        last_train_loss: List[float] = []
+        last_val_loss:   List[float] = []
+        last_n_train = 0
+        last_n_val   = 0
+        last_actual_epochs = 0
 
-        train_losses: List[float] = []
-        val_losses:   List[float] = []
+        for fold_i, (tr_idx, va_idx) in enumerate(folds):
+            net = _build_glu_net(actual_channels).to(self._dev)
+            opt = optim.AdamW(net.parameters(), lr=3e-4, weight_decay=1e-4)
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                opt, mode="min", factor=0.5, patience=5, min_lr=1e-6
+            )
 
-        # ── Early stopping state ──────────────────────────────────────────────
-        best_val_loss    = float("inf")
-        no_improve_count = 0
-        actual_epochs    = 0
+            X_train = torch.from_numpy(X[tr_idx]).to(self._dev)
+            y_train = torch.from_numpy(y[tr_idx]).unsqueeze(1).to(self._dev)
+            X_val   = torch.from_numpy(X[va_idx]).to(self._dev)
+            y_val   = torch.from_numpy(y[va_idx]).unsqueeze(1).to(self._dev)
+            w_train = (
+                torch.from_numpy(sample_weights[tr_idx].astype(np.float32))
+                     .unsqueeze(1).to(self._dev)
+                if sample_weights is not None else None
+            )
 
-        self._net.train()
-        for epoch in range(epochs):
-            # ── training step ──────────────────────────────────────────────
-            total, n = 0.0, 0
-            for batch in loader:
-                xb, yb = batch[0], batch[1]
-                wb     = batch[2] if len(batch) == 3 else None
-                self._opt.zero_grad()
-                pred     = self._net(xb)
-                per_loss = loss_fn(pred, yb)
-                loss     = (per_loss * wb).mean() if wb is not None else per_loss.mean()
-                loss.backward()
-                nn.utils.clip_grad_norm_(self._net.parameters(), max_norm=1.0)
-                self._opt.step()
-                total += loss.item() * len(xb)
-                n     += len(xb)
-            train_losses.append(total / n)
+            ds = (TensorDataset(X_train, y_train) if w_train is None
+                  else TensorDataset(X_train, y_train, w_train))
+            loader  = DataLoader(ds, batch_size=batch_size, shuffle=True, drop_last=False)
+            loss_fn = nn.MSELoss(reduction="none")
 
-            # ── validation step (no gradient) ──────────────────────────────
-            self._net.eval()
+            train_losses: List[float] = []
+            val_losses:   List[float] = []
+            best_val   = float("inf")
+            no_improve = 0
+            actual_epochs = 0
+
+            net.train()
+            for epoch in range(epochs):
+                total, n_seen = 0.0, 0
+                for batch in loader:
+                    xb, yb = batch[0], batch[1]
+                    wb = batch[2] if len(batch) == 3 else None
+                    opt.zero_grad()
+                    pred     = net(xb)
+                    per_loss = loss_fn(pred, yb)
+                    loss     = (per_loss * wb).mean() if wb is not None else per_loss.mean()
+                    loss.backward()
+                    nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
+                    opt.step()
+                    total  += loss.item() * len(xb)
+                    n_seen += len(xb)
+                train_losses.append(total / max(1, n_seen))
+
+                net.eval()
+                with torch.no_grad():
+                    val_pred = net(X_val)
+                    val_mse  = float(loss_fn(val_pred, y_val).mean().item())
+                val_losses.append(val_mse)
+                net.train()
+                scheduler.step(val_mse)
+
+                actual_epochs = epoch + 1
+                if val_mse < best_val - 1e-6:
+                    best_val   = val_mse
+                    no_improve = 0
+                else:
+                    no_improve += 1
+                if no_improve >= patience:
+                    break
+
+            net.eval()
             with torch.no_grad():
-                val_pred = self._net(X_val)
-                val_mse  = float(loss_fn(val_pred, y_val).mean().item())
-            val_losses.append(val_mse)
-            self._net.train()
+                vp = net(X_val).squeeze().cpu().numpy().reshape(-1)
+            vt = y_val.squeeze().cpu().numpy().reshape(-1)
+            wfe_val, _ = _compute_wfe(vt.tolist(), vp.tolist())
+            ic_val = compute_ic(vp, vt)
+            val_window_days = float((t[va_idx].max() - t[va_idx].min()) / _SECS_PER_DAY)
 
-            # ── LR scheduler step ──────────────────────────────────────────
-            scheduler.step(val_mse)
+            fold_metrics.append({
+                "fold":            fold_i,
+                "n_train":         int(len(tr_idx)),
+                "n_val":           int(len(va_idx)),
+                "val_window_days": round(val_window_days, 2),
+                "val_mse":         float(val_losses[-1]) if val_losses else None,
+                "wfe":             wfe_val,
+                "ic":              ic_val,
+                "epochs":          actual_epochs,
+            })
+            if wfe_val is not None:
+                wfes.append(wfe_val)
+            ics.append(ic_val)
 
-            # ── Early stopping check ────────────────────────────────────────
-            actual_epochs = epoch + 1
-            if val_mse < best_val_loss - 1e-6:
-                best_val_loss    = val_mse
-                no_improve_count = 0
+            if fold_i == len(folds) - 1:
+                self._net = net
+                self._opt = opt
+                self._scheduler = scheduler
+                last_train_loss   = train_losses
+                last_val_loss     = val_losses
+                last_n_train      = int(len(tr_idx))
+                last_n_val        = int(len(va_idx))
+                last_actual_epochs = actual_epochs
+                last_val_pred = vp.tolist()
+                last_val_true = vt.tolist()
             else:
-                no_improve_count += 1
-            if no_improve_count >= patience:
-                logger.info(
-                    f"SignalCNN: early stopping at epoch {actual_epochs} "
-                    f"(no val improvement for {patience} consecutive epochs)"
-                )
-                break
+                # Release per-fold tensors + net before the next fold builds new
+                # ones. Critical on the RTX 2060 (6 GB VRAM) where llama3.1:8b
+                # already occupies ~4.7 GB; without this, three fold trainings
+                # can OOM mid-retrain.
+                del net, opt, scheduler, ds, loader
+                del X_train, y_train, X_val, y_val
+                if w_train is not None:
+                    del w_train
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
-        self._train_loss        = train_losses
-        self._val_loss          = val_losses
-        self._n_train           = n_train
-        self._n_val             = n_val
+        # Aggregate metrics
+        self._fold_metrics = fold_metrics
+        self._mean_ic      = float(np.mean(ics)) if ics else 0.0
+        self._ir           = compute_ir(ics)
+        self._mean_wfe     = float(np.mean(wfes)) if wfes else None
+        self._calibration  = compute_calibration(
+            np.asarray(last_val_pred), np.asarray(last_val_true), n_buckets=5
+        )
+
+        # Last-fold legacy fields (used by /api/cnn-diagnostics + checkpoint)
+        self._train_loss        = last_train_loss
+        self._val_loss          = last_val_loss
+        self._n_train           = last_n_train
+        self._n_val             = last_n_val
         self._trained           = True
         self._train_ts          = time.time()
-        self._scheduler         = scheduler
-        self._early_stop_epoch  = actual_epochs
+        self._early_stop_epoch  = last_actual_epochs
+        self._wfe, self._wfe_status = _compute_wfe(last_val_true, last_val_pred)
+        self._split_idx         = last_n_train
 
-        final_train   = train_losses[-1]
-        final_val     = val_losses[-1]
-        overfit_ratio = final_val / final_train if final_train > 1e-10 else float("inf")
-        diagnosis     = _diagnose(final_train, final_val, overfit_ratio)
-
-        # ── Walk-Forward Efficiency (OOS R²) ──────────────────────────────────
-        # Run the trained model on the held-out validation set and compute R².
-        self._net.eval()
-        with torch.no_grad():
-            val_preds_t = self._net(X_val).squeeze().cpu().tolist()
-        y_val_list = y_val.squeeze().cpu().tolist()
-        if not isinstance(val_preds_t, list):
-            val_preds_t = [float(val_preds_t)]
-        if not isinstance(y_val_list, list):
-            y_val_list = [float(y_val_list)]
-        self._wfe, self._wfe_status = _compute_wfe(y_val_list, val_preds_t)
-
-        dev_name = str(self._dev) if self._dev else "cpu"
+        mean_ic_str = f"{self._mean_ic:.4f}" if self._mean_ic is not None else "n/a"
+        ir_str      = f"{self._ir:.2f}"      if self._ir      is not None else "n/a"
         logger.info(
-            f"SignalCNN: trained {actual_epochs}/{epochs} epochs | "
-            f"train={n_train} val={n_val} ({dev_name}) | "
-            f"train_MSE={final_train:.6f} val_MSE={final_val:.6f} "
-            f"ratio={overfit_ratio:.2f} | {diagnosis} | "
-            f"WFE={self._wfe} [{self._wfe_status}]"
+            f"SignalCNN: walk-forward fit complete | folds={len(folds)} | "
+            f"mean_WFE={self._mean_wfe} mean_IC={mean_ic_str} IR={ir_str} | "
+            f"last_fold WFE={self._wfe} [{self._wfe_status}]"
         )
 
     # ── inference ─────────────────────────────────────────────────────────────
@@ -591,20 +758,22 @@ class SignalCNN:
 
         Parameters
         ----------
-        x : (5, T) float array — from SignalHistoryStore.get_recent_window()
+        x : (C, T) float array — from SignalHistoryStore.get_recent_window()
 
         Returns
         -------
-        pred_return : float       predicted 1-day return (e.g. 0.023 = +2.3%)
+        pred_return : float       predicted forward return at LABEL_HORIZON_COL
+                                  (default 5-day; e.g. 0.04 = +4%)
         direction   : str         'bull' | 'neutral' | 'bear'
-        confidence  : float 0–1   magnitude-scaled (5% return → 1.0)
+        confidence  : float 0–1   magnitude-scaled
+                                  (LABEL_HORIZON_FULL_CONF_RET → 1.0)
         """
         if not HAS_TORCH or self._net is None or not self._trained:
             return 0.0, "neutral", 0.0
 
         # Guard against channel mismatch during the transition period when old
-        # 7-channel checkpoints are loaded but get_recent_window now returns 9
-        # channels.  The net rebuilds automatically on the next 24h retrain.
+        # checkpoints are loaded but get_recent_window now returns more channels.
+        # The net rebuilds automatically on the next walk-forward retrain.
         if x.shape[0] != self._n_channels:
             return 0.0, "neutral", 0.0
 
@@ -613,8 +782,18 @@ class SignalCNN:
             x_t    = torch.from_numpy(x.astype(np.float32)).unsqueeze(0).to(self._dev)
             pred   = float(self._net(x_t).squeeze().cpu().item())
 
-        direction  = "bull" if pred > 0.005 else ("bear" if pred < -0.005 else "neutral")
-        confidence = float(min(1.0, abs(pred) / 0.05))   # 5% → max confidence
+        # Direction + confidence calibration scales with the label horizon
+        # (Layer 2.4): 5d returns are ~sqrt(5) wider than 1d. The constants
+        # LABEL_HORIZON_DIR_THRESHOLD and LABEL_HORIZON_FULL_CONF_RET capture
+        # the per-horizon scale so callers don't need to know which horizon
+        # the model was trained on.
+        if pred > LABEL_HORIZON_DIR_THRESHOLD:
+            direction = "bull"
+        elif pred < -LABEL_HORIZON_DIR_THRESHOLD:
+            direction = "bear"
+        else:
+            direction = "neutral"
+        confidence = float(min(1.0, abs(pred) / LABEL_HORIZON_FULL_CONF_RET))
         return pred, direction, confidence
 
     # ── learned weights ───────────────────────────────────────────────────────
@@ -679,6 +858,44 @@ class SignalCNN:
         )
         logger.info(f"SignalCNN: saved → {_MODEL_PATH}")
 
+        # Append to the training-history log (per-retrain JSONL) for trajectory analysis.
+        # signal_cnn.pt is overwritten each run; this log is append-only.
+        if self._trained:
+            final_train = self._train_loss[-1] if self._train_loss else None
+            final_val   = self._val_loss[-1]   if self._val_loss   else None
+            overfit_ratio = (
+                round(final_val / final_train, 4)
+                if final_train is not None and final_val is not None and final_train > 1e-10
+                else None
+            )
+            weights = self.get_learned_weights()
+            delta   = {k: round(weights[k] - _DEFAULT_WEIGHTS[k], 4) for k in SOURCE_NAMES}
+            ts_iso  = (
+                datetime.fromtimestamp(self._train_ts, tz=timezone.utc).isoformat()
+                if self._train_ts else None
+            )
+            _append_training_history({
+                "train_ts":         self._train_ts,
+                "train_ts_iso":     ts_iso,
+                "n_train":          self._n_train,
+                "n_val":            self._n_val,
+                "n_channels":       self._n_channels,
+                "epochs_completed": self._early_stop_epoch,
+                "final_train_mse":  final_train,
+                "final_val_mse":    final_val,
+                "overfit_ratio":    overfit_ratio,
+                "wfe":              self._wfe,
+                "wfe_status":       self._wfe_status,
+                "learned_weights":  weights,
+                "weight_delta":     delta,
+                # Walk-forward CV metrics (added 2026-04-27)
+                "fold_metrics":     self._fold_metrics,
+                "mean_ic":          self._mean_ic,
+                "ir":               self._ir,
+                "mean_wfe":         self._mean_wfe,
+                "calibration":      self._calibration,
+            })
+
     def load(self) -> bool:
         if not HAS_TORCH or self._net is None:
             return False
@@ -731,6 +948,16 @@ class SignalCNN:
     def device(self) -> str:
         return str(self._dev) if self._dev else "unavailable"
 
+    @property
+    def mean_wfe(self) -> Optional[float]:
+        """Mean walk-forward WFE across folds — None until first fit() completes."""
+        return self._mean_wfe
+
+    @property
+    def wfe_status(self) -> str:
+        """Last-fold WFE status: HEALTHY | DEGRADED | POOR | UNTRAINED."""
+        return self._wfe_status
+
     def training_summary(self) -> Dict:
         weights   = self.get_learned_weights()
         hardcoded = _DEFAULT_WEIGHTS
@@ -774,6 +1001,12 @@ class SignalCNN:
             "weight_delta":    delta,
             # Legacy key kept for backward compatibility
             "final_mse":       final_train,
+            # Walk-forward CV metrics (added 2026-04-27)
+            "fold_metrics":  self._fold_metrics,
+            "mean_ic":       self._mean_ic if self._mean_ic is not None else 0.0,
+            "ir":            self._ir if self._ir is not None else 0.0,
+            "mean_wfe":      self._mean_wfe,
+            "calibration":   self._calibration,
         }
 
 

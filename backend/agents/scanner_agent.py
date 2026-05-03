@@ -354,7 +354,13 @@ async def _tool_get_stock_analysis(symbol: str) -> Dict:
             "recent_news_count": len(news) if isinstance(news, list) else 0,
         }
     except Exception as e:
-        logger.warning(f"scanner tool get_stock_analysis({symbol}): {e}")
+        # exc_info=True captures the stack trace so we can pinpoint the
+        # source of "'NoneType' object has no attribute 'get'"-style errors
+        # instead of just the symptom (Backlog 0.3, 2026-04-29).
+        logger.warning(
+            f"scanner tool get_stock_analysis({symbol}): {e}",
+            exc_info=True,
+        )
         _record_pull(symbol, success=False)
         return {"symbol": symbol, "data_available": False, "error": str(e)}
 
@@ -1045,14 +1051,17 @@ async def _run_ollama_scanner(
         # return a plain-text response and exit with 0 recommendations.
         _tool_choice = "required" if rounds == 1 else "auto"
         response = None
+        # Backlog 0.7: per-app serialization + cross-app priority for Ollama.
+        from data.gpu_coord import ollama_coord
         for _attempt in range(3):  # up to 3 attempts per round (handles 500 crashes)
             try:
-                response = await client.chat.completions.create(
-                    model=config.OLLAMA_MODEL,
-                    messages=messages,
-                    tools=_OPENAI_TOOLS,
-                    tool_choice=_tool_choice,
-                )
+                async with ollama_coord.acquire(expected_ms=60_000):
+                    response = await client.chat.completions.create(
+                        model=config.OLLAMA_MODEL,
+                        messages=messages,
+                        tools=_OPENAI_TOOLS,
+                        tool_choice=_tool_choice,
+                    )
                 break  # success
             except Exception as e:
                 err_str = str(e)

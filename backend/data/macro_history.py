@@ -11,31 +11,32 @@ Used by:
 
 Schema
 ------
-  date_ts       unix timestamp (float64) — bar date, used as the join key
-  vix           VIX index level
-  tnx           10-year Treasury yield (e.g. 4.3)
-  vix_norm      VIX / 30.0  clipped to [0, 3]
-  gld_1d        GLD 1-day forward return
-  gld_5d        GLD 5-day forward return
-  tlt_1d        TLT 1-day forward return
-  tlt_5d        TLT 5-day forward return
-  spy_1d        SPY 1-day forward return
-  spy_5d        SPY 5-day forward return
-  iwm_5d        IWM 5-day forward return
-  qqq_5d        QQQ 5-day forward return
-  uup_5d        UUP 5-day forward return
-  uso_5d        USO 5-day forward return
-  breadth_score (iwm_5d - spy_5d) clipped to [-1, 1]
-  regime        string: RISK_ON | RISK_OFF | HIGH_VOL | NEUTRAL
-  regime_score  float: RISK_ON→+1.0, RISK_OFF→-1.0, HIGH_VOL→-0.5, else 0.0
+  date_ts            unix timestamp (float64) — bar date, used as the join key
+  vix                VIX index level
+  tnx                10-year Treasury yield (e.g. 4.3)
+  vix_norm           VIX / 30.0  clipped to [0, 3]
+  gld_1d             GLD 1-day forward return  (NOT a CNN input)
+  tlt_1d             TLT 1-day forward return  (NOT a CNN input)
+  spy_1d             SPY 1-day forward return  (NOT a CNN input)
+  gld_5d_back        GLD 5-day TRAILING return (Task #24 — was forward; renamed
+                     to _back to force re-backfill and document the fix)
+  tlt_5d_back        TLT 5-day trailing return
+  spy_5d_back        SPY 5-day trailing return
+  iwm_5d_back        IWM 5-day trailing return
+  qqq_5d_back        QQQ 5-day trailing return
+  uup_5d_back        UUP 5-day trailing return
+  uso_5d_back        USO 5-day trailing return
+  breadth_score_back (iwm_5d_back - spy_5d_back) clipped to [-1, 1]
+  regime             string: RISK_ON | RISK_OFF | HIGH_VOL | NEUTRAL
+  regime_score       float: RISK_ON→+1.0, RISK_OFF→-1.0, HIGH_VOL→-0.5, else 0.0
 
 CNN Feature Channels (N_MACRO_CHANNELS = 5)
 -------------------------------------------
-  macro_vix_norm    channel 10
-  macro_gld_5d      channel 11
-  macro_tlt_5d      channel 12
-  macro_spy_5d      channel 13
-  macro_breadth     channel 14
+  macro_vix_norm        channel 10  (level — no lookahead concern)
+  macro_gld_5d_back     channel 11  (trailing 5-day GLD return)
+  macro_tlt_5d_back     channel 12  (trailing 5-day TLT return)
+  macro_spy_5d_back     channel 13  (trailing 5-day SPY return)
+  macro_breadth_back    channel 14  ((iwm - spy) trailing 5-day, clipped)
 """
 import asyncio
 import logging
@@ -58,12 +59,12 @@ MACRO_COLUMNS: List[str] = [
     "date_ts",
     "vix", "tnx",
     "vix_norm",
-    "gld_1d", "gld_5d",
-    "tlt_1d", "tlt_5d",
-    "spy_1d", "spy_5d",
-    "iwm_5d", "qqq_5d",
-    "uup_5d", "uso_5d",
-    "breadth_score",
+    "gld_1d", "tlt_1d", "spy_1d",
+    # Task #24: 5d returns are now TRAILING (was forward) — `_back` suffix
+    # documents the fix and forces re-backfill of any stale parquet.
+    "gld_5d_back", "tlt_5d_back", "spy_5d_back",
+    "iwm_5d_back", "qqq_5d_back", "uup_5d_back", "uso_5d_back",
+    "breadth_score_back",
     "regime",
     "regime_score",
 ]
@@ -71,10 +72,10 @@ MACRO_COLUMNS: List[str] = [
 # The 5 columns added as extra CNN input channels
 MACRO_FEATURE_COLS: List[str] = [
     "macro_vix_norm",
-    "macro_gld_5d",
-    "macro_tlt_5d",
-    "macro_spy_5d",
-    "macro_breadth",
+    "macro_gld_5d_back",
+    "macro_tlt_5d_back",
+    "macro_spy_5d_back",
+    "macro_breadth_back",
 ]
 
 N_MACRO_CHANNELS: int = len(MACRO_FEATURE_COLS)  # 5
@@ -132,36 +133,38 @@ class MacroHistoryStore:
         date_ts : unix timestamp of the bar date
         vix     : VIX level (e.g. 18.5); may be NaN when unavailable
         tnx     : 10-year yield (e.g. 4.3)
-        returns : dict with keys gld_1d, gld_5d, tlt_1d, tlt_5d,
-                  spy_1d, spy_5d, iwm_5d, qqq_5d, uup_5d, uso_5d
+        returns : dict with keys gld_1d, tlt_1d, spy_1d (forward 1-day, not
+                  CNN inputs) and gld_5d_back, tlt_5d_back, spy_5d_back,
+                  iwm_5d_back, qqq_5d_back, uup_5d_back, uso_5d_back
+                  (trailing 5-day, used as CNN inputs — Task #24)
         regime  : RISK_ON | RISK_OFF | HIGH_VOL | NEUTRAL | ...
         """
         vix_f    = float(vix)
         # vix_norm = VIX / 30, clamped to [0, 3]
         vix_norm = float(np.clip(vix_f / 30.0, 0.0, 3.0)) if not np.isnan(vix_f) else float("nan")
-        iwm_5d   = float(returns.get("iwm_5d", 0.0))
-        spy_5d   = float(returns.get("spy_5d", 0.0))
-        breadth  = float(np.clip(iwm_5d - spy_5d, -1.0, 1.0))
+        iwm_5d_back = float(returns.get("iwm_5d_back", 0.0))
+        spy_5d_back = float(returns.get("spy_5d_back", 0.0))
+        breadth_back = float(np.clip(iwm_5d_back - spy_5d_back, -1.0, 1.0))
         r_score  = float(_REGIME_SCORES.get(regime, 0.0))
 
         row: Dict = {
-            "date_ts":       float(date_ts),
-            "vix":           vix_f,
-            "tnx":           float(tnx),
-            "vix_norm":      vix_norm,
-            "gld_1d":        float(returns.get("gld_1d", 0.0)),
-            "gld_5d":        float(returns.get("gld_5d", 0.0)),
-            "tlt_1d":        float(returns.get("tlt_1d", 0.0)),
-            "tlt_5d":        float(returns.get("tlt_5d", 0.0)),
-            "spy_1d":        float(returns.get("spy_1d", 0.0)),
-            "spy_5d":        spy_5d,
-            "iwm_5d":        iwm_5d,
-            "qqq_5d":        float(returns.get("qqq_5d", 0.0)),
-            "uup_5d":        float(returns.get("uup_5d", 0.0)),
-            "uso_5d":        float(returns.get("uso_5d", 0.0)),
-            "breadth_score": breadth,
-            "regime":        str(regime),
-            "regime_score":  r_score,
+            "date_ts":            float(date_ts),
+            "vix":                vix_f,
+            "tnx":                float(tnx),
+            "vix_norm":           vix_norm,
+            "gld_1d":             float(returns.get("gld_1d", 0.0)),
+            "tlt_1d":             float(returns.get("tlt_1d", 0.0)),
+            "spy_1d":             float(returns.get("spy_1d", 0.0)),
+            "gld_5d_back":        float(returns.get("gld_5d_back", 0.0)),
+            "tlt_5d_back":        float(returns.get("tlt_5d_back", 0.0)),
+            "spy_5d_back":        spy_5d_back,
+            "iwm_5d_back":        iwm_5d_back,
+            "qqq_5d_back":        float(returns.get("qqq_5d_back", 0.0)),
+            "uup_5d_back":        float(returns.get("uup_5d_back", 0.0)),
+            "uso_5d_back":        float(returns.get("uso_5d_back", 0.0)),
+            "breadth_score_back": breadth_back,
+            "regime":             str(regime),
+            "regime_score":       r_score,
         }
 
         async with _LOCK:
@@ -173,8 +176,8 @@ class MacroHistoryStore:
         """
         Return the 5 CNN macro feature values for the date closest to ts.
 
-        Feature order (matches MACRO_FEATURE_COLS):
-          [vix_norm, gld_5d, tlt_5d, spy_5d, breadth_score]
+        Feature order (matches MACRO_FEATURE_COLS) — Task #24 trailing:
+          [vix_norm, gld_5d_back, tlt_5d_back, spy_5d_back, breadth_score_back]
 
         Returns a zero vector when no data is available within ±2 calendar days.
 
@@ -210,10 +213,10 @@ class MacroHistoryStore:
 
         return np.array([
             _safe("vix_norm"),
-            _safe("gld_5d"),
-            _safe("tlt_5d"),
-            _safe("spy_5d"),
-            _safe("breadth_score"),
+            _safe("gld_5d_back"),
+            _safe("tlt_5d_back"),
+            _safe("spy_5d_back"),
+            _safe("breadth_score_back"),
         ], dtype=np.float32)
 
 

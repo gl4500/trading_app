@@ -2042,5 +2042,35 @@ class TestOffHoursOllamaScan(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(OLLAMA_CLOSED_SCAN_MIN, 30)
 
 
+class TestCnnDiagnosticsExposesWalkforward(unittest.TestCase):
+    """/api/cnn-diagnostics surfaces walk-forward CV metrics."""
+
+    def test_endpoint_returns_walkforward_keys(self):
+        from main import app
+        from data.cnn_model import signal_cnn
+        from data.regime_detector import regime_detector
+
+        # Inject minimal walk-forward state directly on the singleton
+        signal_cnn._fold_metrics = [
+            {"fold": 0, "n_train": 100, "n_val": 50, "val_window_days": 14.0,
+             "val_mse": 0.001, "wfe": 0.05, "ic": 0.04, "epochs": 5},
+        ]
+        signal_cnn._mean_ic   = 0.04
+        signal_cnn._ir        = 1.5
+        signal_cnn._mean_wfe  = 0.05
+        signal_cnn._calibration = [
+            {"bucket": 0, "count": 10, "mean_pred": -0.01, "mean_actual": -0.008},
+        ]
+
+        with _no_lifespan_client(app) as client:
+            with patch("data.regime_detector.regime_detector") as mock_regime:
+                mock_regime.summary.return_value = {}
+                r = client.get("/api/cnn-diagnostics")
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        for key in ("fold_metrics", "mean_ic", "ir", "mean_wfe", "calibration"):
+            self.assertIn(key, body)
+
+
 if __name__ == "__main__":
     unittest.main()

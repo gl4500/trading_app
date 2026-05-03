@@ -77,6 +77,46 @@ class Config:
     # below entry_confidence (e.g. 0.30 = sell if conviction fell 30 pp since entry)
     BAYES_EXIT_DROP: float = float(os.getenv("BAYES_EXIT_DROP", "0.30"))
 
+    # Trailing stop on UNREALIZED PnL (added 2026-04-29):
+    # Sell when (peak_unrealized_pnl - current_unrealized_pnl) >=
+    #          peak_unrealized_pnl × TRAIL_GIVEBACK_PCT,
+    # but only after peak first reaches TRAIL_ARM_USD (avoids whipsawing
+    # on tiny noise around break-even). Goal: lock in gains by selling when
+    # a profitable position has given back X% of its peak unrealized profit.
+    TRAIL_GIVEBACK_PCT: float = float(os.getenv("TRAIL_GIVEBACK_PCT", "0.20"))
+    TRAIL_ARM_USD:      float = float(os.getenv("TRAIL_ARM_USD",      "25.0"))
+
+    # Hard stop-loss (Backlog 0.4, 2026-04-29):
+    # Defensive floor — sell when (avg_cost - current_price) / avg_cost >=
+    # HARD_STOP_PCT, regardless of Bayes / trailing / LLM. Catches positions
+    # that drop sharply from entry without ever being profitable (the case
+    # the trailing stop CAN'T catch since trail only arms on positive PnL).
+    # Set HARD_STOP_PCT=0 (or any negative) to disable.
+    HARD_STOP_PCT: float = float(os.getenv("HARD_STOP_PCT", "0.08"))
+
+    # Model backend selector (added 2026-05-02). Default keeps the legacy
+    # CNN; set to "xgboost" to switch to the gradient-boosted regressor.
+    MODEL_BACKEND: str = os.getenv("MODEL_BACKEND", "cnn").lower().strip()
+
+    # Daily-move risk re-evaluation (Backlog 0.5, 2026-04-29):
+    # When a held position drops more than DAILY_REVIEW_PCT from today's open,
+    # the CNN agent injects a "## RISK ALERT" block into the Ollama prompt
+    # telling the LLM to explicitly reconsider whether to exit. Defends
+    # against catalysts that arrive after market close (the 2026-04-28
+    # ASML "Semi Mania Backtracks" headline hit at 16:53 EDT, after close).
+    # Set to 0 to disable the gate.
+    DAILY_REVIEW_PCT: float = float(os.getenv("DAILY_REVIEW_PCT", "0.05"))
+
+    # Lone-wolf BUY discount (Backlog 0.6, 2026-04-29):
+    # When CNNReasoningAgent fires a BUY but fewer than LONEWOLF_MIN_CORROBORATORS
+    # other agents agree on the same symbol, multiply the position size by
+    # LONEWOLF_MULTIPLIER. CNN's WFE has been negative across retrains, so
+    # uncorroborated BUYs are exactly the trades most likely to be noise-driven
+    # false positives. Halving the size limits damage when the model is wrong
+    # without blocking lone-wolf trades entirely.
+    LONEWOLF_MIN_CORROBORATORS: int   = int(os.getenv("LONEWOLF_MIN_CORROBORATORS", "2"))
+    LONEWOLF_MULTIPLIER:        float = float(os.getenv("LONEWOLF_MULTIPLIER", "0.5"))
+
     # Watchlist — static seed symbols used as fallback when the scanner pool is small.
     # Set WATCHLIST=* to disable static seeds entirely — the watchlist is then built
     # solely from scanner recommendations and momentum candidates (agent-driven).

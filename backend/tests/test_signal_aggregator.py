@@ -7,11 +7,14 @@ require integration tests with mocked HTTP clients.
 import sys
 import os
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import data.signal_aggregator as sa
 from data.signal_aggregator import (
     _score_headlines,
+    _score_yahoo_news,
     _aggregate_scores,
     format_for_prompt,
     SOURCE_WEIGHTS,
@@ -68,6 +71,52 @@ class TestScoreHeadlines(unittest.TestCase):
         if result is not None:
             self.assertGreater(result, -1.0)
             self.assertLess(result, 1.0)
+
+
+# ── _score_yahoo_news (FinBERT with keyword fallback) ────────────────────────
+
+class TestScoreYahooNews(unittest.TestCase):
+    """Task #21: yahoo_news now scored by FinBERT, with the legacy keyword
+    counter as a fallback. The wrapper makes the policy unit-testable
+    without spinning up yfinance."""
+
+    def test_returns_none_when_no_articles(self):
+        self.assertIsNone(_score_yahoo_news([]))
+
+    def test_uses_finbert_when_available(self):
+        articles = [{"headline": "AAPL up", "summary": ""}]
+        # FinBERT returns 0.42; keyword scorer should NOT be consulted.
+        with patch.object(sa.finbert_scorer, "score_headlines", return_value=0.42) as fb, \
+             patch.object(sa, "_score_headlines") as kw:
+            result = _score_yahoo_news(articles)
+        self.assertAlmostEqual(result, 0.42, places=5)
+        fb.assert_called_once_with(articles)
+        kw.assert_not_called()
+
+    def test_falls_back_to_keyword_when_finbert_returns_none(self):
+        articles = [{"headline": "AAPL beats earnings", "summary": ""}]
+        with patch.object(sa.finbert_scorer, "score_headlines", return_value=None), \
+             patch.object(sa, "_score_headlines", return_value=0.31) as kw:
+            result = _score_yahoo_news(articles)
+        self.assertAlmostEqual(result, 0.31, places=5)
+        kw.assert_called_once_with(articles)
+
+    def test_returns_none_when_both_scorers_return_none(self):
+        articles = [{"headline": "annual meeting date", "summary": ""}]
+        with patch.object(sa.finbert_scorer, "score_headlines", return_value=None), \
+             patch.object(sa, "_score_headlines", return_value=None):
+            result = _score_yahoo_news(articles)
+        self.assertIsNone(result)
+
+    def test_finbert_zero_score_does_not_trigger_fallback(self):
+        # 0.0 is a legitimate FinBERT output (genuinely neutral) — must not
+        # be treated as "unavailable" and fall through to the keyword scorer.
+        articles = [{"headline": "AAPL announces date for conference call", "summary": ""}]
+        with patch.object(sa.finbert_scorer, "score_headlines", return_value=0.0), \
+             patch.object(sa, "_score_headlines") as kw:
+            result = _score_yahoo_news(articles)
+        self.assertEqual(result, 0.0)
+        kw.assert_not_called()
 
 
 # ── _aggregate_scores tests ───────────────────────────────────────────────────
@@ -257,6 +306,64 @@ class TestFormatForPrompt(unittest.TestCase):
             (l for l in result.splitlines() if "earnings" in l.lower()), ""
         )
         self.assertIn("CONTEXT ONLY", earnings_line)
+
+
+class TestGetCompositeSignalDefenseInDepth(unittest.IsolatedAsyncioTestCase):
+    """get_composite_signal must coerce gather() failures into empty dicts
+    so downstream `.get(...)` calls never crash with NoneType (Backlog 0.3)."""
+
+    async def test_yf_data_exception_does_not_crash(self):
+        """If _get_yf_data raises, gather hands back the exception — must coerce to {}."""
+        from data.signal_aggregator import get_composite_signal
+
+        async def _raises(symbol):
+            raise RuntimeError("yfinance is sad")
+
+        async def _ok(symbol):
+            return {"score": 0.1}
+
+        with patch("data.signal_aggregator._get_yf_data", side_effect=_raises), \
+             patch("data.congressional_trading.get_congressional_signal", side_effect=_ok):
+            result = await get_composite_signal("AAPL", [])
+
+        # Must return a dict with the expected shape — no crash
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["symbol"], "AAPL")
+        self.assertIn("composite_score", result)
+        self.assertIn("sources", result)
+
+    async def test_congress_data_exception_does_not_crash(self):
+        """If get_congressional_signal raises, gather hands back the exception — must coerce."""
+        from data.signal_aggregator import get_composite_signal
+
+        async def _ok(symbol):
+            return {"analyst_score": 0.5}
+
+        async def _raises(symbol):
+            raise ValueError("EDGAR is sad")
+
+        with patch("data.signal_aggregator._get_yf_data", side_effect=_ok), \
+             patch("data.congressional_trading.get_congressional_signal", side_effect=_raises):
+            result = await get_composite_signal("AAPL", [])
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["symbol"], "AAPL")
+
+    async def test_both_sources_failing_returns_neutral_dict(self):
+        """Worst case: both fetches raise — function must still return a usable dict."""
+        from data.signal_aggregator import get_composite_signal
+
+        async def _raises(symbol):
+            raise RuntimeError("everything is broken")
+
+        with patch("data.signal_aggregator._get_yf_data", side_effect=_raises), \
+             patch("data.congressional_trading.get_congressional_signal", side_effect=_raises):
+            result = await get_composite_signal("AAPL", [])
+
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result["symbol"], "AAPL")
+        # composite_score may be None (no usable inputs) but the dict shape is intact
+        self.assertIn("sources", result)
 
 
 if __name__ == "__main__":
