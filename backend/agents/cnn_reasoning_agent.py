@@ -111,6 +111,34 @@ class CNNReasoningAgent(BaseAgent):
         async with self._training_lock:
             await asyncio.to_thread(self._train_blocking)
 
+    def _unrealized_pnl_pct(self, prices: Dict[str, float]) -> Optional[float]:
+        """Compute total uPnL across CNN's open positions, expressed as a
+        fraction of the agent's portfolio total value.
+
+        Returns None when there are no open positions (gate inactive) or
+        when total portfolio value is non-positive (degenerate). Otherwise
+        returns a signed fraction (e.g., -0.025 = -2.5%).
+
+        Used by the unrealized-portfolio-drawdown BUY gate (added 2026-05-04
+        after the WFE gate stopped firing post-XGB-upgrade).
+        """
+        if not self.portfolio.positions:
+            return None
+        total_upnl = 0.0
+        for sym, pos in self.portfolio.positions.items():
+            if pos.shares <= 0:
+                continue
+            current_price = prices.get(sym)
+            if current_price is None or current_price <= 0:
+                # No quote — skip rather than penalise. Conservative: a
+                # missing quote shouldn't trigger a false-positive cap.
+                continue
+            total_upnl += (current_price - pos.avg_cost) * pos.shares
+        portfolio_val = self.portfolio.get_total_value(prices)
+        if portfolio_val <= 0:
+            return None
+        return total_upnl / portfolio_val
+
     def _train_blocking(self) -> None:
         """Blocking training call — executed via asyncio.to_thread.
 
@@ -588,9 +616,35 @@ class CNNReasoningAgent(BaseAgent):
                 )
                 action = "HOLD"
 
-            # Regime-aware buy gate: bear/high_vol markets require higher confidence
+            # Unrealized-portfolio drawdown cap (added 2026-05-04 after the
+            # WFE gate stopped firing — once mean_wfe flipped positive on the
+            # XGB upgrade, the agent fired 38 BUYs in one day with -$2.1k
+            # unrealized. This pauses NEW BUYs (SELLs always pass) when total
+            # uPnL across CNN's open positions falls below the configured
+            # drawdown fraction of total portfolio value. Self-correcting:
+            # once positions recover or are sold, BUYs resume.
+            if action == "BUY":
+                upnl_pct = self._unrealized_pnl_pct(prices)
+                if upnl_pct is not None and upnl_pct < config.CNN_PAUSE_UPNL_DRAWDOWN_PCT:
+                    logger.info(
+                        f"CNNReasoningAgent [{symbol}]: uPnL drawdown gate "
+                        f"blocked BUY (uPnL={upnl_pct:+.2%} < threshold "
+                        f"{config.CNN_PAUSE_UPNL_DRAWDOWN_PCT:+.2%})"
+                    )
+                    reasoning = (
+                        f"uPnL drawdown gate: BUY blocked — open CNN positions "
+                        f"are at {upnl_pct:+.2%} unrealized vs threshold "
+                        f"{config.CNN_PAUSE_UPNL_DRAWDOWN_PCT:+.2%}. Letting "
+                        f"existing positions resolve before opening new ones. "
+                        f"Original reasoning: {reasoning}"
+                    )
+                    action = "HOLD"
+
+            # Regime-aware buy gate: bear/high_vol markets require higher
+            # confidence still. Base threshold raised 0.50 → 0.65 (2026-05-04)
+            # after over-buying incident — see config.CNN_BUY_THRESHOLD_BASE.
             from data.regime_detector import regime_detector
-            _buy_threshold = 0.50 + regime_detector.get_confidence_gate()
+            _buy_threshold = config.CNN_BUY_THRESHOLD_BASE + regime_detector.get_confidence_gate()
 
             if action == "BUY" and confidence >= _buy_threshold and price > 0:
                 # Use Ollama's size_pct (fraction of total portfolio value to deploy).
