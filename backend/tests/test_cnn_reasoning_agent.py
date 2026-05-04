@@ -146,7 +146,12 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
 
     async def test_buy_blocked_when_mean_wfe_negative(self):
         """High-conviction BUY must be downgraded to HOLD when mean_wfe < 0."""
-        from data.cnn_model import signal_cnn
+        # Use the SELECTOR singleton (resolves to SignalCNN or SignalXGBoost
+        # based on MODEL_BACKEND), since that's what cnn_reasoning_agent
+        # imports as `signal_cnn`. Local .env may set MODEL_BACKEND=xgboost,
+        # in which case data.cnn_model.signal_cnn would be a different
+        # object than the agent uses.
+        from data.signal_model import signal_model as signal_cnn
         mkt = _make_market(["AAPL"], price=150.0)
         buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
         # Simulate a completed walk-forward retrain with a bad mean_wfe
@@ -168,7 +173,12 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
 
     async def test_buy_allowed_when_mean_wfe_positive(self):
         """When mean_wfe >= 0, BUY signals should pass the gate."""
-        from data.cnn_model import signal_cnn
+        # Use the SELECTOR singleton (resolves to SignalCNN or SignalXGBoost
+        # based on MODEL_BACKEND), since that's what cnn_reasoning_agent
+        # imports as `signal_cnn`. Local .env may set MODEL_BACKEND=xgboost,
+        # in which case data.cnn_model.signal_cnn would be a different
+        # object than the agent uses.
+        from data.signal_model import signal_model as signal_cnn
         mkt = _make_market(["AAPL"], price=150.0)
         buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
         original_mean_wfe = signal_cnn._mean_wfe
@@ -185,7 +195,12 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
 
     async def test_buy_allowed_when_mean_wfe_unmeasured(self):
         """When mean_wfe is None (no walk-forward retrain yet), gate is inactive."""
-        from data.cnn_model import signal_cnn
+        # Use the SELECTOR singleton (resolves to SignalCNN or SignalXGBoost
+        # based on MODEL_BACKEND), since that's what cnn_reasoning_agent
+        # imports as `signal_cnn`. Local .env may set MODEL_BACKEND=xgboost,
+        # in which case data.cnn_model.signal_cnn would be a different
+        # object than the agent uses.
+        from data.signal_model import signal_model as signal_cnn
         mkt = _make_market(["AAPL"], price=150.0)
         buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
         original_mean_wfe = signal_cnn._mean_wfe

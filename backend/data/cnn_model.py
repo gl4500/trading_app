@@ -126,29 +126,20 @@ MACRO_CHANNEL_NAMES: List[str] = [
     "macro_breadth_back",   # channel 13: (IWM - SPY) trailing 5d, clipped [-1, 1]
 ]
 
-# Total full input channels: 5 source + 2 agent + 2 RV + 5 returns + 5 macro = 19
-# build_training_windows degrades gracefully (drops 5 returns or 5 macro) when those cols absent.
-# Old checkpoints (15ch from before Task #20) load fine — predict() guards against
-# shape mismatch and the net auto-rebuilds to the correct channel count on the
-# next 24h retrain cycle.
-N_CHANNELS = (
-    len(SOURCE_NAMES)
-    + len(AGENT_CHANNEL_NAMES)
-    + len(RV_CHANNEL_NAMES)
-    + len(RETURN_CHANNEL_NAMES)
-    + len(MACRO_CHANNEL_NAMES)
-)  # 19
-
-# Fixed-order list of the 19 channel COLUMN names (df column keys, not the
-# pretty *_NAMES used for the LLM display). Used by XGB_FEATURE_FILTER to
-# resolve channel names → indices. Order MUST match build_training_windows.
+# Fixed-order list of channel COLUMN names — derived from
+# data.feature_catalog.CATALOG (the registered single source of truth).
+# Adding a channel = one CATALOG entry, not a hand-edit here.
 #
-# Derived from data.feature_catalog.CATALOG, the registered single source
-# of truth for channel definitions. Adding a channel = one CATALOG entry,
-# not a hand-edit here.
+# History:
+#   15 → 14  (Task #20: dropped congressional_trades)
+#   14 → 19  (Tier 1: added 5 hourly lagged returns r_1..r_120)
+#   19 → 25  (Sprint 0: added 6 daily-resampled returns r_1d..r_252d)
+#
+# build_training_windows degrades gracefully (drops blocks whose cols are
+# absent), so old per-symbol parquets still train.
 from data.feature_catalog import channel_names as _catalog_channel_names
 ALL_CHANNEL_COLUMNS: List[str] = _catalog_channel_names()
-assert len(ALL_CHANNEL_COLUMNS) == N_CHANNELS
+N_CHANNELS = len(ALL_CHANNEL_COLUMNS)
 
 # Renormalized after dropping congressional_trades (was 0.11; remaining sum 0.89).
 # Each weight = old_weight / 0.89.
@@ -430,6 +421,7 @@ def build_training_windows(
     """
     from data.signal_history import (  # avoid circular
         SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
+        DAILY_RETURN_COLUMNS,
         _apply_cnn_feature_transforms,
     )
 
@@ -438,10 +430,11 @@ def build_training_windows(
     # Returns a copy — caller's df keeps signed values.
     df = _apply_cnn_feature_transforms(df)
 
-    has_agent   = all(c in df.columns for c in AGENT_COLUMNS)
-    has_rv      = all(c in df.columns for c in RV_COLUMNS)
-    has_returns = all(c in df.columns for c in RETURN_COLUMNS)
-    has_macro   = all(c in df.columns for c in MACRO_CHANNEL_NAMES)
+    has_agent       = all(c in df.columns for c in AGENT_COLUMNS)
+    has_rv          = all(c in df.columns for c in RV_COLUMNS)
+    has_returns     = all(c in df.columns for c in RETURN_COLUMNS)
+    has_macro       = all(c in df.columns for c in MACRO_CHANNEL_NAMES)
+    has_daily_ret   = all(c in df.columns for c in DAILY_RETURN_COLUMNS)
     feat_cols = [c for c in SOURCE_COLUMNS if c in df.columns]
     if has_agent:
         feat_cols = feat_cols + AGENT_COLUMNS
@@ -451,6 +444,10 @@ def build_training_windows(
         feat_cols = feat_cols + RETURN_COLUMNS
     if has_macro:
         feat_cols = feat_cols + MACRO_CHANNEL_NAMES
+    # Sprint 0: daily-resampled returns appended AFTER macro to preserve
+    # existing channel indices [0-18]. Production XGB filter remains valid.
+    if has_daily_ret:
+        feat_cols = feat_cols + DAILY_RETURN_COLUMNS
     n_feat    = len(feat_cols)
     if n_feat == 0:
         logger.warning("build_training_windows: no recognised feature columns in df — returning empty")
