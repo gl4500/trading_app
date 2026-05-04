@@ -93,10 +93,12 @@ class TestBuildTrainingWindows(unittest.TestCase):
         self.assertEqual(len(X), len(w))
 
     def test_x_shape_is_N_channels_by_T(self):
-        # Include all optional cols so the full N_CHANNELS=19 channels are present
+        # Without daily-return cols (Sprint 0), build_training_windows degrades
+        # to 19 channels (5 src + 2 agent + 2 rv + 5 ret + 5 macro). The full
+        # N_CHANNELS = 25 path is exercised in test_x_shape_with_daily_returns.
         df = _make_df(50, add_macro_cols=True, add_return_cols=True)
         X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], N_CHANNELS)  # 19
+        self.assertEqual(X.shape[1], 19)
         self.assertEqual(X.shape[2], WINDOW_SIZE)
 
     def test_x_shape_degrades_without_optional_cols(self):
@@ -307,9 +309,9 @@ class TestCongressDemotedFromCNN(unittest.TestCase):
     def test_default_weights_keys_match_source_names(self):
         self.assertEqual(set(_DEFAULT_WEIGHTS.keys()), set(SOURCE_NAMES))
 
-    def test_n_channels_is_19_after_return_channels(self):
-        # 5 source (analyst/earnings/alpaca/yahoo/iv_rv) + 2 agent + 2 RV + 5 ret + 5 macro
-        self.assertEqual(N_CHANNELS, 19)
+    def test_n_channels_is_25_after_sprint0_daily_returns(self):
+        # Sprint 0: 5 source + 2 agent + 2 RV + 5 hourly ret + 5 macro + 6 daily ret = 25
+        self.assertEqual(N_CHANNELS, 25)
 
 
 class TestEarningsReframedToMagnitude(unittest.TestCase):
@@ -1125,10 +1127,11 @@ class TestReturnChannelsExposed(unittest.TestCase):
     """Tier 1 from docs/equity_feature_engineering_audit.md — five lagged
     return channels become part of N_CHANNELS."""
 
-    def test_n_channels_is_19(self):
+    def test_n_channels_is_25_after_sprint0(self):
         from data.cnn_model import N_CHANNELS, RETURN_CHANNEL_NAMES
         self.assertEqual(len(RETURN_CHANNEL_NAMES), 5)
-        self.assertEqual(N_CHANNELS, 19)  # 5 src + 2 agent + 2 rv + 5 ret + 5 macro
+        # Sprint 0: 5 src + 2 agent + 2 rv + 5 hourly ret + 5 macro + 6 daily ret = 25
+        self.assertEqual(N_CHANNELS, 25)
 
     def test_return_channel_order(self):
         from data.cnn_model import RETURN_CHANNEL_NAMES
@@ -1138,10 +1141,12 @@ class TestReturnChannelsExposed(unittest.TestCase):
         )
 
     def test_build_training_windows_includes_return_columns(self):
-        """When the df has return columns, build_training_windows packs them
-        into the (C, T) tensor between RV and MACRO blocks."""
+        """When the df has hourly return columns (no daily-return cols),
+        build_training_windows packs them into the (C, T) tensor between RV
+        and MACRO blocks. Without daily-return cols, has_daily_ret is False
+        and the daily block is skipped, so output is (N, 19, T)."""
         import pandas as pd
-        from data.cnn_model import build_training_windows, WINDOW_SIZE, N_CHANNELS
+        from data.cnn_model import build_training_windows, WINDOW_SIZE
 
         n = WINDOW_SIZE + 50
         df = pd.DataFrame({
@@ -1170,7 +1175,6 @@ class TestReturnChannelsExposed(unittest.TestCase):
             "return_5d":       np.full(n, 0.005),
         })
         X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], N_CHANNELS)
         self.assertEqual(X.shape[1], 19)
 
 
@@ -1196,7 +1200,10 @@ class TestFeatureCatalog(unittest.TestCase):
         order. Out-of-order entries break build_training_windows' channel
         composition (it concatenates per-block in this exact sequence)."""
         from data.feature_catalog import CATALOG
-        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO"]
+        # Sprint 0 added RETURN_DAILY at the end so existing channel indices
+        # 0-18 (incl. MACRO at 14-18) remain unchanged. New daily returns
+        # land at indices 19-24.
+        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO", "RETURN_DAILY"]
         seen = []
         for c in CATALOG:
             if not seen or seen[-1] != c.category:
@@ -1251,15 +1258,19 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
     def test_all_channel_columns_composed_from_signal_history_blocks(self):
         from data.signal_history import (
             SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
-            _MACRO_COLUMN_MAP,
+            DAILY_RETURN_COLUMNS, _MACRO_COLUMN_MAP,
         )
         from data.cnn_model import ALL_CHANNEL_COLUMNS, N_CHANNELS
+        # Sprint 0: daily-resampled returns appended AFTER macro so existing
+        # channel indices [0-18] are preserved (production XGB feature_filter
+        # depends on stable indices).
         expected = (
             list(SOURCE_COLUMNS)
             + list(AGENT_COLUMNS)
             + list(RV_COLUMNS)
             + list(RETURN_COLUMNS)
             + list(_MACRO_COLUMN_MAP.values())
+            + list(DAILY_RETURN_COLUMNS)
         )
         self.assertEqual(
             ALL_CHANNEL_COLUMNS, expected,

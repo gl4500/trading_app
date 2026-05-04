@@ -113,11 +113,116 @@ class TestGetTrainingDataIncludesReturns(unittest.TestCase):
                           f"get_training_data must include {col}")
 
 
-class TestGetRecentWindowReturns19Channels(unittest.TestCase):
-    """get_recent_window must return a (19, T) array matching training shape:
-    5 source + 2 agent + 2 rv + 5 returns + 5 macro."""
+class TestComputeDailyReturnFeatures(unittest.TestCase):
+    """Sprint 0: daily-resampled lagged log returns. Where _compute_return_features
+    shifts on the raw hourly grid, this resamples per-symbol prices to one row
+    per trading day and shifts there — so r_120d is exactly 120 calendar days
+    back, not '120 hourly snapshots' (~20 trading days).
+    """
 
-    def test_recent_window_has_19_rows(self):
+    def _hourly_df(self, n_days: int, symbol: str = "AAPL", start_price: float = 100.0):
+        """Build a multi-day df with ~5 hourly snapshots per trading day.
+        Close-of-day price progresses linearly so daily returns are easy to
+        verify by hand."""
+        import pandas as pd
+        rows = []
+        base_ts = 1_704_067_200.0   # 2024-01-01 00:00 UTC
+        for d in range(n_days):
+            for hr in range(5):
+                # Per-day: 5 snapshots, prices monotonic, last (hr=4) is the
+                # "close" — that's what the daily-resampler will keep.
+                rows.append({
+                    "symbol": symbol,
+                    "snapshot_ts": base_ts + d * 86400 + hr * 3600,
+                    "price":  start_price + d + hr * 0.1,
+                })
+        return pd.DataFrame(rows)
+
+    def test_adds_six_daily_return_columns(self):
+        from data.signal_history import _compute_daily_return_features, DAILY_RETURN_COLUMNS
+        df = self._hourly_df(30)
+        out = _compute_daily_return_features(df)
+        for col in DAILY_RETURN_COLUMNS:
+            self.assertIn(col, out.columns)
+
+    def test_r_5d_math_is_log_of_close_over_close_5d_back(self):
+        """For row at day D close, r_5d should equal log(close[D] / close[D-5])."""
+        from data.signal_history import _compute_daily_return_features
+        df = self._hourly_df(20)
+        out = _compute_daily_return_features(df)
+        # Close of day 10 is start_price + 10 + 0.4 = 110.4
+        # Close of day 5 is start_price + 5 + 0.4 = 105.4
+        # Expected r_5d at any row in day 10: log(110.4 / 105.4)
+        expected = float(np.log(110.4 / 105.4))
+        # Pick the close-of-day-10 row (hr=4)
+        day10_close_idx = 10 * 5 + 4
+        self.assertAlmostEqual(out["r_5d"].iloc[day10_close_idx], expected, places=4)
+
+    def test_first_n_days_have_nan_for_r_nd(self):
+        """r_5d on the first 5 calendar days has no 5-day prior, so all
+        rows in those days are NaN."""
+        from data.signal_history import _compute_daily_return_features
+        df = self._hourly_df(15)
+        out = _compute_daily_return_features(df)
+        # Day 0..4 are within the first 5 calendar days → r_5d is NaN
+        first_25_rows = out["r_5d"].iloc[:25]   # 5 days × 5 snapshots
+        self.assertTrue(first_25_rows.isna().all(),
+                        "rows in days 0-4 must be NaN for r_5d (no 5-day-prior data)")
+
+    def test_all_hourly_rows_in_a_day_share_the_same_daily_return(self):
+        """The forward-fill from daily back to hourly: every snapshot in a
+        given trading day gets that day's r_*d value (broadcast)."""
+        from data.signal_history import _compute_daily_return_features
+        df = self._hourly_df(15)
+        out = _compute_daily_return_features(df)
+        # Day 10 (rows 50..54): all 5 snapshots should share the same r_5d
+        day10_r5d = out["r_5d"].iloc[50:55].values
+        self.assertEqual(len(set(day10_r5d.tolist())), 1,
+                         "all hourly rows in a day must share the same r_5d")
+
+    def test_per_symbol_isolation(self):
+        """AAPL's daily returns must not leak into MSFT and vice versa."""
+        from data.signal_history import _compute_daily_return_features
+        import pandas as pd
+        # AAPL with rising prices, MSFT with FALLING prices — same dates
+        aapl = self._hourly_df(15, symbol="AAPL", start_price=100.0)
+        msft = self._hourly_df(15, symbol="MSFT", start_price=200.0)
+        msft["price"] = 200.0 - msft["price"] + 200.0   # invert: now decreasing
+        df = pd.concat([aapl, msft], ignore_index=True)
+        out = _compute_daily_return_features(df)
+        aapl_out = out[out["symbol"] == "AAPL"]
+        msft_out = out[out["symbol"] == "MSFT"]
+        # AAPL's r_5d should be positive (rising), MSFT's negative (falling)
+        # Pick day 10's close row
+        self.assertGreater(aapl_out["r_5d"].iloc[50 + 4], 0)
+        self.assertLess(msft_out["r_5d"].iloc[50 + 4], 0)
+
+    def test_returns_copy_not_inplace(self):
+        from data.signal_history import _compute_daily_return_features, DAILY_RETURN_COLUMNS
+        df = self._hourly_df(10)
+        before_cols = set(df.columns)
+        _compute_daily_return_features(df)
+        self.assertEqual(set(df.columns), before_cols,
+                         "caller's df must not gain daily-return columns")
+        for col in DAILY_RETURN_COLUMNS:
+            self.assertNotIn(col, df.columns)
+
+    def test_handles_missing_price_column(self):
+        """If df has no price column, return df unchanged (don't crash)."""
+        from data.signal_history import _compute_daily_return_features
+        import pandas as pd
+        df = pd.DataFrame({"symbol": ["A"] * 5, "snapshot_ts": np.arange(5, dtype=float) * 86400})
+        out = _compute_daily_return_features(df)
+        # Should not raise — and not add daily-return cols
+        self.assertNotIn("r_1d", out.columns)
+
+
+class TestGetRecentWindowReturns25Channels(unittest.TestCase):
+    """get_recent_window must return a (25, T) array matching training shape:
+    5 source + 2 agent + 2 rv + 5 hourly returns + 5 macro + 6 daily returns
+    (Sprint 0)."""
+
+    def test_recent_window_has_25_rows(self):
         from data.signal_history import signal_history
         from unittest.mock import patch
         import pandas as pd
@@ -145,8 +250,8 @@ class TestGetRecentWindowReturns19Channels(unittest.TestCase):
             window = signal_history.get_recent_window("AAPL", T=10)
 
         self.assertIsNotNone(window, "window must not be None for 130-row symbol")
-        self.assertEqual(window.shape, (19, 10),
-                         f"expected (19, 10), got {window.shape}")
+        self.assertEqual(window.shape, (25, 10),
+                         f"expected (25, 10), got {window.shape}")
 
 
 class TestReturn10dSchema(unittest.IsolatedAsyncioTestCase):
@@ -323,7 +428,8 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
             # ── Serving path: get_recent_window ────────────────────────
             window = signal_history.get_recent_window("AAPL", T=WINDOW_SIZE)
             self.assertIsNotNone(window)
-            self.assertEqual(window.shape, (19, WINDOW_SIZE))
+            # Sprint 0: post-daily-returns shape
+            self.assertEqual(window.shape, (25, WINDOW_SIZE))
 
             # ── Training path: get_training_data → build_training_windows
             # Symbol-scoped variant — unscoped iterates os.listdir which is
