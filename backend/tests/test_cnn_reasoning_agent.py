@@ -146,7 +146,11 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
 
     async def test_buy_blocked_when_mean_wfe_negative(self):
         """High-conviction BUY must be downgraded to HOLD when mean_wfe < 0."""
-        from data.cnn_model import signal_cnn
+        # Use the SELECTOR singleton (resolves to SignalCNN or SignalXGBoost
+        # based on MODEL_BACKEND), since cnn_reasoning_agent imports `signal_cnn`
+        # via that selector. .env may set MODEL_BACKEND=xgboost in which case
+        # data.cnn_model.signal_cnn would be a different object.
+        from data.signal_model import signal_model as signal_cnn
         mkt = _make_market(["AAPL"], price=150.0)
         buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
         # Simulate a completed walk-forward retrain with a bad mean_wfe
@@ -197,6 +201,129 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
                 signals = await self.agent.analyze(mkt)
             buys = [s for s in signals if s.action == "BUY"]
             self.assertEqual(len(buys), 1, "WFE gate must be inactive when mean_wfe is None")
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+
+    async def test_unrealized_drawdown_gate_blocks_buy_when_underwater(self):
+        """When CNN's open positions have collective uPnL < threshold,
+        new BUYs must downgrade to HOLD. Mirror today's incident: 32 open
+        positions at -$2.1k unrealized triggered nothing because there
+        was no portfolio-level guard."""
+        from config import config
+        # Pre-load CNN's portfolio with a deeply-underwater position. Default
+        # STARTING_CAPITAL is $100k, so we need a meaningful loss to push
+        # uPnL_pct below -2%. Position: 200 shares @ $200 cost, current $100
+        # → uPnL = (100-200)*200 = -$20,000. Portfolio total value = $100k
+        # cash + 200*$100 = $120k. uPnL_pct = -20000/120000 ≈ -16.7% << -2%,
+        # gate fires definitively.
+        self.agent.portfolio.positions["NVDA"] = Position(
+            symbol="NVDA", shares=200, avg_cost=200.0,
+        )
+        mkt = {
+            "NVDA": _make_ctx(price=100.0, composite=0.5),    # crashed
+            "AAPL": _make_ctx(price=150.0, composite=0.5),    # the BUY candidate
+            "__overnight_catalysts__": [],
+        }
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
+        from data.signal_model import signal_model as signal_cnn
+        original_mean_wfe = signal_cnn._mean_wfe
+        try:
+            signal_cnn._mean_wfe = 0.10   # WFE gate inactive (positive)
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            aapl_buys = [s for s in signals if s.symbol == "AAPL" and s.action == "BUY"]
+            aapl_holds = [s for s in signals if s.symbol == "AAPL" and s.action == "HOLD"]
+            self.assertEqual(len(aapl_buys), 0,
+                "uPnL drawdown gate must block AAPL BUY when CNN portfolio is underwater")
+            self.assertEqual(len(aapl_holds), 1)
+            self.assertIn("uPnL drawdown gate", aapl_holds[0].reasoning)
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+            self.agent.portfolio.positions.pop("NVDA", None)
+
+    async def test_unrealized_drawdown_gate_passes_when_portfolio_healthy(self):
+        """If CNN's open positions are flat or in profit, gate stays inactive."""
+        # Position at break-even: 100 shares @ $150, current $150
+        self.agent.portfolio.positions["NVDA"] = Position(
+            symbol="NVDA", shares=100, avg_cost=150.0,
+        )
+        mkt = {
+            "NVDA": _make_ctx(price=150.0, composite=0.5),
+            "AAPL": _make_ctx(price=150.0, composite=0.5),
+            "__overnight_catalysts__": [],
+        }
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
+        from data.signal_model import signal_model as signal_cnn
+        original_mean_wfe = signal_cnn._mean_wfe
+        try:
+            signal_cnn._mean_wfe = 0.10
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            aapl_buys = [s for s in signals if s.symbol == "AAPL" and s.action == "BUY"]
+            self.assertEqual(len(aapl_buys), 1,
+                "Healthy portfolio: gate must pass; BUY should fire")
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+            self.agent.portfolio.positions.pop("NVDA", None)
+
+    async def test_unrealized_drawdown_gate_does_not_block_sells(self):
+        """SELLs always pass — we never want to trap a position because
+        the rest of the portfolio is underwater (that would compound the
+        drawdown). Verifies the gate is asymmetric: only BUYs."""
+        # Same setup as the underwater test, but Ollama returns SELL on AAPL
+        # (which CNN holds, so the SELL is valid).
+        self.agent.portfolio.positions["NVDA"] = Position(
+            symbol="NVDA", shares=100, avg_cost=150.0,
+        )
+        self.agent.portfolio.positions["AAPL"] = Position(
+            symbol="AAPL", shares=10, avg_cost=180.0,  # also underwater
+        )
+        mkt = {
+            "NVDA": _make_ctx(price=130.0, composite=0.5),    # -$2k uPnL
+            "AAPL": _make_ctx(price=160.0, composite=0.5),    # SELL candidate
+            "__overnight_catalysts__": [],
+        }
+        sell_resp = {"action": "SELL", "confidence": 0.80, "reasoning": "exit"}
+        from data.signal_model import signal_model as signal_cnn
+        original_mean_wfe = signal_cnn._mean_wfe
+        try:
+            signal_cnn._mean_wfe = 0.10
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=sell_resp)):
+                signals = await self.agent.analyze(mkt)
+            aapl_sells = [s for s in signals if s.symbol == "AAPL" and s.action == "SELL"]
+            self.assertEqual(len(aapl_sells), 1,
+                "uPnL drawdown gate must NEVER block SELLs (always allow exits)")
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+            self.agent.portfolio.positions.pop("NVDA", None)
+            self.agent.portfolio.positions.pop("AAPL", None)
+
+    async def test_buy_threshold_uses_config_value_065(self):
+        """Confidence ratchet: BUY threshold is config.CNN_BUY_THRESHOLD_BASE
+        (0.65 default), not the legacy 0.50. A 0.55 confidence — which
+        cleared the old gate — must NOT clear the new gate in bull/neutral."""
+        from config import config
+        mkt = _make_market(["AAPL"], price=150.0)
+        # Confidence between old (0.50) and new (0.65) thresholds
+        mid_conf_buy = {"action": "BUY", "confidence": 0.55, "reasoning": "borderline"}
+        from data.signal_model import signal_model as signal_cnn
+        original_mean_wfe = signal_cnn._mean_wfe
+        try:
+            signal_cnn._mean_wfe = 0.10
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=mid_conf_buy)):
+                signals = await self.agent.analyze(mkt)
+            buys = [s for s in signals if s.action == "BUY"]
+            self.assertEqual(len(buys), 0,
+                f"With CNN_BUY_THRESHOLD_BASE={config.CNN_BUY_THRESHOLD_BASE}, "
+                f"a 0.55-confidence BUY must NOT pass (was 0.50 threshold pre-fix)")
         finally:
             signal_cnn._mean_wfe = original_mean_wfe
 

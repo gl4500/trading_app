@@ -117,6 +117,23 @@ class Config:
     LONEWOLF_MIN_CORROBORATORS: int   = int(os.getenv("LONEWOLF_MIN_CORROBORATORS", "2"))
     LONEWOLF_MULTIPLIER:        float = float(os.getenv("LONEWOLF_MULTIPLIER", "0.5"))
 
+    # CNN BUY guards (added 2026-05-04 after the WFE gate stopped firing
+    # — when mean_wfe flipped positive on the XGBoost upgrade, the gate
+    # which was the de-facto circuit breaker stopped suppressing BUYs and
+    # the agent fired 38 BUYs in one day, taking $2.1k of unrealized loss.
+    # These two are tighter, signal-independent guards.)
+    #
+    # CNN_PAUSE_UPNL_DRAWDOWN_PCT — pause CNN BUYs when total uPnL across
+    # CNN's open positions falls below this fraction of agent portfolio
+    # value. -0.02 = -2%. SELLs always pass (we always allow exits).
+    CNN_PAUSE_UPNL_DRAWDOWN_PCT: float = float(os.getenv(
+        "CNN_PAUSE_UPNL_DRAWDOWN_PCT", "-0.02"))
+    # CNN_BUY_THRESHOLD_BASE — minimum Ollama confidence to fire a BUY in
+    # bull/neutral regimes (regime_gate adds 0.15-0.20 for bear/high_vol).
+    # Was a hardcoded 0.50; raised to 0.65 after the over-buying incident.
+    CNN_BUY_THRESHOLD_BASE: float = float(os.getenv(
+        "CNN_BUY_THRESHOLD_BASE", "0.65"))
+
     # Watchlist — static seed symbols used as fallback when the scanner pool is small.
     # Set WATCHLIST=* to disable static seeds entirely — the watchlist is then built
     # solely from scanner recommendations and momentum candidates (agent-driven).
