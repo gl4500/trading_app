@@ -1174,6 +1174,68 @@ class TestReturnChannelsExposed(unittest.TestCase):
         self.assertEqual(X.shape[1], 19)
 
 
+class TestFeatureCatalog(unittest.TestCase):
+    """Sprint 7: data.feature_catalog is the registered single source of
+    truth for channel definitions. cnn_model.ALL_CHANNEL_COLUMNS derives
+    from it; signal_history's column blocks must align with it."""
+
+    def test_catalog_size_matches_n_channels(self):
+        from data.feature_catalog import CATALOG
+        from data.cnn_model import N_CHANNELS
+        self.assertEqual(len(CATALOG), N_CHANNELS,
+                         "CATALOG length must equal N_CHANNELS")
+
+    def test_catalog_drives_all_channel_columns(self):
+        from data.feature_catalog import channel_names
+        from data.cnn_model import ALL_CHANNEL_COLUMNS
+        self.assertEqual(channel_names(), ALL_CHANNEL_COLUMNS,
+                         "ALL_CHANNEL_COLUMNS must be derived from CATALOG")
+
+    def test_categories_are_in_canonical_order(self):
+        """The catalog must group channels in the SOURCE→AGENT→RV→RETURN→MACRO
+        order. Out-of-order entries break build_training_windows' channel
+        composition (it concatenates per-block in this exact sequence)."""
+        from data.feature_catalog import CATALOG
+        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO"]
+        seen = []
+        for c in CATALOG:
+            if not seen or seen[-1] != c.category:
+                seen.append(c.category)
+        self.assertEqual(seen, expected_order,
+                         f"Catalog categories run in wrong order: {seen}")
+
+    def test_per_category_counts_match_signal_history_blocks(self):
+        from data.feature_catalog import channels_by_category
+        from data.signal_history import (
+            SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
+            _MACRO_COLUMN_MAP,
+        )
+        self.assertEqual(len(channels_by_category("SOURCE")), len(SOURCE_COLUMNS))
+        self.assertEqual(len(channels_by_category("AGENT")), len(AGENT_COLUMNS))
+        self.assertEqual(len(channels_by_category("RV")), len(RV_COLUMNS))
+        self.assertEqual(len(channels_by_category("RETURN")), len(RETURN_COLUMNS))
+        self.assertEqual(len(channels_by_category("MACRO")), len(_MACRO_COLUMN_MAP))
+
+    def test_production_xgb_filter_constant_is_in_catalog(self):
+        """PRODUCTION_XGB_FILTER mirrors what's in .env's XGB_FEATURE_FILTER.
+        Each name must exist in CATALOG so the filter resolves cleanly."""
+        from data.feature_catalog import CATALOG, PRODUCTION_XGB_FILTER, channel_names
+        catalog_names = set(channel_names())
+        for name in PRODUCTION_XGB_FILTER:
+            self.assertIn(name, catalog_names,
+                          f"Production filter name '{name}' missing from CATALOG")
+
+    def test_find_returns_channel_for_known_name(self):
+        from data.feature_catalog import find
+        c = find("r_120")
+        self.assertEqual(c.category, "RETURN")
+
+    def test_find_raises_for_unknown_name(self):
+        from data.feature_catalog import find
+        with self.assertRaises(KeyError):
+            find("not_a_real_channel")
+
+
 class TestChannelDefinitionsConsistent(unittest.TestCase):
     """Cross-file consistency: channel names defined in signal_history.py
     (the column-name source of truth) must compose into exactly the same
