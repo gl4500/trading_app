@@ -314,6 +314,10 @@ class TestScannerTokenLogging(unittest.IsolatedAsyncioTestCase):
 
         mock_config = MagicMock()
         mock_config.ANTHROPIC_API_KEY = "test-key"
+        # Pin the model the scanner sees to the test value so we can assert
+        # it's the same one save_token_log records (proves the model field
+        # flows from config rather than a hardcoded string).
+        mock_config.SCANNER_CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 
         with patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock) as mock_save, \
              patch("config.config", mock_config), \
@@ -325,9 +329,27 @@ class TestScannerTokenLogging(unittest.IsolatedAsyncioTestCase):
         mock_save.assert_called_once()
         call_kwargs = mock_save.call_args[1]
         self.assertEqual(call_kwargs["agent"], "ScannerAgent/Claude")
-        self.assertEqual(call_kwargs["model"], "claude-opus-4-6")
+        # Model logged matches the one the API was called with (config-driven)
+        self.assertEqual(call_kwargs["model"], "claude-haiku-4-5-20251001")
         self.assertGreater(call_kwargs["prompt_tokens"], 0)
         self.assertGreater(call_kwargs["completion_tokens"], 0)
+        # Also assert the API call site used the same model — full proof
+        # the swap is wired everywhere.
+        api_call_kwargs = mock_client.messages.create.await_args.kwargs
+        self.assertEqual(api_call_kwargs["model"], "claude-haiku-4-5-20251001")
+
+    async def test_default_scanner_claude_model_is_haiku(self):
+        """The default config.SCANNER_CLAUDE_MODEL is Haiku 4.5 — saves
+        ~85% per token vs Opus 4.6. Set SCANNER_CLAUDE_MODEL=claude-opus-4-6
+        to revert if scanner-decision quality regresses."""
+        from config import config
+        self.assertEqual(config.SCANNER_CLAUDE_MODEL, "claude-haiku-4-5-20251001")
+
+    async def test_claude_agent_model_remains_opus_by_default(self):
+        """ClaudeAgent's per-symbol decisions stay on Opus 4.6 — fewer calls,
+        higher-stakes decisions where reasoning depth justifies the cost."""
+        from config import config
+        self.assertEqual(config.CLAUDE_AGENT_MODEL, "claude-opus-4-6")
 
     async def test_openai_scanner_logs_tokens(self):
         """_run_openai_scanner calls save_token_log with accumulated token counts."""
