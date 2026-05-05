@@ -653,7 +653,7 @@ async def _run_claude_scanner(candidates: List[Dict], sector_summary: str = "") 
 
         try:
             response = await client.messages.create(
-                model="claude-opus-4-6",
+                model=config.SCANNER_CLAUDE_MODEL,
                 max_tokens=4096,
                 system=_CACHED_SYSTEM,      # cached: same every round
                 tools=_TOOLS_WITH_CACHE,    # cached: tool defs never change
@@ -704,7 +704,7 @@ async def _run_claude_scanner(candidates: List[Dict], sector_summary: str = "") 
             _prior_24h = 0
         await save_token_log(
             agent="ScannerAgent/Claude",
-            model="claude-opus-4-6",
+            model=config.SCANNER_CLAUDE_MODEL,
             prompt_tokens=total_input_tokens,
             completion_tokens=total_output_tokens,
             total_tokens=_call_total,
