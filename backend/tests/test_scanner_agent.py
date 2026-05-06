@@ -1478,5 +1478,72 @@ class TestExpandedCandidatePool(unittest.TestCase):
         self.assertGreater(g, 25, msg=f"Gemini only received {g} candidates, expected >25 with fallback")
 
 
+class TestScannerRecsJsonlLog(unittest.TestCase):
+    """_append_scanner_recs_log persists each scanner runner's input + output
+    to backend/logs/scanner_recs.jsonl so we can compare Claude vs Ollama
+    overlap and attribute per-scanner value offline."""
+
+    def test_writes_one_jsonl_row_with_expected_fields(self):
+        import json, tempfile, os as _os
+        from agents.scanner_agent import _append_scanner_recs_log
+        with tempfile.TemporaryDirectory() as td:
+            log_path = _os.path.join(td, "scanner_recs.jsonl")
+            with patch("agents.scanner_agent._SCANNER_RECS_LOG", log_path):
+                candidates = [
+                    {"symbol": "FSLY", "price": 32.37, "pct_change": 17.71},
+                    {"symbol": "NET",  "price": 244.48, "pct_change": 9.06},
+                ]
+                recs = [
+                    {"symbol": "NET", "action": "BUY", "confidence": 0.85,
+                     "reasoning": "strong momentum", "timestamp": "2026-05-06T12:00:00Z"},
+                ]
+                _append_scanner_recs_log("Claude", "claude-haiku-4-5-20251001",
+                                          candidates, recs)
+            with open(log_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        self.assertEqual(len(lines), 1)
+        row = json.loads(lines[0])
+        for key in ("ts", "scanner", "model", "n_candidates",
+                    "candidate_symbols", "n_recs", "recs"):
+            self.assertIn(key, row)
+        self.assertEqual(row["scanner"], "Claude")
+        self.assertEqual(row["model"], "claude-haiku-4-5-20251001")
+        self.assertEqual(row["n_candidates"], 2)
+        self.assertEqual(row["candidate_symbols"], ["FSLY", "NET"])
+        self.assertEqual(row["n_recs"], 1)
+        self.assertEqual(row["recs"][0]["symbol"], "NET")
+
+    def test_appends_subsequent_rows_without_overwriting(self):
+        """Two scans in sequence → two JSONL lines, oldest first."""
+        import json, tempfile, os as _os
+        from agents.scanner_agent import _append_scanner_recs_log
+        with tempfile.TemporaryDirectory() as td:
+            log_path = _os.path.join(td, "scanner_recs.jsonl")
+            with patch("agents.scanner_agent._SCANNER_RECS_LOG", log_path):
+                _append_scanner_recs_log("Claude", "claude-opus-4-6", [], [])
+                _append_scanner_recs_log("Ollama", "llama3.1:8b",
+                                          [{"symbol":"AMD","price":355}],
+                                          [{"symbol":"AMD","action":"BUY","confidence":0.7}])
+            with open(log_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        self.assertEqual(len(lines), 2)
+        first  = json.loads(lines[0])
+        second = json.loads(lines[1])
+        self.assertEqual(first["scanner"],  "Claude")
+        self.assertEqual(second["scanner"], "Ollama")
+        self.assertEqual(second["candidate_symbols"], ["AMD"])
+
+    def test_disk_failure_does_not_raise(self):
+        """Instrumentation must NEVER crash the scanner. A bad path = silent
+        debug log + return."""
+        from agents.scanner_agent import _append_scanner_recs_log
+        # Path with NUL char is OS-invalid → raises on open(); helper must catch
+        with patch("agents.scanner_agent._SCANNER_RECS_LOG", "/x\x00invalid"):
+            try:
+                _append_scanner_recs_log("Claude", "model", [], [])
+            except Exception as e:
+                self.fail(f"helper raised {type(e).__name__}: {e}")
+
+
 if __name__ == "__main__":
     unittest.main()

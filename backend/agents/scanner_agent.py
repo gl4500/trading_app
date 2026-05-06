@@ -40,6 +40,47 @@ MAX_RECOMMENDATIONS = 8     # final output limit after merge
 # Persist scans here so results survive restarts
 _CACHE_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "scan_cache.json")
 
+# Append-only JSONL of every scanner runner's input + output. Enables
+# offline Claude-vs-Ollama overlap analysis + per-scanner value attribution
+# (link each recommendation to subsequent trades). One line per scanner
+# call. Created lazily on first write.
+_SCANNER_RECS_LOG = os.path.join(
+    os.path.dirname(__file__), "..", "logs", "scanner_recs.jsonl",
+)
+
+
+def _append_scanner_recs_log(
+    scanner: str,
+    model: str,
+    candidates: List[Dict],
+    recommendations: List[Dict],
+) -> None:
+    """Append one JSONL row to backend/logs/scanner_recs.jsonl.
+
+    scanner             — "Claude" | "Ollama" | "OpenAI" | "Gemini"
+    model               — exact model id used (claude-opus-4-6, llama3.1:8b, etc)
+    candidates          — pre-screened input list (full dicts; we record symbols only)
+    recommendations     — output list from _run_*_scanner
+
+    Best-effort: any disk failure is logged at debug level and swallowed —
+    instrumentation must never crash the scanner.
+    """
+    try:
+        os.makedirs(os.path.dirname(_SCANNER_RECS_LOG), exist_ok=True)
+        row = {
+            "ts":               datetime.now(timezone.utc).isoformat(),
+            "scanner":          scanner,
+            "model":            model,
+            "n_candidates":     len(candidates),
+            "candidate_symbols": [c.get("symbol") for c in candidates if isinstance(c, dict)],
+            "n_recs":           len(recommendations),
+            "recs":             list(recommendations),
+        }
+        with open(_SCANNER_RECS_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps(row, default=str) + "\n")
+    except Exception as exc:
+        logger.debug(f"scanner_recs_log write failed ({scanner}): {exc}")
+
 _cache: Optional[Dict] = None
 _cache_ts: float = 0.0
 _scan_in_progress: bool = False
@@ -714,6 +755,8 @@ async def _run_claude_scanner(candidates: List[Dict], sector_summary: str = "") 
     except Exception as _e:
         logger.debug(f"Scanner/Claude: token log save failed: {_e}")
 
+    _append_scanner_recs_log("Claude", "claude-opus-4-6",
+                             candidates, recommendations)
     return recommendations
 
 
@@ -848,6 +891,8 @@ async def _run_gemini_scanner(candidates: List[Dict], sector_summary: str = "") 
     except Exception as _e:
         logger.debug(f"Scanner/Gemini: token log save failed: {_e}")
 
+    _append_scanner_recs_log("Gemini", "gemini-2.0-flash",
+                             candidates, recommendations)
     return recommendations
 
 
@@ -972,6 +1017,8 @@ async def _run_openai_scanner(candidates: List[Dict], sector_summary: str = "") 
     except Exception as _e:
         logger.debug(f"Scanner/OpenAI: token log save failed: {_e}")
 
+    _append_scanner_recs_log("OpenAI", "gpt-4o-mini",
+                             candidates, recommendations)
     return recommendations
 
 
@@ -1147,6 +1194,8 @@ async def _run_ollama_scanner(
     except Exception as _e:
         logger.debug(f"Scanner/Ollama: token log save failed: {_e}")
 
+    _append_scanner_recs_log("Ollama", config.OLLAMA_MODEL,
+                             candidates, recommendations)
     return recommendations
 
 
