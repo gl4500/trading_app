@@ -755,7 +755,7 @@ async def _run_claude_scanner(candidates: List[Dict], sector_summary: str = "") 
     except Exception as _e:
         logger.debug(f"Scanner/Claude: token log save failed: {_e}")
 
-    _append_scanner_recs_log("Claude", "claude-opus-4-6",
+    _append_scanner_recs_log("Claude", config.SCANNER_CLAUDE_MODEL,
                              candidates, recommendations)
     return recommendations
 

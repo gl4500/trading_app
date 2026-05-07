@@ -338,6 +338,40 @@ class TestScannerTokenLogging(unittest.IsolatedAsyncioTestCase):
         api_call_kwargs = mock_client.messages.create.await_args.kwargs
         self.assertEqual(api_call_kwargs["model"], "claude-haiku-4-5-20251001")
 
+    async def test_claude_scanner_recs_jsonl_uses_config_model(self):
+        """The scanner_recs.jsonl row's model field flows from
+        config.SCANNER_CLAUDE_MODEL — NOT a hardcoded string. Otherwise the
+        offline JSONL log silently drifts from the real model in use."""
+        from agents.scanner_agent import _run_claude_scanner
+
+        usage = MagicMock()
+        usage.input_tokens = 800
+        usage.output_tokens = 200
+        fake_response = MagicMock()
+        fake_response.usage = usage
+        fake_response.content = []
+        fake_response.stop_reason = "end_turn"
+
+        mock_client = MagicMock()
+        mock_client.messages.create = AsyncMock(return_value=fake_response)
+
+        mock_config = MagicMock()
+        mock_config.ANTHROPIC_API_KEY = "test-key"
+        mock_config.SCANNER_CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+
+        with patch("agents.scanner_agent._append_scanner_recs_log") as mock_jsonl, \
+             patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock), \
+             patch("config.config", mock_config), \
+             patch("anthropic.AsyncAnthropic", return_value=mock_client):
+            candidates = [{"symbol": "AAPL", "pct_change": 2.0, "vol_ratio": 1.5,
+                           "momentum_score": 0.7, "price": 180.0}]
+            await _run_claude_scanner(candidates)
+
+        mock_jsonl.assert_called_once()
+        scanner_arg, model_arg, *_ = mock_jsonl.call_args[0]
+        self.assertEqual(scanner_arg, "Claude")
+        self.assertEqual(model_arg, "claude-haiku-4-5-20251001")
+
     async def test_default_scanner_claude_model_is_haiku(self):
         """The default config.SCANNER_CLAUDE_MODEL is Haiku 4.5 — saves
         ~85% per token vs Opus 4.6. Set SCANNER_CLAUDE_MODEL=claude-opus-4-6
