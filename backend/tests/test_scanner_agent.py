@@ -6,6 +6,7 @@ Covers: _coerce_rec(), _merge_recommendations(), _split_candidates(),
 import sys
 import os
 import asyncio
+import tempfile
 import time
 import unittest
 from unittest.mock import patch, AsyncMock, MagicMock
@@ -27,6 +28,34 @@ from agents.scanner_agent import (
     MAX_RECOMMENDATIONS,
     MAX_TOOL_ROUNDS,
 )
+
+
+# Test-isolation: redirect the per-scan JSONL log to a throwaway tempfile
+# for the duration of this test module. Without this, every test that
+# exercises a scanner runner (_run_claude_scanner / _run_ollama_scanner /
+# etc) appends a row to backend/logs/scanner_recs.jsonl — silently
+# corrupting the production analysis log with mock objects and stale
+# fixture data.
+_PROD_SCANNER_RECS_LOG: str | None = None
+_TEMP_SCANNER_RECS_LOG: str | None = None
+
+
+def setUpModule() -> None:
+    global _PROD_SCANNER_RECS_LOG, _TEMP_SCANNER_RECS_LOG
+    _PROD_SCANNER_RECS_LOG = scanner_module._SCANNER_RECS_LOG
+    fd, _TEMP_SCANNER_RECS_LOG = tempfile.mkstemp(suffix=".jsonl", prefix="test_scanner_recs_")
+    os.close(fd)
+    scanner_module._SCANNER_RECS_LOG = _TEMP_SCANNER_RECS_LOG
+
+
+def tearDownModule() -> None:
+    if _PROD_SCANNER_RECS_LOG is not None:
+        scanner_module._SCANNER_RECS_LOG = _PROD_SCANNER_RECS_LOG
+    if _TEMP_SCANNER_RECS_LOG and os.path.exists(_TEMP_SCANNER_RECS_LOG):
+        try:
+            os.unlink(_TEMP_SCANNER_RECS_LOG)
+        except OSError:
+            pass
 
 
 class TestCoerceRec(unittest.TestCase):
@@ -1599,6 +1628,22 @@ class TestScannerRecsJsonlLog(unittest.TestCase):
                 _append_scanner_recs_log("Claude", "model", [], [])
             except Exception as e:
                 self.fail(f"helper raised {type(e).__name__}: {e}")
+
+    def test_module_redirects_log_path_to_tempfile(self):
+        """setUpModule must redirect _SCANNER_RECS_LOG away from the
+        production path so test runs can never pollute backend/logs/
+        scanner_recs.jsonl. Without this, every test that reaches
+        _append_scanner_recs_log (directly or via _run_*_scanner) appends
+        a row to the live offline-analysis log."""
+        prod_default = os.path.normpath(os.path.join(
+            os.path.dirname(scanner_module.__file__), "..", "logs", "scanner_recs.jsonl"))
+        current = os.path.normpath(scanner_module._SCANNER_RECS_LOG)
+        self.assertNotEqual(
+            current, prod_default,
+            msg=f"_SCANNER_RECS_LOG still points at production path: {current}",
+        )
+        self.assertIn("test_scanner_recs_", current,
+                      msg=f"expected tempfile redirect, got {current}")
 
 
 if __name__ == "__main__":
