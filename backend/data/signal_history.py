@@ -93,6 +93,11 @@ RETURN_COLUMNS = ["r_1", "r_5", "r_20", "r_60", "r_120"]
 # hourly cadence so each snapshot in a day shares that day's return value.
 DAILY_RETURN_COLUMNS = ["r_1d", "r_5d", "r_20d", "r_60d", "r_120d", "r_252d"]
 
+# MOMENTUM_COLUMNS holds derived momentum factors computed from RETURN_DAILY
+# channels at read-time (Sprint 2-B 2026-05-08). Currently mom_12_1 only —
+# the classic Jegadeesh-Titman 12-1 factor, computed as r_252d - r_20d.
+MOMENTUM_COLUMNS = ["mom_12_1"]
+
 # Rolling cap: keep at most 90 days × ~12 snapshots/hour = ~26 000 rows/symbol
 MAX_ROWS = 90 * 24 * 12
 
@@ -233,6 +238,29 @@ def _macro_file_path() -> str:
     return os.path.join(_HISTORY_DIR, _MACRO_FILENAME)
 
 
+def _compute_momentum_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Sprint 2-B (2026-05-08): derived momentum factors from RETURN_DAILY.
+
+    Adds MOMENTUM_COLUMNS = ['mom_12_1'] computed as r_252d - r_20d
+    (the Jegadeesh-Titman 12-1 momentum factor, expressed in log-return
+    space).
+
+    Pure subtraction of two existing channels — no new data dependency,
+    automatically lookahead-free since both inputs are lookahead-free
+    (verified by tests/test_lookahead.py).
+
+    Returns a fresh frame; caller's df is unchanged. If either input
+    column is missing (df from before Sprint 0), return df untouched.
+    """
+    if df.empty:
+        return df
+    if "r_252d" not in df.columns or "r_20d" not in df.columns:
+        return df
+    out = df.copy()
+    out["mom_12_1"] = out["r_252d"] - out["r_20d"]
+    return out
+
+
 def _load_macro_features() -> Optional[pd.DataFrame]:
     """Return a date-sorted DataFrame of macro CNN features, or None when unavailable.
 
@@ -290,6 +318,10 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     # indices [0-18] (incl. macro) remain at the same positions for any
     # in-flight model with index-based feature_filter.
     out = _compute_daily_return_features(out)
+    # Sprint 2-B: derived momentum factors (mom_12_1) — depends on
+    # daily-return columns being present, so runs AFTER the daily helper.
+    # Appended at the end so feature_filter indices remain stable.
+    out = _compute_momentum_features(out)
     return out
 
 
@@ -592,18 +624,19 @@ class SignalHistoryStore:
         return_data       = _column_block(RETURN_COLUMNS)
         macro_data        = _column_block(list(_MACRO_COLUMN_MAP.values()))
         daily_return_data = _column_block(DAILY_RETURN_COLUMNS)
+        momentum_data     = _column_block(MOMENTUM_COLUMNS)
 
         combined = np.hstack([
             source_data, agent_data, rv_data, return_data, macro_data,
-            daily_return_data,
-        ])  # (≤T, 25)
+            daily_return_data, momentum_data,
+        ])  # (≤T, 26)
 
         if len(combined) < T:
             pad      = np.zeros((T - len(combined), combined.shape[1]))
             combined = np.vstack([pad, combined])
 
         combined = np.nan_to_num(combined, nan=0.0)
-        return combined.T   # (25, T) post-Sprint-0
+        return combined.T   # (26, T) post-Sprint-2-B
 
     def symbols_with_data(self) -> List[str]:
         """List all symbols that have at least one snapshot on disk."""

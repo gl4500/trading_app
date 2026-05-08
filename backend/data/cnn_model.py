@@ -134,6 +134,7 @@ MACRO_CHANNEL_NAMES: List[str] = [
 #   15 → 14  (Task #20: dropped congressional_trades)
 #   14 → 19  (Tier 1: added 5 hourly lagged returns r_1..r_120)
 #   19 → 25  (Sprint 0: added 6 daily-resampled returns r_1d..r_252d)
+#   25 → 26  (Sprint 2-B: added mom_12_1 derived momentum factor)
 #
 # build_training_windows degrades gracefully (drops blocks whose cols are
 # absent), so old per-symbol parquets still train.
@@ -421,7 +422,7 @@ def build_training_windows(
     """
     from data.signal_history import (  # avoid circular
         SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
-        DAILY_RETURN_COLUMNS,
+        DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS,
         _apply_cnn_feature_transforms,
     )
 
@@ -435,6 +436,7 @@ def build_training_windows(
     has_returns     = all(c in df.columns for c in RETURN_COLUMNS)
     has_macro       = all(c in df.columns for c in MACRO_CHANNEL_NAMES)
     has_daily_ret   = all(c in df.columns for c in DAILY_RETURN_COLUMNS)
+    has_momentum    = all(c in df.columns for c in MOMENTUM_COLUMNS)
     feat_cols = [c for c in SOURCE_COLUMNS if c in df.columns]
     if has_agent:
         feat_cols = feat_cols + AGENT_COLUMNS
@@ -448,6 +450,10 @@ def build_training_windows(
     # existing channel indices [0-18]. Production XGB filter remains valid.
     if has_daily_ret:
         feat_cols = feat_cols + DAILY_RETURN_COLUMNS
+    # Sprint 2-B: derived momentum (mom_12_1) appended AFTER daily returns —
+    # same index-stability rationale.
+    if has_momentum:
+        feat_cols = feat_cols + MOMENTUM_COLUMNS
     n_feat    = len(feat_cols)
     if n_feat == 0:
         logger.warning("build_training_windows: no recognised feature columns in df — returning empty")

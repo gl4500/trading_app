@@ -217,12 +217,107 @@ class TestComputeDailyReturnFeatures(unittest.TestCase):
         self.assertNotIn("r_1d", out.columns)
 
 
-class TestGetRecentWindowReturns25Channels(unittest.TestCase):
-    """get_recent_window must return a (25, T) array matching training shape:
-    5 source + 2 agent + 2 rv + 5 hourly returns + 5 macro + 6 daily returns
-    (Sprint 0)."""
+class TestComputeMomentumFeatures(unittest.TestCase):
+    """Sprint 2-B: 12-1 momentum factor — cumulative return over the last 12
+    months SKIPPING the most recent month (the classic Jegadeesh-Titman
+    factor). Avoids the well-known short-term reversal effect that
+    contaminates plain 12-month momentum.
 
-    def test_recent_window_has_25_rows(self):
+    Computed as r_252d - r_20d (≈ 12-month log-return minus 1-month
+    log-return = log(P[t-20] / P[t-252])). Pure subtraction of two
+    daily-resampled return channels — no new data dependency.
+    """
+
+    def _df_with_daily_returns(self, r_252d_value, r_20d_value, n=10, symbol="AAPL"):
+        """Build a minimal df with the two input columns already populated.
+        We test the subtraction in isolation; the daily-return computation
+        itself is covered by TestComputeDailyReturnFeatures."""
+        import pandas as pd
+        return pd.DataFrame({
+            "symbol":      [symbol] * n,
+            "snapshot_ts": np.arange(n, dtype=float) * 3600.0,
+            "r_20d":       [r_20d_value] * n,
+            "r_252d":      [r_252d_value] * n,
+        })
+
+    def test_adds_mom_12_1_column(self):
+        from data.signal_history import _compute_momentum_features, MOMENTUM_COLUMNS
+        df = self._df_with_daily_returns(0.30, 0.05)
+        out = _compute_momentum_features(df)
+        for col in MOMENTUM_COLUMNS:
+            self.assertIn(col, out.columns)
+
+    def test_mom_12_1_equals_r_252d_minus_r_20d(self):
+        """Per Jegadeesh-Titman (1993): cumulative return t-12mo to t-1mo,
+        skipping the most recent month. In log-return space that's
+        r_252d - r_20d for any row."""
+        from data.signal_history import _compute_momentum_features
+        df = self._df_with_daily_returns(0.30, 0.05)
+        out = _compute_momentum_features(df)
+        for v in out["mom_12_1"]:
+            self.assertAlmostEqual(v, 0.30 - 0.05, places=6)
+
+    def test_negative_mom_12_1_when_recent_month_outperformed(self):
+        """If the last month outpaced the full year (a classic reversal
+        setup), mom_12_1 should be negative."""
+        from data.signal_history import _compute_momentum_features
+        df = self._df_with_daily_returns(0.05, 0.30)
+        out = _compute_momentum_features(df)
+        self.assertLess(out["mom_12_1"].iloc[0], 0)
+
+    def test_nan_propagation_when_r_252d_missing(self):
+        """Subtraction propagates NaN — early-life rows (no 252d history)
+        must produce NaN, never 0 or a stale broadcast value."""
+        from data.signal_history import _compute_momentum_features
+        df = self._df_with_daily_returns(np.nan, 0.05)
+        out = _compute_momentum_features(df)
+        self.assertTrue(out["mom_12_1"].isna().all())
+
+    def test_nan_propagation_when_r_20d_missing(self):
+        from data.signal_history import _compute_momentum_features
+        df = self._df_with_daily_returns(0.30, np.nan)
+        out = _compute_momentum_features(df)
+        self.assertTrue(out["mom_12_1"].isna().all())
+
+    def test_returns_copy_not_inplace(self):
+        """Caller's df must not gain mom_12_1 — we add to a fresh frame."""
+        from data.signal_history import _compute_momentum_features, MOMENTUM_COLUMNS
+        df = self._df_with_daily_returns(0.30, 0.05)
+        before_cols = set(df.columns)
+        _compute_momentum_features(df)
+        self.assertEqual(set(df.columns), before_cols)
+        for col in MOMENTUM_COLUMNS:
+            self.assertNotIn(col, df.columns)
+
+    def test_handles_missing_input_columns(self):
+        """If r_252d or r_20d are absent (df from before Sprint 0), return
+        df unchanged — don't crash, don't fabricate data."""
+        from data.signal_history import _compute_momentum_features
+        import pandas as pd
+        df = pd.DataFrame({"symbol": ["A"] * 3, "snapshot_ts": np.arange(3, dtype=float)})
+        out = _compute_momentum_features(df)
+        self.assertNotIn("mom_12_1", out.columns)
+
+    def test_per_symbol_isolation(self):
+        """One symbol's mom_12_1 must not leak into another symbol's row."""
+        from data.signal_history import _compute_momentum_features
+        import pandas as pd
+        aapl = self._df_with_daily_returns(0.30, 0.05, n=5, symbol="AAPL")
+        msft = self._df_with_daily_returns(0.10, 0.20, n=5, symbol="MSFT")
+        df = pd.concat([aapl, msft], ignore_index=True)
+        out = _compute_momentum_features(df)
+        aapl_mom = out[out["symbol"] == "AAPL"]["mom_12_1"]
+        msft_mom = out[out["symbol"] == "MSFT"]["mom_12_1"]
+        self.assertTrue((aapl_mom == 0.25).all())   # 0.30 - 0.05
+        self.assertTrue((msft_mom == -0.10).all())  # 0.10 - 0.20
+
+
+class TestGetRecentWindowReturns26Channels(unittest.TestCase):
+    """get_recent_window must return a (26, T) array matching training shape:
+    5 source + 2 agent + 2 rv + 5 hourly returns + 5 macro + 6 daily returns
+    + 1 momentum (Sprint 2-B)."""
+
+    def test_recent_window_has_26_rows(self):
         from data.signal_history import signal_history
         from unittest.mock import patch
         import pandas as pd
@@ -250,8 +345,8 @@ class TestGetRecentWindowReturns25Channels(unittest.TestCase):
             window = signal_history.get_recent_window("AAPL", T=10)
 
         self.assertIsNotNone(window, "window must not be None for 130-row symbol")
-        self.assertEqual(window.shape, (25, 10),
-                         f"expected (25, 10), got {window.shape}")
+        self.assertEqual(window.shape, (26, 10),
+                         f"expected (26, 10), got {window.shape}")
 
 
 class TestReturn10dSchema(unittest.IsolatedAsyncioTestCase):
@@ -428,8 +523,8 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
             # ── Serving path: get_recent_window ────────────────────────
             window = signal_history.get_recent_window("AAPL", T=WINDOW_SIZE)
             self.assertIsNotNone(window)
-            # Sprint 0: post-daily-returns shape
-            self.assertEqual(window.shape, (25, WINDOW_SIZE))
+            # Sprint 2-B: post-momentum shape (25 daily + 1 momentum = 26)
+            self.assertEqual(window.shape, (26, WINDOW_SIZE))
 
             # ── Training path: get_training_data → build_training_windows
             # Symbol-scoped variant — unscoped iterates os.listdir which is

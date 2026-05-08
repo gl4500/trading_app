@@ -47,6 +47,9 @@ LOOKAHEAD_FREE_CHANNELS = [
     # Sprint 0: daily-resampled lagged returns — backward shift on
     # per-symbol, per-trading-day series, then forward-filled to hourly rows
     "r_1d", "r_5d", "r_20d", "r_60d", "r_120d", "r_252d",
+    # Sprint 2-B: derived momentum (mom_12_1 = r_252d - r_20d) — pure
+    # subtraction of two lookahead-free channels = lookahead-free.
+    "mom_12_1",
 ]
 
 
