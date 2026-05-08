@@ -264,6 +264,30 @@ CATALOG: List[Channel] = [
         "12 months minus last month", "2026-05-08",
         "12-1 momentum: r_252d - r_20d in log-return space = log(P[t-20]/P[t-252]). NaN until both inputs are populated (~12 months of per-symbol history).",
     ),
+
+    # ── SECTOR_RELATIVE (1) ──────────────────────────────────────────────
+    # Sprint 3 (2026-05-08): cross-sectional sector-relative 1-month return.
+    # For each row (symbol, ts) → r_20d_sector_rel = symbol's r_20d minus
+    # the symbol-equal-weight mean of r_20d across ALL symbols in the same
+    # GICS sector on the same UTC trading day. Captures relative-strength
+    # information that single-symbol channels structurally cannot — e.g.
+    # the entire Energy sector up 5% on an oil day looks like a non-event
+    # in r_20d_sector_rel but a clear factor exposure in r_20d.
+    #
+    # Symbol-equal-weight: dedupe to one r_20d per (symbol, trading_day)
+    # before averaging, so a symbol with more hourly snapshots doesn't
+    # dominate the sector mean.
+    #
+    # Placed AFTER MOMENTUM so existing channel indices [0-25] are
+    # preserved — production XGB feature_filter [0,1,2,4,13,14,17,18]
+    # remains valid. r_20d_sector_rel lands at index 26.
+    Channel(
+        "r_20d_sector_rel", "SECTOR_RELATIVE",
+        ["r_20d", "GICS sector mapping (yfinance-cached)"],
+        "_compute_sector_relative_features (r_20d - sector-day mean of r_20d)",
+        "20 trading days, cross-sectional", "2026-05-08",
+        "Sector-relative 1-month return. r_20d minus same-sector same-day equal-weighted mean. Sprint 0's r_20d - cross-section. NaN when r_20d is NaN; 0 when symbol is the only valid sample in its sector that day.",
+    ),
 ]
 
 

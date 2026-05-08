@@ -309,10 +309,11 @@ class TestCongressDemotedFromCNN(unittest.TestCase):
     def test_default_weights_keys_match_source_names(self):
         self.assertEqual(set(_DEFAULT_WEIGHTS.keys()), set(SOURCE_NAMES))
 
-    def test_n_channels_is_26_after_sprint2b_momentum(self):
+    def test_n_channels_is_27_after_sprint3_sector_relative(self):
         # Sprint 0: 5 source + 2 agent + 2 RV + 5 hourly ret + 5 macro + 6 daily ret = 25
         # Sprint 2-B: + 1 momentum (mom_12_1) = 26
-        self.assertEqual(N_CHANNELS, 26)
+        # Sprint 3: + 1 sector-relative (r_20d_sector_rel) = 27
+        self.assertEqual(N_CHANNELS, 27)
 
 
 class TestEarningsReframedToMagnitude(unittest.TestCase):
@@ -1128,12 +1129,13 @@ class TestReturnChannelsExposed(unittest.TestCase):
     """Tier 1 from docs/equity_feature_engineering_audit.md — five lagged
     return channels become part of N_CHANNELS."""
 
-    def test_n_channels_is_26_after_sprint2b(self):
+    def test_n_channels_is_27_after_sprint3(self):
         from data.cnn_model import N_CHANNELS, RETURN_CHANNEL_NAMES
         self.assertEqual(len(RETURN_CHANNEL_NAMES), 5)
         # Sprint 0: 5 src + 2 agent + 2 rv + 5 hourly ret + 5 macro + 6 daily ret = 25
         # Sprint 2-B: + 1 momentum (mom_12_1) = 26
-        self.assertEqual(N_CHANNELS, 26)
+        # Sprint 3: + 1 sector-relative (r_20d_sector_rel) = 27
+        self.assertEqual(N_CHANNELS, 27)
 
     def test_return_channel_order(self):
         from data.cnn_model import RETURN_CHANNEL_NAMES
@@ -1207,7 +1209,9 @@ class TestFeatureCatalog(unittest.TestCase):
         # land at indices 19-24.
         # Sprint 2-B added MOMENTUM at the end (mom_12_1 at index 25) for
         # the same index-stability rationale.
-        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO", "RETURN_DAILY", "MOMENTUM"]
+        # Sprint 3 added SECTOR_RELATIVE at the end (r_20d_sector_rel at
+        # index 26).
+        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO", "RETURN_DAILY", "MOMENTUM", "SECTOR_RELATIVE"]
         seen = []
         for c in CATALOG:
             if not seen or seen[-1] != c.category:
@@ -1262,7 +1266,8 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
     def test_all_channel_columns_composed_from_signal_history_blocks(self):
         from data.signal_history import (
             SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
-            DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS, _MACRO_COLUMN_MAP,
+            DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS, SECTOR_RELATIVE_COLUMNS,
+            _MACRO_COLUMN_MAP,
         )
         from data.cnn_model import ALL_CHANNEL_COLUMNS, N_CHANNELS
         # Sprint 0: daily-resampled returns appended AFTER macro so existing
@@ -1270,6 +1275,8 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
         # depends on stable indices).
         # Sprint 2-B: derived momentum (mom_12_1) appended AFTER daily
         # returns — same stability rationale.
+        # Sprint 3: cross-sectional sector-relative (r_20d_sector_rel)
+        # appended AFTER momentum — same rationale.
         expected = (
             list(SOURCE_COLUMNS)
             + list(AGENT_COLUMNS)
@@ -1278,6 +1285,7 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
             + list(_MACRO_COLUMN_MAP.values())
             + list(DAILY_RETURN_COLUMNS)
             + list(MOMENTUM_COLUMNS)
+            + list(SECTOR_RELATIVE_COLUMNS)
         )
         self.assertEqual(
             ALL_CHANNEL_COLUMNS, expected,

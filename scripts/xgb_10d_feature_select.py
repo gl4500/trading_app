@@ -31,15 +31,25 @@ from data.cnn_model import _compute_wfe, build_training_windows, WINDOW_SIZE
 from data.signal_history import (
     signal_history,
     SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
+    DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS, SECTOR_RELATIVE_COLUMNS,
     _MACRO_COLUMN_MAP,
 )
 from data.xgboost_model import last_timestep_features
 
 MACRO_CHANNEL_NAMES = list(_MACRO_COLUMN_MAP.values())
+# Sprint 0 (2026-05-03): + 6 daily-resampled return channels (r_1d..r_252d).
+# Sprint 2-B (2026-05-08): + 1 derived momentum channel (mom_12_1).
+# Sprint 3 (2026-05-08): + 1 cross-sectional channel (r_20d_sector_rel).
+# All appended AFTER MACRO so existing channel indices [0-18] are
+# preserved — production XGB feature_filter [0,1,2,4,13,14,17,18]
+# remains valid across the expansion.
 CHANNEL_NAMES: List[str] = (
     list(SOURCE_COLUMNS) + list(AGENT_COLUMNS)
     + list(RV_COLUMNS) + list(RETURN_COLUMNS) + MACRO_CHANNEL_NAMES
+    + list(DAILY_RETURN_COLUMNS) + list(MOMENTUM_COLUMNS)
+    + list(SECTOR_RELATIVE_COLUMNS)
 )
+N_CHANNELS = len(CHANNEL_NAMES)   # 27 post-Sprint-3
 
 PARAMS = {
     "max_depth": 6, "eta": 0.05, "subsample": 0.8,
@@ -114,17 +124,17 @@ def main() -> int:
     # Swap label
     df["return_5d"] = np.clip(df["return_10d_exp"], -0.30, 0.30)
 
-    print("\nBuilding (N, 19, 10) windows with 10d labels...")
+    print(f"\nBuilding (N, {N_CHANNELS}, 10) windows with 10d labels...")
     X_3d, y, _w, t = build_training_windows(df, T=WINDOW_SIZE)
     X = last_timestep_features(X_3d)
     sigma_xs = float(np.std(y))
     print(f"  X.shape={X.shape}  sigma_xs (clipped)={sigma_xs*100:.2f}%")
 
-    # Baseline: all 19 channels at 10d
+    # Baseline: all N_CHANNELS at 10d
     print("\n" + "=" * 92)
-    print("BASELINE (all 19 channels at 10d)")
+    print(f"BASELINE (all {N_CHANNELS} channels at 10d)")
     print("=" * 92)
-    base = fit_and_score(X, y, t, list(range(19)))
+    base = fit_and_score(X, y, t, list(range(N_CHANNELS)))
     print(f"  mean_IC={base['mean_ic']:+.4f}  IR={base['ir']:+.2f}  "
           f"mean_WFE={base['mean_wfe']:+.4f}  last_WFE={base['last_wfe']:+.4f}")
 
@@ -136,9 +146,9 @@ def main() -> int:
           f"{'mean_WFE':>10} {'last_WFE':>10}")
     print("-" * 92)
     selected: List[int] = []
-    remaining = list(range(19))
+    remaining = list(range(N_CHANNELS))
     history: List[Tuple[int, List[int], Dict]] = []
-    for step in range(19):
+    for step in range(N_CHANNELS):
         best_idx = None
         best_r = None
         best_ic = float("-inf")
@@ -185,9 +195,9 @@ def main() -> int:
         return ev_per_trade, trades_per_year, gross, net
 
     rows = [
-        ("5d  · all 19 channels (current prod)", 0.082, 0.082, 5),
+        ("5d  · all 19 channels (pre-Sprint-0 baseline)", 0.082, 0.082, 5),
         ("5d  · 6-channel winner (rv_20d, iv_rv_score, r_120, r_5, rv_60d, agent_consensus)", 0.207, 0.082, 5),
-        ("10d · all 19 channels", base["mean_ic"], sigma_xs, 10),
+        (f"10d · all {N_CHANNELS} channels", base["mean_ic"], sigma_xs, 10),
         (f"10d · {len(peak_cols)}-channel peak", peak_r["mean_ic"], sigma_xs, 10),
     ]
     for label, ic, sig, hor in rows:

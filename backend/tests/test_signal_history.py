@@ -312,12 +312,202 @@ class TestComputeMomentumFeatures(unittest.TestCase):
         self.assertTrue((msft_mom == -0.10).all())  # 0.10 - 0.20
 
 
-class TestGetRecentWindowReturns26Channels(unittest.TestCase):
-    """get_recent_window must return a (26, T) array matching training shape:
-    5 source + 2 agent + 2 rv + 5 hourly returns + 5 macro + 6 daily returns
-    + 1 momentum (Sprint 2-B)."""
+class TestComputeSectorRelativeFeatures(unittest.TestCase):
+    """Sprint 3: cross-sectional sector-relative 20-day return —
+    r_20d_sector_rel = r_20d - mean(r_20d for all symbols in the SAME GICS
+    sector on the SAME UTC trading day).
 
-    def test_recent_window_has_26_rows(self):
+    Captures relative-strength: a symbol's 1-month return vs its sector
+    peers' 1-month return that same day. Captures the cross-section a
+    single-symbol channel structurally cannot — Energy stocks all up 5% on
+    an oil day looks like a non-event in r_20d but is correctly zeroed
+    out in r_20d_sector_rel.
+
+    Symbol-equal-weight: dedupe to one r_20d per (symbol, trading_day)
+    before averaging, so a symbol with more hourly snapshots than another
+    doesn't pull the sector mean.
+    """
+
+    def _df_with_r20d(self, rows):
+        """Build a df from list-of-dicts. Each dict needs symbol,
+        snapshot_ts, r_20d at minimum."""
+        import pandas as pd
+        return pd.DataFrame(rows)
+
+    def test_adds_r_20d_sector_rel_column(self):
+        from data.signal_history import _compute_sector_relative_features
+        from unittest.mock import patch
+        df = self._df_with_r20d([
+            {"symbol": "AAPL", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.10},
+            {"symbol": "MSFT", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.20},
+        ])
+        with patch("data.signal_history.get_sectors",
+                   return_value={"AAPL": "Tech", "MSFT": "Tech"}):
+            out = _compute_sector_relative_features(df)
+        self.assertIn("r_20d_sector_rel", out.columns)
+
+    def test_sector_relative_equals_r20d_minus_sector_day_mean(self):
+        """Math: rel = r_20d − mean(sector r_20d on that day).
+        AAPL=+10%, MSFT=+20% in same Tech sector on day D →
+        sector mean = +15% → AAPL_rel = −5%, MSFT_rel = +5%."""
+        from data.signal_history import _compute_sector_relative_features
+        from unittest.mock import patch
+        df = self._df_with_r20d([
+            {"symbol": "AAPL", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.10},
+            {"symbol": "MSFT", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.20},
+        ])
+        with patch("data.signal_history.get_sectors",
+                   return_value={"AAPL": "Tech", "MSFT": "Tech"}):
+            out = _compute_sector_relative_features(df)
+        aapl = out[out["symbol"] == "AAPL"]["r_20d_sector_rel"].iloc[0]
+        msft = out[out["symbol"] == "MSFT"]["r_20d_sector_rel"].iloc[0]
+        self.assertAlmostEqual(aapl, -0.05, places=6)
+        self.assertAlmostEqual(msft, +0.05, places=6)
+
+    def test_per_sector_isolation(self):
+        """Different sectors must NOT cross-contaminate. AAPL+MSFT in Tech
+        on day D, XOM in Energy on day D — Tech mean uses only Tech
+        symbols, Energy mean uses only Energy."""
+        from data.signal_history import _compute_sector_relative_features
+        from unittest.mock import patch
+        df = self._df_with_r20d([
+            {"symbol": "AAPL", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.10},
+            {"symbol": "MSFT", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.20},
+            {"symbol": "XOM",  "snapshot_ts": 1_704_067_200.0, "r_20d": 0.50},
+        ])
+        with patch("data.signal_history.get_sectors",
+                   return_value={"AAPL": "Tech", "MSFT": "Tech", "XOM": "Energy"}):
+            out = _compute_sector_relative_features(df)
+        # XOM is alone in Energy → its sector mean = its own r_20d → relative = 0
+        xom = out[out["symbol"] == "XOM"]["r_20d_sector_rel"].iloc[0]
+        self.assertAlmostEqual(xom, 0.0, places=6)
+        # Tech symbols centered around 0.15 mean
+        aapl = out[out["symbol"] == "AAPL"]["r_20d_sector_rel"].iloc[0]
+        self.assertAlmostEqual(aapl, -0.05, places=6)
+
+    def test_per_day_isolation(self):
+        """Different trading days must NOT cross-contaminate. AAPL day1
+        r_20d=+10%, day2 r_20d=+30% → day1 sector_rel uses day1 mean only."""
+        from data.signal_history import _compute_sector_relative_features
+        from unittest.mock import patch
+        d1 = 1_704_067_200.0   # 2024-01-01 UTC
+        d2 = d1 + 86_400.0     # 2024-01-02 UTC
+        df = self._df_with_r20d([
+            {"symbol": "AAPL", "snapshot_ts": d1, "r_20d": 0.10},
+            {"symbol": "MSFT", "snapshot_ts": d1, "r_20d": 0.20},
+            {"symbol": "AAPL", "snapshot_ts": d2, "r_20d": 0.30},
+            {"symbol": "MSFT", "snapshot_ts": d2, "r_20d": 0.50},
+        ])
+        with patch("data.signal_history.get_sectors",
+                   return_value={"AAPL": "Tech", "MSFT": "Tech"}):
+            out = _compute_sector_relative_features(df)
+        # Day 1: mean(0.10, 0.20)=0.15 → AAPL=−0.05, MSFT=+0.05
+        # Day 2: mean(0.30, 0.50)=0.40 → AAPL=−0.10, MSFT=+0.10
+        d1_mask = out["snapshot_ts"] == d1
+        d2_mask = out["snapshot_ts"] == d2
+        aapl_d1 = out[d1_mask & (out["symbol"] == "AAPL")]["r_20d_sector_rel"].iloc[0]
+        aapl_d2 = out[d2_mask & (out["symbol"] == "AAPL")]["r_20d_sector_rel"].iloc[0]
+        self.assertAlmostEqual(aapl_d1, -0.05, places=6)
+        self.assertAlmostEqual(aapl_d2, -0.10, places=6)
+
+    def test_symbol_equal_weight_under_uneven_sampling(self):
+        """A symbol with MORE hourly snapshots in a day must NOT pull the
+        sector mean more than a symbol with fewer. Dedupe to one r_20d per
+        (symbol, day) before averaging."""
+        from data.signal_history import _compute_sector_relative_features
+        from unittest.mock import patch
+        d1 = 1_704_067_200.0
+        # AAPL has 5 hourly rows (all r_20d=+10%), MSFT has 1 row (r_20d=+30%)
+        rows = [{"symbol": "AAPL", "snapshot_ts": d1 + i*3600, "r_20d": 0.10}
+                for i in range(5)]
+        rows.append({"symbol": "MSFT", "snapshot_ts": d1, "r_20d": 0.30})
+        df = self._df_with_r20d(rows)
+        with patch("data.signal_history.get_sectors",
+                   return_value={"AAPL": "Tech", "MSFT": "Tech"}):
+            out = _compute_sector_relative_features(df)
+        # If equal-weight: mean = (0.10+0.30)/2 = 0.20 → AAPL_rel=−0.10, MSFT_rel=+0.10
+        # If snapshot-count-weighted (BUG): mean = (5*0.10+0.30)/6 ≈ 0.133 →
+        #     AAPL_rel ≈ −0.033 — FAILS the equal-weight assertion below.
+        aapl_rel = out[out["symbol"] == "AAPL"]["r_20d_sector_rel"].iloc[0]
+        self.assertAlmostEqual(aapl_rel, -0.10, places=6)
+
+    def test_solo_symbol_in_sector_yields_zero(self):
+        """When a symbol is the only one in its sector on a given day, its
+        sector mean equals its own r_20d → relative = 0."""
+        from data.signal_history import _compute_sector_relative_features
+        from unittest.mock import patch
+        df = self._df_with_r20d([
+            {"symbol": "TLT", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.05},
+        ])
+        with patch("data.signal_history.get_sectors",
+                   return_value={"TLT": "Financials"}):
+            out = _compute_sector_relative_features(df)
+        rel = out[out["symbol"] == "TLT"]["r_20d_sector_rel"].iloc[0]
+        self.assertAlmostEqual(rel, 0.0, places=6)
+
+    def test_nan_r_20d_propagates_to_nan_relative(self):
+        """A symbol with NaN r_20d (early-life, no 20-day history) must
+        produce NaN sector_rel, not a stale 0 broadcast."""
+        from data.signal_history import _compute_sector_relative_features
+        from unittest.mock import patch
+        df = self._df_with_r20d([
+            {"symbol": "AAPL", "snapshot_ts": 1_704_067_200.0, "r_20d": np.nan},
+            {"symbol": "MSFT", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.20},
+        ])
+        with patch("data.signal_history.get_sectors",
+                   return_value={"AAPL": "Tech", "MSFT": "Tech"}):
+            out = _compute_sector_relative_features(df)
+        aapl = out[out["symbol"] == "AAPL"]["r_20d_sector_rel"].iloc[0]
+        self.assertTrue(np.isnan(aapl))
+        # MSFT's sector_rel is also NaN since its sector mean (computed
+        # over MSFT alone since AAPL is NaN) equals MSFT itself → 0,
+        # OR NaN if we skip-NaN — we want skip-NaN behavior so MSFT's
+        # signal isn't lost.
+        msft = out[out["symbol"] == "MSFT"]["r_20d_sector_rel"].iloc[0]
+        self.assertAlmostEqual(msft, 0.0, places=6)  # MSFT alone in its valid-sample sector
+
+    def test_returns_copy_not_inplace(self):
+        from data.signal_history import _compute_sector_relative_features
+        from unittest.mock import patch
+        df = self._df_with_r20d([
+            {"symbol": "AAPL", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.10},
+            {"symbol": "MSFT", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.20},
+        ])
+        before_cols = set(df.columns)
+        with patch("data.signal_history.get_sectors",
+                   return_value={"AAPL": "Tech", "MSFT": "Tech"}):
+            _compute_sector_relative_features(df)
+        self.assertEqual(set(df.columns), before_cols)
+        self.assertNotIn("r_20d_sector_rel", df.columns)
+
+    def test_handles_missing_r_20d_column(self):
+        """Pre-Sprint-0 df has no r_20d → return df unchanged, don't crash."""
+        from data.signal_history import _compute_sector_relative_features
+        import pandas as pd
+        df = pd.DataFrame({"symbol": ["A"], "snapshot_ts": [1.0]})
+        out = _compute_sector_relative_features(df)
+        self.assertNotIn("r_20d_sector_rel", out.columns)
+
+    def test_handles_get_sectors_failure(self):
+        """If get_sectors raises (network error, yfinance down), return
+        df unchanged — don't crash the pipeline."""
+        from data.signal_history import _compute_sector_relative_features
+        from unittest.mock import patch
+        df = self._df_with_r20d([
+            {"symbol": "AAPL", "snapshot_ts": 1_704_067_200.0, "r_20d": 0.10},
+        ])
+        with patch("data.signal_history.get_sectors",
+                   side_effect=RuntimeError("yfinance down")):
+            out = _compute_sector_relative_features(df)
+        self.assertNotIn("r_20d_sector_rel", out.columns)
+
+
+class TestGetRecentWindowReturns27Channels(unittest.TestCase):
+    """get_recent_window must return a (27, T) array matching training shape:
+    5 source + 2 agent + 2 rv + 5 hourly returns + 5 macro + 6 daily returns
+    + 1 momentum + 1 sector-relative (Sprint 3)."""
+
+    def test_recent_window_has_27_rows(self):
         from data.signal_history import signal_history
         from unittest.mock import patch
         import pandas as pd
@@ -345,8 +535,8 @@ class TestGetRecentWindowReturns26Channels(unittest.TestCase):
             window = signal_history.get_recent_window("AAPL", T=10)
 
         self.assertIsNotNone(window, "window must not be None for 130-row symbol")
-        self.assertEqual(window.shape, (26, 10),
-                         f"expected (26, 10), got {window.shape}")
+        self.assertEqual(window.shape, (27, 10),
+                         f"expected (27, 10), got {window.shape}")
 
 
 class TestReturn10dSchema(unittest.IsolatedAsyncioTestCase):
@@ -523,8 +713,8 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
             # ── Serving path: get_recent_window ────────────────────────
             window = signal_history.get_recent_window("AAPL", T=WINDOW_SIZE)
             self.assertIsNotNone(window)
-            # Sprint 2-B: post-momentum shape (25 daily + 1 momentum = 26)
-            self.assertEqual(window.shape, (26, WINDOW_SIZE))
+            # Sprint 3: post-sector-relative shape (26 + 1 sector_rel = 27)
+            self.assertEqual(window.shape, (27, WINDOW_SIZE))
 
             # ── Training path: get_training_data → build_training_windows
             # Symbol-scoped variant — unscoped iterates os.listdir which is

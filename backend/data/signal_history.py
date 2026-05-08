@@ -98,6 +98,13 @@ DAILY_RETURN_COLUMNS = ["r_1d", "r_5d", "r_20d", "r_60d", "r_120d", "r_252d"]
 # the classic Jegadeesh-Titman 12-1 factor, computed as r_252d - r_20d.
 MOMENTUM_COLUMNS = ["mom_12_1"]
 
+# SECTOR_RELATIVE_COLUMNS holds cross-sectional features computed by
+# joining a sector lookup and grouping over (sector, trading_day) at
+# read-time (Sprint 3 2026-05-08). Currently r_20d_sector_rel only —
+# the symbol's r_20d minus the symbol-equal-weight mean of r_20d across
+# all symbols in the same GICS sector on the same UTC trading day.
+SECTOR_RELATIVE_COLUMNS = ["r_20d_sector_rel"]
+
 # Rolling cap: keep at most 90 days × ~12 snapshots/hour = ~26 000 rows/symbol
 MAX_ROWS = 90 * 24 * 12
 
@@ -261,6 +268,79 @@ def _compute_momentum_features(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+# Lazy import of get_sectors so this module stays importable even if
+# data.sector_lookup has its own import-time side-effects (it touches the
+# filesystem at import). Tests patch `data.signal_history.get_sectors`.
+from data.sector_lookup import get_sectors   # noqa: E402
+
+
+def _compute_sector_relative_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Sprint 3 (2026-05-08): cross-sectional sector-relative 1-month return.
+
+    Adds SECTOR_RELATIVE_COLUMNS = ['r_20d_sector_rel'] = r_20d minus the
+    symbol-equal-weight mean of r_20d across all symbols in the SAME GICS
+    sector on the SAME UTC trading day.
+
+    Why: r_20d alone tells you "this symbol returned X% over the last
+    month". Sector-relative tells you "this symbol returned X% MORE/LESS
+    than its sector peers" — the relative-strength signal that an entire
+    sector pumping (oil day → all Energy up 5%) cannot mask.
+
+    Symbol-equal-weight: we dedupe to one r_20d per (symbol, trading_day)
+    before averaging so a symbol with more hourly snapshots doesn't
+    dominate the sector mean. Without this, a symbol with 7 snapshots
+    would be weighted 7x vs a symbol with 1 snapshot in the same sector.
+
+    Lookahead-safe: the sector mean for day D uses only r_20d values
+    AT day D — no forward leak. r_20d itself is daily-resampled and
+    backward-shifted; the mean over a snapshot is therefore as-of D
+    too. Verified by tests/test_lookahead.py.
+
+    Robustness: if r_20d/symbol/snapshot_ts columns are absent, return
+    df untouched (pre-Sprint-0 data). If get_sectors() raises (yfinance
+    down, network glitch), return df untouched — must not crash the
+    pipeline; loss of one channel is preferable to losing all of them.
+    """
+    if df.empty:
+        return df
+    needed = {"r_20d", "symbol", "snapshot_ts"}
+    if not needed.issubset(df.columns):
+        return df
+
+    symbols = sorted(df["symbol"].dropna().unique().tolist())
+    if not symbols:
+        return df
+    try:
+        sectors = get_sectors(symbols)
+    except Exception as exc:
+        logger.debug("signal_history: get_sectors() failed (%s) — skipping sector-relative features", exc)
+        return df
+
+    out = df.copy()
+    out["_sector"] = out["symbol"].map(sectors)
+    # Bucket each row by UTC trading day. Using pandas datetime64 over
+    # epoch seconds — timezone-aware to keep day boundaries unambiguous.
+    out["_td"] = pd.to_datetime(out["snapshot_ts"], unit="s", utc=True).dt.date
+
+    # Dedupe to one r_20d value per (symbol, trading_day) before averaging.
+    # All hourly rows for a (symbol, day) share r_20d (Sprint 0
+    # forward-fills daily values), so first() is sufficient.
+    per_sym_day = (
+        out[["symbol", "_sector", "_td", "r_20d"]]
+        .drop_duplicates(subset=["symbol", "_td"])
+    )
+    sector_day_mean = (
+        per_sym_day.groupby(["_sector", "_td"], dropna=False)["r_20d"]
+        .mean()  # NaN-skipping by default
+        .rename("_sector_day_mean")
+        .reset_index()
+    )
+    out = out.merge(sector_day_mean, on=["_sector", "_td"], how="left")
+    out["r_20d_sector_rel"] = out["r_20d"] - out["_sector_day_mean"]
+    out = out.drop(columns=["_sector", "_td", "_sector_day_mean"])
+    return out
+
+
 def _load_macro_features() -> Optional[pd.DataFrame]:
     """Return a date-sorted DataFrame of macro CNN features, or None when unavailable.
 
@@ -322,6 +402,11 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     # daily-return columns being present, so runs AFTER the daily helper.
     # Appended at the end so feature_filter indices remain stable.
     out = _compute_momentum_features(out)
+    # Sprint 3: cross-sectional sector-relative features (r_20d_sector_rel)
+    # — depends on r_20d, joined with sector lookup. Runs AFTER daily
+    # returns so r_20d is populated. Appended last so existing channel
+    # indices remain stable.
+    out = _compute_sector_relative_features(out)
     return out
 
 
@@ -618,25 +703,26 @@ class SignalHistoryStore:
                     parts.append(np.zeros((len(recent), 1)))
             return np.hstack(parts)
 
-        source_data       = _column_block(SOURCE_COLUMNS)
-        agent_data        = _column_block(AGENT_COLUMNS)
-        rv_data           = _column_block(RV_COLUMNS)
-        return_data       = _column_block(RETURN_COLUMNS)
-        macro_data        = _column_block(list(_MACRO_COLUMN_MAP.values()))
-        daily_return_data = _column_block(DAILY_RETURN_COLUMNS)
-        momentum_data     = _column_block(MOMENTUM_COLUMNS)
+        source_data        = _column_block(SOURCE_COLUMNS)
+        agent_data         = _column_block(AGENT_COLUMNS)
+        rv_data            = _column_block(RV_COLUMNS)
+        return_data        = _column_block(RETURN_COLUMNS)
+        macro_data         = _column_block(list(_MACRO_COLUMN_MAP.values()))
+        daily_return_data  = _column_block(DAILY_RETURN_COLUMNS)
+        momentum_data      = _column_block(MOMENTUM_COLUMNS)
+        sector_relative_data = _column_block(SECTOR_RELATIVE_COLUMNS)
 
         combined = np.hstack([
             source_data, agent_data, rv_data, return_data, macro_data,
-            daily_return_data, momentum_data,
-        ])  # (≤T, 26)
+            daily_return_data, momentum_data, sector_relative_data,
+        ])  # (≤T, 27)
 
         if len(combined) < T:
             pad      = np.zeros((T - len(combined), combined.shape[1]))
             combined = np.vstack([pad, combined])
 
         combined = np.nan_to_num(combined, nan=0.0)
-        return combined.T   # (26, T) post-Sprint-2-B
+        return combined.T   # (27, T) post-Sprint-3
 
     def symbols_with_data(self) -> List[str]:
         """List all symbols that have at least one snapshot on disk."""
