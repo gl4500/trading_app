@@ -6,6 +6,7 @@ Covers: _coerce_rec(), _merge_recommendations(), _split_candidates(),
 import sys
 import os
 import asyncio
+import tempfile
 import time
 import unittest
 from unittest.mock import patch, AsyncMock, MagicMock
@@ -27,6 +28,34 @@ from agents.scanner_agent import (
     MAX_RECOMMENDATIONS,
     MAX_TOOL_ROUNDS,
 )
+
+
+# Test-isolation: redirect the per-scan JSONL log to a throwaway tempfile
+# for the duration of this test module. Without this, every test that
+# exercises a scanner runner (_run_claude_scanner / _run_ollama_scanner /
+# etc) appends a row to backend/logs/scanner_recs.jsonl — silently
+# corrupting the production analysis log with mock objects and stale
+# fixture data.
+_PROD_SCANNER_RECS_LOG: str | None = None
+_TEMP_SCANNER_RECS_LOG: str | None = None
+
+
+def setUpModule() -> None:
+    global _PROD_SCANNER_RECS_LOG, _TEMP_SCANNER_RECS_LOG
+    _PROD_SCANNER_RECS_LOG = scanner_module._SCANNER_RECS_LOG
+    fd, _TEMP_SCANNER_RECS_LOG = tempfile.mkstemp(suffix=".jsonl", prefix="test_scanner_recs_")
+    os.close(fd)
+    scanner_module._SCANNER_RECS_LOG = _TEMP_SCANNER_RECS_LOG
+
+
+def tearDownModule() -> None:
+    if _PROD_SCANNER_RECS_LOG is not None:
+        scanner_module._SCANNER_RECS_LOG = _PROD_SCANNER_RECS_LOG
+    if _TEMP_SCANNER_RECS_LOG and os.path.exists(_TEMP_SCANNER_RECS_LOG):
+        try:
+            os.unlink(_TEMP_SCANNER_RECS_LOG)
+        except OSError:
+            pass
 
 
 class TestCoerceRec(unittest.TestCase):
@@ -314,6 +343,10 @@ class TestScannerTokenLogging(unittest.IsolatedAsyncioTestCase):
 
         mock_config = MagicMock()
         mock_config.ANTHROPIC_API_KEY = "test-key"
+        # Pin the model the scanner sees to the test value so we can assert
+        # it's the same one save_token_log records (proves the model field
+        # flows from config rather than a hardcoded string).
+        mock_config.SCANNER_CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 
         with patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock) as mock_save, \
              patch("config.config", mock_config), \
@@ -325,9 +358,61 @@ class TestScannerTokenLogging(unittest.IsolatedAsyncioTestCase):
         mock_save.assert_called_once()
         call_kwargs = mock_save.call_args[1]
         self.assertEqual(call_kwargs["agent"], "ScannerAgent/Claude")
-        self.assertEqual(call_kwargs["model"], "claude-opus-4-6")
+        # Model logged matches the one the API was called with (config-driven)
+        self.assertEqual(call_kwargs["model"], "claude-haiku-4-5-20251001")
         self.assertGreater(call_kwargs["prompt_tokens"], 0)
         self.assertGreater(call_kwargs["completion_tokens"], 0)
+        # Also assert the API call site used the same model — full proof
+        # the swap is wired everywhere.
+        api_call_kwargs = mock_client.messages.create.await_args.kwargs
+        self.assertEqual(api_call_kwargs["model"], "claude-haiku-4-5-20251001")
+
+    async def test_claude_scanner_recs_jsonl_uses_config_model(self):
+        """The scanner_recs.jsonl row's model field flows from
+        config.SCANNER_CLAUDE_MODEL — NOT a hardcoded string. Otherwise the
+        offline JSONL log silently drifts from the real model in use."""
+        from agents.scanner_agent import _run_claude_scanner
+
+        usage = MagicMock()
+        usage.input_tokens = 800
+        usage.output_tokens = 200
+        fake_response = MagicMock()
+        fake_response.usage = usage
+        fake_response.content = []
+        fake_response.stop_reason = "end_turn"
+
+        mock_client = MagicMock()
+        mock_client.messages.create = AsyncMock(return_value=fake_response)
+
+        mock_config = MagicMock()
+        mock_config.ANTHROPIC_API_KEY = "test-key"
+        mock_config.SCANNER_CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+
+        with patch("agents.scanner_agent._append_scanner_recs_log") as mock_jsonl, \
+             patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock), \
+             patch("config.config", mock_config), \
+             patch("anthropic.AsyncAnthropic", return_value=mock_client):
+            candidates = [{"symbol": "AAPL", "pct_change": 2.0, "vol_ratio": 1.5,
+                           "momentum_score": 0.7, "price": 180.0}]
+            await _run_claude_scanner(candidates)
+
+        mock_jsonl.assert_called_once()
+        scanner_arg, model_arg, *_ = mock_jsonl.call_args[0]
+        self.assertEqual(scanner_arg, "Claude")
+        self.assertEqual(model_arg, "claude-haiku-4-5-20251001")
+
+    async def test_default_scanner_claude_model_is_haiku(self):
+        """The default config.SCANNER_CLAUDE_MODEL is Haiku 4.5 — saves
+        ~85% per token vs Opus 4.6. Set SCANNER_CLAUDE_MODEL=claude-opus-4-6
+        to revert if scanner-decision quality regresses."""
+        from config import config
+        self.assertEqual(config.SCANNER_CLAUDE_MODEL, "claude-haiku-4-5-20251001")
+
+    async def test_claude_agent_model_remains_opus_by_default(self):
+        """ClaudeAgent's per-symbol decisions stay on Opus 4.6 — fewer calls,
+        higher-stakes decisions where reasoning depth justifies the cost."""
+        from config import config
+        self.assertEqual(config.CLAUDE_AGENT_MODEL, "claude-opus-4-6")
 
     async def test_openai_scanner_logs_tokens(self):
         """_run_openai_scanner calls save_token_log with accumulated token counts."""
@@ -1476,6 +1561,89 @@ class TestExpandedCandidatePool(unittest.TestCase):
         # Raw split = 25 each. With fallback, each should see > 25.
         self.assertGreater(c, 25, msg=f"Claude only received {c} candidates, expected >25 with fallback")
         self.assertGreater(g, 25, msg=f"Gemini only received {g} candidates, expected >25 with fallback")
+
+
+class TestScannerRecsJsonlLog(unittest.TestCase):
+    """_append_scanner_recs_log persists each scanner runner's input + output
+    to backend/logs/scanner_recs.jsonl so we can compare Claude vs Ollama
+    overlap and attribute per-scanner value offline."""
+
+    def test_writes_one_jsonl_row_with_expected_fields(self):
+        import json, tempfile, os as _os
+        from agents.scanner_agent import _append_scanner_recs_log
+        with tempfile.TemporaryDirectory() as td:
+            log_path = _os.path.join(td, "scanner_recs.jsonl")
+            with patch("agents.scanner_agent._SCANNER_RECS_LOG", log_path):
+                candidates = [
+                    {"symbol": "FSLY", "price": 32.37, "pct_change": 17.71},
+                    {"symbol": "NET",  "price": 244.48, "pct_change": 9.06},
+                ]
+                recs = [
+                    {"symbol": "NET", "action": "BUY", "confidence": 0.85,
+                     "reasoning": "strong momentum", "timestamp": "2026-05-06T12:00:00Z"},
+                ]
+                _append_scanner_recs_log("Claude", "claude-haiku-4-5-20251001",
+                                          candidates, recs)
+            with open(log_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        self.assertEqual(len(lines), 1)
+        row = json.loads(lines[0])
+        for key in ("ts", "scanner", "model", "n_candidates",
+                    "candidate_symbols", "n_recs", "recs"):
+            self.assertIn(key, row)
+        self.assertEqual(row["scanner"], "Claude")
+        self.assertEqual(row["model"], "claude-haiku-4-5-20251001")
+        self.assertEqual(row["n_candidates"], 2)
+        self.assertEqual(row["candidate_symbols"], ["FSLY", "NET"])
+        self.assertEqual(row["n_recs"], 1)
+        self.assertEqual(row["recs"][0]["symbol"], "NET")
+
+    def test_appends_subsequent_rows_without_overwriting(self):
+        """Two scans in sequence → two JSONL lines, oldest first."""
+        import json, tempfile, os as _os
+        from agents.scanner_agent import _append_scanner_recs_log
+        with tempfile.TemporaryDirectory() as td:
+            log_path = _os.path.join(td, "scanner_recs.jsonl")
+            with patch("agents.scanner_agent._SCANNER_RECS_LOG", log_path):
+                _append_scanner_recs_log("Claude", "claude-opus-4-6", [], [])
+                _append_scanner_recs_log("Ollama", "llama3.1:8b",
+                                          [{"symbol":"AMD","price":355}],
+                                          [{"symbol":"AMD","action":"BUY","confidence":0.7}])
+            with open(log_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        self.assertEqual(len(lines), 2)
+        first  = json.loads(lines[0])
+        second = json.loads(lines[1])
+        self.assertEqual(first["scanner"],  "Claude")
+        self.assertEqual(second["scanner"], "Ollama")
+        self.assertEqual(second["candidate_symbols"], ["AMD"])
+
+    def test_disk_failure_does_not_raise(self):
+        """Instrumentation must NEVER crash the scanner. A bad path = silent
+        debug log + return."""
+        from agents.scanner_agent import _append_scanner_recs_log
+        # Path with NUL char is OS-invalid → raises on open(); helper must catch
+        with patch("agents.scanner_agent._SCANNER_RECS_LOG", "/x\x00invalid"):
+            try:
+                _append_scanner_recs_log("Claude", "model", [], [])
+            except Exception as e:
+                self.fail(f"helper raised {type(e).__name__}: {e}")
+
+    def test_module_redirects_log_path_to_tempfile(self):
+        """setUpModule must redirect _SCANNER_RECS_LOG away from the
+        production path so test runs can never pollute backend/logs/
+        scanner_recs.jsonl. Without this, every test that reaches
+        _append_scanner_recs_log (directly or via _run_*_scanner) appends
+        a row to the live offline-analysis log."""
+        prod_default = os.path.normpath(os.path.join(
+            os.path.dirname(scanner_module.__file__), "..", "logs", "scanner_recs.jsonl"))
+        current = os.path.normpath(scanner_module._SCANNER_RECS_LOG)
+        self.assertNotEqual(
+            current, prod_default,
+            msg=f"_SCANNER_RECS_LOG still points at production path: {current}",
+        )
+        self.assertIn("test_scanner_recs_", current,
+                      msg=f"expected tempfile redirect, got {current}")
 
 
 if __name__ == "__main__":

@@ -134,6 +134,19 @@ class Config:
     CNN_BUY_THRESHOLD_BASE: float = float(os.getenv(
         "CNN_BUY_THRESHOLD_BASE", "0.65"))
 
+    # Cloud-Claude model selection per call site (added 2026-05-05).
+    # ScannerAgent's job is "rank symbols by interest" — Haiku 4.5 is
+    # plenty for that and ~15× cheaper than Opus 4.6 ($1/M vs $15/M
+    # input, $5/M vs $75/M output). Saves ~85% on the scanner's
+    # token spend (~$3.40/day → ~$0.50/day at today's volume).
+    # Override to claude-opus-4-6 if scanner-decision quality regresses.
+    SCANNER_CLAUDE_MODEL: str = os.getenv(
+        "SCANNER_CLAUDE_MODEL", "claude-haiku-4-5-20251001")
+    # ClaudeAgent kept on Opus by default — fewer calls, higher-stakes
+    # per-symbol decisions where Opus's reasoning depth matters.
+    CLAUDE_AGENT_MODEL: str = os.getenv(
+        "CLAUDE_AGENT_MODEL", "claude-opus-4-6")
+
     # Watchlist — static seed symbols used as fallback when the scanner pool is small.
     # Set WATCHLIST=* to disable static seeds entirely — the watchlist is then built
     # solely from scanner recommendations and momentum candidates (agent-driven).
