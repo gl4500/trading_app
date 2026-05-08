@@ -370,6 +370,85 @@ class TestExtractJson(unittest.TestCase):
     def test_broken_prose_no_json_returns_none(self):
         self.assertIsNone(self.extract_json("The market looks {bullish} today"))
 
+    def test_top_level_string_returns_none(self):
+        """REGRESSION: Ollama sometimes returns a top-level JSON string like
+        '"I think we should buy AAPL"'. json.loads() parses this to a Python
+        str, which the function used to return — then downstream
+        parse_ai_decisions tried response.get("decisions") and exploded with
+            'str' object has no attribute 'get'
+
+        The contract is: extract_json must return Optional[Dict]. Anything
+        else is None."""
+        self.assertIsNone(self.extract_json('"I think we should buy AAPL"'))
+
+    def test_top_level_list_returns_none(self):
+        """Same contract: a top-level JSON list (e.g. when the model
+        returns the bare decisions array instead of wrapping it in
+        {"decisions": [...]}) must NOT be returned as the response dict.
+        Without this check, downstream code crashes on .get()."""
+        self.assertIsNone(self.extract_json('[{"symbol": "AAPL", "action": "BUY"}]'))
+
+    def test_top_level_number_returns_none(self):
+        self.assertIsNone(self.extract_json('42'))
+
+    def test_top_level_null_returns_none(self):
+        self.assertIsNone(self.extract_json('null'))
+
+    def test_prose_wrapping_a_top_level_string_returns_none(self):
+        """The regex fallback only matches {...}. If Ollama returns
+        prose like 'My answer: "buy AAPL"' (no braces at all), nothing
+        matches → None. Pinning so a future regex change doesn't regress
+        this."""
+        self.assertIsNone(self.extract_json('My answer: "buy AAPL"'))
+
+
+class TestParseAiDecisionsHandlesNonDictResponse(unittest.TestCase):
+    """REGRESSION: parse_ai_decisions used to crash with 'str' object has
+    no attribute 'get' if a caller passed a non-dict response. extract_json
+    is the primary defense (it now only returns dicts), but parse_ai_decisions
+    must also be defensive — it's a public utility called from multiple
+    agent paths and shouldn't trust its input shape blindly."""
+
+    def test_string_response_returns_empty_signals(self):
+        from agents.agent_utils import parse_ai_decisions
+        from trading.portfolio import Portfolio
+        # Should NOT raise — returns empty signal list when response is malformed
+        signals = parse_ai_decisions(
+            response="not a dict",
+            market_context={"AAPL": {"price": 150.0}},
+            prices={"AAPL": 150.0},
+            portfolio=Portfolio(starting_capital=100_000),
+            max_position_size=0.15,
+            agent_prefix="TEST",
+        )
+        self.assertEqual(signals, [])
+
+    def test_none_response_returns_empty_signals(self):
+        from agents.agent_utils import parse_ai_decisions
+        from trading.portfolio import Portfolio
+        signals = parse_ai_decisions(
+            response=None,
+            market_context={"AAPL": {"price": 150.0}},
+            prices={"AAPL": 150.0},
+            portfolio=Portfolio(starting_capital=100_000),
+            max_position_size=0.15,
+            agent_prefix="TEST",
+        )
+        self.assertEqual(signals, [])
+
+    def test_list_response_returns_empty_signals(self):
+        from agents.agent_utils import parse_ai_decisions
+        from trading.portfolio import Portfolio
+        signals = parse_ai_decisions(
+            response=[{"symbol": "AAPL", "action": "BUY"}],
+            market_context={"AAPL": {"price": 150.0}},
+            prices={"AAPL": 150.0},
+            portfolio=Portfolio(starting_capital=100_000),
+            max_position_size=0.15,
+            agent_prefix="TEST",
+        )
+        self.assertEqual(signals, [])
+
 
 if __name__ == "__main__":
     unittest.main()

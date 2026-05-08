@@ -87,7 +87,13 @@ def parse_ai_decisions(
 
     agent_prefix: label prepended to reasoning, e.g. "CLAUDE ANALYSIS" or "GEMINI ANALYSIS".
     """
+    # Defense-in-depth: extract_json now enforces dict-only, but other call
+    # sites might pass us a raw string/None/list (e.g. a fallback path that
+    # forgot to wrap). Returning [] keeps the ensemble agent alive instead
+    # of crashing on `response.get(...)` with `'str' object has no attribute 'get'`.
     signals = []
+    if not isinstance(response, dict):
+        return signals
     decisions = response.get("decisions", [])
     market_analysis = response.get("market_analysis", "")
     # Attach market_analysis to first real (dict-valued) symbol only
@@ -191,16 +197,33 @@ def extract_json(text: str) -> Optional[Dict]:
 
     Tries direct parse first (fast path for clean responses), then falls back
     to a regex search for the outermost ``{...}`` block (handles prose-wrapped
-    or markdown-fenced output).  Returns None if no valid JSON object is found.
+    or markdown-fenced output).  Returns None if no valid JSON OBJECT is found.
+
+    JSON allows top-level strings, lists, numbers, booleans, and null. We
+    explicitly reject those — agents produce unstructured top-level values
+    (e.g. a quoted string answer) when prompts go wrong, and downstream
+    callers expect a dict shape and crash with `'str' object has no
+    attribute 'get'` if we pass them anything else. Returning None forces
+    the caller down the documented "JSON parse failed" branch instead.
     """
     try:
-        return json.loads(text.strip())
+        result = json.loads(text.strip())
+        if isinstance(result, dict):
+            return result
+        # Direct parse succeeded but returned non-dict (string / list /
+        # number / null). Input was structurally non-dict JSON — don't
+        # fall through to the regex fallback, which would incorrectly
+        # extract the inner dict from `[{"a":1}]` and return it as if
+        # it were the response wrapper.
+        return None
     except (json.JSONDecodeError, ValueError):
         pass
     match = re.search(r'\{[\s\S]*\}', text)
     if match:
         try:
-            return json.loads(match.group())
+            result = json.loads(match.group())
+            if isinstance(result, dict):
+                return result
         except (json.JSONDecodeError, ValueError):
             pass
     return None
