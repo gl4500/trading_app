@@ -309,9 +309,10 @@ class TestCongressDemotedFromCNN(unittest.TestCase):
     def test_default_weights_keys_match_source_names(self):
         self.assertEqual(set(_DEFAULT_WEIGHTS.keys()), set(SOURCE_NAMES))
 
-    def test_n_channels_is_25_after_sprint0_daily_returns(self):
+    def test_n_channels_is_26_after_sprint2b_momentum(self):
         # Sprint 0: 5 source + 2 agent + 2 RV + 5 hourly ret + 5 macro + 6 daily ret = 25
-        self.assertEqual(N_CHANNELS, 25)
+        # Sprint 2-B: + 1 momentum (mom_12_1) = 26
+        self.assertEqual(N_CHANNELS, 26)
 
 
 class TestEarningsReframedToMagnitude(unittest.TestCase):
@@ -1127,11 +1128,12 @@ class TestReturnChannelsExposed(unittest.TestCase):
     """Tier 1 from docs/equity_feature_engineering_audit.md — five lagged
     return channels become part of N_CHANNELS."""
 
-    def test_n_channels_is_25_after_sprint0(self):
+    def test_n_channels_is_26_after_sprint2b(self):
         from data.cnn_model import N_CHANNELS, RETURN_CHANNEL_NAMES
         self.assertEqual(len(RETURN_CHANNEL_NAMES), 5)
         # Sprint 0: 5 src + 2 agent + 2 rv + 5 hourly ret + 5 macro + 6 daily ret = 25
-        self.assertEqual(N_CHANNELS, 25)
+        # Sprint 2-B: + 1 momentum (mom_12_1) = 26
+        self.assertEqual(N_CHANNELS, 26)
 
     def test_return_channel_order(self):
         from data.cnn_model import RETURN_CHANNEL_NAMES
@@ -1203,7 +1205,9 @@ class TestFeatureCatalog(unittest.TestCase):
         # Sprint 0 added RETURN_DAILY at the end so existing channel indices
         # 0-18 (incl. MACRO at 14-18) remain unchanged. New daily returns
         # land at indices 19-24.
-        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO", "RETURN_DAILY"]
+        # Sprint 2-B added MOMENTUM at the end (mom_12_1 at index 25) for
+        # the same index-stability rationale.
+        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO", "RETURN_DAILY", "MOMENTUM"]
         seen = []
         for c in CATALOG:
             if not seen or seen[-1] != c.category:
@@ -1258,12 +1262,14 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
     def test_all_channel_columns_composed_from_signal_history_blocks(self):
         from data.signal_history import (
             SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
-            DAILY_RETURN_COLUMNS, _MACRO_COLUMN_MAP,
+            DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS, _MACRO_COLUMN_MAP,
         )
         from data.cnn_model import ALL_CHANNEL_COLUMNS, N_CHANNELS
         # Sprint 0: daily-resampled returns appended AFTER macro so existing
         # channel indices [0-18] are preserved (production XGB feature_filter
         # depends on stable indices).
+        # Sprint 2-B: derived momentum (mom_12_1) appended AFTER daily
+        # returns — same stability rationale.
         expected = (
             list(SOURCE_COLUMNS)
             + list(AGENT_COLUMNS)
@@ -1271,6 +1277,7 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
             + list(RETURN_COLUMNS)
             + list(_MACRO_COLUMN_MAP.values())
             + list(DAILY_RETURN_COLUMNS)
+            + list(MOMENTUM_COLUMNS)
         )
         self.assertEqual(
             ALL_CHANNEL_COLUMNS, expected,

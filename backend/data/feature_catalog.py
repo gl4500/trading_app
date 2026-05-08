@@ -245,6 +245,25 @@ CATALOG: List[Channel] = [
         "252 trading days", "2026-05-03",
         "True 12-month return. Required for r_252d - r_21d 12-1 momentum (Sprint 2-B). Most rows will be NaN until ~12 months of history accumulates per symbol.",
     ),
+
+    # ── MOMENTUM (1) ──────────────────────────────────────────────────────
+    # Sprint 2-B (2026-05-08): the classic Jegadeesh-Titman 12-1 momentum
+    # factor — cumulative log-return from t-12mo to t-1mo, skipping the
+    # most recent month to avoid short-term reversal contamination. Pure
+    # subtraction of two RETURN_DAILY channels: r_252d - r_20d (we use 20
+    # trading days as the "1-month skip" since that's what the catalog
+    # exposes; ≈ 1 month).
+    #
+    # Placed AFTER RETURN_DAILY so the production XGB feature_filter
+    # [0,1,2,4,13,14,17,18] (all indices ≤ 18) keeps pointing at the same
+    # channels. Pool-only until Task #74 re-runs forward selection.
+    Channel(
+        "mom_12_1", "MOMENTUM",
+        ["r_252d", "r_20d"],
+        "_compute_momentum_features (r_252d - r_20d)",
+        "12 months minus last month", "2026-05-08",
+        "12-1 momentum: r_252d - r_20d in log-return space = log(P[t-20]/P[t-252]). NaN until both inputs are populated (~12 months of per-symbol history).",
+    ),
 ]
 
 
