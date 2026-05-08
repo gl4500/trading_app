@@ -684,6 +684,56 @@ class TestComputeSpyCorrelationFeatures(unittest.TestCase):
         self.assertAlmostEqual(aapl, +1.0, places=4)
         self.assertAlmostEqual(msft, -1.0, places=4)
 
+    def test_handles_single_symbol_df_where_symbol_is_spy(self):
+        """REGRESSION: when compute_features is called on a single-symbol
+        slice where the symbol IS SPY (e.g. signal_history.get_training_data("SPY")
+        called by auto-backfill at startup), groupby.apply returns a
+        DataFrame instead of a Series in newer pandas because there's only
+        one group. Without explicit per-group handling, this raised:
+
+            ValueError: Cannot set a DataFrame with multiple columns to
+            the single column corr_spy_20d
+
+        which broke the live auto-backfill path (and got logged as a
+        non-fatal warning) — preventing scanner / signal flow on every
+        restart. Pin: SPY-only df must succeed and produce a corr_spy_20d
+        column with the symbol's self-correlation (≈ 1.0)."""
+        from data.signal_history import _compute_spy_correlation_features
+        rng = np.random.default_rng(0)
+        spy_r = rng.standard_normal(30) * 0.01
+        import pandas as pd
+        rows = []
+        base_ts = 1_704_067_200.0
+        for d in range(30):
+            for hr in range(5):
+                rows.append({"symbol": "SPY", "snapshot_ts": base_ts + d*86400 + hr*3600,
+                             "r_1d": spy_r[d]})
+        df = pd.DataFrame(rows)
+        # Must NOT raise
+        out = _compute_spy_correlation_features(df)
+        self.assertIn("corr_spy_20d", out.columns)
+        # SPY's self-correlation at any populated row ≈ 1.0
+        spy_rows = out.sort_values("snapshot_ts")
+        day25_close = spy_rows["corr_spy_20d"].iloc[25 * 5 + 4]
+        self.assertAlmostEqual(day25_close, 1.0, places=4)
+
+    def test_handles_single_symbol_df_where_symbol_is_not_spy(self):
+        """Companion to the SPY-self-correlation case: AAPL-only df (no
+        SPY rows) must take the all-NaN graceful path and not raise."""
+        from data.signal_history import _compute_spy_correlation_features
+        rng = np.random.default_rng(0)
+        import pandas as pd
+        rows = []
+        base_ts = 1_704_067_200.0
+        for d in range(30):
+            for hr in range(5):
+                rows.append({"symbol": "AAPL", "snapshot_ts": base_ts + d*86400 + hr*3600,
+                             "r_1d": rng.standard_normal() * 0.01})
+        df = pd.DataFrame(rows)
+        out = _compute_spy_correlation_features(df)
+        self.assertIn("corr_spy_20d", out.columns)
+        self.assertTrue(out["corr_spy_20d"].isna().all())
+
 
 class TestGetRecentWindowReturns28Channels(unittest.TestCase):
     """get_recent_window must return a (28, T) array matching training shape:
