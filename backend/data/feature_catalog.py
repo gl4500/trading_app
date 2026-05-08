@@ -190,6 +190,61 @@ CATALOG: List[Channel] = [
         "5-day trailing", "2026-04-24",
         "(IWM - SPY) trailing 5d, clipped [-1, 1]. IN production XGB filter.",
     ),
+
+    # ── RETURN_DAILY (6) ──────────────────────────────────────────────────
+    # Sprint 0 (2026-05-03): true daily-resampled lagged returns. Where the
+    # RETURN block above operates on hourly snapshots (r_120 ≈ 20 trading
+    # days), these operate on daily-resampled prices (r_120d = exactly 120
+    # trading days = ~6 months back). Computed at read-time via per-symbol
+    # df.resample('1D').last() then groupby.shift, then forward-filled to
+    # the original hourly cadence.
+    #
+    # Placed AFTER MACRO so existing channel indices 0-18 are preserved —
+    # the production XGB feature_filter [0,1,2,4,13,14,17,18] keeps
+    # pointing at the same channels. New channels are pool-only until a
+    # forward-selection re-run promotes them.
+    Channel(
+        "r_1d", "RETURN_DAILY",
+        ["price"],
+        "_compute_daily_return_features (daily-resampled, shift 1d)",
+        "1 trading day", "2026-05-03",
+        "True daily 1-day return. Distinct from r_5 (hourly) which is ~1 trading day on the hourly grid but uses last snapshot's price not session close.",
+    ),
+    Channel(
+        "r_5d", "RETURN_DAILY",
+        ["price"],
+        "_compute_daily_return_features (shift 5d)",
+        "5 trading days", "2026-05-03",
+        "True 1-week return.",
+    ),
+    Channel(
+        "r_20d", "RETURN_DAILY",
+        ["price"],
+        "_compute_daily_return_features (shift 20d)",
+        "20 trading days", "2026-05-03",
+        "True 1-month return.",
+    ),
+    Channel(
+        "r_60d", "RETURN_DAILY",
+        ["price"],
+        "_compute_daily_return_features (shift 60d)",
+        "60 trading days", "2026-05-03",
+        "True 3-month return.",
+    ),
+    Channel(
+        "r_120d", "RETURN_DAILY",
+        ["price"],
+        "_compute_daily_return_features (shift 120d)",
+        "120 trading days", "2026-05-03",
+        "True 6-month return — the lookback the equity audit doc actually means by 'momentum'.",
+    ),
+    Channel(
+        "r_252d", "RETURN_DAILY",
+        ["price"],
+        "_compute_daily_return_features (shift 252d)",
+        "252 trading days", "2026-05-03",
+        "True 12-month return. Required for r_252d - r_21d 12-1 momentum (Sprint 2-B). Most rows will be NaN until ~12 months of history accumulates per symbol.",
+    ),
 ]
 
 

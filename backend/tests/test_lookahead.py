@@ -39,11 +39,14 @@ LOOKAHEAD_FREE_CHANNELS = [
     "agent_consensus", "agent_agreement",
     # Realized vol — computed at write time from past prices
     "rv_20d", "rv_60d",
-    # Lagged returns — explicitly backward
+    # Lagged returns (hourly grid) — explicitly backward
     "r_1", "r_5", "r_20", "r_60", "r_120",
     # Macro — joined as-of, must use trailing values only
     "macro_vix_norm", "macro_gld_5d_back", "macro_tlt_5d_back",
     "macro_spy_5d_back", "macro_breadth_back",
+    # Sprint 0: daily-resampled lagged returns — backward shift on
+    # per-symbol, per-trading-day series, then forward-filled to hourly rows
+    "r_1d", "r_5d", "r_20d", "r_60d", "r_120d", "r_252d",
 ]
 
 
@@ -79,13 +82,16 @@ def _make_multi_symbol_df(n_per_sym: int = 150, seed: int = 0) -> pd.DataFrame:
 
 
 def _full_pipeline(df: pd.DataFrame) -> pd.DataFrame:
-    """Run the canonical transform stack, return df with all 19 channels populated."""
+    """Run the canonical transform stack, return df with all 25 channels
+    populated (Sprint 0 added the 6 daily-resampled returns)."""
     from data.signal_history import (
-        _apply_cnn_feature_transforms, _compute_return_features, _attach_macro_features,
+        _apply_cnn_feature_transforms, _compute_return_features,
+        _attach_macro_features, _compute_daily_return_features,
     )
     out = _apply_cnn_feature_transforms(df)
     out = _compute_return_features(out)
     out = _attach_macro_features(out)
+    out = _compute_daily_return_features(out)
     return out
 
 

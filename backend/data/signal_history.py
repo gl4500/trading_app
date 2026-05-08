@@ -85,6 +85,14 @@ RV_COLUMNS = ["rv_20d", "rv_60d"]
 # cnn_model.RETURN_CHANNEL_NAMES.
 RETURN_COLUMNS = ["r_1", "r_5", "r_20", "r_60", "r_120"]
 
+# Sprint 0 (2026-05-03): daily-resampled lagged returns. Where RETURN_COLUMNS
+# above operates on the raw hourly snapshot grid (r_120 ≈ 20 trading days),
+# DAILY_RETURN_COLUMNS operates on per-symbol daily-resampled prices
+# (r_120d = exactly 120 trading days). Computed at read time by
+# _compute_daily_return_features and forward-filled back to the original
+# hourly cadence so each snapshot in a day shares that day's return value.
+DAILY_RETURN_COLUMNS = ["r_1d", "r_5d", "r_20d", "r_60d", "r_120d", "r_252d"]
+
 # Rolling cap: keep at most 90 days × ~12 snapshots/hour = ~26 000 rows/symbol
 MAX_ROWS = 90 * 24 * 12
 
@@ -152,6 +160,53 @@ def _compute_return_features(df: pd.DataFrame) -> pd.DataFrame:
                .transform(lambda s: np.log(s / s.shift(n)))
         )
     return out
+
+
+def _compute_daily_return_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Augment df with TRUE daily-resampled lagged log returns.
+
+    Different from _compute_return_features: that one shifts on the raw
+    hourly snapshot grid, so r_120 is "120 hourly snapshots ago" ≈ 20
+    trading days. This one resamples per-symbol prices to one row per
+    trading day (via the snapshot_ts → calendar-date bucket, taking each
+    day's last price), computes log-returns over n calendar days, then
+    forward-fills back to every hourly row in that day.
+
+    Adds columns DAILY_RETURN_COLUMNS = ['r_1d', 'r_5d', 'r_20d', 'r_60d',
+    'r_120d', 'r_252d'].
+
+    Lookahead-safe: for any row at time t, we only consume same-symbol
+    rows with snapshot_ts <= t (the daily series is built from past prices
+    only; the .shift(n) is a backward shift). Verified by the lookahead
+    regression test (tests/test_lookahead.py).
+
+    Returns a copy — caller's df is unchanged.
+    """
+    if "price" not in df.columns or "symbol" not in df.columns or "snapshot_ts" not in df.columns:
+        return df
+    out = df.copy()
+    for col in DAILY_RETURN_COLUMNS:
+        out[col] = np.nan
+    if out.empty:
+        return out
+
+    # Bucket each row to its calendar date (UTC). Trading-day approximation —
+    # weekend timestamps will get their own date but produce no return signal
+    # since weekends don't have new prices recorded.
+    dates = pd.to_datetime(out["snapshot_ts"], unit="s", utc=True).dt.date
+    out["_date"] = dates
+
+    for sym, grp in out.groupby("symbol", sort=False):
+        # One row per calendar date for this symbol — last price of the day
+        # (the grp is already in chronological order from upstream sort_values).
+        daily_last = grp.groupby("_date")["price"].last()
+        for n_days, col in zip((1, 5, 20, 60, 120, 252), DAILY_RETURN_COLUMNS):
+            daily_returns = np.log(daily_last / daily_last.shift(n_days))
+            # Map back to every hourly row in `grp` by its date.
+            mapped = grp["_date"].map(daily_returns).values
+            out.loc[grp.index, col] = mapped
+
+    return out.drop(columns=["_date"])
 
 
 def _load(symbol: str) -> pd.DataFrame:
@@ -231,6 +286,10 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     out = _apply_cnn_feature_transforms(df)
     out = _compute_return_features(out)
     out = _attach_macro_features(out)
+    # Sprint 0: daily-resampled returns appended last so existing channel
+    # indices [0-18] (incl. macro) remain at the same positions for any
+    # in-flight model with index-based feature_filter.
+    out = _compute_daily_return_features(out)
     return out
 
 
@@ -490,8 +549,15 @@ class SignalHistoryStore:
 
     def get_recent_window(self, symbol: str, T: int = 10) -> Optional[np.ndarray]:
         """
-        Return the most recent T snapshots as a (19, T) float array:
-        5 source + 2 agent + 2 rv + 5 returns + 5 macro channels.
+        Return the most recent T snapshots as a (25, T) float array:
+        5 source + 2 agent + 2 rv + 5 (hourly) returns + 5 macro
+                + 6 (daily-resampled) returns.
+
+        Channel order matches cnn_model.ALL_CHANNEL_COLUMNS (derived from
+        feature_catalog.CATALOG). Daily-return block is appended last so
+        existing channel indices [0-18] are preserved — the production
+        XGB feature_filter (saved as integer indices) remains valid
+        across this Sprint 0 expansion.
 
         Old Parquet files without a column return zeros for that channel.
         Returns None if fewer than 3 snapshots exist (insufficient context).
@@ -520,22 +586,24 @@ class SignalHistoryStore:
                     parts.append(np.zeros((len(recent), 1)))
             return np.hstack(parts)
 
-        source_data = _column_block(SOURCE_COLUMNS)
-        agent_data  = _column_block(AGENT_COLUMNS)
-        rv_data     = _column_block(RV_COLUMNS)
-        return_data = _column_block(RETURN_COLUMNS)
-        macro_data  = _column_block(list(_MACRO_COLUMN_MAP.values()))
+        source_data       = _column_block(SOURCE_COLUMNS)
+        agent_data        = _column_block(AGENT_COLUMNS)
+        rv_data           = _column_block(RV_COLUMNS)
+        return_data       = _column_block(RETURN_COLUMNS)
+        macro_data        = _column_block(list(_MACRO_COLUMN_MAP.values()))
+        daily_return_data = _column_block(DAILY_RETURN_COLUMNS)
 
         combined = np.hstack([
-            source_data, agent_data, rv_data, return_data, macro_data
-        ])  # (≤T, 19)
+            source_data, agent_data, rv_data, return_data, macro_data,
+            daily_return_data,
+        ])  # (≤T, 25)
 
         if len(combined) < T:
             pad      = np.zeros((T - len(combined), combined.shape[1]))
             combined = np.vstack([pad, combined])
 
         combined = np.nan_to_num(combined, nan=0.0)
-        return combined.T   # (19, T)
+        return combined.T   # (25, T) post-Sprint-0
 
     def symbols_with_data(self) -> List[str]:
         """List all symbols that have at least one snapshot on disk."""
