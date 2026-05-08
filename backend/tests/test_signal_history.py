@@ -502,12 +502,195 @@ class TestComputeSectorRelativeFeatures(unittest.TestCase):
         self.assertNotIn("r_20d_sector_rel", out.columns)
 
 
-class TestGetRecentWindowReturns27Channels(unittest.TestCase):
-    """get_recent_window must return a (27, T) array matching training shape:
-    5 source + 2 agent + 2 rv + 5 hourly returns + 5 macro + 6 daily returns
-    + 1 momentum + 1 sector-relative (Sprint 3)."""
+class TestComputeSpyCorrelationFeatures(unittest.TestCase):
+    """Sprint 4: rolling 20-day correlation between symbol's r_1d and SPY's
+    r_1d. Captures inter-asset comovement — a stock that decouples from
+    SPY (low |corr|) is structurally different from one that tracks SPY.
 
-    def test_recent_window_has_27_rows(self):
+    Computed by joining each (symbol, trading_day) row to the SPY r_1d
+    for that same day, then `groupby(symbol).rolling(20).corr(spy_r_1d)`.
+    Forward-filled to all hourly rows within a trading day.
+    """
+
+    def _hourly_df_pair(self, n_days, sym_returns, spy_returns):
+        """Build a df with two symbols (one user-named + 'SPY'), n_days
+        trading days, 5 hourly snapshots per day. r_1d is pre-populated
+        from sym_returns / spy_returns (one value per day, broadcast to
+        all 5 hourly rows of that day)."""
+        import pandas as pd
+        rows = []
+        base_ts = 1_704_067_200.0   # 2024-01-01 00:00 UTC
+        for sym, returns in (("AAPL", sym_returns), ("SPY", spy_returns)):
+            for d in range(n_days):
+                for hr in range(5):
+                    rows.append({
+                        "symbol":      sym,
+                        "snapshot_ts": base_ts + d * 86400 + hr * 3600,
+                        "r_1d":        returns[d],
+                    })
+        return pd.DataFrame(rows)
+
+    def test_adds_corr_spy_20d_column(self):
+        from data.signal_history import _compute_spy_correlation_features
+        rng = np.random.default_rng(0)
+        df = self._hourly_df_pair(
+            30,
+            sym_returns=rng.standard_normal(30) * 0.01,
+            spy_returns=rng.standard_normal(30) * 0.01,
+        )
+        out = _compute_spy_correlation_features(df)
+        self.assertIn("corr_spy_20d", out.columns)
+
+    def test_first_19_days_are_nan_then_value_at_day_20(self):
+        """Need at least 20 paired daily observations to compute a 20d
+        correlation. Days 0..18 must be NaN; day 19 onward populated."""
+        from data.signal_history import _compute_spy_correlation_features
+        rng = np.random.default_rng(0)
+        df = self._hourly_df_pair(
+            25,
+            sym_returns=rng.standard_normal(25) * 0.01,
+            spy_returns=rng.standard_normal(25) * 0.01,
+        )
+        out = _compute_spy_correlation_features(df)
+        aapl = out[out["symbol"] == "AAPL"].sort_values("snapshot_ts")
+        # Day 0 close (5 hourly rows) — definitely NaN
+        self.assertTrue(np.isnan(aapl["corr_spy_20d"].iloc[0]))
+        # Day 19 close (row 19*5+4=99) — should have a value
+        self.assertFalse(np.isnan(aapl["corr_spy_20d"].iloc[99]))
+
+    def test_corr_matches_numpy_pearson(self):
+        """corr_spy_20d at any populated row must equal numpy's Pearson
+        correlation of the last 20 paired daily returns."""
+        from data.signal_history import _compute_spy_correlation_features
+        rng = np.random.default_rng(42)
+        sym_r = rng.standard_normal(30) * 0.01
+        spy_r = rng.standard_normal(30) * 0.01
+        df = self._hourly_df_pair(30, sym_returns=sym_r, spy_returns=spy_r)
+        out = _compute_spy_correlation_features(df)
+        aapl = out[out["symbol"] == "AAPL"].sort_values("snapshot_ts")
+        # At day 25 (close), the 20d window is days 6..25 inclusive (20 days)
+        day25_close_idx = 25 * 5 + 4
+        actual = aapl["corr_spy_20d"].iloc[day25_close_idx]
+        expected = float(np.corrcoef(sym_r[6:26], spy_r[6:26])[0, 1])
+        self.assertAlmostEqual(actual, expected, places=4)
+
+    def test_spy_correlation_with_self_is_one(self):
+        """SPY's row's own corr_spy_20d must be ~1.0 (perfect correlation
+        with itself, modulo numerical precision)."""
+        from data.signal_history import _compute_spy_correlation_features
+        rng = np.random.default_rng(0)
+        spy_r = rng.standard_normal(30) * 0.01
+        df = self._hourly_df_pair(30, sym_returns=spy_r, spy_returns=spy_r)
+        out = _compute_spy_correlation_features(df)
+        spy_rows = out[out["symbol"] == "SPY"].sort_values("snapshot_ts")
+        # Day 25 close — should be 1.0
+        day25 = spy_rows["corr_spy_20d"].iloc[25 * 5 + 4]
+        self.assertAlmostEqual(day25, 1.0, places=4)
+
+    def test_perfectly_anti_correlated_returns_yield_minus_one(self):
+        """If sym = -spy on every day, rolling corr = -1 across all
+        populated windows (modulo numerical precision)."""
+        from data.signal_history import _compute_spy_correlation_features
+        rng = np.random.default_rng(0)
+        spy_r = rng.standard_normal(30) * 0.01
+        sym_r = -spy_r
+        df = self._hourly_df_pair(30, sym_returns=sym_r, spy_returns=spy_r)
+        out = _compute_spy_correlation_features(df)
+        aapl = out[out["symbol"] == "AAPL"].sort_values("snapshot_ts")
+        day25 = aapl["corr_spy_20d"].iloc[25 * 5 + 4]
+        self.assertAlmostEqual(day25, -1.0, places=4)
+
+    def test_all_hourly_rows_in_a_day_share_the_same_corr(self):
+        """corr_spy_20d is daily — every hourly snapshot in the same
+        trading day must have the same value (no intraday change)."""
+        from data.signal_history import _compute_spy_correlation_features
+        rng = np.random.default_rng(0)
+        df = self._hourly_df_pair(
+            25,
+            sym_returns=rng.standard_normal(25) * 0.01,
+            spy_returns=rng.standard_normal(25) * 0.01,
+        )
+        out = _compute_spy_correlation_features(df)
+        aapl = out[out["symbol"] == "AAPL"].sort_values("snapshot_ts")
+        # Day 22 (rows 110..114) — all 5 should share the same value
+        day22 = aapl["corr_spy_20d"].iloc[22 * 5 : 22 * 5 + 5].values
+        self.assertEqual(len(set(day22.tolist())), 1)
+
+    def test_returns_all_nan_column_when_spy_absent(self):
+        """If df has no SPY rows, the column is added but all NaN. Why
+        not omit the column? Train/serve consistency: both paths' tensor
+        composition needs the column to exist (it's zero-filled downstream).
+        Omitting would make train=N-1 channels while serve zero-pads to N."""
+        from data.signal_history import _compute_spy_correlation_features
+        import pandas as pd
+        rng = np.random.default_rng(0)
+        # Build only AAPL rows (no SPY)
+        rows = []
+        base_ts = 1_704_067_200.0
+        for d in range(25):
+            for hr in range(5):
+                rows.append({
+                    "symbol": "AAPL", "snapshot_ts": base_ts + d*86400 + hr*3600,
+                    "r_1d": rng.standard_normal() * 0.01,
+                })
+        df = pd.DataFrame(rows)
+        out = _compute_spy_correlation_features(df)
+        self.assertIn("corr_spy_20d", out.columns)
+        self.assertTrue(out["corr_spy_20d"].isna().all(),
+                        "expected all-NaN column when SPY is absent — must not fabricate values")
+
+    def test_returns_copy_not_inplace(self):
+        from data.signal_history import _compute_spy_correlation_features
+        rng = np.random.default_rng(0)
+        df = self._hourly_df_pair(
+            10,
+            sym_returns=rng.standard_normal(10) * 0.01,
+            spy_returns=rng.standard_normal(10) * 0.01,
+        )
+        before_cols = set(df.columns)
+        _compute_spy_correlation_features(df)
+        self.assertEqual(set(df.columns), before_cols)
+        self.assertNotIn("corr_spy_20d", df.columns)
+
+    def test_handles_missing_r_1d_column(self):
+        """Pre-Sprint-0 df has no r_1d → return df unchanged, don't crash."""
+        from data.signal_history import _compute_spy_correlation_features
+        import pandas as pd
+        df = pd.DataFrame({"symbol": ["A"], "snapshot_ts": [1.0]})
+        out = _compute_spy_correlation_features(df)
+        self.assertNotIn("corr_spy_20d", out.columns)
+
+    def test_per_symbol_isolation(self):
+        """A second non-SPY symbol's corr_spy_20d must be computed against
+        SPY only — not against AAPL."""
+        from data.signal_history import _compute_spy_correlation_features
+        import pandas as pd
+        rng = np.random.default_rng(7)
+        spy_r = rng.standard_normal(30) * 0.01
+        # MSFT perfectly anti-correlated with SPY → corr=-1
+        # AAPL identical to SPY → corr=+1
+        rows = []
+        base_ts = 1_704_067_200.0
+        for sym, ret in (("AAPL", spy_r), ("MSFT", -spy_r), ("SPY", spy_r)):
+            for d in range(30):
+                for hr in range(5):
+                    rows.append({"symbol": sym, "snapshot_ts": base_ts + d*86400 + hr*3600,
+                                 "r_1d": ret[d]})
+        df = pd.DataFrame(rows)
+        out = _compute_spy_correlation_features(df)
+        day25 = 25 * 5 + 4
+        aapl = out[out["symbol"] == "AAPL"].sort_values("snapshot_ts")["corr_spy_20d"].iloc[day25]
+        msft = out[out["symbol"] == "MSFT"].sort_values("snapshot_ts")["corr_spy_20d"].iloc[day25]
+        self.assertAlmostEqual(aapl, +1.0, places=4)
+        self.assertAlmostEqual(msft, -1.0, places=4)
+
+
+class TestGetRecentWindowReturns28Channels(unittest.TestCase):
+    """get_recent_window must return a (28, T) array matching training shape:
+    5 source + 2 agent + 2 rv + 5 hourly returns + 5 macro + 6 daily returns
+    + 1 momentum + 1 sector-relative + 1 SPY correlation (Sprint 4)."""
+
+    def test_recent_window_has_28_rows(self):
         from data.signal_history import signal_history
         from unittest.mock import patch
         import pandas as pd
@@ -535,8 +718,8 @@ class TestGetRecentWindowReturns27Channels(unittest.TestCase):
             window = signal_history.get_recent_window("AAPL", T=10)
 
         self.assertIsNotNone(window, "window must not be None for 130-row symbol")
-        self.assertEqual(window.shape, (27, 10),
-                         f"expected (27, 10), got {window.shape}")
+        self.assertEqual(window.shape, (28, 10),
+                         f"expected (28, 10), got {window.shape}")
 
 
 class TestReturn10dSchema(unittest.IsolatedAsyncioTestCase):
@@ -678,6 +861,9 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
         # without these prefilled, build_training_windows would produce 14
         # channels (no macro) while get_recent_window zero-pads to 19,
         # causing a shape mismatch in CI but not locally.
+        # Sprint 4: corr_spy_20d would normally need SPY in the df, but
+        # _compute_spy_correlation_features writes an all-NaN column when
+        # SPY is absent — keeping shape consistent between train and serve.
         synthetic = pd.DataFrame({
             "symbol":             ["AAPL"] * rows,
             "snapshot_ts":        np.arange(rows, dtype=np.float64) * 86400.0,
@@ -713,8 +899,8 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
             # ── Serving path: get_recent_window ────────────────────────
             window = signal_history.get_recent_window("AAPL", T=WINDOW_SIZE)
             self.assertIsNotNone(window)
-            # Sprint 3: post-sector-relative shape (26 + 1 sector_rel = 27)
-            self.assertEqual(window.shape, (27, WINDOW_SIZE))
+            # Sprint 4: post-SPY-correlation shape (27 + 1 corr_spy = 28)
+            self.assertEqual(window.shape, (28, WINDOW_SIZE))
 
             # ── Training path: get_training_data → build_training_windows
             # Symbol-scoped variant — unscoped iterates os.listdir which is

@@ -105,6 +105,12 @@ MOMENTUM_COLUMNS = ["mom_12_1"]
 # all symbols in the same GICS sector on the same UTC trading day.
 SECTOR_RELATIVE_COLUMNS = ["r_20d_sector_rel"]
 
+# SPY_CORRELATION_COLUMNS holds inter-asset comovement features computed
+# by joining each symbol's daily returns against SPY's daily returns and
+# rolling over a window (Sprint 4 2026-05-08). Currently corr_spy_20d
+# only — Pearson correlation of the last 20 paired daily r_1d values.
+SPY_CORRELATION_COLUMNS = ["corr_spy_20d"]
+
 # Rolling cap: keep at most 90 days × ~12 snapshots/hour = ~26 000 rows/symbol
 MAX_ROWS = 90 * 24 * 12
 
@@ -341,6 +347,96 @@ def _compute_sector_relative_features(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _compute_spy_correlation_features(
+    df: pd.DataFrame,
+    window: int = 20,
+    spy_symbol: str = "SPY",
+) -> pd.DataFrame:
+    """Sprint 4 (2026-05-08): rolling correlation between each symbol's
+    daily returns and SPY's daily returns.
+
+    Adds SPY_CORRELATION_COLUMNS = ['corr_spy_20d']. For each
+    (symbol, trading_day) row, computes Pearson correlation over the last
+    `window` paired daily r_1d values (symbol vs SPY). Forward-filled to
+    every hourly snapshot in that day.
+
+    Why: r_1d alone tells you "this symbol returned X% today". The rolling
+    correlation tells you "and it tracks the broad market THIS closely
+    over the last month". A symbol with low |corr| has been decoupling
+    from SPY — structurally different exposure than a symbol that closely
+    tracks the market. Captures inter-asset comovement information that
+    no single-symbol channel can.
+
+    Lookahead-safe: rolling window uses only PAST r_1d values (closed on
+    the right). r_1d itself is daily-resampled and backward-shifted from
+    Sprint 0. Verified by tests/test_lookahead.py.
+
+    Robustness:
+    - Missing r_1d / symbol / snapshot_ts → return df untouched.
+    - SPY itself absent from df → can't compute correlations → return
+      untouched. We must not fabricate.
+    - First (window-1) days per symbol → NaN (need full window of
+      observations).
+    """
+    if df.empty:
+        return df
+    needed = {"r_1d", "symbol", "snapshot_ts"}
+    if not needed.issubset(df.columns):
+        return df
+
+    # Always materialize the column for shape-consistency between the
+    # train and serve paths. When SPY is absent (single-symbol slice
+    # during testing or sparse universe), the column stays all-NaN and
+    # downstream zero-fills it — but the column EXISTS so
+    # build_training_windows' has_spy_corr check stays True and the
+    # tensor shape matches get_recent_window.
+    if spy_symbol not in df["symbol"].values:
+        out = df.copy()
+        out["corr_spy_20d"] = np.nan
+        return out
+
+    out = df.copy()
+    out["_td"] = pd.to_datetime(out["snapshot_ts"], unit="s", utc=True).dt.date
+
+    # SPY's daily series — one r_1d per trading day.
+    spy_daily = (
+        out[out["symbol"] == spy_symbol]
+        .drop_duplicates(subset=["_td"])[["_td", "r_1d"]]
+        .rename(columns={"r_1d": "_spy_r1d"})
+    )
+
+    # Per-(symbol, trading_day) daily series. r_1d is daily-resampled
+    # (Sprint 0), so all hourly rows share the same value — drop_duplicates
+    # gives us one row per (symbol, day).
+    per_sym_daily = (
+        out.drop_duplicates(subset=["symbol", "_td"])[["symbol", "_td", "r_1d"]]
+        .merge(spy_daily, on="_td", how="left")
+        .sort_values(["symbol", "_td"])
+        .reset_index(drop=True)
+    )
+
+    # Rolling Pearson correlation per symbol. min_periods=window so we
+    # don't emit values from short windows (which would be high-variance
+    # garbage).
+    def _per_symbol_corr(g):
+        return g["r_1d"].rolling(window, min_periods=window).corr(g["_spy_r1d"])
+
+    per_sym_daily["corr_spy_20d"] = (
+        per_sym_daily.groupby("symbol", group_keys=False)
+        .apply(_per_symbol_corr)
+    )
+
+    # Forward-fill the daily value back to every hourly row in that day
+    # via merge on (symbol, trading_day).
+    out = out.merge(
+        per_sym_daily[["symbol", "_td", "corr_spy_20d"]],
+        on=["symbol", "_td"],
+        how="left",
+    )
+    out = out.drop(columns=["_td"])
+    return out
+
+
 def _load_macro_features() -> Optional[pd.DataFrame]:
     """Return a date-sorted DataFrame of macro CNN features, or None when unavailable.
 
@@ -407,6 +503,11 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     # returns so r_20d is populated. Appended last so existing channel
     # indices remain stable.
     out = _compute_sector_relative_features(out)
+    # Sprint 4: rolling SPY correlation (corr_spy_20d) — depends on r_1d,
+    # joined against SPY's r_1d in same df. Runs AFTER daily returns so
+    # r_1d is populated for every symbol incl SPY. Appended last so
+    # existing channel indices remain stable.
+    out = _compute_spy_correlation_features(out)
     return out
 
 
@@ -711,18 +812,20 @@ class SignalHistoryStore:
         daily_return_data  = _column_block(DAILY_RETURN_COLUMNS)
         momentum_data      = _column_block(MOMENTUM_COLUMNS)
         sector_relative_data = _column_block(SECTOR_RELATIVE_COLUMNS)
+        spy_corr_data        = _column_block(SPY_CORRELATION_COLUMNS)
 
         combined = np.hstack([
             source_data, agent_data, rv_data, return_data, macro_data,
             daily_return_data, momentum_data, sector_relative_data,
-        ])  # (≤T, 27)
+            spy_corr_data,
+        ])  # (≤T, 28)
 
         if len(combined) < T:
             pad      = np.zeros((T - len(combined), combined.shape[1]))
             combined = np.vstack([pad, combined])
 
         combined = np.nan_to_num(combined, nan=0.0)
-        return combined.T   # (27, T) post-Sprint-3
+        return combined.T   # (28, T) post-Sprint-4
 
     def symbols_with_data(self) -> List[str]:
         """List all symbols that have at least one snapshot on disk."""

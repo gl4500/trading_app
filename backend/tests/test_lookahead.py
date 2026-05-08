@@ -54,6 +54,10 @@ LOOKAHEAD_FREE_CHANNELS = [
     # uses only same-day r_20d values across sector peers, no forward
     # leak; r_20d itself is daily-resampled and backward-shifted.
     "r_20d_sector_rel",
+    # Sprint 4: rolling SPY correlation (corr_spy_20d) — rolling window
+    # uses only PAST r_1d values for both symbol and SPY; r_1d is
+    # backward-shifted from Sprint 0.
+    "corr_spy_20d",
 ]
 
 

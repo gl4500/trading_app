@@ -32,6 +32,7 @@ from data.signal_history import (
     signal_history,
     SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
     DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS, SECTOR_RELATIVE_COLUMNS,
+    SPY_CORRELATION_COLUMNS,
     _MACRO_COLUMN_MAP,
 )
 from data.xgboost_model import last_timestep_features
@@ -40,6 +41,7 @@ MACRO_CHANNEL_NAMES = list(_MACRO_COLUMN_MAP.values())
 # Sprint 0 (2026-05-03): + 6 daily-resampled return channels (r_1d..r_252d).
 # Sprint 2-B (2026-05-08): + 1 derived momentum channel (mom_12_1).
 # Sprint 3 (2026-05-08): + 1 cross-sectional channel (r_20d_sector_rel).
+# Sprint 4 (2026-05-08): + 1 inter-asset channel (corr_spy_20d).
 # All appended AFTER MACRO so existing channel indices [0-18] are
 # preserved — production XGB feature_filter [0,1,2,4,13,14,17,18]
 # remains valid across the expansion.
@@ -47,9 +49,9 @@ CHANNEL_NAMES: List[str] = (
     list(SOURCE_COLUMNS) + list(AGENT_COLUMNS)
     + list(RV_COLUMNS) + list(RETURN_COLUMNS) + MACRO_CHANNEL_NAMES
     + list(DAILY_RETURN_COLUMNS) + list(MOMENTUM_COLUMNS)
-    + list(SECTOR_RELATIVE_COLUMNS)
+    + list(SECTOR_RELATIVE_COLUMNS) + list(SPY_CORRELATION_COLUMNS)
 )
-N_CHANNELS = len(CHANNEL_NAMES)   # 27 post-Sprint-3
+N_CHANNELS = len(CHANNEL_NAMES)   # 28 post-Sprint-4
 
 PARAMS = {
     "max_depth": 6, "eta": 0.05, "subsample": 0.8,
