@@ -418,13 +418,18 @@ def _compute_spy_correlation_features(
     # Rolling Pearson correlation per symbol. min_periods=window so we
     # don't emit values from short windows (which would be high-variance
     # garbage).
-    def _per_symbol_corr(g):
-        return g["r_1d"].rolling(window, min_periods=window).corr(g["_spy_r1d"])
-
-    per_sym_daily["corr_spy_20d"] = (
-        per_sym_daily.groupby("symbol", group_keys=False)
-        .apply(_per_symbol_corr)
-    )
+    #
+    # Implementation note: we iterate groups explicitly rather than using
+    # groupby.apply(...) because newer pandas returns a DataFrame instead
+    # of a Series when there's only one group, breaking
+    # `per_sym_daily["corr_spy_20d"] = result`. Single-group is the live
+    # auto-backfill path where get_sample_counts() walks symbols one at a
+    # time — get_training_data("SPY") feeds a SPY-only df here.
+    per_sym_daily["corr_spy_20d"] = np.nan
+    for _sym, group_idx in per_sym_daily.groupby("symbol").groups.items():
+        g = per_sym_daily.loc[group_idx]
+        corr = g["r_1d"].rolling(window, min_periods=window).corr(g["_spy_r1d"])
+        per_sym_daily.loc[group_idx, "corr_spy_20d"] = corr.values
 
     # Forward-fill the daily value back to every hourly row in that day
     # via merge on (symbol, trading_day).
