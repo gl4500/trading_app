@@ -288,6 +288,30 @@ CATALOG: List[Channel] = [
         "20 trading days, cross-sectional", "2026-05-08",
         "Sector-relative 1-month return. r_20d minus same-sector same-day equal-weighted mean. Sprint 0's r_20d - cross-section. NaN when r_20d is NaN; 0 when symbol is the only valid sample in its sector that day.",
     ),
+
+    # ── SPY_CORRELATION (1) ──────────────────────────────────────────────
+    # Sprint 4 (2026-05-08): rolling 20-day Pearson correlation between
+    # each symbol's daily returns (r_1d) and SPY's daily returns. Captures
+    # inter-asset comovement information that single-symbol channels
+    # structurally cannot.
+    #
+    # Why this is distinct from the macro_spy_5d_back channel: that one
+    # tells the model "what did SPY do in the last 5 days" — useful as a
+    # market regime feature. corr_spy_20d tells the model "how tightly
+    # does THIS symbol move with SPY" — a symbol-specific factor exposure.
+    # A symbol with high corr is dominated by market beta; low corr means
+    # idiosyncratic alpha is the dominant component.
+    #
+    # Placed AFTER SECTOR_RELATIVE so existing channel indices [0-26] are
+    # preserved — production XGB feature_filter [0,1,2,4,13,14,17,18]
+    # remains valid. Lands at index 27.
+    Channel(
+        "corr_spy_20d", "SPY_CORRELATION",
+        ["r_1d", "SPY r_1d"],
+        "_compute_spy_correlation_features (rolling 20d Pearson corr vs SPY)",
+        "20 trading days, inter-asset", "2026-05-08",
+        "Rolling 20-day Pearson correlation between symbol's r_1d and SPY's r_1d. Range [-1, 1]. NaN for first 19 days per symbol (need full window).",
+    ),
 ]
 
 
