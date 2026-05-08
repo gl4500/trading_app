@@ -321,17 +321,18 @@ class TestMacroBackfill(unittest.IsolatedAsyncioTestCase):
 
 class TestMacroCNNChannels(unittest.TestCase):
 
-    def test_n_channels_is_26(self):
-        """N_CHANNELS must be 26: 5 src + 2 agent + 2 RV + 5 hourly ret +
-        5 macro + 6 daily ret + 1 momentum.
+    def test_n_channels_is_27(self):
+        """N_CHANNELS must be 27: 5 src + 2 agent + 2 RV + 5 hourly ret +
+        5 macro + 6 daily ret + 1 momentum + 1 sector-relative.
         History:
           15 → 14: Task #20 demoted congressional_trades from CNN inputs.
           14 → 19: Tier 1 added 5 hourly lagged-return channels.
           19 → 25: Sprint 0 added 6 daily-resampled return channels (r_1d..r_252d).
           25 → 26: Sprint 2-B added mom_12_1 derived momentum (r_252d - r_20d).
+          26 → 27: Sprint 3 added r_20d_sector_rel (cross-sectional sector-relative).
         """
         from data.cnn_model import N_CHANNELS
-        self.assertEqual(N_CHANNELS, 26)
+        self.assertEqual(N_CHANNELS, 27)
 
     def test_macro_channel_names_defined(self):
         """MACRO_CHANNEL_NAMES must be a list of 5 strings."""

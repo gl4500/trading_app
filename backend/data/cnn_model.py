@@ -135,6 +135,7 @@ MACRO_CHANNEL_NAMES: List[str] = [
 #   14 → 19  (Tier 1: added 5 hourly lagged returns r_1..r_120)
 #   19 → 25  (Sprint 0: added 6 daily-resampled returns r_1d..r_252d)
 #   25 → 26  (Sprint 2-B: added mom_12_1 derived momentum factor)
+#   26 → 27  (Sprint 3: added r_20d_sector_rel cross-sectional)
 #
 # build_training_windows degrades gracefully (drops blocks whose cols are
 # absent), so old per-symbol parquets still train.
@@ -422,7 +423,7 @@ def build_training_windows(
     """
     from data.signal_history import (  # avoid circular
         SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
-        DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS,
+        DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS, SECTOR_RELATIVE_COLUMNS,
         _apply_cnn_feature_transforms,
     )
 
@@ -437,6 +438,7 @@ def build_training_windows(
     has_macro       = all(c in df.columns for c in MACRO_CHANNEL_NAMES)
     has_daily_ret   = all(c in df.columns for c in DAILY_RETURN_COLUMNS)
     has_momentum    = all(c in df.columns for c in MOMENTUM_COLUMNS)
+    has_sector_rel  = all(c in df.columns for c in SECTOR_RELATIVE_COLUMNS)
     feat_cols = [c for c in SOURCE_COLUMNS if c in df.columns]
     if has_agent:
         feat_cols = feat_cols + AGENT_COLUMNS
@@ -454,6 +456,10 @@ def build_training_windows(
     # same index-stability rationale.
     if has_momentum:
         feat_cols = feat_cols + MOMENTUM_COLUMNS
+    # Sprint 3: cross-sectional sector-relative (r_20d_sector_rel) appended
+    # AFTER momentum — same index-stability rationale.
+    if has_sector_rel:
+        feat_cols = feat_cols + SECTOR_RELATIVE_COLUMNS
     n_feat    = len(feat_cols)
     if n_feat == 0:
         logger.warning("build_training_windows: no recognised feature columns in df — returning empty")

@@ -50,6 +50,10 @@ LOOKAHEAD_FREE_CHANNELS = [
     # Sprint 2-B: derived momentum (mom_12_1 = r_252d - r_20d) — pure
     # subtraction of two lookahead-free channels = lookahead-free.
     "mom_12_1",
+    # Sprint 3: cross-sectional sector-relative (r_20d_sector_rel) —
+    # uses only same-day r_20d values across sector peers, no forward
+    # leak; r_20d itself is daily-resampled and backward-shifted.
+    "r_20d_sector_rel",
 ]
 
 
