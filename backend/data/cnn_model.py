@@ -116,14 +116,15 @@ RETURN_CHANNEL_NAMES: List[str] = [
 # Macro environment channels — joined from __MACRO__.parquet by date
 # Absent in old Parquet files; build_training_windows degrades to 9ch without them.
 MACRO_CHANNEL_NAMES: List[str] = [
-    "macro_vix_norm",       # channel 9:  VIX / 30 clipped to [0, 3]
+    "macro_vix_norm",       # VIX / 30 clipped to [0, 3]
     # Task #24: trailing (was forward — leaked future direction into training,
     # collapsed val WFE from -0.034 to -0.346). `_back` suffix is permanent
     # to make the semantics unambiguous in code review and force re-backfill.
-    "macro_gld_5d_back",    # channel 10: GLD 5-day TRAILING return
-    "macro_tlt_5d_back",    # channel 11: TLT 5-day trailing return
-    "macro_spy_5d_back",    # channel 12: SPY 5-day trailing return
-    "macro_breadth_back",   # channel 13: (IWM - SPY) trailing 5d, clipped [-1, 1]
+    "macro_gld_5d_back",    # GLD 5-day TRAILING return
+    "macro_tlt_5d_back",    # TLT 5-day trailing return
+    "macro_spy_5d_back",    # SPY 5-day trailing return
+    "macro_breadth_back",   # (IWM - SPY) trailing 5d, clipped [-1, 1]
+    "macro_dji_5d_back",    # 2026-05-09 (#84): DJIA 5-day trailing via DIA ETF
 ]
 
 # Fixed-order list of channel COLUMN names — derived from
@@ -137,6 +138,8 @@ MACRO_CHANNEL_NAMES: List[str] = [
 #   25 → 26  (Sprint 2-B: added mom_12_1 derived momentum factor)
 #   26 → 27  (Sprint 3: added r_20d_sector_rel cross-sectional)
 #   27 → 28  (Sprint 4: added corr_spy_20d rolling SPY correlation)
+#   28 → 29  (#84: added macro_dji_5d_back at end of MACRO block; existing
+#            channel indices [0-18] preserved — XGB filter still valid)
 #
 # build_training_windows degrades gracefully (drops blocks whose cols are
 # absent), so old per-symbol parquets still train.

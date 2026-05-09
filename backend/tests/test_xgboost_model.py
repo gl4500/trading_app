@@ -436,16 +436,17 @@ class TestEndToEnd10dWith8ChFilter(unittest.TestCase):
 
         n = 600
         rng = np.random.default_rng(0)
-        # Synthesize a df with all 19 channel columns + 10d label populated.
+        # Synthesize a df with all 20 channel columns + 10d label populated
+        # (5 src + 2 agent + 2 rv + 5 ret + 6 macro post-#84 = 20).
         # Use 2 symbols × 300 rows so build_training_windows has per-symbol scope.
         rows = []
         for sym in ("AAPL", "MSFT"):
-            base = rng.standard_normal((n // 2, 19)).astype(np.float64) * 0.1
+            base = rng.standard_normal((n // 2, 20)).astype(np.float64) * 0.1
             df_sym = {
                 "symbol":          [sym] * (n // 2),
                 "snapshot_ts":     np.arange(n // 2, dtype=np.float64) * 86_400.0,
                 "price":           np.linspace(100.0, 200.0, n // 2),
-                # 19 raw channel columns
+                # 20 raw channel columns
                 "analyst_score":     base[:, 0],
                 "earnings_score":    base[:, 1],
                 "alpaca_score":      base[:, 2],
@@ -468,6 +469,7 @@ class TestEndToEnd10dWith8ChFilter(unittest.TestCase):
                 "macro_tlt_5d_back":  base[:, 16],
                 "macro_spy_5d_back":  base[:, 17],
                 "macro_breadth_back": base[:, 18],
+                "macro_dji_5d_back":  base[:, 19],   # 2026-05-09 (#84)
                 # 10d label — small noise around channel 0 for learnable signal
                 "return_10d":  base[:, 0] * 0.05 + rng.standard_normal(n // 2) * 0.01,
                 "return_1d":   np.full(n // 2, 0.001),  # fallback if 10d missing
@@ -476,18 +478,19 @@ class TestEndToEnd10dWith8ChFilter(unittest.TestCase):
         df = pd.concat(rows, ignore_index=True)
 
         X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], 19, "build_training_windows should emit 19 channels")
+        self.assertEqual(X.shape[1], 20, "build_training_windows should emit 20 channels post-#84")
 
-        # Production 8-channel 10d winner
+        # Production 8-channel 10d winner — same indices, all ≤ 18 so DJI
+        # appending at index 19 doesn't shift them.
         WINNING_8_INDICES = [0, 1, 2, 4, 13, 14, 17, 18]
-        m = SignalXGBoost(T=WINDOW_SIZE, n_channels=19, feature_filter=WINNING_8_INDICES)
+        m = SignalXGBoost(T=WINDOW_SIZE, n_channels=20, feature_filter=WINNING_8_INDICES)
         m.fit(X, y, t, n_folds=3, min_val_days=14)
         self.assertTrue(m.is_trained)
         self.assertEqual(m._booster.num_features(), 8)
 
-        # predict on a full 19-channel window (matches get_recent_window output)
+        # predict on a full 20-channel window (matches get_recent_window output)
         x_full = X[0]
-        self.assertEqual(x_full.shape, (19, WINDOW_SIZE))
+        self.assertEqual(x_full.shape, (20, WINDOW_SIZE))
         pred, direction, conf = m.predict(x_full)
         self.assertIsInstance(pred, float)
         self.assertIn(direction, ("bull", "bear", "neutral"))

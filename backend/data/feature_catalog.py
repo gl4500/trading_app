@@ -190,6 +190,15 @@ CATALOG: List[Channel] = [
         "5-day trailing", "2026-04-24",
         "(IWM - SPY) trailing 5d, clipped [-1, 1]. IN production XGB filter.",
     ),
+    Channel(
+        "macro_dji_5d_back", "MACRO",
+        ["DIA daily close"],
+        "macro_history._ret_nd_trailing (5-day TRAILING)",
+        "5-day trailing", "2026-05-09",
+        "DJIA 5d trailing return via DIA ETF. ~95% correlated with macro_spy_5d_back; "
+        "complements SPY for benchmark-widget UI parity. Not expected to lift WFE — "
+        "added for cross-index sanity and the dashboard.",
+    ),
 
     # ── RETURN_DAILY (6) ──────────────────────────────────────────────────
     # Sprint 0 (2026-05-03): true daily-resampled lagged returns. Where the

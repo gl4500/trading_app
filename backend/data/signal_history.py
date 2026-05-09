@@ -37,6 +37,9 @@ _MACRO_COLUMN_MAP: Dict[str, str] = {
     "tlt_5d_back":        "macro_tlt_5d_back",
     "spy_5d_back":        "macro_spy_5d_back",
     "breadth_score_back": "macro_breadth_back",
+    # 2026-05-09 (#84): DJIA via DIA ETF, appended at end so existing
+    # MACRO indices [14-18] are preserved for the production XGB filter.
+    "dji_5d_back":        "macro_dji_5d_back",
 }
 
 # Source score column names (order must match cnn_model.SOURCE_NAMES)

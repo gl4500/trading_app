@@ -469,8 +469,9 @@ async def backfill_macro_history(days: int = 365) -> Dict:
 
     macro_store = MacroHistoryStore()
 
-    # Core ETFs — fetch from Alpaca
-    CORE_SYMS = ["GLD", "TLT", "UUP", "USO", "SPY", "IWM", "QQQ"]
+    # Core ETFs — fetch from Alpaca. DIA is the DJIA proxy ETF (added 2026-05-09
+    # for the macro_dji_5d_back channel + the benchmark widget).
+    CORE_SYMS = ["GLD", "TLT", "UUP", "USO", "SPY", "IWM", "QQQ", "DIA"]
     etf_bars: Dict[str, pd.DataFrame] = {}
     for sym in CORE_SYMS:
         b = await _fetch_bars(sym, days)
@@ -563,6 +564,7 @@ async def backfill_macro_history(days: int = 365) -> Dict:
             "qqq_5d_back": _get_ret_back("QQQ", 5),
             "uup_5d_back": _get_ret_back("UUP", 5),
             "uso_5d_back": _get_ret_back("USO", 5),
+            "dji_5d_back": _get_ret_back("DIA", 5),
         }
 
         # ── VIX and TNX levels ────────────────────────────────────────────

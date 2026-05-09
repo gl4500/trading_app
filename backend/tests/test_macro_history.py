@@ -321,9 +321,9 @@ class TestMacroBackfill(unittest.IsolatedAsyncioTestCase):
 
 class TestMacroCNNChannels(unittest.TestCase):
 
-    def test_n_channels_is_28(self):
-        """N_CHANNELS must be 28: 5 src + 2 agent + 2 RV + 5 hourly ret +
-        5 macro + 6 daily ret + 1 momentum + 1 sector-relative + 1 SPY corr.
+    def test_n_channels_is_29(self):
+        """N_CHANNELS must be 29: 5 src + 2 agent + 2 RV + 5 hourly ret +
+        6 macro + 6 daily ret + 1 momentum + 1 sector-relative + 1 SPY corr.
         History:
           15 → 14: Task #20 demoted congressional_trades from CNN inputs.
           14 → 19: Tier 1 added 5 hourly lagged-return channels.
@@ -331,14 +331,16 @@ class TestMacroCNNChannels(unittest.TestCase):
           25 → 26: Sprint 2-B added mom_12_1 derived momentum (r_252d - r_20d).
           26 → 27: Sprint 3 added r_20d_sector_rel (cross-sectional sector-relative).
           27 → 28: Sprint 4 added corr_spy_20d (rolling 20d Pearson with SPY).
+          28 → 29: #84 added macro_dji_5d_back (DJIA via DIA ETF, end of MACRO block).
         """
         from data.cnn_model import N_CHANNELS
-        self.assertEqual(N_CHANNELS, 28)
+        self.assertEqual(N_CHANNELS, 29)
 
     def test_macro_channel_names_defined(self):
-        """MACRO_CHANNEL_NAMES must be a list of 5 strings."""
+        """MACRO_CHANNEL_NAMES must be a list of 6 strings (was 5 before #84
+        appended macro_dji_5d_back)."""
         from data.cnn_model import MACRO_CHANNEL_NAMES
-        self.assertEqual(len(MACRO_CHANNEL_NAMES), 5)
+        self.assertEqual(len(MACRO_CHANNEL_NAMES), 6)
 
     def test_build_training_windows_degrades_without_macro(self):
         """build_training_windows must return 9 channels when macro absent
@@ -370,10 +372,11 @@ class TestMacroCNNChannels(unittest.TestCase):
         self.assertEqual(X.shape[1], 9)
 
     def test_build_training_windows_uses_macro_when_present(self):
-        """build_training_windows must return 14 channels when macro cols
-        are in df (5 source + 2 agent + 2 RV + 5 macro). The 5 lagged-return
-        channels would push this to 19, but they require compute_features
-        to be applied upstream — this isolated test bypasses that pipeline."""
+        """build_training_windows must return 15 channels when macro cols
+        are in df (5 source + 2 agent + 2 RV + 6 macro). The 5 lagged-return
+        channels would push this higher, but they require compute_features
+        to be applied upstream — this isolated test bypasses that pipeline.
+        #84 added macro_dji_5d_back, bumping macro from 5 → 6."""
         import time
         from data.cnn_model import build_training_windows, WINDOW_SIZE, N_CHANNELS
         n = 120
@@ -390,16 +393,16 @@ class TestMacroCNNChannels(unittest.TestCase):
                 "return_1d": 0.01, "return_5d": 0.02,
                 "agent_consensus": 0.0, "agent_agreement": 0.5,
                 "rv_20d": 0.15, "rv_60d": 0.18,
-                # macro channels (Task #24: trailing _back)
+                # macro channels (Task #24: trailing _back; #84: + dji)
                 "macro_vix_norm": 0.6, "macro_gld_5d_back": 0.01,
                 "macro_tlt_5d_back": -0.005, "macro_spy_5d_back": 0.02,
-                "macro_breadth_back": 0.005,
+                "macro_breadth_back": 0.005, "macro_dji_5d_back": 0.018,
             }
             rows.append(row)
         import pandas as pd
         df = pd.DataFrame(rows)
         X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], 14)   # 5 + 2 + 2 + 5 (no r_*)
+        self.assertEqual(X.shape[1], 15)   # 5 + 2 + 2 + 6 (no r_*)
 
 
 # ── Task #24: backward-looking macro returns (lookahead-leak fix) ─────────────
@@ -477,6 +480,7 @@ class TestMacroBackwardLookingSchema(unittest.TestCase):
         self.assertIn("macro_tlt_5d_back",  MACRO_FEATURE_COLS)
         self.assertIn("macro_spy_5d_back",  MACRO_FEATURE_COLS)
         self.assertIn("macro_breadth_back", MACRO_FEATURE_COLS)
+        self.assertIn("macro_dji_5d_back",  MACRO_FEATURE_COLS)  # 2026-05-09 (#84)
 
 
 class TestMacroBackwardLookingRecord(unittest.IsolatedAsyncioTestCase):
