@@ -18,6 +18,23 @@ for _p in (_BACKEND, _SITE):
 from agents.gemini_agent import GeminiAgent
 
 
+# 2026-05-08: env-leak guard. Some other test (or CI environment setup) was
+# leaving OLLAMA_ONLY_MODE=1 set when test_gemini_agent ran in CI, routing
+# every Gemini test through the local-Ollama path with a MagicMock'd
+# config.OLLAMA_BASE_URL → AsyncOpenAI rejected the URL with
+# "Invalid type for url. Expected str or httpx.URL". TestGeminiOllamaMode
+# (later in this file) sets/pops the var correctly, but tests that
+# implicitly assume cloud-Gemini routing — like TestGeminiMarketView —
+# were silently pulled into the Ollama path. Belt-and-suspenders: ensure
+# the var is unset at module load and after each test.
+def setUpModule() -> None:
+    os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+
+def tearDownModule() -> None:
+    os.environ.pop("OLLAMA_ONLY_MODE", None)
+
+
 def _make_ctx(symbols=("AAPL",)):
     return {sym: {"price": 150.0, "bars": None, "news": [], "stats": {}} for sym in symbols}
 

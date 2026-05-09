@@ -36,12 +36,14 @@ class Config:
     # Optional: override the Ollama binary directory added to PATH on startup.
     # Defaults to %LOCALAPPDATA%\Programs\Ollama on Windows (auto-detected).
     OLLAMA_PATH: str      = os.getenv("OLLAMA_PATH", "")
-    # Hybrid mode: Ollama pre-screens all symbols each cycle; only symbols where
-    # Ollama confidence >= HYBRID_ESCALATION_THRESHOLD are escalated to Claude Opus.
-    # Set OLLAMA_ONLY_MODE=0 and OLLAMA_HYBRID_MODE=1 to enable.
-    # Incompatible with OLLAMA_ONLY_MODE=1 (pure Ollama takes precedence).
-    OLLAMA_HYBRID_MODE: bool          = os.getenv("OLLAMA_HYBRID_MODE", "0") == "1"
-    HYBRID_ESCALATION_THRESHOLD: float = float(os.getenv("HYBRID_ESCALATION_THRESHOLD", "0.65"))
+    # 2026-05-08: OLLAMA_HYBRID_MODE retired. Hybrid (Ollama pre-screens →
+    # Claude validates) was a coupling inside ClaudeAgent that meant a
+    # malformed Ollama response could crash the Claude code path. Now
+    # ClaudeAgent (cloud) and OllamaAgent (local) vote independently in
+    # the ensemble. The two attributes below are kept ONLY so old .env
+    # files don't break — they are not consumed by any code path.
+    OLLAMA_HYBRID_MODE: bool          = os.getenv("OLLAMA_HYBRID_MODE", "0") == "1"   # noqa: deprecated
+    HYBRID_ESCALATION_THRESHOLD: float = float(os.getenv("HYBRID_ESCALATION_THRESHOLD", "0.65"))   # noqa: deprecated
 
     # Additional data source keys
     FINNHUB_API_KEY: str = os.getenv("FINNHUB_API_KEY", "")
@@ -190,8 +192,15 @@ class Config:
     WS_UPDATE_INTERVAL: int = int(os.getenv("WS_UPDATE_INTERVAL", "5"))
 
     # Ensemble voting weights
+    # Ensemble weights — adaptive vote aggregation in EnsembleAgent.
+    # 2026-05-08: OllamaAgent split out from ClaudeAgent (was a hidden dispatch
+    # mode inside ClaudeAgent). Re-balanced ClaudeAgent 0.29 → 0.20 and gave
+    # OllamaAgent 0.09 — same total cloud/local share as before, now expressed
+    # as two independent voters. Adaptive performance weighting will adjust
+    # these from base values over time.
     ENSEMBLE_WEIGHTS = {
-        "ClaudeAgent":            0.29,
+        "ClaudeAgent":            0.20,
+        "OllamaAgent":            0.09,
         "TechAgent":              0.23,
         "SentimentAgent":         0.17,
         "MomentumAgent":          0.14,
