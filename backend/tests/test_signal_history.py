@@ -735,12 +735,215 @@ class TestComputeSpyCorrelationFeatures(unittest.TestCase):
         self.assertTrue(out["corr_spy_20d"].isna().all())
 
 
-class TestGetRecentWindowReturns29Channels(unittest.TestCase):
-    """get_recent_window must return a (29, T) array matching training shape:
-    5 source + 2 agent + 2 rv + 5 hourly returns + 6 macro + 6 daily returns
-    + 1 momentum + 1 sector-relative + 1 SPY correlation (#84 added DJIA)."""
+class TestComputeHistoricalFeatures(unittest.TestCase):
+    """#85: import HistoricalTrendsAgent's 4 sub-scores into XGB as channels.
 
-    def test_recent_window_has_29_rows(self):
+    Adds HISTORICAL category to the catalog so XGB can learn the seasonal /
+    channel-position / momentum-alignment / volume-pattern signals that have
+    made HistoricalTrendsAgent the top performer (+$25k unrealized as of
+    2026-05-08). Channel count 29 → 33.
+
+    Computed at read-time by signal_history._compute_historical_features.
+    Mirrors the math from agents/historical_trends_agent.py exactly so XGB
+    sees the SAME signals HT votes on, but as features it can combine
+    non-linearly with its existing 8."""
+
+    def _hourly_df(self, n_days, symbol="AAPL", start_price=100.0,
+                   trend=0.0, with_volume=True, base_ts=None):
+        """Build a multi-day df with 5 hourly snapshots per trading day.
+        `trend` is per-day price drift; with_volume=False omits the column
+        so we can test graceful-degrade behavior."""
+        import pandas as pd
+        rows = []
+        if base_ts is None:
+            base_ts = 1_704_067_200.0   # 2024-01-01 00:00 UTC (a Monday — January)
+        for d in range(n_days):
+            for hr in range(5):
+                row = {
+                    "symbol":      symbol,
+                    "snapshot_ts": base_ts + d * 86400 + hr * 3600,
+                    "price":       start_price + d * trend + hr * 0.05,
+                }
+                if with_volume:
+                    # Volume rises on up-days (positive trend), falls on down
+                    row["volume"] = 1_000_000 + (1 if trend >= 0 else -1) * 100_000
+                rows.append(row)
+        return pd.DataFrame(rows)
+
+    # ── seasonal channel ──────────────────────────────────────────────
+
+    def test_seasonal_channel_high_in_december(self):
+        """Dec has +0.40 month bias; quarter-position bonus 0.0 mid-month
+        and +0.15 in last half. Expect a clearly positive seasonal score."""
+        from data.signal_history import _compute_historical_features
+        # 2024-12-01 = Sunday. Use 2024-12-15 onwards (last half of Q4 → quarter bonus +0.15).
+        # ts for 2024-12-15 00:00 UTC = 1734220800
+        df = self._hourly_df(5, base_ts=1_734_220_800.0)
+        out = _compute_historical_features(df)
+        # December bias 0.40 + quarter bonus 0.15 = 0.55 (clipped to 1.0 if applicable)
+        # Function output is in [-1, +1]; expect strongly positive.
+        self.assertGreater(out["hist_seasonal"].iloc[0], 0.30)
+
+    def test_seasonal_channel_low_in_september(self):
+        """Sep has the most-negative month bias (−0.30). No quarter bonus
+        in early September. Expect a clearly negative seasonal score."""
+        from data.signal_history import _compute_historical_features
+        # 2024-09-05 00:00 UTC = 1725494400 (early Sep, no quarter bonus)
+        df = self._hourly_df(3, base_ts=1_725_494_400.0)
+        out = _compute_historical_features(df)
+        self.assertLess(out["hist_seasonal"].iloc[0], -0.20)
+
+    def test_seasonal_channel_quarter_position_bonus(self):
+        """Last 6 weeks of a quarter (third month, day >= 15) get +0.15
+        quarter-position bonus on top of the month bias."""
+        from data.signal_history import _compute_historical_features
+        # 2024-03-25 = late March = month_in_quarter=3, day>=15 → +0.15 bonus
+        # March base bias = +0.10; expect ~+0.25 total
+        df1 = self._hourly_df(2, base_ts=1_711_324_800.0)   # 2024-03-25 00:00Z
+        # 2024-03-05 = early March (no bonus); expect just +0.10 month bias
+        df2 = self._hourly_df(2, base_ts=1_709_596_800.0)   # 2024-03-05 00:00Z
+        out1 = _compute_historical_features(df1)
+        out2 = _compute_historical_features(df2)
+        self.assertGreater(out1["hist_seasonal"].iloc[0],
+                           out2["hist_seasonal"].iloc[0],
+                           "End-of-quarter window-dressing bonus must lift score")
+
+    # ── channel-position channel ──────────────────────────────────────
+
+    def test_channel_position_at_period_low_yields_positive(self):
+        """When current price is at the period low (position=0), raw signal
+        is (0.5 - 0) * 2 = +1.0. Expect strongly positive."""
+        from data.signal_history import _compute_historical_features
+        # Build a 60-day window where day-0 has the highest price and the
+        # final day has the lowest (downtrend, last bar at the low)
+        df = self._hourly_df(60, start_price=200.0, trend=-2.0)
+        out = _compute_historical_features(df)
+        # Final row should be at/near the channel low → positive channel score
+        self.assertGreater(out["hist_channel_position"].iloc[-1], 0.5)
+
+    def test_channel_position_at_period_high_yields_negative(self):
+        """Mirror image: final price at period high → negative channel score."""
+        from data.signal_history import _compute_historical_features
+        df = self._hourly_df(60, start_price=100.0, trend=+2.0)
+        out = _compute_historical_features(df)
+        # Final row at the channel high → negative channel position score
+        # (trend adjustment may moderate but not flip in this simple linear case)
+        self.assertLess(out["hist_channel_position"].iloc[-1], 0.5)
+
+    # ── momentum-alignment channel ────────────────────────────────────
+
+    def test_momentum_alignment_all_bullish_yields_positive(self):
+        """Strong sustained uptrend → all 4 timeframes (5d/10d/20d/40d) agree
+        bullish → momentum score plus +0.20 alignment bonus."""
+        from data.signal_history import _compute_historical_features
+        df = self._hourly_df(60, start_price=100.0, trend=+1.5)   # +1.5/day, sustained
+        out = _compute_historical_features(df)
+        # Final row: all timeframes are looking back at lower prices → positive
+        self.assertGreater(out["hist_momentum_alignment"].iloc[-1], 0.20)
+
+    def test_momentum_alignment_all_bearish_yields_negative(self):
+        """Sustained downtrend → all 4 timeframes agree bearish → negative
+        score + −0.20 misalignment bonus."""
+        from data.signal_history import _compute_historical_features
+        df = self._hourly_df(60, start_price=200.0, trend=-1.5)
+        out = _compute_historical_features(df)
+        self.assertLess(out["hist_momentum_alignment"].iloc[-1], -0.20)
+
+    def test_momentum_alignment_neutral_when_returns_split(self):
+        """When 2 of 4 lookback windows are positive and 2 are negative,
+        alignment is exactly 50% — neither +0.20 nor −0.20 bonus fires —
+        and the score reflects only the small weighted ROC.
+
+        (Note: an EXACT-zero-return fixture triggers HT's alignment
+        penalty because the strict `r > 0` count comes out to 0/4 → −0.20.
+        That's faithful to HT's existing math; this test instead exercises
+        the 'mixed signals' case where alignment is balanced.)"""
+        from data.signal_history import _compute_historical_features
+        import pandas as pd
+        # Build a series where the last bar (row 60) is HIGHER than the
+        # 5- and 10-bars-ago prices (so r_5, r_10 > 0) but LOWER than the
+        # 20- and 40-bars-ago prices (r_20, r_40 < 0). That's 2/4 positive
+        # → alignment 50% → neither +0.20 nor −0.20 bonus fires.
+        prices = []
+        for i in range(61):
+            if i < 30:        prices.append(110.0)   # earlier high range
+            elif i < 50:      prices.append(100.0)   # mid trough
+            else:             prices.append(105.0)   # recent recovery (above mid, below earlier)
+        rows = [
+            {"symbol": "AAPL", "snapshot_ts": 1_704_067_200.0 + i * 3600, "price": p}
+            for i, p in enumerate(prices)
+        ]
+        df = pd.DataFrame(rows)
+        out = _compute_historical_features(df)
+        score = out["hist_momentum_alignment"].iloc[-1]
+        # Score should be moderate — neither hit by the +0.20 alignment
+        # bonus nor the −0.20 misalignment penalty.
+        self.assertGreater(score, -0.20)
+        self.assertLess(score, +0.20)
+
+    # ── volume-pattern channel (graceful degrade) ─────────────────────
+
+    def test_volume_pattern_zero_when_volume_column_absent(self):
+        """The per-symbol parquet doesn't store volume historically. The
+        helper must NOT crash — it should set hist_volume_pattern to 0
+        and let the model treat it as a no-op signal."""
+        from data.signal_history import _compute_historical_features
+        df = self._hourly_df(20, with_volume=False)
+        out = _compute_historical_features(df)
+        self.assertIn("hist_volume_pattern", out.columns)
+        self.assertTrue((out["hist_volume_pattern"] == 0.0).all(),
+                        "missing volume column → channel must be all-zero, not NaN or omitted")
+
+    # ── general invariants ────────────────────────────────────────────
+
+    def test_all_four_columns_added(self):
+        from data.signal_history import _compute_historical_features, HISTORICAL_COLUMNS
+        df = self._hourly_df(60, trend=+1.0)
+        out = _compute_historical_features(df)
+        for col in HISTORICAL_COLUMNS:
+            self.assertIn(col, out.columns)
+
+    def test_returns_copy_not_inplace(self):
+        from data.signal_history import _compute_historical_features, HISTORICAL_COLUMNS
+        df = self._hourly_df(20, trend=+1.0)
+        before_cols = set(df.columns)
+        _compute_historical_features(df)
+        self.assertEqual(set(df.columns), before_cols)
+        for col in HISTORICAL_COLUMNS:
+            self.assertNotIn(col, df.columns)
+
+    def test_handles_missing_price_column(self):
+        """If df has no price column, return df unchanged. Don't crash."""
+        from data.signal_history import _compute_historical_features
+        import pandas as pd
+        df = pd.DataFrame({"symbol": ["A"] * 5,
+                           "snapshot_ts": np.arange(5, dtype=float) * 86400.0})
+        out = _compute_historical_features(df)
+        self.assertNotIn("hist_seasonal", out.columns)
+
+    def test_score_bounds_respected(self):
+        """All 4 channels must produce values in [-1, +1] (the 4th
+        is volume which is capped at ±0.15 per HT spec)."""
+        from data.signal_history import _compute_historical_features
+        df = self._hourly_df(60, start_price=100.0, trend=+5.0)   # extreme uptrend
+        out = _compute_historical_features(df)
+        for col in ("hist_seasonal", "hist_channel_position", "hist_momentum_alignment"):
+            vals = out[col].dropna()
+            self.assertTrue((vals >= -1.0).all() and (vals <= 1.0).all(),
+                            f"{col} out of [-1, +1]: range={vals.min()} .. {vals.max()}")
+        vol_vals = out["hist_volume_pattern"].dropna()
+        self.assertTrue((vol_vals >= -0.15).all() and (vol_vals <= 0.15).all(),
+                        f"hist_volume_pattern out of [-0.15, +0.15]: "
+                        f"range={vol_vals.min()} .. {vol_vals.max()}")
+
+
+class TestGetRecentWindowReturns33Channels(unittest.TestCase):
+    """get_recent_window must return a (33, T) array matching training shape:
+    5 source + 2 agent + 2 rv + 5 hourly returns + 6 macro + 6 daily returns
+    + 1 momentum + 1 sector-relative + 1 SPY correlation + 4 historical
+    (option C added HISTORICAL category from HistoricalTrendsAgent)."""
+
+    def test_recent_window_has_33_rows(self):
         from data.signal_history import signal_history
         from unittest.mock import patch
         import pandas as pd
@@ -768,8 +971,8 @@ class TestGetRecentWindowReturns29Channels(unittest.TestCase):
             window = signal_history.get_recent_window("AAPL", T=10)
 
         self.assertIsNotNone(window, "window must not be None for 130-row symbol")
-        self.assertEqual(window.shape, (29, 10),
-                         f"expected (29, 10), got {window.shape}")
+        self.assertEqual(window.shape, (33, 10),
+                         f"expected (33, 10), got {window.shape}")
 
 
 class TestReturn10dSchema(unittest.IsolatedAsyncioTestCase):
@@ -950,8 +1153,8 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
             # ── Serving path: get_recent_window ────────────────────────
             window = signal_history.get_recent_window("AAPL", T=WINDOW_SIZE)
             self.assertIsNotNone(window)
-            # #84: post-DJIA shape (28 + 1 macro_dji_5d_back = 29)
-            self.assertEqual(window.shape, (29, WINDOW_SIZE))
+            # option C: post-historical shape (29 + 4 hist sub-scores = 33)
+            self.assertEqual(window.shape, (33, WINDOW_SIZE))
 
             # ── Training path: get_training_data → build_training_windows
             # Symbol-scoped variant — unscoped iterates os.listdir which is

@@ -311,13 +311,15 @@ class TestCongressDemotedFromCNN(unittest.TestCase):
     def test_default_weights_keys_match_source_names(self):
         self.assertEqual(set(_DEFAULT_WEIGHTS.keys()), set(SOURCE_NAMES))
 
-    def test_n_channels_is_29_with_dji_macro(self):
+    def test_n_channels_is_33_with_historical_channels(self):
         # Sprint 0: 5 source + 2 agent + 2 RV + 5 hourly ret + 5 macro + 6 daily ret = 25
         # Sprint 2-B: + 1 momentum (mom_12_1) = 26
         # Sprint 3: + 1 sector-relative (r_20d_sector_rel) = 27
         # Sprint 4: + 1 SPY correlation (corr_spy_20d) = 28
         # #84:      + 1 macro_dji_5d_back appended in MACRO block = 29
-        self.assertEqual(N_CHANNELS, 29)
+        # option C: + 4 historical (seasonal, channel_position,
+        #             momentum_alignment, volume_pattern) = 33
+        self.assertEqual(N_CHANNELS, 33)
 
 
 class TestEarningsReframedToMagnitude(unittest.TestCase):
@@ -1133,7 +1135,7 @@ class TestReturnChannelsExposed(unittest.TestCase):
     """Tier 1 from docs/equity_feature_engineering_audit.md — five lagged
     return channels become part of N_CHANNELS."""
 
-    def test_n_channels_is_29_with_dji_macro(self):
+    def test_n_channels_is_33_with_historical_channels(self):
         from data.cnn_model import N_CHANNELS, RETURN_CHANNEL_NAMES
         self.assertEqual(len(RETURN_CHANNEL_NAMES), 5)
         # Sprint 0: 5 src + 2 agent + 2 rv + 5 hourly ret + 5 macro + 6 daily ret = 25
@@ -1141,7 +1143,8 @@ class TestReturnChannelsExposed(unittest.TestCase):
         # Sprint 3: + 1 sector-relative (r_20d_sector_rel) = 27
         # Sprint 4: + 1 SPY correlation (corr_spy_20d) = 28
         # #84:      + 1 macro_dji_5d_back (appended at end of MACRO block) = 29
-        self.assertEqual(N_CHANNELS, 29)
+        # option C: + 4 historical sub-scores (HISTORICAL category) = 33
+        self.assertEqual(N_CHANNELS, 33)
 
     def test_return_channel_order(self):
         from data.cnn_model import RETURN_CHANNEL_NAMES
@@ -1220,7 +1223,7 @@ class TestFeatureCatalog(unittest.TestCase):
         # index 26).
         # Sprint 4 added SPY_CORRELATION at the end (corr_spy_20d at
         # index 27).
-        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO", "RETURN_DAILY", "MOMENTUM", "SECTOR_RELATIVE", "SPY_CORRELATION"]
+        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO", "RETURN_DAILY", "MOMENTUM", "SECTOR_RELATIVE", "SPY_CORRELATION", "HISTORICAL"]
         seen = []
         for c in CATALOG:
             if not seen or seen[-1] != c.category:
@@ -1276,7 +1279,7 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
         from data.signal_history import (
             SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
             DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS, SECTOR_RELATIVE_COLUMNS,
-            SPY_CORRELATION_COLUMNS,
+            SPY_CORRELATION_COLUMNS, HISTORICAL_COLUMNS,
             _MACRO_COLUMN_MAP,
         )
         from data.cnn_model import ALL_CHANNEL_COLUMNS, N_CHANNELS
@@ -1289,6 +1292,8 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
         # appended AFTER momentum — same rationale.
         # Sprint 4: inter-asset SPY correlation (corr_spy_20d) appended
         # AFTER sector-relative — same rationale.
+        # option C: HISTORICAL category (4 sub-scores from
+        # HistoricalTrendsAgent) appended AFTER spy-corr — same rationale.
         expected = (
             list(SOURCE_COLUMNS)
             + list(AGENT_COLUMNS)
@@ -1299,6 +1304,7 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
             + list(MOMENTUM_COLUMNS)
             + list(SECTOR_RELATIVE_COLUMNS)
             + list(SPY_CORRELATION_COLUMNS)
+            + list(HISTORICAL_COLUMNS)
         )
         self.assertEqual(
             ALL_CHANNEL_COLUMNS, expected,

@@ -114,6 +114,172 @@ SECTOR_RELATIVE_COLUMNS = ["r_20d_sector_rel"]
 # only — Pearson correlation of the last 20 paired daily r_1d values.
 SPY_CORRELATION_COLUMNS = ["corr_spy_20d"]
 
+# HISTORICAL_COLUMNS imports HistoricalTrendsAgent's 4 sub-scores into
+# XGB as features (2026-05-09, option C). Same math as
+# agents/historical_trends_agent.py, computed at read-time over the
+# per-symbol price series. XGB can then learn its own non-linear
+# weights for each — sidesteps HT's hand-tuned 20/30/40/10 weighting
+# and lets the model fit how each signal interacts with the existing 8
+# production-filter channels.
+#
+# The four sub-scores:
+#   hist_seasonal             — month-of-year + quarter-position bias
+#   hist_channel_position     — price position within 60-day high-low range
+#   hist_momentum_alignment   — multi-period (5d/10d/20d/40d) ROC + alignment bonus
+#   hist_volume_pattern       — up-day vs down-day volume ratio (capped ±0.15)
+#
+# Volume channel gracefully degrades to 0 when `volume` column is absent
+# from the parquet (current state on most rows — see Task #85 for backfill).
+HISTORICAL_COLUMNS = [
+    "hist_seasonal",
+    "hist_channel_position",
+    "hist_momentum_alignment",
+    "hist_volume_pattern",
+]
+
+
+# HistoricalTrends seasonal table — copy of MONTHLY_SEASONAL_BIAS from
+# agents/historical_trends_agent.py. Duplicated rather than imported so
+# the read-time pipeline doesn't pull in a circular agent dependency
+# and so the catalog stays self-contained.
+_HIST_MONTH_BIAS = {
+    1: +0.40, 2: +0.10, 3: +0.10, 4: +0.20, 5: -0.20, 6: -0.15,
+    7: +0.05, 8: -0.15, 9: -0.30, 10: +0.10, 11: +0.35, 12: +0.40,
+}
+
+
+def _hist_quarter_bias(month: int, day: int) -> float:
+    """Same logic as historical_trends_agent._quarter_position_bias."""
+    month_in_quarter = ((month - 1) % 3) + 1
+    if month_in_quarter == 3 and day >= 15:
+        return +0.15   # last ~6 weeks of quarter — window dressing
+    elif month_in_quarter == 1 and day <= 15:
+        return +0.10   # first two weeks of new quarter — fresh positioning
+    return 0.0
+
+
+def _compute_historical_features(df: pd.DataFrame) -> pd.DataFrame:
+    """2026-05-09 (option C): import HistoricalTrendsAgent's four sub-scores
+    as XGB feature channels. Math mirrors
+    agents/historical_trends_agent.py exactly so XGB sees the SAME signal
+    HT votes on, but as features it can combine non-linearly with its
+    other 8 production-filter channels.
+
+    Returns a fresh frame; caller's df is unchanged. Robustness: missing
+    `price` column → return df untouched. Missing `volume` column →
+    hist_volume_pattern = 0 (graceful degrade until Task #85 backfills).
+
+    Per-row computation: each row gets sub-scores computed over the
+    price series UP TO (and including) that row — so the values are
+    lookahead-free and represent what HT would have voted at that
+    snapshot.
+    """
+    if df.empty:
+        return df
+    if "price" not in df.columns or "snapshot_ts" not in df.columns:
+        return df
+
+    out = df.copy()
+    n = len(out)
+
+    # Allocate output arrays
+    seasonal_arr = np.zeros(n, dtype=np.float64)
+    channel_arr  = np.zeros(n, dtype=np.float64)
+    momentum_arr = np.zeros(n, dtype=np.float64)
+    volume_arr   = np.zeros(n, dtype=np.float64)
+
+    has_volume = "volume" in out.columns
+    price_series = out["price"].astype(float).values
+    ts_series    = out["snapshot_ts"].astype(float).values
+    if has_volume:
+        vol_series = out["volume"].astype(float).values
+
+    # Per-row scoring. Computes lookback-only signals for row i using
+    # the slice [0:i+1] of the price/volume series. Since the snapshot
+    # cadence is hourly, we use 60 hourly bars as the "channel window"
+    # (≈ 12 trading days at 5 sessions/week × 5 hours each — enough
+    # history for the channel signal to stabilise).
+    CHANNEL_WIN  = 60     # rows used for high/low channel
+    MOMENTUM_PS  = (5, 10, 20, 40)
+    MOMENTUM_WS  = (0.15, 0.20, 0.30, 0.35)
+    SMA_WIN      = 20
+    SMA_LOOKBACK = 10
+
+    import datetime as _dt
+    for i in range(n):
+        # ── seasonal (date-derived; pure calendar) ────────────────────
+        ts = ts_series[i]
+        d = _dt.datetime.utcfromtimestamp(ts).date()
+        seasonal_arr[i] = _HIST_MONTH_BIAS.get(d.month, 0.0) + _hist_quarter_bias(d.month, d.day)
+        # Clip to [-1, +1] to match HT's score range.
+        if seasonal_arr[i] >  1.0: seasonal_arr[i] =  1.0
+        if seasonal_arr[i] < -1.0: seasonal_arr[i] = -1.0
+
+        # ── channel position ──────────────────────────────────────────
+        # Use up to CHANNEL_WIN most-recent rows ending at i.
+        win_lo = max(0, i - CHANNEL_WIN + 1)
+        win_prices = price_series[win_lo : i + 1]
+        if len(win_prices) >= 2:
+            p_lo, p_hi = float(np.min(win_prices)), float(np.max(win_prices))
+            cur = float(price_series[i])
+            chan_range = p_hi - p_lo
+            if chan_range > 0:
+                position = (cur - p_lo) / chan_range
+                raw = (0.5 - position) * 2.0
+                # SMA-20 slope adjustment, normalised by price.
+                if i >= SMA_WIN + SMA_LOOKBACK and SMA_WIN > 0:
+                    sma_now  = float(np.mean(price_series[i - SMA_WIN + 1 : i + 1]))
+                    sma_back = float(np.mean(
+                        price_series[i - SMA_WIN - SMA_LOOKBACK + 1 : i - SMA_LOOKBACK + 1]
+                    ))
+                    sma_slope = (sma_now - sma_back) / sma_back if sma_back > 0 else 0.0
+                else:
+                    sma_slope = 0.0
+                adjusted = raw + sma_slope * 5.0
+                channel_arr[i] = max(-1.0, min(1.0, adjusted))
+
+        # ── multi-period momentum + alignment bonus ───────────────────
+        readings = []
+        for period, weight in zip(MOMENTUM_PS, MOMENTUM_WS):
+            if i >= period:
+                back = float(price_series[i - period])
+                if back > 0:
+                    roc = (float(price_series[i]) - back) / back
+                    readings.append((roc, weight))
+        if readings:
+            total_w = sum(w for _, w in readings)
+            weighted_roc = sum(r * w for r, w in readings) / total_w
+            score = weighted_roc * 5.0
+            positive = sum(1 for r, _ in readings if r > 0)
+            alignment = positive / len(readings)
+            if alignment > 0.75:
+                score = min(1.0, score + 0.20)
+            elif alignment < 0.25:
+                score = max(-1.0, score - 0.20)
+            momentum_arr[i] = max(-1.0, min(1.0, score))
+
+        # ── volume pattern (graceful degrade if column absent) ────────
+        if has_volume and i >= 10:
+            recent_prices = price_series[i - 10 + 1 : i + 1]
+            recent_vols   = vol_series[i - 10 + 1 : i + 1]
+            if len(recent_prices) >= 2:
+                rets = np.diff(recent_prices) / recent_prices[:-1]
+                vols_aligned = recent_vols[1:]
+                up_mask = rets > 0
+                dn_mask = rets < 0
+                up_vol = float(vols_aligned[up_mask].mean()) if up_mask.any() else 0.0
+                dn_vol = float(vols_aligned[dn_mask].mean()) if dn_mask.any() else 0.0
+                denom = up_vol + dn_vol
+                if denom > 0:
+                    vol_ratio = (up_vol - dn_vol) / denom   # in [-1, +1]
+                    volume_arr[i] = max(-0.15, min(0.15, vol_ratio * 0.15))
+
+    out["hist_seasonal"]           = seasonal_arr
+    out["hist_channel_position"]   = channel_arr
+    out["hist_momentum_alignment"] = momentum_arr
+    out["hist_volume_pattern"]     = volume_arr
+    return out
+
 # Rolling cap: keep at most 90 days × ~12 snapshots/hour = ~26 000 rows/symbol
 MAX_ROWS = 90 * 24 * 12
 
@@ -516,6 +682,11 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     # r_1d is populated for every symbol incl SPY. Appended last so
     # existing channel indices remain stable.
     out = _compute_spy_correlation_features(out)
+    # 2026-05-09 (option C): import HistoricalTrendsAgent's 4 sub-scores
+    # as XGB feature channels. Only depends on price (+ optional volume),
+    # so order vs upstream helpers doesn't matter — append last for
+    # index stability.
+    out = _compute_historical_features(out)
     return out
 
 
@@ -821,19 +992,20 @@ class SignalHistoryStore:
         momentum_data      = _column_block(MOMENTUM_COLUMNS)
         sector_relative_data = _column_block(SECTOR_RELATIVE_COLUMNS)
         spy_corr_data        = _column_block(SPY_CORRELATION_COLUMNS)
+        historical_data      = _column_block(HISTORICAL_COLUMNS)
 
         combined = np.hstack([
             source_data, agent_data, rv_data, return_data, macro_data,
             daily_return_data, momentum_data, sector_relative_data,
-            spy_corr_data,
-        ])  # (≤T, 28)
+            spy_corr_data, historical_data,
+        ])  # (≤T, 33)
 
         if len(combined) < T:
             pad      = np.zeros((T - len(combined), combined.shape[1]))
             combined = np.vstack([pad, combined])
 
         combined = np.nan_to_num(combined, nan=0.0)
-        return combined.T   # (28, T) post-Sprint-4
+        return combined.T   # (33, T) post-#85-historical-channels
 
     def symbols_with_data(self) -> List[str]:
         """List all symbols that have at least one snapshot on disk."""
