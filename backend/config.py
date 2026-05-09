@@ -136,6 +136,20 @@ class Config:
     CNN_BUY_THRESHOLD_BASE: float = float(os.getenv(
         "CNN_BUY_THRESHOLD_BASE", "0.65"))
 
+    # CNN_MAX_OPEN_POSITIONS — cap the number of distinct symbols CNN can
+    # hold open simultaneously. When at cap, BUYs on NEW symbols downgrade
+    # to HOLD; averaging into already-held symbols still passes (Kelly-
+    # style scale-in). Self-correcting: once positions are sold or merged,
+    # BUYs resume.
+    #
+    # Why 15: model review on 2026-05-08 showed CNNReasoningAgent holding
+    # 66 distinct positions vs ~5–15 typical Kelly-optimal range. Most of
+    # those 66 are from BUYs that fired before the upnl-drawdown gate
+    # (PR #18) was added. 15 is a meaningful tightening that doesn't
+    # forcibly close existing winners (the cap doesn't trigger forced
+    # sells — it only blocks NEW BUYs).
+    CNN_MAX_OPEN_POSITIONS: int = int(os.getenv("CNN_MAX_OPEN_POSITIONS", "15"))
+
     # Cloud-Claude model selection per call site (added 2026-05-05).
     # ScannerAgent's job is "rank symbols by interest" — Haiku 4.5 is
     # plenty for that and ~15× cheaper than Opus 4.6 ($1/M vs $15/M
