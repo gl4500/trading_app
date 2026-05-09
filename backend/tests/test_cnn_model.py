@@ -311,7 +311,7 @@ class TestCongressDemotedFromCNN(unittest.TestCase):
     def test_default_weights_keys_match_source_names(self):
         self.assertEqual(set(_DEFAULT_WEIGHTS.keys()), set(SOURCE_NAMES))
 
-    def test_n_channels_is_33_with_historical_channels(self):
+    def test_n_channels_is_38_with_macro_10d_channels(self):
         # Sprint 0: 5 source + 2 agent + 2 RV + 5 hourly ret + 5 macro + 6 daily ret = 25
         # Sprint 2-B: + 1 momentum (mom_12_1) = 26
         # Sprint 3: + 1 sector-relative (r_20d_sector_rel) = 27
@@ -319,7 +319,8 @@ class TestCongressDemotedFromCNN(unittest.TestCase):
         # #84:      + 1 macro_dji_5d_back appended in MACRO block = 29
         # option C: + 4 historical (seasonal, channel_position,
         #             momentum_alignment, volume_pattern) = 33
-        self.assertEqual(N_CHANNELS, 33)
+        # Sprint 8 (#67): + 5 MACRO_10D (gld/tlt/spy/breadth/dji 10d) = 38
+        self.assertEqual(N_CHANNELS, 38)
 
 
 class TestEarningsReframedToMagnitude(unittest.TestCase):
@@ -1135,7 +1136,7 @@ class TestReturnChannelsExposed(unittest.TestCase):
     """Tier 1 from docs/equity_feature_engineering_audit.md — five lagged
     return channels become part of N_CHANNELS."""
 
-    def test_n_channels_is_33_with_historical_channels(self):
+    def test_n_channels_is_38_with_macro_10d_channels(self):
         from data.cnn_model import N_CHANNELS, RETURN_CHANNEL_NAMES
         self.assertEqual(len(RETURN_CHANNEL_NAMES), 5)
         # Sprint 0: 5 src + 2 agent + 2 rv + 5 hourly ret + 5 macro + 6 daily ret = 25
@@ -1144,7 +1145,8 @@ class TestReturnChannelsExposed(unittest.TestCase):
         # Sprint 4: + 1 SPY correlation (corr_spy_20d) = 28
         # #84:      + 1 macro_dji_5d_back (appended at end of MACRO block) = 29
         # option C: + 4 historical sub-scores (HISTORICAL category) = 33
-        self.assertEqual(N_CHANNELS, 33)
+        # Sprint 8 (#67): + 5 MACRO_10D channels = 38
+        self.assertEqual(N_CHANNELS, 38)
 
     def test_return_channel_order(self):
         from data.cnn_model import RETURN_CHANNEL_NAMES
@@ -1223,7 +1225,7 @@ class TestFeatureCatalog(unittest.TestCase):
         # index 26).
         # Sprint 4 added SPY_CORRELATION at the end (corr_spy_20d at
         # index 27).
-        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO", "RETURN_DAILY", "MOMENTUM", "SECTOR_RELATIVE", "SPY_CORRELATION", "HISTORICAL"]
+        expected_order = ["SOURCE", "AGENT", "RV", "RETURN", "MACRO", "RETURN_DAILY", "MOMENTUM", "SECTOR_RELATIVE", "SPY_CORRELATION", "HISTORICAL", "MACRO_10D"]
         seen = []
         for c in CATALOG:
             if not seen or seen[-1] != c.category:
@@ -1241,7 +1243,14 @@ class TestFeatureCatalog(unittest.TestCase):
         self.assertEqual(len(channels_by_category("AGENT")), len(AGENT_COLUMNS))
         self.assertEqual(len(channels_by_category("RV")), len(RV_COLUMNS))
         self.assertEqual(len(channels_by_category("RETURN")), len(RETURN_COLUMNS))
-        self.assertEqual(len(channels_by_category("MACRO")), len(_MACRO_COLUMN_MAP))
+        # _MACRO_COLUMN_MAP covers BOTH the MACRO category (6 channels) and
+        # the MACRO_10D category (5 channels) — Sprint 8 (#67) added the 10d
+        # block at the very end of the catalog so existing indices are
+        # preserved. Sum of the two categories must equal the map's length.
+        self.assertEqual(
+            len(channels_by_category("MACRO")) + len(channels_by_category("MACRO_10D")),
+            len(_MACRO_COLUMN_MAP),
+        )
 
     def test_production_xgb_filter_constant_is_in_catalog(self):
         """PRODUCTION_XGB_FILTER mirrors what's in .env's XGB_FEATURE_FILTER.
@@ -1294,17 +1303,22 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
         # AFTER sector-relative — same rationale.
         # option C: HISTORICAL category (4 sub-scores from
         # HistoricalTrendsAgent) appended AFTER spy-corr — same rationale.
+        # Sprint 8 (#67): MACRO_10D category (5 channels — 10d trailing
+        # macro returns aligned with the label horizon) appended at the
+        # very end so existing indices [0-32] are preserved.
+        from data.macro_history import MACRO_FEATURE_COLS, MACRO_FEATURE_COLS_10D
         expected = (
             list(SOURCE_COLUMNS)
             + list(AGENT_COLUMNS)
             + list(RV_COLUMNS)
             + list(RETURN_COLUMNS)
-            + list(_MACRO_COLUMN_MAP.values())
+            + list(MACRO_FEATURE_COLS)
             + list(DAILY_RETURN_COLUMNS)
             + list(MOMENTUM_COLUMNS)
             + list(SECTOR_RELATIVE_COLUMNS)
             + list(SPY_CORRELATION_COLUMNS)
             + list(HISTORICAL_COLUMNS)
+            + list(MACRO_FEATURE_COLS_10D)
         )
         self.assertEqual(
             ALL_CHANNEL_COLUMNS, expected,
@@ -1327,13 +1341,19 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
         )
         from data.cnn_model import (
             SOURCE_NAMES, AGENT_CHANNEL_NAMES, RV_CHANNEL_NAMES,
-            RETURN_CHANNEL_NAMES, MACRO_CHANNEL_NAMES,
+            RETURN_CHANNEL_NAMES, MACRO_CHANNEL_NAMES, MACRO_10D_CHANNEL_NAMES,
         )
         self.assertEqual(len(SOURCE_NAMES), len(SOURCE_COLUMNS))
         self.assertEqual(len(AGENT_CHANNEL_NAMES), len(AGENT_COLUMNS))
         self.assertEqual(len(RV_CHANNEL_NAMES), len(RV_COLUMNS))
         self.assertEqual(len(RETURN_CHANNEL_NAMES), len(RETURN_COLUMNS))
-        self.assertEqual(len(MACRO_CHANNEL_NAMES), len(_MACRO_COLUMN_MAP))
+        # Sprint 8: _MACRO_COLUMN_MAP carries BOTH 5d (6) and 10d (5)
+        # channels — the merge_asof rename target. cnn_model splits them
+        # into MACRO_CHANNEL_NAMES (5d, 6) and MACRO_10D_CHANNEL_NAMES (5).
+        self.assertEqual(
+            len(MACRO_CHANNEL_NAMES) + len(MACRO_10D_CHANNEL_NAMES),
+            len(_MACRO_COLUMN_MAP),
+        )
 
     def test_agent_rv_return_macro_blocks_use_same_strings(self):
         """Where signal_history's column name == cnn_model's display name
@@ -1345,12 +1365,17 @@ class TestChannelDefinitionsConsistent(unittest.TestCase):
         )
         from data.cnn_model import (
             AGENT_CHANNEL_NAMES, RV_CHANNEL_NAMES,
-            RETURN_CHANNEL_NAMES, MACRO_CHANNEL_NAMES,
+            RETURN_CHANNEL_NAMES, MACRO_CHANNEL_NAMES, MACRO_10D_CHANNEL_NAMES,
         )
         self.assertEqual(list(AGENT_COLUMNS), list(AGENT_CHANNEL_NAMES))
         self.assertEqual(list(RV_COLUMNS), list(RV_CHANNEL_NAMES))
         self.assertEqual(list(RETURN_COLUMNS), list(RETURN_CHANNEL_NAMES))
-        self.assertEqual(list(_MACRO_COLUMN_MAP.values()), list(MACRO_CHANNEL_NAMES))
+        # Sprint 8: _MACRO_COLUMN_MAP values = MACRO_CHANNEL_NAMES (6 5d) +
+        # MACRO_10D_CHANNEL_NAMES (5 10d) in declaration order.
+        self.assertEqual(
+            list(_MACRO_COLUMN_MAP.values()),
+            list(MACRO_CHANNEL_NAMES) + list(MACRO_10D_CHANNEL_NAMES),
+        )
 
     def test_xgb_production_feature_filter_subset_of_all_channels(self):
         """The 8-channel production filter (XGB_FEATURE_FILTER) names must

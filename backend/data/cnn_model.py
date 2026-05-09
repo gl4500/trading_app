@@ -127,6 +127,18 @@ MACRO_CHANNEL_NAMES: List[str] = [
     "macro_dji_5d_back",    # 2026-05-09 (#84): DJIA 5-day trailing via DIA ETF
 ]
 
+# Sprint 8 (#67, 2026-05-09): 10-day trailing macro returns aligned with the
+# 10d label horizon. Kept as a separate constant from MACRO_CHANNEL_NAMES so
+# build_training_windows can detect them with a separate has_macro_10d flag
+# (older parquets without 10d cols still degrade gracefully).
+MACRO_10D_CHANNEL_NAMES: List[str] = [
+    "macro_gld_10d_back",
+    "macro_tlt_10d_back",
+    "macro_spy_10d_back",
+    "macro_breadth_10d_back",
+    "macro_dji_10d_back",
+]
+
 # Fixed-order list of channel COLUMN names — derived from
 # data.feature_catalog.CATALOG (the registered single source of truth).
 # Adding a channel = one CATALOG entry, not a hand-edit here.
@@ -144,6 +156,11 @@ MACRO_CHANNEL_NAMES: List[str] = [
 #            sub-scores as channels — hist_seasonal,
 #            hist_channel_position, hist_momentum_alignment,
 #            hist_volume_pattern. Indices [29-32], pool-only)
+#   33 → 38  (Sprint 8 #67 2026-05-09: 10-day trailing macro returns
+#            aligned with the 10d label horizon — macro_gld_10d_back,
+#            macro_tlt_10d_back, macro_spy_10d_back,
+#            macro_breadth_10d_back, macro_dji_10d_back. New MACRO_10D
+#            category, indices [33-37], pool-only)
 #
 # build_training_windows degrades gracefully (drops blocks whose cols are
 # absent), so old per-symbol parquets still train.
@@ -450,6 +467,7 @@ def build_training_windows(
     has_sector_rel  = all(c in df.columns for c in SECTOR_RELATIVE_COLUMNS)
     has_spy_corr    = all(c in df.columns for c in SPY_CORRELATION_COLUMNS)
     has_historical  = all(c in df.columns for c in HISTORICAL_COLUMNS)
+    has_macro_10d   = all(c in df.columns for c in MACRO_10D_CHANNEL_NAMES)
     feat_cols = [c for c in SOURCE_COLUMNS if c in df.columns]
     if has_agent:
         feat_cols = feat_cols + AGENT_COLUMNS
@@ -479,6 +497,10 @@ def build_training_windows(
     # appended last — same index-stability rationale.
     if has_historical:
         feat_cols = feat_cols + HISTORICAL_COLUMNS
+    # Sprint 8 (#67): MACRO_10D channels appended at the very end so existing
+    # indices [0-32] are preserved. Production XGB filter (all ≤ 18) unaffected.
+    if has_macro_10d:
+        feat_cols = feat_cols + MACRO_10D_CHANNEL_NAMES
     n_feat    = len(feat_cols)
     if n_feat == 0:
         logger.warning("build_training_windows: no recognised feature columns in df — returning empty")

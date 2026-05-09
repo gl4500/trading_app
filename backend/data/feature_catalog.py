@@ -361,6 +361,52 @@ CATALOG: List[Channel] = [
         "10-bar window, point-in-time", "2026-05-09",
         "Volume confirmation: (avg up-day volume - avg down-day volume) / total over last 10 bars, capped ±0.15. Range [-0.15, +0.15]. Currently degrades to 0 on rows missing volume — Task #85 backfills it from Alpaca historical bars.",
     ),
+
+    # ── MACRO_10D (5) ─────────────────────────────────────────────────────
+    # Sprint 8 (#67, 2026-05-09): 10-day trailing macro returns aligned with
+    # the 10d label horizon (LABEL_HORIZON_COL = "return_10d"). The MACRO
+    # block above uses 5-day windows — a mismatch with what we're trying to
+    # predict. These channels close that gap.
+    #
+    # Placed at the end of the catalog (after HISTORICAL) so existing
+    # channel indices 0-32 are preserved — the production XGB feature_filter
+    # [0,1,2,4,13,14,17,18] (all ≤ 18) keeps pointing at the same channels.
+    # Pool-only until forward selection promotes them.
+    Channel(
+        "macro_gld_10d_back", "MACRO_10D",
+        ["GLD daily close"],
+        "macro_history._ret_nd_trailing (10-day TRAILING)",
+        "10-day trailing", "2026-05-09",
+        "GLD 10d trailing return — flight-to-safety signal at the label-horizon timescale. Pool-only.",
+    ),
+    Channel(
+        "macro_tlt_10d_back", "MACRO_10D",
+        ["TLT daily close"],
+        "macro_history._ret_nd_trailing (10-day TRAILING)",
+        "10-day trailing", "2026-05-09",
+        "TLT 10d trailing return — long bond move at the label-horizon timescale. Pool-only.",
+    ),
+    Channel(
+        "macro_spy_10d_back", "MACRO_10D",
+        ["SPY daily close"],
+        "macro_history._ret_nd_trailing (10-day TRAILING)",
+        "10-day trailing", "2026-05-09",
+        "SPY 10d trailing return — broad-market direction over the prediction horizon. Expected to be a stronger predictor of 10d forward returns than the 5d sibling. Pool-only.",
+    ),
+    Channel(
+        "macro_breadth_10d_back", "MACRO_10D",
+        ["IWM, SPY daily closes"],
+        "macro_history (clipped 10-day IWM-SPY spread)",
+        "10-day trailing", "2026-05-09",
+        "(IWM - SPY) trailing 10d, clipped [-1, 1]. Small-cap breadth at the label-horizon timescale. Pool-only.",
+    ),
+    Channel(
+        "macro_dji_10d_back", "MACRO_10D",
+        ["DIA daily close"],
+        "macro_history._ret_nd_trailing (10-day TRAILING)",
+        "10-day trailing", "2026-05-09",
+        "DJIA 10d trailing return via DIA ETF. Mostly redundant with macro_spy_10d_back (~95% correlated) — included for cross-index sanity. Pool-only.",
+    ),
 ]
 
 

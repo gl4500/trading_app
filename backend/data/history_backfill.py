@@ -643,6 +643,13 @@ async def backfill_macro_history(days: int = 365) -> Dict:
             "uup_5d_back": _get_ret_back("UUP", 5),
             "uso_5d_back": _get_ret_back("USO", 5),
             "dji_5d_back": _get_ret_back("DIA", 5),
+            # Sprint 8 (#67): 10d trailing returns aligned with the 10d label
+            # horizon. Same _ret_nd_trailing helper, n_back=10.
+            "gld_10d_back": _get_ret_back("GLD", 10),
+            "tlt_10d_back": _get_ret_back("TLT", 10),
+            "spy_10d_back": _get_ret_back("SPY", 10),
+            "iwm_10d_back": _get_ret_back("IWM", 10),
+            "dji_10d_back": _get_ret_back("DIA", 10),
         }
 
         # ── VIX and TNX levels ────────────────────────────────────────────

@@ -70,6 +70,14 @@ MACRO_COLUMNS: List[str] = [
     # check on regime signals).
     "dji_5d_back",
     "breadth_score_back",
+    # Sprint 8 (#67, 2026-05-09): 10-day trailing returns aligned with the
+    # 10d label horizon (LABEL_HORIZON_COL = "return_10d"). The 5d channels
+    # above are kept for backwards-compat with the live XGB model that uses
+    # macro_spy_5d_back + macro_breadth_back; the 10d channels are
+    # pool-only until forward selection promotes them.
+    "gld_10d_back", "tlt_10d_back", "spy_10d_back",
+    "iwm_10d_back", "dji_10d_back",
+    "breadth_score_10d_back",
     "regime",
     "regime_score",
 ]
@@ -87,7 +95,21 @@ MACRO_FEATURE_COLS: List[str] = [
     "macro_dji_5d_back",
 ]
 
+# Sprint 8 (#67): 10-day macro lookbacks aligned with LABEL_HORIZON_COL
+# ("return_10d"). Kept SEPARATE from MACRO_FEATURE_COLS so they land at the
+# very end of feature_catalog.ALL_CHANNEL_COLUMNS (after HISTORICAL),
+# preserving every existing channel index. Pool-only until forward
+# selection promotes them.
+MACRO_FEATURE_COLS_10D: List[str] = [
+    "macro_gld_10d_back",
+    "macro_tlt_10d_back",
+    "macro_spy_10d_back",
+    "macro_breadth_10d_back",
+    "macro_dji_10d_back",
+]
+
 N_MACRO_CHANNELS: int = len(MACRO_FEATURE_COLS)  # 6
+N_MACRO_10D_CHANNELS: int = len(MACRO_FEATURE_COLS_10D)  # 5
 
 _REGIME_SCORES: Dict[str, float] = {
     "RISK_ON":   1.0,
@@ -155,6 +177,14 @@ class MacroHistoryStore:
         iwm_5d_back = float(returns.get("iwm_5d_back", 0.0))
         spy_5d_back = float(returns.get("spy_5d_back", 0.0))
         breadth_back = float(np.clip(iwm_5d_back - spy_5d_back, -1.0, 1.0))
+
+        # Sprint 8 (#67): 10-day trailing returns aligned with the 10d label
+        # horizon. Default to 0.0 when caller doesn't supply (backwards-
+        # compat with older callers). Same clip rule for breadth_10d.
+        iwm_10d_back = float(returns.get("iwm_10d_back", 0.0))
+        spy_10d_back = float(returns.get("spy_10d_back", 0.0))
+        breadth_10d_back = float(np.clip(iwm_10d_back - spy_10d_back, -1.0, 1.0))
+
         r_score  = float(_REGIME_SCORES.get(regime, 0.0))
 
         row: Dict = {
@@ -174,6 +204,12 @@ class MacroHistoryStore:
             "uso_5d_back":        float(returns.get("uso_5d_back", 0.0)),
             "dji_5d_back":        float(returns.get("dji_5d_back", 0.0)),
             "breadth_score_back": breadth_back,
+            "gld_10d_back":           float(returns.get("gld_10d_back", 0.0)),
+            "tlt_10d_back":           float(returns.get("tlt_10d_back", 0.0)),
+            "spy_10d_back":           spy_10d_back,
+            "iwm_10d_back":           iwm_10d_back,
+            "dji_10d_back":           float(returns.get("dji_10d_back", 0.0)),
+            "breadth_score_10d_back": breadth_10d_back,
             "regime":             str(regime),
             "regime_score":       r_score,
         }
@@ -185,10 +221,13 @@ class MacroHistoryStore:
 
     def get_features_for_date(self, ts: float) -> np.ndarray:
         """
-        Return the 5 CNN macro feature values for the date closest to ts.
+        Return the CNN macro feature values for the date closest to ts.
 
-        Feature order (matches MACRO_FEATURE_COLS) — Task #24 trailing:
-          [vix_norm, gld_5d_back, tlt_5d_back, spy_5d_back, breadth_score_back]
+        Feature order matches MACRO_FEATURE_COLS + MACRO_FEATURE_COLS_10D:
+          [vix_norm, gld_5d_back, tlt_5d_back, spy_5d_back, breadth_score_back,
+           dji_5d_back,
+           gld_10d_back, tlt_10d_back, spy_10d_back, breadth_score_10d_back,
+           dji_10d_back]
 
         Returns a zero vector when no data is available within ±2 calendar days.
 
@@ -198,9 +237,12 @@ class MacroHistoryStore:
 
         Returns
         -------
-        np.ndarray of shape (N_MACRO_CHANNELS,) = (5,), dtype float32
+        np.ndarray of shape (N_MACRO_CHANNELS + N_MACRO_10D_CHANNELS,) = (11,),
+        dtype float32. Caller (signal_history._attach_macro_features) splits
+        these into MACRO and MACRO_10D blocks per the catalog ordering.
         """
-        zero = np.zeros(N_MACRO_CHANNELS, dtype=np.float32)
+        total = N_MACRO_CHANNELS + N_MACRO_10D_CHANNELS
+        zero = np.zeros(total, dtype=np.float32)
         df = _load()
         if df.empty or "date_ts" not in df.columns:
             return zero
@@ -223,12 +265,19 @@ class MacroHistoryStore:
                 return 0.0
 
         return np.array([
+            # MACRO (6) — original 5d channels
             _safe("vix_norm"),
             _safe("gld_5d_back"),
             _safe("tlt_5d_back"),
             _safe("spy_5d_back"),
             _safe("breadth_score_back"),
             _safe("dji_5d_back"),
+            # MACRO_10D (5) — Sprint 8 (#67) 10d channels aligned with label horizon
+            _safe("gld_10d_back"),
+            _safe("tlt_10d_back"),
+            _safe("spy_10d_back"),
+            _safe("breadth_score_10d_back"),
+            _safe("dji_10d_back"),
         ], dtype=np.float32)
 
 

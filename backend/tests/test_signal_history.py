@@ -937,13 +937,14 @@ class TestComputeHistoricalFeatures(unittest.TestCase):
                         f"range={vol_vals.min()} .. {vol_vals.max()}")
 
 
-class TestGetRecentWindowReturns33Channels(unittest.TestCase):
-    """get_recent_window must return a (33, T) array matching training shape:
+class TestGetRecentWindowReturns38Channels(unittest.TestCase):
+    """get_recent_window must return a (38, T) array matching training shape:
     5 source + 2 agent + 2 rv + 5 hourly returns + 6 macro + 6 daily returns
     + 1 momentum + 1 sector-relative + 1 SPY correlation + 4 historical
-    (option C added HISTORICAL category from HistoricalTrendsAgent)."""
+    + 5 macro_10d (Sprint 8 #67 added MACRO_10D channels aligned with the
+    10d label horizon)."""
 
-    def test_recent_window_has_33_rows(self):
+    def test_recent_window_has_38_rows(self):
         from data.signal_history import signal_history
         from unittest.mock import patch
         import pandas as pd
@@ -971,8 +972,8 @@ class TestGetRecentWindowReturns33Channels(unittest.TestCase):
             window = signal_history.get_recent_window("AAPL", T=10)
 
         self.assertIsNotNone(window, "window must not be None for 130-row symbol")
-        self.assertEqual(window.shape, (33, 10),
-                         f"expected (33, 10), got {window.shape}")
+        self.assertEqual(window.shape, (38, 10),
+                         f"expected (38, 10), got {window.shape}")
 
 
 class TestReturn10dSchema(unittest.IsolatedAsyncioTestCase):
@@ -1141,6 +1142,15 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
             "macro_spy_5d_back":  np.linspace(0.0, 0.02, rows),
             "macro_breadth_back": np.linspace(-0.005, 0.005, rows),
             "macro_dji_5d_back":  np.linspace(0.0, 0.02, rows),  # 2026-05-09 (#84)
+            # Sprint 8 (#67): MACRO_10D channels — without these,
+            # build_training_windows produces (33, T) (has_macro_10d=False)
+            # while get_recent_window always zero-fills to (38, T), causing
+            # shape mismatch.
+            "macro_gld_10d_back":     np.linspace(-0.02, 0.02, rows),
+            "macro_tlt_10d_back":     np.linspace(-0.01, 0.01, rows),
+            "macro_spy_10d_back":     np.linspace(0.0, 0.04, rows),
+            "macro_breadth_10d_back": np.linspace(-0.01, 0.01, rows),
+            "macro_dji_10d_back":     np.linspace(0.0, 0.04, rows),
         })
 
         # Mock _load_macro_features to None so _attach_macro_features is a
@@ -1153,8 +1163,8 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
             # ── Serving path: get_recent_window ────────────────────────
             window = signal_history.get_recent_window("AAPL", T=WINDOW_SIZE)
             self.assertIsNotNone(window)
-            # option C: post-historical shape (29 + 4 hist sub-scores = 33)
-            self.assertEqual(window.shape, (33, WINDOW_SIZE))
+            # Sprint 8 (#67): post-MACRO_10D shape = 33 + 5 macro_10d = 38
+            self.assertEqual(window.shape, (38, WINDOW_SIZE))
 
             # ── Training path: get_training_data → build_training_windows
             # Symbol-scoped variant — unscoped iterates os.listdir which is
