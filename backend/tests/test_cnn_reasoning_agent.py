@@ -337,6 +337,161 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
         finally:
             signal_cnn._mean_wfe = original_mean_wfe
 
+    async def test_max_open_positions_gate_blocks_buy_for_new_symbol_when_at_cap(self):
+        """When CNN already holds CNN_MAX_OPEN_POSITIONS distinct symbols,
+        a BUY on a NEW symbol must downgrade to HOLD. Prevents the
+        diversification-creep failure mode the model review flagged
+        (66 open positions on CNNReasoningAgent — far past Kelly-optimal).
+
+        Pinning the test at cap=2 (overridden via patched config) keeps the
+        fixture small. Real default is much higher; this just validates the
+        gate logic."""
+        from config import config
+        # Pre-load CNN's portfolio with 2 distinct held symbols (at cap=2)
+        self.agent.portfolio.positions["NVDA"] = Position(
+            symbol="NVDA", shares=10, avg_cost=150.0,
+        )
+        self.agent.portfolio.positions["MSFT"] = Position(
+            symbol="MSFT", shares=10, avg_cost=300.0,
+        )
+        mkt = {
+            "NVDA": _make_ctx(price=150.0, composite=0.5),
+            "MSFT": _make_ctx(price=300.0, composite=0.5),
+            "AAPL": _make_ctx(price=150.0, composite=0.5),    # NEW symbol — should be blocked
+            "__overnight_catalysts__": [],
+        }
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
+        from data.signal_model import signal_model as signal_cnn
+        original_mean_wfe = signal_cnn._mean_wfe
+        original_cap = config.CNN_MAX_OPEN_POSITIONS
+        try:
+            signal_cnn._mean_wfe = 0.10                # WFE gate inactive
+            config.CNN_MAX_OPEN_POSITIONS = 2          # at cap
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            aapl_buys = [s for s in signals if s.symbol == "AAPL" and s.action == "BUY"]
+            aapl_holds = [s for s in signals if s.symbol == "AAPL" and s.action == "HOLD"]
+            self.assertEqual(len(aapl_buys), 0,
+                "Max-open-positions gate must block BUY on NEW symbol when at cap")
+            self.assertEqual(len(aapl_holds), 1)
+            self.assertIn("max-open-positions", aapl_holds[0].reasoning.lower())
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+            config.CNN_MAX_OPEN_POSITIONS = original_cap
+            self.agent.portfolio.positions.pop("NVDA", None)
+            self.agent.portfolio.positions.pop("MSFT", None)
+
+    async def test_max_open_positions_gate_allows_buy_for_already_held_symbol(self):
+        """Averaging-into an existing position does NOT increase the count
+        of distinct held symbols, so the cap must NOT block it. Otherwise
+        we'd kill conviction add-ons (Kelly-style scale-in) — which is the
+        opposite of what we want."""
+        from config import config
+        self.agent.portfolio.positions["NVDA"] = Position(
+            symbol="NVDA", shares=10, avg_cost=150.0,
+        )
+        self.agent.portfolio.positions["MSFT"] = Position(
+            symbol="MSFT", shares=10, avg_cost=300.0,
+        )
+        mkt = {
+            "NVDA": _make_ctx(price=150.0, composite=0.5),    # already-held — BUY = avg-down
+            "MSFT": _make_ctx(price=300.0, composite=0.5),
+            "__overnight_catalysts__": [],
+        }
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "scale in"}
+        from data.signal_model import signal_model as signal_cnn
+        original_mean_wfe = signal_cnn._mean_wfe
+        original_cap = config.CNN_MAX_OPEN_POSITIONS
+        try:
+            signal_cnn._mean_wfe = 0.10
+            config.CNN_MAX_OPEN_POSITIONS = 2
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            nvda_buys = [s for s in signals if s.symbol == "NVDA" and s.action == "BUY"]
+            self.assertEqual(len(nvda_buys), 1,
+                "BUY on already-held symbol must pass even at cap (scale-in)")
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+            config.CNN_MAX_OPEN_POSITIONS = original_cap
+            self.agent.portfolio.positions.pop("NVDA", None)
+            self.agent.portfolio.positions.pop("MSFT", None)
+
+    async def test_max_open_positions_gate_does_not_block_sells(self):
+        """SELLs always pass — the cap is asymmetric. Otherwise we'd trap
+        positions when the agent is already over-diversified, which is the
+        exact moment we MOST want to allow exits."""
+        from config import config
+        self.agent.portfolio.positions["NVDA"] = Position(
+            symbol="NVDA", shares=10, avg_cost=150.0,
+        )
+        self.agent.portfolio.positions["MSFT"] = Position(
+            symbol="MSFT", shares=10, avg_cost=300.0,
+        )
+        self.agent.portfolio.positions["AAPL"] = Position(
+            symbol="AAPL", shares=5, avg_cost=180.0,
+        )
+        mkt = {
+            "NVDA": _make_ctx(price=150.0, composite=0.5),
+            "MSFT": _make_ctx(price=300.0, composite=0.5),
+            "AAPL": _make_ctx(price=200.0, composite=0.5),  # SELL candidate
+            "__overnight_catalysts__": [],
+        }
+        sell_resp = {"action": "SELL", "confidence": 0.80, "reasoning": "exit"}
+        from data.signal_model import signal_model as signal_cnn
+        original_mean_wfe = signal_cnn._mean_wfe
+        original_cap = config.CNN_MAX_OPEN_POSITIONS
+        try:
+            signal_cnn._mean_wfe = 0.10
+            config.CNN_MAX_OPEN_POSITIONS = 2          # over cap (3 held vs cap=2)
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=sell_resp)):
+                signals = await self.agent.analyze(mkt)
+            aapl_sells = [s for s in signals if s.symbol == "AAPL" and s.action == "SELL"]
+            self.assertEqual(len(aapl_sells), 1,
+                "Max-open-positions gate must NEVER block SELLs (always allow exits)")
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+            config.CNN_MAX_OPEN_POSITIONS = original_cap
+            for sym in ("NVDA", "MSFT", "AAPL"):
+                self.agent.portfolio.positions.pop(sym, None)
+
+    async def test_max_open_positions_gate_inactive_when_under_cap(self):
+        """When held-symbol count is below the cap, BUY on a NEW symbol
+        passes normally. Pin so a tightening of the cap doesn't accidentally
+        also tighten the inactive-state behaviour."""
+        from config import config
+        self.agent.portfolio.positions["NVDA"] = Position(
+            symbol="NVDA", shares=10, avg_cost=150.0,
+        )
+        mkt = {
+            "NVDA": _make_ctx(price=150.0, composite=0.5),
+            "AAPL": _make_ctx(price=150.0, composite=0.5),    # NEW — under cap, should pass
+            "__overnight_catalysts__": [],
+        }
+        buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
+        from data.signal_model import signal_model as signal_cnn
+        original_mean_wfe = signal_cnn._mean_wfe
+        original_cap = config.CNN_MAX_OPEN_POSITIONS
+        try:
+            signal_cnn._mean_wfe = 0.10
+            config.CNN_MAX_OPEN_POSITIONS = 5          # 1 held vs cap=5 — under
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_ollama_decision",
+                              new=AsyncMock(return_value=buy_resp)):
+                signals = await self.agent.analyze(mkt)
+            aapl_buys = [s for s in signals if s.symbol == "AAPL" and s.action == "BUY"]
+            self.assertEqual(len(aapl_buys), 1,
+                "Under cap: gate inactive; BUY should fire normally")
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+            config.CNN_MAX_OPEN_POSITIONS = original_cap
+            self.agent.portfolio.positions.pop("NVDA", None)
+
     async def test_lonewolf_discount_when_no_corroborators(self):
         """BUY with 0 other agents agreeing → size_pct halved; reasoning has marker."""
         mkt = _make_market(["AAPL"], price=150.0)

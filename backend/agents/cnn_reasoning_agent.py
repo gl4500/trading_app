@@ -640,6 +640,34 @@ class CNNReasoningAgent(BaseAgent):
                     )
                     action = "HOLD"
 
+            # Max-open-positions cap (PR #76, 2026-05-08): block BUYs on
+            # NEW symbols once we're holding CNN_MAX_OPEN_POSITIONS distinct
+            # symbols. Asymmetric — SELLs always pass, and averaging into
+            # already-held symbols still passes (a BUY on a symbol we
+            # already own doesn't add a new position).
+            if action == "BUY":
+                held_symbols = {
+                    sym for sym, pos in self.portfolio.positions.items()
+                    if pos.shares > 0
+                }
+                if (
+                    len(held_symbols) >= config.CNN_MAX_OPEN_POSITIONS
+                    and symbol not in held_symbols
+                ):
+                    logger.info(
+                        f"CNNReasoningAgent [{symbol}]: max-open-positions gate "
+                        f"blocked BUY ({len(held_symbols)} held >= cap "
+                        f"{config.CNN_MAX_OPEN_POSITIONS}, and {symbol} is new)"
+                    )
+                    reasoning = (
+                        f"max-open-positions gate: BUY blocked on new symbol — "
+                        f"{len(held_symbols)} positions already held vs cap "
+                        f"{config.CNN_MAX_OPEN_POSITIONS}. Existing holdings "
+                        f"must resolve (or merge) before opening new ones. "
+                        f"Original reasoning: {reasoning}"
+                    )
+                    action = "HOLD"
+
             # Regime-aware buy gate: bear/high_vol markets require higher
             # confidence still. Base threshold raised 0.50 → 0.65 (2026-05-04)
             # after over-buying incident — see config.CNN_BUY_THRESHOLD_BASE.
