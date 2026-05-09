@@ -2141,5 +2141,105 @@ class TestCnnDiagnosticsReflectsActiveBackend(unittest.TestCase):
         self.assertEqual(body.get("train_loss_curve", []), [])
 
 
+class TestBenchmarksEndpoint(unittest.TestCase):
+    """GET /api/benchmarks returns each agent's since-inception return alongside
+    SPY and DJIA over the same window. 2026-05-09 (#83 dashboard widget)."""
+
+    def setUp(self):
+        self.patcher_db = patch("main.init_db", new_callable=AsyncMock)
+        self.patcher_agents = patch("main.init_agents", new_callable=AsyncMock)
+        self.patcher_db.start()
+        self.patcher_agents.start()
+        # Reset benchmark cache so each test computes fresh
+        from main import _BENCHMARK_CACHE
+        _BENCHMARK_CACHE["data"] = None
+        _BENCHMARK_CACHE["as_of"] = 0.0
+
+    def tearDown(self):
+        self.patcher_db.stop()
+        self.patcher_agents.stop()
+
+    def test_returns_200_with_expected_fields(self):
+        from main import app
+        with _no_lifespan_client(app) as client, \
+             patch("main._index_return_pct", return_value=2.5), \
+             patch("main.app_state") as mock_state:
+            mock_state.agents = {}
+            mock_state.last_prices = {}
+            r = client.get("/api/benchmarks")
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        for key in ("period_days", "as_of", "spy_return_pct", "dji_return_pct", "agents"):
+            self.assertIn(key, body)
+        self.assertEqual(body["spy_return_pct"], 2.5)
+        self.assertEqual(body["dji_return_pct"], 2.5)
+        self.assertEqual(body["agents"], [])
+
+    def test_agents_sorted_by_return_descending(self):
+        """When multiple agents are registered, the response sorts them by
+        return_pct descending so the dashboard puts winners on top."""
+        from main import app
+        from trading.portfolio import Portfolio
+
+        # Build two synthetic agents with different portfolio values
+        agent_a = MagicMock()
+        agent_a.name = "AgentA"
+        agent_a.portfolio = Portfolio(starting_capital=100_000)
+        agent_a.portfolio.cash = 110_000   # +10% inception return
+
+        agent_b = MagicMock()
+        agent_b.name = "AgentB"
+        agent_b.portfolio = Portfolio(starting_capital=100_000)
+        agent_b.portfolio.cash = 105_000   # +5%
+
+        with _no_lifespan_client(app) as client, \
+             patch("main._index_return_pct", return_value=3.0), \
+             patch("main.app_state") as mock_state, \
+             patch("main.config") as mock_cfg:
+            mock_state.agents = {"a": agent_a, "b": agent_b}
+            mock_state.last_prices = {}
+            mock_cfg.STARTING_CAPITAL = 100_000
+            r = client.get("/api/benchmarks")
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        names = [a["name"] for a in body["agents"]]
+        self.assertEqual(names, ["AgentA", "AgentB"])    # AgentA's higher return ranks first
+
+    def test_returns_null_returns_when_yfinance_unavailable(self):
+        """If _index_return_pct returns None (network down, yfinance not
+        installed), the endpoint must still 200 and report null for the
+        affected indices — never crash."""
+        from main import app
+        with _no_lifespan_client(app) as client, \
+             patch("main._index_return_pct", return_value=None), \
+             patch("main.app_state") as mock_state:
+            mock_state.agents = {}
+            mock_state.last_prices = {}
+            r = client.get("/api/benchmarks")
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertIsNone(body["spy_return_pct"])
+        self.assertIsNone(body["dji_return_pct"])
+
+    def test_caches_response_for_5_min(self):
+        """Calling the endpoint twice within the cache TTL must hit the cache —
+        yfinance is rate-limited and we don't want to hammer it on every UI tick."""
+        from main import app
+        with _no_lifespan_client(app) as client, \
+             patch("main._index_return_pct", return_value=1.0) as mock_idx, \
+             patch("main.app_state") as mock_state:
+            mock_state.agents = {}
+            mock_state.last_prices = {}
+            r1 = client.get("/api/benchmarks")
+            r2 = client.get("/api/benchmarks")
+        self.assertEqual(r1.status_code, 200)
+        self.assertEqual(r2.status_code, 200)
+        # _index_return_pct called for SPY + DIA on the first request only.
+        # Second request is served from cache → no additional calls.
+        self.assertEqual(mock_idx.call_count, 2,
+                         "Second GET within TTL must hit cache — total calls = "
+                         "2 (SPY + DIA on first request, 0 on second)")
+
+
 if __name__ == "__main__":
     unittest.main()

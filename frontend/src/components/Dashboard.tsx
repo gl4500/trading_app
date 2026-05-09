@@ -5,6 +5,7 @@ import AgentCard from './AgentCard'
 import PortfolioChart from './PortfolioChart'
 import TradeLog from './TradeLog'
 import MarketOverview from './MarketOverview'
+import BenchmarkPanel from './BenchmarkPanel'
 import SignalsPanel from './SignalsPanel'
 import ScannerPanel from './ScannerPanel'
 import SummaryPanel from './SummaryPanel'
@@ -52,8 +53,9 @@ export default function Dashboard({
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left: Leaderboard */}
-        <div className="lg:col-span-1">
+        {/* Left: Benchmarks (Portfolio vs SPY vs DJIA) + Leaderboard */}
+        <div className="lg:col-span-1 space-y-3">
+          <BenchmarkPanel />
           <Leaderboard
             leaderboard={leaderboard}
             selectedAgent={selectedAgentName}
