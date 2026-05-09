@@ -234,20 +234,18 @@ Stats: 1D: {stats.get('price_change_1d', 0):+.1f}%, 5D: {stats.get('price_change
             user_content = "\n\n".join(sections)
 
             _t0 = time.perf_counter()
-            from data.gpu_coord import ollama_coord
-            async with ollama_coord.acquire(expected_ms=120_000):
-                response = await asyncio.wait_for(
-                    client.chat.completions.create(
-                        model=config.RESEARCH_MODEL,
-                        messages=[
-                            {"role": "system", "content": self._SYSTEM_TEXT},
-                            {"role": "user", "content": user_content},
-                        ],
-                        temperature=0.2,
-                        max_tokens=4096,
-                    ),
-                    timeout=120.0,
-                )
+            response = await asyncio.wait_for(
+                client.chat.completions.create(
+                    model=config.RESEARCH_MODEL,
+                    messages=[
+                        {"role": "system", "content": self._SYSTEM_TEXT},
+                        {"role": "user", "content": user_content},
+                    ],
+                    temperature=0.2,
+                    max_tokens=4096,
+                ),
+                timeout=120.0,
+            )
             _elapsed = time.perf_counter() - _t0
             if _elapsed > 15:
                 logger.warning(
