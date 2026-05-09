@@ -169,10 +169,19 @@ def _bars_to_backfill_rows(
 
     snapshot_ts = np.array([_to_ts(t) for t in bars["timestamp"].values])
 
+    # Volume — present in Alpaca/Stooq bar output. Use 0.0 fallback when
+    # the column is missing or NaN so downstream consumers (hist_volume_pattern)
+    # see a deterministic value rather than a non-numeric.
+    if "volume" in bars.columns:
+        volumes = bars["volume"].fillna(0.0).values.astype(float)
+    else:
+        volumes = np.full(n, 0.0, dtype=float)
+
     rows = {
         "symbol":          symbol,
         "snapshot_ts":     snapshot_ts,
         "price":           closes,
+        "volume":          volumes,
         "return_1d":       ret_1d,
         "return_5d":       ret_5d,
         "return_10d":      ret_10d,
