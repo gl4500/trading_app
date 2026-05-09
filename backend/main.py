@@ -74,6 +74,7 @@ from agents.momentum_agent import MomentumAgent
 from agents.mean_reversion_agent import MeanReversionAgent
 from agents.sentiment_agent import SentimentAgent
 from agents.claude_agent import ClaudeAgent
+from agents.ollama_agent import OllamaAgent
 from agents.gemini_agent import GeminiAgent
 from agents.historical_trends_agent import HistoricalTrendsAgent
 from agents.ensemble_agent import EnsembleAgent
@@ -277,6 +278,8 @@ async def init_agents() -> None:
     mean_rev = MeanReversionAgent()
     sentiment = SentimentAgent()
     claude = ClaudeAgent()
+    ollama = OllamaAgent()   # 2026-05-08: extracted from ClaudeAgent so cloud + local
+                             # vote independently; a local-Ollama failure can't break Claude.
     gemini = GeminiAgent()
     historical_trends = HistoricalTrendsAgent()
     cnn_agent = CNNReasoningAgent()
@@ -289,6 +292,7 @@ async def init_agents() -> None:
         sentiment_agent=sentiment,
         claude_agent=claude,
         cnn_reasoning_agent=cnn_agent,
+        ollama_agent=ollama,
     )
     ensemble.component_agents["HistoricalTrendsAgent"] = historical_trends
 
@@ -297,7 +301,7 @@ async def init_agents() -> None:
 
     # Gemini is a news/context source only — not registered as a trading agent
     app_state.gemini_news_agent = gemini
-    all_agents = [tech, momentum, mean_rev, sentiment, claude, historical_trends, cnn_agent, ensemble, scanner_portfolio]
+    all_agents = [tech, momentum, mean_rev, sentiment, claude, ollama, historical_trends, cnn_agent, ensemble, scanner_portfolio]
 
     # Register agents in DB and restore full portfolio state for continuity across restarts
     for agent in all_agents:

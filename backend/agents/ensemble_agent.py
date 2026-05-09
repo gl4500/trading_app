@@ -75,6 +75,7 @@ class EnsembleAgent(BaseAgent):
         sentiment_agent: "BaseAgent" = None,
         claude_agent: "BaseAgent" = None,
         cnn_reasoning_agent: "BaseAgent" = None,
+        ollama_agent: "BaseAgent" = None,
     ):
         super().__init__(
             name="EnsembleAgent",
@@ -100,6 +101,7 @@ class EnsembleAgent(BaseAgent):
             ("SentimentAgent", sentiment_agent),
             ("ClaudeAgent", claude_agent),
             ("CNNReasoningAgent", cnn_reasoning_agent),
+            ("OllamaAgent", ollama_agent),
         ]:
             if agent is not None:
                 self.component_agents[name] = agent
