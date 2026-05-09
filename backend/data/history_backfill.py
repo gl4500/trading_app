@@ -219,22 +219,30 @@ async def _fetch_bars(
 ) -> pd.DataFrame:
     """
     Fetch daily bars for symbol going back `days` days.
-    Tries Alpaca first, falls back to Stooq.
+    Priority order: yfinance → Stooq → Alpaca/IEX.
     Returns an empty DataFrame on complete failure.
+
+    Why yfinance first: Alpaca's basic-tier feed is IEX-only, which captures
+    only ~2-3% of US equity volume. For backfill we want full-market volume
+    so the `hist_volume_pattern` channel sees consistent scale. yfinance and
+    Stooq both report full-market daily volume; yfinance is preferred because
+    Stooq is unreachable from some networks. Alpaca/IEX is the final fallback
+    (low-volume but always available). Live trading still uses Alpaca
+    directly — this priority only affects backfill.
     """
     limit = days + 70   # extra buffer for RV warm-up (60 bars needed for rv_60d)
 
-    # ── Alpaca ────────────────────────────────────────────────────────────
-    if alpaca_client is not None:
+    # ── yfinance (primary — full-market volume, most networks reach Yahoo) ─
+    if yf is not None:
         try:
-            bars = await alpaca_client.get_bars(symbol, timeframe="1Day", limit=limit)
+            bars = await _fetch_bars_yfinance(symbol, limit)
             if bars is not None and not bars.empty:
-                logger.debug(f"backfill: Alpaca returned {len(bars)} bars for {symbol}")
+                logger.debug(f"backfill: yfinance returned {len(bars)} bars for {symbol}")
                 return bars
         except Exception as exc:
-            logger.warning(f"backfill: Alpaca failed for {symbol}: {exc}")
+            logger.warning(f"backfill: yfinance failed for {symbol}: {exc}")
 
-    # ── Stooq fallback ────────────────────────────────────────────────────
+    # ── Stooq (secondary — full-market volume, sometimes blocked) ─────────
     if stooq_client is not None:
         try:
             bars = await stooq_client.get_bars(symbol, days=limit)
@@ -244,8 +252,69 @@ async def _fetch_bars(
         except Exception as exc:
             logger.warning(f"backfill: Stooq failed for {symbol}: {exc}")
 
+    # ── Alpaca/IEX fallback (last resort — IEX volume only ~2-3% of total) ─
+    if alpaca_client is not None:
+        try:
+            bars = await alpaca_client.get_bars(symbol, timeframe="1Day", limit=limit)
+            if bars is not None and not bars.empty:
+                logger.debug(f"backfill: Alpaca/IEX returned {len(bars)} bars for {symbol}")
+                return bars
+        except Exception as exc:
+            logger.warning(f"backfill: Alpaca failed for {symbol}: {exc}")
+
     logger.warning(f"backfill: no bars available for {symbol}")
     return pd.DataFrame()
+
+
+async def _fetch_bars_yfinance(symbol: str, limit: int) -> pd.DataFrame:
+    """
+    Fetch daily OHLCV bars from yfinance and normalize to the schema
+    expected by `_bars_to_backfill_rows`: columns
+    [timestamp, open, high, low, close, volume].
+
+    yfinance is synchronous; run in a thread to avoid blocking the loop.
+    """
+    period = _yf_period_for_days(limit)
+
+    def _download():
+        # auto_adjust=False so 'Close' is unadjusted (matches Alpaca/Stooq).
+        # Volume is still full-market regardless of auto_adjust.
+        return yf.download(
+            symbol, period=period, interval="1d",
+            progress=False, auto_adjust=False, threads=False,
+        )
+
+    df = await asyncio.to_thread(_download)
+    if df is None or df.empty:
+        return pd.DataFrame()
+
+    # yfinance returns a MultiIndex column frame when multiple symbols are
+    # requested; for single-symbol it can still come back multi-level
+    # (Price, Ticker). Flatten to the price level.
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    out = pd.DataFrame({
+        "timestamp": df.index,
+        "open":      df["Open"].astype(float).values,
+        "high":      df["High"].astype(float).values,
+        "low":       df["Low"].astype(float).values,
+        "close":     df["Close"].astype(float).values,
+        "volume":    df["Volume"].astype(float).values,
+    })
+    return out
+
+
+def _yf_period_for_days(days: int) -> str:
+    """Map a day-count to the smallest yfinance period string that covers it."""
+    if days <= 30:   return "1mo"
+    if days <= 90:   return "3mo"
+    if days <= 180:  return "6mo"
+    if days <= 365:  return "1y"
+    if days <= 730:  return "2y"
+    if days <= 1825: return "5y"
+    if days <= 3650: return "10y"
+    return "max"
 
 
 async def _backfill_symbol(

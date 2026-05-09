@@ -49,13 +49,35 @@ from data.history_backfill import backfill_signal_history
 
 
 def _resolve_symbols(args) -> List[str]:
-    """--symbols=A,B,C overrides everything. Otherwise default to
-    config.WATCHLIST plus the dynamic watchlist pool (so we cover
-    symbols the scanner has been actively recommending)."""
+    """--symbols=A,B,C overrides everything. Otherwise default to the
+    union of:
+      1. existing per-symbol parquet files in backend/data/history/
+         (the system's "tracked universe" — symbols we've already been
+         persisting signal history for; this is the 100+ symbol set)
+      2. config.WATCHLIST (static default, often empty on fluid setups)
+      3. watchlist_manager.get_active_watchlist() (dynamic active pool)
+    Excludes any `__`-prefixed special filenames (e.g. __MACRO__).
+    """
     if args.symbols:
         return [s.strip().upper() for s in args.symbols.split(",") if s.strip()]
 
-    syms = list(config.WATCHLIST)
+    syms: List[str] = []
+
+    # 1. Symbols with existing parquet files — the on-disk universe
+    hist_dir = os.path.join(os.path.dirname(_HERE), "backend", "data", "history")
+    if os.path.isdir(hist_dir):
+        for fname in sorted(os.listdir(hist_dir)):
+            if fname.endswith(".parquet") and not fname.startswith("__"):
+                sym = fname[:-len(".parquet")].upper()
+                if sym not in syms:
+                    syms.append(sym)
+
+    # 2. config.WATCHLIST static list (often empty on fluid setups)
+    for s in config.WATCHLIST:
+        if s not in syms:
+            syms.append(s)
+
+    # 3. Dynamic watchlist pool
     try:
         from data.watchlist_manager import watchlist_manager
         active = watchlist_manager.get_active_watchlist()

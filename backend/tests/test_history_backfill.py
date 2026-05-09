@@ -18,6 +18,23 @@ import pandas as pd
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
+# Disable yfinance for the whole module by default — it's the new primary
+# data source in `_fetch_bars`, but tests should not hit the real Yahoo
+# endpoint. Tests that need yfinance behavior patch `_fetch_bars_yfinance`
+# directly (see TestBackfillFallback).
+_yf_patcher = None
+
+def setUpModule():
+    global _yf_patcher
+    _yf_patcher = patch("data.history_backfill._fetch_bars_yfinance",
+                        new_callable=AsyncMock, return_value=pd.DataFrame())
+    _yf_patcher.start()
+
+def tearDownModule():
+    if _yf_patcher is not None:
+        _yf_patcher.stop()
+
+
 def _make_bars(n: int = 120, start_price: float = 100.0) -> pd.DataFrame:
     """Build a minimal OHLCV DataFrame with realistic daily prices."""
     np.random.seed(42)
@@ -234,19 +251,63 @@ class TestBackfillFallback(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result["UNKNOWN"], 0)
 
-    async def test_uses_stooq_when_alpaca_empty(self):
-        """Must fall back to Stooq when Alpaca returns empty bars."""
+    async def test_uses_yfinance_first_for_full_market_volume(self):
+        """yfinance is the PRIMARY source for backfill — Alpaca's IEX feed
+        only captures ~2-3% of US equity volume, so we prefer yfinance for
+        accurate full-market volume. Stooq + Alpaca are fallbacks."""
+        from data.history_backfill import backfill_signal_history
+        yf_bars     = _make_bars(60, start_price=100.0)
+        stooq_bars  = _make_bars(60, start_price=500.0)  # different so we can tell them apart
+        alpaca_bars = _make_bars(60, start_price=999.0)
+
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.history_backfill._HISTORY_DIR", tmpdir), \
+             patch("data.history_backfill._fetch_bars_yfinance",
+                   new_callable=AsyncMock, return_value=yf_bars), \
+             patch("data.history_backfill.alpaca_client") as mock_ac, \
+             patch("data.history_backfill.stooq_client") as mock_sc:
+            mock_sc.get_bars = AsyncMock(return_value=stooq_bars)
+            mock_ac.get_bars = AsyncMock(return_value=alpaca_bars)
+            await backfill_signal_history(["AAPL"], days=40)
+            df = pd.read_parquet(os.path.join(tmpdir, "AAPL.parquet"))
+
+        # yfinance prices anchor at 100.0; Stooq at 500; Alpaca at 999.
+        # yfinance-first means max price < 200.
+        self.assertLess(df["price"].max(), 200.0,
+                        "yfinance must be primary; higher price implies fallback was used")
+        # Verify Stooq + Alpaca were NOT called (yfinance returned non-empty)
+        mock_sc.get_bars.assert_not_awaited()
+        mock_ac.get_bars.assert_not_awaited()
+
+    async def test_falls_back_to_stooq_when_yfinance_empty(self):
+        """Falls back to Stooq when yfinance returns empty bars."""
         from data.history_backfill import backfill_signal_history
         bars = _make_bars(60)
         with tempfile.TemporaryDirectory() as tmpdir, \
              patch("data.history_backfill._HISTORY_DIR", tmpdir), \
+             patch("data.history_backfill._fetch_bars_yfinance",
+                   new_callable=AsyncMock, return_value=pd.DataFrame()), \
              patch("data.history_backfill.alpaca_client") as mock_ac, \
              patch("data.history_backfill.stooq_client") as mock_sc:
-            mock_ac.get_bars = AsyncMock(return_value=pd.DataFrame())
             mock_sc.get_bars = AsyncMock(return_value=bars)
+            mock_ac.get_bars = AsyncMock(return_value=pd.DataFrame())
             result = await backfill_signal_history(["AAPL"], days=40)
+        self.assertGreater(result["AAPL"], 0, "Should have fallen back to Stooq")
 
-        self.assertGreater(result["AAPL"], 0, "Should have used Stooq fallback")
+    async def test_falls_back_to_alpaca_when_yf_and_stooq_empty(self):
+        """Falls back to Alpaca/IEX when both yfinance and Stooq return empty bars."""
+        from data.history_backfill import backfill_signal_history
+        bars = _make_bars(60)
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.history_backfill._HISTORY_DIR", tmpdir), \
+             patch("data.history_backfill._fetch_bars_yfinance",
+                   new_callable=AsyncMock, return_value=pd.DataFrame()), \
+             patch("data.history_backfill.alpaca_client") as mock_ac, \
+             patch("data.history_backfill.stooq_client") as mock_sc:
+            mock_sc.get_bars = AsyncMock(return_value=pd.DataFrame())
+            mock_ac.get_bars = AsyncMock(return_value=bars)
+            result = await backfill_signal_history(["AAPL"], days=40)
+        self.assertGreater(result["AAPL"], 0, "Should have fallen back to Alpaca")
 
     async def test_multi_symbol_partial_failure(self):
         """One symbol failing must not prevent other symbols from being processed."""
