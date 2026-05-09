@@ -40,6 +40,14 @@ _MACRO_COLUMN_MAP: Dict[str, str] = {
     # 2026-05-09 (#84): DJIA via DIA ETF, appended at end so existing
     # MACRO indices [14-18] are preserved for the production XGB filter.
     "dji_5d_back":        "macro_dji_5d_back",
+    # Sprint 8 (#67, 2026-05-09): 10-day trailing macro returns aligned
+    # with the 10d label horizon. Land in the MACRO_10D category at the
+    # very end of the catalog so existing indices [0-32] are preserved.
+    "gld_10d_back":           "macro_gld_10d_back",
+    "tlt_10d_back":           "macro_tlt_10d_back",
+    "spy_10d_back":           "macro_spy_10d_back",
+    "breadth_score_10d_back": "macro_breadth_10d_back",
+    "dji_10d_back":           "macro_dji_10d_back",
 }
 
 # Source score column names (order must match cnn_model.SOURCE_NAMES)
@@ -994,25 +1002,36 @@ class SignalHistoryStore:
         agent_data         = _column_block(AGENT_COLUMNS)
         rv_data            = _column_block(RV_COLUMNS)
         return_data        = _column_block(RETURN_COLUMNS)
-        macro_data         = _column_block(list(_MACRO_COLUMN_MAP.values()))
+        # MACRO (5d) — original 6 channels at indices 14-19
+        macro_5d_data      = _column_block([
+            "macro_vix_norm",
+            "macro_gld_5d_back", "macro_tlt_5d_back", "macro_spy_5d_back",
+            "macro_breadth_back", "macro_dji_5d_back",
+        ])
         daily_return_data  = _column_block(DAILY_RETURN_COLUMNS)
         momentum_data      = _column_block(MOMENTUM_COLUMNS)
         sector_relative_data = _column_block(SECTOR_RELATIVE_COLUMNS)
         spy_corr_data        = _column_block(SPY_CORRELATION_COLUMNS)
         historical_data      = _column_block(HISTORICAL_COLUMNS)
+        # Sprint 8 (#67): MACRO_10D at the very end so existing indices
+        # [0-32] are preserved (including production XGB filter).
+        macro_10d_data       = _column_block([
+            "macro_gld_10d_back", "macro_tlt_10d_back", "macro_spy_10d_back",
+            "macro_breadth_10d_back", "macro_dji_10d_back",
+        ])
 
         combined = np.hstack([
-            source_data, agent_data, rv_data, return_data, macro_data,
+            source_data, agent_data, rv_data, return_data, macro_5d_data,
             daily_return_data, momentum_data, sector_relative_data,
-            spy_corr_data, historical_data,
-        ])  # (≤T, 33)
+            spy_corr_data, historical_data, macro_10d_data,
+        ])  # (≤T, 38)
 
         if len(combined) < T:
             pad      = np.zeros((T - len(combined), combined.shape[1]))
             combined = np.vstack([pad, combined])
 
         combined = np.nan_to_num(combined, nan=0.0)
-        return combined.T   # (33, T) post-#85-historical-channels
+        return combined.T   # (38, T) post-Sprint-8-MACRO_10D
 
     def symbols_with_data(self) -> List[str]:
         """List all symbols that have at least one snapshot on disk."""

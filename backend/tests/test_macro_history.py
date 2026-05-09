@@ -194,8 +194,12 @@ class TestMacroHistoryStore(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(df.iloc[0]["regime_score"], -1.0, places=4)
 
     def test_get_features_for_date_returns_vector(self):
-        """get_features_for_date must return a 1-D array of length N_MACRO_CHANNELS."""
-        from data.macro_history import MacroHistoryStore, N_MACRO_CHANNELS
+        """get_features_for_date must return a 1-D array of length
+        N_MACRO_CHANNELS + N_MACRO_10D_CHANNELS (Sprint 8 #67 appended 5
+        10d channels at the end of the macro feature vector)."""
+        from data.macro_history import (
+            MacroHistoryStore, N_MACRO_CHANNELS, N_MACRO_10D_CHANNELS,
+        )
         import asyncio
         with tempfile.TemporaryDirectory() as tmpdir, \
              patch("data.macro_history._MACRO_FILE",
@@ -216,18 +220,21 @@ class TestMacroHistoryStore(unittest.IsolatedAsyncioTestCase):
             ))
             vec = store.get_features_for_date(ts)
         self.assertIsNotNone(vec)
-        self.assertEqual(len(vec), N_MACRO_CHANNELS)
+        self.assertEqual(len(vec), N_MACRO_CHANNELS + N_MACRO_10D_CHANNELS)
 
     def test_get_features_returns_zeros_for_missing_date(self):
-        """Dates with no macro data must return a zero vector, not None."""
-        from data.macro_history import MacroHistoryStore, N_MACRO_CHANNELS
+        """Dates with no macro data must return a zero vector, not None.
+        Length matches MACRO + MACRO_10D (Sprint 8 #67)."""
+        from data.macro_history import (
+            MacroHistoryStore, N_MACRO_CHANNELS, N_MACRO_10D_CHANNELS,
+        )
         with tempfile.TemporaryDirectory() as tmpdir, \
              patch("data.macro_history._MACRO_FILE",
                    os.path.join(tmpdir, "__MACRO__.parquet")):
             store = MacroHistoryStore()
             vec = store.get_features_for_date(time.time() - 365 * 86_400)
         self.assertIsNotNone(vec)
-        self.assertEqual(len(vec), N_MACRO_CHANNELS)
+        self.assertEqual(len(vec), N_MACRO_CHANNELS + N_MACRO_10D_CHANNELS)
         self.assertTrue(np.all(vec == 0.0))
 
 
@@ -321,10 +328,10 @@ class TestMacroBackfill(unittest.IsolatedAsyncioTestCase):
 
 class TestMacroCNNChannels(unittest.TestCase):
 
-    def test_n_channels_is_33(self):
-        """N_CHANNELS must be 33: 5 src + 2 agent + 2 RV + 5 hourly ret +
+    def test_n_channels_is_38(self):
+        """N_CHANNELS must be 38: 5 src + 2 agent + 2 RV + 5 hourly ret +
         6 macro + 6 daily ret + 1 momentum + 1 sector-relative + 1 SPY corr
-        + 4 historical.
+        + 4 historical + 5 macro_10d.
         History:
           15 → 14: Task #20 demoted congressional_trades from CNN inputs.
           14 → 19: Tier 1 added 5 hourly lagged-return channels.
@@ -337,9 +344,11 @@ class TestMacroCNNChannels(unittest.TestCase):
                    as new HISTORICAL category (hist_seasonal,
                    hist_channel_position, hist_momentum_alignment,
                    hist_volume_pattern).
+          33 → 38: Sprint 8 (#67) added 5 MACRO_10D channels aligned with the
+                   10d label horizon (gld/tlt/spy/breadth/dji 10d trailing).
         """
         from data.cnn_model import N_CHANNELS
-        self.assertEqual(N_CHANNELS, 33)
+        self.assertEqual(N_CHANNELS, 38)
 
     def test_macro_channel_names_defined(self):
         """MACRO_CHANNEL_NAMES must be a list of 6 strings (was 5 before #84
@@ -521,8 +530,11 @@ class TestMacroBackwardLookingRecord(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(df.iloc[0]["breadth_score_back"], 0.005, places=5)
 
     def test_get_features_returns_back_values(self):
-        """get_features_for_date must read the new _back columns."""
-        from data.macro_history import MacroHistoryStore, MACRO_FEATURE_COLS
+        """get_features_for_date must read the new _back columns. Sprint 8
+        appended 5 MACRO_10D channels — total length is now 11 (6+5)."""
+        from data.macro_history import (
+            MacroHistoryStore, MACRO_FEATURE_COLS, MACRO_FEATURE_COLS_10D,
+        )
         with tempfile.TemporaryDirectory() as tmpdir, \
              patch("data.macro_history._MACRO_FILE",
                    os.path.join(tmpdir, "__MACRO__.parquet")):
@@ -543,13 +555,122 @@ class TestMacroBackwardLookingRecord(unittest.IsolatedAsyncioTestCase):
                 regime="NEUTRAL",
             ))
             vec = store.get_features_for_date(ts)
-        # Order matches MACRO_FEATURE_COLS:
-        # [vix_norm, gld_5d_back, tlt_5d_back, spy_5d_back, breadth_back]
-        self.assertEqual(len(vec), len(MACRO_FEATURE_COLS))
+        # Order: MACRO_FEATURE_COLS (6) then MACRO_FEATURE_COLS_10D (5).
+        self.assertEqual(len(vec), len(MACRO_FEATURE_COLS) + len(MACRO_FEATURE_COLS_10D))
         self.assertAlmostEqual(vec[1],  0.011, places=5)
         self.assertAlmostEqual(vec[2], -0.004, places=5)
         self.assertAlmostEqual(vec[3],  0.013, places=5)
         self.assertAlmostEqual(vec[4],  0.020 - 0.013, places=5)
+
+
+class TestMacro10DSchema(unittest.TestCase):
+    """Sprint 8 (#67): 10-day trailing macro returns aligned with the 10d
+    label horizon. Pure additive — 5d channels stay intact for live model."""
+
+    def test_macro_columns_include_10d_back(self):
+        from data.macro_history import MACRO_COLUMNS
+        for col in (
+            "gld_10d_back", "tlt_10d_back", "spy_10d_back",
+            "iwm_10d_back", "dji_10d_back", "breadth_score_10d_back",
+        ):
+            self.assertIn(col, MACRO_COLUMNS, f"Missing 10d column: {col}")
+
+    def test_macro_feature_cols_10d_separate(self):
+        """MACRO_FEATURE_COLS_10D is a separate list (5 channels) so it can
+        be appended at the very end of feature_catalog.CATALOG without
+        shifting any existing index."""
+        from data.macro_history import (
+            MACRO_FEATURE_COLS, MACRO_FEATURE_COLS_10D, N_MACRO_10D_CHANNELS,
+        )
+        self.assertEqual(N_MACRO_10D_CHANNELS, 5)
+        self.assertEqual(len(MACRO_FEATURE_COLS_10D), 5)
+        for ch in MACRO_FEATURE_COLS_10D:
+            self.assertNotIn(ch, MACRO_FEATURE_COLS,
+                             f"{ch} must not appear in both 5d and 10d feature lists")
+
+    def test_macro_feature_cols_10d_names(self):
+        """Pin exact 10d channel names — feature_filter env vars and any
+        downstream config reference these by name."""
+        from data.macro_history import MACRO_FEATURE_COLS_10D
+        self.assertEqual(MACRO_FEATURE_COLS_10D, [
+            "macro_gld_10d_back",
+            "macro_tlt_10d_back",
+            "macro_spy_10d_back",
+            "macro_breadth_10d_back",
+            "macro_dji_10d_back",
+        ])
+
+    def test_catalog_macro_10d_at_end(self):
+        """Sprint 8: MACRO_10D channels must be appended at the very end of
+        feature_catalog so existing indices [0-32] are preserved. Production
+        XGB feature_filter [0,1,2,4,13,14,17,18] (all ≤ 18) is unaffected."""
+        from data.feature_catalog import CATALOG
+        self.assertEqual(len(CATALOG), 38)
+        macro_10d_idx = [i for i, c in enumerate(CATALOG) if c.category == "MACRO_10D"]
+        self.assertEqual(macro_10d_idx, [33, 34, 35, 36, 37])
+        # Existing indices unchanged
+        self.assertEqual(CATALOG[14].name, "macro_vix_norm")
+        self.assertEqual(CATALOG[17].name, "macro_spy_5d_back")
+        self.assertEqual(CATALOG[18].name, "macro_breadth_back")
+
+
+class TestMacro10DRecord(unittest.IsolatedAsyncioTestCase):
+    """record_snapshot accepts 10d trailing returns and writes them."""
+
+    async def test_record_writes_10d_back_columns(self):
+        from data.macro_history import MacroHistoryStore
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.macro_history._MACRO_FILE",
+                   os.path.join(tmpdir, "__MACRO__.parquet")):
+            store = MacroHistoryStore()
+            await store.record_snapshot(
+                date_ts=time.time(), vix=18.0, tnx=4.3,
+                returns={
+                    "gld_1d": 0.0, "tlt_1d": 0.0, "spy_1d": 0.0,
+                    "gld_5d_back": 0.005, "tlt_5d_back": -0.003,
+                    "spy_5d_back": 0.010, "iwm_5d_back": 0.014,
+                    "qqq_5d_back": 0.012, "uup_5d_back": 0.001,
+                    "uso_5d_back": -0.002,
+                    # Sprint 8 keys
+                    "gld_10d_back": 0.020, "tlt_10d_back": -0.011,
+                    "spy_10d_back": 0.030, "iwm_10d_back": 0.040,
+                    "dji_10d_back": 0.028,
+                },
+                regime="RISK_ON",
+            )
+            df = pd.read_parquet(os.path.join(tmpdir, "__MACRO__.parquet"))
+        self.assertAlmostEqual(df.iloc[0]["gld_10d_back"],  0.020, places=5)
+        self.assertAlmostEqual(df.iloc[0]["tlt_10d_back"], -0.011, places=5)
+        self.assertAlmostEqual(df.iloc[0]["spy_10d_back"],  0.030, places=5)
+        self.assertAlmostEqual(df.iloc[0]["iwm_10d_back"],  0.040, places=5)
+        self.assertAlmostEqual(df.iloc[0]["dji_10d_back"],  0.028, places=5)
+        # breadth_score_10d_back = clip(iwm_10d - spy_10d, -1, 1)
+        self.assertAlmostEqual(df.iloc[0]["breadth_score_10d_back"], 0.010, places=5)
+
+    async def test_record_omits_10d_returns_safely(self):
+        """Old callers that don't supply 10d keys must still work — 10d
+        columns default to 0.0 (additive change, no breaking)."""
+        from data.macro_history import MacroHistoryStore
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.macro_history._MACRO_FILE",
+                   os.path.join(tmpdir, "__MACRO__.parquet")):
+            store = MacroHistoryStore()
+            await store.record_snapshot(
+                date_ts=time.time(), vix=18.0, tnx=4.3,
+                returns={
+                    "gld_1d": 0.0, "tlt_1d": 0.0, "spy_1d": 0.0,
+                    "gld_5d_back": 0.005, "tlt_5d_back": -0.003,
+                    "spy_5d_back": 0.010, "iwm_5d_back": 0.014,
+                    "qqq_5d_back": 0.012, "uup_5d_back": 0.001,
+                    "uso_5d_back": -0.002,
+                },
+                regime="RISK_ON",
+            )
+            df = pd.read_parquet(os.path.join(tmpdir, "__MACRO__.parquet"))
+        # Defaults to 0.0 — no KeyError, no NaN
+        self.assertEqual(float(df.iloc[0]["gld_10d_back"]),  0.0)
+        self.assertEqual(float(df.iloc[0]["spy_10d_back"]),  0.0)
+        self.assertEqual(float(df.iloc[0]["breadth_score_10d_back"]), 0.0)
 
 
 class TestBackfillUsesTrailingReturns(unittest.IsolatedAsyncioTestCase):

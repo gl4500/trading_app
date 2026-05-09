@@ -58,6 +58,10 @@ LOOKAHEAD_FREE_CHANNELS = [
     # uses only PAST r_1d values for both symbol and SPY; r_1d is
     # backward-shifted from Sprint 0.
     "corr_spy_20d",
+    # Sprint 8 (#67): 10d trailing macro returns — same _ret_nd_trailing
+    # helper as the 5d siblings, just longer window. Lookahead-free.
+    "macro_gld_10d_back", "macro_tlt_10d_back", "macro_spy_10d_back",
+    "macro_breadth_10d_back", "macro_dji_10d_back",
 ]
 
 
