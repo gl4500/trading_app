@@ -270,6 +270,120 @@ class TestBackfillFallback(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["FAIL"], 0)
 
 
+class TestBackfillVolume(unittest.IsolatedAsyncioTestCase):
+    """Volume column (#85) — populated from Alpaca/Stooq OHLCV bars."""
+
+    async def test_volume_column_present_in_parquet(self):
+        """Backfilled parquet must contain a 'volume' column."""
+        from data.history_backfill import backfill_signal_history
+        bars = _make_bars(60)
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.history_backfill._HISTORY_DIR", tmpdir), \
+             patch("data.history_backfill.alpaca_client") as mock_ac:
+            mock_ac.get_bars = AsyncMock(return_value=bars)
+            await backfill_signal_history(["AAPL"], days=40)
+            df = pd.read_parquet(os.path.join(tmpdir, "AAPL.parquet"))
+        self.assertIn("volume", df.columns, "Parquet must include volume column")
+
+    async def test_volume_values_match_input_bars(self):
+        """Backfilled volumes must match the source bar volumes (minus dropped last row)."""
+        from data.history_backfill import backfill_signal_history
+        bars = _make_bars(60)
+        expected_volumes = bars["volume"].values[:-1]  # last row dropped (no return_1d)
+
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.history_backfill._HISTORY_DIR", tmpdir), \
+             patch("data.history_backfill.alpaca_client") as mock_ac:
+            mock_ac.get_bars = AsyncMock(return_value=bars)
+            await backfill_signal_history(["AAPL"], days=40)
+            df = pd.read_parquet(os.path.join(tmpdir, "AAPL.parquet"))
+
+        actual_volumes = df["volume"].values
+        np.testing.assert_array_almost_equal(
+            actual_volumes, expected_volumes, decimal=2,
+            err_msg="Volume values should match source bars 1:1 (minus last row)"
+        )
+
+    async def test_volume_is_float_dtype(self):
+        """Volume column dtype should be float (matches _DTYPE_MAP entry)."""
+        from data.history_backfill import backfill_signal_history
+        bars = _make_bars(60)
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.history_backfill._HISTORY_DIR", tmpdir), \
+             patch("data.history_backfill.alpaca_client") as mock_ac:
+            mock_ac.get_bars = AsyncMock(return_value=bars)
+            await backfill_signal_history(["AAPL"], days=40)
+            df = pd.read_parquet(os.path.join(tmpdir, "AAPL.parquet"))
+        self.assertTrue(np.issubdtype(df["volume"].dtype, np.floating),
+                        f"volume must be float, got {df['volume'].dtype}")
+
+    async def test_volume_zero_fallback_when_column_missing(self):
+        """If bars DataFrame lacks 'volume' column, backfill must fall back to 0.0 — never raise."""
+        from data.history_backfill import _bars_to_backfill_rows
+        # Build bars WITHOUT a volume column
+        bars = _make_bars(60).drop(columns=["volume"])
+        df = _bars_to_backfill_rows("AAPL", bars)
+        self.assertIn("volume", df.columns)
+        self.assertTrue((df["volume"] == 0.0).all(),
+                        "Missing volume column → all-zero fallback")
+
+    async def test_volume_nan_replaced_with_zero(self):
+        """NaN values in source volume must be replaced with 0.0."""
+        from data.history_backfill import _bars_to_backfill_rows
+        bars = _make_bars(60)
+        bars.loc[3:5, "volume"] = np.nan
+        df = _bars_to_backfill_rows("AAPL", bars)
+        # The first 3 of those NaN positions are still in df (only the very last
+        # row gets dropped). They must be 0.0, not NaN.
+        self.assertTrue(df["volume"].notna().all(),
+                        "NaN volumes must be filled with 0.0, never persisted")
+        self.assertEqual(df.iloc[3]["volume"], 0.0)
+        self.assertEqual(df.iloc[4]["volume"], 0.0)
+        self.assertEqual(df.iloc[5]["volume"], 0.0)
+
+
+class TestRecordSnapshotAcceptsVolume(unittest.IsolatedAsyncioTestCase):
+    """Live path: record_snapshot now takes optional volume kwarg (#85)."""
+
+    async def test_record_snapshot_accepts_optional_volume(self):
+        """record_snapshot must accept a volume keyword without raising."""
+        from data.signal_history import SignalHistoryStore
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.signal_history._HISTORY_DIR", tmpdir):
+            store = SignalHistoryStore()
+            # Should not raise — signature now includes `volume: Optional[float]`
+            await store.record_snapshot(
+                symbol="TEST",
+                scores={"analyst_consensus": 0.5},
+                composite_score=0.5,
+                price=100.0,
+                rv_20d=0.20,
+                rv_60d=0.18,
+                volume=1_500_000.0,
+            )
+            df = pd.read_parquet(os.path.join(tmpdir, "TEST.parquet"))
+        self.assertIn("volume", df.columns)
+        self.assertEqual(df.iloc[-1]["volume"], 1_500_000.0)
+
+    async def test_record_snapshot_volume_defaults_to_nan(self):
+        """When volume kwarg is omitted, recorded value should be NaN (live path
+        usually doesn't have per-snapshot volume)."""
+        from data.signal_history import SignalHistoryStore
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("data.signal_history._HISTORY_DIR", tmpdir):
+            store = SignalHistoryStore()
+            await store.record_snapshot(
+                symbol="TEST",
+                scores={"analyst_consensus": 0.5},
+                composite_score=0.5,
+                price=100.0,
+            )
+            df = pd.read_parquet(os.path.join(tmpdir, "TEST.parquet"))
+        # When volume not passed, the column entry should be NaN/None (not 0.0)
+        self.assertTrue(pd.isna(df.iloc[-1]["volume"]),
+                        "Omitted volume kwarg → NaN, not 0.0 (preserve missingness)")
+
+
 class TestBackfillCNNCompatibility(unittest.IsolatedAsyncioTestCase):
     """Verify backfill output is usable by build_training_windows."""
 

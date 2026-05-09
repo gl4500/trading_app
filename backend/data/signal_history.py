@@ -75,6 +75,11 @@ _DTYPE_MAP = {
     # Realized volatility channels (annualized, 252-day basis)
     "rv_20d":            "float64",  # 20-day rolling realized vol
     "rv_60d":            "float64",  # 60-day rolling realized vol
+    # 2026-05-09 (#85): per-bar trading volume. Populated by
+    # _bars_to_backfill_rows during historical backfill (from Alpaca OHLCV);
+    # live record_snapshot writes NaN unless caller passes a value. Used by
+    # hist_volume_pattern channel (option C) — graceful 0 when NaN.
+    "volume":            "float64",
 }
 
 # Agent feature columns used as extra CNN input channels
@@ -737,6 +742,7 @@ class SignalHistoryStore:
         price: float,
         rv_20d: Optional[float] = None,
         rv_60d: Optional[float] = None,
+        volume: Optional[float] = None,
     ) -> None:
         """
         Append one row to the symbol's Parquet file.
@@ -765,6 +771,7 @@ class SignalHistoryStore:
             "return_10d":      np.nan,
             "rv_20d":          rv_20d,
             "rv_60d":          rv_60d,
+            "volume":          volume,
         }
         async with _get_lock(symbol):
             df = _load(symbol)
