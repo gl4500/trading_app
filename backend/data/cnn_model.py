@@ -140,6 +140,10 @@ MACRO_CHANNEL_NAMES: List[str] = [
 #   27 → 28  (Sprint 4: added corr_spy_20d rolling SPY correlation)
 #   28 → 29  (#84: added macro_dji_5d_back at end of MACRO block; existing
 #            channel indices [0-18] preserved — XGB filter still valid)
+#   29 → 33  (option C 2026-05-09: imported HistoricalTrendsAgent's 4
+#            sub-scores as channels — hist_seasonal,
+#            hist_channel_position, hist_momentum_alignment,
+#            hist_volume_pattern. Indices [29-32], pool-only)
 #
 # build_training_windows degrades gracefully (drops blocks whose cols are
 # absent), so old per-symbol parquets still train.
@@ -428,7 +432,7 @@ def build_training_windows(
     from data.signal_history import (  # avoid circular
         SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
         DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS, SECTOR_RELATIVE_COLUMNS,
-        SPY_CORRELATION_COLUMNS,
+        SPY_CORRELATION_COLUMNS, HISTORICAL_COLUMNS,
         _apply_cnn_feature_transforms,
     )
 
@@ -445,6 +449,7 @@ def build_training_windows(
     has_momentum    = all(c in df.columns for c in MOMENTUM_COLUMNS)
     has_sector_rel  = all(c in df.columns for c in SECTOR_RELATIVE_COLUMNS)
     has_spy_corr    = all(c in df.columns for c in SPY_CORRELATION_COLUMNS)
+    has_historical  = all(c in df.columns for c in HISTORICAL_COLUMNS)
     feat_cols = [c for c in SOURCE_COLUMNS if c in df.columns]
     if has_agent:
         feat_cols = feat_cols + AGENT_COLUMNS
@@ -470,6 +475,10 @@ def build_training_windows(
     # sector-relative — same index-stability rationale.
     if has_spy_corr:
         feat_cols = feat_cols + SPY_CORRELATION_COLUMNS
+    # 2026-05-09 (option C): HistoricalTrendsAgent's 4 sub-scores
+    # appended last — same index-stability rationale.
+    if has_historical:
+        feat_cols = feat_cols + HISTORICAL_COLUMNS
     n_feat    = len(feat_cols)
     if n_feat == 0:
         logger.warning("build_training_windows: no recognised feature columns in df — returning empty")

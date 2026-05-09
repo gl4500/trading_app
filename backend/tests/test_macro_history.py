@@ -321,9 +321,10 @@ class TestMacroBackfill(unittest.IsolatedAsyncioTestCase):
 
 class TestMacroCNNChannels(unittest.TestCase):
 
-    def test_n_channels_is_29(self):
-        """N_CHANNELS must be 29: 5 src + 2 agent + 2 RV + 5 hourly ret +
-        6 macro + 6 daily ret + 1 momentum + 1 sector-relative + 1 SPY corr.
+    def test_n_channels_is_33(self):
+        """N_CHANNELS must be 33: 5 src + 2 agent + 2 RV + 5 hourly ret +
+        6 macro + 6 daily ret + 1 momentum + 1 sector-relative + 1 SPY corr
+        + 4 historical.
         History:
           15 → 14: Task #20 demoted congressional_trades from CNN inputs.
           14 → 19: Tier 1 added 5 hourly lagged-return channels.
@@ -332,9 +333,13 @@ class TestMacroCNNChannels(unittest.TestCase):
           26 → 27: Sprint 3 added r_20d_sector_rel (cross-sectional sector-relative).
           27 → 28: Sprint 4 added corr_spy_20d (rolling 20d Pearson with SPY).
           28 → 29: #84 added macro_dji_5d_back (DJIA via DIA ETF, end of MACRO block).
+          29 → 33: option C imported HistoricalTrendsAgent's 4 sub-scores
+                   as new HISTORICAL category (hist_seasonal,
+                   hist_channel_position, hist_momentum_alignment,
+                   hist_volume_pattern).
         """
         from data.cnn_model import N_CHANNELS
-        self.assertEqual(N_CHANNELS, 29)
+        self.assertEqual(N_CHANNELS, 33)
 
     def test_macro_channel_names_defined(self):
         """MACRO_CHANNEL_NAMES must be a list of 6 strings (was 5 before #84

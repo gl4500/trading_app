@@ -321,6 +321,46 @@ CATALOG: List[Channel] = [
         "20 trading days, inter-asset", "2026-05-08",
         "Rolling 20-day Pearson correlation between symbol's r_1d and SPY's r_1d. Range [-1, 1]. NaN for first 19 days per symbol (need full window).",
     ),
+
+    # ── HISTORICAL (4) ───────────────────────────────────────────────────
+    # 2026-05-09 (option C): import HistoricalTrendsAgent's four sub-scores
+    # as XGB feature channels. HT was the top-performing agent in the
+    # 2026-05-08 review (+$25k unrealized) thanks to signals XGB doesn't
+    # see: month-of-year seasonality, long-term channel position, and
+    # multi-period momentum alignment. Adding them as inputs lets XGB
+    # learn its own non-linear weights instead of HT's hand-tuned 20/30/40/10.
+    #
+    # Placed AFTER SPY_CORRELATION so existing channel indices [0-28] are
+    # preserved — production XGB feature_filter [0,1,2,4,13,14,17,18]
+    # remains valid (all ≤ 18). Lands at indices 29–32.
+    Channel(
+        "hist_seasonal", "HISTORICAL",
+        ["snapshot_ts (date)"],
+        "_compute_historical_features (month_bias + quarter_position_bias)",
+        "calendar-day, point-in-time", "2026-05-09",
+        "Seasonal score: month-of-year S&P 500 bias (Dec/Jan +0.40, Sep -0.30) plus quarter-position bonus (last 6 weeks of quarter +0.15, first 2 weeks +0.10). Range [-1, +1]. Pure calendar — XGB has no other date-aware feature.",
+    ),
+    Channel(
+        "hist_channel_position", "HISTORICAL",
+        ["price (60-bar window)"],
+        "_compute_historical_features (channel position + SMA-20 slope adjust)",
+        "60-bar window, point-in-time", "2026-05-09",
+        "Where current price sits in the recent high-low range, scaled to [-1, +1] (near-low = +1 bullish, near-high = -1 bearish). Adjusted by SMA-20 slope so a strong uptrend moderates the 'near high = bad' reading.",
+    ),
+    Channel(
+        "hist_momentum_alignment", "HISTORICAL",
+        ["price"],
+        "_compute_historical_features (5/10/20/40-bar ROC + alignment bonus)",
+        "5–40 bars, point-in-time", "2026-05-09",
+        "Multi-period momentum: weighted ROC across 5/10/20/40-bar windows (weights 0.15/0.20/0.30/0.35) plus +0.20/-0.20 alignment bonus when >75%/<25% of timeframes agree. Captures the trend-persistence signal that single-period r_*d channels structurally cannot.",
+    ),
+    Channel(
+        "hist_volume_pattern", "HISTORICAL",
+        ["price", "volume (when present)"],
+        "_compute_historical_features (10-bar up/down volume ratio)",
+        "10-bar window, point-in-time", "2026-05-09",
+        "Volume confirmation: (avg up-day volume - avg down-day volume) / total over last 10 bars, capped ±0.15. Range [-0.15, +0.15]. Currently degrades to 0 on rows missing volume — Task #85 backfills it from Alpaca historical bars.",
+    ),
 ]
 
 
