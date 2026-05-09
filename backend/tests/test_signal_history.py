@@ -735,12 +735,12 @@ class TestComputeSpyCorrelationFeatures(unittest.TestCase):
         self.assertTrue(out["corr_spy_20d"].isna().all())
 
 
-class TestGetRecentWindowReturns28Channels(unittest.TestCase):
-    """get_recent_window must return a (28, T) array matching training shape:
-    5 source + 2 agent + 2 rv + 5 hourly returns + 5 macro + 6 daily returns
-    + 1 momentum + 1 sector-relative + 1 SPY correlation (Sprint 4)."""
+class TestGetRecentWindowReturns29Channels(unittest.TestCase):
+    """get_recent_window must return a (29, T) array matching training shape:
+    5 source + 2 agent + 2 rv + 5 hourly returns + 6 macro + 6 daily returns
+    + 1 momentum + 1 sector-relative + 1 SPY correlation (#84 added DJIA)."""
 
-    def test_recent_window_has_28_rows(self):
+    def test_recent_window_has_29_rows(self):
         from data.signal_history import signal_history
         from unittest.mock import patch
         import pandas as pd
@@ -768,8 +768,8 @@ class TestGetRecentWindowReturns28Channels(unittest.TestCase):
             window = signal_history.get_recent_window("AAPL", T=10)
 
         self.assertIsNotNone(window, "window must not be None for 130-row symbol")
-        self.assertEqual(window.shape, (28, 10),
-                         f"expected (28, 10), got {window.shape}")
+        self.assertEqual(window.shape, (29, 10),
+                         f"expected (29, 10), got {window.shape}")
 
 
 class TestReturn10dSchema(unittest.IsolatedAsyncioTestCase):
@@ -937,6 +937,7 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
             "macro_tlt_5d_back":  np.linspace(-0.005, 0.005, rows),
             "macro_spy_5d_back":  np.linspace(0.0, 0.02, rows),
             "macro_breadth_back": np.linspace(-0.005, 0.005, rows),
+            "macro_dji_5d_back":  np.linspace(0.0, 0.02, rows),  # 2026-05-09 (#84)
         })
 
         # Mock _load_macro_features to None so _attach_macro_features is a
@@ -949,8 +950,8 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
             # ── Serving path: get_recent_window ────────────────────────
             window = signal_history.get_recent_window("AAPL", T=WINDOW_SIZE)
             self.assertIsNotNone(window)
-            # Sprint 4: post-SPY-correlation shape (27 + 1 corr_spy = 28)
-            self.assertEqual(window.shape, (28, WINDOW_SIZE))
+            # #84: post-DJIA shape (28 + 1 macro_dji_5d_back = 29)
+            self.assertEqual(window.shape, (29, WINDOW_SIZE))
 
             # ── Training path: get_training_data → build_training_windows
             # Symbol-scoped variant — unscoped iterates os.listdir which is

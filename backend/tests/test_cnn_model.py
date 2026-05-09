@@ -79,6 +79,7 @@ def _make_df(n_rows=50, symbol="AAPL", add_outcomes=True, add_agent_cols=True,
             row["macro_tlt_5d_back"]   = np.random.uniform(-0.05, 0.05)
             row["macro_spy_5d_back"]   = np.random.uniform(-0.05, 0.05)
             row["macro_breadth_back"]  = np.random.uniform(-0.05, 0.05)
+            row["macro_dji_5d_back"]   = np.random.uniform(-0.05, 0.05)   # 2026-05-09 (#84)
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -94,11 +95,12 @@ class TestBuildTrainingWindows(unittest.TestCase):
 
     def test_x_shape_is_N_channels_by_T(self):
         # Without daily-return cols (Sprint 0), build_training_windows degrades
-        # to 19 channels (5 src + 2 agent + 2 rv + 5 ret + 5 macro). The full
-        # N_CHANNELS = 25 path is exercised in test_x_shape_with_daily_returns.
+        # to 20 channels (5 src + 2 agent + 2 rv + 5 ret + 6 macro post-#84).
+        # The full N_CHANNELS = 29 path is exercised elsewhere (with daily
+        # returns + momentum + sector-rel + spy-corr).
         df = _make_df(50, add_macro_cols=True, add_return_cols=True)
         X, y, w, _ = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], 19)
+        self.assertEqual(X.shape[1], 20)
         self.assertEqual(X.shape[2], WINDOW_SIZE)
 
     def test_x_shape_degrades_without_optional_cols(self):
@@ -309,12 +311,13 @@ class TestCongressDemotedFromCNN(unittest.TestCase):
     def test_default_weights_keys_match_source_names(self):
         self.assertEqual(set(_DEFAULT_WEIGHTS.keys()), set(SOURCE_NAMES))
 
-    def test_n_channels_is_28_after_sprint4_spy_correlation(self):
+    def test_n_channels_is_29_with_dji_macro(self):
         # Sprint 0: 5 source + 2 agent + 2 RV + 5 hourly ret + 5 macro + 6 daily ret = 25
         # Sprint 2-B: + 1 momentum (mom_12_1) = 26
         # Sprint 3: + 1 sector-relative (r_20d_sector_rel) = 27
         # Sprint 4: + 1 SPY correlation (corr_spy_20d) = 28
-        self.assertEqual(N_CHANNELS, 28)
+        # #84:      + 1 macro_dji_5d_back appended in MACRO block = 29
+        self.assertEqual(N_CHANNELS, 29)
 
 
 class TestEarningsReframedToMagnitude(unittest.TestCase):
@@ -1130,14 +1133,15 @@ class TestReturnChannelsExposed(unittest.TestCase):
     """Tier 1 from docs/equity_feature_engineering_audit.md — five lagged
     return channels become part of N_CHANNELS."""
 
-    def test_n_channels_is_28_after_sprint4(self):
+    def test_n_channels_is_29_with_dji_macro(self):
         from data.cnn_model import N_CHANNELS, RETURN_CHANNEL_NAMES
         self.assertEqual(len(RETURN_CHANNEL_NAMES), 5)
         # Sprint 0: 5 src + 2 agent + 2 rv + 5 hourly ret + 5 macro + 6 daily ret = 25
         # Sprint 2-B: + 1 momentum (mom_12_1) = 26
         # Sprint 3: + 1 sector-relative (r_20d_sector_rel) = 27
         # Sprint 4: + 1 SPY correlation (corr_spy_20d) = 28
-        self.assertEqual(N_CHANNELS, 28)
+        # #84:      + 1 macro_dji_5d_back (appended at end of MACRO block) = 29
+        self.assertEqual(N_CHANNELS, 29)
 
     def test_return_channel_order(self):
         from data.cnn_model import RETURN_CHANNEL_NAMES
@@ -1177,11 +1181,12 @@ class TestReturnChannelsExposed(unittest.TestCase):
             "macro_tlt_5d_back":   np.zeros(n),
             "macro_spy_5d_back":   np.zeros(n),
             "macro_breadth_back":  np.zeros(n),
+            "macro_dji_5d_back":   np.zeros(n),    # 2026-05-09 (#84)
             "return_1d":       np.full(n, 0.001),
             "return_5d":       np.full(n, 0.005),
         })
         X, y, w, t = build_training_windows(df, T=WINDOW_SIZE)
-        self.assertEqual(X.shape[1], 19)
+        self.assertEqual(X.shape[1], 20)   # 5 src + 2 agent + 2 rv + 5 hourly ret + 6 macro
 
 
 class TestFeatureCatalog(unittest.TestCase):

@@ -64,21 +64,30 @@ MACRO_COLUMNS: List[str] = [
     # documents the fix and forces re-backfill of any stale parquet.
     "gld_5d_back", "tlt_5d_back", "spy_5d_back",
     "iwm_5d_back", "qqq_5d_back", "uup_5d_back", "uso_5d_back",
+    # 2026-05-09: DJIA (DIA ETF) trailing 5d return — added so the model has
+    # a second broad-market index alongside SPY (95% correlated, mostly
+    # redundant for AUC, but useful for the benchmark UI and as a sanity
+    # check on regime signals).
+    "dji_5d_back",
     "breadth_score_back",
     "regime",
     "regime_score",
 ]
 
-# The 5 columns added as extra CNN input channels
+# The macro columns added as extra CNN input channels
 MACRO_FEATURE_COLS: List[str] = [
     "macro_vix_norm",
     "macro_gld_5d_back",
     "macro_tlt_5d_back",
     "macro_spy_5d_back",
     "macro_breadth_back",
+    # 2026-05-09: appended at end so existing channel indices [14-18] are
+    # preserved — production XGB feature_filter [0,1,2,4,13,14,17,18]
+    # (all ≤ 18) keeps pointing at the same channels. Lands at index 19.
+    "macro_dji_5d_back",
 ]
 
-N_MACRO_CHANNELS: int = len(MACRO_FEATURE_COLS)  # 5
+N_MACRO_CHANNELS: int = len(MACRO_FEATURE_COLS)  # 6
 
 _REGIME_SCORES: Dict[str, float] = {
     "RISK_ON":   1.0,
@@ -135,8 +144,9 @@ class MacroHistoryStore:
         tnx     : 10-year yield (e.g. 4.3)
         returns : dict with keys gld_1d, tlt_1d, spy_1d (forward 1-day, not
                   CNN inputs) and gld_5d_back, tlt_5d_back, spy_5d_back,
-                  iwm_5d_back, qqq_5d_back, uup_5d_back, uso_5d_back
-                  (trailing 5-day, used as CNN inputs — Task #24)
+                  iwm_5d_back, qqq_5d_back, uup_5d_back, uso_5d_back,
+                  dji_5d_back (trailing 5-day, used as CNN inputs — Task #24
+                  established the trailing convention; #84 added DJIA)
         regime  : RISK_ON | RISK_OFF | HIGH_VOL | NEUTRAL | ...
         """
         vix_f    = float(vix)
@@ -162,6 +172,7 @@ class MacroHistoryStore:
             "qqq_5d_back":        float(returns.get("qqq_5d_back", 0.0)),
             "uup_5d_back":        float(returns.get("uup_5d_back", 0.0)),
             "uso_5d_back":        float(returns.get("uso_5d_back", 0.0)),
+            "dji_5d_back":        float(returns.get("dji_5d_back", 0.0)),
             "breadth_score_back": breadth_back,
             "regime":             str(regime),
             "regime_score":       r_score,
@@ -217,6 +228,7 @@ class MacroHistoryStore:
             _safe("tlt_5d_back"),
             _safe("spy_5d_back"),
             _safe("breadth_score_back"),
+            _safe("dji_5d_back"),
         ], dtype=np.float32)
 
 
