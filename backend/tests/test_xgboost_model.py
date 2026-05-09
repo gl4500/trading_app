@@ -216,8 +216,6 @@ class TestTrainBlockingPathUnderXGBoost(unittest.IsolatedAsyncioTestCase):
 
             with patch("data.signal_history.signal_history.get_training_data",
                        return_value=df), \
-                 patch("data.gpu_coord.acquire_training_mutex", return_value=True), \
-                 patch("data.gpu_coord.release_training_mutex"), \
                  patch.object(cra.signal_cnn, "fit") as mock_fit, \
                  patch.object(cra.signal_cnn, "save") as mock_save, \
                  patch.object(cra.signal_cnn, "training_summary",

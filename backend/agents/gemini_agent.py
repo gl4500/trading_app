@@ -203,18 +203,15 @@ Include an entry for every symbol: {', '.join(watchlist)}
         try:
             client  = AsyncOpenAI(base_url=config.OLLAMA_BASE_URL, api_key="ollama")
             prompt  = self._build_prompt(market_context, watchlist)
-            # Backlog 0.7: per-app serialization + cross-app priority for Ollama.
-            from data.gpu_coord import ollama_coord
-            async with ollama_coord.acquire(expected_ms=120_000):
-                response = await asyncio.wait_for(
-                    client.chat.completions.create(
-                        model=config.OLLAMA_MODEL,
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0.2,
-                        max_tokens=4096,
-                    ),
-                    timeout=120.0,
-                )
+            response = await asyncio.wait_for(
+                client.chat.completions.create(
+                    model=config.OLLAMA_MODEL,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.2,
+                    max_tokens=4096,
+                ),
+                timeout=120.0,
+            )
             text = (response.choices[0].message.content or "").strip()
             if not text:
                 logger.warning("GeminiAgent(Ollama): empty response")

@@ -161,51 +161,25 @@ so the discount is auditable in `recent_trades`.
 
 ---
 
-### 0.7 GPU/Ollama coordination across apps (Layer 2.3) ⚠️ TRADING_APP SIDE DONE 2026-05-02
+### 0.7 GPU/Ollama coordination across apps ❌ REMOVED 2026-05-09
 
-**Why:** Ollama latencies of 15–50s + timeouts in `error.log` because trading_app
-and polymarket_app compete for the single RTX 2060.
+**Status:** REMOVED — `gpu_coord.py`, its tests, and all call-site wrappers were deleted.
 
-**trading_app side (done):**
-- `backend/data/gpu_coord.py` with `OllamaCoordinator` class + module-level
-  `ollama_coord` singleton.
-- Layer 1 — `asyncio.Lock` serializes Ollama calls within the trading_app process
-  (immediate benefit; CNN agent + future sentiment/claude calls won't pile up).
-- Layer 2 — `~/.ollama-coord/state.json` (env-overridable via `OLLAMA_COORD_FILE`)
-  tracks `exposure_usd` and `updated_at` per app. `acquire()` yields up to 10s
-  when another app's fresh exposure is higher; fires anyway after timeout (better
-  to miss priority than skip a cycle).
-- Wired into `cnn_reasoning_agent._ollama_decision` (highest-volume caller).
-- Trading loop publishes total deployed capital to the coord file each cycle.
-- Stale entries (>60s) treated as exposure=0 — handles the case where
-  polymarket_app crashes / is stopped.
-- 9 tests: concurrent serialization, exposure round-trip, multi-app preservation,
-  stale-entry handling, immediate-fire when we win, bounded wait when we lose,
-  missing-file fallback.
+**Why removed:** The coord layer was misfiring more than it was helping. `error.log.1` showed recurring stale-PID reclaim warnings naming `polymarket_app pid=1` (10800s age, alive=False) and training-mutex contention timeouts that were blocking trading_app retrains. User asked to remove the shared GPU processing.
 
-**polymarket_app side (still open — needs scope override):**
-- [ ] Mirror `OllamaCoordinator` in polymarket_app pointing to same coord file
-- [ ] Wrap polymarket's Ollama call sites with `acquire()`
-- [ ] Update polymarket's exposure each cycle
-- [ ] Without this mirror, trading_app's per-process lock is the only effective
-      layer. Cross-app priority remains a no-op until polymarket also writes to
-      the coord file.
+**What was deleted:**
+- `backend/data/gpu_coord.py` (316 LOC)
+- `backend/tests/test_gpu_coord.py` (284 LOC)
+- `ollama_coord.acquire(...)` wrappers around 5 Ollama call sites (sentiment/gemini/scanner/ollama/cnn_reasoning agents)
+- `acquire_training_mutex` / `release_training_mutex` around `signal_cnn.fit()` in `cnn_reasoning_agent._train_blocking`
+- Dollar-at-risk exposure update from `main.py` trading loop
+- `gpu_coord` patches from `tests/test_xgboost_model.py`
 
-**Wired into all Ollama call sites (2026-05-02):**
-- [x] `cnn_reasoning_agent._ollama_decision` (PR #6)
-- [x] `sentiment_agent._analyze_one`
-- [x] `claude_agent._ollama_research`
-- [x] `gemini_agent._ollama_inference`
-- [x] `scanner_agent._run_ollama_scanner`
+**polymarket_app side:** NOT touched per scope rule (`C:\Users\gl450\trading_app\` only). polymarket_app's coord-file writes are now best-effort no-ops with no peer.
 
-**Training mutex (Option F) ✅ done 2026-05-02:**
-- [x] `acquire_training_mutex` / `release_training_mutex` in `gpu_coord.py`
-- [x] Wrapped around `signal_cnn.fit() + signal_cnn.save()` in `cnn_reasoning_agent._train_blocking`
-- [x] Cross-app exclusivity via `~/.ollama-coord/training.lock`
-- [x] PID + age stale-reclaim (2h staleness threshold)
-- [x] 6 mutex tests covering acquire/release/timeout/stale-reclaim/re-entrant/safe-release
+**If GPU contention recurs:** schedule the apps so they don't run concurrently (cron staggering / off-hours separation). Don't reintroduce file-based coord — it created more failure modes than it solved.
 
-**Design doc:** `docs/superpowers/plans/2026-04-28-gpu-sequencing-design.md`
+**Historical design doc:** `docs/superpowers/plans/2026-04-28-gpu-sequencing-design.md` (kept for reference; not active)
 
 ---
 

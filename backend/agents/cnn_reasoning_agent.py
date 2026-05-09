@@ -140,15 +140,7 @@ class CNNReasoningAgent(BaseAgent):
         return total_upnl / portfolio_val
 
     def _train_blocking(self) -> None:
-        """Blocking training call — executed via asyncio.to_thread.
-
-        Wrapped in the cross-app training mutex (Backlog 0.7, Option F).
-        Only one app trains at a time across trading_app + polymarket_app
-        because a single retrain consumes the GPU for 10–30 minutes; two
-        concurrent retrains would either OOM or thrash. Mutex stale-PID
-        reclaim handles a peer crashing mid-train.
-        """
-        from data.gpu_coord import acquire_training_mutex, release_training_mutex
+        """Blocking training call — executed via asyncio.to_thread."""
         try:
             df = signal_history.get_training_data()
             if df.empty or len(df) < MIN_TRAIN_SAMPLES:
@@ -161,29 +153,16 @@ class CNNReasoningAgent(BaseAgent):
             if len(X) < MIN_TRAIN_SAMPLES:
                 return
 
-            # Block until we hold the cross-app training mutex (or timeout
-            # after 1h waiting on a live peer). Skip training if the mutex
-            # is contended for too long — better to defer than fight.
-            if not acquire_training_mutex(app_name="trading_app"):
-                logger.warning(
-                    "CNNReasoningAgent: could not acquire training mutex within timeout "
-                    "— another app is training. Skipping this retrain."
-                )
-                return
-
-            try:
-                # Use sample weights so rows where top-performing agents were
-                # confirmed correct have higher training influence
-                signal_cnn.fit(X, y, t, epochs=80, batch_size=32, sample_weights=w)
-                signal_cnn.save()
-                summary = signal_cnn.training_summary()
-                logger.info(
-                    f"CNNReasoningAgent: training complete on {len(X)} samples | "
-                    f"channels={X.shape[1]} | MSE={summary['final_mse']:.6f} | "
-                    f"device={summary['device']} | learned weights: {summary['learned_weights']}"
-                )
-            finally:
-                release_training_mutex(app_name="trading_app")
+            # Use sample weights so rows where top-performing agents were
+            # confirmed correct have higher training influence
+            signal_cnn.fit(X, y, t, epochs=80, batch_size=32, sample_weights=w)
+            signal_cnn.save()
+            summary = signal_cnn.training_summary()
+            logger.info(
+                f"CNNReasoningAgent: training complete on {len(X)} samples | "
+                f"channels={X.shape[1]} | MSE={summary['final_mse']:.6f} | "
+                f"device={summary['device']} | learned weights: {summary['learned_weights']}"
+            )
         except Exception as exc:
             logger.error(f"CNNReasoningAgent: training failed: {exc}", exc_info=True)
 
@@ -375,32 +354,22 @@ class CNNReasoningAgent(BaseAgent):
         )
 
     async def _ollama_decision(self, prompt: str) -> Optional[Dict]:
-        """Call local Ollama and parse JSON response. Returns None on any failure.
-
-        Wrapped in `gpu_coord.ollama_coord.acquire()` so:
-          - At most one Ollama call from trading_app is in-flight at a time
-            (per-app asyncio.Lock).
-          - Cross-app priority: yields to polymarket_app when polymarket has
-            higher exposure (Backlog 0.7 — only effective once polymarket is
-            also wired into the same coord file).
-        """
+        """Call local Ollama and parse JSON response. Returns None on any failure."""
         if not config.OLLAMA_MODEL:
             return None
         try:
-            from data.gpu_coord import ollama_coord
             from openai import AsyncOpenAI
             client   = AsyncOpenAI(base_url=_OLLAMA_BASE, api_key="ollama")
             _t0 = time.perf_counter()
-            async with ollama_coord.acquire(expected_ms=50_000):
-                response = await asyncio.wait_for(
-                    client.chat.completions.create(
-                        model=config.OLLAMA_MODEL,
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0.3,
-                        max_tokens=350,
-                    ),
-                    timeout=50.0,
-                )
+            response = await asyncio.wait_for(
+                client.chat.completions.create(
+                    model=config.OLLAMA_MODEL,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    max_tokens=350,
+                ),
+                timeout=50.0,
+            )
             _elapsed = time.perf_counter() - _t0
             if _elapsed > 15:
                 logger.warning(f"[OLLAMA_LATENCY] app=trading_app caller=CNNReasoningAgent model={config.OLLAMA_MODEL} elapsed={_elapsed:.2f}s (SLOW)")
