@@ -494,5 +494,119 @@ class TestEndToEnd10dWith8ChFilter(unittest.TestCase):
         self.assertIn(direction, ("bull", "bear", "neutral"))
 
 
+class TestEnsemblePredict(unittest.TestCase):
+    """ensemble_predict() — the K=10 bootstrapped boosters from
+    scripts/train_xgb_ensemble.py. Returns (mean, std, n_used) where:
+      - mean: averaged prediction across loaded boosters
+      - std: cross-booster prediction std, used for confidence gating
+      - n_used: how many ensemble boosters were actually loaded (0 → fallback)
+
+    When ensemble files are missing, the model falls back gracefully to its
+    base predict() output: returns (pred, NaN, 0) so callers can detect
+    the "no ensemble available" state and skip uncertainty-based sizing."""
+
+    def _make_trained_model(self):
+        from data.cnn_model import N_CHANNELS, WINDOW_SIZE
+        from data.xgboost_model import SignalXGBoost
+        rng = np.random.default_rng(0)
+        n = 200
+        X = rng.standard_normal((n, N_CHANNELS, WINDOW_SIZE)).astype(np.float32)
+        y = rng.standard_normal(n).astype(np.float32) * 0.05
+        ts = np.arange(n, dtype=np.float64) * 86_400.0
+        m = SignalXGBoost()
+        m.fit(X, y, ts)
+        return m
+
+    def test_ensemble_predict_returns_tuple_with_n_used(self):
+        """ensemble_predict must return (mean, std, n_used) — three fields,
+        not the (pred, direction, confidence) of base predict()."""
+        import tempfile
+        from unittest.mock import patch
+        from data.cnn_model import N_CHANNELS, WINDOW_SIZE
+        m = self._make_trained_model()
+        x = np.random.randn(N_CHANNELS, WINDOW_SIZE).astype(np.float32)
+        # Patch _MODEL_DIR to an empty dir so we don't pick up real production
+        # ensemble files (which were trained with a different feature_filter
+        # and would 38-vs-16-cols mismatch this test's freshly-trained model).
+        with tempfile.TemporaryDirectory() as empty_dir, \
+             patch("data.xgboost_model._MODEL_DIR", empty_dir):
+            result = m.ensemble_predict(x)
+        self.assertEqual(len(result), 3)
+
+    def test_ensemble_falls_back_when_files_missing(self):
+        """With no signal_xgb_b{k}.json files on disk, ensemble_predict must
+        return (base_pred, NaN, 0) — same prediction as predict(), zero
+        boosters used, NaN std signaling 'no uncertainty estimate available'."""
+        import tempfile
+        from unittest.mock import patch
+        from data.cnn_model import N_CHANNELS, WINDOW_SIZE
+        m = self._make_trained_model()
+        x = np.random.randn(N_CHANNELS, WINDOW_SIZE).astype(np.float32)
+
+        with tempfile.TemporaryDirectory() as empty_dir, \
+             patch("data.xgboost_model._MODEL_DIR", empty_dir):
+            mean, std, n_used = m.ensemble_predict(x)
+
+        self.assertEqual(n_used, 0)
+        self.assertTrue(math.isnan(std))
+        # Mean equals base predict()'s pred field
+        base_pred, _, _ = m.predict(x)
+        self.assertAlmostEqual(mean, base_pred, places=5)
+
+    def test_ensemble_uses_loaded_boosters_when_present(self):
+        """With K boosters saved to disk, ensemble_predict must:
+          - load them (lazy-cached after first call),
+          - report n_used == K,
+          - report a non-NaN std,
+          - return mean ≈ average of per-booster predictions."""
+        import tempfile
+        from unittest.mock import patch
+        from data.cnn_model import N_CHANNELS, WINDOW_SIZE
+        m = self._make_trained_model()
+        x = np.random.randn(N_CHANNELS, WINDOW_SIZE).astype(np.float32)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            # Save the same booster K times (real ensemble would have
+            # bootstrap-different boosters; here we just need the load
+            # path to succeed)
+            K = 3
+            for k in range(K):
+                m._booster.save_model(__import__("os").path.join(
+                    tmp, f"signal_xgb_b{k}.json"))
+            with patch("data.xgboost_model._MODEL_DIR", tmp):
+                # Clear any cached boosters from prior tests
+                if hasattr(m, "_ensemble_boosters"):
+                    m._ensemble_boosters = None
+                mean, std, n_used = m.ensemble_predict(x)
+
+        self.assertEqual(n_used, K)
+        self.assertFalse(math.isnan(std))
+        # All K boosters identical → std is exactly 0
+        self.assertEqual(std, 0.0)
+        base_pred, _, _ = m.predict(x)
+        self.assertAlmostEqual(mean, base_pred, places=5)
+
+    def test_ensemble_predict_caches_boosters(self):
+        """Loading 10 boosters from disk takes time; subsequent calls
+        must reuse the cached boosters list, not re-load every time."""
+        import tempfile
+        from unittest.mock import patch
+        from data.cnn_model import N_CHANNELS, WINDOW_SIZE
+        m = self._make_trained_model()
+        x = np.random.randn(N_CHANNELS, WINDOW_SIZE).astype(np.float32)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            for k in range(2):
+                m._booster.save_model(__import__("os").path.join(
+                    tmp, f"signal_xgb_b{k}.json"))
+            with patch("data.xgboost_model._MODEL_DIR", tmp):
+                if hasattr(m, "_ensemble_boosters"):
+                    m._ensemble_boosters = None
+                _ = m.ensemble_predict(x)
+                # After first call, _ensemble_boosters must be cached as a list
+                self.assertIsNotNone(getattr(m, "_ensemble_boosters", None))
+                self.assertEqual(len(m._ensemble_boosters), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

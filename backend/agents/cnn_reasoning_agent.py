@@ -459,6 +459,30 @@ class CNNReasoningAgent(BaseAgent):
                 except Exception as exc:
                     logger.debug(f"CNNReasoningAgent: predict error for {symbol}: {exc}")
                     pred_return, direction, cnn_conf = 0.0, "neutral", 0.3
+
+                # Ensemble-uncertainty downscale (Stage 3b). When the
+                # XGBoost backend has K bootstrapped boosters on disk
+                # (signal_xgb_b{0..K-1}.json), discount cnn_conf by
+                # cross-booster disagreement. Calibration check showed
+                # rho(std, |residual|) = +0.215 — high std reliably
+                # predicts low accuracy. No-op when ensemble files absent
+                # (falls back to base predict's cnn_conf unchanged).
+                if hasattr(signal_cnn, "ensemble_predict"):
+                    try:
+                        ens_mean, ens_std, ens_n = signal_cnn.ensemble_predict(window)
+                        if ens_n > 0 and ens_std > 0 and abs(ens_mean) > 1e-6:
+                            # Relative uncertainty: std / |mean|. At
+                            # std == 0.5 * |mean| the multiplier is 0
+                            # (system says "I don't know"). Linear scale
+                            # in between.
+                            rel_uncert = ens_std / abs(ens_mean)
+                            uncert_mult = max(0.0, 1.0 - 2.0 * rel_uncert)
+                            cnn_conf *= uncert_mult
+                    except Exception as exc:
+                        logger.debug(
+                            f"CNNReasoningAgent: ensemble_predict error for "
+                            f"{symbol}: {exc}"
+                        )
             else:
                 # Pre-training: derive a surrogate from composite score
                 pred_return = c_score * 0.02

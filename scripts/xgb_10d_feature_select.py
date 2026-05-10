@@ -27,31 +27,24 @@ if _BACKEND not in sys.path:
     sys.path.insert(0, _BACKEND)
 
 from data.cnn_evaluation import compute_ic, compute_ir, walkforward_folds
-from data.cnn_model import _compute_wfe, build_training_windows, WINDOW_SIZE
-from data.signal_history import (
-    signal_history,
-    SOURCE_COLUMNS, AGENT_COLUMNS, RV_COLUMNS, RETURN_COLUMNS,
-    DAILY_RETURN_COLUMNS, MOMENTUM_COLUMNS, SECTOR_RELATIVE_COLUMNS,
-    SPY_CORRELATION_COLUMNS,
-    _MACRO_COLUMN_MAP,
+from data.cnn_model import (
+    _compute_wfe, build_training_windows, WINDOW_SIZE,
+    ALL_CHANNEL_COLUMNS,
 )
+from data.signal_history import signal_history
 from data.xgboost_model import last_timestep_features
 
-MACRO_CHANNEL_NAMES = list(_MACRO_COLUMN_MAP.values())
-# Sprint 0 (2026-05-03): + 6 daily-resampled return channels (r_1d..r_252d).
-# Sprint 2-B (2026-05-08): + 1 derived momentum channel (mom_12_1).
-# Sprint 3 (2026-05-08): + 1 cross-sectional channel (r_20d_sector_rel).
-# Sprint 4 (2026-05-08): + 1 inter-asset channel (corr_spy_20d).
-# All appended AFTER MACRO so existing channel indices [0-18] are
-# preserved — production XGB feature_filter [0,1,2,4,13,14,17,18]
-# remains valid across the expansion.
-CHANNEL_NAMES: List[str] = (
-    list(SOURCE_COLUMNS) + list(AGENT_COLUMNS)
-    + list(RV_COLUMNS) + list(RETURN_COLUMNS) + MACRO_CHANNEL_NAMES
-    + list(DAILY_RETURN_COLUMNS) + list(MOMENTUM_COLUMNS)
-    + list(SECTOR_RELATIVE_COLUMNS) + list(SPY_CORRELATION_COLUMNS)
-)
-N_CHANNELS = len(CHANNEL_NAMES)   # 28 post-Sprint-4
+# Source-of-truth: feature_catalog drives ALL_CHANNEL_COLUMNS, which is
+# also the channel order build_training_windows produces (when all cols
+# are present in the df). Using it directly eliminates drift between
+# this script's CHANNEL_NAMES and the actual tensor axis order.
+#
+# History:
+#   28 → 29  (#84): added macro_dji_5d_back (DJIA via DIA ETF) at end of MACRO block.
+#   29 → 33  (option C): imported HistoricalTrendsAgent's 4 sub-scores as HISTORICAL category.
+#   33 → 38  (Sprint 8 #67): added 5 MACRO_10D channels aligned with the 10d label horizon.
+CHANNEL_NAMES: List[str] = list(ALL_CHANNEL_COLUMNS)
+N_CHANNELS = len(CHANNEL_NAMES)   # 38 post-Sprint-8
 
 PARAMS = {
     "max_depth": 6, "eta": 0.05, "subsample": 0.8,
@@ -137,8 +130,9 @@ def main() -> int:
     print(f"BASELINE (all {N_CHANNELS} channels at 10d)")
     print("=" * 92)
     base = fit_and_score(X, y, t, list(range(N_CHANNELS)))
+    base_last_wfe = f"{base['last_wfe']:+.4f}" if base['last_wfe'] is not None else "  nan"
     print(f"  mean_IC={base['mean_ic']:+.4f}  IR={base['ir']:+.2f}  "
-          f"mean_WFE={base['mean_wfe']:+.4f}  last_WFE={base['last_wfe']:+.4f}")
+          f"mean_WFE={base['mean_wfe']:+.4f}  last_WFE={base_last_wfe}")
 
     # Forward selection
     print("\n" + "=" * 92)
