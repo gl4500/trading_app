@@ -148,5 +148,51 @@ class TestBacktestAgent(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, [])
 
 
+class TestReplay(unittest.IsolatedAsyncioTestCase):
+    """replay_one_path day-by-day simulation against a known synthetic path."""
+
+    def _synthetic_one_symbol_path(self, n_days=30):
+        """One symbol, monotonically rising → BUY signal should fire and profit."""
+        dates = list(range(n_days))
+        rows = []
+        for i, d in enumerate(dates):
+            rows.append({
+                "date": d, "symbol": "AAPL",
+                "close": 100.0 * (1.0 + 0.001 * i),     # +0.1% per day
+                "return_1d": 0.001,
+                # Every channel cnn_model needs — for the smoke test, zeros suffice
+                "analyst_score": 0.5, "earnings_score": 0.0,
+                "alpaca_score": 0.0, "yahoo_score": 0.0,
+                "iv_rv_score": 0.0,
+            })
+        return pd.DataFrame(rows).set_index(["date", "symbol"])
+
+    async def test_replay_returns_pathoutcome(self):
+        from data.mc_backtester import replay_one_path, PathOutcome, _FakeModel
+        path = self._synthetic_one_symbol_path(n_days=30)
+        model = _FakeModel(pred_return=0.05, direction="up", confidence=0.85)
+        from config import config
+        outcome = await replay_one_path(
+            path=path, model=model, variant_name="test",
+            sim_idx=0, starting_capital=100000.0, config=config,
+        )
+        self.assertIsInstance(outcome, PathOutcome)
+        self.assertEqual(outcome.variant_name, "test")
+        self.assertEqual(outcome.sim_idx, 0)
+        self.assertGreater(outcome.n_trades, 0)   # at least one BUY fired
+
+    async def test_replay_handles_zero_predictions(self):
+        from data.mc_backtester import replay_one_path, _FakeModel
+        from config import config
+        path = self._synthetic_one_symbol_path(n_days=30)
+        model = _FakeModel(pred_return=0.0, direction="neutral", confidence=0.10)
+        outcome = await replay_one_path(
+            path=path, model=model, variant_name="zero",
+            sim_idx=0, starting_capital=100000.0, config=config,
+        )
+        self.assertEqual(outcome.n_trades, 0)   # no BUYs fired → no SELLs either
+        self.assertAlmostEqual(outcome.final_return, 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()
