@@ -155,3 +155,149 @@ class _BacktestAgent(BaseAgent):
 
     async def analyze(self, market_context) -> list:
         return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Replay loop
+# ─────────────────────────────────────────────────────────────────────────────
+
+import math  # noqa: E402
+from typing import Any  # noqa: E402
+
+from config import config as _DEFAULT_CONFIG  # noqa: E402
+from data.regime_detector import RegimeDetector  # noqa: E402
+from agents.cnn_decision import BuyContext, decide_buy  # noqa: E402
+
+
+@dataclass(frozen=True)
+class PathOutcome:
+    """Result of replaying one (variant, simulated path)."""
+    variant_name: str
+    sim_idx: int
+    sharpe: float
+    max_drawdown: float                # negative fraction, e.g., -0.18
+    final_return: float                # (end - start) / start
+    n_trades: int
+    n_buys: int
+    n_sells: int
+    final_value: float
+
+
+class _FakeModel:
+    """Test fixture — stand-in for SignalXGBoost that returns fixed predictions.
+
+    Production replay uses a real trained SignalXGBoost. This class exists so
+    unit tests for replay can run without training a real model.
+    """
+    def __init__(self, pred_return: float, direction: str, confidence: float):
+        self._ret = pred_return
+        self._dir = direction
+        self._conf = confidence
+        self.is_trained = True
+
+    def predict(self, window) -> tuple:
+        return (self._ret, self._dir, self._conf)
+
+
+def _annualised_sharpe(daily_values: List[float]) -> float:
+    """Annualised Sharpe of the daily-value series. 0.0 if undefined."""
+    if len(daily_values) < 2:
+        return 0.0
+    returns = np.diff(np.asarray(daily_values, dtype=np.float64)) / np.asarray(daily_values[:-1])
+    if returns.std() == 0:
+        return 0.0
+    return float(returns.mean() / returns.std() * math.sqrt(252))
+
+
+def _max_drawdown(daily_values: List[float]) -> float:
+    """Max drawdown as a negative fraction (e.g., -0.18 = -18%)."""
+    if len(daily_values) < 2:
+        return 0.0
+    arr = np.asarray(daily_values, dtype=np.float64)
+    peaks = np.maximum.accumulate(arr)
+    drawdowns = (arr - peaks) / peaks
+    return float(drawdowns.min())
+
+
+async def replay_one_path(
+    path: pd.DataFrame,                 # (date × symbol)-indexed
+    model: Any,                         # has .predict(window) → (ret, dir, conf)
+    variant_name: str,
+    sim_idx: int,
+    starting_capital: float,
+    config=_DEFAULT_CONFIG,
+) -> PathOutcome:
+    """Day-by-day strategy replay on one bootstrapped path.
+
+    Per-day order matches BaseAgent.run_cycle in production:
+      1. portfolio.record_value(prices) — peak/uPnL bookkeeping
+      2. SELL pass:  bayes_exits + trailing_stops + hard_stops
+      3. BUY pass:   for each symbol, predict() → decide_buy() → maybe execute
+      4. Append portfolio.total_value to daily_values
+    """
+    portfolio = BacktestPortfolio(starting_capital=starting_capital)
+    agent = _BacktestAgent("backtest", "stripped", portfolio_override=portfolio)
+    daily_values: List[float] = []
+
+    # Fresh regime detector per path — no state leakage across simulations
+    regime_detector = RegimeDetector()
+
+    dates = sorted(path.index.get_level_values(0).unique())
+    for day_idx, date in enumerate(dates):
+        day_rows = path.xs(date, level=0)
+        prices = day_rows["close"].to_dict()
+
+        # Feed SPY (or first symbol as proxy) to regime detector
+        if "SPY" in prices:
+            regime_detector.update([prices["SPY"]])
+        regime = regime_detector.get_regime()[0] if day_idx > 20 else "neutral"
+
+        portfolio.record_value(prices)
+
+        # ── SELL pass ─────────────────────────────────────────────────────
+        sell_signals = (await agent._check_bayes_exits(prices)) + \
+                       (await agent._check_trailing_stops(prices)) + \
+                       (await agent._check_hard_stops(prices))
+        for sig in sell_signals:
+            portfolio.execute_sell(sig.symbol, sig.shares, prices[sig.symbol], sig.reasoning)
+
+        # ── BUY pass ──────────────────────────────────────────────────────
+        for symbol in day_rows.index:
+            price = float(prices.get(symbol, 0.0))
+            if price <= 0:
+                continue
+            # Build the model window — in this minimal replay we pass the row
+            # itself; a richer implementation builds the (C, T) window from
+            # `path` over the last T days.
+            window = day_rows.loc[symbol].to_numpy()  # 1D feature vector
+            pred_ret, direction, conf = model.predict(window)
+            ctx = BuyContext(
+                symbol=symbol,
+                cnn_pred_return=float(pred_ret),
+                cnn_pred_direction=str(direction),
+                cnn_confidence=float(conf),
+                regime=regime,
+                portfolio_unpnl_frac=portfolio.unpnl_frac(prices),
+                n_corroborators=0,      # no ensemble in backtest (per spec)
+                in_trail_cooldown=agent._in_trail_cooldown(),
+                current_price=price,
+                cash_available=portfolio.cash,
+                portfolio_value=portfolio.get_total_value(prices),
+                kelly_fraction=portfolio.kelly_fraction(),
+            )
+            decision = decide_buy(ctx, config)
+            if decision.action == "BUY":
+                portfolio.execute_buy(symbol, decision.shares, price, decision.reason)
+
+        daily_values.append(portfolio.get_total_value(prices))
+
+    return PathOutcome(
+        variant_name=variant_name, sim_idx=sim_idx,
+        sharpe=_annualised_sharpe(daily_values),
+        max_drawdown=_max_drawdown(daily_values),
+        final_return=(daily_values[-1] - starting_capital) / starting_capital,
+        n_trades=len(portfolio.trade_history),
+        n_buys=sum(1 for t in portfolio.trade_history if t.action == "BUY"),
+        n_sells=sum(1 for t in portfolio.trade_history if t.action == "SELL"),
+        final_value=daily_values[-1],
+    )
