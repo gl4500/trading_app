@@ -436,18 +436,26 @@ class TestTrailingStopExit(unittest.IsolatedAsyncioTestCase):
         self.assertIn("AAPL", agent.portfolio.positions)
 
     async def test_no_exit_when_giveback_below_threshold(self):
-        """Peak $300, current $250 — gave back $50 = 17% < 20% threshold → hold."""
+        """Peak $300, current $280 — gave back $20 = 7% < 10% threshold → hold.
+
+        Tightened 2026-05-16 from 17%/20% to 7%/10% after WOLF gave back $2,093
+        of its $6,485 peak under the old loose default.
+        """
         agent = self._make_agent_with_position(shares=10, entry_price=100.0)
         agent.portfolio.record_value({"AAPL": 130.0})  # peak = $300
-        exits = await agent._check_trailing_stops({"AAPL": 125.0})  # gave back $50
+        exits = await agent._check_trailing_stops({"AAPL": 128.0})  # gave back $20
         self.assertEqual(exits, [])
         self.assertIn("AAPL", agent.portfolio.positions)
 
     async def test_exit_when_giveback_meets_threshold(self):
-        """Peak $300, current $240 — gave back $60 = 20% = threshold → SELL."""
+        """Peak $300, current $270 — gave back $30 = 10% = threshold → SELL.
+
+        Tightened 2026-05-16: threshold lowered from 20% ($60 needed) to
+        10% ($30 needed) — captures more of the upside in chop.
+        """
         agent = self._make_agent_with_position(shares=10, entry_price=100.0)
         agent.portfolio.record_value({"AAPL": 130.0})  # peak = $300
-        exits = await agent._check_trailing_stops({"AAPL": 124.0})  # gave back $60
+        exits = await agent._check_trailing_stops({"AAPL": 127.0})  # gave back $30
         self.assertEqual(len(exits), 1)
         self.assertEqual(exits[0].symbol, "AAPL")
         self.assertEqual(exits[0].action, "SELL")

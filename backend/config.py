@@ -79,14 +79,16 @@ class Config:
     # below entry_confidence (e.g. 0.30 = sell if conviction fell 30 pp since entry)
     BAYES_EXIT_DROP: float = float(os.getenv("BAYES_EXIT_DROP", "0.30"))
 
-    # Trailing stop on UNREALIZED PnL (added 2026-04-29):
+    # Trailing stop on UNREALIZED PnL (added 2026-04-29, tightened 2026-05-16):
     # Sell when (peak_unrealized_pnl - current_unrealized_pnl) >=
     #          peak_unrealized_pnl × TRAIL_GIVEBACK_PCT,
     # but only after peak first reaches TRAIL_ARM_USD (avoids whipsawing
     # on tiny noise around break-even). Goal: lock in gains by selling when
     # a profitable position has given back X% of its peak unrealized profit.
-    TRAIL_GIVEBACK_PCT: float = float(os.getenv("TRAIL_GIVEBACK_PCT", "0.20"))
-    TRAIL_ARM_USD:      float = float(os.getenv("TRAIL_ARM_USD",      "25.0"))
+    # Defaults tightened 2026-05-16 from 0.20/25 to 0.10/100 after a chop
+    # week gave back ~$2K of WOLF's $6.5K peak under the loose default.
+    TRAIL_GIVEBACK_PCT: float = float(os.getenv("TRAIL_GIVEBACK_PCT", "0.10"))
+    TRAIL_ARM_USD:      float = float(os.getenv("TRAIL_ARM_USD",      "100.0"))
 
     # Hard stop-loss (Backlog 0.4, 2026-04-29):
     # Defensive floor — sell when (avg_cost - current_price) / avg_cost >=
