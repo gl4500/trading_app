@@ -91,3 +91,67 @@ class StationaryBlockBootstrap:
         """Yield n_paths bootstrapped paths lazily (memory O(one path))."""
         for _ in range(self._cfg.n_paths):
             yield self.sample_path()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Backtest portfolio + stripped agent (in-memory, no DB, no file I/O)
+# ─────────────────────────────────────────────────────────────────────────────
+
+from typing import Dict  # noqa: E402
+
+from trading.portfolio import Portfolio  # noqa: E402
+from agents.base_agent import BaseAgent  # noqa: E402
+
+
+class BacktestPortfolio(Portfolio):
+    """In-memory Portfolio for backtesting.
+
+    Inherits the full Portfolio public surface (cash, positions,
+    trade_history, kelly_fraction, execute_buy, execute_sell,
+    record_value, unpnl_frac, _position_peak_unrealized, etc.) — no override
+    needed for any of those. The 'no DB/file I/O' guarantee comes from the
+    fact that Portfolio itself doesn't do DB writes — those happen in
+    BaseAgent and database.py, neither of which we touch here.
+
+    Adds a thin `total_value(prices)` alias for `get_total_value(prices)`
+    so the replay loop and tests can use the shorter name.
+    """
+
+    def __init__(self, starting_capital: float = 100000.0):
+        super().__init__(starting_capital=starting_capital)
+
+    def total_value(self, prices: Dict[str, float]) -> float:
+        """Alias for Portfolio.get_total_value — shorter name used by replay loop."""
+        return self.get_total_value(prices)
+
+
+class _BacktestAgent(BaseAgent):
+    """Minimal BaseAgent subclass for backtest use.
+
+    Exists ONLY so the replay loop can call inherited SELL helpers
+    (_check_bayes_exits, _check_trailing_stops, _check_hard_stops,
+    _in_trail_cooldown) against a BacktestPortfolio without depending on
+    CNNReasoningAgent or any concrete production agent.
+
+    Overrides:
+      - _load_picks/_save_picks: no-op (skip file I/O)
+      - analyze: returns []  (backtest BUY logic lives in cnn_decision)
+      - __init__: accepts portfolio_override so we don't double-allocate
+    """
+
+    def __init__(self, name: str, strategy_description: str,
+                 portfolio_override: Optional["BacktestPortfolio"] = None):
+        super().__init__(name=name, strategy_description=strategy_description)
+        if portfolio_override is not None:
+            self.portfolio = portfolio_override
+
+    def _load_picks(self) -> None:
+        # Skip file I/O entirely in backtest mode
+        self._picks = {}
+
+    def _save_picks(self) -> None:
+        # No-op
+        return
+
+    async def analyze(self, market_context) -> list:
+        return []

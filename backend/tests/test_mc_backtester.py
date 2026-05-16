@@ -99,5 +99,54 @@ class TestStationaryBlockBootstrap(unittest.TestCase):
         self.assertTrue((wide["S1"] == wide["S2"]).all())
 
 
+class TestBacktestPortfolio(unittest.TestCase):
+    """BacktestPortfolio mirrors Portfolio's surface but with no DB/file I/O."""
+
+    def test_kelly_fraction_defaults_to_10pct_with_no_history(self):
+        from data.mc_backtester import BacktestPortfolio
+        p = BacktestPortfolio(starting_capital=100000.0)
+        self.assertAlmostEqual(p.kelly_fraction(), 0.10)
+
+    def test_unpnl_frac_returns_none_when_no_positions(self):
+        from data.mc_backtester import BacktestPortfolio
+        p = BacktestPortfolio(starting_capital=100000.0)
+        self.assertIsNone(p.unpnl_frac({}))
+
+    def test_execute_buy_then_total_value_reflects_position(self):
+        from data.mc_backtester import BacktestPortfolio
+        p = BacktestPortfolio(starting_capital=100000.0)
+        p.execute_buy("AAPL", 10, 100.0)
+        # cash 99000 + 10x$110 = 100100
+        self.assertAlmostEqual(p.total_value({"AAPL": 110.0}), 100100.0)
+
+    def test_execute_sell_realises_pnl(self):
+        from data.mc_backtester import BacktestPortfolio
+        p = BacktestPortfolio(starting_capital=100000.0)
+        p.execute_buy("AAPL", 10, 100.0)
+        p.execute_sell("AAPL", 10, 120.0)
+        # 99000 + 1200 proceeds = 100200; realised PnL = $200
+        self.assertEqual(len(p.trade_history), 2)
+        self.assertEqual(p.trade_history[1].pnl, 200.0)
+
+
+class TestBacktestAgent(unittest.IsolatedAsyncioTestCase):
+    """_BacktestAgent inherits BaseAgent SELL helpers; analyse is no-op."""
+
+    async def test_check_trailing_stops_callable_against_backtest_portfolio(self):
+        from data.mc_backtester import BacktestPortfolio, _BacktestAgent
+        p = BacktestPortfolio(starting_capital=100000.0)
+        agent = _BacktestAgent("backtest", "stripped", portfolio_override=p)
+        # No positions -> no exits
+        exits = await agent._check_trailing_stops({})
+        self.assertEqual(exits, [])
+
+    async def test_analyze_returns_empty_list(self):
+        from data.mc_backtester import BacktestPortfolio, _BacktestAgent
+        p = BacktestPortfolio(starting_capital=100000.0)
+        agent = _BacktestAgent("backtest", "stripped", portfolio_override=p)
+        result = await agent.analyze({})
+        self.assertEqual(result, [])
+
+
 if __name__ == "__main__":
     unittest.main()
