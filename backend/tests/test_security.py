@@ -96,7 +96,6 @@ def _start_lifespan_patches():
         patch("main.init_db",                   new_callable=AsyncMock),
         patch("main.init_agents",               new_callable=AsyncMock),
         patch("main.cleanup_token_log",         new_callable=AsyncMock),
-        patch("main.prune_performance_table",   new_callable=AsyncMock),
         patch("main.prune_news_price_snapshots",new_callable=AsyncMock),
         patch("main._ensure_ollama_running",    new_callable=AsyncMock),
         patch("main.ws_broadcast_loop",         new_callable=AsyncMock),

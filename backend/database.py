@@ -611,27 +611,6 @@ async def cleanup_token_log(hours: int = 24) -> None:
     logger.debug(f"Token log cleanup: removed entries older than {hours}h")
 
 
-async def prune_performance_table(days: int = 3) -> int:
-    """Delete performance rows older than `days` days.
-
-    The startup chart restoration loads at most 2000 rows per agent (~33 h at
-    60 s intervals) and the frontend chart API requests at most 200 rows, so
-    keeping 3 days of data covers all read paths with comfortable margin.
-
-    Returns the number of rows deleted.
-    """
-    async with aiosqlite.connect(DB_PATH) as db:
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-        cursor = await db.execute(
-            "DELETE FROM performance WHERE timestamp < ?", (cutoff,)
-        )
-        deleted = cursor.rowcount
-        await db.commit()
-    if deleted:
-        logger.info(f"DB prune: removed {deleted} performance rows older than {days}d")
-    return deleted
-
-
 async def prune_news_price_snapshots(days: int = 14) -> int:
     """Delete news_price_snapshots rows older than `days` days.
 

@@ -56,7 +56,6 @@ from database import (
     save_price_snapshot,
     update_price_snapshot,
     get_price_snapshots,
-    prune_performance_table,
     prune_news_price_snapshots,
 )
 from trading.portfolio import Position, TradeRecord
@@ -633,10 +632,11 @@ async def trading_loop() -> None:
                 except Exception as e:
                     logger.debug(f"Risk assessment error: {e}")
 
-            # Daily DB prune — every 1440 cycles (~24 h at 60 s intervals)
+            # Daily DB prune — every 1440 cycles (~24 h at 60 s intervals).
+            # Performance table is intentionally NOT pruned (user policy
+            # 2026-05-16: continuity for all trades, not just days).
             if app_state.cycle_count % 1440 == 0:
                 try:
-                    await prune_performance_table(days=3)
                     await prune_news_price_snapshots(days=14)
                 except Exception as e:
                     logger.warning(f"DB prune error: {e}")
@@ -1629,7 +1629,8 @@ async def lifespan(app: FastAPI):
         await init_db()
         _write_crash("[LIFESPAN] init_db OK")
         await cleanup_token_log(hours=config.TOKEN_LOG_RETENTION_DAYS * 24)
-        await prune_performance_table(days=3)
+        # Performance table is intentionally NOT pruned — keep ALL trades for
+        # week-over-week continuity (user policy 2026-05-16).
         await prune_news_price_snapshots(days=14)
         await init_agents()
         _write_crash("[LIFESPAN] init_agents OK")
