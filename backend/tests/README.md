@@ -70,9 +70,9 @@ C:\Users\gl450\trading_app\runtime\python\python.exe -m unittest tests.test_port
 | `TestSecretPatterns` | 2 | No hardcoded secrets in source files, `.env` covered by `.gitignore` |
 
 **Helper — `_start_lifespan_patches()`:** patches all async lifespan functions
-(`init_db`, `init_agents`, `cleanup_token_log`, `prune_performance_table`,
-`prune_news_price_snapshots`, `_ensure_ollama_running`, task-creating functions)
-to prevent the test client from starting real background tasks.
+(`init_db`, `init_agents`, `cleanup_token_log`, `prune_news_price_snapshots`,
+`_ensure_ollama_running`, task-creating functions) to prevent the test client
+from starting real background tasks.
 
 ---
 

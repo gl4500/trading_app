@@ -760,11 +760,18 @@ class TestGetAgentCallsThisHour(TestDatabaseBase):
         self.assertEqual(result, 0)
 
 
-class TestPrunePerformanceTable(TestDatabaseBase):
-    """Tests for database.prune_performance_table."""
+class TestNoDateBasedPruning(TestDatabaseBase):
+    """Performance history must keep ALL trades; no date-based prune.
+
+    User policy 2026-05-16: "continuity for all trades, not just days."
+    The old prune_performance_table(days=N) function was removed because
+    a days-based prune broke week-over-week diagnostic visibility and
+    triggered false-alarm "the data reverted" investigations.
+
+    Do NOT re-introduce a date-based prune on the performance table.
+    """
 
     def _insert_performance(self, agent_id: int, timestamp: str, value: float = 1000.0):
-        """Helper: insert a single performance row with an explicit timestamp."""
         import aiosqlite
 
         async def _do():
@@ -790,38 +797,25 @@ class TestPrunePerformanceTable(TestDatabaseBase):
 
         return run(_do())
 
-    def test_deletes_old_rows(self):
-        from datetime import datetime, timedelta
-        aid = run(database.upsert_agent("TestAgent", "test strategy"))
-        old_ts = (datetime.utcnow() - timedelta(days=10)).isoformat()
-        self._insert_performance(aid, old_ts)
-        deleted = run(database.prune_performance_table(days=3))
-        self.assertEqual(deleted, 1)
-        self.assertEqual(self._count_performance(), 0)
+    def test_prune_performance_table_function_removed(self):
+        """Date-based prune was deliberately removed — do not re-add."""
+        self.assertFalse(
+            hasattr(database, "prune_performance_table"),
+            "prune_performance_table must not exist. User policy: continuity "
+            "for all trades, not just days. Re-introducing date-based pruning "
+            "would silently lose week-over-week diagnostic visibility.",
+        )
 
-    def test_keeps_recent_rows(self):
+    def test_ancient_performance_rows_survive(self):
+        """An old performance row must remain queryable indefinitely."""
         from datetime import datetime, timedelta
         aid = run(database.upsert_agent("TestAgent", "test strategy"))
+        ancient_ts = (datetime.utcnow() - timedelta(days=365)).isoformat()
         recent_ts = (datetime.utcnow() - timedelta(hours=1)).isoformat()
-        self._insert_performance(aid, recent_ts)
-        deleted = run(database.prune_performance_table(days=3))
-        self.assertEqual(deleted, 0)
-        self.assertEqual(self._count_performance(), 1)
-
-    def test_returns_zero_when_table_empty(self):
-        deleted = run(database.prune_performance_table(days=3))
-        self.assertEqual(deleted, 0)
-
-    def test_mixed_old_and_recent(self):
-        from datetime import datetime, timedelta
-        aid = run(database.upsert_agent("TestAgent", "test strategy"))
-        old_ts = (datetime.utcnow() - timedelta(days=5)).isoformat()
-        recent_ts = (datetime.utcnow() - timedelta(hours=2)).isoformat()
-        self._insert_performance(aid, old_ts)
-        self._insert_performance(aid, recent_ts)
-        deleted = run(database.prune_performance_table(days=3))
-        self.assertEqual(deleted, 1)
-        self.assertEqual(self._count_performance(), 1)
+        self._insert_performance(aid, ancient_ts, value=1234.5)
+        self._insert_performance(aid, recent_ts, value=5678.9)
+        # No prune call should be available. Rows survive untouched.
+        self.assertEqual(self._count_performance(), 2)
 
 
 class TestPruneNewsPriceSnapshots(TestDatabaseBase):
