@@ -301,3 +301,115 @@ async def replay_one_path(
         n_sells=sum(1 for t in portfolio.trade_history if t.action == "SELL"),
         final_value=daily_values[-1],
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Aggregation + report writers
+# ─────────────────────────────────────────────────────────────────────────────
+
+import json  # noqa: E402
+from dataclasses import asdict  # noqa: E402
+
+
+@dataclass
+class VariantComparisonReport:
+    """Aggregated outcomes across all (variant, sim) replays."""
+    per_variant: Dict[str, Dict[str, float]]    # variant_name → metric → value
+    n_simulations: int
+    n_variants: int
+
+
+def _percentiles(values: list[float], pcts=(5, 50, 95)) -> Dict[str, float]:
+    arr = np.asarray(values, dtype=np.float64)
+    return {f"p{p}": float(np.percentile(arr, p)) for p in pcts}
+
+
+def summarise(outcomes: list[PathOutcome]) -> VariantComparisonReport:
+    """Group outcomes by variant, compute per-metric percentiles."""
+    by_variant: Dict[str, list[PathOutcome]] = {}
+    for o in outcomes:
+        by_variant.setdefault(o.variant_name, []).append(o)
+
+    per_variant: Dict[str, Dict[str, float]] = {}
+    for name, group in by_variant.items():
+        sharpes = [o.sharpe for o in group]
+        dds = [o.max_drawdown for o in group]
+        rets = [o.final_return for o in group]
+        sharpe_pct = _percentiles(sharpes)
+        dd_pct = _percentiles(dds)
+        ret_pct = _percentiles(rets)
+        per_variant[name] = {
+            "n_simulations": len(group),
+            "sharpe_p5":  sharpe_pct["p5"],
+            "sharpe_p50": sharpe_pct["p50"],
+            "sharpe_p95": sharpe_pct["p95"],
+            "max_dd_p5":  dd_pct["p5"],
+            "max_dd_p50": dd_pct["p50"],
+            "max_dd_p95": dd_pct["p95"],
+            "final_return_p5":  ret_pct["p5"],
+            "final_return_p50": ret_pct["p50"],
+            "final_return_p95": ret_pct["p95"],
+            "avg_n_trades": float(np.mean([o.n_trades for o in group])),
+        }
+    return VariantComparisonReport(
+        per_variant=per_variant,
+        n_simulations=max((len(g) for g in by_variant.values()), default=0),
+        n_variants=len(by_variant),
+    )
+
+
+def render_markdown(report: VariantComparisonReport) -> str:
+    """Format a comparison report as a Markdown table."""
+    lines = [
+        f"# MC Backtest Report — {report.n_variants} variants × {report.n_simulations} sims",
+        "",
+        "| Variant | Sharpe p5 | Sharpe p50 | Sharpe p95 | DD p5 | DD p50 | DD p95 | Ret p5 | Ret p50 | Ret p95 | Avg trades |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for name, stats in sorted(report.per_variant.items()):
+        lines.append(
+            f"| {name} | {stats['sharpe_p5']:+.2f} | {stats['sharpe_p50']:+.2f} | {stats['sharpe_p95']:+.2f} | "
+            f"{stats['max_dd_p5']:+.2%} | {stats['max_dd_p50']:+.2%} | {stats['max_dd_p95']:+.2%} | "
+            f"{stats['final_return_p5']:+.2%} | {stats['final_return_p50']:+.2%} | {stats['final_return_p95']:+.2%} | "
+            f"{stats['avg_n_trades']:.0f} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def write_jsonl(outcomes: list[PathOutcome], path: str) -> None:
+    """Write per-(variant,sim) outcomes to a JSONL file."""
+    with open(path, "w", encoding="utf-8") as f:
+        for o in outcomes:
+            f.write(json.dumps(asdict(o)) + "\n")
+
+
+@dataclass
+class FilterVariant:
+    """One variant to compare — name + trained model."""
+    name: str
+    model: Any                          # SignalXGBoost or _FakeModel
+
+
+async def run_variant_comparison(
+    variants: list[FilterVariant],
+    historical: pd.DataFrame,
+    cfg: BootstrapConfig,
+    config=_DEFAULT_CONFIG,
+    starting_capital: float = 100000.0,
+) -> tuple[VariantComparisonReport, list[PathOutcome]]:
+    """Top-level orchestrator. For each bootstrapped path, run every
+    variant on that SAME path → paired-sample comparison.
+
+    Returns (summarised_report, raw_outcomes).
+    """
+    sampler = StationaryBlockBootstrap(historical, cfg)
+    all_outcomes: list[PathOutcome] = []
+    for sim_idx, path in enumerate(sampler.simulate()):
+        for variant in variants:
+            outcome = await replay_one_path(
+                path=path, model=variant.model,
+                variant_name=variant.name, sim_idx=sim_idx,
+                starting_capital=starting_capital, config=config,
+            )
+            all_outcomes.append(outcome)
+    return summarise(all_outcomes), all_outcomes

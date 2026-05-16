@@ -194,5 +194,59 @@ class TestReplay(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(outcome.final_return, 0.0)
 
 
+class TestAggregation(unittest.TestCase):
+
+    def test_percentile_math_correct(self):
+        from data.mc_backtester import PathOutcome, summarise
+        outcomes = [
+            PathOutcome(variant_name="A", sim_idx=i, sharpe=float(i)/10.0,
+                        max_drawdown=-0.05*i, final_return=0.01*i,
+                        n_trades=10, n_buys=5, n_sells=5, final_value=100000.0)
+            for i in range(101)  # 0..100, so p5=5, p50=50, p95=95
+        ]
+        report = summarise(outcomes)
+        self.assertIn("A", report.per_variant)
+        stats = report.per_variant["A"]
+        self.assertAlmostEqual(stats["sharpe_p5"],  0.5)
+        self.assertAlmostEqual(stats["sharpe_p50"], 5.0)
+        self.assertAlmostEqual(stats["sharpe_p95"], 9.5)
+
+    def test_summarise_groups_by_variant(self):
+        from data.mc_backtester import PathOutcome, summarise
+        outcomes = (
+            [PathOutcome("A", i, 0.5, -0.1, 0.05, 10, 5, 5, 105000.0) for i in range(20)] +
+            [PathOutcome("B", i, 0.8, -0.08, 0.10, 12, 6, 6, 110000.0) for i in range(20)]
+        )
+        report = summarise(outcomes)
+        self.assertEqual(set(report.per_variant.keys()), {"A", "B"})
+        self.assertEqual(report.per_variant["A"]["n_simulations"], 20)
+        self.assertEqual(report.per_variant["B"]["n_simulations"], 20)
+
+    def test_render_markdown_produces_table(self):
+        from data.mc_backtester import PathOutcome, summarise, render_markdown
+        outcomes = [PathOutcome("A", i, 0.5, -0.1, 0.05, 10, 5, 5, 105000.0) for i in range(10)]
+        report = summarise(outcomes)
+        md = render_markdown(report)
+        self.assertIn("| Variant ", md)         # header row
+        self.assertIn("| A ", md)               # data row
+        self.assertIn("Sharpe", md)             # has metric columns
+
+    def test_write_jsonl_round_trip(self):
+        import tempfile, json, os
+        from data.mc_backtester import PathOutcome, write_jsonl
+        outcomes = [PathOutcome("A", i, 0.5, -0.1, 0.05, 10, 5, 5, 105000.0) for i in range(3)]
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
+            path = f.name
+        try:
+            write_jsonl(outcomes, path)
+            with open(path) as f:
+                lines = [json.loads(line) for line in f]
+            self.assertEqual(len(lines), 3)
+            self.assertEqual(lines[0]["variant_name"], "A")
+            self.assertEqual(lines[0]["sim_idx"], 0)
+        finally:
+            os.unlink(path)
+
+
 if __name__ == "__main__":
     unittest.main()
