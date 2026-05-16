@@ -697,5 +697,50 @@ class TestApplySplit(unittest.TestCase):
         self.assertAlmostEqual(pre_pnl, post_pnl, places=2)
 
 
+class TestUnpnlFrac(unittest.TestCase):
+    """Portfolio.unpnl_frac returns total uPnL / total_value, or None if no positions."""
+
+    def test_returns_none_when_no_positions(self):
+        from trading.portfolio import Portfolio
+        p = Portfolio(starting_capital=100000.0)
+        self.assertIsNone(p.unpnl_frac({}))
+
+    def test_returns_zero_at_break_even(self):
+        from trading.portfolio import Portfolio
+        p = Portfolio(starting_capital=100000.0)
+        p.execute_buy("AAPL", 10, 100.0)        # cost = $1000
+        # price unchanged → uPnL = 0 → frac = 0 / 99000 = 0
+        result = p.unpnl_frac({"AAPL": 100.0})
+        self.assertEqual(result, 0.0)
+
+    def test_positive_unpnl_returns_positive_frac(self):
+        from trading.portfolio import Portfolio
+        p = Portfolio(starting_capital=100000.0)
+        p.execute_buy("AAPL", 10, 100.0)        # cost = $1000, cash = $99000
+        # price = $110 → uPnL = $100; total_value = 99000 + 1100 = $100100
+        result = p.unpnl_frac({"AAPL": 110.0})
+        self.assertAlmostEqual(result, 100.0 / 100100.0, places=5)
+
+    def test_negative_unpnl_returns_negative_frac(self):
+        from trading.portfolio import Portfolio
+        p = Portfolio(starting_capital=100000.0)
+        p.execute_buy("AAPL", 10, 100.0)
+        # price = $80 → uPnL = -$200; total_value = 99000 + 800 = $99800
+        result = p.unpnl_frac({"AAPL": 80.0})
+        self.assertAlmostEqual(result, -200.0 / 99800.0, places=5)
+
+    def test_skips_positions_missing_price(self):
+        from trading.portfolio import Portfolio
+        p = Portfolio(starting_capital=100000.0)
+        p.execute_buy("AAPL", 10, 100.0)
+        p.execute_buy("MSFT", 5, 200.0)
+        # MSFT has no price quote → treat as 0 contribution to uPnL
+        result = p.unpnl_frac({"AAPL": 110.0})  # only AAPL priced
+        self.assertIsNotNone(result)
+        # AAPL uPnL = +$100, MSFT contributes 0 → uPnL = $100
+        # total_value = cash (98000) + AAPL_value(1100) + MSFT_at_cost(1000) = 100100
+        self.assertGreater(result, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

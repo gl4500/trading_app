@@ -34,6 +34,7 @@ from typing import Dict, List, Optional
 
 from agents.base_agent import BaseAgent, Signal
 from agents.agent_utils import get_fallback_signals
+from agents.cnn_decision import BuyContext, decide_buy
 from config import config
 from data.signal_history import signal_history
 from data.cnn_model import build_training_windows, MIN_TRAIN_SAMPLES
@@ -110,34 +111,6 @@ class CNNReasoningAgent(BaseAgent):
         # Run training in a background thread to avoid blocking the event loop
         async with self._training_lock:
             await asyncio.to_thread(self._train_blocking)
-
-    def _unrealized_pnl_pct(self, prices: Dict[str, float]) -> Optional[float]:
-        """Compute total uPnL across CNN's open positions, expressed as a
-        fraction of the agent's portfolio total value.
-
-        Returns None when there are no open positions (gate inactive) or
-        when total portfolio value is non-positive (degenerate). Otherwise
-        returns a signed fraction (e.g., -0.025 = -2.5%).
-
-        Used by the unrealized-portfolio-drawdown BUY gate (added 2026-05-04
-        after the WFE gate stopped firing post-XGB-upgrade).
-        """
-        if not self.portfolio.positions:
-            return None
-        total_upnl = 0.0
-        for sym, pos in self.portfolio.positions.items():
-            if pos.shares <= 0:
-                continue
-            current_price = prices.get(sym)
-            if current_price is None or current_price <= 0:
-                # No quote — skip rather than penalise. Conservative: a
-                # missing quote shouldn't trigger a false-positive cap.
-                continue
-            total_upnl += (current_price - pos.avg_cost) * pos.shares
-        portfolio_val = self.portfolio.get_total_value(prices)
-        if portfolio_val <= 0:
-            return None
-        return total_upnl / portfolio_val
 
     def _train_blocking(self) -> None:
         """Blocking training call — executed via asyncio.to_thread."""
@@ -609,30 +582,6 @@ class CNNReasoningAgent(BaseAgent):
                 )
                 action = "HOLD"
 
-            # Unrealized-portfolio drawdown cap (added 2026-05-04 after the
-            # WFE gate stopped firing — once mean_wfe flipped positive on the
-            # XGB upgrade, the agent fired 38 BUYs in one day with -$2.1k
-            # unrealized. This pauses NEW BUYs (SELLs always pass) when total
-            # uPnL across CNN's open positions falls below the configured
-            # drawdown fraction of total portfolio value. Self-correcting:
-            # once positions recover or are sold, BUYs resume.
-            if action == "BUY":
-                upnl_pct = self._unrealized_pnl_pct(prices)
-                if upnl_pct is not None and upnl_pct < config.CNN_PAUSE_UPNL_DRAWDOWN_PCT:
-                    logger.info(
-                        f"CNNReasoningAgent [{symbol}]: uPnL drawdown gate "
-                        f"blocked BUY (uPnL={upnl_pct:+.2%} < threshold "
-                        f"{config.CNN_PAUSE_UPNL_DRAWDOWN_PCT:+.2%})"
-                    )
-                    reasoning = (
-                        f"uPnL drawdown gate: BUY blocked — open CNN positions "
-                        f"are at {upnl_pct:+.2%} unrealized vs threshold "
-                        f"{config.CNN_PAUSE_UPNL_DRAWDOWN_PCT:+.2%}. Letting "
-                        f"existing positions resolve before opening new ones. "
-                        f"Original reasoning: {reasoning}"
-                    )
-                    action = "HOLD"
-
             # Max-open-positions cap (PR #76, 2026-05-08): block BUYs on
             # NEW symbols once we're holding CNN_MAX_OPEN_POSITIONS distinct
             # symbols. Asymmetric — SELLs always pass, and averaging into
@@ -661,52 +610,104 @@ class CNNReasoningAgent(BaseAgent):
                     )
                     action = "HOLD"
 
-            # Regime-aware buy gate: bear/high_vol markets require higher
-            # confidence still. Base threshold raised 0.50 → 0.65 (2026-05-04)
-            # after over-buying incident — see config.CNN_BUY_THRESHOLD_BASE.
-            from data.regime_detector import regime_detector
-            _buy_threshold = config.CNN_BUY_THRESHOLD_BASE + regime_detector.get_confidence_gate()
-
-            if action == "BUY" and confidence >= _buy_threshold and price > 0:
-                # Use Ollama's size_pct (fraction of total portfolio value to deploy).
-                # Clamp: floor at 2% (minimum meaningful), ceiling at MAX_POSITION_SIZE.
-                # Final alloc also capped at 95% of available cash so we never overspend.
-                portfolio_val = self.portfolio.get_total_value(prices)
-                raw_pct  = decision.get("size_pct")
-                size_pct = float(raw_pct) if raw_pct is not None else 0.10
-                size_pct = max(0.02, min(config.MAX_POSITION_SIZE, size_pct))
-
-                # Lone-wolf discount (Backlog 0.6): if fewer than
-                # LONEWOLF_MIN_CORROBORATORS other agents are also signaling BUY
-                # on this symbol, scale size by LONEWOLF_MULTIPLIER. Caps damage
-                # when the CNN's noise-fitting tendency produces false positives
-                # that the rest of the ensemble doesn't see.
+            if action == "BUY" and price > 0:
+                # ── BUY decision via pure helper (cnn_decision.decide_buy) ──
+                # Single source of truth for gates+sizing; same helper called
+                # by the MC backtester. See docs/superpowers/specs/
+                # 2026-05-16-mc-strategy-design.md
+                #
+                # decide_buy handles, in order:
+                #   - direction != "up" (here always "up" — Ollama returned BUY)
+                #   - confidence < CNN_BUY_THRESHOLD_BASE
+                #   - regime-adjusted confidence floor (bear/high_vol add-on)
+                #   - portfolio uPnL drawdown vs CNN_PAUSE_UPNL_DRAWDOWN_PCT
+                #   - trail-stop cool-down (BaseAgent._in_trail_cooldown)
+                #   - Kelly × lone-wolf sizing clamped to [2%, MAX_POSITION_SIZE]
+                # WFE and max-open gates above remain inline (per Option B).
+                from data.regime_detector import regime_detector
                 corroborators = sum(
-                    1 for (a, c) in (other_agent_signals or {}).values()
+                    1 for (a, _c) in (other_agent_signals or {}).values()
                     if a == "BUY"
                 )
+                portfolio_val = self.portfolio.get_total_value(prices)
+                ctx = BuyContext(
+                    symbol=symbol,
+                    cnn_pred_return=float(pred_return),
+                    cnn_pred_direction="up",                 # Ollama already returned BUY
+                    cnn_confidence=float(confidence),        # Ollama's confidence
+                    regime=regime_detector.get_regime()[0],
+                    portfolio_unpnl_frac=self.portfolio.unpnl_frac(prices),
+                    n_corroborators=int(corroborators),
+                    in_trail_cooldown=self._in_trail_cooldown(),
+                    current_price=float(price),
+                    cash_available=float(self.portfolio.cash),
+                    portfolio_value=float(portfolio_val),
+                    kelly_fraction=float(self.portfolio.kelly_fraction()),
+                )
+                buy_decision = decide_buy(ctx, config)
+
+                if buy_decision.action == "HOLD":
+                    # Preserve the historical gate-name substrings so existing
+                    # log/test assertions still match the HOLD reasoning.
+                    reason_lower = buy_decision.reason.lower()
+                    if reason_lower.startswith("upnl"):
+                        gate_label = "uPnL drawdown gate"
+                    elif "regime" in reason_lower:
+                        gate_label = "regime gate"
+                    elif reason_lower.startswith("conf"):
+                        gate_label = "confidence gate"
+                    elif "trail" in reason_lower:
+                        gate_label = "trail cool-down gate"
+                    elif "under-funded" in reason_lower:
+                        gate_label = "under-funded gate"
+                    else:
+                        gate_label = "decide_buy"
+                    logger.info(
+                        f"CNNReasoningAgent [{symbol}]: {gate_label} blocked BUY "
+                        f"({buy_decision.reason})"
+                    )
+                    signals.append(Signal(
+                        symbol    = symbol,
+                        action    = "HOLD",
+                        shares    = 0,
+                        confidence = confidence,
+                        reasoning  = (
+                            f"{gate_label}: BUY blocked — {buy_decision.reason}. "
+                            f"Original reasoning: {reasoning}"
+                        ),
+                        agent_name = self.name,
+                    ))
+                    continue
+
+                # BUY passed: cap shares so we never overspend 95% of cash.
+                shares = buy_decision.shares
+                max_cash_shares = int((self.portfolio.cash * 0.95) / price) if price > 0 else 0
+                if max_cash_shares >= 1:
+                    shares = max(1, min(shares, max_cash_shares))
+
+                # Preserve the LONE-WOLF marker substring (existing tests assert
+                # on it). decide_buy applies the lone-wolf size shrink internally;
+                # we just surface that fact in the reasoning text.
                 lonewolf_marker = ""
                 if corroborators < config.LONEWOLF_MIN_CORROBORATORS:
-                    pre_size = size_pct
-                    size_pct = max(0.02, size_pct * config.LONEWOLF_MULTIPLIER)
                     lonewolf_marker = (
                         f" [LONE-WOLF: {corroborators} BUY corroborator(s) "
-                        f"< {config.LONEWOLF_MIN_CORROBORATORS}, "
-                        f"size_pct {pre_size:.0%} → {size_pct:.0%}]"
+                        f"< {config.LONEWOLF_MIN_CORROBORATORS}]"
                     )
                     logger.info(
                         f"CNNReasoningAgent [{symbol}]: lone-wolf discount "
-                        f"({corroborators} BUY corroborators) {pre_size:.0%} → {size_pct:.0%}"
+                        f"({corroborators} BUY corroborators)"
                     )
 
-                alloc    = min(portfolio_val * size_pct, self.portfolio.cash * 0.95)
-                shares   = max(1, int(alloc / price))
                 signals.append(Signal(
                     symbol    = symbol,
                     action    = "BUY",
                     shares    = shares,
-                    confidence = confidence,
-                    reasoning  = f"CNN+Ollama: {reasoning}{lonewolf_marker}",
+                    confidence = buy_decision.sized_confidence,
+                    reasoning  = (
+                        f"CNN+Ollama: {reasoning}; {buy_decision.reason}"
+                        f"{lonewolf_marker}"
+                    ),
                     agent_name = self.name,
                 ))
             elif action == "SELL" and symbol in self.portfolio.positions:
