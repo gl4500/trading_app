@@ -248,5 +248,56 @@ class TestAggregation(unittest.TestCase):
             os.unlink(path)
 
 
+class TestSmokeE2E(unittest.IsolatedAsyncioTestCase):
+    """End-to-end: 2 variants × 3 paths × 30 days × 2 symbols. Sanity check
+    that everything wires up and produces a valid report."""
+
+    def _tiny_history(self):
+        """30 days × 2 symbols of synthetic data with all required channels."""
+        import numpy as np
+        rng = np.random.default_rng(0)
+        rows = []
+        for day in range(30):
+            for sym in ("AAPL", "MSFT"):
+                rows.append({
+                    "date": day, "symbol": sym,
+                    "close": 100.0 + rng.normal(0, 1),
+                    "return_1d": rng.normal(0, 0.01),
+                    "analyst_score": rng.uniform(),
+                    "earnings_score": rng.normal(),
+                    "alpaca_score": rng.normal(),
+                    "yahoo_score": rng.normal(),
+                    "iv_rv_score": rng.normal(),
+                })
+        return pd.DataFrame(rows).set_index(["date", "symbol"])
+
+    async def test_full_pipeline_runs_to_completion(self):
+        from data.mc_backtester import (
+            BootstrapConfig, FilterVariant, _FakeModel,
+            run_variant_comparison, render_markdown,
+        )
+        from config import config
+        hist = self._tiny_history()
+        variants = [
+            FilterVariant(name="A", model=_FakeModel(0.02, "up",   0.80)),
+            FilterVariant(name="B", model=_FakeModel(0.01, "down", 0.30)),
+        ]
+        cfg = BootstrapConfig(
+            expected_block_size=5, n_paths=3, path_length_days=20, seed=0,
+        )
+        report, outcomes = await run_variant_comparison(
+            variants, hist, cfg, config=config,
+        )
+        # Sanity assertions
+        self.assertEqual(report.n_variants, 2)
+        self.assertEqual(report.n_simulations, 3)
+        self.assertEqual(len(outcomes), 6)              # 2 variants × 3 paths
+        self.assertIn("A", report.per_variant)
+        self.assertIn("B", report.per_variant)
+        md = render_markdown(report)
+        self.assertIn("| A ", md)
+        self.assertIn("| B ", md)
+
+
 if __name__ == "__main__":
     unittest.main()
