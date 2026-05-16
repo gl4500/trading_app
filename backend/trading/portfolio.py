@@ -77,6 +77,33 @@ class Portfolio:
         )
         return self.cash + position_value
 
+    def unpnl_frac(self, prices: Dict[str, float]) -> Optional[float]:
+        """Total unrealized PnL across open positions, expressed as fraction
+        of total portfolio value. Returns None when no positions held.
+
+        Positions with no price quote contribute 0 to uPnL (conservative —
+        a missing quote shouldn't trigger a false drawdown reading).
+
+        Lifted 2026-05-16 from CNNReasoningAgent's private unrealized-pnl
+        helper so it lives on the Portfolio (its natural home) and can be
+        consumed by cnn_decision and the MC backtester via the public
+        surface.
+        """
+        if not self.positions:
+            return None
+        total_upnl = 0.0
+        for sym, pos in self.positions.items():
+            if pos.shares <= 0:
+                continue
+            price = prices.get(sym)
+            if price is None or price <= 0:
+                continue
+            total_upnl += (price - pos.avg_cost) * pos.shares
+        total_value = self.get_total_value(prices)
+        if total_value <= 0:
+            return None
+        return total_upnl / total_value
+
     def get_position_value(self, symbol: str, price: float) -> float:
         """Get value of a specific position."""
         if symbol not in self.positions:
