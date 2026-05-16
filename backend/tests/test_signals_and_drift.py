@@ -6,7 +6,7 @@ Unit tests for:
 import sys
 import os
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 
 _BACKEND = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
 _SITE    = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "site-packages"))
@@ -514,6 +514,85 @@ class TestTrailingStopExit(unittest.IsolatedAsyncioTestCase):
             await agent.run_cycle(ctx, prices)
 
         mock_trail.assert_called_once_with(prices)
+
+
+class TestTrailingStopCooldown(unittest.IsolatedAsyncioTestCase):
+    """After a trailing-stop exit, BUYs across the agent's whole portfolio
+    are blocked for TRAIL_COOLDOWN_HOURS.
+
+    Motivation 2026-05-16: HistoricalTrendsAgent sold WOLF on a trail stop
+    then in the same cycle bought FATE/QCOM/RIOT/ZM — all of which took
+    fresh losses (~$2,358 combined unrealized). Cooling new BUYs for 4 h
+    after any trail-stop fire stops this whipsaw rebuy loop.
+    """
+
+    def _make_agent_with_position(self, shares=10, entry_price=100.0):
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        agent = _StubAgent("TestAgent", "stub")
+        agent.portfolio.execute_buy("AAPL", shares, entry_price)
+        return agent
+
+    async def test_no_cooldown_when_no_trail_stop_fired(self):
+        agent = self._make_agent_with_position()
+        self.assertIsNone(agent._last_trail_stop_ts)
+        self.assertFalse(agent._in_trail_cooldown())
+
+    async def test_trail_stop_sets_cooldown_timestamp(self):
+        agent = self._make_agent_with_position(shares=10, entry_price=100.0)
+        agent.portfolio.record_value({"AAPL": 130.0})  # peak = $300 (armed)
+        exits = await agent._check_trailing_stops({"AAPL": 110.0})  # gives back $200
+        self.assertGreater(len(exits), 0, "trail should have fired")
+        self.assertIsNotNone(agent._last_trail_stop_ts)
+        self.assertTrue(agent._in_trail_cooldown())
+
+    async def test_cooldown_expires_after_window(self):
+        from datetime import timedelta
+        agent = self._make_agent_with_position()
+        # Pretend a stop fired 5 hours ago — past the 4-hour default
+        agent._last_trail_stop_ts = datetime.now(timezone.utc) - timedelta(hours=5)
+        self.assertFalse(agent._in_trail_cooldown())
+
+    async def test_cooldown_active_within_window(self):
+        from datetime import timedelta
+        agent = self._make_agent_with_position()
+        agent._last_trail_stop_ts = datetime.now(timezone.utc) - timedelta(hours=1)
+        self.assertTrue(agent._in_trail_cooldown())
+
+    async def test_buy_blocked_during_cooldown(self):
+        from agents.base_agent import Signal
+        agent = self._make_agent_with_position()
+        agent._last_trail_stop_ts = datetime.now(timezone.utc)
+        sig = Signal(
+            action="BUY", symbol="MSFT", confidence=0.8, shares=10.0,
+            reasoning="strong signal", agent_name="TestAgent",
+        )
+        ok = await agent._execute_signal(sig, {"MSFT": 300.0})
+        self.assertFalse(ok, "BUY must be blocked during cool-down")
+        self.assertNotIn("MSFT", agent.portfolio.positions)
+
+    async def test_sell_not_blocked_during_cooldown(self):
+        from agents.base_agent import Signal
+        agent = self._make_agent_with_position()  # holds AAPL @ $100
+        agent._last_trail_stop_ts = datetime.now(timezone.utc)
+        sig = Signal(
+            action="SELL", symbol="AAPL", confidence=0.8, shares=10.0,
+            reasoning="exit signal", agent_name="TestAgent",
+        )
+        ok = await agent._execute_signal(sig, {"AAPL": 110.0})
+        self.assertTrue(ok, "SELL must NOT be blocked during cool-down")
+
+    async def test_cooldown_disabled_when_hours_zero(self):
+        from unittest.mock import patch as _patch
+        from config import config as _config
+        agent = self._make_agent_with_position()
+        agent._last_trail_stop_ts = datetime.now(timezone.utc)
+        with _patch.object(_config, "TRAIL_COOLDOWN_HOURS", 0.0):
+            self.assertFalse(agent._in_trail_cooldown())
 
 
 class TestHardStopExit(unittest.IsolatedAsyncioTestCase):
