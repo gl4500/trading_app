@@ -42,12 +42,29 @@ from data.signal_history import signal_history
 from data.xgboost_model import last_timestep_features
 from config import config
 
-# Same channels as live production filter (16-ch peak from forward selection)
-PEAK_16: List[str] = [
+# Fallback filter when XGB_FEATURE_FILTER env is unset (used to be the live
+# production filter; the env override now drives both the main model AND
+# this ensemble so they stay consistent).
+_FALLBACK_FILTER: List[str] = [
     "corr_spy_20d", "earnings_score", "hist_seasonal", "r_5", "r_20", "r_1",
     "hist_volume_pattern", "r_5d", "r_60d", "hist_momentum_alignment", "mom_12_1",
     "r_1d", "alpaca_score", "iv_rv_score", "r_20d", "agent_consensus",
 ]
+
+
+def _resolve_filter() -> List[str]:
+    """Read the live XGB_FEATURE_FILTER env (set by .env or shell). Falls
+    back to the documented 16-ch peak only when the env is empty — the env
+    is the single source of truth so this script never trains a different
+    filter than the production model.
+    """
+    raw = os.getenv("XGB_FEATURE_FILTER", "").strip()
+    if not raw:
+        return list(_FALLBACK_FILTER)
+    return [s.strip() for s in raw.split(",") if s.strip()]
+
+
+ACTIVE_FILTER: List[str] = _resolve_filter()
 
 # K boosters in the ensemble. 10 gives reasonable variance reduction;
 # more gets diminishing returns and increased disk + inference cost.
@@ -89,7 +106,7 @@ def names_to_indices(names: List[str]) -> List[int]:
 
 def main() -> int:
     print(f"Bootstrap-ensemble training — K={K_BOOTSTRAP} boosters")
-    print(f"Filter: {len(PEAK_16)}-channel ({', '.join(PEAK_16[:6])}, ...)")
+    print(f"Filter: {len(ACTIVE_FILTER)}-channel ({', '.join(ACTIVE_FILTER[:6])}, ...)")
     print("=" * 100)
 
     print("\nLoading training data...")
@@ -109,7 +126,7 @@ def main() -> int:
     X = last_timestep_features(X_3d)
     print(f"  X.shape={X.shape}  ({time.time()-t0:.1f}s)")
 
-    cols = names_to_indices(PEAK_16)
+    cols = names_to_indices(ACTIVE_FILTER)
     Xs = X[:, cols]
     print(f"  filtered to {Xs.shape[1]} channels")
 
@@ -181,8 +198,8 @@ def main() -> int:
     # ── Save sidecar metadata for the ensemble ─────────────────────────────
     ensemble_meta = {
         "k": K_BOOTSTRAP,
-        "channels": PEAK_16,
-        "n_channels": len(PEAK_16),
+        "channels": ACTIVE_FILTER,
+        "n_channels": len(ACTIVE_FILTER),
         "params": PARAMS,
         "n_total": int(n_total),
         "label_horizon_col": "return_10d (clipped to ±30% as return_5d slot)",
