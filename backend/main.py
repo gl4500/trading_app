@@ -1339,7 +1339,15 @@ async def run_agent_cycle(agent, market_context: Dict, prices: Dict[str, float])
 
 
 async def save_performance_snapshots(prices: Dict[str, float]) -> None:
-    """Save performance snapshot for all agents."""
+    """Save performance snapshot for all agents.
+
+    Aggregates per-agent outcomes so a silent total failure becomes loud:
+    - all-agent failure → CRITICAL (e.g., DB unreachable for an entire cycle)
+    - partial failure   → WARNING summary
+    - all success       → silent (default debug only)
+    """
+    successes = 0
+    failures = 0
     for agent in app_state.agents.values():
         try:
             metrics = agent.get_performance_metrics(prices)
@@ -1351,8 +1359,20 @@ async def save_performance_snapshots(prices: Dict[str, float]) -> None:
                 sharpe_ratio=metrics["sharpe_ratio"],
                 win_rate=metrics["win_rate"],
             )
+            successes += 1
         except Exception as e:
             logger.error(f"Error saving performance for {agent.name}: {e}")
+            failures += 1
+
+    if failures and successes == 0:
+        logger.critical(
+            f"Performance snapshot save FAILED for ALL {failures} agents this cycle. "
+            f"No DB rows persisted — leaderboard/history will go stale until fixed."
+        )
+    elif failures:
+        logger.warning(
+            f"Performance snapshot: {successes} saved, {failures} failed"
+        )
 
 
 # ─── WebSocket Broadcast ──────────────────────────────────────────────────────
