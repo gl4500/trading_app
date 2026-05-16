@@ -63,6 +63,10 @@ class BaseAgent(ABC):
         # Survives scanner cache expiry and app restarts — each agent owns its own conviction.
         self._picks: Dict[str, Dict] = {}
         self._load_picks()
+        # Trail-stop cool-down: timestamp of most recent trailing-stop SELL.
+        # Used by _in_trail_cooldown() to block new BUYs for
+        # config.TRAIL_COOLDOWN_HOURS after any trail-stop fire.
+        self._last_trail_stop_ts: Optional[datetime] = None
 
     # ── Picks persistence ────────────────────────────────────────────────────
 
@@ -413,7 +417,21 @@ class BaseAgent(ABC):
                 )
                 exits.append(sig)
                 logger.info(f"{self.name}: TRAIL EXIT {sym} @ ${price:.2f} | {reasoning}")
+        if exits:
+            # Arm the trail-stop cool-down — blocks new BUYs for
+            # config.TRAIL_COOLDOWN_HOURS to prevent rebuy whipsaw.
+            self._last_trail_stop_ts = datetime.now(timezone.utc)
         return exits
+
+    def _in_trail_cooldown(self) -> bool:
+        """True if a trailing-stop exit fired within the last
+        ``config.TRAIL_COOLDOWN_HOURS``. ``TRAIL_COOLDOWN_HOURS=0`` disables.
+        """
+        if not self._last_trail_stop_ts or config.TRAIL_COOLDOWN_HOURS <= 0:
+            return False
+        from datetime import timedelta
+        elapsed = datetime.now(timezone.utc) - self._last_trail_stop_ts
+        return elapsed < timedelta(hours=config.TRAIL_COOLDOWN_HOURS)
 
     async def _execute_signal(
         self,
@@ -428,6 +446,18 @@ class BaseAgent(ABC):
             return False
 
         if signal.action == "BUY":
+            # ── Trail-stop cool-down gate ─────────────────────────────────────
+            # Block new BUYs for TRAIL_COOLDOWN_HOURS after any trail-stop
+            # exit. Stops the agent from selling a winner on trail and
+            # immediately rebuying into positions that whipsaw lower.
+            if self._in_trail_cooldown():
+                logger.info(
+                    f"{self.name}: BUY {signal.symbol} skipped — trail-stop "
+                    f"cool-down in effect (last stop "
+                    f"{self._last_trail_stop_ts.isoformat()})"
+                )
+                return False
+
             # ── Fractional Kelly sizing ───────────────────────────────────────
             # Apply quarter-Kelly as a position-size CAP: if the agent requested
             # more shares than Kelly suggests, scale down to the Kelly amount.

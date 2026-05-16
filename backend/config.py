@@ -88,6 +88,14 @@ class Config:
     TRAIL_GIVEBACK_PCT: float = float(os.getenv("TRAIL_GIVEBACK_PCT", "0.20"))
     TRAIL_ARM_USD:      float = float(os.getenv("TRAIL_ARM_USD",      "25.0"))
 
+    # Trail-stop cool-down (added 2026-05-16):
+    # After any trailing-stop SELL fires, block new BUYs across the agent's
+    # portfolio for this many hours. Defends against the whipsaw rebuy loop:
+    # agent stops out of a winner, immediately redeploys cash into new
+    # positions that take fresh losses. SELLs are NEVER blocked.
+    # Set to 0 to disable.
+    TRAIL_COOLDOWN_HOURS: float = float(os.getenv("TRAIL_COOLDOWN_HOURS", "4.0"))
+
     # Hard stop-loss (Backlog 0.4, 2026-04-29):
     # Defensive floor — sell when (avg_cost - current_price) / avg_cost >=
     # HARD_STOP_PCT, regardless of Bayes / trailing / LLM. Catches positions
