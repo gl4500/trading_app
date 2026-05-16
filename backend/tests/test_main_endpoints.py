@@ -2241,5 +2241,71 @@ class TestBenchmarksEndpoint(unittest.TestCase):
                          "2 (SPY + DIA on first request, 0 on second)")
 
 
+class TestSavePerformanceSnapshotsErrorVisibility(unittest.IsolatedAsyncioTestCase):
+    """save_performance_snapshots must escalate to CRITICAL when ALL agents fail.
+
+    Without this gate, a totally-broken DB write path produces only per-agent
+    ERROR logs that are easy to miss. The user discovered today that no
+    performance snapshot existed for 2026-05-16 even though the app had been
+    running; a CRITICAL aggregate log surfaces that condition immediately.
+    """
+
+    async def test_all_agents_failing_logs_critical(self):
+        from main import save_performance_snapshots
+        agent_a = _make_mock_agent("AgentA")
+        agent_b = _make_mock_agent("AgentB")
+        state = _make_app_state(
+            agents={"AgentA": agent_a, "AgentB": agent_b}, is_running=True
+        )
+        with patch("main.app_state", state), \
+             patch("main.save_performance",
+                   new=AsyncMock(side_effect=RuntimeError("db down"))), \
+             patch("main.logger") as mock_logger:
+            await save_performance_snapshots(state.last_prices)
+        critical_calls = mock_logger.critical.call_args_list
+        self.assertEqual(
+            len(critical_calls), 1,
+            f"Expected exactly 1 CRITICAL log when all agents fail; "
+            f"got {len(critical_calls)} ({critical_calls})",
+        )
+        msg = critical_calls[0].args[0]
+        self.assertIn("ALL", msg)
+        self.assertIn("2", msg)  # 2 agents failed
+
+    async def test_partial_failure_logs_warning_not_critical(self):
+        from main import save_performance_snapshots
+        agent_a = _make_mock_agent("AgentA")
+        agent_b = _make_mock_agent("AgentB")
+        state = _make_app_state(
+            agents={"AgentA": agent_a, "AgentB": agent_b}, is_running=True
+        )
+        save_mock = AsyncMock(side_effect=[RuntimeError("transient"), None])
+        with patch("main.app_state", state), \
+             patch("main.save_performance", new=save_mock), \
+             patch("main.logger") as mock_logger:
+            await save_performance_snapshots(state.last_prices)
+        self.assertFalse(
+            mock_logger.critical.called,
+            f"CRITICAL must not fire when at least one agent succeeded; "
+            f"got {mock_logger.critical.call_args_list}",
+        )
+        warning_msgs = [c.args[0] for c in mock_logger.warning.call_args_list]
+        self.assertTrue(
+            any("saved" in m and "failed" in m for m in warning_msgs),
+            f"Expected WARNING summary with saved+failed counts; got {warning_msgs}",
+        )
+
+    async def test_all_success_silent(self):
+        from main import save_performance_snapshots
+        agent_a = _make_mock_agent("AgentA")
+        state = _make_app_state(agents={"AgentA": agent_a}, is_running=True)
+        with patch("main.app_state", state), \
+             patch("main.save_performance", new=AsyncMock()), \
+             patch("main.logger") as mock_logger:
+            await save_performance_snapshots(state.last_prices)
+        self.assertFalse(mock_logger.critical.called)
+        self.assertFalse(mock_logger.warning.called)
+
+
 if __name__ == "__main__":
     unittest.main()
