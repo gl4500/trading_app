@@ -253,6 +253,7 @@ Relevant memory files for this repo:
 | `feedback_scope_restriction.md` | Scope section |
 | `feedback_shell_cleanup.md` | Shell cleanup section |
 | `feedback_sync_rule.md` | This section (memory update after every change) |
+| `feedback_performance_history_retention.md` | Key invariant #9 (no date-based prune on performance table) |
 | `trading_app_architecture.md` | Architecture Quick Reference + Key invariants |
 | `trading_app_bugs_fixed.md` | Known bugs and fixes (not in CLAUDE.md — memory only) |
 | `trading_app_thresholds.md` | Agent thresholds (not in CLAUDE.md — memory only) |
@@ -284,3 +285,10 @@ Relevant memory files for this repo:
 6. `OLLAMA_ONLY_MODE=1` must route ALL three AI agents (Claude, Gemini, Sentiment) through Ollama — never call cloud APIs in this mode; token logging is skipped (zero cost, no quota)
 7. `Portfolio` has no `get_position()` method — always access positions via `portfolio.positions[sym]` (check with `sym in portfolio.positions`; read shares with `.shares`)
 8. `__MACRO__.parquet` uses a `__`-prefixed filename — `symbols_with_data()` and `get_training_data()` must filter out any `__`-prefixed entries to prevent KeyError on per-symbol signal history calls
+9. **`performance` table is NEVER date-pruned** (user policy 2026-05-16: "continuity for all trades, not just days"). `prune_news_price_snapshots` still runs on its own 14-day window. Re-introducing `prune_performance_table` or any equivalent would silently lose week-over-week diagnostic visibility — see `feedback_performance_history_retention.md`.
+
+## Trading policy defaults (env-tunable; tightened 2026-05-16)
+- `TRAIL_GIVEBACK_PCT=0.10` — trailing-stop fires when current unrealized PnL has fallen 10 % below peak (was 0.20 before 2026-05-16; loose default cost ~$30K of peak portfolio value in chop)
+- `TRAIL_ARM_USD=100.0` — trailing arms only once peak unrealized PnL reaches $100 (was $25; raises arm noise floor)
+- `TRAIL_COOLDOWN_HOURS=4.0` — after any trailing-stop SELL fires, new BUYs across the agent's portfolio are blocked for this many hours. SELLs are never blocked. `0` disables. State lives in `BaseAgent._last_trail_stop_ts` (in-memory, non-persistent across restart).
+- `XGB_FEATURE_FILTER` — 8-channel production set (reverted from 16-ch on 2026-05-16; 16-ch had fold-2 IC ≈ 0 in current regime). Both `signal_xgb.json` (main) and `signal_xgb_b{0..9}.json` (ensemble) must train on the **same** filter — `scripts/train_xgb_ensemble.py` now reads the env so they stay aligned.
