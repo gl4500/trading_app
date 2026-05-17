@@ -25,8 +25,32 @@ def _synthetic_history(n_days=500, n_symbols=3, seed=0):
         for s in symbols:
             rows.append({"date": d, "symbol": s,
                          "return_1d": rng.normal(0.0005, 0.012),
-                         "close": 100.0,            # placeholder
+                         "price": 100.0,            # placeholder; matches signal_history schema
                          "feature_x": rng.normal()})
+    return pd.DataFrame(rows).set_index(["date", "symbol"])
+
+
+def _tiny_history():
+    """30 days x 2 symbols of synthetic data with all required channels.
+
+    Module-level so both TestSmokeE2E and TestAggregation can reuse it.
+    Uses 'price' (matches signal_history.get_training_data schema), not
+    'close' (the synthetic-only column the original fixture had).
+    """
+    rng = np.random.default_rng(0)
+    rows = []
+    for day in range(30):
+        for sym in ("AAPL", "MSFT"):
+            rows.append({
+                "date": day, "symbol": sym,
+                "price": 100.0 + rng.normal(0, 1),
+                "return_1d": rng.normal(0, 0.01),
+                "analyst_score": rng.uniform(),
+                "earnings_score": rng.normal(),
+                "alpaca_score": rng.normal(),
+                "yahoo_score": rng.normal(),
+                "iv_rv_score": rng.normal(),
+            })
     return pd.DataFrame(rows).set_index(["date", "symbol"])
 
 
@@ -152,13 +176,18 @@ class TestReplay(unittest.IsolatedAsyncioTestCase):
     """replay_one_path day-by-day simulation against a known synthetic path."""
 
     def _synthetic_one_symbol_path(self, n_days=30):
-        """One symbol, monotonically rising → BUY signal should fire and profit."""
+        """One symbol, monotonically rising → BUY signal should fire and profit.
+
+        Uses 'price' (matches the column emitted by
+        signal_history.get_training_data) — never 'close', which only ever
+        existed in this synthetic fixture and masked Bug 1.
+        """
         dates = list(range(n_days))
         rows = []
         for i, d in enumerate(dates):
             rows.append({
                 "date": d, "symbol": "AAPL",
-                "close": 100.0 * (1.0 + 0.001 * i),     # +0.1% per day
+                "price": 100.0 * (1.0 + 0.001 * i),     # +0.1% per day
                 "return_1d": 0.001,
                 # Every channel cnn_model needs — for the smoke test, zeros suffice
                 "analyst_score": 0.5, "earnings_score": 0.0,
@@ -193,8 +222,39 @@ class TestReplay(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(outcome.n_trades, 0)   # no BUYs fired → no SELLs either
         self.assertAlmostEqual(outcome.final_return, 0.0)
 
+    async def test_replay_uses_model_window_correctly(self):
+        """Pins Bug 2 (1D vector) + Bug 3 (direction vocab) jointly.
 
-class TestAggregation(unittest.TestCase):
+        SignalXGBoost.predict returns "bull"/"bear"/"neutral" but decide_buy's
+        Gate 1 requires "up". A _FakeModel emitting "bull" + high confidence on
+        a path with >10 days of history MUST result in BUYs firing — proving
+        both that the (C, T) window is being built (predict isn't shape-guarded
+        out) and that direction is translated at the consumer boundary.
+
+        Pre-fix this returned 0 trades because:
+          - "bull" was passed through as-is → Gate 1 ("up") blocks (Bug 3), AND
+          - real SignalXGBoost would have shape-guarded the 1D vector to
+            (0.0, "neutral", 0.0) anyway (Bug 2).
+        """
+        from data.mc_backtester import replay_one_path, _FakeModel
+        from config import config
+        path = self._synthetic_one_symbol_path(n_days=30)  # >10 days
+        # Use the production model's vocabulary ("bull") — translation must
+        # convert this to "up" before passing to decide_buy.
+        model = _FakeModel(pred_return=0.02, direction="bull", confidence=0.85)
+        outcome = await replay_one_path(
+            path=path, model=model, variant_name="bull",
+            sim_idx=0, starting_capital=100000.0, config=config,
+        )
+        self.assertGreater(
+            outcome.n_buys, 0,
+            "BUYs failed to fire — direction translation or window shape broken",
+        )
+
+
+class TestAggregation(unittest.IsolatedAsyncioTestCase):
+    # IsolatedAsyncioTestCase so the paired-comparison test can `await`.
+    # Sync tests below still work — IsolatedAsyncioTestCase is a superset.
 
     def test_percentile_math_correct(self):
         from data.mc_backtester import PathOutcome, summarise
@@ -247,29 +307,46 @@ class TestAggregation(unittest.TestCase):
         finally:
             os.unlink(path)
 
+    async def test_paired_comparison_same_path_for_all_variants(self):
+        """run_variant_comparison must run every variant on the SAME bootstrap path.
+
+        Two identical _FakeModels must produce identical PathOutcomes per sim —
+        if not, the simulator is re-sampling per variant (paired comparison
+        broken, kills statistical power for ranking variants).
+        """
+        from data.mc_backtester import (
+            BootstrapConfig, FilterVariant, _FakeModel,
+            run_variant_comparison,
+        )
+        from config import config
+        hist = _tiny_history()
+        variants = [
+            FilterVariant(name="A", model=_FakeModel(0.02, "up", 0.80)),
+            FilterVariant(name="B", model=_FakeModel(0.02, "up", 0.80)),  # identical
+        ]
+        cfg = BootstrapConfig(expected_block_size=5, n_paths=3, path_length_days=20, seed=0)
+        _, outcomes = await run_variant_comparison(variants, hist, cfg, config=config)
+        # Outcomes are ordered (sim 0 var A, sim 0 var B, sim 1 var A, ...)
+        # Identical models on same path → identical outcomes
+        for sim_idx in range(3):
+            a = outcomes[sim_idx * 2 + 0]      # variant A
+            b = outcomes[sim_idx * 2 + 1]      # variant B
+            self.assertEqual(a.sim_idx, b.sim_idx)
+            self.assertEqual(
+                a.n_trades, b.n_trades,
+                f"Sim {sim_idx}: variant A & B got DIFFERENT trade counts "
+                f"({a.n_trades} vs {b.n_trades}) - paired comparison broken",
+            )
+            self.assertAlmostEqual(
+                a.final_return, b.final_return, places=5,
+                msg=f"Sim {sim_idx}: variants got different final returns - "
+                "paired comparison broken",
+            )
+
 
 class TestSmokeE2E(unittest.IsolatedAsyncioTestCase):
     """End-to-end: 2 variants × 3 paths × 30 days × 2 symbols. Sanity check
     that everything wires up and produces a valid report."""
-
-    def _tiny_history(self):
-        """30 days × 2 symbols of synthetic data with all required channels."""
-        import numpy as np
-        rng = np.random.default_rng(0)
-        rows = []
-        for day in range(30):
-            for sym in ("AAPL", "MSFT"):
-                rows.append({
-                    "date": day, "symbol": sym,
-                    "close": 100.0 + rng.normal(0, 1),
-                    "return_1d": rng.normal(0, 0.01),
-                    "analyst_score": rng.uniform(),
-                    "earnings_score": rng.normal(),
-                    "alpaca_score": rng.normal(),
-                    "yahoo_score": rng.normal(),
-                    "iv_rv_score": rng.normal(),
-                })
-        return pd.DataFrame(rows).set_index(["date", "symbol"])
 
     async def test_full_pipeline_runs_to_completion(self):
         from data.mc_backtester import (
@@ -277,7 +354,7 @@ class TestSmokeE2E(unittest.IsolatedAsyncioTestCase):
             run_variant_comparison, render_markdown,
         )
         from config import config
-        hist = self._tiny_history()
+        hist = _tiny_history()
         variants = [
             FilterVariant(name="A", model=_FakeModel(0.02, "up",   0.80)),
             FilterVariant(name="B", model=_FakeModel(0.01, "down", 0.30)),
