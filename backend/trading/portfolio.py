@@ -403,12 +403,20 @@ class Portfolio:
                     captured_pcts.append(exit_gain_pct / t.mfe_pct * 100)
         avg_captured_pct = sum(captured_pcts) / len(captured_pcts) if captured_pcts else 0.0
 
+        # Realized PnL: direct sum of pnl across SELL trades. This is the
+        # authoritative number. Don't derive realized as total_return -
+        # unrealized — that hides bookkeeping drift (see GitHub issue:
+        # "HistoricalTrendsAgent shows $18.7K cash drift between trades
+        # and snapshot" filed 2026-05-16).
+        realized_pnl = sum(t.pnl for t in sell_trades)
+
         return {
             "total_value": total_value,
             "cash": self.cash,
             "position_value": total_value - self.cash,
             "total_return_pct": total_return_pct,
             "total_return": total_value - self.starting_capital,
+            "realized_pnl": realized_pnl,
             "win_rate": win_rate,
             "sharpe_ratio": sharpe,
             "max_drawdown": max_drawdown,

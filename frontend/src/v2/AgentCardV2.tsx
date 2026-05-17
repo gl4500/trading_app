@@ -81,7 +81,12 @@ export default function AgentCardV2({ agent }: Props) {
   const cashPct = agent.total_value > 0 ? (agent.cash / agent.total_value) * 100 : 100
   const investedPct = 100 - cashPct
   const unrealized = (agent.positions || []).reduce((s, p) => s + p.unrealized_pnl, 0)
-  const realized = agent.total_return - unrealized
+  // Realized PnL: prefer the server's direct sum of SELL trade pnl. Falls back
+  // to (total_return - unrealized) only when the server hasn't sent the field
+  // (pre-2026-05-17 backends). The fallback is mathematically equivalent ONLY
+  // when the books tie; in practice it masks bookkeeping drift — see GitHub
+  // issue on the $18.7K cash gap observed in HistoricalTrendsAgent.
+  const realized = agent.realized_pnl ?? (agent.total_return - unrealized)
 
   const signals = Object.entries(agent.last_signals || {})
   const displaySignals = showAllSignals ? signals : signals.slice(0, 3)

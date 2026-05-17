@@ -559,6 +559,7 @@ class BaseAgent(ABC):
             "position_value": metrics["position_value"],
             "total_return_pct": metrics["total_return_pct"],
             "total_return": metrics["total_return"],
+            "realized_pnl": metrics["realized_pnl"],
             "win_rate": metrics["win_rate"],
             "sharpe_ratio": metrics["sharpe_ratio"],
             "max_drawdown": metrics["max_drawdown"],
