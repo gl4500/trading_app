@@ -31,7 +31,7 @@ os.environ.setdefault("MODEL_BACKEND", "xgboost")
 
 from data.signal_history import signal_history
 from data.cnn_model import build_training_windows, ALL_CHANNEL_COLUMNS
-from data.xgboost_model import SignalXGBoost
+from data.xgboost_model import SignalXGBoost, _parse_feature_filter
 from data.mc_backtester import (
     BootstrapConfig, FilterVariant, run_variant_comparison,
     render_markdown, write_jsonl,
@@ -47,16 +47,25 @@ def _parse_variant_arg(spec: str) -> tuple[str, list[str]]:
 
 
 def _train_variant(name: str, channel_names: list[str]) -> SignalXGBoost:
-    """Train one fresh SignalXGBoost with the given feature filter."""
+    """Train one fresh SignalXGBoost with the given feature filter.
+
+    SignalXGBoost.__init__ does NOT re-read XGB_FEATURE_FILTER (only the
+    module-level singleton parses it, once at import time). So we set the
+    env AND explicitly call _parse_feature_filter() to translate it into
+    integer channel indices, passing the result to the constructor.
+    Without this, every variant trained on all 38 channels and produced
+    bit-identical predictions.
+    """
     print(f"\n  -- training variant '{name}' ({len(channel_names)} channels)...")
-    # Temporarily set the env so SignalXGBoost picks up the filter at init
     os.environ["XGB_FEATURE_FILTER"] = ",".join(channel_names)
-    model = SignalXGBoost()
+    feature_filter = _parse_feature_filter()
+    model = SignalXGBoost(feature_filter=feature_filter)
     df = signal_history.get_training_data()
     X, y, w, t = build_training_windows(df)
     t0 = time.time()
     model.fit(X, y, t, sample_weights=w)
-    print(f"  -- '{name}' fit in {time.time()-t0:.1f}s  mean_IC={model.training_summary()['mean_ic']:+.4f}")
+    filt_size = len(feature_filter) if feature_filter else None
+    print(f"  -- '{name}' fit in {time.time()-t0:.1f}s  mean_IC={model.training_summary()['mean_ic']:+.4f}  filter_size={filt_size}")
     return model
 
 
