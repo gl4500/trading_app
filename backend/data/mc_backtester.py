@@ -239,17 +239,41 @@ async def replay_one_path(
     agent = _BacktestAgent("backtest", "stripped", portfolio_override=portfolio)
     daily_values: List[float] = []
 
-    # Fresh regime detector per path — no state leakage across simulations
+    # Fresh regime detector per path — no state leakage across simulations.
+    # RegimeDetector.update() REPLACES its internal price list, so we must
+    # accumulate SPY prices across days and feed the cumulative list each
+    # cycle — otherwise the detector never sees the 21+ prices it needs to
+    # classify a non-neutral regime, silently disabling the regime gate.
     regime_detector = RegimeDetector()
+    spy_history: List[float] = []
+
+    # T (CNN window length) — kept in sync with data.cnn_model.WINDOW_SIZE.
+    # Hard-coded here to avoid pulling cnn_model into the backtester's import
+    # graph (cnn_decision contract: pure helpers, no model imports).
+    T = 10
+
+    # Vocabulary translation: SignalXGBoost.predict returns "bull|bear|neutral",
+    # but decide_buy's Gate 1 contract is Literal["up","down","neutral"].
+    # Production CNNReasoningAgent dodges this by hard-coding "up" (Ollama has
+    # already approved BUY by then). The backtester has no Ollama, so we
+    # translate at the consumer boundary and keep decide_buy semantically pure.
+    # The map also passes through "up"/"down"/"neutral" unchanged so test
+    # fixtures (_FakeModel) using either vocabulary work correctly.
+    _DIRECTION_MAP = {
+        "bull": "up", "bear": "down", "neutral": "neutral",
+        "up": "up", "down": "down",
+    }
 
     dates = sorted(path.index.get_level_values(0).unique())
     for day_idx, date in enumerate(dates):
         day_rows = path.xs(date, level=0)
-        prices = day_rows["close"].to_dict()
+        prices = day_rows["price"].to_dict()
 
-        # Feed SPY (or first symbol as proxy) to regime detector
+        # Feed cumulative SPY prices to regime detector (update() replaces
+        # the internal list each call — see comment above).
         if "SPY" in prices:
-            regime_detector.update([prices["SPY"]])
+            spy_history.append(prices["SPY"])
+            regime_detector.update(spy_history)
         regime = regime_detector.get_regime()[0] if day_idx > 20 else "neutral"
 
         portfolio.record_value(prices)
@@ -262,19 +286,43 @@ async def replay_one_path(
             portfolio.execute_sell(sig.symbol, sig.shares, prices[sig.symbol], sig.reasoning)
 
         # ── BUY pass ──────────────────────────────────────────────────────
+        # Build a proper (C, T) window per symbol from the last T days of the
+        # path. SignalXGBoost.predict shape-guards on `x.shape[0] != n_channels`
+        # — a 1D row vector silently returns (0.0, "neutral", 0.0), blocking
+        # every BUY. We slice path.xs(symbol, level=1) over the last T dates
+        # and transpose so axis-0 is channels (matches build_training_windows).
+        end_idx = day_idx + 1
+        start_idx = max(0, end_idx - T)
+        hist_dates = dates[start_idx:end_idx]
+        if len(hist_dates) < T:
+            # Not enough history yet — skip BUY pass on this day for all symbols.
+            # Production behaviour: get_recent_window returns None < 3 snapshots;
+            # we use the stricter T-snapshot floor to match build_training_windows.
+            daily_values.append(portfolio.get_total_value(prices))
+            continue
+
         for symbol in day_rows.index:
             price = float(prices.get(symbol, 0.0))
             if price <= 0:
                 continue
-            # Build the model window — in this minimal replay we pass the row
-            # itself; a richer implementation builds the (C, T) window from
-            # `path` over the last T days.
-            window = day_rows.loc[symbol].to_numpy()  # 1D feature vector
-            pred_ret, direction, conf = model.predict(window)
+            # Extract this symbol's rows over the last T dates → (T rows × channels)
+            try:
+                sym_history = path.xs(symbol, level=1).loc[hist_dates]
+            except KeyError:
+                # Symbol missing on one of the historical dates — skip this BUY.
+                continue
+            if len(sym_history) < T:
+                continue
+            # Transpose to (C, T) — matches cnn_model.build_training_windows output.
+            window = sym_history.values.T
+            pred_ret, raw_direction, conf = model.predict(window)
+            direction_for_gate = _DIRECTION_MAP.get(
+                str(raw_direction).lower(), "neutral",
+            )
             ctx = BuyContext(
                 symbol=symbol,
                 cnn_pred_return=float(pred_ret),
-                cnn_pred_direction=str(direction),
+                cnn_pred_direction=direction_for_gate,
                 cnn_confidence=float(conf),
                 regime=regime,
                 portfolio_unpnl_frac=portfolio.unpnl_frac(prices),
