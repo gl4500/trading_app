@@ -287,6 +287,56 @@ app_state = AppState()
 
 # ─── Agent Initialization ────────────────────────────────────────────────────
 
+def _reconcile_cash_from_trades(
+    agent_name: str,
+    db_trades: List[Dict],
+    snapshot_cash: Optional[float],
+    starting_capital: float,
+) -> float:
+    """Derive cash from trade-history replay (source of truth).
+
+    The performance snapshot's cash column has historically drifted up across
+    restarts (issue #64: HistoricalTrendsAgent silently accumulated $18,720.78
+    of phantom cash). Replaying the trade ledger is unambiguous:
+
+        derived_cash = starting_capital
+                     - sum(BUY proceeds)
+                     + sum(SELL proceeds)
+
+    We always use ``derived_cash``. The snapshot is logged for visibility:
+      * snapshot missing            -> use derived silently
+      * snapshot within $1          -> log INFO ("reconciled within $1")
+      * snapshot drift > $1         -> log CRITICAL with both values + drift
+        (auto-repair: the drifted snapshot is discarded)
+    """
+    derived_cash = float(starting_capital)
+    for t in db_trades:
+        if t["action"] == "BUY":
+            derived_cash -= t["shares"] * t["price"]
+        elif t["action"] == "SELL":
+            derived_cash += t["shares"] * t["price"]
+
+    if snapshot_cash is None:
+        # No performance snapshot yet (fresh agent, or save_performance was
+        # crashing). Derived is the only signal we have — use it silently.
+        return derived_cash
+
+    drift = snapshot_cash - derived_cash
+    if abs(drift) > 1.0:
+        logger.critical(
+            f"{agent_name}: cash drift detected on restart — "
+            f"snapshot=${snapshot_cash:,.2f} vs replay=${derived_cash:,.2f} "
+            f"(drift ${drift:+,.2f}). Auto-repairing: using replay value as "
+            f"source of truth (issue #64)."
+        )
+    else:
+        logger.info(
+            f"{agent_name}: cash reconciled within $1 — "
+            f"snapshot=${snapshot_cash:,.2f}, replay=${derived_cash:,.2f}"
+        )
+    return derived_cash
+
+
 async def init_agents() -> None:
     """Create and register all trading agents."""
     logger.info("Initializing trading agents...")
@@ -368,24 +418,18 @@ async def init_agents() -> None:
                 except Exception as _te:
                     logger.warning(f"{agent.name}: skipping bad trade record: {_te} — row={t}")
 
-            # Restore cash: prefer last performance snapshot; fall back to trade-history estimate
-            cash = await get_latest_cash(agent_id)
-            if cash is not None:
-                agent.portfolio.cash = cash
-            elif db_trades:
-                # No performance snapshot saved (e.g. _calculate_sharpe was crashing) —
-                # reconstruct cash from trade history as best approximation.
-                estimated = float(config.STARTING_CAPITAL)
-                for t in db_trades:
-                    if t["action"] == "BUY":
-                        estimated -= t["shares"] * t["price"]
-                    elif t["action"] == "SELL":
-                        estimated += t["shares"] * t["price"]
-                agent.portfolio.cash = max(0.0, estimated)
-                logger.info(
-                    f"{agent.name}: no performance snapshot — cash estimated from "
-                    f"{len(db_trades)} trades as ${agent.portfolio.cash:,.2f}"
-                )
+            # Restore cash: always derive from trade-history replay (source of
+            # truth). Cross-check against the last performance snapshot — when
+            # they disagree by more than $1, log CRITICAL and auto-repair by
+            # using the replay value (issue #64).
+            snapshot_cash = await get_latest_cash(agent_id)
+            derived_cash = _reconcile_cash_from_trades(
+                agent_name=agent.name,
+                db_trades=db_trades,
+                snapshot_cash=snapshot_cash,
+                starting_capital=config.STARTING_CAPITAL,
+            )
+            agent.portfolio.cash = max(0.0, derived_cash)
 
             # Restore value history for portfolio chart
             history = await restore_value_history(agent_id)

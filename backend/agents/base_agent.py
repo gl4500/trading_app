@@ -260,6 +260,43 @@ class BaseAgent(ABC):
                 # Record portfolio value
                 self.portfolio.record_value(prices)
 
+                # Ledger-drift invariant: starting_capital should equal
+                #   cash + cost_basis_open - realized_pnl
+                # (= sum of BUYs not yet sold + cash left over). Drift here means
+                # bookkeeping has diverged from the trade ledger — same class of
+                # bug as issue #64 (HistoricalTrendsAgent silently accumulated
+                # $18,720.78 of cash drift across restarts). CRITICAL so the next
+                # cycle surfaces drift immediately instead of compounding.
+                try:
+                    realized = sum(
+                        t.pnl for t in self.portfolio.trade_history
+                        if t.action == "SELL"
+                    )
+                    cost_basis_open = sum(
+                        p.shares * p.avg_cost
+                        for p in self.portfolio.positions.values()
+                        if p.shares > 0
+                    )
+                    implied_start = (
+                        self.portfolio.cash + cost_basis_open - realized
+                    )
+                    drift = implied_start - self.portfolio.starting_capital
+                    if abs(drift) > 1.0:
+                        logger.critical(
+                            f"{self.name}: ledger drift detected — "
+                            f"cash ${self.portfolio.cash:.2f} + "
+                            f"cost_basis ${cost_basis_open:.2f} - "
+                            f"realized ${realized:.2f} = "
+                            f"${implied_start:.2f}, expected "
+                            f"${self.portfolio.starting_capital:.2f}, "
+                            f"drift ${drift:+.2f}"
+                        )
+                except Exception as _inv_exc:
+                    logger.warning(
+                        f"{self.name}: ledger-drift invariant check failed: "
+                        f"{_inv_exc}"
+                    )
+
                 return signals
 
             except Exception as e:

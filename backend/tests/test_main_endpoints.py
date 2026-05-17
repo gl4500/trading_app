@@ -2307,5 +2307,94 @@ class TestSavePerformanceSnapshotsErrorVisibility(unittest.IsolatedAsyncioTestCa
         self.assertFalse(mock_logger.warning.called)
 
 
+class TestReconcileCashFromTrades(unittest.TestCase):
+    """init_agents must derive cash from trade replay, not the perf snapshot.
+
+    Issue #64: HistoricalTrendsAgent's snapshot cash drifted +$18,720.78 above
+    the true ledger because save_performance_snapshots was using stale in-memory
+    cash on restart. The fix replays the trade history at startup and uses that
+    derived value (always authoritative) instead of the snapshot, logging
+    CRITICAL when the two disagree by more than $1.
+    """
+
+    def test_prefers_derived_cash_over_snapshot_on_drift(self):
+        """When snapshot and replay disagree, use replay + log CRITICAL."""
+        from main import _reconcile_cash_from_trades
+
+        starting_capital = 100000.0
+        db_trades = [
+            {"symbol": "AAPL", "action": "BUY", "shares": 10, "price": 100.0},
+        ]
+        snapshot_cash = 50000.0  # intentionally wrong; replay says 99,000
+
+        with patch("main.logger") as mock_logger:
+            result = _reconcile_cash_from_trades(
+                agent_name="HistoricalTrendsAgent",
+                db_trades=db_trades,
+                snapshot_cash=snapshot_cash,
+                starting_capital=starting_capital,
+            )
+
+        self.assertAlmostEqual(result, 99000.0, places=2)
+        critical_calls = mock_logger.critical.call_args_list
+        self.assertEqual(
+            len(critical_calls), 1,
+            f"Expected exactly 1 CRITICAL log on drift > $1; got {critical_calls}",
+        )
+        msg = critical_calls[0].args[0]
+        self.assertIn("HistoricalTrendsAgent", msg)
+        # The drift amount and both cash values should appear in the message
+        self.assertIn("99000", msg.replace(",", "").replace(".00", ""))
+        self.assertIn("50000", msg.replace(",", "").replace(".00", ""))
+
+    def test_snapshot_within_one_dollar_no_critical(self):
+        """If snapshot agrees with replay (delta <= $1), log INFO, use replay."""
+        from main import _reconcile_cash_from_trades
+
+        starting_capital = 100000.0
+        # BUY 10 @ 100 -> derived = 99,000
+        db_trades = [
+            {"symbol": "AAPL", "action": "BUY", "shares": 10, "price": 100.0},
+        ]
+        snapshot_cash = 99000.50  # within $1 of derived
+
+        with patch("main.logger") as mock_logger:
+            result = _reconcile_cash_from_trades(
+                agent_name="MomentumAgent",
+                db_trades=db_trades,
+                snapshot_cash=snapshot_cash,
+                starting_capital=starting_capital,
+            )
+
+        self.assertAlmostEqual(result, 99000.0, places=2)
+        self.assertFalse(
+            mock_logger.critical.called,
+            f"CRITICAL should not fire when within $1; got "
+            f"{mock_logger.critical.call_args_list}",
+        )
+
+    def test_snapshot_missing_silently_uses_derived(self):
+        """If snapshot_cash is None, use derived without CRITICAL."""
+        from main import _reconcile_cash_from_trades
+
+        starting_capital = 100000.0
+        db_trades = [
+            {"symbol": "AAPL", "action": "BUY", "shares": 10, "price": 100.0},
+            {"symbol": "AAPL", "action": "SELL", "shares": 5, "price": 110.0},
+        ]
+        # derived = 100000 - 1000 + 550 = 99,550
+
+        with patch("main.logger") as mock_logger:
+            result = _reconcile_cash_from_trades(
+                agent_name="TechAgent",
+                db_trades=db_trades,
+                snapshot_cash=None,
+                starting_capital=starting_capital,
+            )
+
+        self.assertAlmostEqual(result, 99550.0, places=2)
+        self.assertFalse(mock_logger.critical.called)
+
+
 if __name__ == "__main__":
     unittest.main()
