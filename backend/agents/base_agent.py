@@ -17,6 +17,7 @@ import numpy as np
 from config import config
 from trading.portfolio import Portfolio
 from trading.risk_manager import RiskManager
+from api.schemas import AgentState
 
 logger = logging.getLogger(__name__)
 
@@ -520,8 +521,14 @@ class BaseAgent(ABC):
         """Get performance metrics for the agent."""
         return self.portfolio.calculate_metrics(prices)
 
-    def get_state(self, prices: Dict[str, float]) -> Dict:
-        """Get complete agent state for API responses."""
+    def get_state(self, prices: Dict[str, float]) -> AgentState:
+        """Get complete agent state for API responses.
+
+        Returns an :class:`AgentState` dataclass with a dict shim — every
+        existing ``state["key"]`` / ``state["rank"] = N`` / ``state.get(...)``
+        callsite (notably ``main.py:1440``'s leaderboard rank assignment)
+        keeps working unchanged.
+        """
         metrics = self.portfolio.calculate_metrics(prices)
 
         # Recent trades
@@ -549,30 +556,30 @@ class BaseAgent(ABC):
             for sym, sig in self._last_signals.items()
         }
 
-        return {
-            "id": self.agent_id,
-            "name": self.name,
-            "strategy": self.strategy_description,
-            "is_active": self._is_active,
-            "cash": self.portfolio.cash,
-            "total_value": metrics["total_value"],
-            "position_value": metrics["position_value"],
-            "total_return_pct": metrics["total_return_pct"],
-            "total_return": metrics["total_return"],
-            "realized_pnl": metrics["realized_pnl"],
-            "win_rate": metrics["win_rate"],
-            "sharpe_ratio": metrics["sharpe_ratio"],
-            "max_drawdown": metrics["max_drawdown"],
-            "total_trades": metrics["total_trades"],
-            "positions": metrics["positions"],
-            "recent_trades": recent_trades,
-            "last_signals": last_signals,
-            "picks": dict(self._picks),
-            "value_history": self.portfolio.get_value_history(),
-            "avg_mae": metrics.get("avg_mae", 0.0),
-            "avg_mfe": metrics.get("avg_mfe", 0.0),
-            "avg_captured_pct": metrics.get("avg_captured_pct", 0.0),
-        }
+        return AgentState(
+            id=self.agent_id,
+            name=self.name,
+            strategy=self.strategy_description,
+            is_active=self._is_active,
+            cash=self.portfolio.cash,
+            total_value=metrics["total_value"],
+            position_value=metrics["position_value"],
+            total_return_pct=metrics["total_return_pct"],
+            total_return=metrics["total_return"],
+            realized_pnl=metrics["realized_pnl"],
+            win_rate=metrics["win_rate"],
+            sharpe_ratio=metrics["sharpe_ratio"],
+            max_drawdown=metrics["max_drawdown"],
+            total_trades=metrics["total_trades"],
+            positions=metrics["positions"],
+            recent_trades=recent_trades,
+            last_signals=last_signals,
+            picks=dict(self._picks),
+            value_history=self.portfolio.get_value_history(),
+            avg_mae=metrics.get("avg_mae", 0.0),
+            avg_mfe=metrics.get("avg_mfe", 0.0),
+            avg_captured_pct=metrics.get("avg_captured_pct", 0.0),
+        )
 
     def reset(self) -> None:
         """Reset agent to initial state."""

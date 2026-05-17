@@ -90,6 +90,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+# ─── JSON helpers ────────────────────────────────────────────────────────────
+def _json_default(obj: Any) -> Any:
+    """json.dumps default= hook: serialize PortfolioMetrics / PositionSummary /
+    AgentState (which carry a dict shim via api.schemas._DictShim) by calling
+    their ``to_dict()`` method. Anything else falls through to the standard
+    TypeError so we don't silently mask serialization bugs."""
+    to_dict = getattr(obj, "to_dict", None)
+    if callable(to_dict):
+        return to_dict()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+
+def _json_dumps(payload: Any) -> str:
+    """json.dumps wrapper that handles api.schemas dataclasses via
+    :func:`_json_default`. All WebSocket sends must go through this."""
+    return json.dumps(payload, default=_json_default)
+
+
 # ─── Crash Log (raw file — survives logging failures) ────────────────────────
 # Written with open() so it works even if the RotatingFileHandler hasn't
 # been initialised yet, and appears in the repo regardless of the launcher.
@@ -1402,7 +1421,7 @@ async def ws_broadcast_loop() -> None:
 
                 for ws in app_state.ws_connections.copy():
                     try:
-                        await ws.send_text(json.dumps(message))
+                        await ws.send_text(_json_dumps(message))
                     except Exception:
                         dead_connections.add(ws)
 
@@ -2125,7 +2144,7 @@ async def reset_competition():
         dead = set()
         for ws in app_state.ws_connections.copy():
             try:
-                await ws.send_text(json.dumps(reset_msg))
+                await ws.send_text(_json_dumps(reset_msg))
             except Exception:
                 dead.add(ws)
         app_state.ws_connections -= dead
@@ -2943,7 +2962,7 @@ async def websocket_endpoint(websocket: WebSocket):
         if app_state.last_prices or app_state.agents:
             try:
                 initial_message = await build_ws_message()
-                await websocket.send_text(json.dumps(initial_message))
+                await websocket.send_text(_json_dumps(initial_message))
             except Exception as e:
                 logger.error(f"WebSocket: failed to send initial state: {e}", exc_info=True)
 
