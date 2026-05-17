@@ -27,6 +27,14 @@ Output:
 | `--block-size` | 10 | Expected block length (~2 weeks) |
 | `--seed` | 42 | RNG seed — same seed → same K paths |
 
+## Environment variables
+
+| Env var | Default | Meaning |
+|---|---|---|
+| `MC_BACKTEST_CONF_FLOOR` | 0.05 | Backtest-only override of `CNN_BUY_THRESHOLD_BASE`. Production uses 0.65 (tuned for Ollama's generous confidence scale); the model's raw confidence naturally ranges 0.1-0.4, so 0.05 produces 3-30 trades per path. Bump to 0.10-0.15 for tighter trading; drop to 0.02 for more permissive |
+| `XGB_FEATURE_FILTER` | (set by `--variants`) | The CLI sets this per variant. Production `.env` value is restored when the CLI exits |
+| `MODEL_BACKEND` | xgboost | Forced by the CLI; SignalXGBoost is the model under test |
+
 ## Performance notes
 
 - Training: ~2 min per variant on 528K rows × 8 channels (full historical).
