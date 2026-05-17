@@ -50,6 +50,7 @@ export interface Agent {
   position_value: number
   total_return_pct: number
   total_return: number
+  realized_pnl?: number   // server-computed sum of SELL trade pnl; preferred over total_return - unrealized
   win_rate: number
   sharpe_ratio: number
   max_drawdown: number
