@@ -43,3 +43,6 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+
+# Diagnostic-script output (debug_historical_drift.py etc.)
+scripts/debug_*_steps.csv
