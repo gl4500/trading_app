@@ -239,6 +239,21 @@ async def replay_one_path(
     agent = _BacktestAgent("backtest", "stripped", portfolio_override=portfolio)
     daily_values: List[float] = []
 
+    # Backtest-specific confidence floor: production CNN_BUY_THRESHOLD_BASE=0.65 is
+    # tuned for Ollama's (subjective, generous) confidence scale. In backtest mode
+    # cnn_confidence comes from SignalXGBoost.predict()'s `min(1.0, |pred|/FULL_CONF)`
+    # which empirically ranges 0.1-0.4 → the 0.65 gate rejects every prediction.
+    # MC_BACKTEST_CONF_FLOOR (env, default 0.15) overrides CNN_BUY_THRESHOLD_BASE
+    # for the backtest path only — production decide_buy callers see config
+    # unchanged. The overlay config preserves all other config constants.
+    import os
+    from types import SimpleNamespace
+    _backtest_floor = float(os.getenv("MC_BACKTEST_CONF_FLOOR", "0.15"))
+    backtest_config = SimpleNamespace(**{
+        k: getattr(config, k) for k in dir(config) if not k.startswith("_")
+    })
+    backtest_config.CNN_BUY_THRESHOLD_BASE = _backtest_floor
+
     # Fresh regime detector per path — no state leakage across simulations.
     # RegimeDetector.update() REPLACES its internal price list, so we must
     # accumulate SPY prices across days and feed the cumulative list each
@@ -305,16 +320,29 @@ async def replay_one_path(
             price = float(prices.get(symbol, 0.0))
             if price <= 0:
                 continue
-            # Extract this symbol's rows over the last T dates → (T rows × channels)
+            # Extract this symbol's last T rows up to the current day.
+            # Bootstrap stitches blocks from different historical periods, so
+            # symbols often DON'T have T contiguous synthetic-day rows in the
+            # current hist_dates window — requiring contiguity would reject
+            # nearly every BUY decision. Instead, take the most-recent T rows
+            # for this symbol whose synthetic-date <= current day. The model's
+            # feature pattern won't reflect a real 10-day window but variant
+            # comparison stays valid (both variants face the same windows).
             try:
-                sym_history = path.xs(symbol, level=1).loc[hist_dates]
+                sym_data = path.xs(symbol, level=1)
             except KeyError:
-                # Symbol missing on one of the historical dates — skip this BUY.
                 continue
-            if len(sym_history) < T:
+            sym_eligible = sym_data[sym_data.index <= date]
+            if len(sym_eligible) < T:
                 continue
+            sym_history = sym_eligible.tail(T)
+            # Drop "price" (carried by the simulator for per-day BUY/SELL pricing
+            # but not a model channel — including it would break the predict()
+            # shape-guard). All other columns ARE model channels (CLI filters
+            # historical to ALL_CHANNEL_COLUMNS + "price" before simulation).
+            sym_channels = sym_history.drop(columns=["price"], errors="ignore")
             # Transpose to (C, T) — matches cnn_model.build_training_windows output.
-            window = sym_history.values.T
+            window = sym_channels.values.T
             pred_ret, raw_direction, conf = model.predict(window)
             direction_for_gate = _DIRECTION_MAP.get(
                 str(raw_direction).lower(), "neutral",
@@ -333,7 +361,7 @@ async def replay_one_path(
                 portfolio_value=portfolio.get_total_value(prices),
                 kelly_fraction=portfolio.kelly_fraction(),
             )
-            decision = decide_buy(ctx, config)
+            decision = decide_buy(ctx, backtest_config)
             if decision.action == "BUY":
                 portfolio.execute_buy(symbol, decision.shares, price, decision.reason)
 
