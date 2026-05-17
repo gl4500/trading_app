@@ -6,6 +6,7 @@ import aiosqlite
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional, Any, Tuple
 
@@ -655,3 +656,40 @@ async def prune_news_price_snapshots(days: int = 14) -> int:
     if deleted:
         logger.info(f"DB prune: removed {deleted} news_price_snapshots older than {days}d")
     return deleted
+
+
+async def dump_trades_to_parquet(dest_dir: str) -> Tuple[int, str]:
+    """Dump the full `trades` table to a UTC-dated parquet snapshot.
+
+    Writes to `<dest_dir>/trades-YYYY-MM-DD.parquet`. Each day overwrites
+    that day's file; cumulative snapshot for the day = full history at
+    the moment of last dump. Idempotent within the day.
+
+    Trades are joined with `agents` so the output carries `agent_name`
+    alongside `agent_id` — friendlier for notebook/analytics use.
+
+    Returns (row_count_written, output_path).
+
+    Disaster-recovery use case (2026-05-17): trading.db is the only
+    source of truth; if it gets reset or corrupted, parquet snapshots
+    are the recovery oracle. Also queryable directly from pandas/polars
+    for ad-hoc analysis without going through the running backend.
+    """
+    import pandas as pd  # local — pandas not imported at module level
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    os.makedirs(dest_dir, exist_ok=True)
+    dest_path = os.path.join(dest_dir, f"trades-{today}.parquet")
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """SELECT t.id, t.agent_id, a.name as agent_name, t.symbol,
+                      t.action, t.shares, t.price, t.timestamp,
+                      t.reasoning, t.pnl
+               FROM trades t JOIN agents a ON t.agent_id = a.id
+               ORDER BY t.timestamp ASC"""
+        )
+        rows = await cursor.fetchall()
+    df = pd.DataFrame([dict(r) for r in rows])
+    df.to_parquet(dest_path, index=False)
+    logger.info(f"Trades parquet dump: {len(df)} rows -> {dest_path}")
+    return len(df), dest_path
