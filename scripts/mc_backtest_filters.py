@@ -30,7 +30,7 @@ if _BACKEND not in sys.path:
 os.environ.setdefault("MODEL_BACKEND", "xgboost")
 
 from data.signal_history import signal_history
-from data.cnn_model import build_training_windows
+from data.cnn_model import build_training_windows, ALL_CHANNEL_COLUMNS
 from data.xgboost_model import SignalXGBoost
 from data.mc_backtester import (
     BootstrapConfig, FilterVariant, run_variant_comparison,
@@ -80,9 +80,23 @@ async def _main_async(args: argparse.Namespace) -> int:
         path_length_days=args.path_days,
         seed=args.seed,
     )
-    # historical must be MultiIndex (date, symbol) for the sampler
+    # Simulator needs MultiIndex (date, symbol) — signal_history uses snapshot_ts
+    # so rename to match the sampler's hardcoded "date" level name.
     if not isinstance(historical.index, pd.MultiIndex):
-        historical = historical.set_index(["snapshot_ts", "symbol"])
+        if "snapshot_ts" in historical.columns and "date" not in historical.columns:
+            historical = historical.rename(columns={"snapshot_ts": "date"})
+        historical = historical.set_index(["date", "symbol"])
+    # Filter to ONLY the model's channel columns + price.
+    # SignalXGBoost.predict has a shape-guard: x.shape[0] must equal _n_channels.
+    # If we leave extra metadata columns (return_5d, snapshot_ts numeric, etc.) in
+    # the path, replay_one_path's window will be the wrong shape and predict()
+    # silently returns (0.0, "neutral", 0.0) → zero trades, zero metrics.
+    keep_cols = [c for c in ALL_CHANNEL_COLUMNS if c in historical.columns]
+    if "price" in historical.columns and "price" not in keep_cols:
+        keep_cols.append("price")
+    print(f"  Filtered historical to {len(keep_cols)} columns "
+          f"({len(ALL_CHANNEL_COLUMNS)} model channels + 'price')")
+    historical = historical[keep_cols]
     report, outcomes = await run_variant_comparison(variants, historical, cfg)
 
     # Write outputs
