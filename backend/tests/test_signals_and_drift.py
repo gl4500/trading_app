@@ -736,5 +736,106 @@ class TestHardStopExit(unittest.IsolatedAsyncioTestCase):
         )
 
 
+class TestLedgerDriftInvariant(unittest.IsolatedAsyncioTestCase):
+    """run_cycle must emit a CRITICAL log when the portfolio ledger has drifted.
+
+    Same class of bug as issue #64 (HistoricalTrendsAgent cash drift). Invariant:
+        cash + cost_basis_open - realized_pnl == starting_capital
+    A divergence > $1 means bookkeeping has diverged from the trade ledger.
+    Logging at CRITICAL surfaces drift immediately on the next cycle, so we
+    never again accumulate $18K of silent drift like HistoricalTrendsAgent did.
+    """
+
+    def _make_agent(self):
+        from agents.base_agent import BaseAgent as _BaseAgent
+
+        class _StubAgent(_BaseAgent):
+            async def analyze(self, ctx):
+                return []
+
+        from unittest.mock import patch as _patch
+        with _patch("agents.base_agent.BaseAgent._load_picks"):
+            return _StubAgent("TestAgent", "stub")
+
+    async def _run_one_cycle(self, agent):
+        from unittest.mock import AsyncMock, patch
+        ctx = {"AAPL": {"price": 100.0, "bars": None, "stats": {}, "news": []}}
+        prices = {"AAPL": 100.0}
+        with patch.object(agent, "_check_bayes_exits", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_trailing_stops", new=AsyncMock(return_value=[])), \
+             patch.object(agent, "_check_hard_stops", new=AsyncMock(return_value=[])), \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(ctx, prices)
+
+    async def test_run_cycle_logs_critical_on_ledger_drift(self):
+        """If cash is corrupted by $5,000, run_cycle must log CRITICAL."""
+        agent = self._make_agent()
+        # Healthy initial state: cash == starting_capital, no positions, no trades.
+        # Identity holds: cash(100k) + cost_basis(0) - realized(0) = 100k = starting.
+        # Now corrupt cash to break the identity by $5,000.
+        agent.portfolio.cash = agent.portfolio.starting_capital + 5000.0
+
+        with patch("agents.base_agent.logger") as mock_logger:
+            await self._run_one_cycle(agent)
+
+        critical_msgs = [c.args[0] for c in mock_logger.critical.call_args_list]
+        self.assertTrue(
+            any("drift" in m.lower() for m in critical_msgs),
+            f"Expected a CRITICAL log mentioning 'drift'; got {critical_msgs}",
+        )
+
+    async def test_run_cycle_no_critical_when_ledger_balanced(self):
+        """Healthy portfolio with no drift must NOT fire CRITICAL."""
+        agent = self._make_agent()
+        # Default state: cash == starting_capital, no positions, no realized.
+        # Identity holds exactly.
+        with patch("agents.base_agent.logger") as mock_logger:
+            await self._run_one_cycle(agent)
+        critical_msgs = [c.args[0] for c in mock_logger.critical.call_args_list]
+        # No drift-related CRITICAL allowed
+        self.assertFalse(
+            any("drift" in m.lower() for m in critical_msgs),
+            f"CRITICAL drift log must not fire on a balanced ledger; got {critical_msgs}",
+        )
+
+    async def test_run_cycle_no_critical_with_open_position_and_realized(self):
+        """Realistic ledger (open position + realized PnL) holds the invariant."""
+        from trading.portfolio import Position, TradeRecord
+        from datetime import datetime
+
+        agent = self._make_agent()
+        start = agent.portfolio.starting_capital
+        # Simulate: bought 10 AAPL @ $100 (cost $1,000), later sold 5 @ $110
+        # (proceeds $550, cost basis on the 5 sold = $500, realized = +$50).
+        # Remaining open: 5 shares @ $100 avg cost = cost_basis_open $500.
+        # Cash after both trades = start - 1000 + 550 = start - 450.
+        # Identity: (start - 450) + 500 - 50 == start. CHECK.
+        agent.portfolio.cash = start - 450.0
+        agent.portfolio.positions["AAPL"] = Position(
+            symbol="AAPL", shares=5, avg_cost=100.0,
+            entry_confidence=0.6, bayes_confidence=0.6,
+        )
+        agent.portfolio.trade_history.append(TradeRecord(
+            symbol="AAPL", action="BUY", shares=10, price=100.0,
+            timestamp=datetime.utcnow(),
+        ))
+        agent.portfolio.trade_history.append(TradeRecord(
+            symbol="AAPL", action="SELL", shares=5, price=110.0,
+            timestamp=datetime.utcnow(), pnl=50.0,
+        ))
+
+        with patch("agents.base_agent.logger") as mock_logger:
+            await self._run_one_cycle(agent)
+
+        critical_msgs = [c.args[0] for c in mock_logger.critical.call_args_list]
+        self.assertFalse(
+            any("drift" in m.lower() for m in critical_msgs),
+            f"Realistic balanced ledger must not log drift; got {critical_msgs}",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
