@@ -328,8 +328,11 @@ async def init_agents() -> None:
                 if lp and lp > 0:
                     app_state.last_prices.setdefault(pos["symbol"], lp)
 
-            # Always restore trade history for win_rate / total_trades
-            db_trades = await get_agent_trades(agent_id, limit=500)
+            # Always restore trade history for win_rate / total_trades.
+            # limit=None — no cap. Previous limit=500 silently truncated
+            # high-volume agents (MomentumAgent had 1,699 trades, in-memory
+            # was capped at 500 → wrong total_trades and win_rate).
+            db_trades = await get_agent_trades(agent_id, limit=None)
             db_trades.reverse()  # DB returns DESC; portfolio expects chronological order
             for t in db_trades:
                 try:
