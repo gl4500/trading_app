@@ -243,12 +243,15 @@ async def replay_one_path(
     # tuned for Ollama's (subjective, generous) confidence scale. In backtest mode
     # cnn_confidence comes from SignalXGBoost.predict()'s `min(1.0, |pred|/FULL_CONF)`
     # which empirically ranges 0.1-0.4 → the 0.65 gate rejects every prediction.
-    # MC_BACKTEST_CONF_FLOOR (env, default 0.15) overrides CNN_BUY_THRESHOLD_BASE
+    # MC_BACKTEST_CONF_FLOOR (env, default 0.05) overrides CNN_BUY_THRESHOLD_BASE
     # for the backtest path only — production decide_buy callers see config
     # unchanged. The overlay config preserves all other config constants.
+    # 0.05 default was tuned empirically (2026-05-16): 0.15 gave 1-4 trades per
+    # path (too thin for variance to surface), 0.05 gives ~3-30 trades per
+    # path with the model's natural 0.1-0.4 confidence distribution.
     import os
     from types import SimpleNamespace
-    _backtest_floor = float(os.getenv("MC_BACKTEST_CONF_FLOOR", "0.15"))
+    _backtest_floor = float(os.getenv("MC_BACKTEST_CONF_FLOOR", "0.05"))
     backtest_config = SimpleNamespace(**{
         k: getattr(config, k) for k in dir(config) if not k.startswith("_")
     })
