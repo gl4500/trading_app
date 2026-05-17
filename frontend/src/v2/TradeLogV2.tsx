@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import type { Trade, Agent } from '../App'
 import { useTimezone } from '../context/TimezoneContext'
 import { formatTs } from '../utils/time'
@@ -105,11 +105,35 @@ function StatTile({ label, value, color }: { label: string; value: string; color
   )
 }
 
-export default function TradeLogV2({ trades }: Props) {
+export default function TradeLogV2({ trades, agents }: Props) {
   const { timeZone } = useTimezone()
   const [page, setPage] = useState(0)
   const [filterAgent, setFilterAgent] = useState<string>('all')
   const [filterAction, setFilterAction] = useState<string>('all')
+
+  // When a specific agent is selected, refetch that agent's most recent 200 trades
+  // directly from /api/trades?agent_id=N. The default prop `trades` is capped at
+  // ~500 across ALL agents, which only reaches ~2 days back for high-volume
+  // agents like HistoricalTrendsAgent. Per-agent fetch goes deeper.
+  const [agentTrades, setAgentTrades] = useState<Trade[]>([])
+  useEffect(() => {
+    if (filterAgent === 'all') {
+      setAgentTrades([])
+      return
+    }
+    const agent = agents.find(a => a.name === filterAgent)
+    if (!agent) return
+    let cancelled = false
+    fetch(`/api/trades?agent_id=${agent.id}&limit=200`, { credentials: 'same-origin' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (!cancelled && data?.trades) setAgentTrades(data.trades) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [filterAgent, agents])
+
+  // Source: prop `trades` when viewing all agents; refetched `agentTrades` when
+  // a specific agent filter is active (gives deeper per-agent history).
+  const sourceData = filterAgent === 'all' ? trades : agentTrades
 
   const agentNames = useMemo(() => {
     const names = new Set(trades.map(t => t.agent_name).filter(Boolean))
@@ -117,12 +141,12 @@ export default function TradeLogV2({ trades }: Props) {
   }, [trades])
 
   const filtered = useMemo(() => {
-    return trades.filter(t => {
+    return sourceData.filter(t => {
       if (filterAgent !== 'all' && t.agent_name !== filterAgent) return false
       if (filterAction !== 'all' && t.action !== filterAction) return false
       return true
     })
-  }, [trades, filterAgent, filterAction])
+  }, [sourceData, filterAgent, filterAction])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages - 1)

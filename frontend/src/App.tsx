@@ -206,7 +206,9 @@ function AuthenticatedApp() {
 
   async function fetchTrades() {
     try {
-      const res = await fetch(`${API_BASE}/api/trades?limit=100`)
+      // limit=500 gives ~weeks of trade history across all agents at typical
+      // trading-volume; per-agent views drill deeper via TradeLog's own fetch.
+      const res = await fetch(`${API_BASE}/api/trades?limit=500`)
       if (res.ok) {
         const data = await res.json()
         setTrades(data.trades || [])
