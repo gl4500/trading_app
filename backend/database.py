@@ -1,6 +1,13 @@
 """
 Async SQLite database layer using aiosqlite.
 Manages agents, portfolios, trades, and performance data.
+
+Schema, versioned migrations, and runtime cleanup are split into
+sibling modules:
+  * database_schema       — pure DDL (CREATE TABLE/INDEX)
+  * database_migrations   — versioned ALTERs tracked by schema_version
+  * database_maintenance  — cleanup_stale_positions / recalculate_trade_pnl
+init_db() below is a thin orchestrator that wires them together.
 """
 import aiosqlite
 import asyncio
@@ -18,148 +25,26 @@ DB_PATH = config.DATABASE_URL
 
 
 async def init_db() -> None:
-    """Initialize database schema."""
+    """Initialize database schema, apply pending migrations, run maintenance.
+
+    Thin orchestrator — see database_schema / database_migrations /
+    database_maintenance for the actual work. Cleanup helpers run AFTER
+    the schema/migration commit so they connect with the current schema.
+    """
+    # Local import to avoid a circular import at module load time
+    # (database_maintenance imports `database` to read DB_PATH).
+    import database_schema
+    import database_migrations
+    import database_maintenance
+
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS agents (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
-                strategy TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            )
-        """)
-
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS portfolios (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                agent_id INTEGER NOT NULL,
-                symbol TEXT NOT NULL,
-                shares REAL NOT NULL DEFAULT 0,
-                avg_cost REAL NOT NULL DEFAULT 0,
-                current_value REAL NOT NULL DEFAULT 0,
-                unrealized_pnl REAL NOT NULL DEFAULT 0,
-                FOREIGN KEY (agent_id) REFERENCES agents(id),
-                UNIQUE(agent_id, symbol)
-            )
-        """)
-
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS trades (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                agent_id INTEGER NOT NULL,
-                symbol TEXT NOT NULL,
-                action TEXT NOT NULL,
-                shares REAL NOT NULL,
-                price REAL NOT NULL,
-                timestamp TEXT NOT NULL,
-                reasoning TEXT,
-                FOREIGN KEY (agent_id) REFERENCES agents(id)
-            )
-        """)
-
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS performance (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                agent_id INTEGER NOT NULL,
-                timestamp TEXT NOT NULL,
-                total_value REAL NOT NULL,
-                cash REAL NOT NULL,
-                total_return_pct REAL NOT NULL DEFAULT 0,
-                sharpe_ratio REAL NOT NULL DEFAULT 0,
-                win_rate REAL NOT NULL DEFAULT 0,
-                FOREIGN KEY (agent_id) REFERENCES agents(id)
-            )
-        """)
-
-        # Indexes for performance
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_trades_agent ON trades(agent_id)")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_performance_agent ON performance(agent_id)")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_performance_timestamp ON performance(timestamp)")
-
-        # Migration: add pnl column to trades if it doesn't exist yet
-        try:
-            await db.execute("ALTER TABLE trades ADD COLUMN pnl REAL DEFAULT 0")
-            await db.commit()
-            logger.info("Database migration: added pnl column to trades")
-        except Exception as e:
-            if "duplicate column" not in str(e).lower() and "already exists" not in str(e).lower():
-                logger.warning(f"Database migration warning (add pnl column): {e}")
-            # else: column already exists — expected on restart, not a bug
-
-        # Migration: add last_price column to portfolios if it doesn't exist yet
-        try:
-            await db.execute("ALTER TABLE portfolios ADD COLUMN last_price REAL DEFAULT 0")
-            await db.commit()
-            logger.info("Database migration: added last_price column to portfolios")
-        except Exception as e:
-            if "duplicate column" not in str(e).lower() and "already exists" not in str(e).lower():
-                logger.warning(f"Database migration warning (add last_price column): {e}")
-
-        # Migration: add entry_confidence column to portfolios (Backlog 0.1, 2026-04-29)
-        # Without this column, restoring positions across backend restarts wiped the
-        # agent's original entry conviction back to 0.5, which broke Bayes early-exit
-        # calibration (every position floored at the BUY-gate threshold).
-        try:
-            await db.execute("ALTER TABLE portfolios ADD COLUMN entry_confidence REAL DEFAULT 0.5")
-            await db.commit()
-            logger.info("Database migration: added entry_confidence column to portfolios")
-        except Exception as e:
-            if "duplicate column" not in str(e).lower() and "already exists" not in str(e).lower():
-                logger.warning(f"Database migration warning (add entry_confidence column): {e}")
-
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS token_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date TEXT NOT NULL DEFAULT '',
-                timestamp TEXT NOT NULL,
-                agent TEXT NOT NULL,
-                model TEXT NOT NULL,
-                prompt_tokens INTEGER NOT NULL DEFAULT 0,
-                completion_tokens INTEGER NOT NULL DEFAULT 0,
-                total_tokens INTEGER NOT NULL DEFAULT 0,
-                daily_total INTEGER NOT NULL DEFAULT 0,
-                daily_limit INTEGER,
-                limit_hit INTEGER NOT NULL DEFAULT 0
-            )
-        """)
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_timestamp ON token_log(timestamp)")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_agent ON token_log(agent)")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_limit_hit ON token_log(limit_hit)")
-        # Migrate existing DBs: add date column if absent — must run before the index on date
-        try:
-            await db.execute("ALTER TABLE token_log ADD COLUMN date TEXT NOT NULL DEFAULT ''")
-            await db.commit()
-        except Exception:
-            pass  # Column already exists
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_token_log_date ON token_log(date)")
-
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS news_price_snapshots (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                symbol TEXT NOT NULL,
-                headline TEXT,
-                score INTEGER DEFAULT 0,
-                category TEXT DEFAULT 'catalyst',
-                price_at REAL DEFAULT 0,
-                detected_at TEXT,
-                during_session INTEGER DEFAULT 0,
-                price_open REAL,
-                price_1h REAL,
-                change_open REAL,
-                change_1h REAL,
-                open_recorded_at TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        await db.execute(
-            "CREATE INDEX IF NOT EXISTS idx_nps_created ON news_price_snapshots(created_at)"
-        )
-
+        await database_schema.create_all_tables(db)
+        await database_schema.create_all_indexes(db)
+        await database_migrations.run_pending(db)
         await db.commit()
     logger.info("Database initialized successfully")
-    await cleanup_stale_positions()
-    await recalculate_trade_pnl()
+    await database_maintenance.cleanup_stale_positions()
+    await database_maintenance.recalculate_trade_pnl()
 
 
 async def upsert_agent(name: str, strategy: str) -> int:
@@ -346,104 +231,10 @@ async def restore_value_history(agent_id: int, limit: int = 2000) -> List[Tuple[
         return result
 
 
-async def cleanup_stale_positions() -> None:
-    """Remove portfolios rows for positions that trade history shows are fully closed.
-
-    Replays each agent's trades to compute net shares per symbol. Any symbol
-    in the portfolios table with net shares <= 0 is deleted. Safe to run on
-    every startup (idempotent).
-    """
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-
-        agent_cur = await db.execute("SELECT id FROM agents")
-        agents = await agent_cur.fetchall()
-
-        for agent_row in agents:
-            agent_id = agent_row["id"]
-
-            trade_cur = await db.execute(
-                "SELECT symbol, action, shares FROM trades WHERE agent_id = ? ORDER BY timestamp ASC",
-                (agent_id,)
-            )
-            trades = await trade_cur.fetchall()
-
-            # Compute net shares per symbol from trade history
-            net: Dict[str, float] = {}
-            for trade in trades:
-                sym = trade["symbol"]
-                if trade["action"] == "BUY":
-                    net[sym] = net.get(sym, 0.0) + trade["shares"]
-                elif trade["action"] == "SELL":
-                    net[sym] = net.get(sym, 0.0) - trade["shares"]
-
-            # Delete any DB position whose net shares are <= 0
-            for sym, shares in net.items():
-                if shares <= 0.001:
-                    await db.execute(
-                        "DELETE FROM portfolios WHERE agent_id = ? AND symbol = ?",
-                        (agent_id, sym)
-                    )
-
-        await db.commit()
-    logger.info("Stale position cleanup complete")
-
-
-async def recalculate_trade_pnl() -> None:
-    """Replay all trades per agent to recompute SELL pnl from cost basis.
-
-    Safe to run multiple times (idempotent). Corrects any trades where pnl
-    was stored as 0.0 due to the missing pnl parameter bug.
-    """
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-
-        agent_cur = await db.execute("SELECT id FROM agents")
-        agents = await agent_cur.fetchall()
-
-        for agent_row in agents:
-            agent_id = agent_row["id"]
-
-            trade_cur = await db.execute(
-                """SELECT id, symbol, action, shares, price FROM trades
-                   WHERE agent_id = ? ORDER BY timestamp ASC""",
-                (agent_id,)
-            )
-            trades = await trade_cur.fetchall()
-
-            # positions: symbol -> (shares, avg_cost)
-            positions: Dict[str, Tuple[float, float]] = {}
-
-            for trade in trades:
-                symbol = trade["symbol"]
-                shares = trade["shares"]
-                price = trade["price"]
-
-                if trade["action"] == "BUY":
-                    if symbol in positions:
-                        held_shares, held_avg = positions[symbol]
-                        new_shares = held_shares + shares
-                        new_avg = (held_shares * held_avg + shares * price) / new_shares
-                        positions[symbol] = (new_shares, new_avg)
-                    else:
-                        positions[symbol] = (shares, price)
-
-                elif trade["action"] == "SELL" and symbol in positions:
-                    held_shares, avg_cost = positions[symbol]
-                    sold = min(shares, held_shares)
-                    pnl = sold * (price - avg_cost)
-                    await db.execute(
-                        "UPDATE trades SET pnl = ? WHERE id = ?",
-                        (pnl, trade["id"])
-                    )
-                    remaining = held_shares - sold
-                    if remaining < 0.001:
-                        del positions[symbol]
-                    else:
-                        positions[symbol] = (remaining, avg_cost)
-
-        await db.commit()
-    logger.info("Trade PnL recalculation complete")
+# Maintenance routines live in database_maintenance; re-exported here for
+# backwards-compatible `database.cleanup_stale_positions` / `database.recalculate_trade_pnl`
+# call sites (tests + lifespan startup).
+from database_maintenance import cleanup_stale_positions, recalculate_trade_pnl  # noqa: E402,F401
 
 
 async def reset_database() -> None:
