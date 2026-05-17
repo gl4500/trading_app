@@ -238,11 +238,20 @@ async def upsert_portfolio_position(agent_id: int, symbol: str, shares: float,
         await db.commit()
 
 
-async def get_agent_trades(agent_id: Optional[int] = None, limit: int = 50) -> List[Dict]:
-    """Retrieve recent trades, optionally filtered by agent."""
+async def get_agent_trades(agent_id: Optional[int] = None,
+                            limit: Optional[int] = 50) -> List[Dict]:
+    """Retrieve recent trades, optionally filtered by agent.
+
+    `limit=None` disables the cap (returns every matching trade). Used by
+    init_agents at startup to rebuild the full in-memory trade_history
+    without silently truncating high-volume agents. UI endpoints that
+    paginate keep their own integer limit.
+    """
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        if agent_id is not None:
+        # SQLite's LIMIT does not accept NULL — omit the clause entirely when
+        # the caller wants every row.
+        if agent_id is not None and limit is not None:
             cursor = await db.execute(
                 """SELECT t.*, a.name as agent_name FROM trades t
                    JOIN agents a ON t.agent_id = a.id
@@ -250,12 +259,26 @@ async def get_agent_trades(agent_id: Optional[int] = None, limit: int = 50) -> L
                    ORDER BY t.timestamp DESC LIMIT ?""",
                 (agent_id, limit)
             )
-        else:
+        elif agent_id is not None:
+            cursor = await db.execute(
+                """SELECT t.*, a.name as agent_name FROM trades t
+                   JOIN agents a ON t.agent_id = a.id
+                   WHERE t.agent_id = ?
+                   ORDER BY t.timestamp DESC""",
+                (agent_id,)
+            )
+        elif limit is not None:
             cursor = await db.execute(
                 """SELECT t.*, a.name as agent_name FROM trades t
                    JOIN agents a ON t.agent_id = a.id
                    ORDER BY t.timestamp DESC LIMIT ?""",
                 (limit,)
+            )
+        else:
+            cursor = await db.execute(
+                """SELECT t.*, a.name as agent_name FROM trades t
+                   JOIN agents a ON t.agent_id = a.id
+                   ORDER BY t.timestamp DESC"""
             )
         rows = await cursor.fetchall()
         return [dict(r) for r in rows]

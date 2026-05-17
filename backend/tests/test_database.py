@@ -109,6 +109,19 @@ class TestSaveTrade(TestDatabaseBase):
         trades = run(database.get_agent_trades(self.aid, limit=3))
         self.assertEqual(len(trades), 3)
 
+    def test_limit_none_returns_all_trades(self):
+        """limit=None must return every trade for the agent — no cap.
+
+        Production callsite (main.py init_agents) uses limit=None to
+        rebuild the full in-memory trade_history at startup. The previous
+        limit=500 silently truncated MomentumAgent's 1,699 trades to 500,
+        breaking leaderboard total_trades and win_rate.
+        """
+        for i in range(600):
+            run(database.save_trade(self.aid, "AAPL", "BUY", 1, 100.0 + i, ""))
+        trades = run(database.get_agent_trades(self.aid, limit=None))
+        self.assertEqual(len(trades), 600)
+
     def test_get_trades_filtered_by_agent(self):
         aid2 = run(database.upsert_agent("OtherAgent", "other"))
         run(database.save_trade(self.aid,  "AAPL", "BUY", 1, 100.0, ""))
