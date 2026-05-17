@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 
 from config import config
+from api.schemas import PortfolioMetrics, PositionSummary
 
 logger = logging.getLogger(__name__)
 
@@ -355,8 +356,16 @@ class Portfolio:
             return 0.0
         return (current - self.daily_starting_value) / self.daily_starting_value
 
-    def calculate_metrics(self, prices: Dict[str, float]) -> Dict:
-        """Calculate comprehensive performance metrics."""
+    def calculate_metrics(self, prices: Dict[str, float]) -> PortfolioMetrics:
+        """Calculate comprehensive performance metrics.
+
+        Returns a :class:`PortfolioMetrics` dataclass that behaves like a dict
+        via :class:`api.schemas._DictShim` — every existing callsite using
+        ``m["key"]``, ``m.get(...)``, ``"k" in m``, or ``{**m, ...}`` keeps
+        working unchanged. The leaderboard mutation pattern
+        ``entry["rank"] = rank`` also still works because the dataclass is
+        non-frozen and ``__setitem__`` is implemented.
+        """
         total_value = self.get_total_value(prices)
         total_return_pct = (total_value - self.starting_capital) / self.starting_capital * 100
 
@@ -372,20 +381,20 @@ class Portfolio:
         max_drawdown = self._calculate_max_drawdown()
 
         # Positions summary
-        positions_summary = []
+        positions_summary: List[PositionSummary] = []
         for sym, pos in self.positions.items():
             price = prices.get(sym, pos.avg_cost)
-            positions_summary.append({
-                "symbol": sym,
-                "shares": pos.shares,
-                "avg_cost": pos.avg_cost,
-                "current_price": price,
-                "current_value": pos.current_value(price),
-                "unrealized_pnl": pos.unrealized_pnl(price),
-                "unrealized_pnl_pct": pos.unrealized_pnl_pct(price),
-                "entry_confidence": pos.entry_confidence,
-                "bayes_confidence": pos.bayes_confidence,
-            })
+            positions_summary.append(PositionSummary(
+                symbol=sym,
+                shares=pos.shares,
+                avg_cost=pos.avg_cost,
+                current_price=price,
+                current_value=pos.current_value(price),
+                unrealized_pnl=pos.unrealized_pnl(price),
+                unrealized_pnl_pct=pos.unrealized_pnl_pct(price),
+                entry_confidence=pos.entry_confidence,
+                bayes_confidence=pos.bayes_confidence,
+            ))
 
         # MAE / MFE analysis — only trades that have excursion data (post-feature trades)
         excursion_trades = [t for t in sell_trades if t.mfe_pct > 0 or t.mae_pct > 0]
@@ -410,24 +419,24 @@ class Portfolio:
         # and snapshot" filed 2026-05-16).
         realized_pnl = sum(t.pnl for t in sell_trades)
 
-        return {
-            "total_value": total_value,
-            "cash": self.cash,
-            "position_value": total_value - self.cash,
-            "total_return_pct": total_return_pct,
-            "total_return": total_value - self.starting_capital,
-            "realized_pnl": realized_pnl,
-            "win_rate": win_rate,
-            "sharpe_ratio": sharpe,
-            "max_drawdown": max_drawdown,
-            "total_trades": len(self.trade_history),
-            "winning_trades": len(winning_trades),
-            "losing_trades": len(sell_trades) - len(winning_trades),
-            "positions": positions_summary,
-            "avg_mae": avg_mae,
-            "avg_mfe": avg_mfe,
-            "avg_captured_pct": avg_captured_pct,
-        }
+        return PortfolioMetrics(
+            total_value=total_value,
+            cash=self.cash,
+            position_value=total_value - self.cash,
+            total_return_pct=total_return_pct,
+            total_return=total_value - self.starting_capital,
+            realized_pnl=realized_pnl,
+            win_rate=win_rate,
+            sharpe_ratio=sharpe,
+            max_drawdown=max_drawdown,
+            total_trades=len(self.trade_history),
+            winning_trades=len(winning_trades),
+            losing_trades=len(sell_trades) - len(winning_trades),
+            positions=positions_summary,
+            avg_mae=avg_mae,
+            avg_mfe=avg_mfe,
+            avg_captured_pct=avg_captured_pct,
+        )
 
     def _calculate_sharpe(self, risk_free_rate: float = 0.04) -> float:
         """Calculate annualized Sharpe ratio from value history."""
