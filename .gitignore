@@ -15,6 +15,7 @@ backend/trading.db
 backend/learning.json
 backend/data/scan_cache.json
 backend/data/agent_picks.json
+backend/data/trade_history/
 
 # Trained model checkpoints + per-retrain history (machine-local state)
 backend/data/models/

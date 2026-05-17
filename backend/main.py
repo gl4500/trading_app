@@ -57,6 +57,7 @@ from database import (
     update_price_snapshot,
     get_price_snapshots,
     prune_news_price_snapshots,
+    dump_trades_to_parquet,
 )
 from trading.portfolio import Position, TradeRecord
 from data.market_data import market_data_service
@@ -643,6 +644,17 @@ async def trading_loop() -> None:
                     await prune_news_price_snapshots(days=14)
                 except Exception as e:
                     logger.warning(f"DB prune error: {e}")
+                # Daily trades parquet snapshot for disaster recovery + analytics
+                # (added 2026-05-17). Idempotent within the same UTC day.
+                try:
+                    _trade_dump_dir = os.path.join(
+                        os.path.dirname(os.path.abspath(__file__)),
+                        "data", "trade_history",
+                    )
+                    n, p = await dump_trades_to_parquet(_trade_dump_dir)
+                    logger.info(f"Daily trades parquet: {n} rows -> {p}")
+                except Exception as e:
+                    logger.warning(f"Trades parquet dump error: {e}")
 
             # Fetch market data once for all agents (fluid watchlist ranked by projected return)
             market_context = await market_data_service.get_market_context(
@@ -1655,6 +1667,18 @@ async def lifespan(app: FastAPI):
         # Performance table is intentionally NOT pruned — keep ALL trades for
         # week-over-week continuity (user policy 2026-05-16).
         await prune_news_price_snapshots(days=14)
+        # First-of-day trades parquet snapshot — runs once at startup so a
+        # fresh backup exists immediately even if the app exits before the
+        # 24h cycle hook fires.
+        try:
+            _trade_dump_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "data", "trade_history",
+            )
+            n, p = await dump_trades_to_parquet(_trade_dump_dir)
+            logger.info(f"Startup trades parquet: {n} rows -> {p}")
+        except Exception as _e:
+            logger.warning(f"Startup trades parquet error: {_e}")
         await init_agents()
         _write_crash("[LIFESPAN] init_agents OK")
     except Exception as _startup_exc:

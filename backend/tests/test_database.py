@@ -902,5 +902,72 @@ class TestPruneNewsPriceSnapshots(TestDatabaseBase):
         self.assertEqual(deleted, 0)
 
 
+class TestDumpTradesToParquet(TestDatabaseBase):
+    """Daily snapshot dump of the trades table to parquet for disaster
+    recovery and notebook analytics. Added 2026-05-17.
+    """
+
+    def test_dump_writes_parquet_with_full_trade_set(self):
+        import tempfile, pandas as pd
+        aid = run(database.upsert_agent("DumpAgent", "test"))
+        run(database.save_trade(aid, "AAPL", "BUY", 10, 100.0, "buy ref"))
+        run(database.save_trade(aid, "AAPL", "SELL", 10, 110.0, "sell ref", pnl=100.0))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            n, path = run(database.dump_trades_to_parquet(tmpdir))
+            self.assertEqual(n, 2)
+            self.assertTrue(os.path.exists(path))
+            df = pd.read_parquet(path)
+            self.assertEqual(len(df), 2)
+            self.assertSetEqual(set(df["action"]), {"BUY", "SELL"})
+            self.assertIn("agent_name", df.columns)
+            self.assertEqual(df["agent_name"].unique().tolist(), ["DumpAgent"])
+            # pnl column round-trips
+            sell_row = df[df["action"] == "SELL"].iloc[0]
+            self.assertAlmostEqual(sell_row["pnl"], 100.0)
+
+    def test_dump_idempotent_within_same_utc_day(self):
+        import tempfile, pandas as pd
+        aid = run(database.upsert_agent("DumpAgent2", "test"))
+        run(database.save_trade(aid, "X", "BUY", 1, 5.0, ""))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            n1, p1 = run(database.dump_trades_to_parquet(tmpdir))
+            n2, p2 = run(database.dump_trades_to_parquet(tmpdir))
+            self.assertEqual(p1, p2)         # same UTC day -> same file
+            self.assertEqual(n1, n2)         # same content
+            # Only one file written
+            files = [f for f in os.listdir(tmpdir) if f.endswith(".parquet")]
+            self.assertEqual(len(files), 1)
+
+    def test_dump_filename_uses_utc_date(self):
+        import tempfile
+        from datetime import datetime, timezone
+        aid = run(database.upsert_agent("DumpAgent3", "test"))
+        run(database.save_trade(aid, "X", "BUY", 1, 5.0, ""))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _, path = run(database.dump_trades_to_parquet(tmpdir))
+            expected_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            self.assertIn(f"trades-{expected_date}.parquet", path)
+
+    def test_dump_creates_dest_dir_if_missing(self):
+        import tempfile, pandas as pd
+        aid = run(database.upsert_agent("DumpAgent4", "test"))
+        run(database.save_trade(aid, "X", "BUY", 1, 5.0, ""))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            nested = os.path.join(tmpdir, "trade_history", "subdir")
+            self.assertFalse(os.path.exists(nested))
+            n, path = run(database.dump_trades_to_parquet(nested))
+            self.assertTrue(os.path.exists(path))
+            self.assertEqual(n, 1)
+
+    def test_dump_empty_table_writes_empty_parquet(self):
+        import tempfile, pandas as pd
+        with tempfile.TemporaryDirectory() as tmpdir:
+            n, path = run(database.dump_trades_to_parquet(tmpdir))
+            self.assertEqual(n, 0)
+            self.assertTrue(os.path.exists(path))
+            df = pd.read_parquet(path)
+            self.assertEqual(len(df), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
