@@ -203,8 +203,17 @@ class Config:
     APP_PASSWORD: str = os.getenv("APP_PASSWORD", "")
     SESSION_SECRET: str = os.getenv("SESSION_SECRET", "")
 
-    # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "trading.db")
+    # Database — default is anchored to backend/ via __file__, NOT relative
+    # to cwd. Relative-to-cwd silently creates a NEW empty trading.db at
+    # wherever the backend was started from (project root, system32, etc.) —
+    # data appears to vanish on restart. Fixed 2026-05-16 after exactly this
+    # bug: backend restarted from project root → empty ./trading.db created
+    # → leaderboard + trade log went blank while backend/trading.db (7.5 MB
+    # of real data) was sitting untouched right next to it.
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "trading.db"),
+    )
     TOKEN_LOG_RETENTION_DAYS: int = int(os.getenv("TOKEN_LOG_RETENTION_DAYS", "365"))
 
     # Server — default to localhost only; set HOST=0.0.0.0 in .env only if
