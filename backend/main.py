@@ -1945,9 +1945,16 @@ async def get_leaderboard():
 @app.get("/api/trades")
 async def get_trades(
     agent_id: Optional[int] = Query(None, description="Filter by agent ID"),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=5000),
 ):
-    """Get recent trades, optionally filtered by agent."""
+    """Get recent trades, optionally filtered by agent.
+
+    Upper bound raised 2026-05-16 from 200 to 5000: PR #57 bumped the
+    frontend fetch to limit=500 for deeper trade-log history, but the
+    server cap silently rejected it with 422 → blank trade log. 5000
+    covers the longest-running agent (MomentumAgent currently 1,699
+    trades) with headroom.
+    """
     trades = await get_agent_trades(agent_id=agent_id, limit=limit)
     return {"trades": trades, "count": len(trades)}
 
