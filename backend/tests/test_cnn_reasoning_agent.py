@@ -1002,5 +1002,92 @@ class TestCNNGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(buys[0].shares, 100)
 
 
+class TestCNNReasoningAgentHelpers(unittest.TestCase):
+    """
+    Direct unit tests for the named helper methods extracted from analyze()
+    (issue #68). The existing analyze()-driven suite already covers behavior
+    end-to-end; these tests pin the helper contracts so future edits can't
+    silently change the shape (return type, gate-label substrings, etc).
+    """
+
+    def setUp(self):
+        self.agent = CNNReasoningAgent()
+
+    # ── _entropy_prefilter_signal ─────────────────────────────────────────
+    def test_entropy_filter_blocks_low_magnitude_low_conf(self):
+        """Low signal magnitude + low CNN conf + no risk_alert → HOLD Signal."""
+        zero_scores = {k: 0.0 for k in (
+            "analyst_consensus", "earnings_surprise",
+            "alpaca_news", "yahoo_news", "congressional_trades"
+        )}
+        sig = self.agent._entropy_prefilter_signal(
+            symbol="AAPL", current_scores=zero_scores,
+            cnn_conf=0.10, risk_alert=None,
+        )
+        self.assertIsNotNone(sig)
+        self.assertEqual(sig.action, "HOLD")
+        self.assertEqual(sig.shares, 0)
+        self.assertIn("Entropy filter", sig.reasoning)
+
+    def test_entropy_filter_passes_when_magnitude_high(self):
+        """High signal magnitude (mean abs >= 0.08) → passes filter (returns None)."""
+        scores = {"analyst_consensus": 0.5, "earnings_surprise": None,
+                  "alpaca_news": None, "yahoo_news": None,
+                  "congressional_trades": None}
+        sig = self.agent._entropy_prefilter_signal(
+            symbol="AAPL", current_scores=scores,
+            cnn_conf=0.10, risk_alert=None,
+        )
+        self.assertIsNone(sig)
+
+    def test_entropy_filter_bypassed_when_risk_alert_active(self):
+        """risk_alert always wins — never block, regardless of magnitude/conf."""
+        zero_scores = {k: 0.0 for k in (
+            "analyst_consensus", "earnings_surprise",
+            "alpaca_news", "yahoo_news", "congressional_trades"
+        )}
+        sig = self.agent._entropy_prefilter_signal(
+            symbol="AAPL", current_scores=zero_scores,
+            cnn_conf=0.10,
+            risk_alert={"drop_pct": 0.05, "today_open": 100.0, "current_price": 95.0},
+        )
+        self.assertIsNone(sig)
+
+    # ── _apply_wfe_gate ───────────────────────────────────────────────────
+    def test_wfe_gate_blocks_buy_when_mean_wfe_negative(self):
+        """BUY → HOLD when signal_cnn.mean_wfe < 0; reasoning carries the gate label."""
+        from data.signal_model import signal_model as sm
+        with patch.object(type(sm), "mean_wfe", new_callable=unittest.mock.PropertyMock,
+                          return_value=-0.05):
+            action, reason = self.agent._apply_wfe_gate(
+                symbol="AAPL", action="BUY", reasoning="original",
+            )
+        self.assertEqual(action, "HOLD")
+        self.assertIn("WFE gate", reason)
+        self.assertIn("Original reasoning: original", reason)
+
+    def test_wfe_gate_noop_when_mean_wfe_none(self):
+        """mean_wfe == None (no walk-forward fit yet) → no-op."""
+        from data.signal_model import signal_model as sm
+        with patch.object(type(sm), "mean_wfe", new_callable=unittest.mock.PropertyMock,
+                          return_value=None):
+            action, reason = self.agent._apply_wfe_gate(
+                symbol="AAPL", action="BUY", reasoning="original",
+            )
+        self.assertEqual(action, "BUY")
+        self.assertEqual(reason, "original")
+
+    def test_wfe_gate_never_blocks_sell(self):
+        """SELL passes through regardless of mean_wfe — safety only for new BUYs."""
+        from data.signal_model import signal_model as sm
+        with patch.object(type(sm), "mean_wfe", new_callable=unittest.mock.PropertyMock,
+                          return_value=-0.05):
+            action, reason = self.agent._apply_wfe_gate(
+                symbol="AAPL", action="SELL", reasoning="exit",
+            )
+        self.assertEqual(action, "SELL")
+        self.assertEqual(reason, "exit")
+
+
 if __name__ == "__main__":
     unittest.main()

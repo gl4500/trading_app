@@ -389,6 +389,437 @@ class CNNReasoningAgent(BaseAgent):
             "pace_diff":    pace_diff,
         }
 
+    # ── per-symbol context parsing ───────────────────────────────────────────
+
+    def _extract_symbol_context(
+        self,
+        symbol: str,
+        ctx: Dict,
+        market_context: Dict,
+    ) -> Dict:
+        """
+        Parse the per-symbol slice of ``market_context`` into the bundle of
+        primitives ``analyze()`` needs to drive the rest of the pipeline:
+
+          • price, composite score, sources → current_scores dict
+          • other agents' signals for this symbol
+          • catalysts (capped at 6, symbol-specific first)
+          • macro context text
+
+        Pure dict-in/dict-out so the inner loop in ``analyze()`` stays a
+        thin orchestrator.
+        """
+        price     = ctx.get("price", 0) or 0
+        composite = ctx.get("composite_signal", {}) or {}
+        c_score   = composite.get("composite_score", 0.0) or 0.0
+        sources   = composite.get("sources", {}) or {}
+
+        current_scores = {
+            name: (sources.get(key) or {}).get("score")
+            for name, key in [
+                ("analyst_consensus",    "analyst_consensus"),
+                ("earnings_surprise",    "earnings_surprise"),
+                ("alpaca_news",          "alpaca_news"),
+                ("yahoo_news",           "yahoo_news"),
+                ("congressional_trades", "congressional_trades"),
+            ]
+        }
+
+        # Other agents' current signals for this symbol
+        other_agent_signals: Dict[str, tuple] = {}
+        raw_agent_sigs = market_context.get("__agent_signals__", {})
+        if isinstance(raw_agent_sigs, dict) and symbol in raw_agent_sigs:
+            other_agent_signals = raw_agent_sigs[symbol]
+
+        # Sentinel catalysts — symbol-specific first, then broad market (cap 6)
+        raw_catalysts = market_context.get("__overnight_catalysts__", [])
+        catalysts: Optional[List[Dict]] = None
+        if isinstance(raw_catalysts, list) and raw_catalysts:
+            valid = [c for c in raw_catalysts if isinstance(c, dict)]
+            catalysts = valid[:6] if valid else None
+
+        # Macro context text (tactical + strategic summary)
+        macro_text: str = market_context.get("__macro_context__", "") or ""
+
+        return {
+            "price":               price,
+            "c_score":             c_score,
+            "current_scores":      current_scores,
+            "other_agent_signals": other_agent_signals,
+            "catalysts":           catalysts,
+            "macro_text":          macro_text,
+        }
+
+    # ── CNN inference + Ollama fallback ──────────────────────────────────────
+
+    def _run_cnn_inference(self, symbol: str, c_score: float) -> tuple:
+        """
+        Single-symbol CNN forward pass with the Stage-3b ensemble-uncertainty
+        downscale on top. When the CNN is not yet trained or no recent window
+        is available, derives a surrogate (pred_return, direction, cnn_conf)
+        from the composite score so analyze() always has a usable estimate.
+
+        Returns ``(pred_return, direction, cnn_conf)``.
+        """
+        window = signal_history.get_recent_window(symbol, T=signal_cnn.T)
+        if window is None or not signal_cnn.is_trained:
+            # Pre-training: derive a surrogate from composite score
+            pred_return = c_score * 0.02
+            direction = (
+                "bull"    if c_score >  0.15
+                else "bear"    if c_score < -0.15
+                else "neutral"
+            )
+            return pred_return, direction, 0.3
+
+        try:
+            pred_return, direction, cnn_conf = signal_cnn.predict(window)
+        except Exception as exc:
+            logger.debug(f"CNNReasoningAgent: predict error for {symbol}: {exc}")
+            pred_return, direction, cnn_conf = 0.0, "neutral", 0.3
+
+        # Ensemble-uncertainty downscale (Stage 3b). When the XGBoost backend
+        # has K bootstrapped boosters on disk (signal_xgb_b{0..K-1}.json),
+        # discount cnn_conf by cross-booster disagreement. Calibration check
+        # showed rho(std, |residual|) = +0.215 — high std reliably predicts
+        # low accuracy. No-op when ensemble files absent.
+        if hasattr(signal_cnn, "ensemble_predict"):
+            try:
+                ens_mean, ens_std, ens_n = signal_cnn.ensemble_predict(window)
+                if ens_n > 0 and ens_std > 0 and abs(ens_mean) > 1e-6:
+                    # Relative uncertainty: std / |mean|. At
+                    # std == 0.5 * |mean| the multiplier is 0 (system says
+                    # "I don't know"). Linear scale in between.
+                    rel_uncert = ens_std / abs(ens_mean)
+                    uncert_mult = max(0.0, 1.0 - 2.0 * rel_uncert)
+                    cnn_conf *= uncert_mult
+            except Exception as exc:
+                logger.debug(
+                    f"CNNReasoningAgent: ensemble_predict error for "
+                    f"{symbol}: {exc}"
+                )
+
+        return pred_return, direction, cnn_conf
+
+    def _rule_based_fallback(
+        self,
+        direction: str,
+        cnn_conf: float,
+        pred_return: float,
+    ) -> Dict:
+        """
+        CNN-only rule-based fallback used when Ollama is unavailable
+        (``_ollama_decision`` returned ``None``). Maps CNN direction to a
+        BUY/SELL/HOLD action and packages it in the same dict shape Ollama
+        would return so the rest of analyze() stays uniform.
+        """
+        action = (
+            "BUY"  if direction == "bull"
+            else "SELL" if direction == "bear"
+            else "HOLD"
+        )
+        return {
+            "action":     action,
+            "confidence": cnn_conf,
+            "size_pct":   0.10,
+            "reasoning":  (
+                f"CNN-only ({signal_cnn.device}): "
+                f"predicted {pred_return*100:+.1f}% 5D return ({direction})"
+            ),
+        }
+
+    def _build_risk_alert(self, symbol: str, price: float) -> Optional[Dict]:
+        """
+        Daily-move risk gate (Backlog 0.5): when ``symbol`` is currently held
+        and the position is down at least ``config.DAILY_REVIEW_PCT`` today,
+        return an alert dict the Ollama prompt builder can splice in. Returns
+        ``None`` (no alert) when the position isn't held, price is invalid,
+        or today's drop is under threshold (or DAILY_REVIEW_PCT == 0, which
+        disables the feature).
+        """
+        if symbol not in self.portfolio.positions or price <= 0:
+            return None
+        drop = self.portfolio.daily_drawdown_pct(symbol, price)
+        if drop is None or not (drop >= config.DAILY_REVIEW_PCT > 0):
+            return None
+        logger.info(
+            f"CNNReasoningAgent [{symbol}]: daily-move risk alert "
+            f"(down {drop*100:.1f}% today, threshold {config.DAILY_REVIEW_PCT*100:.0f}%)"
+        )
+        return {
+            "today_open":    self.portfolio.get_today_open(symbol) or 0.0,
+            "current_price": price,
+            "drop_pct":      drop,
+        }
+
+    # ── post-Ollama safety gates ─────────────────────────────────────────────
+
+    def _apply_wfe_gate(
+        self,
+        symbol: str,
+        action: str,
+        reasoning: str,
+    ) -> tuple:
+        """
+        Walk-forward efficiency gate. Demotes BUY → HOLD when the CNN's
+        ``mean_wfe`` is populated and negative (model is worse than
+        predicting the mean). When ``mean_wfe`` is ``None`` (no walk-forward
+        fit yet), the gate is a no-op and lower-level gates decide.
+
+        Returns ``(possibly-new-action, possibly-updated-reasoning)``.
+        """
+        if action != "BUY":
+            return action, reasoning
+        mean_wfe_val = signal_cnn.mean_wfe
+        if mean_wfe_val is None or mean_wfe_val >= 0.0:
+            return action, reasoning
+        logger.info(
+            f"CNNReasoningAgent [{symbol}]: WFE gate blocked BUY "
+            f"(mean_wfe={mean_wfe_val:.4f} < 0)"
+        )
+        new_reasoning = (
+            f"WFE gate: original BUY blocked because mean_wfe="
+            f"{mean_wfe_val:.4f} < 0 (model has no measurable edge). "
+            f"Original reasoning: {reasoning}"
+        )
+        return "HOLD", new_reasoning
+
+    def _apply_max_positions_gate(
+        self,
+        symbol: str,
+        action: str,
+        reasoning: str,
+    ) -> tuple:
+        """
+        Max-open-positions cap (PR #76). Demotes BUY → HOLD when we already
+        hold ``CNN_MAX_OPEN_POSITIONS`` distinct symbols and ``symbol`` is
+        not already among them. Asymmetric: SELLs always pass, and averaging
+        into already-held symbols still passes.
+
+        Returns ``(possibly-new-action, possibly-updated-reasoning)``.
+        """
+        if action != "BUY":
+            return action, reasoning
+        held_symbols = {
+            sym for sym, pos in self.portfolio.positions.items()
+            if pos.shares > 0
+        }
+        if (
+            len(held_symbols) < config.CNN_MAX_OPEN_POSITIONS
+            or symbol in held_symbols
+        ):
+            return action, reasoning
+        logger.info(
+            f"CNNReasoningAgent [{symbol}]: max-open-positions gate "
+            f"blocked BUY ({len(held_symbols)} held >= cap "
+            f"{config.CNN_MAX_OPEN_POSITIONS}, and {symbol} is new)"
+        )
+        new_reasoning = (
+            f"max-open-positions gate: BUY blocked on new symbol — "
+            f"{len(held_symbols)} positions already held vs cap "
+            f"{config.CNN_MAX_OPEN_POSITIONS}. Existing holdings "
+            f"must resolve (or merge) before opening new ones. "
+            f"Original reasoning: {reasoning}"
+        )
+        return "HOLD", new_reasoning
+
+    # ── pre-Ollama filter ────────────────────────────────────────────────────
+
+    def _entropy_prefilter_signal(
+        self,
+        symbol: str,
+        current_scores: Dict[str, Optional[float]],
+        cnn_conf: float,
+        risk_alert: Optional[Dict],
+    ) -> Optional[Signal]:
+        """
+        Shannon-style entropy pre-filter. Returns a HOLD ``Signal`` (which the
+        caller should ``append`` then ``continue``) when:
+
+          • no risk_alert is active (risk_alert always wins — see Backlog 0.5),
+          • mean |source score| < _MIN_SIGNAL_MAGNITUDE, AND
+          • cnn_conf < _MIN_CNN_CONF
+
+        Returns ``None`` when the symbol passes the filter and should proceed
+        to the Ollama call. Wrapped in a method so the threshold logic is
+        unit-testable in isolation and so ``analyze()`` reads as a thin
+        orchestrator.
+        """
+        if risk_alert is not None:
+            return None
+        magnitude = _signal_magnitude(current_scores)
+        if magnitude >= _MIN_SIGNAL_MAGNITUDE or cnn_conf >= _MIN_CNN_CONF:
+            return None
+        logger.debug(
+            f"CNNReasoningAgent [{symbol}]: entropy pre-filter — "
+            f"magnitude={magnitude:.3f} conf={cnn_conf:.2f} → HOLD (skip Ollama)"
+        )
+        return Signal(
+            symbol     = symbol,
+            action     = "HOLD",
+            shares     = 0,
+            confidence = cnn_conf,
+            reasoning  = (
+                f"Entropy filter: signal magnitude {magnitude:.2f} < "
+                f"{_MIN_SIGNAL_MAGNITUDE} — no actionable information"
+            ),
+            agent_name = self.name,
+        )
+
+    # ── per-symbol branch helpers ────────────────────────────────────────────
+
+    def _handle_buy(
+        self,
+        symbol: str,
+        price: float,
+        pred_return: float,
+        confidence: float,
+        reasoning: str,
+        other_agent_signals: Dict[str, tuple],
+        prices: Dict[str, float],
+    ) -> Signal:
+        """
+        BUY branch: build a ``BuyContext`` and delegate to ``decide_buy`` —
+        the single source of truth for confidence/regime/uPnL/trail/Kelly
+        gating + sizing (shared with the MC backtester). Returns either:
+
+          • a BUY ``Signal`` when ``decide_buy`` approves, with shares capped
+            to 95% of cash and a LONE-WOLF marker appended to the reasoning
+            when ``n_corroborators < LONEWOLF_MIN_CORROBORATORS``, OR
+          • a HOLD ``Signal`` with a gate-labelled reason when ``decide_buy``
+            blocks (gate label substrings preserve existing test/log
+            assertions).
+        """
+        from data.regime_detector import regime_detector
+        corroborators = sum(
+            1 for (a, _c) in (other_agent_signals or {}).values()
+            if a == "BUY"
+        )
+        portfolio_val = self.portfolio.get_total_value(prices)
+        ctx = BuyContext(
+            symbol=symbol,
+            cnn_pred_return=float(pred_return),
+            cnn_pred_direction="up",                 # Ollama already returned BUY
+            cnn_confidence=float(confidence),        # Ollama's confidence
+            regime=regime_detector.get_regime()[0],
+            portfolio_unpnl_frac=self.portfolio.unpnl_frac(prices),
+            n_corroborators=int(corroborators),
+            in_trail_cooldown=self._in_trail_cooldown(),
+            current_price=float(price),
+            cash_available=float(self.portfolio.cash),
+            portfolio_value=float(portfolio_val),
+            kelly_fraction=float(self.portfolio.kelly_fraction()),
+        )
+        buy_decision = decide_buy(ctx, config)
+
+        if buy_decision.action == "HOLD":
+            # Preserve the historical gate-name substrings so existing
+            # log/test assertions still match the HOLD reasoning.
+            reason_lower = buy_decision.reason.lower()
+            if reason_lower.startswith("upnl"):
+                gate_label = "uPnL drawdown gate"
+            elif "regime" in reason_lower:
+                gate_label = "regime gate"
+            elif reason_lower.startswith("conf"):
+                gate_label = "confidence gate"
+            elif "trail" in reason_lower:
+                gate_label = "trail cool-down gate"
+            elif "under-funded" in reason_lower:
+                gate_label = "under-funded gate"
+            else:
+                gate_label = "decide_buy"
+            logger.info(
+                f"CNNReasoningAgent [{symbol}]: {gate_label} blocked BUY "
+                f"({buy_decision.reason})"
+            )
+            return Signal(
+                symbol     = symbol,
+                action     = "HOLD",
+                shares     = 0,
+                confidence = confidence,
+                reasoning  = (
+                    f"{gate_label}: BUY blocked — {buy_decision.reason}. "
+                    f"Original reasoning: {reasoning}"
+                ),
+                agent_name = self.name,
+            )
+
+        # BUY passed: cap shares so we never overspend 95% of cash.
+        shares = buy_decision.shares
+        max_cash_shares = int((self.portfolio.cash * 0.95) / price) if price > 0 else 0
+        if max_cash_shares >= 1:
+            shares = max(1, min(shares, max_cash_shares))
+
+        # Preserve the LONE-WOLF marker substring (existing tests assert
+        # on it). decide_buy applies the lone-wolf size shrink internally;
+        # we just surface that fact in the reasoning text.
+        lonewolf_marker = ""
+        if corroborators < config.LONEWOLF_MIN_CORROBORATORS:
+            lonewolf_marker = (
+                f" [LONE-WOLF: {corroborators} BUY corroborator(s) "
+                f"< {config.LONEWOLF_MIN_CORROBORATORS}]"
+            )
+            logger.info(
+                f"CNNReasoningAgent [{symbol}]: lone-wolf discount "
+                f"({corroborators} BUY corroborators)"
+            )
+
+        return Signal(
+            symbol     = symbol,
+            action     = "BUY",
+            shares     = shares,
+            confidence = buy_decision.sized_confidence,
+            reasoning  = (
+                f"CNN+Ollama: {reasoning}; {buy_decision.reason}"
+                f"{lonewolf_marker}"
+            ),
+            agent_name = self.name,
+        )
+
+    def _handle_sell(
+        self,
+        symbol: str,
+        confidence: float,
+        reasoning: str,
+    ) -> Optional[Signal]:
+        """
+        SELL branch: emit a SELL Signal for the full position when held.
+        Returns None when no position exists for ``symbol`` — caller should
+        fall through to HOLD (preserves prior behavior where SELL on an
+        unowned symbol degenerated to the else-HOLD branch).
+        """
+        if symbol not in self.portfolio.positions:
+            return None
+        shares = self.portfolio.positions[symbol].shares
+        return Signal(
+            symbol     = symbol,
+            action     = "SELL",
+            shares     = shares,
+            confidence = confidence,
+            reasoning  = f"CNN+Ollama: {reasoning}",
+            agent_name = self.name,
+        )
+
+    def _handle_hold(
+        self,
+        symbol: str,
+        confidence: float,
+        reasoning: str,
+    ) -> Signal:
+        """
+        HOLD branch: emit a HOLD Signal (zero shares) for downstream visibility.
+        Used both for an explicit Ollama HOLD and as the catch-all for SELL on
+        unowned symbols / BUY with non-positive price.
+        """
+        return Signal(
+            symbol     = symbol,
+            action     = "HOLD",
+            shares     = 0,
+            confidence = confidence,
+            reasoning  = f"CNN+Ollama HOLD: {reasoning}",
+            agent_name = self.name,
+        )
+
     # ── main analysis loop ────────────────────────────────────────────────────
 
     async def analyze(self, market_context: Dict) -> List[Signal]:
@@ -408,126 +839,30 @@ class CNNReasoningAgent(BaseAgent):
             if not isinstance(ctx, dict):
                 continue
 
-            price     = ctx.get("price", 0) or 0
-            composite = ctx.get("composite_signal", {}) or {}
-            c_score   = composite.get("composite_score", 0.0) or 0.0
-            sources   = composite.get("sources", {}) or {}
+            sym_ctx = self._extract_symbol_context(symbol, ctx, market_context)
+            price               = sym_ctx["price"]
+            c_score             = sym_ctx["c_score"]
+            current_scores      = sym_ctx["current_scores"]
+            other_agent_signals = sym_ctx["other_agent_signals"]
+            catalysts           = sym_ctx["catalysts"]
+            macro_text          = sym_ctx["macro_text"]
 
-            current_scores = {
-                name: (sources.get(key) or {}).get("score")
-                for name, key in [
-                    ("analyst_consensus",    "analyst_consensus"),
-                    ("earnings_surprise",    "earnings_surprise"),
-                    ("alpaca_news",          "alpaca_news"),
-                    ("yahoo_news",           "yahoo_news"),
-                    ("congressional_trades", "congressional_trades"),
-                ]
-            }
-
-            # CNN inference from rolling window
-            window = signal_history.get_recent_window(symbol, T=signal_cnn.T)
-            if window is not None and signal_cnn.is_trained:
-                try:
-                    pred_return, direction, cnn_conf = signal_cnn.predict(window)
-                except Exception as exc:
-                    logger.debug(f"CNNReasoningAgent: predict error for {symbol}: {exc}")
-                    pred_return, direction, cnn_conf = 0.0, "neutral", 0.3
-
-                # Ensemble-uncertainty downscale (Stage 3b). When the
-                # XGBoost backend has K bootstrapped boosters on disk
-                # (signal_xgb_b{0..K-1}.json), discount cnn_conf by
-                # cross-booster disagreement. Calibration check showed
-                # rho(std, |residual|) = +0.215 — high std reliably
-                # predicts low accuracy. No-op when ensemble files absent
-                # (falls back to base predict's cnn_conf unchanged).
-                if hasattr(signal_cnn, "ensemble_predict"):
-                    try:
-                        ens_mean, ens_std, ens_n = signal_cnn.ensemble_predict(window)
-                        if ens_n > 0 and ens_std > 0 and abs(ens_mean) > 1e-6:
-                            # Relative uncertainty: std / |mean|. At
-                            # std == 0.5 * |mean| the multiplier is 0
-                            # (system says "I don't know"). Linear scale
-                            # in between.
-                            rel_uncert = ens_std / abs(ens_mean)
-                            uncert_mult = max(0.0, 1.0 - 2.0 * rel_uncert)
-                            cnn_conf *= uncert_mult
-                    except Exception as exc:
-                        logger.debug(
-                            f"CNNReasoningAgent: ensemble_predict error for "
-                            f"{symbol}: {exc}"
-                        )
-            else:
-                # Pre-training: derive a surrogate from composite score
-                pred_return = c_score * 0.02
-                direction   = (
-                    "bull"    if c_score >  0.15
-                    else "bear"    if c_score < -0.15
-                    else "neutral"
-                )
-                cnn_conf = 0.3
-
+            # CNN forward pass + ensemble-uncertainty downscale (Stage 3b).
+            pred_return, direction, cnn_conf = self._run_cnn_inference(symbol, c_score)
             learned_weights = signal_cnn.get_learned_weights()
 
-            # Collect other agents' current signals for this symbol (from market_context)
-            other_agent_signals: Dict[str, tuple] = {}
-            raw_agent_sigs = market_context.get("__agent_signals__", {})
-            if isinstance(raw_agent_sigs, dict) and symbol in raw_agent_sigs:
-                other_agent_signals = raw_agent_sigs[symbol]
-
-            # Sentinel catalysts — symbol-specific first, then broad market (cap at 6)
-            raw_catalysts = market_context.get("__overnight_catalysts__", [])
-            catalysts: Optional[List[Dict]] = None
-            if isinstance(raw_catalysts, list) and raw_catalysts:
-                valid = [c for c in raw_catalysts if isinstance(c, dict)]
-                catalysts = valid[:6] if valid else None
-
-            # Macro context text (tactical + strategic summary)
-            macro_text: str = market_context.get("__macro_context__", "") or ""
-
-            # Daily-move risk gate (Backlog 0.5): if this is a held position
-            # and it's down >= DAILY_REVIEW_PCT today, build a risk_alert dict
-            # to inject into the Ollama prompt. Only fires for positions we
-            # actually hold (no signal to alert about for unowned symbols).
-            risk_alert: Optional[Dict] = None
-            if symbol in self.portfolio.positions and price > 0:
-                drop = self.portfolio.daily_drawdown_pct(symbol, price)
-                if drop is not None and drop >= config.DAILY_REVIEW_PCT > 0:
-                    risk_alert = {
-                        "today_open":    self.portfolio.get_today_open(symbol) or 0.0,
-                        "current_price": price,
-                        "drop_pct":      drop,
-                    }
-                    logger.info(
-                        f"CNNReasoningAgent [{symbol}]: daily-move risk alert "
-                        f"(down {drop*100:.1f}% today, threshold {config.DAILY_REVIEW_PCT*100:.0f}%)"
-                    )
+            # Daily-move risk gate (Backlog 0.5) — see _build_risk_alert.
+            risk_alert: Optional[Dict] = self._build_risk_alert(symbol, price)
 
             # ── Entropy pre-filter ────────────────────────────────────────────
             # Skip Ollama when signal magnitude is too low AND CNN is uncertain.
             # Saves ~50s Ollama calls on flat/noisy cycles with no real signal.
-            # BUT: never skip when a risk alert is active — that's exactly the
-            # moment the LLM safety net matters most.
-            _magnitude = _signal_magnitude(current_scores)
-            if (
-                risk_alert is None
-                and _magnitude < _MIN_SIGNAL_MAGNITUDE
-                and cnn_conf < _MIN_CNN_CONF
-            ):
-                logger.debug(
-                    f"CNNReasoningAgent [{symbol}]: entropy pre-filter — "
-                    f"magnitude={_magnitude:.3f} conf={cnn_conf:.2f} → HOLD (skip Ollama)"
-                )
-                signals.append(Signal(
-                    symbol     = symbol,
-                    action     = "HOLD",
-                    shares     = 0,
-                    confidence = cnn_conf,
-                    reasoning  = (
-                        f"Entropy filter: signal magnitude {_magnitude:.2f} < "
-                        f"{_MIN_SIGNAL_MAGNITUDE} — no actionable information"
-                    ),
-                    agent_name = self.name,
-                ))
+            # risk_alert always bypasses the filter — see _entropy_prefilter_signal.
+            entropy_signal = self._entropy_prefilter_signal(
+                symbol, current_scores, cnn_conf, risk_alert
+            )
+            if entropy_signal is not None:
+                signals.append(entropy_signal)
                 continue
 
             prompt   = self._build_prompt(
@@ -543,191 +878,32 @@ class CNNReasoningAgent(BaseAgent):
 
             # Fallback: rule-based when Ollama is unavailable
             if decision is None:
-                action = (
-                    "BUY"  if direction == "bull"
-                    else "SELL" if direction == "bear"
-                    else "HOLD"
-                )
-                decision = {
-                    "action":     action,
-                    "confidence": cnn_conf,
-                    "size_pct":   0.10,
-                    "reasoning":  (
-                        f"CNN-only ({signal_cnn.device}): "
-                        f"predicted {pred_return*100:+.1f}% 5D return ({direction})"
-                    ),
-                }
+                decision = self._rule_based_fallback(direction, cnn_conf, pred_return)
 
             action     = decision.get("action", "HOLD")
             confidence = float(decision.get("confidence") or cnn_conf)
             reasoning  = str(decision.get("reasoning", ""))
 
-            # WFE safety gate: block BUYs when the walk-forward CV reports a
-            # negative mean_wfe (model is worse than predicting the mean).
-            # mean_wfe is None when the model hasn't completed a walk-forward
-            # fit yet — in that case we let the regime/confidence gates below
-            # decide, preserving pre-walk-forward behavior. Once the first
-            # walk-forward retrain runs, mean_wfe is populated and the gate
-            # becomes active.
-            mean_wfe_val = signal_cnn.mean_wfe
-            if action == "BUY" and mean_wfe_val is not None and mean_wfe_val < 0.0:
-                logger.info(
-                    f"CNNReasoningAgent [{symbol}]: WFE gate blocked BUY "
-                    f"(mean_wfe={mean_wfe_val:.4f} < 0)"
-                )
-                reasoning = (
-                    f"WFE gate: original BUY blocked because mean_wfe="
-                    f"{mean_wfe_val:.4f} < 0 (model has no measurable edge). "
-                    f"Original reasoning: {reasoning}"
-                )
-                action = "HOLD"
-
-            # Max-open-positions cap (PR #76, 2026-05-08): block BUYs on
-            # NEW symbols once we're holding CNN_MAX_OPEN_POSITIONS distinct
-            # symbols. Asymmetric — SELLs always pass, and averaging into
-            # already-held symbols still passes (a BUY on a symbol we
-            # already own doesn't add a new position).
-            if action == "BUY":
-                held_symbols = {
-                    sym for sym, pos in self.portfolio.positions.items()
-                    if pos.shares > 0
-                }
-                if (
-                    len(held_symbols) >= config.CNN_MAX_OPEN_POSITIONS
-                    and symbol not in held_symbols
-                ):
-                    logger.info(
-                        f"CNNReasoningAgent [{symbol}]: max-open-positions gate "
-                        f"blocked BUY ({len(held_symbols)} held >= cap "
-                        f"{config.CNN_MAX_OPEN_POSITIONS}, and {symbol} is new)"
-                    )
-                    reasoning = (
-                        f"max-open-positions gate: BUY blocked on new symbol — "
-                        f"{len(held_symbols)} positions already held vs cap "
-                        f"{config.CNN_MAX_OPEN_POSITIONS}. Existing holdings "
-                        f"must resolve (or merge) before opening new ones. "
-                        f"Original reasoning: {reasoning}"
-                    )
-                    action = "HOLD"
+            # Safety gates: WFE then max-open-positions. Each demotes a
+            # would-be BUY to HOLD with an augmented reasoning string, but
+            # leaves SELL/HOLD untouched. See _apply_*_gate methods.
+            action, reasoning = self._apply_wfe_gate(symbol, action, reasoning)
+            action, reasoning = self._apply_max_positions_gate(symbol, action, reasoning)
 
             if action == "BUY" and price > 0:
-                # ── BUY decision via pure helper (cnn_decision.decide_buy) ──
-                # Single source of truth for gates+sizing; same helper called
-                # by the MC backtester. See docs/superpowers/specs/
-                # 2026-05-16-mc-strategy-design.md
-                #
-                # decide_buy handles, in order:
-                #   - direction != "up" (here always "up" — Ollama returned BUY)
-                #   - confidence < CNN_BUY_THRESHOLD_BASE
-                #   - regime-adjusted confidence floor (bear/high_vol add-on)
-                #   - portfolio uPnL drawdown vs CNN_PAUSE_UPNL_DRAWDOWN_PCT
-                #   - trail-stop cool-down (BaseAgent._in_trail_cooldown)
-                #   - Kelly × lone-wolf sizing clamped to [2%, MAX_POSITION_SIZE]
-                # WFE and max-open gates above remain inline (per Option B).
-                from data.regime_detector import regime_detector
-                corroborators = sum(
-                    1 for (a, _c) in (other_agent_signals or {}).values()
-                    if a == "BUY"
-                )
-                portfolio_val = self.portfolio.get_total_value(prices)
-                ctx = BuyContext(
-                    symbol=symbol,
-                    cnn_pred_return=float(pred_return),
-                    cnn_pred_direction="up",                 # Ollama already returned BUY
-                    cnn_confidence=float(confidence),        # Ollama's confidence
-                    regime=regime_detector.get_regime()[0],
-                    portfolio_unpnl_frac=self.portfolio.unpnl_frac(prices),
-                    n_corroborators=int(corroborators),
-                    in_trail_cooldown=self._in_trail_cooldown(),
-                    current_price=float(price),
-                    cash_available=float(self.portfolio.cash),
-                    portfolio_value=float(portfolio_val),
-                    kelly_fraction=float(self.portfolio.kelly_fraction()),
-                )
-                buy_decision = decide_buy(ctx, config)
-
-                if buy_decision.action == "HOLD":
-                    # Preserve the historical gate-name substrings so existing
-                    # log/test assertions still match the HOLD reasoning.
-                    reason_lower = buy_decision.reason.lower()
-                    if reason_lower.startswith("upnl"):
-                        gate_label = "uPnL drawdown gate"
-                    elif "regime" in reason_lower:
-                        gate_label = "regime gate"
-                    elif reason_lower.startswith("conf"):
-                        gate_label = "confidence gate"
-                    elif "trail" in reason_lower:
-                        gate_label = "trail cool-down gate"
-                    elif "under-funded" in reason_lower:
-                        gate_label = "under-funded gate"
-                    else:
-                        gate_label = "decide_buy"
-                    logger.info(
-                        f"CNNReasoningAgent [{symbol}]: {gate_label} blocked BUY "
-                        f"({buy_decision.reason})"
-                    )
-                    signals.append(Signal(
-                        symbol    = symbol,
-                        action    = "HOLD",
-                        shares    = 0,
-                        confidence = confidence,
-                        reasoning  = (
-                            f"{gate_label}: BUY blocked — {buy_decision.reason}. "
-                            f"Original reasoning: {reasoning}"
-                        ),
-                        agent_name = self.name,
-                    ))
-                    continue
-
-                # BUY passed: cap shares so we never overspend 95% of cash.
-                shares = buy_decision.shares
-                max_cash_shares = int((self.portfolio.cash * 0.95) / price) if price > 0 else 0
-                if max_cash_shares >= 1:
-                    shares = max(1, min(shares, max_cash_shares))
-
-                # Preserve the LONE-WOLF marker substring (existing tests assert
-                # on it). decide_buy applies the lone-wolf size shrink internally;
-                # we just surface that fact in the reasoning text.
-                lonewolf_marker = ""
-                if corroborators < config.LONEWOLF_MIN_CORROBORATORS:
-                    lonewolf_marker = (
-                        f" [LONE-WOLF: {corroborators} BUY corroborator(s) "
-                        f"< {config.LONEWOLF_MIN_CORROBORATORS}]"
-                    )
-                    logger.info(
-                        f"CNNReasoningAgent [{symbol}]: lone-wolf discount "
-                        f"({corroborators} BUY corroborators)"
-                    )
-
-                signals.append(Signal(
-                    symbol    = symbol,
-                    action    = "BUY",
-                    shares    = shares,
-                    confidence = buy_decision.sized_confidence,
-                    reasoning  = (
-                        f"CNN+Ollama: {reasoning}; {buy_decision.reason}"
-                        f"{lonewolf_marker}"
-                    ),
-                    agent_name = self.name,
+                signals.append(self._handle_buy(
+                    symbol, price, pred_return, confidence, reasoning,
+                    other_agent_signals, prices,
                 ))
-            elif action == "SELL" and symbol in self.portfolio.positions:
-                shares = self.portfolio.positions[symbol].shares
-                signals.append(Signal(
-                    symbol    = symbol,
-                    action    = "SELL",
-                    shares    = shares,
-                    confidence = confidence,
-                    reasoning  = f"CNN+Ollama: {reasoning}",
-                    agent_name = self.name,
-                ))
+            elif action == "SELL":
+                sell_sig = self._handle_sell(symbol, confidence, reasoning)
+                if sell_sig is not None:
+                    signals.append(sell_sig)
+                else:
+                    # SELL on unowned symbol degrades to HOLD (preserves
+                    # historical behavior of the prior catch-all else branch).
+                    signals.append(self._handle_hold(symbol, confidence, reasoning))
             else:
-                signals.append(Signal(
-                    symbol    = symbol,
-                    action    = "HOLD",
-                    shares    = 0,
-                    confidence = confidence,
-                    reasoning  = f"CNN+Ollama HOLD: {reasoning}",
-                    agent_name = self.name,
-                ))
+                signals.append(self._handle_hold(symbol, confidence, reasoning))
 
         return signals
