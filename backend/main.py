@@ -109,39 +109,23 @@ def _json_dumps(payload: Any) -> str:
     return json.dumps(payload, default=_json_default)
 
 
-# ─── Crash Log (raw file — survives logging failures) ────────────────────────
-# Written with open() so it works even if the RotatingFileHandler hasn't
-# been initialised yet, and appears in the repo regardless of the launcher.
-
-_CRASH_LOG_PATH = os.path.join(os.path.dirname(__file__), "logs", "crash.log")
-
-
-def _write_crash(msg: str) -> None:
-    """Append msg to crash.log with a UTC timestamp. Never raises."""
-    try:
-        os.makedirs(os.path.dirname(_CRASH_LOG_PATH), exist_ok=True)
-        ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        with open(_CRASH_LOG_PATH, "a", encoding="utf-8") as _f:
-            _f.write(f"{ts} {msg}\n")
-    except Exception:
-        pass
-
-
-def _crash_excepthook(exc_type, exc_value, exc_tb) -> None:
-    """sys.excepthook replacement — logs unhandled exceptions to crash.log."""
-    import traceback
-    tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
-    _write_crash(f"[UNHANDLED EXCEPTION]\n{tb_str}")
-    # Also log via standard logging so it still appears in error.log
-    logger.critical(f"Unhandled exception: {exc_value}", exc_info=(exc_type, exc_value, exc_tb))
-    # Call the default handler so the process exits normally
-    sys.__excepthook__(exc_type, exc_value, exc_tb)
-
-
-sys.excepthook = _crash_excepthook
-
-# Stamp the start of each process run so separate crashes are easy to distinguish
-_write_crash(f"[PROCESS START] pid={os.getpid()}")
+# ─── Logging + Crash Log + Error Log (extracted to logging_setup.py for #67) ─
+# Sets sys.excepthook, registers both rotating file handlers, and adds the
+# Win10054 filter to root + asyncio + uvicorn loggers. Re-exports every
+# symbol that test_main_endpoints / test_security depend on.
+from logging_setup import (  # noqa: E402
+    _CRASH_LOG_PATH,
+    _ERROR_LOG_PATH,
+    _ERRORS_ONLY_LOG_PATH,
+    _LOG_DIR,
+    _SuppressWin10054,
+    _add_log_handler,
+    _crash_excepthook,
+    _parse_error_log,
+    _write_crash,
+    install_logging,
+)
+_win10054_filter = install_logging()
 
 
 def _parse_ts(s: str) -> datetime:
@@ -161,94 +145,6 @@ OLLAMA_CLOSED_SCAN_MIN: int = 30
 # Detect whether TLS certs exist (used to set the Secure cookie flag)
 _CERTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'certs')
 _HTTPS_ENABLED = os.path.isfile(os.path.join(_CERTS_DIR, 'cert.pem'))
-
-
-# Suppress the Windows-specific "connection forcibly closed" asyncio noise.
-# This fires whenever a browser tab closes/refreshes mid-connection and is harmless.
-class _SuppressWin10054(logging.Filter):
-    _NOISE = ("WinError 10054", "ConnectionResetError", "ConnectionAbortedError",
-              "_call_connection_lost", "RemoteProtocolError")
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        msg = record.getMessage()
-        return not any(n in msg for n in self._NOISE)
-
-_win10054_filter = _SuppressWin10054()
-logging.getLogger("asyncio").addFilter(_win10054_filter)
-logging.getLogger("uvicorn.error").addFilter(_win10054_filter)
-logging.getLogger("uvicorn.access").addFilter(_win10054_filter)
-logging.root.addFilter(_win10054_filter)
-
-# ─── Persistent Error Log File ──────────────────────────────────────────────
-
-_LOG_DIR = os.path.join(os.path.dirname(__file__), "logs")
-_ERROR_LOG_PATH       = os.path.join(_LOG_DIR, "error.log")        # WARNING+
-_ERRORS_ONLY_LOG_PATH = os.path.join(_LOG_DIR, "errors_only.log")  # ERROR+ only
-
-def _add_log_handler(path: str, level: int) -> None:
-    """Add a RotatingFileHandler at `path` for `level`+, guarded against duplicates."""
-    try:
-        os.makedirs(_LOG_DIR, exist_ok=True)
-        handler = RotatingFileHandler(
-            path,
-            maxBytes=5 * 1024 * 1024,   # 5 MB per file
-            backupCount=10,
-            encoding="utf-8",
-        )
-        handler.setLevel(level)
-        handler.setFormatter(logging.Formatter(
-            "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        ))
-        handler.addFilter(_win10054_filter)
-        already_added = any(
-            isinstance(h, RotatingFileHandler)
-            and os.path.abspath(getattr(h, "baseFilename", "")) == os.path.abspath(path)
-            for h in logging.root.handlers
-        )
-        if not already_added:
-            logging.root.addHandler(handler)
-        else:
-            handler.close()
-    except OSError:
-        pass  # Non-fatal
-
-_add_log_handler(_ERROR_LOG_PATH,       logging.WARNING)  # warnings + errors
-_add_log_handler(_ERRORS_ONLY_LOG_PATH, logging.ERROR)    # errors + critical only
-
-_LOG_LINE_RE = re.compile(
-    r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(\w+)\] ([^:]+): (.+)$"
-)
-
-
-def _parse_error_log(limit: int = 100, errors_only: bool = True) -> list:
-    """Read and parse the log file, returning entries newest-first.
-
-    errors_only=True  → reads errors_only.log (ERROR/CRITICAL, never polluted by warnings)
-    errors_only=False → reads error.log       (WARNING/ERROR/CRITICAL, full log)
-    """
-    path = _ERRORS_ONLY_LOG_PATH if errors_only else _ERROR_LOG_PATH
-    if not os.path.exists(path):
-        return []
-    try:
-        with open(path, "r", encoding="utf-8", errors="replace") as f:
-            lines = f.readlines()
-    except OSError:
-        return []
-
-    entries = []
-    for line in reversed(lines):
-        m = _LOG_LINE_RE.match(line.rstrip())
-        if m:
-            entries.append({
-                "timestamp": m.group(1),
-                "level":     m.group(2),
-                "logger":    m.group(3).strip(),
-                "message":   m.group(4),
-            })
-        if len(entries) >= limit:
-            break
-    return entries
 
 
 # ─── Application State ──────────────────────────────────────────────────────
