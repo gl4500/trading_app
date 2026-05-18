@@ -227,77 +227,20 @@ app.add_middleware(
 )
 
 
-# ─── Security Headers ─────────────────────────────────────────────────────────
-
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    # Skip CSP for Swagger UI — it loads JS/CSS from cdn.jsdelivr.net
-    if request.url.path not in ("/docs", "/openapi.json", "/redoc"):
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "connect-src 'self' ws://localhost:8000 wss://localhost:8000 "
-            "ws://localhost:5173 wss://localhost:5173"
-        )
-    return response
-
-
-# ─── Authentication Middleware ────────────────────────────────────────────────
-
-# Paths that are always accessible without a session cookie.
-_AUTH_EXEMPT = frozenset({
-    "/api/login",
-    "/api/logout",
-    "/api/auth/check",
-    "/docs",
-    "/openapi.json",
-    "/redoc",
-})
-
-@app.middleware("http")
-async def auth_middleware(request: Request, call_next):
-    """Block unauthenticated requests when APP_PASSWORD is set."""
-    # Auth disabled (no password configured) — pass everything through
-    if not auth.is_enabled():
-        return await call_next(request)
-
-    # WebSocket upgrade requests are handled inside websocket_endpoint
-    if request.url.path.startswith("/ws"):
-        return await call_next(request)
-
-    # Public paths never require a cookie
-    if request.url.path in _AUTH_EXEMPT:
-        return await call_next(request)
-
-    token = request.cookies.get(auth.SESSION_COOKIE)
-    if not token or not auth.validate_session(token):
-        return JSONResponse({"detail": "Authentication required"}, status_code=401)
-
-    return await call_next(request)
-
-
-# ─── Rate Limiter ─────────────────────────────────────────────────────────────
-
-_rate_limit_store: Dict[str, List[float]] = defaultdict(list)
-_RATE_LIMIT_WINDOW = 60   # seconds
-_RATE_LIMIT_MAX     = 10  # max requests per window per IP
-
-def _check_rate_limit(ip: str) -> bool:
-    """Return True if request is allowed, False if rate limit exceeded."""
-    now = time.time()
-    window_start = now - _RATE_LIMIT_WINDOW
-    calls = _rate_limit_store[ip]
-    calls[:] = [t for t in calls if t > window_start]
-    if len(calls) >= _RATE_LIMIT_MAX:
-        return False
-    calls.append(now)
-    return True
+# ─── Middleware + Rate Limiter (extracted to middleware.py for #67) ─────────
+# Re-exports kept so tests doing `from main import _check_rate_limit, _rate_limit_store,
+# _RATE_LIMIT_MAX` continue to work.
+from middleware import (  # noqa: E402
+    _AUTH_EXEMPT,
+    _RATE_LIMIT_MAX,
+    _RATE_LIMIT_WINDOW,
+    _check_rate_limit,
+    _rate_limit_store,
+    add_security_headers,
+    auth_middleware,
+    install_middleware,
+)
+install_middleware(app)
 
 
 # === Routes (extracted to backend/routes/* for issue #67) ====================
