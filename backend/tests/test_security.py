@@ -103,7 +103,11 @@ def _start_lifespan_patches():
         patch("main.auto_scan_loop",            new_callable=AsyncMock),
         patch("main.news_sentinel_loop",        new_callable=AsyncMock),
         # Keep auth disabled so tests don't require session cookies,
-        # even if APP_PASSWORD is set in the local .env file.
+        # even if APP_PASSWORD is set in the local .env file. The init_auth
+        # patch is the load-bearing one — lifespan startup calls it, and
+        # without this no-op it would re-populate _password_hash from the
+        # real .env config and override the _password_hash patch below.
+        patch("auth.init_auth"),
         patch("auth._password_hash", ""),
     ]
     for p in patchers:
