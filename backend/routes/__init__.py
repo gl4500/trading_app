@@ -9,7 +9,7 @@ Routers are intentionally grouped by concern, not by HTTP verb:
   auth.py         — /api/login, /api/logout, /api/auth/check
   trading.py      — /api/start, /api/stop, /api/reset, /api/force-trading
   data.py         — read endpoints for portfolio, watchlist, signals, etc.
-  diagnostics.py  — /api/status, /api/cnn-diagnostics, /api/telemetry
+  diagnostics.py  — /api/status, /api/model-diagnostics, /api/telemetry
   benchmarks.py   — /api/benchmarks
   tax.py          — /api/tax/estimate
   ollama.py       — /api/ollama-mode

@@ -116,7 +116,7 @@ async def init_agents() -> None:
     from agents.historical_trends_agent import HistoricalTrendsAgent
     from agents.ensemble_agent import EnsembleAgent
     from agents.scanner_portfolio_agent import ScannerPortfolioAgent
-    from agents.cnn_reasoning_agent import CNNReasoningAgent
+    from agents.xgb_reasoning_agent import XGBReasoningAgent
 
     import main  # lazy — required for test patches against main.app_state / main._write_crash
 
@@ -133,7 +133,12 @@ async def init_agents() -> None:
                              # vote independently; a local-Ollama failure can't break Claude.
     gemini = GeminiAgent()
     historical_trends = HistoricalTrendsAgent()
-    cnn_agent = CNNReasoningAgent()
+    # XGBReasoningAgent (renamed from CNNReasoningAgent in issue #75). The DB
+    # migration v5 renames the existing agents row in place, so
+    # upsert_agent("XGBReasoningAgent", ...) below finds the same row that
+    # was previously named CNNReasoningAgent — trades / portfolios /
+    # performance FK references stay valid across the rename.
+    xgb_agent = XGBReasoningAgent()
 
     # Create ensemble (Gemini excluded — news/context source only, not a voter)
     ensemble = EnsembleAgent(
@@ -142,7 +147,7 @@ async def init_agents() -> None:
         mean_reversion_agent=mean_rev,
         sentiment_agent=sentiment,
         claude_agent=claude,
-        cnn_reasoning_agent=cnn_agent,
+        xgb_reasoning_agent=xgb_agent,
         ollama_agent=ollama,
     )
     ensemble.component_agents["HistoricalTrendsAgent"] = historical_trends
@@ -153,7 +158,7 @@ async def init_agents() -> None:
     # Gemini is a news/context source only — not registered as a trading agent
     app_state.gemini_news_agent = gemini
     all_agents = [tech, momentum, mean_rev, sentiment, claude, ollama,
-                  historical_trends, cnn_agent, ensemble, scanner_portfolio]
+                  historical_trends, xgb_agent, ensemble, scanner_portfolio]
 
     # Register agents in DB and restore full portfolio state for continuity across restarts
     for agent in all_agents:
@@ -509,7 +514,11 @@ async def lifespan(app: FastAPI):
     # Start WebSocket broadcast task
     main.app_state.ws_task = asyncio.create_task(main.ws_broadcast_loop())
 
-    # Auto-backfill signal history if CNN has fewer than MIN_TRAIN_SAMPLES rows
+    # Auto-backfill signal history if the model has fewer than
+    # MIN_TRAIN_SAMPLES rows. "CNN" label kept in log messages because
+    # MIN_TRAIN_SAMPLES still lives in data.cnn_model — see issue #75 note
+    # on keeping cnn_model.py's name (the file IS still a CNN, just
+    # inactive in production).
     try:
         from data.history_backfill import backfill_signal_history, get_sample_counts
         from data.cnn_model import MIN_TRAIN_SAMPLES
@@ -517,13 +526,13 @@ async def lifespan(app: FastAPI):
         total  = sum(counts.values())
         if total < MIN_TRAIN_SAMPLES:
             logger.info(
-                f"CNN training data: {total} samples (< {MIN_TRAIN_SAMPLES} minimum) — "
+                f"Signal-model training data: {total} samples (< {MIN_TRAIN_SAMPLES} minimum) — "
                 f"auto-backfilling 365 days of history..."
             )
             symbols = watchlist_manager.get_active_watchlist() or config.WATCHLIST
             asyncio.create_task(backfill_signal_history(symbols, days=365))
         else:
-            logger.info(f"CNN training data: {total} samples available — skipping auto-backfill.")
+            logger.info(f"Signal-model training data: {total} samples available — skipping auto-backfill.")
     except Exception as _bf_exc:
         logger.warning(f"Auto-backfill check failed (non-fatal): {_bf_exc}")
 

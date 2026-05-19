@@ -4,7 +4,7 @@ Typed dataclasses for portfolio metrics and agent state.
 These replace ad-hoc dicts returned by `Portfolio.calculate_metrics()` and
 `BaseAgent.get_state()`. To keep zero behavioral drift with existing
 callsites (~9 dict-style patterns across main.py / ensemble_agent.py /
-summary_agent.py / cnn_reasoning_agent.py / tests), each class includes a
+summary_agent.py / xgb_reasoning_agent.py / tests), each class includes a
 dict shim implementing __getitem__, __setitem__, __contains__, get,
 keys, __iter__, and to_dict. This means every existing access pattern
 still works:

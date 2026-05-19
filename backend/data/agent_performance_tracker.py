@@ -1,8 +1,8 @@
 """
 Agent performance tracker — queries trading.db for per-agent metrics and
 exposes normalized 0-1 scores used to weight agent signals in:
-  1. CNN training sample weighting
-  2. Ollama reasoning prompt enrichment (CNNReasoningAgent)
+  1. Signal-model training sample weighting
+  2. Ollama reasoning prompt enrichment (XGBReasoningAgent)
 
 Refreshes at most every REFRESH_INTERVAL seconds so the DB is not hit
 on every 60-second trading cycle.
@@ -26,7 +26,7 @@ _VOTER_AGENTS = [
     "MomentumAgent",
     "MeanReversionAgent",
     "HistoricalTrendsAgent",
-    "CNNReasoningAgent",
+    "XGBReasoningAgent",
     "ScannerPortfolioAgent",
 ]
 
@@ -238,5 +238,5 @@ class AgentPerformanceTracker:
         return result
 
 
-# Module-level singleton imported by cnn_reasoning_agent and main.py
+# Module-level singleton imported by xgb_reasoning_agent and main.py
 agent_performance_tracker = AgentPerformanceTracker()

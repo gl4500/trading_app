@@ -1,16 +1,23 @@
 """
-CNN Reasoning Agent
+XGB Reasoning Agent
 -------------------
-Combines a trained temporal CNN (data/cnn_model.py) with active LLM reasoning
-to produce trading signals.
+Combines a trained signal model (XGBoost in production via MODEL_BACKEND
+selector; CNN when MODEL_BACKEND=cnn) with active LLM reasoning to produce
+trading signals.
+
+Renamed from CNNReasoningAgent in issue #75 — the agent has historically
+used XGBoost via the ``data.signal_model.signal_model`` selector. The
+``signal_cnn`` local alias below is intentional: it points at whichever
+backend the selector resolves to, so naming the alias after the backend
+would be just as misleading as the old class name.
 
 Data flow per cycle
 -------------------
   1. Ensure model is loaded / retrain if 24 h have elapsed and data is ready
   2. For each symbol pull the recent (5, T) rolling window from signal_history
-  3. CNN forward pass → (predicted_return, direction, cnn_confidence)
+  3. Model forward pass → (predicted_return, direction, model_confidence)
   4. Build a concise prompt that includes:
-       • CNN prediction + learned vs hardcoded weight comparison
+       • Model prediction + learned vs hardcoded weight comparison
        • Current source scores + composite score
   5. Send prompt to Ollama (primary, local, free)
   6. If Ollama is unavailable → simple rule-based fallback
@@ -34,7 +41,7 @@ from typing import Dict, List, Optional
 
 from agents.base_agent import BaseAgent, Signal
 from agents.agent_utils import get_fallback_signals
-from agents.cnn_decision import BuyContext, decide_buy
+from agents.xgb_decision import BuyContext, decide_buy
 from config import config
 from data.signal_history import signal_history
 from data.cnn_model import build_training_windows, MIN_TRAIN_SAMPLES
@@ -56,11 +63,11 @@ _HARDCODED = {
 }
 
 # Entropy pre-filter thresholds
-# Skip Ollama when signal magnitude is below MIN_SIGNAL_MAGNITUDE AND CNN
-# confidence is below MIN_CNN_CONF.  This avoids ~50s Ollama calls on cycles
+# Skip Ollama when signal magnitude is below MIN_SIGNAL_MAGNITUDE AND model
+# confidence is below MIN_MODEL_CONF.  This avoids ~50s Ollama calls on cycles
 # where all source scores are near zero (no information in the market context).
 _MIN_SIGNAL_MAGNITUDE = 0.08   # mean absolute value of fresh source scores
-_MIN_CNN_CONF         = 0.35   # CNN confidence below which we also require signal
+_MIN_MODEL_CONF       = 0.35   # model confidence below which we also require signal
 
 
 def _signal_magnitude(scores: Dict[str, Optional[float]]) -> float:
@@ -73,9 +80,10 @@ def _signal_magnitude(scores: Dict[str, Optional[float]]) -> float:
     return sum(vals) / len(vals) if vals else 0.0
 
 
-class CNNReasoningAgent(BaseAgent):
+class XGBReasoningAgent(BaseAgent):
     """
-    Trading agent driven by a learned temporal CNN + Ollama active reasoning.
+    Trading agent driven by a learned signal model (XGBoost/CNN selector) +
+    Ollama active reasoning.
 
     Primary  : Ollama (local, free, zero API cost)
     Secondary: simple rule-based fallback (direction → action)
@@ -83,9 +91,9 @@ class CNNReasoningAgent(BaseAgent):
 
     def __init__(self):
         super().__init__(
-            name="CNNReasoningAgent",
+            name="XGBReasoningAgent",
             strategy_description=(
-                "Temporal CNN signal weighting with Ollama active reasoning"
+                "Learned signal model (XGBoost/CNN selector) + Ollama active reasoning"
             ),
         )
         self._model_loaded    = False
@@ -118,7 +126,7 @@ class CNNReasoningAgent(BaseAgent):
             df = signal_history.get_training_data()
             if df.empty or len(df) < MIN_TRAIN_SAMPLES:
                 logger.info(
-                    f"CNNReasoningAgent: {len(df)} labelled samples available "
+                    f"XGBReasoningAgent: {len(df)} labelled samples available "
                     f"(need {MIN_TRAIN_SAMPLES}) — skipping training"
                 )
                 return
@@ -132,12 +140,12 @@ class CNNReasoningAgent(BaseAgent):
             signal_cnn.save()
             summary = signal_cnn.training_summary()
             logger.info(
-                f"CNNReasoningAgent: training complete on {len(X)} samples | "
+                f"XGBReasoningAgent: training complete on {len(X)} samples | "
                 f"channels={X.shape[1]} | MSE={summary['final_mse']:.6f} | "
                 f"device={summary['device']} | learned weights: {summary['learned_weights']}"
             )
         except Exception as exc:
-            logger.error(f"CNNReasoningAgent: training failed: {exc}", exc_info=True)
+            logger.error(f"XGBReasoningAgent: training failed: {exc}", exc_info=True)
 
     # ── Ollama prompt + call ──────────────────────────────────────────────────
 
@@ -345,17 +353,17 @@ class CNNReasoningAgent(BaseAgent):
             )
             _elapsed = time.perf_counter() - _t0
             if _elapsed > 15:
-                logger.warning(f"[OLLAMA_LATENCY] app=trading_app caller=CNNReasoningAgent model={config.OLLAMA_MODEL} elapsed={_elapsed:.2f}s (SLOW)")
+                logger.warning(f"[OLLAMA_LATENCY] app=trading_app caller=XGBReasoningAgent model={config.OLLAMA_MODEL} elapsed={_elapsed:.2f}s (SLOW)")
             else:
-                logger.info(f"[OLLAMA_LATENCY] app=trading_app caller=CNNReasoningAgent model={config.OLLAMA_MODEL} elapsed={_elapsed:.2f}s")
+                logger.info(f"[OLLAMA_LATENCY] app=trading_app caller=XGBReasoningAgent model={config.OLLAMA_MODEL} elapsed={_elapsed:.2f}s")
             text = (response.choices[0].message.content or "").strip()
             m    = re.search(r'\{[\s\S]*\}', text)
             if m:
                 return json.loads(m.group())
         except asyncio.TimeoutError:
-            logger.warning("CNNReasoningAgent: Ollama timed out (50s) — using rule-based fallback")
+            logger.warning("XGBReasoningAgent: Ollama timed out (50s) — using rule-based fallback")
         except Exception as exc:
-            logger.warning(f"CNNReasoningAgent: Ollama error — using rule-based fallback: {exc}")
+            logger.warning(f"XGBReasoningAgent: Ollama error — using rule-based fallback: {exc}")
         return None
 
     # ── portfolio + goal context ──────────────────────────────────────────────
@@ -450,16 +458,20 @@ class CNNReasoningAgent(BaseAgent):
             "macro_text":          macro_text,
         }
 
-    # ── CNN inference + Ollama fallback ──────────────────────────────────────
+    # ── Model inference + Ollama fallback ────────────────────────────────────
 
     def _run_cnn_inference(self, symbol: str, c_score: float) -> tuple:
         """
-        Single-symbol CNN forward pass with the Stage-3b ensemble-uncertainty
-        downscale on top. When the CNN is not yet trained or no recent window
-        is available, derives a surrogate (pred_return, direction, cnn_conf)
+        Single-symbol model forward pass with the Stage-3b ensemble-uncertainty
+        downscale on top. When the model is not yet trained or no recent window
+        is available, derives a surrogate (pred_return, direction, model_conf)
         from the composite score so analyze() always has a usable estimate.
 
-        Returns ``(pred_return, direction, cnn_conf)``.
+        Method name kept as ``_run_cnn_inference`` for test backwards-compat —
+        the underlying call goes through the ``signal_cnn`` selector alias
+        which resolves to whichever backend MODEL_BACKEND points at.
+
+        Returns ``(pred_return, direction, model_conf)``.
         """
         window = signal_history.get_recent_window(symbol, T=signal_cnn.T)
         if window is None or not signal_cnn.is_trained:
@@ -475,7 +487,7 @@ class CNNReasoningAgent(BaseAgent):
         try:
             pred_return, direction, cnn_conf = signal_cnn.predict(window)
         except Exception as exc:
-            logger.debug(f"CNNReasoningAgent: predict error for {symbol}: {exc}")
+            logger.debug(f"XGBReasoningAgent: predict error for {symbol}: {exc}")
             pred_return, direction, cnn_conf = 0.0, "neutral", 0.3
 
         # Ensemble-uncertainty downscale (Stage 3b). When the XGBoost backend
@@ -495,7 +507,7 @@ class CNNReasoningAgent(BaseAgent):
                     cnn_conf *= uncert_mult
             except Exception as exc:
                 logger.debug(
-                    f"CNNReasoningAgent: ensemble_predict error for "
+                    f"XGBReasoningAgent: ensemble_predict error for "
                     f"{symbol}: {exc}"
                 )
 
@@ -508,8 +520,8 @@ class CNNReasoningAgent(BaseAgent):
         pred_return: float,
     ) -> Dict:
         """
-        CNN-only rule-based fallback used when Ollama is unavailable
-        (``_ollama_decision`` returned ``None``). Maps CNN direction to a
+        Model-only rule-based fallback used when Ollama is unavailable
+        (``_ollama_decision`` returned ``None``). Maps model direction to a
         BUY/SELL/HOLD action and packages it in the same dict shape Ollama
         would return so the rest of analyze() stays uniform.
         """
@@ -543,7 +555,7 @@ class CNNReasoningAgent(BaseAgent):
         if drop is None or not (drop >= config.DAILY_REVIEW_PCT > 0):
             return None
         logger.info(
-            f"CNNReasoningAgent [{symbol}]: daily-move risk alert "
+            f"XGBReasoningAgent [{symbol}]: daily-move risk alert "
             f"(down {drop*100:.1f}% today, threshold {config.DAILY_REVIEW_PCT*100:.0f}%)"
         )
         return {
@@ -561,7 +573,7 @@ class CNNReasoningAgent(BaseAgent):
         reasoning: str,
     ) -> tuple:
         """
-        Walk-forward efficiency gate. Demotes BUY → HOLD when the CNN's
+        Walk-forward efficiency gate. Demotes BUY → HOLD when the model's
         ``mean_wfe`` is populated and negative (model is worse than
         predicting the mean). When ``mean_wfe`` is ``None`` (no walk-forward
         fit yet), the gate is a no-op and lower-level gates decide.
@@ -574,7 +586,7 @@ class CNNReasoningAgent(BaseAgent):
         if mean_wfe_val is None or mean_wfe_val >= 0.0:
             return action, reasoning
         logger.info(
-            f"CNNReasoningAgent [{symbol}]: WFE gate blocked BUY "
+            f"XGBReasoningAgent [{symbol}]: WFE gate blocked BUY "
             f"(mean_wfe={mean_wfe_val:.4f} < 0)"
         )
         new_reasoning = (
@@ -610,7 +622,7 @@ class CNNReasoningAgent(BaseAgent):
         ):
             return action, reasoning
         logger.info(
-            f"CNNReasoningAgent [{symbol}]: max-open-positions gate "
+            f"XGBReasoningAgent [{symbol}]: max-open-positions gate "
             f"blocked BUY ({len(held_symbols)} held >= cap "
             f"{config.CNN_MAX_OPEN_POSITIONS}, and {symbol} is new)"
         )
@@ -638,7 +650,7 @@ class CNNReasoningAgent(BaseAgent):
 
           • no risk_alert is active (risk_alert always wins — see Backlog 0.5),
           • mean |source score| < _MIN_SIGNAL_MAGNITUDE, AND
-          • cnn_conf < _MIN_CNN_CONF
+          • cnn_conf < _MIN_MODEL_CONF
 
         Returns ``None`` when the symbol passes the filter and should proceed
         to the Ollama call. Wrapped in a method so the threshold logic is
@@ -648,10 +660,10 @@ class CNNReasoningAgent(BaseAgent):
         if risk_alert is not None:
             return None
         magnitude = _signal_magnitude(current_scores)
-        if magnitude >= _MIN_SIGNAL_MAGNITUDE or cnn_conf >= _MIN_CNN_CONF:
+        if magnitude >= _MIN_SIGNAL_MAGNITUDE or cnn_conf >= _MIN_MODEL_CONF:
             return None
         logger.debug(
-            f"CNNReasoningAgent [{symbol}]: entropy pre-filter — "
+            f"XGBReasoningAgent [{symbol}]: entropy pre-filter — "
             f"magnitude={magnitude:.3f} conf={cnn_conf:.2f} → HOLD (skip Ollama)"
         )
         return Signal(
@@ -698,9 +710,9 @@ class CNNReasoningAgent(BaseAgent):
         portfolio_val = self.portfolio.get_total_value(prices)
         ctx = BuyContext(
             symbol=symbol,
-            cnn_pred_return=float(pred_return),
-            cnn_pred_direction="up",                 # Ollama already returned BUY
-            cnn_confidence=float(confidence),        # Ollama's confidence
+            model_pred_return=float(pred_return),
+            model_pred_direction="up",                 # Ollama already returned BUY
+            model_confidence=float(confidence),        # Ollama's confidence
             regime=regime_detector.get_regime()[0],
             portfolio_unpnl_frac=self.portfolio.unpnl_frac(prices),
             n_corroborators=int(corroborators),
@@ -729,7 +741,7 @@ class CNNReasoningAgent(BaseAgent):
             else:
                 gate_label = "decide_buy"
             logger.info(
-                f"CNNReasoningAgent [{symbol}]: {gate_label} blocked BUY "
+                f"XGBReasoningAgent [{symbol}]: {gate_label} blocked BUY "
                 f"({buy_decision.reason})"
             )
             return Signal(
@@ -760,7 +772,7 @@ class CNNReasoningAgent(BaseAgent):
                 f"< {config.LONEWOLF_MIN_CORROBORATORS}]"
             )
             logger.info(
-                f"CNNReasoningAgent [{symbol}]: lone-wolf discount "
+                f"XGBReasoningAgent [{symbol}]: lone-wolf discount "
                 f"({corroborators} BUY corroborators)"
             )
 
@@ -847,7 +859,7 @@ class CNNReasoningAgent(BaseAgent):
             catalysts           = sym_ctx["catalysts"]
             macro_text          = sym_ctx["macro_text"]
 
-            # CNN forward pass + ensemble-uncertainty downscale (Stage 3b).
+            # Model forward pass + ensemble-uncertainty downscale (Stage 3b).
             pred_return, direction, cnn_conf = self._run_cnn_inference(symbol, c_score)
             learned_weights = signal_cnn.get_learned_weights()
 
@@ -855,7 +867,7 @@ class CNNReasoningAgent(BaseAgent):
             risk_alert: Optional[Dict] = self._build_risk_alert(symbol, price)
 
             # ── Entropy pre-filter ────────────────────────────────────────────
-            # Skip Ollama when signal magnitude is too low AND CNN is uncertain.
+            # Skip Ollama when signal magnitude is too low AND model is uncertain.
             # Saves ~50s Ollama calls on flat/noisy cycles with no real signal.
             # risk_alert always bypasses the filter — see _entropy_prefilter_signal.
             entropy_signal = self._entropy_prefilter_signal(

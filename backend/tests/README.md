@@ -29,7 +29,7 @@ C:\Users\gl450\trading_app\runtime\python\python.exe -m unittest tests.test_port
 | `test_agent_utils.py` | `agents/agent_utils.py` | `format_bars_for_prompt`, `build_portfolio_context`, `parse_ai_decisions`, `fill_missing_symbols`, `get_fallback_signals` |
 | `test_agent_performance_tracker.py` | `data/agent_performance_tracker.py` | Trade outcome recording, win-rate, avg-pnl, adaptive weight calculation |
 | `test_claude_agent.py` | `agents/claude_agent.py` | Prompt construction, Ollama fallback routing, token logging |
-| `test_cnn_reasoning_agent.py` | `agents/cnn_reasoning_agent.py` | CNN signal extraction, Ollama reasoning loop, rule-based fallback |
+| `test_xgb_reasoning_agent.py` | `agents/xgb_reasoning_agent.py` | Signal-model extraction, Ollama reasoning loop, rule-based fallback |
 | `test_database.py` | `database.py` | `init_db`, `upsert_agent`, `save_trade`, `get_agent_trades`, `save_performance`, `reset_database`, `upsert_portfolio_position` |
 | `test_ensemble_voting.py` | `agents/ensemble_agent.py` | `_vote`, `_detect_regime`, `_compute_adaptive_weights`, regime multipliers |
 | `test_gemini_agent.py` | `agents/gemini_agent.py` | Prompt construction, Ollama fallback routing, token logging |

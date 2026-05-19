@@ -79,7 +79,7 @@ from agents.gemini_agent import GeminiAgent
 from agents.historical_trends_agent import HistoricalTrendsAgent
 from agents.ensemble_agent import EnsembleAgent
 from agents.scanner_portfolio_agent import ScannerPortfolioAgent
-from agents.cnn_reasoning_agent import CNNReasoningAgent
+from agents.xgb_reasoning_agent import XGBReasoningAgent
 from agents.summary_agent import daily_summary
 
 # Configure logging
