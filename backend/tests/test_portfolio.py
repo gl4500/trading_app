@@ -16,6 +16,7 @@ for _p in (_BACKEND, _SITE):
         sys.path.insert(0, _p)
 
 from trading.portfolio import Portfolio, Position, TradeRecord
+from api.schemas import PositionSummary
 
 
 PRICES = {"AAPL": 150.0, "MSFT": 300.0, "GOOGL": 2800.0}
@@ -154,6 +155,108 @@ class TestPortfolioMetrics(unittest.TestCase):
         m = self.p.calculate_metrics({"AAPL": 160.0})
         self.assertEqual(len(m["positions"]), 1)
         self.assertEqual(m["positions"][0]["symbol"], "AAPL")
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Issue #69 — Portfolio.calculate_metrics split into 3 focused helpers.
+# Each helper returns only its own concern and is independently callable.
+# ──────────────────────────────────────────────────────────────────────────
+
+class TestPerformanceSummary(unittest.TestCase):
+    """performance_summary(prices) returns aggregate scalars ONLY — no
+    `positions` list and no `avg_mae`/`avg_mfe`/`avg_captured_pct` keys."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_returns_aggregate_scalars_only(self):
+        # Build some history so every scalar is non-trivial.
+        self.p.execute_buy("AAPL", 100, 100.0)
+        self.p.execute_sell("AAPL", 100, 110.0)  # winning trade
+        self.p.execute_buy("MSFT", 10, 300.0)
+        self.p.execute_sell("MSFT", 10, 280.0)   # losing trade
+        self.p.execute_buy("GOOGL", 1, 2800.0)   # open position
+
+        perf = self.p.performance_summary(PRICES)
+
+        # Must be a plain dict (not a dataclass) — it's the "performance" slice.
+        self.assertIsInstance(perf, dict)
+
+        # Exact required scalar fields:
+        expected_keys = {
+            "total_value", "cash", "position_value",
+            "total_return", "total_return_pct", "realized_pnl",
+            "win_rate", "sharpe_ratio", "max_drawdown",
+            "total_trades", "winning_trades", "losing_trades",
+        }
+        self.assertEqual(set(perf.keys()), expected_keys)
+
+        # Must NOT contain the position list or excursion fields.
+        self.assertNotIn("positions", perf)
+        self.assertNotIn("avg_mae", perf)
+        self.assertNotIn("avg_mfe", perf)
+        self.assertNotIn("avg_captured_pct", perf)
+
+        # Sanity-check a couple of values match calculate_metrics().
+        m = self.p.calculate_metrics(PRICES)
+        self.assertAlmostEqual(perf["total_value"], m["total_value"])
+        self.assertAlmostEqual(perf["realized_pnl"], m["realized_pnl"])
+        self.assertEqual(perf["winning_trades"], m["winning_trades"])
+
+
+class TestPositionSummaries(unittest.TestCase):
+    """position_summaries(prices) returns a list of PositionSummary
+    dataclass instances (one per open position)."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_returns_list_of_PositionSummary(self):
+        self.p.execute_buy("AAPL", 10, 150.0)
+        self.p.execute_buy("MSFT", 5, 300.0)
+
+        summaries = self.p.position_summaries({"AAPL": 160.0, "MSFT": 310.0})
+
+        self.assertIsInstance(summaries, list)
+        self.assertEqual(len(summaries), 2)
+        for s in summaries:
+            self.assertIsInstance(s, PositionSummary)
+
+        by_sym = {s.symbol: s for s in summaries}
+        self.assertEqual(by_sym["AAPL"].shares, 10)
+        self.assertEqual(by_sym["AAPL"].current_price, 160.0)
+        self.assertAlmostEqual(by_sym["AAPL"].current_value, 1600.0)
+        self.assertAlmostEqual(by_sym["AAPL"].unrealized_pnl, 100.0)
+
+
+class TestExcursionStats(unittest.TestCase):
+    """excursion_stats() takes no `prices` arg and returns ONLY the three
+    MAE/MFE/captured fields — all derived from closed trade_history."""
+
+    def setUp(self):
+        self.p = Portfolio(starting_capital=100_000)
+
+    def test_returns_three_fields(self):
+        # No trades yet → all three fields should be zero, dict shape exact.
+        stats = self.p.excursion_stats()
+        self.assertIsInstance(stats, dict)
+        self.assertEqual(set(stats.keys()), {"avg_mae", "avg_mfe", "avg_captured_pct"})
+        self.assertEqual(stats["avg_mae"], 0.0)
+        self.assertEqual(stats["avg_mfe"], 0.0)
+        self.assertEqual(stats["avg_captured_pct"], 0.0)
+
+    def test_values_match_calculate_metrics(self):
+        # Build a trade that exercises MFE/MAE.
+        self.p.execute_buy("AAPL", 10, 100.0)
+        self.p.record_value({"AAPL": 130.0})   # MFE peak +30%
+        self.p.record_value({"AAPL": 90.0})    # MAE dip -10%
+        self.p.execute_sell("AAPL", 10, 120.0)  # exit +20%
+
+        stats = self.p.excursion_stats()
+        m = self.p.calculate_metrics({"AAPL": 120.0})
+        self.assertAlmostEqual(stats["avg_mae"], m["avg_mae"])
+        self.assertAlmostEqual(stats["avg_mfe"], m["avg_mfe"])
+        self.assertAlmostEqual(stats["avg_captured_pct"], m["avg_captured_pct"])
 
 
 class TestSharpeRatio(unittest.TestCase):
