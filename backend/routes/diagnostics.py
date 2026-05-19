@@ -1,10 +1,19 @@
-"""Diagnostic endpoints: /api/status, /api/cnn-diagnostics, /api/telemetry."""
+"""Diagnostic endpoints: /api/status, /api/model-diagnostics, /api/telemetry.
+
+The model diagnostics endpoint was renamed from /api/cnn-diagnostics to
+/api/model-diagnostics in issue #75 — the underlying selector resolves to
+XGBoost in production, so the "cnn" prefix had become misleading. The old
+URL still works as a 308 (permanent) redirect for one release so any
+existing frontend bookmarks / dashboards keep functioning while the
+frontend PR catches up.
+"""
 from __future__ import annotations
 
 import os
 import subprocess
 
 from fastapi import APIRouter
+from fastapi.responses import RedirectResponse
 
 diagnostics_router = APIRouter()
 
@@ -28,9 +37,21 @@ async def get_status():
     }
 
 
-@diagnostics_router.get("/api/cnn-diagnostics")
-async def get_cnn_diagnostics():
-    """CNN model training diagnostics — overfitting / underfitting detection
+@diagnostics_router.get("/api/cnn-diagnostics", include_in_schema=False)
+async def get_cnn_diagnostics_legacy():
+    """Permanent (308) redirect from the legacy ``/api/cnn-diagnostics`` URL
+    to the renamed ``/api/model-diagnostics`` (issue #75).
+
+    Kept for one release so any existing frontend bookmarks / dashboards
+    keep working while the frontend PR catches up. ``include_in_schema=False``
+    hides it from the OpenAPI docs so new clients don't pick up the old name.
+    """
+    return RedirectResponse(url="/api/model-diagnostics", status_code=308)
+
+
+@diagnostics_router.get("/api/model-diagnostics")
+async def get_model_diagnostics():
+    """Model training diagnostics — overfitting / underfitting detection
     and Walk-Forward Efficiency (WFE) reporting.
 
     Diagnosis values:

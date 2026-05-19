@@ -193,10 +193,10 @@ class TestTrainBlockingPathUnderXGBoost(unittest.IsolatedAsyncioTestCase):
             import data.signal_model as sm
             importlib.reload(sm)
 
-            import agents.cnn_reasoning_agent as cra
+            import agents.xgb_reasoning_agent as cra
             importlib.reload(cra)
 
-            agent = cra.CNNReasoningAgent()
+            agent = cra.XGBReasoningAgent()
 
             # Synthesise a minimal training df (200 rows × 1 symbol) with
             # all the columns build_training_windows expects.

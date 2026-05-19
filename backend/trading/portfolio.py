@@ -85,9 +85,9 @@ class Portfolio:
         Positions with no price quote contribute 0 to uPnL (conservative —
         a missing quote shouldn't trigger a false drawdown reading).
 
-        Lifted 2026-05-16 from CNNReasoningAgent's private unrealized-pnl
+        Lifted 2026-05-16 from XGBReasoningAgent's private unrealized-pnl
         helper so it lives on the Portfolio (its natural home) and can be
-        consumed by cnn_decision and the MC backtester via the public
+        consumed by xgb_decision and the MC backtester via the public
         surface.
         """
         if not self.positions:

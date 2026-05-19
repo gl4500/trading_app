@@ -798,7 +798,7 @@ class SignalCNN:
             np.asarray(last_val_pred), np.asarray(last_val_true), n_buckets=5
         )
 
-        # Last-fold legacy fields (used by /api/cnn-diagnostics + checkpoint)
+        # Last-fold legacy fields (used by /api/model-diagnostics + checkpoint)
         self._train_loss        = last_train_loss
         self._val_loss          = last_val_loss
         self._n_train           = last_n_train
@@ -1077,5 +1077,6 @@ class SignalCNN:
         }
 
 
-# Module-level singleton — imported by cnn_reasoning_agent and market_data
+# Module-level singleton — imported via data.signal_model selector by
+# xgb_reasoning_agent (when MODEL_BACKEND=cnn) and market_data
 signal_cnn = SignalCNN()

@@ -120,7 +120,7 @@ class Config:
     DAILY_REVIEW_PCT: float = float(os.getenv("DAILY_REVIEW_PCT", "0.05"))
 
     # Lone-wolf BUY discount (Backlog 0.6, 2026-04-29):
-    # When CNNReasoningAgent fires a BUY but fewer than LONEWOLF_MIN_CORROBORATORS
+    # When XGBReasoningAgent fires a BUY but fewer than LONEWOLF_MIN_CORROBORATORS
     # other agents agree on the same symbol, multiply the position size by
     # LONEWOLF_MULTIPLIER. CNN's WFE has been negative across retrains, so
     # uncorroborated BUYs are exactly the trades most likely to be noise-driven
@@ -152,7 +152,7 @@ class Config:
     # style scale-in). Self-correcting: once positions are sold or merged,
     # BUYs resume.
     #
-    # Why 15: model review on 2026-05-08 showed CNNReasoningAgent holding
+    # Why 15: model review on 2026-05-08 showed XGBReasoningAgent holding
     # 66 distinct positions vs ~5–15 typical Kelly-optimal range. Most of
     # those 66 are from BUYs that fired before the upnl-drawdown gate
     # (PR #18) was added. 15 is a meaningful tightening that doesn't

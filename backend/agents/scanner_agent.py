@@ -1064,7 +1064,7 @@ async def _run_ollama_scanner(
 
     ``max_rounds`` is intentionally lower in OLLAMA_ONLY_MODE (passed by the
     dispatcher) so that scanner calls don't hold the single-GPU Ollama queue
-    for too long and starve other agents (e.g. CNNReasoningAgent).
+    for too long and starve other agents (e.g. XGBReasoningAgent).
     """
     from config import config
     from openai import AsyncOpenAI as _OllamaClient
@@ -1353,7 +1353,7 @@ async def _run_scan_inner() -> Dict:
 
     # In OLLAMA_ONLY_MODE the single Ollama scanner handles the full pool alone.
     # Cap its rounds at 4 (vs MAX_TOOL_ROUNDS=6) so the GPU queue stays free
-    # for CNNReasoningAgent and other Ollama consumers.
+    # for XGBReasoningAgent and other Ollama consumers.
     def _make_task(name: str, fn, cands: List[Dict]) -> Any:
         if name == "Ollama" and _ollama_only:
             return fn(cands, sector_summary, max_rounds=4)

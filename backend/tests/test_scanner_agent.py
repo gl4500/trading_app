@@ -874,7 +874,7 @@ class TestOllamaOnlyModeScanner(unittest.IsolatedAsyncioTestCase):
         """_run_ollama_scanner must receive max_rounds=4 when OLLAMA_ONLY_MODE=1.
 
         In OLLAMA_ONLY_MODE there is only one scanner — no parallel splitting.
-        Capping rounds at 4 frees the GPU queue sooner for CNNReasoningAgent.
+        Capping rounds at 4 frees the GPU queue sooner for XGBReasoningAgent.
         """
         mock_cfg = MagicMock()
         mock_cfg.ANTHROPIC_API_KEY = ""
