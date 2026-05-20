@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import CNNDiagnosticsV2 from '../CNNDiagnosticsV2'
+import ModelDiagnosticsV2 from '../ModelDiagnosticsV2'
 
 const populated = {
   trained: true,
@@ -40,7 +40,7 @@ const untrained = {
   last_trained: null,
 }
 
-describe('CNNDiagnosticsV2', () => {
+describe('ModelDiagnosticsV2', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
@@ -58,7 +58,7 @@ describe('CNNDiagnosticsV2', () => {
       ok: true,
       json: async () => untrained,
     }))
-    render(<CNNDiagnosticsV2 />)
+    render(<ModelDiagnosticsV2 />)
     await waitFor(() => {
       // both diagnosis & wfe are UNTRAINED — at least one match should exist
       expect(screen.getAllByText(/UNTRAINED/i).length).toBeGreaterThanOrEqual(1)
@@ -66,7 +66,7 @@ describe('CNNDiagnosticsV2', () => {
   })
 
   it('renders diagnosis pill, WFE pill, and an SVG sparkline when populated', async () => {
-    render(<CNNDiagnosticsV2 />)
+    render(<ModelDiagnosticsV2 />)
     await waitFor(() => {
       expect(screen.getByText(/DIAGNOSIS/i)).toBeInTheDocument()
     })
@@ -79,7 +79,7 @@ describe('CNNDiagnosticsV2', () => {
   })
 
   it('renders Train vs Val comparison table with grouped columns', async () => {
-    render(<CNNDiagnosticsV2 />)
+    render(<ModelDiagnosticsV2 />)
     await waitFor(() => {
       expect(screen.getByText('Training')).toBeInTheDocument()
     })
@@ -103,7 +103,7 @@ describe('CNNDiagnosticsV2', () => {
   })
 
   it('refetches on refresh click', async () => {
-    render(<CNNDiagnosticsV2 />)
+    render(<ModelDiagnosticsV2 />)
     await waitFor(() => {
       expect(screen.getByText(/DIAGNOSIS/i)).toBeInTheDocument()
     })

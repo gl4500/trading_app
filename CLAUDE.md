@@ -268,7 +268,7 @@ Relevant memory files for this repo:
 - **Market data:** Alpaca Markets (paper trading)
 - **AI agents (cloud mode):** Claude Opus 4.6, Gemini 2.0 Flash, GPT-4o-mini
 - **AI agents (Ollama mode):** All three above route to local Ollama when `OLLAMA_ONLY_MODE=1`; off-hours auto-scan runs every `OLLAMA_CLOSED_SCAN_MIN=30` min when market is closed (cloud mode is unchanged)
-- **Local inference:** Ollama at `http://localhost:11434/v1` (OpenAI-compatible); `OLLAMA_MODEL` for Sentiment/Gemini/CNN; `RESEARCH_MODEL` for Claude (defaults to `OLLAMA_MODEL`)
+- **Local inference:** Ollama at `http://localhost:11434/v1` (OpenAI-compatible); `OLLAMA_MODEL` for Sentiment/Gemini/XGB; `RESEARCH_MODEL` for Claude (defaults to `OLLAMA_MODEL`)
 - **Current Ollama model:** `llama3.1:8b` (~4.7 GB Q4) — reliable instruction following and structured JSON; fits RTX 2060 with headroom.
 - **GPU constraint:** RTX 2060 = 6 GB VRAM — only one Q4 model fits at a time. Set `RESEARCH_MODEL=OLLAMA_MODEL` to share the single loaded model; never configure two different models simultaneously on this GPU.
 - **Config:** `.env` → `backend/config.py` → `config` singleton
