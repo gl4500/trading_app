@@ -53,7 +53,7 @@ const REFRESH_BTN: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-interface CnnDiag {
+interface ModelDiag {
   trained?: boolean
   device?: string
   n_channels?: number
@@ -234,16 +234,16 @@ function SparkCard({ title, data, color }: { title: string; data: number[]; colo
   )
 }
 
-export default function CNNDiagnosticsV2() {
+export default function ModelDiagnosticsV2() {
   const { timeZone } = useTimezone()
-  const [diag, setDiag] = useState<CnnDiag | null>(null)
+  const [diag, setDiag] = useState<ModelDiag | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchDiag = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/cnn-diagnostics`)
+      const res = await fetch(`${API_BASE}/api/model-diagnostics`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setDiag(data || {})
@@ -270,10 +270,10 @@ export default function CNNDiagnosticsV2() {
   return (
     <div style={PANEL}>
       <div style={HEADER}>
-        <span>CNN DIAGNOSTICS</span>
+        <span>MODEL DIAGNOSTICS</span>
         <button
           type="button"
-          aria-label="Refresh CNN diagnostics"
+          aria-label="Refresh model diagnostics"
           onClick={fetchDiag}
           style={REFRESH_BTN}
         >↻ REFRESH</button>

@@ -98,7 +98,7 @@ export default function RegimeV2() {
   const fetchRegime = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/cnn-diagnostics`)
+      const res = await fetch(`${API_BASE}/api/model-diagnostics`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setRegime(data?.regime ?? {})
