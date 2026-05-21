@@ -356,35 +356,54 @@ class Portfolio:
             return 0.0
         return (current - self.daily_starting_value) / self.daily_starting_value
 
-    def calculate_metrics(self, prices: Dict[str, float]) -> PortfolioMetrics:
-        """Calculate comprehensive performance metrics.
+    def performance_summary(self, prices: Dict[str, float]) -> Dict:
+        """Aggregate scalar performance numbers.
 
-        Returns a :class:`PortfolioMetrics` dataclass that behaves like a dict
-        via :class:`api.schemas._DictShim` — every existing callsite using
-        ``m["key"]``, ``m.get(...)``, ``"k" in m``, or ``{**m, ...}`` keeps
-        working unchanged. The leaderboard mutation pattern
-        ``entry["rank"] = rank`` also still works because the dataclass is
-        non-frozen and ``__setitem__`` is implemented.
+        Returns ONLY the scalar fields of PortfolioMetrics — no positions
+        list, no excursion (MAE/MFE) stats. Carved out of
+        :meth:`calculate_metrics` so callers can grab just the headline
+        numbers without paying for position-summary construction.
+
+        Realized PnL is the direct sum of `pnl` across SELL trades. This is
+        the authoritative number — DON'T derive realized as
+        `total_return - unrealized` (hides bookkeeping drift; see GitHub
+        issue "HistoricalTrendsAgent shows $18.7K cash drift" 2026-05-16).
         """
         total_value = self.get_total_value(prices)
         total_return_pct = (total_value - self.starting_capital) / self.starting_capital * 100
 
-        # Win rate from closed trades
         sell_trades = [t for t in self.trade_history if t.action == "SELL"]
         winning_trades = [t for t in sell_trades if t.pnl > 0]
         win_rate = (len(winning_trades) / len(sell_trades) * 100) if sell_trades else 0.0
 
-        # Sharpe ratio from value history
-        sharpe = self._calculate_sharpe()
+        realized_pnl = sum(t.pnl for t in sell_trades)
 
-        # Max drawdown
-        max_drawdown = self._calculate_max_drawdown()
+        return {
+            "total_value": total_value,
+            "cash": self.cash,
+            "position_value": total_value - self.cash,
+            "total_return": total_value - self.starting_capital,
+            "total_return_pct": total_return_pct,
+            "realized_pnl": realized_pnl,
+            "win_rate": win_rate,
+            "sharpe_ratio": self._calculate_sharpe(),
+            "max_drawdown": self._calculate_max_drawdown(),
+            "total_trades": len(self.trade_history),
+            "winning_trades": len(winning_trades),
+            "losing_trades": len(sell_trades) - len(winning_trades),
+        }
 
-        # Positions summary
-        positions_summary: List[PositionSummary] = []
+    def position_summaries(self, prices: Dict[str, float]) -> List[PositionSummary]:
+        """Build a :class:`PositionSummary` for every currently-open position.
+
+        Symbols missing from `prices` fall back to the position's
+        `avg_cost` (same behaviour as the original
+        :meth:`calculate_metrics`).
+        """
+        summaries: List[PositionSummary] = []
         for sym, pos in self.positions.items():
             price = prices.get(sym, pos.avg_cost)
-            positions_summary.append(PositionSummary(
+            summaries.append(PositionSummary(
                 symbol=sym,
                 shares=pos.shares,
                 avg_cost=pos.avg_cost,
@@ -395,15 +414,31 @@ class Portfolio:
                 entry_confidence=pos.entry_confidence,
                 bayes_confidence=pos.bayes_confidence,
             ))
+        return summaries
 
-        # MAE / MFE analysis — only trades that have excursion data (post-feature trades)
+    def excursion_stats(self) -> Dict:
+        """MAE / MFE / capture-ratio stats derived from CLOSED trades only.
+
+        No `prices` argument — these three numbers come entirely from the
+        post-trade `mfe_pct` / `mae_pct` columns recorded on each SELL
+        trade when it executed.
+
+        Captured % = of the maximum favorable move, how much did we
+        actually keep at exit?
+            exit_gain_pct = pnl / cost_basis
+            cost_basis    = price * shares - pnl  (proceeds minus pnl)
+        """
+        sell_trades = [t for t in self.trade_history if t.action == "SELL"]
         excursion_trades = [t for t in sell_trades if t.mfe_pct > 0 or t.mae_pct > 0]
-        avg_mae = sum(t.mae_pct for t in excursion_trades) / len(excursion_trades) if excursion_trades else 0.0
-        avg_mfe = sum(t.mfe_pct for t in excursion_trades) / len(excursion_trades) if excursion_trades else 0.0
 
-        # Captured %: of the maximum favorable move, how much did we actually keep at exit?
-        # exit_gain_pct = pnl / cost_basis; cost_basis = proceeds - pnl = price*shares - pnl
-        captured_pcts = []
+        if excursion_trades:
+            avg_mae = sum(t.mae_pct for t in excursion_trades) / len(excursion_trades)
+            avg_mfe = sum(t.mfe_pct for t in excursion_trades) / len(excursion_trades)
+        else:
+            avg_mae = 0.0
+            avg_mfe = 0.0
+
+        captured_pcts: List[float] = []
         for t in excursion_trades:
             if t.mfe_pct > 0:
                 cost_basis = t.price * t.shares - t.pnl
@@ -412,31 +447,27 @@ class Portfolio:
                     captured_pcts.append(exit_gain_pct / t.mfe_pct * 100)
         avg_captured_pct = sum(captured_pcts) / len(captured_pcts) if captured_pcts else 0.0
 
-        # Realized PnL: direct sum of pnl across SELL trades. This is the
-        # authoritative number. Don't derive realized as total_return -
-        # unrealized — that hides bookkeeping drift (see GitHub issue:
-        # "HistoricalTrendsAgent shows $18.7K cash drift between trades
-        # and snapshot" filed 2026-05-16).
-        realized_pnl = sum(t.pnl for t in sell_trades)
+        return {
+            "avg_mae": avg_mae,
+            "avg_mfe": avg_mfe,
+            "avg_captured_pct": avg_captured_pct,
+        }
 
-        return PortfolioMetrics(
-            total_value=total_value,
-            cash=self.cash,
-            position_value=total_value - self.cash,
-            total_return_pct=total_return_pct,
-            total_return=total_value - self.starting_capital,
-            realized_pnl=realized_pnl,
-            win_rate=win_rate,
-            sharpe_ratio=sharpe,
-            max_drawdown=max_drawdown,
-            total_trades=len(self.trade_history),
-            winning_trades=len(winning_trades),
-            losing_trades=len(sell_trades) - len(winning_trades),
-            positions=positions_summary,
-            avg_mae=avg_mae,
-            avg_mfe=avg_mfe,
-            avg_captured_pct=avg_captured_pct,
-        )
+    def calculate_metrics(self, prices: Dict[str, float]) -> PortfolioMetrics:
+        """Calculate comprehensive performance metrics.
+
+        Thin orchestrator: calls the three focused helpers and assembles
+        the :class:`PortfolioMetrics` dataclass. The returned object behaves
+        like a dict via :class:`api.schemas._DictShim` — every existing
+        callsite using ``m["key"]``, ``m.get(...)``, ``"k" in m``, or
+        ``{**m, ...}`` keeps working unchanged. The leaderboard mutation
+        pattern ``entry["rank"] = rank`` also still works because the
+        dataclass is non-frozen and ``__setitem__`` is implemented.
+        """
+        perf = self.performance_summary(prices)
+        positions = self.position_summaries(prices)
+        excursions = self.excursion_stats()
+        return PortfolioMetrics(**perf, positions=positions, **excursions)
 
     def _calculate_sharpe(self, risk_free_rate: float = 0.04) -> float:
         """Calculate annualized Sharpe ratio from value history."""
