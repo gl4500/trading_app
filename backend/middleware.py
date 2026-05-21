@@ -18,6 +18,7 @@ from collections import defaultdict
 from typing import Dict, List
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 import auth as auth
@@ -95,11 +96,33 @@ async def auth_middleware(request: Request, call_next):
 
 
 def install_middleware(app: FastAPI) -> None:
-    """Wire both HTTP middlewares onto the given FastAPI app instance.
+    """Wire CORS + auth + security-headers middlewares onto the given app.
 
-    Order matters: add_security_headers runs OUTERMOST (so its headers appear
-    on every response, including auth-rejected ones). FastAPI installs
-    middleware in reverse — so we install auth_middleware FIRST.
+    Target request flow (outermost → innermost):
+        User → add_security_headers → CORSMiddleware → auth_middleware → route
+
+    Why this order:
+      - add_security_headers OUTERMOST so X-Content-Type-Options / X-Frame-Options
+        / CSP / etc. land on every response, including auth-rejected 401s.
+      - CORSMiddleware OUTSIDE auth_middleware so the Access-Control-Allow-Origin
+        header is added to auth-rejected 401 responses too. Without this,
+        browsers see a "CORS error" instead of the clean 401 and the frontend's
+        401-→-login-redirect interceptor never gets a chance to run.
+      - auth_middleware INNERMOST so it short-circuits unauthenticated requests
+        before they hit any route handler.
+
+    FastAPI / Starlette builds the stack by reversing the insert order, so
+    we install in the order auth → CORS → security-headers.
     """
     app.middleware("http")(auth_middleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:5173", "https://localhost:5173",
+            "http://127.0.0.1:5173", "https://127.0.0.1:5173",
+        ],
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "Accept"],
+    )
     app.middleware("http")(add_security_headers)

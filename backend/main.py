@@ -30,7 +30,6 @@ try:
 except ImportError:
     psutil = None  # type: ignore[assignment]
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import config
@@ -215,19 +214,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173", "https://localhost:5173",
-        "http://127.0.0.1:5173", "https://127.0.0.1:5173",
-    ],
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Accept"],
-)
-
-
 # ─── Middleware + Rate Limiter (extracted to middleware.py for #67) ─────────
+# CORS, auth, and security-headers middlewares are installed by
+# install_middleware() below — see middleware.py for the order rationale.
 # Re-exports kept so tests doing `from main import _check_rate_limit, _rate_limit_store,
 # _RATE_LIMIT_MAX` continue to work.
 from middleware import (  # noqa: E402
