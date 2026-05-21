@@ -1,11 +1,11 @@
 """
-Unit tests for agents/cnn_reasoning_agent.py
+Unit tests for agents/xgb_reasoning_agent.py
 
 Covers:
   - analyze() emits BUY/SELL/HOLD signals without error
   - SELL path reads portfolio.positions[sym].shares (not get_position)
   - Ollama unavailable falls back to rule-based decision
-  - Pre-training surrogate logic (CNN not yet trained)
+  - Pre-training surrogate logic (model not yet trained)
   - analyze() does not raise when market_context is empty
   - Sentinel catalysts and macro context injected into Ollama prompt
 """
@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "site-packages")))
 
-from agents.cnn_reasoning_agent import CNNReasoningAgent
+from agents.xgb_reasoning_agent import XGBReasoningAgent
 from trading.portfolio import Position
 
 
@@ -46,11 +46,11 @@ def _make_market(symbols=("AAPL",), price=100.0, composite=0.0):
     return ctx
 
 
-class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
+class TestXGBReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
     """analyze() should never raise; SELL path must not call get_position."""
 
     def setUp(self):
-        self.agent = CNNReasoningAgent()
+        self.agent = XGBReasoningAgent()
 
     def _patch_ollama_hold(self):
         return patch.object(
@@ -147,9 +147,10 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
     async def test_buy_blocked_when_mean_wfe_negative(self):
         """High-conviction BUY must be downgraded to HOLD when mean_wfe < 0."""
         # Use the SELECTOR singleton (resolves to SignalCNN or SignalXGBoost
-        # based on MODEL_BACKEND), since cnn_reasoning_agent imports `signal_cnn`
-        # via that selector. .env may set MODEL_BACKEND=xgboost in which case
-        # data.cnn_model.signal_cnn would be a different object.
+        # based on MODEL_BACKEND), since xgb_reasoning_agent imports the
+        # selector via the ``signal_cnn`` local alias. .env may set
+        # MODEL_BACKEND=xgboost in which case data.cnn_model.signal_cnn would
+        # be a different object.
         from data.signal_model import signal_model as signal_cnn
         mkt = _make_market(["AAPL"], price=150.0)
         buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
@@ -173,10 +174,10 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
     async def test_buy_allowed_when_mean_wfe_positive(self):
         """When mean_wfe >= 0, BUY signals should pass the gate."""
         # Use the SELECTOR singleton (resolves to SignalCNN or SignalXGBoost
-        # based on MODEL_BACKEND), since that's what cnn_reasoning_agent
-        # imports as `signal_cnn`. Local .env may set MODEL_BACKEND=xgboost,
-        # in which case data.cnn_model.signal_cnn would be a different
-        # object than the agent uses.
+        # based on MODEL_BACKEND), since that's what xgb_reasoning_agent
+        # imports as the ``signal_cnn`` local alias. Local .env may set
+        # MODEL_BACKEND=xgboost, in which case data.cnn_model.signal_cnn
+        # would be a different object than the agent uses.
         from data.signal_model import signal_model as signal_cnn
         mkt = _make_market(["AAPL"], price=150.0)
         buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
@@ -195,10 +196,10 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
     async def test_buy_allowed_when_mean_wfe_unmeasured(self):
         """When mean_wfe is None (no walk-forward retrain yet), gate is inactive."""
         # Use the SELECTOR singleton (resolves to SignalCNN or SignalXGBoost
-        # based on MODEL_BACKEND), since that's what cnn_reasoning_agent
-        # imports as `signal_cnn`. Local .env may set MODEL_BACKEND=xgboost,
-        # in which case data.cnn_model.signal_cnn would be a different
-        # object than the agent uses.
+        # based on MODEL_BACKEND), since that's what xgb_reasoning_agent
+        # imports as the ``signal_cnn`` local alias. Local .env may set
+        # MODEL_BACKEND=xgboost, in which case data.cnn_model.signal_cnn
+        # would be a different object than the agent uses.
         from data.signal_model import signal_model as signal_cnn
         mkt = _make_market(["AAPL"], price=150.0)
         buy_resp = {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}
@@ -215,12 +216,12 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
             signal_cnn._mean_wfe = original_mean_wfe
 
     async def test_unrealized_drawdown_gate_blocks_buy_when_underwater(self):
-        """When CNN's open positions have collective uPnL < threshold,
+        """When XGB agent's open positions have collective uPnL < threshold,
         new BUYs must downgrade to HOLD. Mirror today's incident: 32 open
         positions at -$2.1k unrealized triggered nothing because there
         was no portfolio-level guard."""
         from config import config
-        # Pre-load CNN's portfolio with a deeply-underwater position. Default
+        # Pre-load the agent's portfolio with a deeply-underwater position. Default
         # STARTING_CAPITAL is $100k, so we need a meaningful loss to push
         # uPnL_pct below -2%. Position: 200 shares @ $200 cost, current $100
         # → uPnL = (100-200)*200 = -$20,000. Portfolio total value = $100k
@@ -246,7 +247,7 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
             aapl_buys = [s for s in signals if s.symbol == "AAPL" and s.action == "BUY"]
             aapl_holds = [s for s in signals if s.symbol == "AAPL" and s.action == "HOLD"]
             self.assertEqual(len(aapl_buys), 0,
-                "uPnL drawdown gate must block AAPL BUY when CNN portfolio is underwater")
+                "uPnL drawdown gate must block AAPL BUY when XGB portfolio is underwater")
             self.assertEqual(len(aapl_holds), 1)
             self.assertIn("uPnL drawdown gate", aapl_holds[0].reasoning)
         finally:
@@ -254,7 +255,7 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
             self.agent.portfolio.positions.pop("NVDA", None)
 
     async def test_unrealized_drawdown_gate_passes_when_portfolio_healthy(self):
-        """If CNN's open positions are flat or in profit, gate stays inactive."""
+        """If XGB agent's open positions are flat or in profit, gate stays inactive."""
         # Position at break-even: 100 shares @ $150, current $150
         self.agent.portfolio.positions["NVDA"] = Position(
             symbol="NVDA", shares=100, avg_cost=150.0,
@@ -285,7 +286,7 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
         the rest of the portfolio is underwater (that would compound the
         drawdown). Verifies the gate is asymmetric: only BUYs."""
         # Same setup as the underwater test, but Ollama returns SELL on AAPL
-        # (which CNN holds, so the SELL is valid).
+        # (which the agent holds, so the SELL is valid).
         self.agent.portfolio.positions["NVDA"] = Position(
             symbol="NVDA", shares=100, avg_cost=150.0,
         )
@@ -338,16 +339,16 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
             signal_cnn._mean_wfe = original_mean_wfe
 
     async def test_max_open_positions_gate_blocks_buy_for_new_symbol_when_at_cap(self):
-        """When CNN already holds CNN_MAX_OPEN_POSITIONS distinct symbols,
+        """When XGB agent already holds CNN_MAX_OPEN_POSITIONS distinct symbols,
         a BUY on a NEW symbol must downgrade to HOLD. Prevents the
         diversification-creep failure mode the model review flagged
-        (66 open positions on CNNReasoningAgent — far past Kelly-optimal).
+        (66 open positions on XGBReasoningAgent — far past Kelly-optimal).
 
         Pinning the test at cap=2 (overridden via patched config) keeps the
         fixture small. Real default is much higher; this just validates the
         gate logic."""
         from config import config
-        # Pre-load CNN's portfolio with 2 distinct held symbols (at cap=2)
+        # Pre-load the agent's portfolio with 2 distinct held symbols (at cap=2)
         self.agent.portfolio.positions["NVDA"] = Position(
             symbol="NVDA", shares=10, avg_cost=150.0,
         )
@@ -630,11 +631,11 @@ class TestCNNReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(mock_ollama.await_count, 1)
 
 
-class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
+class TestXGBPromptCatalystsAndMacro(unittest.TestCase):
     """_build_prompt includes sentinel catalysts and macro context when present."""
 
     def setUp(self):
-        self.agent = CNNReasoningAgent()
+        self.agent = XGBReasoningAgent()
         self.base_kwargs = dict(
             symbol="AAPL", price=150.0, pred_return=0.01, direction="bull",
             cnn_conf=0.7,
@@ -756,11 +757,11 @@ class TestCNNPromptCatalystsAndMacro(unittest.TestCase):
         self.assertIn("fresh", step1_text.lower())
 
 
-class TestCNNAnalyzeCatalystPassthrough(unittest.IsolatedAsyncioTestCase):
+class TestXGBAnalyzeCatalystPassthrough(unittest.IsolatedAsyncioTestCase):
     """analyze() correctly extracts and passes catalysts/macro to _build_prompt."""
 
     def setUp(self):
-        self.agent = CNNReasoningAgent()
+        self.agent = XGBReasoningAgent()
 
     async def test_catalysts_extracted_from_market_context(self):
         """analyze() passes __overnight_catalysts__ to _build_prompt."""
@@ -838,11 +839,11 @@ class TestCNNAnalyzeCatalystPassthrough(unittest.IsolatedAsyncioTestCase):
 
 # ── Portfolio context + goal-aware sizing tests ───────────────────────────────
 
-class TestCNNPortfolioContext(unittest.TestCase):
+class TestXGBPortfolioContext(unittest.TestCase):
     """_build_portfolio_context computes the right values."""
 
     def setUp(self):
-        self.agent = CNNReasoningAgent()
+        self.agent = XGBReasoningAgent()
 
     def test_returns_required_keys(self):
         ctx = self.agent._build_portfolio_context({})
@@ -874,11 +875,11 @@ class TestCNNPortfolioContext(unittest.TestCase):
         self.assertLess(ctx["pace_diff"], 0)
 
 
-class TestCNNPromptPortfolioSection(unittest.TestCase):
+class TestXGBPromptPortfolioSection(unittest.TestCase):
     """_build_prompt includes Portfolio Context when portfolio_context is provided."""
 
     def setUp(self):
-        self.agent = CNNReasoningAgent()
+        self.agent = XGBReasoningAgent()
         self.base_kwargs = dict(
             symbol="AAPL", price=150.0, pred_return=0.01, direction="bull",
             cnn_conf=0.7,
@@ -939,11 +940,11 @@ class TestCNNPromptPortfolioSection(unittest.TestCase):
         self.assertIn('"size_pct"', prompt)
 
 
-class TestCNNGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
+class TestXGBGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
     """analyze() uses size_pct from Ollama to size BUY positions."""
 
     def setUp(self):
-        self.agent = CNNReasoningAgent()
+        self.agent = XGBReasoningAgent()
         self.agent.portfolio.cash = 100_000.0
 
     async def test_buy_uses_size_pct_from_ollama(self):
@@ -1002,7 +1003,7 @@ class TestCNNGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(buys[0].shares, 100)
 
 
-class TestCNNReasoningAgentHelpers(unittest.TestCase):
+class TestXGBReasoningAgentHelpers(unittest.TestCase):
     """
     Direct unit tests for the named helper methods extracted from analyze()
     (issue #68). The existing analyze()-driven suite already covers behavior
@@ -1011,11 +1012,11 @@ class TestCNNReasoningAgentHelpers(unittest.TestCase):
     """
 
     def setUp(self):
-        self.agent = CNNReasoningAgent()
+        self.agent = XGBReasoningAgent()
 
     # ── _entropy_prefilter_signal ─────────────────────────────────────────
     def test_entropy_filter_blocks_low_magnitude_low_conf(self):
-        """Low signal magnitude + low CNN conf + no risk_alert → HOLD Signal."""
+        """Low signal magnitude + low model conf + no risk_alert → HOLD Signal."""
         zero_scores = {k: 0.0 for k in (
             "analyst_consensus", "earnings_surprise",
             "alpaca_news", "yahoo_news", "congressional_trades"
@@ -1055,7 +1056,7 @@ class TestCNNReasoningAgentHelpers(unittest.TestCase):
 
     # ── _apply_wfe_gate ───────────────────────────────────────────────────
     def test_wfe_gate_blocks_buy_when_mean_wfe_negative(self):
-        """BUY → HOLD when signal_cnn.mean_wfe < 0; reasoning carries the gate label."""
+        """BUY → HOLD when signal_model.mean_wfe < 0; reasoning carries the gate label."""
         from data.signal_model import signal_model as sm
         with patch.object(type(sm), "mean_wfe", new_callable=unittest.mock.PropertyMock,
                           return_value=-0.05):

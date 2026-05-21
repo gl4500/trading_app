@@ -1,4 +1,4 @@
-"""Unit tests for cnn_decision — pure BUY decision helpers."""
+"""Unit tests for xgb_decision — pure BUY decision helpers."""
 import sys
 import os
 import unittest
@@ -9,7 +9,7 @@ for _p in (_BACKEND, _SITE):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from agents.cnn_decision import BuyContext, BuyDecision, decide_buy
+from agents.xgb_decision import BuyContext, BuyDecision, decide_buy
 from config import config
 
 
@@ -18,9 +18,9 @@ def _ctx(**overrides):
     individual tests override one field at a time to exercise each gate."""
     defaults = dict(
         symbol="AAPL",
-        cnn_pred_return=0.03,
-        cnn_pred_direction="up",
-        cnn_confidence=0.80,            # comfortably above CNN_BUY_THRESHOLD_BASE=0.65
+        model_pred_return=0.03,
+        model_pred_direction="up",
+        model_confidence=0.80,          # comfortably above CNN_BUY_THRESHOLD_BASE=0.65
         regime="neutral",               # no regime add-on
         portfolio_unpnl_frac=0.0,       # not in drawdown
         n_corroborators=config.LONEWOLF_MIN_CORROBORATORS,  # not lone wolf
@@ -38,7 +38,7 @@ class TestBuyContextDataclass(unittest.TestCase):
     def test_frozen_immutable(self):
         ctx = _ctx()
         with self.assertRaises(Exception):       # frozen dataclass blocks assignment
-            ctx.cnn_confidence = 0.5             # type: ignore[misc]
+            ctx.model_confidence = 0.5           # type: ignore[misc]
 
 
 class TestBuyDecisionDataclass(unittest.TestCase):
@@ -52,37 +52,37 @@ class TestDecideBuyGates(unittest.TestCase):
     """Five gates evaluated in order. Any one failing → HOLD."""
 
     def test_holds_when_direction_not_up(self):
-        d = decide_buy(_ctx(cnn_pred_direction="down"), config)
+        d = decide_buy(_ctx(model_pred_direction="down"), config)
         self.assertEqual(d.action, "HOLD")
         self.assertIn("bullish", d.reason.lower())
 
     def test_holds_when_direction_neutral(self):
-        d = decide_buy(_ctx(cnn_pred_direction="neutral"), config)
+        d = decide_buy(_ctx(model_pred_direction="neutral"), config)
         self.assertEqual(d.action, "HOLD")
 
     def test_holds_when_confidence_below_buy_threshold_base(self):
         # config.CNN_BUY_THRESHOLD_BASE = 0.65 (default per .env)
-        d = decide_buy(_ctx(cnn_confidence=0.50), config)
+        d = decide_buy(_ctx(model_confidence=0.50), config)
         self.assertEqual(d.action, "HOLD")
         self.assertIn("conf", d.reason.lower())
 
     def test_passes_confidence_gate_when_at_or_above_threshold(self):
-        d = decide_buy(_ctx(cnn_confidence=0.65, regime="neutral"), config)
+        d = decide_buy(_ctx(model_confidence=0.65, regime="neutral"), config)
         self.assertEqual(d.action, "BUY")
 
     def test_holds_in_bear_regime_when_below_adjusted_threshold(self):
         # bear adds 0.15 → needs 0.80; we give 0.70
-        d = decide_buy(_ctx(cnn_confidence=0.70, regime="bear"), config)
+        d = decide_buy(_ctx(model_confidence=0.70, regime="bear"), config)
         self.assertEqual(d.action, "HOLD")
         self.assertIn("regime", d.reason.lower())
 
     def test_holds_in_high_vol_regime_when_below_adjusted_threshold(self):
         # high_vol adds 0.20 → needs 0.85; we give 0.75
-        d = decide_buy(_ctx(cnn_confidence=0.75, regime="high_vol"), config)
+        d = decide_buy(_ctx(model_confidence=0.75, regime="high_vol"), config)
         self.assertEqual(d.action, "HOLD")
 
     def test_passes_bull_regime_with_base_threshold(self):
-        d = decide_buy(_ctx(cnn_confidence=0.65, regime="bull"), config)
+        d = decide_buy(_ctx(model_confidence=0.65, regime="bull"), config)
         self.assertEqual(d.action, "BUY")
 
     def test_holds_when_portfolio_in_drawdown(self):
@@ -162,12 +162,12 @@ class TestDecideBuySizing(unittest.TestCase):
         self.assertIn("under-funded", d.reason.lower())
 
     def test_sized_confidence_shrinks_with_lonewolf(self):
-        d = decide_buy(_ctx(cnn_confidence=0.80, n_corroborators=0), config)
+        d = decide_buy(_ctx(model_confidence=0.80, n_corroborators=0), config)
         self.assertLess(d.sized_confidence, 0.80)
 
     def test_sized_confidence_unchanged_when_corroborated(self):
         d = decide_buy(
-            _ctx(cnn_confidence=0.80,
+            _ctx(model_confidence=0.80,
                  n_corroborators=config.LONEWOLF_MIN_CORROBORATORS),
             config,
         )

@@ -2042,8 +2042,8 @@ class TestOffHoursOllamaScan(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(OLLAMA_CLOSED_SCAN_MIN, 30)
 
 
-class TestCnnDiagnosticsExposesWalkforward(unittest.TestCase):
-    """/api/cnn-diagnostics surfaces walk-forward CV metrics."""
+class TestModelDiagnosticsExposesWalkforward(unittest.TestCase):
+    """/api/model-diagnostics surfaces walk-forward CV metrics."""
 
     def test_endpoint_returns_walkforward_keys(self):
         from main import app
@@ -2065,14 +2065,29 @@ class TestCnnDiagnosticsExposesWalkforward(unittest.TestCase):
         with _no_lifespan_client(app) as client:
             with patch("data.regime_detector.regime_detector") as mock_regime:
                 mock_regime.summary.return_value = {}
-                r = client.get("/api/cnn-diagnostics")
+                r = client.get("/api/model-diagnostics")
         self.assertEqual(r.status_code, 200)
         body = r.json()
         for key in ("fold_metrics", "mean_ic", "ir", "mean_wfe", "calibration"):
             self.assertIn(key, body)
 
 
-class TestCnnDiagnosticsReflectsActiveBackend(unittest.TestCase):
+class TestCnnDiagnosticsLegacyRedirect(unittest.TestCase):
+    """Legacy ``/api/cnn-diagnostics`` returns a 308 redirect to the renamed
+    ``/api/model-diagnostics`` for one release after issue #75. Kept so
+    existing frontend bookmarks keep working while the frontend PR catches
+    up."""
+
+    def test_legacy_path_returns_308_redirect(self):
+        from main import app
+        with _no_lifespan_client(app) as client:
+            # Don't follow the redirect — assert the 308 + Location header.
+            r = client.get("/api/cnn-diagnostics", follow_redirects=False)
+        self.assertEqual(r.status_code, 308)
+        self.assertEqual(r.headers["location"], "/api/model-diagnostics")
+
+
+class TestModelDiagnosticsReflectsActiveBackend(unittest.TestCase):
     """The diagnostics endpoint must report the *currently active* backend
     (signal_model selector), not always the CNN. Before this fix it imported
     `signal_cnn` directly from data.cnn_model, so when MODEL_BACKEND=xgboost
@@ -2087,7 +2102,7 @@ class TestCnnDiagnosticsReflectsActiveBackend(unittest.TestCase):
         with _no_lifespan_client(app) as client:
             with patch("data.regime_detector.regime_detector") as mock_regime:
                 mock_regime.summary.return_value = {}
-                r = client.get("/api/cnn-diagnostics")
+                r = client.get("/api/model-diagnostics")
         self.assertEqual(r.status_code, 200)
         body = r.json()
         self.assertIn("backend_type", body)
@@ -2128,7 +2143,7 @@ class TestCnnDiagnosticsReflectsActiveBackend(unittest.TestCase):
              patch("data.signal_model.signal_model", mock), \
              patch("data.regime_detector.regime_detector") as mock_regime:
             mock_regime.summary.return_value = {}
-            r = client.get("/api/cnn-diagnostics")
+            r = client.get("/api/model-diagnostics")
         self.assertEqual(r.status_code, 200)
         body = r.json()
         # The mock's distinctive values must appear — proving the endpoint

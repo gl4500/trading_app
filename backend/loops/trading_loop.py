@@ -360,7 +360,7 @@ async def trading_loop() -> None:
                             signal_history.update_top_agent_correct(sym, prices.get(sym, 0))
                         )
 
-                    # Make current agent signals available to CNNReasoningAgent next cycle
+                    # Make current agent signals available to XGBReasoningAgent next cycle
                     market_context["__agent_signals__"] = sym_agent_sigs
             except Exception as _exc:
                 _logger.warning(f"Agent signal recording failed: {_exc}")

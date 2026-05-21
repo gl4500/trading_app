@@ -23,7 +23,7 @@ EnsembleAgent mapping
   bear     → "volatile"   (Claude + Sentiment weighted up; defensive)
   high_vol → "volatile"   (same as bear — protect capital)
 
-CNNReasoningAgent buy-gate adjustments (applied in cnn_reasoning_agent.py)
+XGBReasoningAgent buy-gate adjustments (applied in xgb_reasoning_agent.py)
 ---------------------------------------------------------------------------
   bull / neutral : +0.00  (no change to base confidence threshold)
   bear           : +0.15  (needs ≥ 0.65 confidence to trigger BUY)
@@ -61,7 +61,7 @@ _BULL_SCALE: float   = 0.05            # 5 % momentum → full bull confidence
 _BEAR_SCALE: float   = 0.05            # 5 % drop     → full bear confidence
 _VOL_SCALE:  float   = 0.10            # 10 pp above threshold → full vol confidence
 
-# BUY-gate additions by regime (used by CNNReasoningAgent)
+# BUY-gate additions by regime (used by XGBReasoningAgent)
 REGIME_CONFIDENCE_GATE: dict = {
     "bull":     0.00,
     "neutral":  0.00,
@@ -129,7 +129,7 @@ class RegimeDetector:
     def get_confidence_gate(self) -> float:
         """
         Return the additional confidence required for a BUY signal to fire
-        in the current regime (used by CNNReasoningAgent).
+        in the current regime (used by XGBReasoningAgent).
         """
         return REGIME_CONFIDENCE_GATE.get(self._regime, 0.0)
 

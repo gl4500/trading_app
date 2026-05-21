@@ -130,7 +130,7 @@ class SignalXGBoost:
         self._ir:       Optional[float] = None
         self._mean_wfe: Optional[float] = None
         self._calibration: List[Dict] = []
-        # last-fold legacy fields for /api/cnn-diagnostics parity
+        # last-fold legacy fields for /api/model-diagnostics parity
         self._n_train = 0
         self._n_val   = 0
         self._wfe:        Optional[float] = None
@@ -184,7 +184,7 @@ class SignalXGBoost:
         Loads K bootstrapped boosters from `signal_xgb_b{0..K-1}.json` (saved
         by `scripts/train_xgb_ensemble.py`). High `std` means the K boosters
         disagree → use as a confidence signal for position sizing in callers
-        like `cnn_reasoning_agent` + `portfolio.compute_kelly_size`.
+        like `xgb_reasoning_agent` + `portfolio.compute_kelly_size`.
 
         Calibration check (`scripts/calibrate_ensemble_std.py`, 2026-05-09):
         rho(std, |residual|) = +0.215 across 28,981 walk-forward predictions —

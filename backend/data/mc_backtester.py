@@ -4,7 +4,7 @@ MC strategy backtester — simulator, portfolio, replay, aggregator.
 Compares candidate XGB filter variants by running each through K
 bootstrapped alternate market histories. Loose-coupling boundary:
 imports only narrow public surfaces of signal_model, signal_history,
-cnn_decision, and BaseAgent — never CNNReasoningAgent or any I/O module.
+xgb_decision, and BaseAgent — never XGBReasoningAgent or any I/O module.
 
 See docs/superpowers/specs/2026-05-16-mc-strategy-design.md
 """
@@ -131,11 +131,11 @@ class _BacktestAgent(BaseAgent):
     Exists ONLY so the replay loop can call inherited SELL helpers
     (_check_bayes_exits, _check_trailing_stops, _check_hard_stops,
     _in_trail_cooldown) against a BacktestPortfolio without depending on
-    CNNReasoningAgent or any concrete production agent.
+    XGBReasoningAgent or any concrete production agent.
 
     Overrides:
       - _load_picks/_save_picks: no-op (skip file I/O)
-      - analyze: returns []  (backtest BUY logic lives in cnn_decision)
+      - analyze: returns []  (backtest BUY logic lives in xgb_decision)
       - __init__: accepts portfolio_override so we don't double-allocate
     """
 
@@ -166,7 +166,7 @@ from typing import Any  # noqa: E402
 
 from config import config as _DEFAULT_CONFIG  # noqa: E402
 from data.regime_detector import RegimeDetector  # noqa: E402
-from agents.cnn_decision import BuyContext, decide_buy  # noqa: E402
+from agents.xgb_decision import BuyContext, decide_buy  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -241,7 +241,7 @@ async def replay_one_path(
 
     # Backtest-specific confidence floor: production CNN_BUY_THRESHOLD_BASE=0.65 is
     # tuned for Ollama's (subjective, generous) confidence scale. In backtest mode
-    # cnn_confidence comes from SignalXGBoost.predict()'s `min(1.0, |pred|/FULL_CONF)`
+    # model_confidence comes from SignalXGBoost.predict()'s `min(1.0, |pred|/FULL_CONF)`
     # which empirically ranges 0.1-0.4 → the 0.65 gate rejects every prediction.
     # MC_BACKTEST_CONF_FLOOR (env, default 0.05) overrides CNN_BUY_THRESHOLD_BASE
     # for the backtest path only — production decide_buy callers see config
@@ -267,12 +267,12 @@ async def replay_one_path(
 
     # T (CNN window length) — kept in sync with data.cnn_model.WINDOW_SIZE.
     # Hard-coded here to avoid pulling cnn_model into the backtester's import
-    # graph (cnn_decision contract: pure helpers, no model imports).
+    # graph (xgb_decision contract: pure helpers, no model imports).
     T = 10
 
     # Vocabulary translation: SignalXGBoost.predict returns "bull|bear|neutral",
     # but decide_buy's Gate 1 contract is Literal["up","down","neutral"].
-    # Production CNNReasoningAgent dodges this by hard-coding "up" (Ollama has
+    # Production XGBReasoningAgent dodges this by hard-coding "up" (Ollama has
     # already approved BUY by then). The backtester has no Ollama, so we
     # translate at the consumer boundary and keep decide_buy semantically pure.
     # The map also passes through "up"/"down"/"neutral" unchanged so test
@@ -352,9 +352,9 @@ async def replay_one_path(
             )
             ctx = BuyContext(
                 symbol=symbol,
-                cnn_pred_return=float(pred_ret),
-                cnn_pred_direction=direction_for_gate,
-                cnn_confidence=float(conf),
+                model_pred_return=float(pred_ret),
+                model_pred_direction=direction_for_gate,
+                model_confidence=float(conf),
                 regime=regime,
                 portfolio_unpnl_frac=portfolio.unpnl_frac(prices),
                 n_corroborators=0,      # no ensemble in backtest (per spec)

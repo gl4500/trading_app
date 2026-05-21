@@ -149,6 +149,103 @@ class TestSkipsAlreadyAppliedVersions(_TempDbBase):
         self.assertEqual(versions, expected)
 
 
+class TestMigration5RenamesCnnAgent(_TempDbBase):
+    """Migration v5 renames the historical ``CNNReasoningAgent`` row in the
+    ``agents`` table to ``XGBReasoningAgent`` so existing trades/portfolios/
+    performance rows (FK by ``agent_id``) keep pointing at the same row when
+    the production class is renamed (issue #75).
+
+    Invariants:
+      * agent_id is unchanged — FK references stay valid
+      * name is now 'XGBReasoningAgent'
+      * idempotent on a DB that already has the new name (no IntegrityError
+        when run twice or against a fresh DB created with the new name)
+    """
+
+    def test_migration_5_renames_cnn_agent(self):
+        async def _do():
+            async with aiosqlite.connect(database.DB_PATH) as db:
+                await database_schema.create_all_tables(db)
+                await database_schema.create_all_indexes(db)
+
+                # Pre-seed: a legacy agent named CNNReasoningAgent.
+                # Match the upsert_agent INSERT shape so created_at is populated.
+                await db.execute(
+                    "INSERT INTO agents (name, strategy, created_at) "
+                    "VALUES (?, ?, ?)",
+                    ("CNNReasoningAgent", "legacy strategy", "2026-01-01T00:00:00+00:00"),
+                )
+                await db.commit()
+
+                cursor = await db.execute(
+                    "SELECT id FROM agents WHERE name=?", ("CNNReasoningAgent",)
+                )
+                row = await cursor.fetchone()
+                self.assertIsNotNone(row, "seed row must exist before migration")
+                original_id = int(row[0])
+
+                # Run migrations — v5 must rename in place.
+                await database_migrations.run_pending(db)
+                await db.commit()
+
+                cursor = await db.execute(
+                    "SELECT id FROM agents WHERE name=?", ("XGBReasoningAgent",)
+                )
+                new_row = await cursor.fetchone()
+                self.assertIsNotNone(new_row,
+                    "row must now be named XGBReasoningAgent")
+                self.assertEqual(int(new_row[0]), original_id,
+                    "agent_id must NOT change — FK references depend on it")
+
+                # No leftover CNNReasoningAgent row.
+                cursor = await db.execute(
+                    "SELECT COUNT(*) FROM agents WHERE name=?",
+                    ("CNNReasoningAgent",),
+                )
+                row = await cursor.fetchone()
+                self.assertEqual(row[0], 0,
+                    "CNNReasoningAgent row must be gone after migration")
+
+        run(_do())
+
+    def test_migration_5_idempotent_when_already_renamed(self):
+        """Running v5 twice (or on a DB already containing XGBReasoningAgent)
+        must not raise — the UPDATE is a no-op when no CNNReasoningAgent rows
+        remain, and the framework records v5 as applied either way."""
+        async def _do():
+            async with aiosqlite.connect(database.DB_PATH) as db:
+                await database_schema.create_all_tables(db)
+                await database_schema.create_all_indexes(db)
+
+                # DB starts with the NEW name already in place
+                # (simulates a fresh install where the rename never needed
+                # to run, or a second run on an already-migrated DB).
+                await db.execute(
+                    "INSERT INTO agents (name, strategy, created_at) "
+                    "VALUES (?, ?, ?)",
+                    ("XGBReasoningAgent", "new strategy", "2026-01-01T00:00:00+00:00"),
+                )
+                await db.commit()
+
+                await database_migrations.run_pending(db)
+                await db.commit()
+
+                # Re-run — must remain a no-op.
+                await database_migrations.run_pending(db)
+                await db.commit()
+
+                cursor = await db.execute(
+                    "SELECT COUNT(*) FROM agents WHERE name=?",
+                    ("XGBReasoningAgent",),
+                )
+                row = await cursor.fetchone()
+                self.assertEqual(row[0], 1,
+                    "exactly one XGBReasoningAgent row must remain after "
+                    "double-run idempotency check")
+
+        run(_do())
+
+
 class TestLegacyDbCompatibility(_TempDbBase):
     """Legacy DBs created by the old init_db already have all 4 migration
     columns present. The new framework must record each version as applied
@@ -198,6 +295,16 @@ class TestLegacyDbCompatibility(_TempDbBase):
                         daily_total INTEGER NOT NULL DEFAULT 0,
                         daily_limit INTEGER,
                         limit_hit INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                # agents table is needed for migration v5 (CNN -> XGB rename).
+                # No row pre-seeded; the UPDATE is a no-op but the table must exist.
+                await db.execute("""
+                    CREATE TABLE IF NOT EXISTS agents (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT UNIQUE NOT NULL,
+                        strategy TEXT NOT NULL,
+                        created_at TEXT NOT NULL
                     )
                 """)
                 await db.commit()

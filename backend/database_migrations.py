@@ -54,6 +54,16 @@ MIGRATIONS: List[Tuple[int, str, str]] = [
         "add date column to token_log",
         "ALTER TABLE token_log ADD COLUMN date TEXT NOT NULL DEFAULT ''",
     ),
+    (
+        5,
+        "rename CNNReasoningAgent -> XGBReasoningAgent in agents table "
+        "(issue #75: class actually uses XGBoost via MODEL_BACKEND selector). "
+        "agent_id is preserved so trades/portfolios/performance FK rows stay "
+        "valid. Idempotent: the UPDATE is a no-op on DBs that already have "
+        "the new name (or no row at all).",
+        "UPDATE agents SET name='XGBReasoningAgent' "
+        "WHERE name='CNNReasoningAgent'",
+    ),
 ]
 
 
