@@ -2,14 +2,14 @@ import React from 'react'
 import {
   IconChart, IconAgent, IconTrades, IconRollup,
   IconSignals, IconScanner, IconSentinel,
-  IconRegime, IconCNN, IconDrift, IconTax,
+  IconRegime, IconModel, IconDrift, IconTax,
   IconTokens, IconErrors, IconTelemetry,
 } from './icons'
 
 export type TabId =
   | 'chart' | 'detail' | 'trades' | 'rollup'
   | 'signals' | 'scanner' | 'sentinel'
-  | 'regime' | 'cnn' | 'drift' | 'tax'
+  | 'regime' | 'model' | 'drift' | 'tax'
   | 'tokens' | 'errors' | 'telemetry'
 
 interface NavItem { id: TabId; label: string; Icon: React.FC<React.SVGProps<SVGSVGElement>> }
@@ -29,7 +29,7 @@ const GROUPS: NavGroup[] = [
   ]},
   { heading: 'RISK & MODEL', items: [
     { id: 'regime', label: 'Regime',          Icon: IconRegime },
-    { id: 'cnn',    label: 'CNN Diagnostics', Icon: IconCNN },
+    { id: 'model',  label: 'Model Diagnostics', Icon: IconModel },
     { id: 'drift',  label: 'Drift',           Icon: IconDrift },
     { id: 'tax',    label: 'Tax',             Icon: IconTax },
   ]},

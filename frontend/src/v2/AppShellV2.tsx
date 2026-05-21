@@ -15,7 +15,7 @@ import TokensPanelV2 from './TokensPanelV2'
 import ErrorLogPanelV2 from './ErrorLogPanelV2'
 import TelemetryPanelV2 from './TelemetryPanelV2'
 import RegimeV2 from './RegimeV2'
-import CNNDiagnosticsV2 from './CNNDiagnosticsV2'
+import ModelDiagnosticsV2 from './ModelDiagnosticsV2'
 import DriftV2 from './DriftV2'
 import TaxV2 from './TaxV2'
 
@@ -133,7 +133,7 @@ export default function AppShellV2({ data, trades, wsConnected, ollamaOnly }: Pr
             {activeTab === 'scanner' && <ScannerPanelV2 />}
             {activeTab === 'sentinel' && <SentinelPanelV2 />}
             {activeTab === 'regime' && <RegimeV2 />}
-            {activeTab === 'cnn' && <CNNDiagnosticsV2 />}
+            {activeTab === 'model' && <ModelDiagnosticsV2 />}
             {activeTab === 'drift' && <DriftV2 />}
             {activeTab === 'tax' && <TaxV2 />}
             {activeTab === 'tokens' && <TokensPanelV2 />}

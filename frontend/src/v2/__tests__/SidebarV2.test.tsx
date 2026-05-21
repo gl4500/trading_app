@@ -30,7 +30,7 @@ describe('SidebarV2', () => {
     const expected = [
       'Chart', 'Agent Detail', 'Trades', 'Daily Roll-Up',
       'Signals', 'Scanner', 'Sentinel',
-      'Regime', 'CNN Diagnostics', 'Drift', 'Tax',
+      'Regime', 'Model Diagnostics', 'Drift', 'Tax',
       'Tokens', 'Errors', 'Telemetry',
     ]
     for (const label of expected) {
