@@ -517,6 +517,8 @@ class XGBReasoningAgent(BaseAgent):
         # fallback when W3 isn't ready so the agent stays operable.
         if config.W3_BLEND_ENABLED and signal_w3.is_trained:
             try:
+                xgb_pred_pre  = pred_return
+                xgb_dir_pre   = direction
                 w3_pred, _w3_dir, w3_conf = signal_w3.predict(window)
                 w  = float(config.W3_BLEND_WEIGHT)
                 pred_return = (1.0 - w) * pred_return + w * w3_pred
@@ -524,6 +526,13 @@ class XGBReasoningAgent(BaseAgent):
                 direction = ("bull"    if pred_return >  0.003
                              else "bear"    if pred_return < -0.003
                              else "neutral")
+                # Observability log for the 2-week watch (grep "[W3_BLEND]")
+                logger.info(
+                    f"[W3_BLEND] {symbol} xgb={xgb_pred_pre:+.4f} w3={w3_pred:+.4f} "
+                    f"blend={pred_return:+.4f} w={w:.2f} dir={direction} "
+                    f"flip={xgb_dir_pre != direction} "
+                    f"xgb_wfe={signal_cnn.mean_wfe} w3_wfe={signal_w3.mean_wfe}"
+                )
             except Exception as exc:
                 logger.debug(f"XGBReasoningAgent: W3 blend error for {symbol}: {exc}")
 
