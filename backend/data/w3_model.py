@@ -57,6 +57,27 @@ _W3_PATIENCE     = int(os.getenv("W3_PATIENCE",     "8"))
 _W3_SEED         = int(os.getenv("W3_SEED",         "42"))
 
 
+def _resolve_train_device():
+    """Pick the device for W3 training.
+
+    Default CPU — keeps the GPU free for Ollama inference inside the live
+    backend, and sidesteps CUDA state-leak cascades in the test suite.
+    Set ``W3_DEVICE=cuda`` to opt into GPU for sidecar / probe scripts
+    where iteration speed matters and Ollama isn't competing.
+
+    Returns ``torch.device("cpu")`` when torch is unavailable so callers
+    don't need to guard.
+    """
+    if not HAS_TORCH:
+        class _CpuOnly:
+            type = "cpu"
+        return _CpuOnly()
+    requested = os.getenv("W3_DEVICE", "cpu").lower()
+    if requested == "cuda" and torch.cuda.is_available():
+        return torch.device("cuda")
+    return torch.device("cpu")
+
+
 if HAS_TORCH:
     class _W3PerGroupBlend(nn.Module):
         """Per-group linear head + regime-conditional softmax blend.
@@ -239,7 +260,7 @@ class SignalW3:
         )
 
         torch.manual_seed(_W3_SEED); np.random.seed(_W3_SEED)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = _resolve_train_device()
 
         # Reduce (N, C, T) -> (N, C) last-timestep features
         X_arr = np.asarray(X, dtype=np.float32)

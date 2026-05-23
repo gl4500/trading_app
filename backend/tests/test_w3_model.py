@@ -140,5 +140,53 @@ class TestSignalW3CompatSurface(unittest.TestCase):
         self.assertIsInstance(w3_model.signal_w3, w3_model.SignalW3)
 
 
+class TestSignalW3DeviceSelection(unittest.TestCase):
+    """W3_DEVICE env governs training device; inference is always CPU."""
+
+    @unittest.skipUnless(HAS_TORCH, "torch not available")
+    def test_default_train_device_is_cpu(self):
+        """No env override -> CPU even on a CUDA-capable machine."""
+        from data import w3_model
+        # Force the env to be unset for this test
+        with unittest.mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("W3_DEVICE", None)
+            dev = w3_model._resolve_train_device()
+        self.assertEqual(dev.type, "cpu",
+                         "default must be CPU to avoid Ollama GPU contention")
+
+    @unittest.skipUnless(HAS_TORCH, "torch not available")
+    def test_env_cuda_picks_cuda_when_available(self):
+        """Sidecar scripts can opt into GPU with W3_DEVICE=cuda."""
+        from data import w3_model
+        with unittest.mock.patch.dict(os.environ, {"W3_DEVICE": "cuda"}):
+            dev = w3_model._resolve_train_device()
+        expected = "cuda" if torch.cuda.is_available() else "cpu"
+        self.assertEqual(dev.type, expected,
+                         "W3_DEVICE=cuda should pick cuda when available, "
+                         "fall back to cpu when not")
+
+    @unittest.skipUnless(HAS_TORCH, "torch not available")
+    def test_loaded_model_lives_on_cpu(self):
+        """After fit + load, the model's parameters must be on CPU
+        so inference never touches the GPU."""
+        from data.w3_model import SignalW3
+        with tempfile.TemporaryDirectory() as td, \
+             unittest.mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("W3_DEVICE", None)
+            N, C, T = 400, 38, 10
+            rng = np.random.default_rng(13)
+            X = rng.standard_normal((N, C, T)).astype(np.float32)
+            y = (0.05 * X[:, 0, -1] + 0.001 * rng.standard_normal(N)).astype(np.float32)
+            t = np.linspace(0, 90 * 86400, N).astype(np.float64)
+            m = SignalW3(model_path=os.path.join(td, "w3_cpu.pt"))
+            m.fit(X, y, t)
+            self.assertTrue(m.is_trained)
+            # Inspect a parameter device
+            for p in m._model.parameters():
+                self.assertEqual(p.device.type, "cpu",
+                                 "trained model must live on CPU after fit()")
+                break
+
+
 if __name__ == "__main__":
     unittest.main()
