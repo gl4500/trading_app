@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<title>XGB + W3 ensemble blend — illustrative example</title>
+<link rel='stylesheet' href='style.css'>
+<style>
+  body { font-size: 14px; padding: 0 24px 60px; }
+  h1 { margin: 24px 0 4px; color: #0d1117; }
+  .stamp { color: #424a53; font-size: 12px; margin-bottom: 18px; }
+  .nav { margin: 6px 0 18px; }
+  .nav a { color: #0969da; text-decoration: none; margin-right: 14px; font-size: 13px; }
+  .nav a:hover { text-decoration: underline; }
+  .verdict { background: #ddf4ff; border-left: 4px solid #0969da; padding: 12px 16px; margin: 12px 0 24px; border-radius: 4px; color: #1f2328; }
+  .verdict h2 { margin: 0 0 6px; color: #0a3069; border: none; padding: 0; font-size: 16px; }
+  .verdict code { background: #cbe7ff; color: #0a3069; padding: 1px 5px; border-radius: 3px; }
+  .scenario { background: #ffffff; border: 1px solid #d1d9e0; border-radius: 6px; padding: 14px 18px; margin: 14px 0; }
+  .scenario header h2 { margin: 0 0 4px; font-size: 16px; color: #0d1117; }
+  .summary { color: #424a53; margin: 4px 0 6px; }
+  .inputs { color: #424a53; font-size: 12px; margin: 4px 0 12px; }
+  .inputs code { background: #eaeef2; color: #1f2328; padding: 1px 5px; margin-right: 4px; border-radius: 3px; font-size: 11px; }
+  .flip-tag { display: inline-block; background: #fff1e5; color: #7d4e00; padding: 1px 8px; border-radius: 3px; font-size: 11px; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+  .preds { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; margin: 12px 0; }
+  .pred-card { background: #f6f8fa; border: 1px solid #d1d9e0; border-radius: 6px; padding: 10px 12px; text-align: center; }
+  .pred-card.blend { background: #ddf4ff; border-color: #0969da; }
+  .pred-card .label { font-size: 11px; color: #424a53; text-transform: uppercase; letter-spacing: 0.05em; }
+  .pred-card .val { font-size: 24px; font-weight: 700; margin: 4px 0; font-variant-numeric: tabular-nums; }
+  .pred-card .action { font-size: 13px; font-weight: 600; }
+  .pred-card .formula { font-size: 11px; color: #424a53; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .w3-detail { background: #f6f8fa; border-radius: 4px; padding: 8px 12px; margin-top: 6px; }
+  .w3-detail summary { cursor: pointer; color: #0969da; font-size: 12px; }
+  .groups { margin-top: 8px; }
+  .group-row { display: grid; grid-template-columns: 100px 90px 110px 110px 1fr; gap: 8px; align-items: center; padding: 4px 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .gname { font-weight: 600; color: #1f2328; }
+  .gblend, .gpred, .gcontrib { color: #424a53; }
+  .cbar { height: 8px; background: #eaeef2; border-radius: 2px; overflow: hidden; }
+  .cbar-fill { height: 100%; }
+</style>
+</head>
+<body>
+  <h1>XGB + W3 ensemble blend — illustrative example</h1>
+  <div class='stamp'>generated 2026-05-23 16:44 · XGB <code>backend/data/models/signal_xgb.json</code> · W3 loaded</div>
+
+  <div class='nav'>
+    <a href='_summary.html'>← all agents</a>
+    <a href='xgb_channels.html'>XGB channels</a>
+    <a href='XGBReasoningAgent.html'>XGBReasoningAgent</a>
+  </div>
+
+  <div class='verdict'>
+    <h2>How to read this page</h2>
+    <p>Each scenario below is a synthetic market state (catalyst + macro + momentum profile). For each, we show what the production XGB model would predict, what the W3 per-group blend model would predict, and what the ensemble agent <em>actually emits</em> after blending them at <code>W3_BLEND_WEIGHT=0.40</code> (the live default).</p>
+    <p>The blend formula is <code>final_pred = (1 - 0.4) × xgb_pred + 0.4 × w3_pred</code>. WFE gate uses <code>max(xgb.mean_wfe=-0.1023, w3.mean_wfe=not yet measured)</code> — either model healthy → BUYs allowed.</p>
+    <p>Watch for the <span class='flip-tag'>action FLIPS vs XGB</span> tag — those are the scenarios where the W3 vote changes the agent's decision. The <strong>W3 per-group breakdown</strong> dropdown shows how each of the three groups (Catalyst / Momentum / Regime) contributed to the W3 prediction.</p>
+  </div>
+
+  
+    <section class='scenario'>
+      <header>
+        <h2>Strong catalyst, neutral macro  </h2>
+        <p class='summary'>Earnings beat + analyst upgrade. Macro flat. Momentum mild.</p>
+        <p class='inputs'>Active channels: <code>analyst_score=+0.80</code>, <code>earnings_score=+0.60</code>, <code>macro_vix_norm=+0.50</code>, <code>alpaca_score=+0.40</code>, <code>hist_seasonal=+0.20</code>, <code>macro_breadth_back=+0.10</code>, <code>r_20d=+0.03</code>, <code>r_120=+0.02</code>, <code>macro_spy_5d_back=+0.00</code></p>
+      </header>
+      <div class='preds'>
+        <div class='pred-card xgb'>
+          <div class='label'>XGB alone</div>
+          <div class='val' style='color:#1a7f37'>+2.87%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+        </div>
+        <div class='pred-card w3'>
+          <div class='label'>W3 alone</div>
+          <div class='val' style='color:#1a7f37'>+5.68%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+        </div>
+        <div class='pred-card blend'>
+          <div class='label'>Blended  (60%/40%)</div>
+          <div class='val' style='color:#1a7f37'>+3.99%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+          <div class='formula'>0.6 × +2.87%  +  0.4 × +5.68%</div>
+        </div>
+      </div>
+      <details class='w3-detail'>
+        <summary>W3 per-group breakdown</summary>
+        <div class='groups'><div class='group-row'>  <span class='gname'>Catalyst</span>  <span class='gblend'>blend 17%</span>  <span class='gpred' style='color:#1a7f37'>pred +21.30%</span>  <span class='gcontrib' style='color:#1a7f37'>contrib +3.62%</span>  <div class='cbar'><div class='cbar-fill' style='width:57%;background:#1a7f37'></div></div></div><div class='group-row'>  <span class='gname'>Momentum</span>  <span class='gblend'>blend 33%</span>  <span class='gpred' style='color:#cf222e'>pred -1.45%</span>  <span class='gcontrib' style='color:#cf222e'>contrib -0.48%</span>  <div class='cbar'><div class='cbar-fill' style='width:7%;background:#cf222e'></div></div></div><div class='group-row'>  <span class='gname'>Regime</span>  <span class='gblend'>blend 50%</span>  <span class='gpred' style='color:#1a7f37'>pred +4.33%</span>  <span class='gcontrib' style='color:#1a7f37'>contrib +2.15%</span>  <div class='cbar'><div class='cbar-fill' style='width:34%;background:#1a7f37'></div></div></div></div>
+      </details>
+    </section>
+    <section class='scenario'>
+      <header>
+        <h2>Hot momentum, fading regime  </h2>
+        <p class='summary'>Stock has been rallying hard but SPY rolling over; VIX spiking. Classic late-cycle setup.</p>
+        <p class='inputs'>Active channels: <code>macro_vix_norm=+1.50</code>, <code>r_252d=+0.40</code>, <code>macro_breadth_back=-0.30</code>, <code>mom_12_1=+0.30</code>, <code>hist_seasonal=-0.20</code>, <code>r_120=+0.18</code>, <code>r_20d=+0.12</code>, <code>analyst_score=+0.10</code>, <code>earnings_score=+0.05</code>, <code>macro_spy_5d_back=-0.03</code></p>
+      </header>
+      <div class='preds'>
+        <div class='pred-card xgb'>
+          <div class='label'>XGB alone</div>
+          <div class='val' style='color:#1a7f37'>+4.37%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+        </div>
+        <div class='pred-card w3'>
+          <div class='label'>W3 alone</div>
+          <div class='val' style='color:#1a7f37'>+1.88%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+        </div>
+        <div class='pred-card blend'>
+          <div class='label'>Blended  (60%/40%)</div>
+          <div class='val' style='color:#1a7f37'>+3.37%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+          <div class='formula'>0.6 × +4.37%  +  0.4 × +1.88%</div>
+        </div>
+      </div>
+      <details class='w3-detail'>
+        <summary>W3 per-group breakdown</summary>
+        <div class='groups'><div class='group-row'>  <span class='gname'>Catalyst</span>  <span class='gblend'>blend 86%</span>  <span class='gpred' style='color:#1a7f37'>pred +2.38%</span>  <span class='gcontrib' style='color:#1a7f37'>contrib +2.06%</span>  <div class='cbar'><div class='cbar-fill' style='width:78%;background:#1a7f37'></div></div></div><div class='group-row'>  <span class='gname'>Momentum</span>  <span class='gblend'>blend 12%</span>  <span class='gpred' style='color:#cf222e'>pred -2.35%</span>  <span class='gcontrib' style='color:#6e7781'>contrib -0.27%</span>  <div class='cbar'><div class='cbar-fill' style='width:10%;background:#6e7781'></div></div></div><div class='group-row'>  <span class='gname'>Regime</span>  <span class='gblend'>blend 2%</span>  <span class='gpred' style='color:#cf222e'>pred -15.46%</span>  <span class='gcontrib' style='color:#cf222e'>contrib -0.30%</span>  <div class='cbar'><div class='cbar-fill' style='width:11%;background:#cf222e'></div></div></div></div>
+      </details>
+    </section>
+    <section class='scenario'>
+      <header>
+        <h2>Risk-off macro shock  </h2>
+        <p class='summary'>VIX &gt; 30, SPY -3% in 5 days, breadth collapsing. No symbol catalyst.</p>
+        <p class='inputs'>Active channels: <code>macro_vix_norm=+2.00</code>, <code>macro_breadth_back=-0.50</code>, <code>hist_seasonal=-0.30</code>, <code>macro_spy_10d_back=-0.05</code>, <code>macro_spy_5d_back=-0.04</code>, <code>macro_dji_5d_back=-0.03</code>, <code>macro_tlt_10d_back=+0.02</code></p>
+      </header>
+      <div class='preds'>
+        <div class='pred-card xgb'>
+          <div class='label'>XGB alone</div>
+          <div class='val' style='color:#1a7f37'>+7.23%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+        </div>
+        <div class='pred-card w3'>
+          <div class='label'>W3 alone</div>
+          <div class='val' style='color:#1a7f37'>+0.58%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+        </div>
+        <div class='pred-card blend'>
+          <div class='label'>Blended  (60%/40%)</div>
+          <div class='val' style='color:#1a7f37'>+4.57%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+          <div class='formula'>0.6 × +7.23%  +  0.4 × +0.58%</div>
+        </div>
+      </div>
+      <details class='w3-detail'>
+        <summary>W3 per-group breakdown</summary>
+        <div class='groups'><div class='group-row'>  <span class='gname'>Catalyst</span>  <span class='gblend'>blend 97%</span>  <span class='gpred' style='color:#6e7781'>pred +0.29%</span>  <span class='gcontrib' style='color:#6e7781'>contrib +0.28%</span>  <div class='cbar'><div class='cbar-fill' style='width:74%;background:#6e7781'></div></div></div><div class='group-row'>  <span class='gname'>Momentum</span>  <span class='gblend'>blend 3%</span>  <span class='gpred' style='color:#cf222e'>pred -2.65%</span>  <span class='gcontrib' style='color:#6e7781'>contrib -0.07%</span>  <div class='cbar'><div class='cbar-fill' style='width:19%;background:#6e7781'></div></div></div><div class='group-row'>  <span class='gname'>Regime</span>  <span class='gblend'>blend 0%</span>  <span class='gpred' style='color:#cf222e'>pred -19.27%</span>  <span class='gcontrib' style='color:#6e7781'>contrib -0.02%</span>  <div class='cbar'><div class='cbar-fill' style='width:6%;background:#6e7781'></div></div></div></div>
+      </details>
+    </section>
+    <section class='scenario'>
+      <header>
+        <h2>Earnings miss + sector tailwind  </h2>
+        <p class='summary'>Bad earnings for this name but its sector is ripping. Conflicted signal.</p>
+        <p class='inputs'>Active channels: <code>earnings_score=-0.70</code>, <code>corr_spy_20d=+0.60</code>, <code>macro_vix_norm=+0.55</code>, <code>analyst_score=-0.40</code>, <code>hist_seasonal=+0.30</code>, <code>alpaca_score=-0.20</code>, <code>macro_breadth_back=+0.20</code>, <code>r_20d=-0.05</code>, <code>r_20d_sector_rel=-0.04</code>, <code>macro_spy_5d_back=+0.02</code></p>
+      </header>
+      <div class='preds'>
+        <div class='pred-card xgb'>
+          <div class='label'>XGB alone</div>
+          <div class='val' style='color:#1a7f37'>+1.96%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+        </div>
+        <div class='pred-card w3'>
+          <div class='label'>W3 alone</div>
+          <div class='val' style='color:#1a7f37'>+5.67%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+        </div>
+        <div class='pred-card blend'>
+          <div class='label'>Blended  (60%/40%)</div>
+          <div class='val' style='color:#1a7f37'>+3.44%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+          <div class='formula'>0.6 × +1.96%  +  0.4 × +5.67%</div>
+        </div>
+      </div>
+      <details class='w3-detail'>
+        <summary>W3 per-group breakdown</summary>
+        <div class='groups'><div class='group-row'>  <span class='gname'>Catalyst</span>  <span class='gblend'>blend 7%</span>  <span class='gpred' style='color:#cf222e'>pred -12.40%</span>  <span class='gcontrib' style='color:#cf222e'>contrib -0.84%</span>  <div class='cbar'><div class='cbar-fill' style='width:12%;background:#cf222e'></div></div></div><div class='group-row'>  <span class='gname'>Momentum</span>  <span class='gblend'>blend 31%</span>  <span class='gpred' style='color:#1a7f37'>pred +1.07%</span>  <span class='gcontrib' style='color:#1a7f37'>contrib +0.33%</span>  <div class='cbar'><div class='cbar-fill' style='width:4%;background:#1a7f37'></div></div></div><div class='group-row'>  <span class='gname'>Regime</span>  <span class='gblend'>blend 63%</span>  <span class='gpred' style='color:#1a7f37'>pred +9.24%</span>  <span class='gcontrib' style='color:#1a7f37'>contrib +5.78%</span>  <div class='cbar'><div class='cbar-fill' style='width:83%;background:#1a7f37'></div></div></div></div>
+      </details>
+    </section>
+    <section class='scenario'>
+      <header>
+        <h2>Quiet market, mild positive catalyst  <span class='flip-tag'>action FLIPS vs XGB</span></h2>
+        <p class='summary'>Low VIX, gentle SPY drift up, modest analyst score. The &#x27;should we even trade&#x27; edge case.</p>
+        <p class='inputs'>Active channels: <code>macro_vix_norm=+0.45</code>, <code>analyst_score=+0.30</code>, <code>earnings_score=+0.10</code>, <code>alpaca_score=+0.10</code>, <code>macro_breadth_back=+0.05</code>, <code>hist_seasonal=+0.05</code>, <code>r_20=+0.01</code>, <code>r_120=+0.01</code>, <code>macro_spy_5d_back=+0.01</code></p>
+      </header>
+      <div class='preds'>
+        <div class='pred-card xgb'>
+          <div class='label'>XGB alone</div>
+          <div class='val' style='color:#6e7781'>+0.01%</div>
+          <div class='action' style='color:#6e7781'>HOLD</div>
+        </div>
+        <div class='pred-card w3'>
+          <div class='label'>W3 alone</div>
+          <div class='val' style='color:#1a7f37'>+2.63%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+        </div>
+        <div class='pred-card blend'>
+          <div class='label'>Blended  (60%/40%)</div>
+          <div class='val' style='color:#1a7f37'>+1.06%</div>
+          <div class='action' style='color:#1a7f37'>BUY</div>
+          <div class='formula'>0.6 × +0.01%  +  0.4 × +2.63%</div>
+        </div>
+      </div>
+      <details class='w3-detail'>
+        <summary>W3 per-group breakdown</summary>
+        <div class='groups'><div class='group-row'>  <span class='gname'>Catalyst</span>  <span class='gblend'>blend 25%</span>  <span class='gpred' style='color:#1a7f37'>pred +7.09%</span>  <span class='gcontrib' style='color:#1a7f37'>contrib +1.79%</span>  <div class='cbar'><div class='cbar-fill' style='width:53%;background:#1a7f37'></div></div></div><div class='group-row'>  <span class='gname'>Momentum</span>  <span class='gblend'>blend 33%</span>  <span class='gpred' style='color:#cf222e'>pred -1.72%</span>  <span class='gcontrib' style='color:#cf222e'>contrib -0.56%</span>  <div class='cbar'><div class='cbar-fill' style='width:16%;background:#cf222e'></div></div></div><div class='group-row'>  <span class='gname'>Regime</span>  <span class='gblend'>blend 42%</span>  <span class='gpred' style='color:#1a7f37'>pred +2.38%</span>  <span class='gcontrib' style='color:#1a7f37'>contrib +1.00%</span>  <div class='cbar'><div class='cbar-fill' style='width:29%;background:#1a7f37'></div></div></div></div>
+      </details>
+    </section>
+
+</body>
+</html>

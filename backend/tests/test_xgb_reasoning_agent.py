@@ -1090,5 +1090,177 @@ class TestXGBReasoningAgentHelpers(unittest.TestCase):
         self.assertEqual(reason, "exit")
 
 
+class TestXGBReasoningAgentBlend(unittest.TestCase):
+    """
+    W3 ensemble blend path in _run_cnn_inference.
+
+    Behaviour under test (config.W3_BLEND_ENABLED, config.W3_BLEND_WEIGHT):
+      - blend disabled       -> XGB output unchanged
+      - blend enabled, W3 untrained -> XGB output unchanged (safe fallback)
+      - blend enabled, W3 trained   -> pred = (1-w)*xgb + w*w3, direction re-thresholded
+      - WFE gate considers max(xgb.mean_wfe, w3.mean_wfe) when blend enabled
+    """
+
+    def setUp(self):
+        self.agent = XGBReasoningAgent()
+        from data.signal_model import signal_model
+        from data.w3_model    import signal_w3
+        from config           import config
+        self.signal_cnn = signal_model
+        self.signal_w3  = signal_w3
+        self.config     = config
+        # Snapshot mutable state we touch so tearDown restores
+        self._orig_blend_enabled = getattr(config, "W3_BLEND_ENABLED", False)
+        self._orig_blend_weight  = getattr(config, "W3_BLEND_WEIGHT", 0.4)
+        self._orig_xgb_trained   = signal_model._trained
+        self._orig_xgb_mean_wfe  = signal_model._mean_wfe
+        self._orig_w3_trained    = signal_w3._trained
+        self._orig_w3_mean_wfe   = signal_w3._mean_wfe
+
+    def tearDown(self):
+        self.config.W3_BLEND_ENABLED = self._orig_blend_enabled
+        self.config.W3_BLEND_WEIGHT  = self._orig_blend_weight
+        self.signal_cnn._trained  = self._orig_xgb_trained
+        self.signal_cnn._mean_wfe = self._orig_xgb_mean_wfe
+        self.signal_w3._trained   = self._orig_w3_trained
+        self.signal_w3._mean_wfe  = self._orig_w3_mean_wfe
+
+    def _stub_window(self):
+        """Return a non-None object so the surrogate path is skipped."""
+        import numpy as np
+        return np.zeros((38, 10), dtype=np.float32)
+
+    def test_blend_disabled_returns_xgb_only(self):
+        """W3_BLEND_ENABLED=0 -> _run_cnn_inference returns XGB output unchanged."""
+        from data import signal_history
+        self.config.W3_BLEND_ENABLED = False
+        self.signal_cnn._trained = True
+        self.signal_w3._trained  = True
+        with patch.object(signal_history.signal_history, "get_recent_window",
+                          return_value=self._stub_window()), \
+             patch.object(self.signal_cnn, "predict", return_value=(0.010, "bull", 0.80)), \
+             patch.object(self.signal_w3,  "predict", return_value=(0.030, "bull", 0.70)):
+            pred, direction, conf = self.agent._run_cnn_inference("AAPL", 0.5)
+        # XGB-only path: pred=0.010 (the ensemble downscale is a no-op without sub-boosters)
+        self.assertAlmostEqual(pred, 0.010, places=6)
+        self.assertEqual(direction, "bull")
+
+    def test_blend_enabled_combines_predictions(self):
+        """pred = (1-w)*xgb + w*w3 when blend enabled and W3 trained."""
+        from data import signal_history
+        self.config.W3_BLEND_ENABLED = True
+        self.config.W3_BLEND_WEIGHT  = 0.4
+        self.signal_cnn._trained = True
+        self.signal_w3._trained  = True
+        with patch.object(signal_history.signal_history, "get_recent_window",
+                          return_value=self._stub_window()), \
+             patch.object(self.signal_cnn, "predict", return_value=(0.010, "bull", 0.80)), \
+             patch.object(self.signal_w3,  "predict", return_value=(0.030, "bull", 0.70)):
+            pred, direction, conf = self.agent._run_cnn_inference("AAPL", 0.5)
+        # 0.6 * 0.010 + 0.4 * 0.030 = 0.018
+        self.assertAlmostEqual(pred, 0.018, places=6)
+        self.assertEqual(direction, "bull")
+
+    def test_blend_falls_back_to_xgb_when_w3_untrained(self):
+        """W3_BLEND_ENABLED=1 but W3 not trained -> XGB only, no crash."""
+        from data import signal_history
+        self.config.W3_BLEND_ENABLED = True
+        self.config.W3_BLEND_WEIGHT  = 0.4
+        self.signal_cnn._trained = True
+        self.signal_w3._trained  = False  # W3 not loaded yet
+        with patch.object(signal_history.signal_history, "get_recent_window",
+                          return_value=self._stub_window()), \
+             patch.object(self.signal_cnn, "predict", return_value=(0.010, "bull", 0.80)):
+            pred, direction, conf = self.agent._run_cnn_inference("AAPL", 0.5)
+        self.assertAlmostEqual(pred, 0.010, places=6)
+
+    def test_blend_direction_recomputed_on_blend(self):
+        """When XGB says bull (+0.01) but W3 strongly bear (-0.05), heavy W3 weight flips."""
+        from data import signal_history
+        self.config.W3_BLEND_ENABLED = True
+        self.config.W3_BLEND_WEIGHT  = 0.8  # heavy on W3
+        self.signal_cnn._trained = True
+        self.signal_w3._trained  = True
+        with patch.object(signal_history.signal_history, "get_recent_window",
+                          return_value=self._stub_window()), \
+             patch.object(self.signal_cnn, "predict", return_value=(0.010, "bull", 0.80)), \
+             patch.object(self.signal_w3,  "predict", return_value=(-0.050, "bear", 0.70)):
+            pred, direction, _ = self.agent._run_cnn_inference("AAPL", 0.5)
+        # 0.2 * 0.010 + 0.8 * -0.050 = -0.038
+        self.assertAlmostEqual(pred, -0.038, places=6)
+        self.assertEqual(direction, "bear")
+
+    def test_wfe_gate_passes_when_w3_wfe_positive_and_xgb_negative(self):
+        """When blend enabled, gate fires on MAX of the two mean_wfe values."""
+        self.config.W3_BLEND_ENABLED = True
+        self.signal_cnn._mean_wfe = -0.10
+        self.signal_w3._mean_wfe  = +0.05
+        self.signal_w3._trained   = True
+        action, reasoning = self.agent._apply_wfe_gate(
+            symbol="AAPL", action="BUY", reasoning="strong",
+        )
+        self.assertEqual(action, "BUY", "max(xgb=-0.10, w3=+0.05) = +0.05 >= 0 -> gate passes")
+        self.assertEqual(reasoning, "strong")
+
+    def test_wfe_gate_blocks_when_both_wfe_negative(self):
+        """Both models below zero -> gate still fires."""
+        self.config.W3_BLEND_ENABLED = True
+        self.signal_cnn._mean_wfe = -0.10
+        self.signal_w3._mean_wfe  = -0.20
+        self.signal_w3._trained   = True
+        action, _ = self.agent._apply_wfe_gate(
+            symbol="AAPL", action="BUY", reasoning="strong",
+        )
+        self.assertEqual(action, "HOLD", "max negative still negative -> gate blocks")
+
+    def test_wfe_gate_ignores_w3_when_blend_disabled(self):
+        """Blend off -> gate looks at XGB only even if W3 wfe is positive."""
+        self.config.W3_BLEND_ENABLED = False
+        self.signal_cnn._mean_wfe = -0.10
+        self.signal_w3._mean_wfe  = +0.50  # would pass if considered
+        self.signal_w3._trained   = True
+        action, _ = self.agent._apply_wfe_gate(
+            symbol="AAPL", action="BUY", reasoning="strong",
+        )
+        self.assertEqual(action, "HOLD", "blend off -> W3 wfe ignored -> XGB -0.10 blocks BUY")
+
+
+class TestXGBReasoningAgentRetrainCoTriggersW3(unittest.TestCase):
+    """_train_blocking should co-train W3 alongside XGB so both stay current."""
+
+    def test_train_blocking_calls_signal_w3_fit_and_save(self):
+        from data.w3_model    import signal_w3
+        from data.signal_model import signal_model as signal_cnn
+        from data import signal_history
+        import numpy as np
+
+        agent = XGBReasoningAgent()
+        # Synthetic training inputs
+        N = 600
+        X = np.random.default_rng(0).standard_normal((N, 38, 10)).astype(np.float32)
+        y = np.random.default_rng(0).standard_normal(N).astype(np.float32)
+        w = np.ones(N, dtype=np.float32)
+        t = np.linspace(0, 90 * 86400, N).astype(np.float64)
+
+        import pandas as pd
+        fake_df = pd.DataFrame({"symbol": ["AAPL"] * N})  # only len matters for the >= MIN_TRAIN_SAMPLES check
+
+        with patch.object(signal_history.signal_history, "get_training_data",
+                          return_value=fake_df), \
+             patch("agents.xgb_reasoning_agent.build_training_windows",
+                   return_value=(X, y, w, t)), \
+             patch.object(signal_cnn, "fit") as cnn_fit, \
+             patch.object(signal_cnn, "save"), \
+             patch.object(signal_cnn, "training_summary",
+                          return_value={"final_mse": 0.0, "device": "cpu", "learned_weights": {}}), \
+             patch.object(signal_w3, "fit") as w3_fit, \
+             patch.object(signal_w3, "save") as w3_save:
+            agent._train_blocking()
+
+        self.assertTrue(cnn_fit.called, "signal_cnn.fit must still be called")
+        self.assertTrue(w3_fit.called,  "signal_w3.fit must be co-triggered with XGB retrain")
+        self.assertTrue(w3_save.called, "signal_w3.save must persist the retrained W3")
+
+
 if __name__ == "__main__":
     unittest.main()

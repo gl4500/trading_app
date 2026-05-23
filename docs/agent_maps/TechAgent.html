@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TechAgent — Agent map</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <p class="back"><a href="_summary.html">← all agents (comparison)</a></p>
+  <h1>TechAgent</h1>
+  <p class="meta">Pure technical analysis (RSI + MACD) on hourly bars.</p>
+  <p class="meta">Class file: <code>agents/tech_agent.py</code></p>
+</header>
+
+<section>
+  <h2>Data sources</h2>
+  <table>
+    <thead><tr><th>Source key</th><th>Category</th><th>Provider</th><th>Accessed via</th></tr></thead>
+    <tbody><tr><td>price</td><td><span class="chip chip-market">Market data</span></td><td>Alpaca Markets</td><td><code>ctx[&#x27;bars&#x27;] → manual RSI &amp; MACD</code></td></tr>
+<tr><td>portfolio</td><td><span class="chip chip-internal">Internal state</span></td><td>Portfolio state (positions/cash)</td><td><code>self.portfolio.positions for SELL eval</code></td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Models</h2>
+  <p class="muted">No model artifact consumed — this agent computes signals directly from its inputs.</p>
+</section>
+
+<section>
+  <h2>Ensemble integration</h2>
+  <table><thead><tr><th>Base weight</th><th>Trending ×</th><th>Ranging ×</th><th>Volatile ×</th></tr></thead><tbody><tr><td><b>0.23</b></td><td>1.2</td><td>1.1</td><td>0.8</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Recent performance — post-2026-05-17 window (~4 days)</h2>
+  <table><thead><tr><th>Window ROI</th><th>Realized P&amp;L</th><th>Trades</th><th>Win / Loss</th></tr></thead><tbody><tr><td>+0.91%</td><td>-$41</td><td>20</td><td>4 / 4</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Outputs</h2>
+  <p>Signal(BUY/SELL/HOLD, confidence, shares) per symbol</p>
+</section>
+
+<section>
+  <h2>Notes</h2>
+  <p>Highest ensemble base weight (0.23) but flat realized P&amp;L this window.</p>
+</section>
+</body></html>

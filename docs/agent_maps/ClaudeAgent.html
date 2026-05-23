@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ClaudeAgent — Agent map</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <p class="back"><a href="_summary.html">← all agents (comparison)</a></p>
+  <h1>ClaudeAgent</h1>
+  <p class="meta">Claude Opus reasoning over technical &amp; news context.</p>
+  <p class="meta">Class file: <code>agents/claude_agent.py</code></p>
+</header>
+
+<section>
+  <h2>Data sources</h2>
+  <table>
+    <thead><tr><th>Source key</th><th>Category</th><th>Provider</th><th>Accessed via</th></tr></thead>
+    <tbody><tr><td>price</td><td><span class="chip chip-market">Market data</span></td><td>Alpaca Markets</td><td><code>ctx[&#x27;bars&#x27;]</code></td></tr>
+<tr><td>alpaca_news</td><td><span class="chip chip-news">News / sentiment</span></td><td>Alpaca news API → news_service</td><td><code>news_service</code></td></tr>
+<tr><td>yahoo_news</td><td><span class="chip chip-news">News / sentiment</span></td><td>yfinance → news_service</td><td><code>news_service</code></td></tr>
+<tr><td>technicals_fmt</td><td><span class="chip chip-derived">Internal / derived</span></td><td>data.technicals.format_for_prompt</td><td><code>data.technicals.format_for_prompt</code></td></tr>
+<tr><td>claude_api</td><td><span class="chip chip-llm">LLM APIs</span></td><td>Anthropic Claude Opus 4.6</td><td><code>Anthropic API (or Ollama route when OLLAMA_ONLY_MODE)</code></td></tr>
+<tr><td>portfolio</td><td><span class="chip chip-internal">Internal state</span></td><td>Portfolio state (positions/cash)</td><td><code>Position context for prompt</code></td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Models</h2>
+  <p class="muted">No model artifact consumed — this agent computes signals directly from its inputs.</p>
+</section>
+
+<section>
+  <h2>Ensemble integration</h2>
+  <table><thead><tr><th>Base weight</th><th>Trending ×</th><th>Ranging ×</th><th>Volatile ×</th></tr></thead><tbody><tr><td><b>0.2</b></td><td>1.1</td><td>1.0</td><td>1.4</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Recent performance — post-2026-05-17 window (~4 days)</h2>
+  <table><thead><tr><th>Window ROI</th><th>Realized P&amp;L</th><th>Trades</th><th>Win / Loss</th></tr></thead><tbody><tr><td>+0.44%</td><td>-$1,042</td><td>18</td><td>1 / 1</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Outputs</h2>
+  <p>JSON BUY/SELL/HOLD + structured reasoning from LLM.</p>
+</section>
+
+<section>
+  <h2>Notes</h2>
+  <p>2nd-highest base ensemble weight (0.20). Strongest volatile-regime tilt (1.40). Biggest realized loser among LLM cohort in window.</p>
+</section>
+</body></html>

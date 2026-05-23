@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XGBReasoningAgent — Agent map</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <p class="back"><a href="_summary.html">← all agents (comparison)</a></p>
+  <h1>XGBReasoningAgent</h1>
+  <p class="meta">Learned signal model (XGBoost via selector) + Ollama LLM active reasoning.</p>
+  <p class="meta">Class file: <code>agents/xgb_reasoning_agent.py</code></p>
+</header>
+
+<section>
+  <h2>Data sources</h2>
+  <table>
+    <thead><tr><th>Source key</th><th>Category</th><th>Provider</th><th>Accessed via</th></tr></thead>
+    <tbody><tr><td>signal_history</td><td><span class="chip chip-derived">Internal / derived</span></td><td>38-channel feature pool (signal_history)</td><td><code>Full 38-channel pool → SignalXGBoost.predict</code></td></tr>
+<tr><td>ollama_api</td><td><span class="chip chip-llm">LLM APIs</span></td><td>Local Ollama (llama3.1:8b)</td><td><code>Post-model LLM reasoning over model output + scores</code></td></tr>
+<tr><td>portfolio</td><td><span class="chip chip-internal">Internal state</span></td><td>Portfolio state (positions/cash)</td><td><code>Stop/trailing/cooldown enforcement</code></td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Models</h2>
+  <table><thead><tr><th>Model</th><th>Artifact</th><th>Status / notes</th></tr></thead><tbody><tr><td><b>SignalXGBoost</b></td><td><code>signal_xgb.json</code></td><td>Currently mean_wfe = -0.10 (POOR) — WFE gate blocking all BUYs</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Ensemble integration</h2>
+  <table><thead><tr><th>Base weight</th><th>Trending ×</th><th>Ranging ×</th><th>Volatile ×</th></tr></thead><tbody><tr><td><b>0.10 (default — not in ENSEMBLE_WEIGHTS dict)</b></td><td>1.2</td><td>0.9</td><td>1.1</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Recent performance — post-2026-05-17 window (~4 days)</h2>
+  <table><thead><tr><th>Window ROI</th><th>Realized P&amp;L</th><th>Trades</th><th>Win / Loss</th></tr></thead><tbody><tr><td>+0.36%</td><td>-$666</td><td>8</td><td>1 / 7 (gated)</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Outputs</h2>
+  <p>BUY/SELL/HOLD; gated to HOLD when mean_wfe &lt; 0 (active).</p>
+</section>
+
+<section>
+  <h2>Notes</h2>
+  <p>Only agent reading the 38-channel pool. WFE gate added 2026-05-17 has silenced new BUYs ever since.</p>
+</section>
+</body></html>

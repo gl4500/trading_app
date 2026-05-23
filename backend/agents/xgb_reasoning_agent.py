@@ -46,6 +46,7 @@ from config import config
 from data.signal_history import signal_history
 from data.cnn_model import build_training_windows, MIN_TRAIN_SAMPLES
 from data.signal_model import signal_model as signal_cnn
+from data.w3_model import signal_w3
 from data.agent_performance_tracker import agent_performance_tracker
 
 logger = logging.getLogger(__name__)
@@ -103,9 +104,16 @@ class XGBReasoningAgent(BaseAgent):
     # ── model lifecycle ───────────────────────────────────────────────────────
 
     async def _ensure_model(self) -> None:
-        """Load saved weights on first call; trigger retrain when due."""
+        """Load saved weights on first call; trigger retrain when due.
+        Also load the W3 ensemble companion (used by the blend path when
+        config.W3_BLEND_ENABLED). W3 load failures are non-fatal — the
+        agent silently falls back to XGB-only when W3 isn't trained."""
         if not self._model_loaded:
             self._model_loaded = signal_cnn.load()
+            try:
+                signal_w3.load()
+            except Exception as exc:
+                logger.debug(f"XGBReasoningAgent: W3 load failed: {exc}")
 
         now = time.time()
         if now - self._last_train_check < 3_600:   # check at most every hour
@@ -144,6 +152,19 @@ class XGBReasoningAgent(BaseAgent):
                 f"channels={X.shape[1]} | MSE={summary['final_mse']:.6f} | "
                 f"device={summary['device']} | learned weights: {summary['learned_weights']}"
             )
+
+            # Co-train W3 on the same data so the blend stays consistent.
+            # W3 failure is non-fatal — XGB inference + WFE gate proceed
+            # unchanged and the blend code silently falls back to XGB-only.
+            try:
+                signal_w3.fit(X, y, t, sample_weights=w)
+                signal_w3.save()
+                logger.info(
+                    f"XGBReasoningAgent: W3 co-train complete | "
+                    f"mean_wfe={signal_w3.mean_wfe} mean_ic={signal_w3._mean_ic}"
+                )
+            except Exception as exc:
+                logger.warning(f"XGBReasoningAgent: W3 co-train failed: {exc}")
         except Exception as exc:
             logger.error(f"XGBReasoningAgent: training failed: {exc}", exc_info=True)
 
@@ -490,6 +511,22 @@ class XGBReasoningAgent(BaseAgent):
             logger.debug(f"XGBReasoningAgent: predict error for {symbol}: {exc}")
             pred_return, direction, cnn_conf = 0.0, "neutral", 0.3
 
+        # W3 ensemble blend (added 2026-05-23). When enabled AND W3 is trained,
+        # fuse: pred = (1-w)*xgb + w*w3, conf = (1-w)*xgb_conf + w*w3_conf.
+        # Direction re-thresholded on the blended pred. Silent XGB-only
+        # fallback when W3 isn't ready so the agent stays operable.
+        if config.W3_BLEND_ENABLED and signal_w3.is_trained:
+            try:
+                w3_pred, _w3_dir, w3_conf = signal_w3.predict(window)
+                w  = float(config.W3_BLEND_WEIGHT)
+                pred_return = (1.0 - w) * pred_return + w * w3_pred
+                cnn_conf    = (1.0 - w) * cnn_conf    + w * w3_conf
+                direction = ("bull"    if pred_return >  0.003
+                             else "bear"    if pred_return < -0.003
+                             else "neutral")
+            except Exception as exc:
+                logger.debug(f"XGBReasoningAgent: W3 blend error for {symbol}: {exc}")
+
         # Ensemble-uncertainty downscale (Stage 3b). When the XGBoost backend
         # has K bootstrapped boosters on disk (signal_xgb_b{0..K-1}.json),
         # discount cnn_conf by cross-booster disagreement. Calibration check
@@ -583,6 +620,14 @@ class XGBReasoningAgent(BaseAgent):
         if action != "BUY":
             return action, reasoning
         mean_wfe_val = signal_cnn.mean_wfe
+        # W3 blend gate (added 2026-05-23): when blend enabled and W3 trained,
+        # gate on max(xgb_wfe, w3_wfe). If either model has positive WFE the
+        # blend's expected edge is positive too, so BUYs should pass.
+        if config.W3_BLEND_ENABLED and signal_w3.is_trained and signal_w3.mean_wfe is not None:
+            mean_wfe_val = max(
+                mean_wfe_val if mean_wfe_val is not None else float("-inf"),
+                signal_w3.mean_wfe,
+            )
         if mean_wfe_val is None or mean_wfe_val >= 0.0:
             return action, reasoning
         logger.info(

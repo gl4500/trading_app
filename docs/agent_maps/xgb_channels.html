@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XGB Channels — Sources, Model Usage, Weighting, Implications</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* Light theme — text colors picked for 4.5:1+ contrast against the #fafbfc body */
+  body { font-size: 14px; padding: 0 24px 80px; }
+  h1 { margin: 24px 0 4px; color: #0d1117; }
+  .stamp { color: #424a53; font-size: 12px; margin-bottom: 24px; }
+  .verdict { background: #fff8f1; border-left: 4px solid #cf222e; padding: 14px 18px; margin: 18px 0 8px; border-radius: 4px; color: #1f2328; }
+  .verdict h2 { margin: 0 0 8px; color: #82071e; border: none; padding: 0; }
+  .verdict ul { margin: 6px 0 0 18px; }
+  .verdict code { background: #ffeef0; padding: 1px 6px; border-radius: 3px; color: #82071e; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+  .kpi { background: #ffffff; padding: 12px 14px; border-radius: 6px; border: 1px solid #d1d9e0; }
+  .kpi .label { color: #424a53; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi .val { font-size: 24px; font-weight: 700; margin-top: 4px; color: #1f2328; }
+  .kpi .good { color: #1a7f37; }
+  .kpi .bad  { color: #cf222e; }
+  .kpi .meh  { color: #9a6700; }
+  .kpi .sub  { color: #424a53; }
+  section { margin: 28px 0; }
+  h2 .count { color: #424a53; font-weight: 400; font-size: 0.7em; margin-left: 6px; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 13px; background: #ffffff; }
+  table.data th { background: #f6f8fa; padding: 10px 8px; text-align: left; border-bottom: 1px solid #d1d9e0; vertical-align: top; color: #1f2328; font-weight: 600; }
+  table.data td { padding: 10px 8px; border-bottom: 1px solid #eaeef2; vertical-align: top; color: #1f2328; }
+  table.data tr:hover td { background: #f6f8fa; }
+  .idx { color: #424a53; font-variant-numeric: tabular-nums; text-align: right; }
+  .name-line { font-weight: 600; color: #0d1117; }
+  .sub { color: #424a53; font-size: 11px; margin-top: 2px; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #ffffff; }
+  .flag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
+  .flag-prod { background: #dafbe1; color: #116329; }
+  .flag-exp  { background: #fff1e5; color: #7d4e00; }
+  .flag-pool { background: #eaeef2; color: #424a53; }
+  .bar { position: relative; height: 16px; background: #eaeef2; border-radius: 3px; overflow: hidden; min-width: 100px; }
+  .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: #0969da; }
+  .bar-gain .bar-fill { background: #bf8700; }
+  .bar span { position: relative; z-index: 1; padding: 0 6px; line-height: 16px; font-size: 11px; color: #0d1117; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .ic-pos { color: #1a7f37; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .ic-neg { color: #cf222e; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .ic-mid { color: #424a53; font-variant-numeric: tabular-nums; }
+  .per-fold .mini { font-size: 11px; }
+  .impl { max-width: 360px; color: #1f2328; }
+  .muted { color: #6e7781; }
+  .note { color: #424a53; font-size: 12px; margin: 4px 0 12px; }
+  .nav { margin: 6px 0 14px; }
+  .nav a { color: #0969da; text-decoration: none; margin-right: 14px; font-size: 13px; }
+  .nav a:hover { text-decoration: underline; }
+  ul { color: #1f2328; }
+</style>
+</head>
+<body>
+  <h1>XGB Channels — model inventory, weighting & implications</h1>
+  <div class="stamp">generated 2026-05-23 15:22 · model file <code>backend/data/models/signal_xgb.json</code> · audit window n=545,341 samples</div>
+
+  <div class="nav">
+    <a href="_summary.html">← all agents</a>
+    <a href="XGBReasoningAgent.html">XGBReasoningAgent map</a>
+  </div>
+
+  <div class="verdict">
+    <h2>Verdict: the production booster has collapsed to a single feature.</h2>
+    <ul>
+      <li><b>8 of 80 input features ever split</b> in the trained 8-channel booster — and <b>100% of all gain</b> sits on <code>analyst_score</code> alone.</li>
+      <li><b>Dead in production</b> (7 of 8 filter channels never split): <code>earnings_score</code>, <code>alpaca_score</code>, <code>macro_spy_5d_back</code>, <code>iv_rv_score</code>, <code>macro_breadth_back</code>, <code>r_120</code>, <code>macro_vix_norm</code>.</li>
+      <li>The 12-channel sidecar (current 8 + 4 HistoricalTrends channels) shows the same collapse — 97% analyst_score, 3% earnings_score, all other 10 channels dead.</li>
+      <li>Headline: <code>mean_wfe = -0.1023</code> (POOR) · <code>mean_ic = 0.0753</code> · the WFE gate then SILENCES the agent in production because mean_wfe < 0 — see <code>xgb_reasoning_agent._apply_wfe_gate</code>.</li>
+      <li><b>Your hypothesis is right, but the direction is the opposite:</b> the 38-channel POOL is fine — only 8 are even seen at training time, and within those 8 the model is overweighting one channel to the exclusion of all others. The fix isn't fewer channels — it's a better filter and possibly per-channel monotone constraints, OR a non-linear two-stage model where analyst_score is one input among several uncorrelated heads.</li>
+    </ul>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">mean_wfe (prod)</div><div class="val bad">-0.1023</div><div class="sub">POOR — silences agent</div></div>
+    <div class="kpi"><div class="label">mean_ic (prod)</div><div class="val meh">+0.0753</div><div class="sub">predictive but tiny</div></div>
+    <div class="kpi"><div class="label">IR (prod)</div><div class="val meh">1.08</div></div>
+    <div class="kpi"><div class="label">features active</div><div class="val bad">8/80</div><div class="sub">10% utilization</div></div>
+    <div class="kpi"><div class="label">analyst_score gain%</div><div class="val bad">100%</div><div class="sub">single-feature collapse</div></div>
+    <div class="kpi"><div class="label">strong pool candidates</div><div class="val good">1</div><div class="sub">|IC|≥0.04, stab≥0.03</div></div>
+    <div class="kpi"><div class="label">mean_wfe (12ch sidecar)</div><div class="val bad">-0.1339</div><div class="sub">POOR</div></div>
+    <div class="kpi"><div class="label">mean_ic (12ch sidecar)</div><div class="val meh">+0.0872</div></div>
+  </div>
+
+  
+    <section>
+      <h2>Production 8-channel filter (XGB_FEATURE_FILTER) <span class="count">(8)</span></h2>
+      <p class="note">These eight channels are what SignalXGBoost actually trains on. The 'Gain (prod 8ch)' column shows total tree gain — analyst_score eats the entire budget; the rest are passengers.</p>
+      <table class="data">
+        <thead>
+          <tr>
+            <th>#</th><th>Channel · raw inputs · computation</th><th>Category</th>
+            <th>In filter</th><th>Coverage</th><th>IC (window)</th>
+            <th>Per-fold IC<br><span class="sub">old · mid · new</span></th>
+            <th>Gain (prod 8ch)</th><th>Gain (exp 12ch)</th><th>Implication</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+    <tr>
+      <td class="idx">0</td>
+      <td class="name">
+        <div class="name-line">analyst_score</div>
+        <div class="sub">yfinance.recommendations · signal_aggregator.score_analyst</div>
+      </td>
+      <td><span class="chip" style="background:#3b82f6;color:#fff">SOURCE</span></td>
+      <td><span class="flag flag-prod">PROD</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:5.7%"></div><span>5.7%</span></div></td>
+      <td><span class="ic-pos">+0.0630</span></td>
+      <td class="per-fold"><span class="ic-pos mini">+0.101</span> <span class="ic-mid mini">-0.033</span> <span class="ic-pos mini">+0.074</span><div class="sub">stab 0.0326</div></td>
+      <td><div class="bar bar-gain"><div class="bar-fill" style="width:100.0%"></div><span>100.0%</span></div></td>
+      <td><div class="bar bar-gain"><div class="bar-fill" style="width:96.7%"></div><span>96.7%</span></div></td>
+      <td class="impl">DOMINATES the model. Single-feature collapse — only channel the booster uses.</td>
+    </tr>
+    <tr>
+      <td class="idx">1</td>
+      <td class="name">
+        <div class="name-line">earnings_score</div>
+        <div class="sub">yfinance.earnings_history · signal_aggregator.score_earnings_surprise</div>
+      </td>
+      <td><span class="chip" style="background:#3b82f6;color:#fff">SOURCE</span></td>
+      <td><span class="flag flag-prod">PROD</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:5.8%"></div><span>5.8%</span></div></td>
+      <td><span class="ic-pos">+0.0589</span></td>
+      <td class="per-fold"><span class="ic-mid mini">+0.037</span> <span class="ic-pos mini">+0.098</span> <span class="ic-mid mini">-0.033</span><div class="sub">stab 0.0331</div></td>
+      <td><span class="muted">—</span></td>
+      <td><div class="bar bar-gain"><div class="bar-fill" style="width:3.3%"></div><span>3.3%</span></div></td>
+      <td class="impl">DEAD WEIGHT in trained booster. Decent IC (+0.059) but never split — probably masked by analyst_score.</td>
+    </tr>
+    <tr>
+      <td class="idx">2</td>
+      <td class="name">
+        <div class="name-line">alpaca_score</div>
+        <div class="sub">alpaca news API · news_service + keyword scoring</div>
+      </td>
+      <td><span class="chip" style="background:#3b82f6;color:#fff">SOURCE</span></td>
+      <td><span class="flag flag-prod">PROD</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:1.2%"></div><span>1.2%</span></div></td>
+      <td><span class="ic-pos">+0.0435</span></td>
+      <td class="per-fold"><span class="ic-pos mini">+0.147</span> <span class="ic-pos mini">+0.083</span> <span class="ic-mid mini">+0.041</span><div class="sub">stab 0.0414</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="impl">DEAD WEIGHT in trained booster. Decent IC (+0.043) but never split — probably masked by analyst_score.</td>
+    </tr>
+    <tr>
+      <td class="idx">17</td>
+      <td class="name">
+        <div class="name-line">macro_spy_5d_back</div>
+        <div class="sub">SPY daily close · macro_history._ret_nd_trailing (5-day TRAILING)</div>
+      </td>
+      <td><span class="chip" style="background:#10b981;color:#fff">MACRO</span></td>
+      <td><span class="flag flag-prod">PROD</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.7%"></div><span>55.7%</span></div></td>
+      <td><span class="ic-mid">+0.0155</span></td>
+      <td class="per-fold"><span class="ic-mid mini">-0.042</span> <span class="ic-neg mini">-0.076</span> <span class="ic-neg mini">-0.201</span><div class="sub">stab 0.0418</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="impl">DEAD WEIGHT in trained booster. Low IC (+0.015) and unused — consistent: drop or replace.</td>
+    </tr>
+    <tr>
+      <td class="idx">4</td>
+      <td class="name">
+        <div class="name-line">iv_rv_score</div>
+        <div class="sub">yfinance options · signal_aggregator.iv_rv_spread</div>
+      </td>
+      <td><span class="chip" style="background:#3b82f6;color:#fff">SOURCE</span></td>
+      <td><span class="flag flag-prod">PROD</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:3.0%"></div><span>3.0%</span></div></td>
+      <td><span class="ic-mid">+0.0125</span></td>
+      <td class="per-fold"><span class="ic-mid mini">+0.000</span> <span class="ic-pos mini">+0.059</span> <span class="ic-pos mini">+0.059</span><div class="sub">stab 0.0000</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="impl">DEAD WEIGHT in trained booster. Low IC (+0.012) and unused — consistent: drop or replace.</td>
+    </tr>
+    <tr>
+      <td class="idx">18</td>
+      <td class="name">
+        <div class="name-line">macro_breadth_back</div>
+        <div class="sub">IWM, SPY daily closes · macro_history._breadth_score_back (5-day trailing IWM-SPY spread)</div>
+      </td>
+      <td><span class="chip" style="background:#10b981;color:#fff">MACRO</span></td>
+      <td><span class="flag flag-prod">PROD</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.7%"></div><span>55.7%</span></div></td>
+      <td><span class="ic-mid">-0.0091</span></td>
+      <td class="per-fold"><span class="ic-mid mini">+0.005</span> <span class="ic-neg mini">-0.085</span> <span class="ic-neg mini">-0.143</span><div class="sub">stab 0.0052</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="impl">DEAD WEIGHT in trained booster. Low IC (-0.009) and unused — consistent: drop or replace.</td>
+    </tr>
+    <tr>
+      <td class="idx">13</td>
+      <td class="name">
+        <div class="name-line">r_120</div>
+        <div class="sub">price · _compute_return_features (shift 120)</div>
+      </td>
+      <td><span class="chip" style="background:#ef4444;color:#fff">RETURN</span></td>
+      <td><span class="flag flag-prod">PROD</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:94.9%"></div><span>94.9%</span></div></td>
+      <td><span class="ic-mid">-0.0080</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.206</span> <span class="ic-pos mini">+0.110</span> <span class="ic-pos mini">+0.116</span><div class="sub">stab 0.1104</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="impl">DEAD WEIGHT in trained booster. Low IC (-0.008) and unused — consistent: drop or replace.</td>
+    </tr>
+    <tr>
+      <td class="idx">14</td>
+      <td class="name">
+        <div class="name-line">macro_vix_norm</div>
+        <div class="sub">VIX index · macro_history.compute_features (VIX/30, clipped [0, 3])</div>
+      </td>
+      <td><span class="chip" style="background:#10b981;color:#fff">MACRO</span></td>
+      <td><span class="flag flag-prod">PROD</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.7%"></div><span>55.7%</span></div></td>
+      <td><span class="ic-mid">-0.0009</span></td>
+      <td class="per-fold"><span class="ic-pos mini">+0.053</span> <span class="ic-mid mini">+0.012</span> <span class="ic-mid mini">-0.004</span><div class="sub">stab 0.0044</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="impl">DEAD WEIGHT in trained booster. Low IC (-0.001) and unused — consistent: drop or replace.</td>
+    </tr>
+        </tbody>
+      </table>
+    </section>
+
+  
+    <section>
+      <h2>12-channel experimental sidecar (HistoricalTrends-borrowed) <span class="count">(4)</span></h2>
+      <p class="note">Sidecar model only — NOT promoted to production. Adds the 4 HistoricalTrendsAgent sub-scores. Booster still collapses to analyst_score (97%) + earnings_score (3%). The other 10 channels never split even when present at training time.</p>
+      <table class="data">
+        <thead>
+          <tr>
+            <th>#</th><th>Channel · raw inputs · computation</th><th>Category</th>
+            <th>In filter</th><th>Coverage</th><th>IC (window)</th>
+            <th>Per-fold IC<br><span class="sub">old · mid · new</span></th>
+            <th>Gain (prod 8ch)</th><th>Gain (exp 12ch)</th><th>Implication</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+    <tr>
+      <td class="idx">29</td>
+      <td class="name">
+        <div class="name-line">hist_seasonal</div>
+        <div class="sub">snapshot_ts (date) · _compute_historical_features (month_bias + quarter_position_bias)</div>
+      </td>
+      <td><span class="chip" style="background:#6366f1;color:#fff">HISTORICAL</span></td>
+      <td><span class="flag flag-exp">EXP12</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:95.7%"></div><span>95.7%</span></div></td>
+      <td><span class="ic-pos">+0.0360</span></td>
+      <td class="per-fold"><span class="ic-mid mini">-0.049</span> <span class="ic-mid mini">-0.017</span> <span class="ic-pos mini">+0.204</span><div class="sub">stab 0.0167</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="impl">Pool-only. IC +0.036 is competitive with weakest in-filter channels.</td>
+    </tr>
+    <tr>
+      <td class="idx">31</td>
+      <td class="name">
+        <div class="name-line">hist_momentum_alignment</div>
+        <div class="sub">price · _compute_historical_features (5/10/20/40-bar ROC + alignment bonus)</div>
+      </td>
+      <td><span class="chip" style="background:#6366f1;color:#fff">HISTORICAL</span></td>
+      <td><span class="flag flag-exp">EXP12</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:99.8%"></div><span>99.8%</span></div></td>
+      <td><span class="ic-mid">-0.0172</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.070</span> <span class="ic-mid mini">+0.025</span> <span class="ic-pos mini">+0.172</span><div class="sub">stab 0.0247</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="impl">Marginal signal (IC -0.017, stab 0.025). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">30</td>
+      <td class="name">
+        <div class="name-line">hist_channel_position</div>
+        <div class="sub">price (60-bar window) · _compute_historical_features (channel position + SMA-20 slope adjust)</div>
+      </td>
+      <td><span class="chip" style="background:#6366f1;color:#fff">HISTORICAL</span></td>
+      <td><span class="flag flag-exp">EXP12</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:99.8%"></div><span>99.8%</span></div></td>
+      <td><span class="ic-mid">+0.0099</span></td>
+      <td class="per-fold"><span class="ic-mid mini">+0.033</span> <span class="ic-mid mini">+0.031</span> <span class="ic-mid mini">-0.007</span><div class="sub">stab 0.0067</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+    <tr>
+      <td class="idx">32</td>
+      <td class="name">
+        <div class="name-line">hist_volume_pattern</div>
+        <div class="sub">price, volume (when present) · _compute_historical_features (10-bar up/down volume ratio)</div>
+      </td>
+      <td><span class="chip" style="background:#6366f1;color:#fff">HISTORICAL</span></td>
+      <td><span class="flag flag-exp">EXP12</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:92.4%"></div><span>92.4%</span></div></td>
+      <td><span class="ic-mid">+0.0071</span></td>
+      <td class="per-fold"><span class="ic-mid mini">-0.036</span> <span class="ic-pos mini">+0.094</span> <span class="ic-pos mini">+0.073</span><div class="sub">stab 0.0359</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+        </tbody>
+      </table>
+    </section>
+
+  
+    <section>
+      <h2>Pool-only channels (in the 38-ch catalog but NOT in any filter) <span class="count">(26)</span></h2>
+      <p class="note">Available in build_training_windows but never fed to the booster. Look at the 'Implication' column for promote candidates — any pool channel with |IC|≥0.04 and stab≥0.03 is stronger than the weakest in-filter channels and worth promoting.</p>
+      <table class="data">
+        <thead>
+          <tr>
+            <th>#</th><th>Channel · raw inputs · computation</th><th>Category</th>
+            <th>In filter</th><th>Coverage</th><th>IC (window)</th>
+            <th>Per-fold IC<br><span class="sub">old · mid · new</span></th>
+            <th>Gain (prod 8ch)</th><th>Gain (exp 12ch)</th><th>Implication</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+    <tr>
+      <td class="idx">28</td>
+      <td class="name">
+        <div class="name-line">corr_spy_20d</div>
+        <div class="sub">r_1d, SPY r_1d · _compute_spy_correlation_features (rolling 20d Pearson corr vs SPY)</div>
+      </td>
+      <td><span class="chip" style="background:#ec4899;color:#fff">SPY_CORRELATION</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:98.9%"></div><span>98.9%</span></div></td>
+      <td><span class="ic-pos">+0.0511</span></td>
+      <td class="per-fold"><span class="ic-pos mini">+0.456</span> <span class="ic-neg mini">-0.084</span> <span class="ic-neg mini">-0.076</span><div class="sub">stab 0.0762</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">PROMOTE CANDIDATE — pool-only with IC +0.051, stability 0.076. Stronger than several in-filter channels.</td>
+    </tr>
+    <tr>
+      <td class="idx">3</td>
+      <td class="name">
+        <div class="name-line">yahoo_score</div>
+        <div class="sub">yfinance news · finbert_scorer</div>
+      </td>
+      <td><span class="chip" style="background:#3b82f6;color:#fff">SOURCE</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:5.5%"></div><span>5.5%</span></div></td>
+      <td><span class="ic-pos">+0.0488</span></td>
+      <td class="per-fold"><span class="ic-mid mini">+0.035</span> <span class="ic-mid mini">-0.000</span> <span class="ic-mid mini">+0.020</span><div class="sub">stab 0.0002</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Pool-only. IC +0.049 is competitive with weakest in-filter channels.</td>
+    </tr>
+    <tr>
+      <td class="idx">16</td>
+      <td class="name">
+        <div class="name-line">macro_tlt_5d_back</div>
+        <div class="sub">TLT daily close · macro_history._ret_nd_trailing (5-day TRAILING)</div>
+      </td>
+      <td><span class="chip" style="background:#10b981;color:#fff">MACRO</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.6%"></div><span>55.6%</span></div></td>
+      <td><span class="ic-pos">+0.0380</span></td>
+      <td class="per-fold"><span class="ic-mid mini">-0.034</span> <span class="ic-neg mini">-0.078</span> <span class="ic-neg mini">-0.142</span><div class="sub">stab 0.0336</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Pool-only. IC +0.038 is competitive with weakest in-filter channels.</td>
+    </tr>
+    <tr>
+      <td class="idx">23</td>
+      <td class="name">
+        <div class="name-line">r_60d</div>
+        <div class="sub">price · _compute_daily_return_features (shift 60d)</div>
+      </td>
+      <td><span class="chip" style="background:#dc2626;color:#fff">RETURN_DAILY</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:97.3%"></div><span>97.3%</span></div></td>
+      <td><span class="ic-neg">-0.0363</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.290</span> <span class="ic-pos mini">+0.169</span> <span class="ic-pos mini">+0.061</span><div class="sub">stab 0.0614</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Pool-only. IC -0.036 is competitive with weakest in-filter channels.</td>
+    </tr>
+    <tr>
+      <td class="idx">12</td>
+      <td class="name">
+        <div class="name-line">r_60</div>
+        <div class="sub">price · _compute_return_features (shift 60)</div>
+      </td>
+      <td><span class="chip" style="background:#ef4444;color:#fff">RETURN</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:97.3%"></div><span>97.3%</span></div></td>
+      <td><span class="ic-neg">-0.0346</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.172</span> <span class="ic-pos mini">+0.090</span> <span class="ic-mid mini">+0.018</span><div class="sub">stab 0.0182</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Pool-only. IC -0.035 is competitive with weakest in-filter channels.</td>
+    </tr>
+    <tr>
+      <td class="idx">11</td>
+      <td class="name">
+        <div class="name-line">r_20</div>
+        <div class="sub">price · _compute_return_features (shift 20)</div>
+      </td>
+      <td><span class="chip" style="background:#ef4444;color:#fff">RETURN</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:98.9%"></div><span>98.9%</span></div></td>
+      <td><span class="ic-neg">-0.0288</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.091</span> <span class="ic-mid mini">+0.044</span> <span class="ic-neg mini">-0.098</span><div class="sub">stab 0.0436</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Marginal signal (IC -0.029, stab 0.044). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">34</td>
+      <td class="name">
+        <div class="name-line">macro_tlt_10d_back</div>
+        <div class="sub">TLT daily close · macro_history._ret_nd_trailing (10-day TRAILING)</div>
+      </td>
+      <td><span class="chip" style="background:#059669;color:#fff">MACRO_10D</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.6%"></div><span>55.6%</span></div></td>
+      <td><span class="ic-pos">+0.0248</span></td>
+      <td class="per-fold"><span class="ic-mid mini">-0.032</span> <span class="ic-neg mini">-0.076</span> <span class="ic-mid mini">-0.027</span><div class="sub">stab 0.0272</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Marginal signal (IC +0.025, stab 0.027). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">26</td>
+      <td class="name">
+        <div class="name-line">mom_12_1</div>
+        <div class="sub">r_252d, r_20d · _compute_momentum_features (r_252d - r_20d)</div>
+      </td>
+      <td><span class="chip" style="background:#f97316;color:#fff">MOMENTUM</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:89.6%"></div><span>89.6%</span></div></td>
+      <td><span class="ic-pos">+0.0236</span></td>
+      <td class="per-fold"><span class="ic-pos mini">+0.155</span> <span class="ic-mid mini">+0.023</span> <span class="ic-mid mini">-0.025</span><div class="sub">stab 0.0233</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Marginal signal (IC +0.024, stab 0.023). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">19</td>
+      <td class="name">
+        <div class="name-line">macro_dji_5d_back</div>
+        <div class="sub">DIA daily close · macro_history._ret_nd_trailing (5-day TRAILING)</div>
+      </td>
+      <td><span class="chip" style="background:#10b981;color:#fff">MACRO</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.7%"></div><span>55.7%</span></div></td>
+      <td><span class="ic-pos">+0.0214</span></td>
+      <td class="per-fold"><span class="ic-mid mini">-0.037</span> <span class="ic-neg mini">-0.076</span> <span class="ic-neg mini">-0.137</span><div class="sub">stab 0.0366</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Marginal signal (IC +0.021, stab 0.037). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">25</td>
+      <td class="name">
+        <div class="name-line">r_252d</div>
+        <div class="sub">price · _compute_daily_return_features (shift 252d)</div>
+      </td>
+      <td><span class="chip" style="background:#dc2626;color:#fff">RETURN_DAILY</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:89.6%"></div><span>89.6%</span></div></td>
+      <td><span class="ic-mid">+0.0174</span></td>
+      <td class="per-fold"><span class="ic-pos mini">+0.110</span> <span class="ic-pos mini">+0.060</span> <span class="ic-mid mini">+0.019</span><div class="sub">stab 0.0194</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Marginal signal (IC +0.017, stab 0.019). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">22</td>
+      <td class="name">
+        <div class="name-line">r_20d</div>
+        <div class="sub">price · _compute_daily_return_features (shift 20d)</div>
+      </td>
+      <td><span class="chip" style="background:#dc2626;color:#fff">RETURN_DAILY</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:98.9%"></div><span>98.9%</span></div></td>
+      <td><span class="ic-mid">-0.0161</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.108</span> <span class="ic-pos mini">+0.170</span> <span class="ic-pos mini">+0.192</span><div class="sub">stab 0.1078</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Marginal signal (IC -0.016, stab 0.108). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">33</td>
+      <td class="name">
+        <div class="name-line">macro_gld_10d_back</div>
+        <div class="sub">GLD daily close · macro_history._ret_nd_trailing (10-day TRAILING)</div>
+      </td>
+      <td><span class="chip" style="background:#059669;color:#fff">MACRO_10D</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.6%"></div><span>55.6%</span></div></td>
+      <td><span class="ic-mid">+0.0158</span></td>
+      <td class="per-fold"><span class="ic-mid mini">-0.029</span> <span class="ic-neg mini">-0.071</span> <span class="ic-neg mini">-0.172</span><div class="sub">stab 0.0289</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Marginal signal (IC +0.016, stab 0.029). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">9</td>
+      <td class="name">
+        <div class="name-line">r_1</div>
+        <div class="sub">price · _compute_return_features (groupby symbol, shift 1)</div>
+      </td>
+      <td><span class="chip" style="background:#ef4444;color:#fff">RETURN</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:97.4%"></div><span>97.4%</span></div></td>
+      <td><span class="ic-mid">-0.0143</span></td>
+      <td class="per-fold"><span class="ic-mid mini">-0.048</span> <span class="ic-mid mini">-0.014</span> <span class="ic-mid mini">-0.034</span><div class="sub">stab 0.0142</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Marginal signal (IC -0.014, stab 0.014). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">10</td>
+      <td class="name">
+        <div class="name-line">r_5</div>
+        <div class="sub">price · _compute_return_features (shift 5)</div>
+      </td>
+      <td><span class="chip" style="background:#ef4444;color:#fff">RETURN</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:98.5%"></div><span>98.5%</span></div></td>
+      <td><span class="ic-mid">-0.0131</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.060</span> <span class="ic-mid mini">+0.019</span> <span class="ic-mid mini">-0.043</span><div class="sub">stab 0.0193</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Marginal signal (IC -0.013, stab 0.019). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">20</td>
+      <td class="name">
+        <div class="name-line">r_1d</div>
+        <div class="sub">price · _compute_daily_return_features (daily-resampled, shift 1d)</div>
+      </td>
+      <td><span class="chip" style="background:#dc2626;color:#fff">RETURN_DAILY</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:99.2%"></div><span>99.2%</span></div></td>
+      <td><span class="ic-mid">-0.0104</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.056</span> <span class="ic-mid mini">+0.018</span> <span class="ic-neg mini">-0.076</span><div class="sub">stab 0.0178</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Marginal signal (IC -0.010, stab 0.018). Low-priority promote.</td>
+    </tr>
+    <tr>
+      <td class="idx">24</td>
+      <td class="name">
+        <div class="name-line">r_120d</div>
+        <div class="sub">price · _compute_daily_return_features (shift 120d)</div>
+      </td>
+      <td><span class="chip" style="background:#dc2626;color:#fff">RETURN_DAILY</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:94.9%"></div><span>94.9%</span></div></td>
+      <td><span class="ic-mid">-0.0099</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.160</span> <span class="ic-pos mini">+0.057</span> <span class="ic-mid mini">-0.018</span><div class="sub">stab 0.0178</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+    <tr>
+      <td class="idx">37</td>
+      <td class="name">
+        <div class="name-line">macro_dji_10d_back</div>
+        <div class="sub">DIA daily close · macro_history._ret_nd_trailing (10-day TRAILING)</div>
+      </td>
+      <td><span class="chip" style="background:#059669;color:#fff">MACRO_10D</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.6%"></div><span>55.6%</span></div></td>
+      <td><span class="ic-mid">+0.0092</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.066</span> <span class="ic-neg mini">-0.076</span> <span class="ic-pos mini">+0.101</span><div class="sub">stab 0.0658</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+    <tr>
+      <td class="idx">6</td>
+      <td class="name">
+        <div class="name-line">agent_agreement</div>
+        <div class="sub">agent_signals · signal_history.record_agent_signals</div>
+      </td>
+      <td><span class="chip" style="background:#a855f7;color:#fff">AGENT</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:2.3%"></div><span>2.3%</span></div></td>
+      <td><span class="ic-mid">+0.0080</span></td>
+      <td class="per-fold"><span class="ic-mid mini">+0.000</span> <span class="ic-pos mini">+0.082</span> <span class="ic-pos mini">+0.096</span><div class="sub">stab 0.0000</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Coverage 2.3% — too sparse to be reliable, regardless of IC.</td>
+    </tr>
+    <tr>
+      <td class="idx">15</td>
+      <td class="name">
+        <div class="name-line">macro_gld_5d_back</div>
+        <div class="sub">GLD daily close · macro_history._ret_nd_trailing (5-day TRAILING)</div>
+      </td>
+      <td><span class="chip" style="background:#10b981;color:#fff">MACRO</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.7%"></div><span>55.7%</span></div></td>
+      <td><span class="ic-mid">+0.0069</span></td>
+      <td class="per-fold"><span class="ic-mid mini">-0.035</span> <span class="ic-neg mini">-0.078</span> <span class="ic-neg mini">-0.191</span><div class="sub">stab 0.0352</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+    <tr>
+      <td class="idx">7</td>
+      <td class="name">
+        <div class="name-line">rv_20d</div>
+        <div class="sub">price · _rolling_rv (20-day window)</div>
+      </td>
+      <td><span class="chip" style="background:#f59e0b;color:#fff">RV</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:95.9%"></div><span>95.9%</span></div></td>
+      <td><span class="ic-mid">+0.0049</span></td>
+      <td class="per-fold"><span class="ic-pos mini">+0.084</span> <span class="ic-mid mini">-0.016</span> <span class="ic-mid mini">-0.039</span><div class="sub">stab 0.0160</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+    <tr>
+      <td class="idx">36</td>
+      <td class="name">
+        <div class="name-line">macro_breadth_10d_back</div>
+        <div class="sub">IWM, SPY daily closes · macro_history (clipped 10-day IWM-SPY spread)</div>
+      </td>
+      <td><span class="chip" style="background:#059669;color:#fff">MACRO_10D</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.7%"></div><span>55.7%</span></div></td>
+      <td><span class="ic-mid">-0.0038</span></td>
+      <td class="per-fold"><span class="ic-mid mini">+0.004</span> <span class="ic-neg mini">-0.066</span> <span class="ic-mid mini">+0.022</span><div class="sub">stab 0.0037</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+    <tr>
+      <td class="idx">35</td>
+      <td class="name">
+        <div class="name-line">macro_spy_10d_back</div>
+        <div class="sub">SPY daily close · macro_history._ret_nd_trailing (10-day TRAILING)</div>
+      </td>
+      <td><span class="chip" style="background:#059669;color:#fff">MACRO_10D</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:55.7%"></div><span>55.7%</span></div></td>
+      <td><span class="ic-mid">-0.0032</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.061</span> <span class="ic-neg mini">-0.066</span> <span class="ic-neg mini">-0.138</span><div class="sub">stab 0.0614</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+    <tr>
+      <td class="idx">21</td>
+      <td class="name">
+        <div class="name-line">r_5d</div>
+        <div class="sub">price · _compute_daily_return_features (shift 5d)</div>
+      </td>
+      <td><span class="chip" style="background:#dc2626;color:#fff">RETURN_DAILY</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:99.4%"></div><span>99.4%</span></div></td>
+      <td><span class="ic-mid">+0.0029</span></td>
+      <td class="per-fold"><span class="ic-mid mini">+0.022</span> <span class="ic-pos mini">+0.052</span> <span class="ic-neg mini">-0.074</span><div class="sub">stab 0.0221</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+    <tr>
+      <td class="idx">8</td>
+      <td class="name">
+        <div class="name-line">rv_60d</div>
+        <div class="sub">price · _rolling_rv (60-day window)</div>
+      </td>
+      <td><span class="chip" style="background:#f59e0b;color:#fff">RV</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:91.1%"></div><span>91.1%</span></div></td>
+      <td><span class="ic-mid">+0.0016</span></td>
+      <td class="per-fold"><span class="ic-pos mini">+0.086</span> <span class="ic-neg mini">-0.077</span> <span class="ic-neg mini">-0.092</span><div class="sub">stab 0.0773</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+    <tr>
+      <td class="idx">27</td>
+      <td class="name">
+        <div class="name-line">r_20d_sector_rel</div>
+        <div class="sub">r_20d, GICS sector mapping (yfinance-cached) · _compute_sector_relative_features (r_20d - sector-day mean of r_20d)</div>
+      </td>
+      <td><span class="chip" style="background:#8b5cf6;color:#fff">SECTOR_RELATIVE</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:99.0%"></div><span>99.0%</span></div></td>
+      <td><span class="ic-mid">+0.0008</span></td>
+      <td class="per-fold"><span class="ic-neg mini">-0.099</span> <span class="ic-pos mini">+0.144</span> <span class="ic-pos mini">+0.107</span><div class="sub">stab 0.0992</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">IC ≈ 0 — noise channel. Excluding has no expected effect.</td>
+    </tr>
+    <tr>
+      <td class="idx">5</td>
+      <td class="name">
+        <div class="name-line">agent_consensus</div>
+        <div class="sub">agent_signals · signal_history.record_agent_signals</div>
+      </td>
+      <td><span class="chip" style="background:#a855f7;color:#fff">AGENT</span></td>
+      <td><span class="flag flag-pool">POOL</span></td>
+      <td><div class="bar"><div class="bar-fill" style="width:0.3%"></div><span>0.3%</span></div></td>
+      <td><span class="ic-mid">+0.0004</span></td>
+      <td class="per-fold"><span class="ic-mid mini">+0.000</span> <span class="ic-mid mini">+0.027</span> <span class="ic-mid mini">-0.012</span><div class="sub">stab 0.0000</div></td>
+      <td><span class="muted">—</span></td>
+      <td><span class="muted">n/a</span></td>
+      <td class="impl">Coverage 0.3% — too sparse to be reliable, regardless of IC.</td>
+    </tr>
+        </tbody>
+      </table>
+    </section>
+
+  <section>
+    <h2>How to read this page</h2>
+    <ul style="line-height:1.7;color:#cbd5e1">
+      <li><b>IC (window):</b> Pearson correlation between the channel's window-mean value and the forward return label, over all 545,341 training samples. Positive = bullish-when-high. Magnitudes &gt; 0.03 are notable in equity-prediction land.</li>
+      <li><b>Per-fold IC:</b> the same correlation computed on each of the three walk-forward validation folds (oldest / middle / newest). A channel whose IC flips sign between folds is non-stationary and unsafe to weight heavily.</li>
+      <li><b>stab:</b> min(|per-fold IC|) — higher means the channel keeps its sign across regimes.</li>
+      <li><b>Gain (prod / exp):</b> total XGBoost split gain summed across the channel's lag features. <code>0.0%</code> means the booster never chose to split on any lag of this channel — pure dead weight in that model, regardless of its raw IC.</li>
+      <li><b>Coverage:</b> fraction of (sample, lag) cells with a non-zero value. Macro channels show ~55% because they're sparse before backfill caught up; SOURCE channels show ~5% because most rows are blanks (analyst recos don't change every cycle).</li>
+    </ul>
+  </section>
+
+</body>
+</html>

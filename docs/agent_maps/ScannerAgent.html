@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ScannerAgent — Agent map</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <p class="back"><a href="_summary.html">← all agents (comparison)</a></p>
+  <h1>ScannerAgent</h1>
+  <p class="meta">Trades the scanner pipeline&#x27;s AI-ranked recommendations directly. Standalone (not in ensemble).</p>
+  <p class="meta">Class file: <code>agents/scanner_portfolio_agent.py (registers as &#x27;ScannerAgent&#x27;)</code></p>
+</header>
+
+<section>
+  <h2>Data sources</h2>
+  <table>
+    <thead><tr><th>Source key</th><th>Category</th><th>Provider</th><th>Accessed via</th></tr></thead>
+    <tbody><tr><td>price</td><td><span class="chip chip-market">Market data</span></td><td>Alpaca Markets</td><td><code>trading.alpaca_client.get_bars_multi (own fetch, not via ctx)</code></td></tr>
+<tr><td>scanner_recs</td><td><span class="chip chip-derived">Internal / derived</span></td><td>Scanner AI candidate list</td><td><code>Scanner pipeline&#x27;s recommendations (separate run)</code></td></tr>
+<tr><td>portfolio</td><td><span class="chip chip-internal">Internal state</span></td><td>Portfolio state (positions/cash)</td><td><code>Position + cash management</code></td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Models</h2>
+  <p class="muted">No model artifact consumed — this agent computes signals directly from its inputs.</p>
+</section>
+
+<section>
+  <h2>Ensemble integration</h2>
+  <p class="muted">Standalone agent — its own portfolio, not aggregated.</p>
+</section>
+
+<section>
+  <h2>Recent performance — post-2026-05-17 window (~4 days)</h2>
+  <table><thead><tr><th>Window ROI</th><th>Realized P&amp;L</th><th>Trades</th><th>Win / Loss</th></tr></thead><tbody><tr><td>+1.24%</td><td>$0 (5 BUYs, 0 SELLs)</td><td>5</td><td>0 / 0</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Outputs</h2>
+  <p>Direct portfolio actions on scanner picks.</p>
+</section>
+
+<section>
+  <h2>Notes</h2>
+  <p>Window ROI is pure unrealized (no closed trades). Source pipeline uses Gemini/OpenAI/Ollama scanners (scanner_agent.py).</p>
+</section>
+</body></html>

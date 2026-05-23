@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SentimentAgent — Agent map</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <p class="back"><a href="_summary.html">← all agents (comparison)</a></p>
+  <h1>SentimentAgent</h1>
+  <p class="meta">GPT-4o-mini sentiment scoring + news-driven BUY/SELL.</p>
+  <p class="meta">Class file: <code>agents/sentiment_agent.py</code></p>
+</header>
+
+<section>
+  <h2>Data sources</h2>
+  <table>
+    <thead><tr><th>Source key</th><th>Category</th><th>Provider</th><th>Accessed via</th></tr></thead>
+    <tbody><tr><td>price</td><td><span class="chip chip-market">Market data</span></td><td>Alpaca Markets</td><td><code>ctx[&#x27;bars&#x27;]</code></td></tr>
+<tr><td>alpaca_news</td><td><span class="chip chip-news">News / sentiment</span></td><td>Alpaca news API → news_service</td><td><code>news_service</code></td></tr>
+<tr><td>yahoo_news</td><td><span class="chip chip-news">News / sentiment</span></td><td>yfinance → news_service</td><td><code>news_service</code></td></tr>
+<tr><td>openai_api</td><td><span class="chip chip-llm">LLM APIs</span></td><td>OpenAI GPT-4o-mini</td><td><code>GPT-4o-mini sentiment classification (or Ollama route)</code></td></tr>
+<tr><td>portfolio</td><td><span class="chip chip-internal">Internal state</span></td><td>Portfolio state (positions/cash)</td><td><code>Position context</code></td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Models</h2>
+  <p class="muted">No model artifact consumed — this agent computes signals directly from its inputs.</p>
+</section>
+
+<section>
+  <h2>Ensemble integration</h2>
+  <table><thead><tr><th>Base weight</th><th>Trending ×</th><th>Ranging ×</th><th>Volatile ×</th></tr></thead><tbody><tr><td><b>0.17</b></td><td>0.8</td><td>1.2</td><td>1.2</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Recent performance — post-2026-05-17 window (~4 days)</h2>
+  <table><thead><tr><th>Window ROI</th><th>Realized P&amp;L</th><th>Trades</th><th>Win / Loss</th></tr></thead><tbody><tr><td>+0.46%</td><td>+$158</td><td>4</td><td>1 / 0 (small sample)</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Outputs</h2>
+  <p>BUY/SELL/HOLD weighted by sentiment confidence.</p>
+</section>
+
+<section>
+  <h2>Notes</h2>
+  <p>3rd-highest base weight (0.17), but only 4 trades in window — under-firing.</p>
+</section>
+</body></html>

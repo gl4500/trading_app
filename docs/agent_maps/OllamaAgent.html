@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OllamaAgent — Agent map</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <p class="back"><a href="_summary.html">← all agents (comparison)</a></p>
+  <h1>OllamaAgent</h1>
+  <p class="meta">Local-LLM (llama3.1:8b) reasoning over technicals + news + composite signal.</p>
+  <p class="meta">Class file: <code>agents/ollama_agent.py</code></p>
+</header>
+
+<section>
+  <h2>Data sources</h2>
+  <table>
+    <thead><tr><th>Source key</th><th>Category</th><th>Provider</th><th>Accessed via</th></tr></thead>
+    <tbody><tr><td>price</td><td><span class="chip chip-market">Market data</span></td><td>Alpaca Markets</td><td><code>ctx[&#x27;bars&#x27;]</code></td></tr>
+<tr><td>alpaca_news</td><td><span class="chip chip-news">News / sentiment</span></td><td>Alpaca news API → news_service</td><td><code>news_service</code></td></tr>
+<tr><td>yahoo_news</td><td><span class="chip chip-news">News / sentiment</span></td><td>yfinance → news_service</td><td><code>news_service</code></td></tr>
+<tr><td>technicals_fmt</td><td><span class="chip chip-derived">Internal / derived</span></td><td>data.technicals.format_for_prompt</td><td><code>data.technicals.format_for_prompt</code></td></tr>
+<tr><td>composite_sig</td><td><span class="chip chip-derived">Internal / derived</span></td><td>Composite signal from signal_aggregator</td><td><code>ctx[&#x27;composite_signal&#x27;] from signal_aggregator</code></td></tr>
+<tr><td>ollama_api</td><td><span class="chip chip-llm">LLM APIs</span></td><td>Local Ollama (llama3.1:8b)</td><td><code>Local Ollama via OpenAI-compatible client</code></td></tr>
+<tr><td>portfolio</td><td><span class="chip chip-internal">Internal state</span></td><td>Portfolio state (positions/cash)</td><td><code>Held set</code></td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Models</h2>
+  <p class="muted">No model artifact consumed — this agent computes signals directly from its inputs.</p>
+</section>
+
+<section>
+  <h2>Ensemble integration</h2>
+  <table><thead><tr><th>Base weight</th><th>Trending ×</th><th>Ranging ×</th><th>Volatile ×</th></tr></thead><tbody><tr><td><b>0.09</b></td><td>(no explicit multiplier — defaults to 1.0)</td><td>1.0</td><td>1.0</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Recent performance — post-2026-05-17 window (~4 days)</h2>
+  <table><thead><tr><th>Window ROI</th><th>Realized P&amp;L</th><th>Trades</th><th>Win / Loss</th></tr></thead><tbody><tr><td>0.00%</td><td>$0</td><td>0</td><td>0 / 0</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Outputs</h2>
+  <p>BUY/SELL/HOLD JSON from local LLM.</p>
+</section>
+
+<section>
+  <h2>Notes</h2>
+  <p>Inactive in window (0 trades). When OLLAMA_ONLY_MODE=1, all LLM agents route here.</p>
+</section>
+</body></html>

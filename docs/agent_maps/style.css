@@ -1,0 +1,60 @@
+
+:root {
+  --bg: #fafbfc;
+  --panel: #ffffff;
+  --ink: #1f2328;
+  --muted: #57606a;
+  --border: #d1d9e0;
+  --hit: #1f883d;
+  --miss: #f6f8fa;
+  --chip-market: #0969da;
+  --chip-news:   #bf3989;
+  --chip-fund:   #6f42c1;
+  --chip-macro:  #cf222e;
+  --chip-calendar: #9a6700;
+  --chip-llm:    #8250df;
+  --chip-derived:#57606a;
+  --chip-internal:#1f883d;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg); color: var(--ink); margin: 0; padding: 24px 32px;
+  line-height: 1.5;
+}
+header { border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 24px; }
+header h1 { margin: 4px 0; font-size: 28px; }
+.meta { color: var(--muted); margin: 4px 0; font-size: 14px; }
+.back { font-size: 13px; }
+.back a { color: var(--muted); text-decoration: none; }
+.back a:hover { color: var(--chip-market); text-decoration: underline; }
+section { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 16px 20px; margin-bottom: 16px; }
+section h2 { margin-top: 0; font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--miss); font-weight: 600; }
+code { background: var(--miss); padding: 1px 6px; border-radius: 3px; font-family: ui-monospace, "Cascadia Code", Menlo, monospace; font-size: 12.5px; }
+.muted { color: var(--muted); font-size: 13px; }
+.chip {
+  display: inline-block; padding: 1px 8px; border-radius: 10px;
+  font-size: 11px; font-weight: 600; color: white; white-space: nowrap;
+}
+.chip-market { background: var(--chip-market); }
+.chip-news   { background: var(--chip-news);   }
+.chip-fund   { background: var(--chip-fund);   }
+.chip-macro  { background: var(--chip-macro);  }
+.chip-calendar { background: var(--chip-calendar); }
+.chip-llm    { background: var(--chip-llm);    }
+.chip-derived{ background: var(--chip-derived);}
+.chip-internal{background: var(--chip-internal);}
+
+.matrix th, .matrix td { text-align: center; padding: 6px 8px; font-size: 12.5px; }
+.matrix th:first-child, .matrix td.src { text-align: left; }
+.matrix td.hit  { background: #d4f0dd; color: var(--hit); font-weight: 700; }
+.matrix td.miss { color: #d1d9e0; }
+.matrix th a { color: inherit; text-decoration: none; writing-mode: vertical-rl; transform: rotate(180deg); }
+
+tr.non-ensemble td { color: var(--muted); font-style: italic; }
+a { color: var(--chip-market); }
+ul { padding-left: 24px; margin: 8px 0; }
+li { margin: 2px 0; }

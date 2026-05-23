@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agent map — comparison</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>All agents — what's shared, what's unique</h1>
+  <p class="meta">trading_app · post-2026-05-17 window · click any agent name for its full source/model map</p>
+</header>
+
+<section>
+  <h2>Source × agent matrix</h2>
+  <p class="muted">Row = data source. Column = agent. ✓ = agent consumes that source directly.</p>
+  <table class="matrix">
+    <thead><tr><th>Source</th><th>Category</th><th><a href="TechAgent.html">TechAgent</a></th><th><a href="MomentumAgent.html">MomentumAgent</a></th><th><a href="MeanReversionAgent.html">MeanReversionAgent</a></th><th><a href="HistoricalTrendsAgent.html">HistoricalTrendsAgent</a></th><th><a href="XGBReasoningAgent.html">XGBReasoningAgent</a></th><th><a href="ClaudeAgent.html">ClaudeAgent</a></th><th><a href="GeminiAgent.html">GeminiAgent</a></th><th><a href="SentimentAgent.html">SentimentAgent</a></th><th><a href="OllamaAgent.html">OllamaAgent</a></th><th><a href="ScannerAgent.html">ScannerAgent</a></th><th><a href="EnsembleAgent.html">EnsembleAgent</a></th></tr></thead>
+    <tbody><tr><td class="src">long_term_bars<br><span class="muted">Alpaca Markets (50-day)</span></td><td><span class="chip chip-market">Market data</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">price<br><span class="muted">Alpaca Markets</span></td><td><span class="chip chip-market">Market data</span></td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="miss"></td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td></tr>
+<tr><td class="src">alpaca_news<br><span class="muted">Alpaca news API → news_service</span></td><td><span class="chip chip-news">News / sentiment</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">yahoo_news<br><span class="muted">yfinance → news_service</span></td><td><span class="chip chip-news">News / sentiment</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">analyst<br><span class="muted">yfinance.recommendations</span></td><td><span class="chip chip-fund">Fundamentals</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">earnings<br><span class="muted">yfinance.earnings_history</span></td><td><span class="chip chip-fund">Fundamentals</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">iv_rv<br><span class="muted">yfinance options</span></td><td><span class="chip chip-fund">Fundamentals</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">dia<br><span class="muted">DIA daily close (macro)</span></td><td><span class="chip chip-macro">Macro / ETFs</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">gld<br><span class="muted">GLD daily close (macro)</span></td><td><span class="chip chip-macro">Macro / ETFs</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">iwm<br><span class="muted">IWM daily close (macro)</span></td><td><span class="chip chip-macro">Macro / ETFs</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">spy<br><span class="muted">SPY daily close (macro)</span></td><td><span class="chip chip-macro">Macro / ETFs</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">tlt<br><span class="muted">TLT daily close (macro)</span></td><td><span class="chip chip-macro">Macro / ETFs</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">vix<br><span class="muted">VIX index (macro feed)</span></td><td><span class="chip chip-macro">Macro / ETFs</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">calendar<br><span class="muted">snapshot_ts (system clock)</span></td><td><span class="chip chip-calendar">Calendar</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">claude_api<br><span class="muted">Anthropic Claude Opus 4.6</span></td><td><span class="chip chip-llm">LLM APIs</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">gemini_api<br><span class="muted">Google Gemini 2.0 Flash</span></td><td><span class="chip chip-llm">LLM APIs</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">ollama_api<br><span class="muted">Local Ollama (llama3.1:8b)</span></td><td><span class="chip chip-llm">LLM APIs</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">openai_api<br><span class="muted">OpenAI GPT-4o-mini</span></td><td><span class="chip chip-llm">LLM APIs</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">agent_signals<br><span class="muted">Other agents&#x27; signals</span></td><td><span class="chip chip-derived">Internal / derived</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td></tr>
+<tr><td class="src">composite_sig<br><span class="muted">Composite signal from signal_aggregator</span></td><td><span class="chip chip-derived">Internal / derived</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">regime_det<br><span class="muted">data.regime_detector (HMM)</span></td><td><span class="chip chip-derived">Internal / derived</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td></tr>
+<tr><td class="src">scanner_recs<br><span class="muted">Scanner AI candidate list</span></td><td><span class="chip chip-derived">Internal / derived</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td></tr>
+<tr><td class="src">signal_history<br><span class="muted">38-channel feature pool (signal_history)</span></td><td><span class="chip chip-derived">Internal / derived</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">technicals_fmt<br><span class="muted">data.technicals.format_for_prompt</span></td><td><span class="chip chip-derived">Internal / derived</span></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td><td class="hit">✓</td><td class="miss"></td><td class="miss"></td></tr>
+<tr><td class="src">portfolio<br><span class="muted">Portfolio state (positions/cash)</span></td><td><span class="chip chip-internal">Internal state</span></td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td><td class="hit">✓</td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Common to <em>every</em> agent</h2>
+  <ul><li><code>portfolio</code></li></ul>
+</section>
+
+<section>
+  <h2>Unique to one agent</h2>
+  <table><thead><tr><th>Source</th><th>Only used by</th></tr></thead><tbody><tr><td>agent_signals <span class="muted">(Other agents&#x27; signals)</span></td><td><a href="EnsembleAgent.html">EnsembleAgent</a></td></tr><tr><td>calendar <span class="muted">(snapshot_ts (system clock))</span></td><td><a href="HistoricalTrendsAgent.html">HistoricalTrendsAgent</a></td></tr><tr><td>claude_api <span class="muted">(Anthropic Claude Opus 4.6)</span></td><td><a href="ClaudeAgent.html">ClaudeAgent</a></td></tr><tr><td>composite_sig <span class="muted">(Composite signal from signal_aggregator)</span></td><td><a href="OllamaAgent.html">OllamaAgent</a></td></tr><tr><td>gemini_api <span class="muted">(Google Gemini 2.0 Flash)</span></td><td><a href="GeminiAgent.html">GeminiAgent</a></td></tr><tr><td>long_term_bars <span class="muted">(Alpaca Markets (50-day))</span></td><td><a href="HistoricalTrendsAgent.html">HistoricalTrendsAgent</a></td></tr><tr><td>openai_api <span class="muted">(OpenAI GPT-4o-mini)</span></td><td><a href="SentimentAgent.html">SentimentAgent</a></td></tr><tr><td>regime_det <span class="muted">(data.regime_detector (HMM))</span></td><td><a href="EnsembleAgent.html">EnsembleAgent</a></td></tr><tr><td>scanner_recs <span class="muted">(Scanner AI candidate list)</span></td><td><a href="ScannerAgent.html">ScannerAgent</a></td></tr><tr><td>signal_history <span class="muted">(38-channel feature pool (signal_history))</span></td><td><a href="XGBReasoningAgent.html">XGBReasoningAgent</a></td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Shared by a subset</h2>
+  <table><thead><tr><th>Source</th><th>Shared by</th></tr></thead><tbody><tr><td>price <span class="muted">(Alpaca Markets)</span></td><td><a href="TechAgent.html">TechAgent</a>, <a href="MomentumAgent.html">MomentumAgent</a>, <a href="MeanReversionAgent.html">MeanReversionAgent</a>, <a href="HistoricalTrendsAgent.html">HistoricalTrendsAgent</a>, <a href="ClaudeAgent.html">ClaudeAgent</a>, <a href="GeminiAgent.html">GeminiAgent</a>, <a href="SentimentAgent.html">SentimentAgent</a>, <a href="OllamaAgent.html">OllamaAgent</a>, <a href="ScannerAgent.html">ScannerAgent</a>, <a href="EnsembleAgent.html">EnsembleAgent</a> <span class="muted">(10)</span></td></tr><tr><td>alpaca_news <span class="muted">(Alpaca news API → news_service)</span></td><td><a href="ClaudeAgent.html">ClaudeAgent</a>, <a href="GeminiAgent.html">GeminiAgent</a>, <a href="SentimentAgent.html">SentimentAgent</a>, <a href="OllamaAgent.html">OllamaAgent</a> <span class="muted">(4)</span></td></tr><tr><td>yahoo_news <span class="muted">(yfinance → news_service)</span></td><td><a href="ClaudeAgent.html">ClaudeAgent</a>, <a href="GeminiAgent.html">GeminiAgent</a>, <a href="SentimentAgent.html">SentimentAgent</a>, <a href="OllamaAgent.html">OllamaAgent</a> <span class="muted">(4)</span></td></tr><tr><td>ollama_api <span class="muted">(Local Ollama (llama3.1:8b))</span></td><td><a href="XGBReasoningAgent.html">XGBReasoningAgent</a>, <a href="OllamaAgent.html">OllamaAgent</a> <span class="muted">(2)</span></td></tr><tr><td>technicals_fmt <span class="muted">(data.technicals.format_for_prompt)</span></td><td><a href="ClaudeAgent.html">ClaudeAgent</a>, <a href="OllamaAgent.html">OllamaAgent</a> <span class="muted">(2)</span></td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Ensemble weighting + window performance</h2>
+  <table>
+    <thead><tr><th>Agent</th><th>Base</th><th>Trending ×</th><th>Ranging ×</th><th>Volatile ×</th><th>Window ROI</th><th>Realized</th></tr></thead>
+    <tbody><tr><td><a href="TechAgent.html">TechAgent</a></td><td><b>0.23</b></td><td>1.2</td><td>1.1</td><td>0.8</td><td>+0.91%</td><td>-$41</td></tr>
+<tr><td><a href="MomentumAgent.html">MomentumAgent</a></td><td><b>0.14</b></td><td>1.5</td><td>0.55</td><td>0.65</td><td>+1.25%</td><td>-$263</td></tr>
+<tr><td><a href="MeanReversionAgent.html">MeanReversionAgent</a></td><td><b>0.09</b></td><td>0.4</td><td>1.6</td><td>0.6</td><td>+2.15%</td><td>+$159</td></tr>
+<tr><td><a href="HistoricalTrendsAgent.html">HistoricalTrendsAgent</a></td><td><b>0.08</b></td><td>1.2</td><td>1.3</td><td>0.8</td><td>+3.97%</td><td>+$5,449</td></tr>
+<tr><td><a href="XGBReasoningAgent.html">XGBReasoningAgent</a></td><td><b>0.10 (default — not in ENSEMBLE_WEIGHTS dict)</b></td><td>1.2</td><td>0.9</td><td>1.1</td><td>+0.36%</td><td>-$666</td></tr>
+<tr><td><a href="ClaudeAgent.html">ClaudeAgent</a></td><td><b>0.2</b></td><td>1.1</td><td>1.0</td><td>1.4</td><td>+0.44%</td><td>-$1,042</td></tr>
+<tr class="non-ensemble"><td><a href="GeminiAgent.html">GeminiAgent</a></td><td colspan="4">Excluded from ENSEMBLE_WEIGHTS — &#x27;news-only&#x27; per ensemble init comment.</td><td>—</td><td>$0</td></tr>
+<tr><td><a href="SentimentAgent.html">SentimentAgent</a></td><td><b>0.17</b></td><td>0.8</td><td>1.2</td><td>1.2</td><td>+0.46%</td><td>+$158</td></tr>
+<tr><td><a href="OllamaAgent.html">OllamaAgent</a></td><td><b>0.09</b></td><td>(no explicit multiplier — defaults to 1.0)</td><td>1.0</td><td>1.0</td><td>0.00%</td><td>$0</td></tr>
+<tr class="non-ensemble"><td><a href="ScannerAgent.html">ScannerAgent</a></td><td colspan="4">Standalone agent — its own portfolio, not aggregated.</td><td>+1.24%</td><td>$0 (5 BUYs, 0 SELLs)</td></tr>
+<tr class="non-ensemble"><td><a href="EnsembleAgent.html">EnsembleAgent</a></td><td colspan="4">IS the aggregator.</td><td>+0.33%</td><td>$0 (0 trades)</td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Key observations</h2>
+  <ul>
+    <li><b>HistoricalTrendsAgent has the lowest base ensemble weight (0.08) but the best window performance (+3.97% / +$5,449).</b> Base weights are nearly inverted from realized performance.</li>
+    <li><b>TechAgent has the highest base weight (0.23) but is near-flat</b> (+0.91% / −$41).</li>
+    <li><b>Only XGBReasoningAgent consumes the 38-channel signal pool.</b> Every other agent reads price/bars + optionally news directly — they bypass the model entirely.</li>
+    <li><b>The LLM cohort (Claude / Sentiment / Ollama) all share the same upstream pipeline:</b> price + alpaca_news + yahoo_news + technicals_fmt. The differentiator is which LLM endpoint they hit.</li>
+    <li><b>Three agents are effectively inactive this window:</b> GeminiAgent (0 trades, not in ensemble), OllamaAgent (0), EnsembleAgent (0 — failing 0.60 conviction threshold).</li>
+    <li><b>HistoricalTrendsAgent is the only consumer of the calendar source.</b> Its hist_seasonal sub-score has +0.20 IC in the newest fold — strongest current-regime signal in the audit.</li>
+  </ul>
+</section>
+</body></html>

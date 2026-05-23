@@ -160,6 +160,17 @@ class Config:
     # sells — it only blocks NEW BUYs).
     CNN_MAX_OPEN_POSITIONS: int = int(os.getenv("CNN_MAX_OPEN_POSITIONS", "15"))
 
+    # W3 ensemble blend (added 2026-05-23). XGBReasoningAgent fuses the
+    # production XGB prediction with a SignalW3 per-group + regime-conditional
+    # blend prediction. See backlog_trading_app_w3_ensemble for derivation.
+    # Final pred = (1 - W3_BLEND_WEIGHT)*xgb_pred + W3_BLEND_WEIGHT*w3_pred.
+    # WFE gate uses max(xgb.mean_wfe, w3.mean_wfe) when blend enabled.
+    # Default ENABLED=1 because the next trading day is Tuesday 2026-05-26 —
+    # the model has time to bake against ~48h of cycle history before any
+    # live trade decisions consume its output.
+    W3_BLEND_ENABLED: bool  = os.getenv("W3_BLEND_ENABLED", "1") == "1"
+    W3_BLEND_WEIGHT:  float = float(os.getenv("W3_BLEND_WEIGHT", "0.4"))
+
     # Cloud-Claude model selection per call site (added 2026-05-05).
     # ScannerAgent's job is "rank symbols by interest" — Haiku 4.5 is
     # plenty for that and ~15× cheaper than Opus 4.6 ($1/M vs $15/M

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EnsembleAgent — Agent map</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <p class="back"><a href="_summary.html">← all agents (comparison)</a></p>
+  <h1>EnsembleAgent</h1>
+  <p class="meta">Adaptive performance-weighted vote across component agents, modulated by regime.</p>
+  <p class="meta">Class file: <code>agents/ensemble_agent.py</code></p>
+</header>
+
+<section>
+  <h2>Data sources</h2>
+  <table>
+    <thead><tr><th>Source key</th><th>Category</th><th>Provider</th><th>Accessed via</th></tr></thead>
+    <tbody><tr><td>agent_signals</td><td><span class="chip chip-derived">Internal / derived</span></td><td>Other agents&#x27; signals</td><td><code>All component agents&#x27; Signal(action, confidence, shares)</code></td></tr>
+<tr><td>regime_det</td><td><span class="chip chip-derived">Internal / derived</span></td><td>data.regime_detector (HMM)</td><td><code>regime_detector.get_ensemble_regime() — HMM regime</code></td></tr>
+<tr><td>price</td><td><span class="chip chip-market">Market data</span></td><td>Alpaca Markets</td><td><code>ctx[&#x27;bars&#x27;] for SPY update to regime_detector</code></td></tr>
+<tr><td>portfolio</td><td><span class="chip chip-internal">Internal state</span></td><td>Portfolio state (positions/cash)</td><td><code>Position lookup</code></td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Models</h2>
+  <p class="muted">No model artifact consumed — this agent computes signals directly from its inputs.</p>
+</section>
+
+<section>
+  <h2>Ensemble integration</h2>
+  <p class="muted">IS the aggregator.</p>
+</section>
+
+<section>
+  <h2>Recent performance — post-2026-05-17 window (~4 days)</h2>
+  <table><thead><tr><th>Window ROI</th><th>Realized P&amp;L</th><th>Trades</th><th>Win / Loss</th></tr></thead><tbody><tr><td>+0.33%</td><td>$0 (0 trades)</td><td>0</td><td>—</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Outputs</h2>
+  <p>Single consensus Signal per symbol when threshold (0.60) met.</p>
+</section>
+
+<section>
+  <h2>Notes</h2>
+  <p>0 trades in window — likely failing the 0.60 conviction threshold. Component agents combined: 7 of 12.</p>
+</section>
+</body></html>

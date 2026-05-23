@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeminiAgent — Agent map</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <p class="back"><a href="_summary.html">← all agents (comparison)</a></p>
+  <h1>GeminiAgent</h1>
+  <p class="meta">Gemini Flash reasoning — news-only / scanner-only role.</p>
+  <p class="meta">Class file: <code>agents/gemini_agent.py</code></p>
+</header>
+
+<section>
+  <h2>Data sources</h2>
+  <table>
+    <thead><tr><th>Source key</th><th>Category</th><th>Provider</th><th>Accessed via</th></tr></thead>
+    <tbody><tr><td>price</td><td><span class="chip chip-market">Market data</span></td><td>Alpaca Markets</td><td><code>ctx[&#x27;bars&#x27;]</code></td></tr>
+<tr><td>alpaca_news</td><td><span class="chip chip-news">News / sentiment</span></td><td>Alpaca news API → news_service</td><td><code>news_service</code></td></tr>
+<tr><td>yahoo_news</td><td><span class="chip chip-news">News / sentiment</span></td><td>yfinance → news_service</td><td><code>news_service</code></td></tr>
+<tr><td>gemini_api</td><td><span class="chip chip-llm">LLM APIs</span></td><td>Google Gemini 2.0 Flash</td><td><code>Google Gemini API</code></td></tr>
+<tr><td>portfolio</td><td><span class="chip chip-internal">Internal state</span></td><td>Portfolio state (positions/cash)</td><td><code>Position context</code></td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Models</h2>
+  <p class="muted">No model artifact consumed — this agent computes signals directly from its inputs.</p>
+</section>
+
+<section>
+  <h2>Ensemble integration</h2>
+  <p class="muted">Excluded from ENSEMBLE_WEIGHTS — &#x27;news-only&#x27; per ensemble init comment.</p>
+</section>
+
+<section>
+  <h2>Recent performance — post-2026-05-17 window (~4 days)</h2>
+  <table><thead><tr><th>Window ROI</th><th>Realized P&amp;L</th><th>Trades</th><th>Win / Loss</th></tr></thead><tbody><tr><td>—</td><td>$0</td><td>1</td><td>0 / 0</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>Outputs</h2>
+  <p>Reasoning only — does not influence ensemble vote.</p>
+</section>
+
+<section>
+  <h2>Notes</h2>
+  <p>Effectively inactive as a trader. Used by ScannerAgent&#x27;s _run_gemini_scanner candidate-ranking tool.</p>
+</section>
+</body></html>
