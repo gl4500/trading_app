@@ -116,6 +116,7 @@ from logging_setup import (  # noqa: E402
     _CRASH_LOG_PATH,
     _ERROR_LOG_PATH,
     _ERRORS_ONLY_LOG_PATH,
+    _LIVE_LOG_PATH,
     _LOG_DIR,
     _SuppressWin10054,
     _add_log_handler,

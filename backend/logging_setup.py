@@ -75,6 +75,7 @@ class _SuppressWin10054(logging.Filter):
 _LOG_DIR = os.path.join(_BACKEND_DIR, "logs")
 _ERROR_LOG_PATH       = os.path.join(_LOG_DIR, "error.log")        # WARNING+
 _ERRORS_ONLY_LOG_PATH = os.path.join(_LOG_DIR, "errors_only.log")  # ERROR+ only
+_LIVE_LOG_PATH        = os.path.join(_LOG_DIR, "live.log")         # INFO+ (added 2026-05-23 for W3 blend observability)
 
 _LOG_LINE_RE = re.compile(
     r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(\w+)\] ([^:]+): (.+)$"
@@ -167,5 +168,6 @@ def install_logging() -> "_SuppressWin10054":
 
     _add_log_handler(_ERROR_LOG_PATH,       logging.WARNING, win10054)
     _add_log_handler(_ERRORS_ONLY_LOG_PATH, logging.ERROR,   win10054)
+    _add_log_handler(_LIVE_LOG_PATH,        logging.INFO,    win10054)
 
     return win10054
