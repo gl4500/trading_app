@@ -46,3 +46,6 @@ Thumbs.db
 
 # Diagnostic-script output (debug_historical_drift.py etc.)
 scripts/debug_*_steps.csv
+
+# Obsidian vault config (per-user UI/plugin state, not project config)
+.obsidian/
