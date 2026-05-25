@@ -171,6 +171,19 @@ class Config:
     W3_BLEND_ENABLED: bool  = os.getenv("W3_BLEND_ENABLED", "1") == "1"
     W3_BLEND_WEIGHT:  float = float(os.getenv("W3_BLEND_WEIGHT", "0.4"))
 
+    # XGBReasoningAgent decision mode (added 2026-05-24, Stage 1 of LLM-as-news-only).
+    # "ollama"     — default; LLM 5-step reasoning chain drives BUY/SELL/HOLD per
+    #                symbol per cycle. Existing behaviour.
+    # "rule_based" — skip _build_prompt + _ollama_decision entirely. Decision
+    #                comes from XGB+W3 blended direction + threshold. All existing
+    #                gates (WFE, max-positions, uPnL drawdown, lone-wolf, trail
+    #                cool-down) apply identically.
+    # The arxiv paper (2505.07078) showed LLM-driven trade decisions fail at
+    # trend detection across long horizons; this env lets the operator A/B the
+    # rule-based path against the LLM path on live cycles before fully
+    # exiting LLM-as-decision-maker. See backlog item for staged plan.
+    XGB_LLM_DECISION_MODE: str = os.getenv("XGB_LLM_DECISION_MODE", "ollama").lower().strip()
+
     # Cloud-Claude model selection per call site (added 2026-05-05).
     # ScannerAgent's job is "rank symbols by interest" — Haiku 4.5 is
     # plenty for that and ~15× cheaper than Opus 4.6 ($1/M vs $15/M

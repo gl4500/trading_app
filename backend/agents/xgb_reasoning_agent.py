@@ -559,6 +559,47 @@ class XGBReasoningAgent(BaseAgent):
 
         return pred_return, direction, cnn_conf
 
+    def _rule_based_decision(
+        self,
+        symbol: str,
+        pred_return: float,
+        direction: str,
+        cnn_conf: float,
+    ) -> Dict:
+        """
+        Pure-quant decision path used when ``config.XGB_LLM_DECISION_MODE
+        == "rule_based"``. Skips ``_build_prompt`` + ``_ollama_decision``
+        entirely; maps the XGB+W3 blended direction directly to BUY/SELL/HOLD
+        with template reasoning.
+
+        Returns the same dict shape ``_ollama_decision`` returns
+        (``{action, confidence, size_pct, reasoning}``) so the rest of
+        ``analyze()`` is mode-agnostic. All post-decision gates (WFE,
+        max-positions, uPnL drawdown, lone-wolf, trail cool-down, Kelly
+        sizing) run unchanged.
+
+        Why this exists (Stage 1 of LLM-as-news-only — see backlog):
+        per arxiv 2505.07078 LLM-driven trade decisions fail at trend
+        detection over long horizons. This path lets the operator A/B
+        the LLM-driven decision against pure-quant XGB+W3 on live cycles.
+        """
+        if direction == "bull":
+            action = "BUY"
+        elif direction == "bear":
+            action = "SELL"
+        else:
+            action = "HOLD"
+        return {
+            "action":     action,
+            "confidence": float(cnn_conf),
+            "size_pct":   float(self.portfolio.kelly_fraction()),
+            "reasoning": (
+                f"XGB+W3 blend: pred_return={pred_return*100:+.2f}% "
+                f"direction={direction} conf={cnn_conf:.2f} "
+                f"[rule_based mode — no LLM]"
+            ),
+        }
+
     def _rule_based_fallback(
         self,
         direction: str,
@@ -931,20 +972,26 @@ class XGBReasoningAgent(BaseAgent):
                 signals.append(entropy_signal)
                 continue
 
-            prompt   = self._build_prompt(
-                symbol, price, pred_return, direction, cnn_conf,
-                learned_weights, current_scores, c_score,
-                agent_signals=other_agent_signals or None,
-                catalysts=catalysts,
-                macro_text=macro_text,
-                portfolio_context=portfolio_context,
-                risk_alert=risk_alert,
-            )
-            decision = await self._ollama_decision(prompt)
+            # Decision-mode branch (added 2026-05-24, Stage 1 of LLM-as-news-only).
+            # "rule_based" mode skips the LLM call entirely; otherwise the
+            # existing Ollama 5-step reasoning chain drives the decision.
+            if config.XGB_LLM_DECISION_MODE == "rule_based":
+                decision = self._rule_based_decision(symbol, pred_return, direction, cnn_conf)
+            else:
+                prompt   = self._build_prompt(
+                    symbol, price, pred_return, direction, cnn_conf,
+                    learned_weights, current_scores, c_score,
+                    agent_signals=other_agent_signals or None,
+                    catalysts=catalysts,
+                    macro_text=macro_text,
+                    portfolio_context=portfolio_context,
+                    risk_alert=risk_alert,
+                )
+                decision = await self._ollama_decision(prompt)
 
-            # Fallback: rule-based when Ollama is unavailable
-            if decision is None:
-                decision = self._rule_based_fallback(direction, cnn_conf, pred_return)
+                # Fallback: rule-based when Ollama is unavailable
+                if decision is None:
+                    decision = self._rule_based_fallback(direction, cnn_conf, pred_return)
 
             action     = decision.get("action", "HOLD")
             confidence = float(decision.get("confidence") or cnn_conf)

@@ -1262,5 +1262,121 @@ class TestXGBReasoningAgentRetrainCoTriggersW3(unittest.TestCase):
         self.assertTrue(w3_save.called, "signal_w3.save must persist the retrained W3")
 
 
+class TestXGBReasoningAgentRuleBasedMode(unittest.IsolatedAsyncioTestCase):
+    """
+    XGB_LLM_DECISION_MODE env switches per-symbol decision mode:
+      - "ollama" (default) — current behaviour: _ollama_decision drives action
+      - "rule_based"      — skip Ollama entirely; decide from XGB+W3 blend
+                            direction + confidence
+
+    Existing gates (WFE, max-positions, uPnL, lone-wolf, trail cooldown)
+    apply IDENTICALLY in both modes.
+    """
+
+    def setUp(self):
+        self.agent = XGBReasoningAgent()
+        from config import config
+        self.config = config
+        self._orig_mode = getattr(config, "XGB_LLM_DECISION_MODE", "ollama")
+
+    def tearDown(self):
+        self.config.XGB_LLM_DECISION_MODE = self._orig_mode
+
+    async def test_rule_based_skips_ollama_decision(self):
+        """When mode=rule_based, _ollama_decision is NEVER awaited."""
+        self.config.XGB_LLM_DECISION_MODE = "rule_based"
+        mkt = _make_market(["AAPL"], price=150.0)
+        ollama_mock = AsyncMock(return_value={"action": "HOLD", "confidence": 0.5, "reasoning": "x"})
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", new=ollama_mock), \
+             patch.object(self.agent, "_run_cnn_inference",
+                          return_value=(0.005, "bull", 0.85)):
+            await self.agent.analyze(mkt)
+        self.assertFalse(ollama_mock.called,
+            "_ollama_decision must NOT be awaited in rule_based mode")
+
+    async def test_ollama_mode_default_still_calls_ollama(self):
+        """Default mode (unset env) keeps the existing Ollama behavior."""
+        # Don't touch config.XGB_LLM_DECISION_MODE — leave at startup default
+        mkt = _make_market(["AAPL"], price=150.0)
+        ollama_mock = AsyncMock(return_value={"action": "HOLD", "confidence": 0.5, "reasoning": "x"})
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision", new=ollama_mock), \
+             patch.object(self.agent, "_run_cnn_inference",
+                          return_value=(0.005, "bull", 0.85)):
+            await self.agent.analyze(mkt)
+        self.assertTrue(ollama_mock.called,
+            "_ollama_decision MUST be awaited in default mode")
+
+    async def test_rule_based_bull_direction_produces_buy(self):
+        """Bull direction + high confidence + clean portfolio → BUY signal."""
+        self.config.XGB_LLM_DECISION_MODE = "rule_based"
+        mkt = _make_market(["AAPL"], price=150.0)
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_run_cnn_inference",
+                          return_value=(0.020, "bull", 0.85)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        self.assertEqual(len(buys), 1, "bull + 0.85 conf must produce a BUY")
+        self.assertGreater(buys[0].shares, 0)
+        self.assertIn("rule_based", buys[0].reasoning.lower(),
+            "reasoning should mark rule_based mode for log traceability")
+
+    async def test_rule_based_neutral_direction_produces_hold(self):
+        """Neutral direction → HOLD regardless of confidence."""
+        self.config.XGB_LLM_DECISION_MODE = "rule_based"
+        mkt = _make_market(["AAPL"], price=150.0)
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_run_cnn_inference",
+                          return_value=(0.0001, "neutral", 0.90)):
+            signals = await self.agent.analyze(mkt)
+        self.assertEqual(len(signals), 1)
+        self.assertEqual(signals[0].action, "HOLD")
+
+    async def test_rule_based_bear_with_position_produces_sell(self):
+        """Bear direction + held position → SELL signal for full position."""
+        self.config.XGB_LLM_DECISION_MODE = "rule_based"
+        self.agent.portfolio.positions["AAPL"] = Position(
+            symbol="AAPL", shares=10, avg_cost=150.0,
+        )
+        mkt = _make_market(["AAPL"], price=140.0)
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_run_cnn_inference",
+                          return_value=(-0.020, "bear", 0.80)):
+            signals = await self.agent.analyze(mkt)
+        sells = [s for s in signals if s.action == "SELL"]
+        self.assertEqual(len(sells), 1, "bear with held position must SELL")
+        self.assertEqual(sells[0].shares, 10)
+
+    async def test_rule_based_wfe_gate_still_blocks_buy(self):
+        """Existing WFE gate must still demote BUY → HOLD when mean_wfe < 0."""
+        from data.signal_model import signal_model as signal_cnn
+        from data.w3_model import signal_w3
+        self.config.XGB_LLM_DECISION_MODE = "rule_based"
+        orig_wfe = signal_cnn._mean_wfe
+        orig_w3_wfe = signal_w3._mean_wfe
+        orig_w3_trained = signal_w3._trained
+        try:
+            signal_cnn._mean_wfe = -0.30
+            # Force W3 also negative or unloaded so the max-WFE gate sees only neg/None
+            signal_w3._mean_wfe = -0.30
+            signal_w3._trained = True
+            mkt = _make_market(["AAPL"], price=150.0)
+            with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_run_cnn_inference",
+                              return_value=(0.020, "bull", 0.85)):
+                signals = await self.agent.analyze(mkt)
+            buys = [s for s in signals if s.action == "BUY"]
+            holds = [s for s in signals if s.action == "HOLD"]
+            self.assertEqual(len(buys), 0,
+                "WFE gate must still block BUY in rule_based mode")
+            self.assertEqual(len(holds), 1)
+            self.assertIn("WFE gate", holds[0].reasoning)
+        finally:
+            signal_cnn._mean_wfe = orig_wfe
+            signal_w3._mean_wfe = orig_w3_wfe
+            signal_w3._trained = orig_w3_trained
+
+
 if __name__ == "__main__":
     unittest.main()
