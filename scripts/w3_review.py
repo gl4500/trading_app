@@ -30,6 +30,15 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from statistics import mean, stdev
 
+# The summary uses box-drawing glyphs; a Windows cp1252 console (and the .bat
+# double-click path) can't encode them and crashes on the first print(). Force
+# UTF-8 on stdout/stderr so output is identical whether run in a console or piped.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    except (AttributeError, ValueError):
+        pass
+
 ROOT       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BACKEND    = os.path.join(ROOT, "backend")
 LIVE_LOG   = os.path.join(BACKEND, "logs", "live.log")
