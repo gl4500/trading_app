@@ -366,7 +366,10 @@ async def _tool_get_stock_analysis(symbol: str) -> Dict:
         price = None
         has_bars = bars is not None and not bars.empty and len(bars) >= 1
         if has_bars:
-            ind   = technicals.compute(bars)
+            # technicals.compute is Optional[Dict] — returns None on insufficient
+            # rows for RSI/MACD/BB warmup. `or {}` keeps the `.get(...)` calls
+            # below safe so all-None indicators reach the AI instead of crashing.
+            ind   = technicals.compute(bars) or {}
             price = float(bars["close"].iloc[-1]) if "close" in bars.columns else None
 
         # A pull is considered successful when we have bars or a non-null composite score

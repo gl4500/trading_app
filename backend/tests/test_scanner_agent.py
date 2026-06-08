@@ -1413,6 +1413,41 @@ class TestPullTracking(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.get("data_available"), msg=f"Expected data_available=False on exception, got: {result}")
         self.assertIn("error", result)
 
+    async def test_tool_get_stock_analysis_handles_compute_returning_none(self):
+        # technicals.compute() is typed Optional[Dict] and returns None on degenerate
+        # bars (insufficient rows for RSI/MACD/BB warmup). Bars themselves can still
+        # be non-empty (e.g. 5 rows when MACD needs ~31), so `has_bars` is True but
+        # `ind` becomes None. Previously crashed at line 386 with
+        # "'NoneType' object has no attribute 'get'" — observed live on DIOD 2026-06-08.
+        import pandas as pd
+        fake_bars = pd.DataFrame({
+            "close":  [100.0, 101.0, 102.0],
+            "volume": [1000, 1100, 1200],
+            "open":   [99.0, 100.5, 101.5],
+            "high":   [102.0, 103.0, 104.0],
+            "low":    [98.0, 99.5, 100.5],
+        })
+        with patch("data.news_service.news_service.get_news",
+                   new_callable=AsyncMock, return_value=[]), \
+             patch("trading.alpaca_client.alpaca_client.get_bars",
+                   new_callable=AsyncMock, return_value=fake_bars), \
+             patch("data.signal_aggregator.get_composite_signal",
+                   new_callable=AsyncMock,
+                   return_value={"composite_score": 0.3, "confidence": 0.6,
+                                 "verdict": "MILDLY BULLISH", "sources": {}}), \
+             patch("data.technicals.compute", return_value=None):
+            from agents.scanner_agent import _tool_get_stock_analysis
+            result = await _tool_get_stock_analysis("DIOD")
+        # Must NOT crash; must still report bars-driven data_available; indicators
+        # dict must be present with all-None values (no AI confusion).
+        self.assertTrue(result.get("data_available"),
+                        msg=f"has_bars=True → data_available should stay True, got: {result}")
+        self.assertNotIn("error", result,
+                         msg=f"compute returning None should not raise; got error in result: {result}")
+        self.assertIn("indicators", result)
+        self.assertIsNone(result["indicators"]["rsi"])
+        self.assertIsNone(result["indicators"]["macd"])
+
     def test_scan_result_includes_pull_stats(self):
         """run_scan result must contain pull_stats with hits and misses keys."""
         import pandas as pd
