@@ -274,6 +274,7 @@ Relevant memory files for this repo:
 - **GPU constraint:** RTX 2060 = 6 GB VRAM — only one Q4 model fits at a time. Set `RESEARCH_MODEL=OLLAMA_MODEL` to share the single loaded model; never configure two different models simultaneously on this GPU.
 - **Config:** `.env` → `backend/config.py` → `config` singleton
 - **Agent context key:** `market_context["__overnight_catalysts__"]` is a `list` — all agents guard with `isinstance(ctx, dict)` when iterating
+- **Leading-regime score (added 2026-06-08):** `data/regime_leading.py::compute_leading_score()` returns a score in `[-1, +1]` combining VIX term structure (VIX/^VIX3M), HYG 5d momentum, cyclical-vs-defensive sector spread, and IWM-vs-SPY breadth. Emitted as `[REGIME_LEAD]` log line every macro fast-cache refresh (~15 min). Read-only observation for now — wired into XGB feature / WFE gate only after ~1 trading day of data confirms it leads the reactive `regime_detector.get_regime()` flip. `^VIX3M` and `HYG` added to `MACRO_PROXIES` to feed it. Pure function — no imports from agents/main (loose-coupling invariant #10).
 
 - **Tax estimate:** `GET /api/tax/estimate?year=YYYY` — federal capital gains summary (short/long-term, wash sales, quarterly) from real Alpaca trade history
 

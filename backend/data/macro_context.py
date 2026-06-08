@@ -29,12 +29,14 @@ logger = logging.getLogger(__name__)
 # ── Instrument definitions ────────────────────────────────────────────────────
 
 MACRO_PROXIES: Dict[str, str] = {
-    "GLD":  "Gold (risk-off safe haven; inverse USD)",
-    "TLT":  "20Y Treasuries (bond prices; inverse of yields)",
-    "UUP":  "US Dollar (DXY proxy; inverse commodities/EM)",
-    "USO":  "Oil (WTI proxy; energy costs)",
-    "^VIX": "Volatility / Fear Index",
-    "^TNX": "10Y Treasury Yield",
+    "GLD":    "Gold (risk-off safe haven; inverse USD)",
+    "TLT":    "20Y Treasuries (bond prices; inverse of yields)",
+    "UUP":    "US Dollar (DXY proxy; inverse commodities/EM)",
+    "USO":    "Oil (WTI proxy; energy costs)",
+    "^VIX":   "Volatility / Fear Index",
+    "^TNX":   "10Y Treasury Yield",
+    "^VIX3M": "3-Month Volatility (with ^VIX gives term structure — backwardation leads vol regime)",
+    "HYG":    "High-Yield Bonds (credit spreads — leads equity regime by 5-15d)",
 }
 
 SECTOR_ETFS: Dict[str, str] = {
@@ -771,6 +773,34 @@ async def get_macro_context_text() -> str:
         _fast_cache_text = text
         _fast_cache_ts   = now
         logger.info("MacroContext: fast cache refreshed (%d instruments)", len(fast_data))
+
+        # Emit a [REGIME_LEAD] line so the operator can compare the leading-
+        # indicator score against the reactive regime_detector flip. Read-only
+        # observation for now; once we have ~1 trading day of data we decide
+        # whether to wire the score into the WFE gate / XGB feature channel.
+        # Fast cache stores returns as percent (×100); compute_leading_score
+        # expects fractional — convert at this boundary.
+        try:
+            from data.regime_leading import compute_leading_score
+            fractional = {
+                sym: {k: (v / 100.0 if v is not None else None)
+                      for k, v in periods.items() if k != "price"}
+                for sym, periods in fast_data.items()
+            }
+            score, comps = compute_leading_score(
+                fast_returns=fractional,
+                vix_price=fast_data.get("^VIX", {}).get("price"),
+                vix3m_price=fast_data.get("^VIX3M", {}).get("price"),
+            )
+            def _f(v): return f"{v:+.3f}" if v is not None else "n/a"
+            logger.info(
+                "[REGIME_LEAD] score=%+.3f vix_ts=%s credit=%s def_cyc=%s breadth=%s",
+                score, _f(comps["vix_ts"]), _f(comps["credit"]),
+                _f(comps["def_cyc"]), _f(comps["breadth"]),
+            )
+        except Exception as e:
+            logger.debug("MacroContext: regime_leading log skipped: %s", e)
+
         return text
     except Exception as e:
         logger.warning("MacroContext: error building context: %s", e)
