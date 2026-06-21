@@ -62,3 +62,25 @@ agent's LLM decisions are heavily gated (WFE + regime + Kelly + decide_buy).
 - Architecture: `trading_app_architecture` memory · XGB agent: `backend/agents/xgb_reasoning_agent.py`
   · gate: `backend/agents/xgb_decision.py` + `data/regime_detector.py` · eval harness:
   `data/cnn_evaluation.py` (`walkforward_folds`, `embargo_bars`).
+
+---
+
+## ADDENDUM — 2026-06-21 (later session): H12 & H13 falsified, thread fully closed
+
+H12 was tested and **falsified**, and a reframed exit-side lever (H13) was tested and **also
+falsified**. No code change.
+
+- **H12 (bear entry-gate) — FALSIFIED.** The −$19.3K was attributed by **close** regime, but an
+  entry-gate fires at **BUY** time, and it was *all-agents* (Scanner −$12K close), not the 4 rule
+  agents (those net **+$40.9K**, only −$2.9K bear-close). Re-attributing realized PnL by **entry**
+  regime (FIFO-matched, reconstructed PnL = SELL-row PnL exactly): **bear ENTRIES net +$34.8K
+  all-agents, +$17.7K for the 4 rule agents, 53% win.** A bear entry-gate would have destroyed
+  ~$35K of edge, not recovered a loss.
+- **H13 (exit on neutral→bear flip) — FALSIFIED.** The only addressable bucket (−$17.3K, neutral
+  entries held ~4d into a bear flip) does not respond to a flip-exit: simulating force-exit at the
+  SPY bear-flip price is **−$3,053 worse** than actual (existing trailing/hard/Bayes stops exit at
+  better prices). 
+- **Net:** no regime-timing lever (entry or exit) beats current behavior. The −$21K bear-close
+  figure is the ordinary cost of holding equity into downturns, not an inefficiency. Recommend
+  pausing regime-axis R&D. Full detail: ledger iterations 7–8. Caveat: ~3-month bull-dominated
+  sample, but the negative conclusion holds in the only data available.

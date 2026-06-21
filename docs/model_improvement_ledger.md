@@ -256,3 +256,52 @@ The "negative-WFE = broken model" thread is **resolved**: the gated XGB system i
 mis-measured a marginal-but-real long-momentum edge that the gates monetize in bull and protect in
 bear. Regime-gating the model further is exhausted. The remaining lever (H12) is about the *other*
 agents, not the model. Recommend pausing model-metric R&D and deciding on H12.
+
+### Iteration 7 — 2026-06-21 — H12 entry-regime attribution → FALSIFIES the bear entry-gate
+
+**Setup:** H12 proposed porting the XGB bear *entry*-gate to the rule agents to recover the iter-6
+"−$19.3K bear bleed." But that −$19.3K is attributed by **close-date** regime; an entry gate fires at
+**BUY** time. Offline FIFO-matched every SELL back to its BUY lot (`trading.db`), tagged each realized
+chunk by both entry and close regime (SPY regime via the real `RegimeDetector`). Cross-check:
+FIFO-reconstructed PnL = authoritative SELL-row PnL **exactly** ($40,942 for the 4 rule agents;
+$54,488 all agents). Close-regime bear total reproduced iter-6 (−$21.1K vs −$19.3K — method sound).
+
+**Result (all agents):** bear by **CLOSE** regime −$21,119; bear by **ENTRY** regime **+$34,760**.
+Per-agent bear ENTRY: Scanner +$15.9K, HistTrends +$15.1K, Momentum +$7.1K, XGB +$5.1K, MeanRev −$6.4K.
+Two facts also surfaced: (a) the iter-6 −$19.3K was *all-agents* (Scanner −$12.0K close drives it),
+not the 4 rule agents — those 4 net **+$40.9K** and only −$2.9K bear-CLOSE; (b) bull-entered positions
+are essentially absent from the bear-close losers (bear episodes here followed neutral, not bull).
+
+**Verdict — H12 FALSIFIED.** A bear entry-gate's exact counterfactual is the entry-regime-bear bucket
+= **+$34.8K of realized PnL it would remove.** Bear entries are *profitable* (53% win) — buying weakness
+and selling the recovery. The −$21K is an exit/holding phenomenon (positions opened earlier, closed
+during bear), not an entry-participation one. Porting the gate is contraindicated. (Caveat: ~3-month
+bull-dominated sample, so "bear entries profitable" is partly regime luck — but "a bear entry-gate would
+have hurt in the only data we have" is robust.)
+
+**Next:** H13 — if the bleed is exit-side, would de-risking on the neutral→bear *flip* help? Characterize
+the bear-CLOSE losers, then simulate exit-at-flip.
+
+### Iteration 8 — 2026-06-21 — H13 exit-on-bear-flip simulation → FALSIFIES the exit-side lever
+
+**Setup:** Characterized the −$28.3K of bear-CLOSE *losers*: −$11.1K entered+closed in bear (n=113,
+median hold 0d — quick stop-outs, already dwarfed by the +$34.8K bear-entry winners) and **−$17.3K
+entered in neutral, held a median 4d into a bear flip** (the only regime-addressable bucket). Then
+ran the decisive test: for every position open when SPY flips to bear (52 flip dates over the
+backfill), force-exit at that day's per-symbol price (`data/history/<SYM>.parquet`, 224/226 symbols
+available) and compare total realized PnL vs actual — applied symmetrically to winners and losers.
+
+**Result:** 63 chunks held through a bear flip. Force-exit at the flip = **−$3,053 WORSE**
+(affected chunks: actual −$18,009 vs flip-exit −$21,062; portfolio-wide $54,488 → $51,435).
+
+**Verdict — H13 FALSIFIED.** Exiting at the bear flip realizes a *worse* price than holding to the
+actual exit — positions were already underwater at the flip and partially recovered, and the existing
+trailing/hard/Bayes stops already exit better than a blunt regime trigger would. No exit-side regime
+lever beats current behavior.
+
+## Status after 8 iterations (SUPERSEDES "after 6 iterations" above)
+Thread **fully closed.** The gated XGB system is profitable (+$12.5K); the rule agents net positive
+(+$40.9K for the 4; +$54.5K all agents). The "bear bleed" is a close-regime accounting artifact, not
+an addressable inefficiency. **No regime-timing lever — entry-side (H12) or exit-side (H13) — improves
+on current behavior.** Recommend pausing model/agent-risk R&D on the regime axis. No code change made
+(all analysis was offline/read-only against `trading.db` + parquet; live backend on :8000 untouched).
