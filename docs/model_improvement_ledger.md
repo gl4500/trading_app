@@ -21,7 +21,7 @@ by over-fitting older folds.
 
 | # | Hypothesis | Cheapest test | Status |
 |---|---|---|---|
-| H1 | Walk-forward embargo (1 bar) << 10-day label → train/val leakage inflates IC, hides true magnitude failure | Count train rows whose label window overlaps val | **FALSIFIED as root cause** (iter 1) — leakage only 0.5–1.6%. Real bug, minor effect. |
+| H1 | Walk-forward embargo (1 bar) << 10-day label → train/val leakage inflates IC, hides true magnitude failure | Count train rows whose label window overlaps val | **FALSIFIED as root cause** (iter 1) — leakage only 0.5–1.6%. Real bug, minor effect. **FIXED 2026-06-25** — see Iteration 9. |
 | H2 | Regime non-stationarity: edge exists on old folds, absent in current regime | Re-rank existing experiment metas by *last-fold* WFE, not mean_IC | **REFRAMED (iter 2)** — opposite is true: recent fold is the *best* (+0.015 WFE, +0.16 IC); mean_wfe is dragged down by *oldest* fold. Edge is present NOW. |
 | H3 | Magnitude miscalibration (rank fine, scale wrong) → fix WFE with post-hoc isotonic/linear map on pred→realized, no retrain | Fit rolling calibration on saved preds vs realized, recompute WFE | open |
 | H4 | Recency-weighted / time-decay training would fit the live regime (current sample_weights only up-weight top-agent-correct, not recency) | Add exp time-decay to sample_weights in a sidecar fit, compare last-fold WFE | open |
@@ -305,3 +305,27 @@ Thread **fully closed.** The gated XGB system is profitable (+$12.5K); the rule 
 an addressable inefficiency. **No regime-timing lever — entry-side (H12) or exit-side (H13) — improves
 on current behavior.** Recommend pausing model/agent-risk R&D on the regime axis. No code change made
 (all analysis was offline/read-only against `trading.db` + parquet; live backend on :8000 untouched).
+
+### Iteration 9 — 2026-06-25 — H1 embargo cleanup SHIPPED (the one honest win)
+
+With the regime axis exhausted (iters 6–8), the cheapest remaining honest improvement was the H1
+metric-honesty fix flagged back in iter 1. **Implemented via TDD** (RED→GREEN per affected module):
+
+**Change:** added `embargo_days: float = 0.0` to `data/cnn_evaluation.walkforward_folds`. The
+effective embargo is now the LARGER of the two rules —
+`train_end_idx = max(0, min(train_cutoff_idx - embargo_bars, searchsorted(ts, val_start - embargo_days*86400)))`
+— so a multi-day forward label can't leak into validation regardless of bar density (a row-count
+embargo silently fails under intraday bars). Wired `embargo_days=LABEL_HORIZON_DAYS` (=10) through all
+three model `fit()` methods: `SignalCNN`, `SignalXGBoost` (the production WFE-gated model), `SignalW3`.
+
+**Backward compatibility:** default `0.0` means every existing call/test that doesn't opt in behaves
+exactly as before. The 90-day / 300–600-pt synthetic test fixtures still yield 3 non-empty folds after
+a 10-day embargo, so no existing assertion changed.
+
+**Tests:** 9 new (3 at the `walkforward_folds` level incl. a dense-bar case that defeats `embargo_bars`
+but not `embargo_days`, + 1 `fit()`-wiring mock-assert per model). Full regression GREEN: 178 tests
+across cnn_evaluation / cnn_model / xgboost_model / w3_model. Bandit clean on all 4 production files.
+
+**Effect:** walk-forward WFE/IC are now leak-free. Magnitude impact is small (iter 1: ~0.5–1.6% of train
+rows) so the live WFE gate's behavior is essentially unchanged — this is honesty, not a new edge. The
+next production retrain will recompute metrics under the correct embargo. Thread H1 → **CLOSED, fixed.**
