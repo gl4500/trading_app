@@ -329,3 +329,9 @@ across cnn_evaluation / cnn_model / xgboost_model / w3_model. Bandit clean on al
 **Effect:** walk-forward WFE/IC are now leak-free. Magnitude impact is small (iter 1: ~0.5–1.6% of train
 rows) so the live WFE gate's behavior is essentially unchanged — this is honesty, not a new edge. The
 next production retrain will recompute metrics under the correct embargo. Thread H1 → **CLOSED, fixed.**
+
+**Real-data verification (offline, timestamps-only, no retrain):** replayed `walkforward_folds` over all
+243 production per-symbol parquets (564,454 rows, 3,704-day span). Pre-fix (`embargo_bars=1`) left
+**3,673 / 3,185 / 1,565** train rows per fold (0.67% / 0.57% / 0.28%) whose 10-day label window reached
+into validation — same order as iter-1's 0.5–1.6%. Post-fix (`embargo_days=10`): **0 leaking rows in
+all three folds.** Confirms the shipped fix excludes exactly the rows iter-1 flagged.
