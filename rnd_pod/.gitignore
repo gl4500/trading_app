@@ -1,0 +1,4 @@
+.cma-venv/
+__pycache__/
+*.pyc
+pod_ids.json
