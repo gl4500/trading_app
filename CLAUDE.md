@@ -267,7 +267,8 @@ Relevant memory files for this repo:
 - **Frontend:** React + Vite + Tailwind, port 5173
 - **DB:** SQLite via aiosqlite (`trading.db`)
 - **Market data:** Alpaca Markets (paper trading)
-- **AI agents (cloud mode):** Claude Opus 4.6, Gemini 2.0 Flash, GPT-4o-mini
+- **Active trading roster (deprecations 2026-07-05):** Only 6 net-profitable models are registered for trading — MomentumAgent, MeanReversionAgent, SentimentAgent, HistoricalTrendsAgent, XGBReasoningAgent, ScannerAgent. Six net-negative/idle models were **deprecated (unregister-only)**: EnsembleAgent, ClaudeAgent, TechAgent, GeminiAgent, OllamaAgent, OpenClawAgent. Code + historical DB rows stay; they are just not built/registered. `lifespan._build_trading_agents()` is the single source of truth (re-enable = append the class there). `app_state.gemini_news_agent = None` (Gemini context injection + API calls off). See `trading_app_architecture.md` → "Active Trading Roster".
+- **AI agents (cloud mode):** Claude Opus 4.6, Gemini 2.0 Flash, GPT-4o-mini (ClaudeAgent + GeminiAgent deprecated 2026-07-05 — see roster note above)
 - **AI agents (Ollama mode):** All three above route to local Ollama when `OLLAMA_ONLY_MODE=1`; off-hours auto-scan runs every `OLLAMA_CLOSED_SCAN_MIN=30` min when market is closed (cloud mode is unchanged)
 - **Local inference:** Ollama at `http://localhost:11434/v1` (OpenAI-compatible); `OLLAMA_MODEL` for Sentiment/Gemini/XGB; `RESEARCH_MODEL` for Claude (defaults to `OLLAMA_MODEL`)
 - **Current Ollama model:** `llama3.1:8b` (~4.7 GB Q4) — reliable instruction following and structured JSON; fits RTX 2060 with headroom.

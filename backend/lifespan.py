@@ -103,62 +103,54 @@ def _reconcile_cash_from_trades(
 
 # ─── Agent Initialization ────────────────────────────────────────────────────
 
-async def init_agents() -> None:
-    """Create and register all trading agents."""
-    # Late imports so that the agent classes are resolved at call time.
-    from agents.tech_agent import TechAgent
+def _build_trading_agents() -> list:
+    """Construct the active trading roster — the single source of truth for which
+    agents trade.
+
+    Six models were deprecated on 2026-07-05 for net-negative or idle realized
+    performance and are intentionally NOT built here (their code remains on disk):
+    EnsembleAgent, ClaudeAgent, TechAgent, GeminiAgent, OllamaAgent, OpenClawAgent.
+    To re-enable a model, construct it and append it to the returned list.
+
+    XGBReasoningAgent was renamed from CNNReasoningAgent in issue #75; the DB
+    migration renamed the row in place, so the later upsert_agent("XGBReasoningAgent")
+    finds the same row and its trades / portfolios / performance FKs stay valid.
+    """
+    # Late imports so the agent classes resolve at call time (keeps the import
+    # graph lazy and matches the historical init_agents pattern).
     from agents.momentum_agent import MomentumAgent
     from agents.mean_reversion_agent import MeanReversionAgent
     from agents.sentiment_agent import SentimentAgent
-    from agents.claude_agent import ClaudeAgent
-    from agents.ollama_agent import OllamaAgent
-    from agents.gemini_agent import GeminiAgent
     from agents.historical_trends_agent import HistoricalTrendsAgent
-    from agents.ensemble_agent import EnsembleAgent
-    from agents.scanner_portfolio_agent import ScannerPortfolioAgent
     from agents.xgb_reasoning_agent import XGBReasoningAgent
+    from agents.scanner_portfolio_agent import ScannerPortfolioAgent
 
+    return [
+        MomentumAgent(),
+        MeanReversionAgent(),
+        SentimentAgent(),
+        HistoricalTrendsAgent(),
+        XGBReasoningAgent(),
+        ScannerPortfolioAgent(),
+    ]
+
+
+async def init_agents() -> None:
+    """Create and register the active trading roster (see _build_trading_agents)."""
     import main  # lazy — required for test patches against main.app_state / main._write_crash
 
     logger.info("Initializing trading agents...")
     app_state = main.app_state
 
-    # Create component agents
-    tech = TechAgent()
-    momentum = MomentumAgent()
-    mean_rev = MeanReversionAgent()
-    sentiment = SentimentAgent()
-    claude = ClaudeAgent()
-    ollama = OllamaAgent()   # 2026-05-08: extracted from ClaudeAgent so cloud + local
-                             # vote independently; a local-Ollama failure can't break Claude.
-    gemini = GeminiAgent()
-    historical_trends = HistoricalTrendsAgent()
-    # XGBReasoningAgent (renamed from CNNReasoningAgent in issue #75). The DB
-    # migration v5 renames the existing agents row in place, so
-    # upsert_agent("XGBReasoningAgent", ...) below finds the same row that
-    # was previously named CNNReasoningAgent — trades / portfolios /
-    # performance FK references stay valid across the rename.
-    xgb_agent = XGBReasoningAgent()
+    # Active trading roster. Six models were deprecated 2026-07-05 (net-negative
+    # or idle: EnsembleAgent, ClaudeAgent, TechAgent, GeminiAgent, OllamaAgent,
+    # OpenClawAgent) — their code stays on disk but is no longer registered.
+    all_agents = _build_trading_agents()
 
-    # Create ensemble (Gemini excluded — news/context source only, not a voter)
-    ensemble = EnsembleAgent(
-        tech_agent=tech,
-        momentum_agent=momentum,
-        mean_reversion_agent=mean_rev,
-        sentiment_agent=sentiment,
-        claude_agent=claude,
-        xgb_reasoning_agent=xgb_agent,
-        ollama_agent=ollama,
-    )
-    ensemble.component_agents["HistoricalTrendsAgent"] = historical_trends
-
-    # Scanner portfolio: acts on cached scan results, no new API calls each cycle
-    scanner_portfolio = ScannerPortfolioAgent()
-
-    # Gemini is a news/context source only — not registered as a trading agent
-    app_state.gemini_news_agent = gemini
-    all_agents = [tech, momentum, mean_rev, sentiment, claude, ollama,
-                  historical_trends, xgb_agent, ensemble, scanner_portfolio]
+    # GeminiAgent was a news/context source (injected __gemini_market_view__ into
+    # every prompt). Deprecated 2026-07-05 — no context injection, no API calls.
+    # Every downstream read is guarded with `if app_state.gemini_news_agent:`.
+    app_state.gemini_news_agent = None
 
     # Register agents in DB and restore full portfolio state for continuity across restarts
     for agent in all_agents:
@@ -279,8 +271,12 @@ async def init_agents() -> None:
     except Exception as _e:
         logger.warning(f"Could not restore price snapshots from DB: {_e}")
 
-    # Seed rolling 24h token windows from DB after restart
-    for _token_agent in [sentiment, claude, gemini]:
+    # Seed rolling 24h token windows from DB after restart. Only the cloud
+    # token-logging agents define seed_from_history; after the 2026-07-05
+    # deprecations that's just SentimentAgent among the active roster.
+    for _token_agent in all_agents:
+        if not hasattr(_token_agent, "seed_from_history"):
+            continue
         try:
             await _token_agent.seed_from_history()
         except Exception as _e:
