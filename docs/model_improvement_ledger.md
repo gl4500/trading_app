@@ -33,6 +33,7 @@ by over-fitting older folds.
 | H10 | The bull↔+edge / neutral↔−edge relationship holds across *history* — strong enough to gate participation | 10-yr daily cross-sectional IC(20d mom → fwd 10d) bucketed by regime | **REFRAMED (iter 5)** — only robust effect is **bear → −0.064 IC (t≈−4.6)**; bull weakly +, neutral ≈ 0. Iter-4 neutral-gate NOT justified. Bear is already gated (+0.15). |
 | H11 | XGB trades still *leak through* in bear despite the +0.15 penalty | Join trades (trading.db) to regime; PnL/win-rate by regime | **FALSIFIED for XGB (iter 6)** — 94% of XGB BUYs are in bull; gate works. XGB system net **+$12.5K realized**. But non-gated rule-based agents bleed **−$19.3K in bear**. |
 | H12 | Extending the bear/high_vol participation gate to the **non-gated rule-based agents** (Momentum, MeanRev, Tech, HistTrends) would recover much of the −$19.3K bear bleed | Design a shared `BaseAgent` regime-entry gate; the XGB agent's 94%-bull / +$12.5K record is the proof-of-concept | open — **highest-EV finding; operator decision + TDD** |
+| H14 | A classic macro signal (VIX term structure, credit spreads, breadth, yield curve) *leads* regime change → add it as an anticipatory feature | Lead-lag rank-AUC: does signal(t) predict forward SPY stress at t+k, non-decaying? | **FALSIFIED (iter 12)** — at the 5–20d horizon none leads: all coincident/decaying, best is VIX *level* (already a feature). Curve inversion 0.47 (leads by quarters, not weeks). |
 
 ## Iterations
 
@@ -408,3 +409,109 @@ that isn't there. The honest read after iters 3–11: **the magnitude axis is no
 regime axis (iters 6–8).** No cheap model-side lever creates current-regime edge; the system's realized
 edge remains its *gating* (bull participation, bear avoidance), not its point predictions. Recommend
 pausing model-metric R&D pending genuinely new inputs (a new feature/data source or a regime shift).
+
+### Iteration 12 — 2026-07-05 — H14 leading-indicator lead-lag study → FALSIFIED (new axis)
+
+**Motive (operator reframe):** every production feature is trailing/coincident (all macro channels are
+`_back`; the regime label = VIX level + SPY trailing-5d), and iters 12/13 showed *reacting* to regime
+at entry/exit is too late. So the question shifted from "improve the model on trailing features" to "is
+there a signal that *leads* regime change we could add?" Cheap validation *before* building: does a
+classic macro signal actually anticipate stress on history?
+
+**Setup:** `scripts/leadlag_regime_probe.py` (read-only, public yfinance data, no trading.db/model).
+16,641 daily rows; candidate signals evaluated on their modern overlap (~2007–2026, covers 2008/2011/
+2015-16/2018/2020/2022). Rank-AUC of signal(t) → target(t+k), k ∈ {5,10,20}. Two price-only targets so
+VIX/credit/breadth candidates can't be circular: T1 = down-trend state (SPY<50dMA) at t+k; T2 = forward
+k-day SPY drop < −3%. Candidates oriented so higher = more stress. **Pre-registered falsifier:** a signal
+LEADS only if its T2 AUC at k≥10 is ≥0.55 **and** does not decay below its k=5 value.
+
+**T2 result (forward-stress AUC):**
+
+| signal | k=5 | k=10 | k=20 | verdict |
+|---|---|---|---|---|
+| vix_ts_slope (VIX/VIX3M) | 0.679 | 0.622 | 0.573 | decays → coincident |
+| credit_stress (−Δ HYG/LQD) | 0.549 | 0.521 | 0.519 | ~random |
+| breadth_stress (−Δ RSP/SPY) | 0.529 | 0.533 | 0.477 | ~random |
+| curve_stress (−(10y−3m)) | 0.472 | 0.471 | 0.470 | <0.5 (inversion leads by quarters, not weeks) |
+| vix_level [LAG baseline] | 0.715 | 0.660 | 0.610 | strongest, but decays; **already a feature** |
+| spy_trail5 [LAG baseline] | 0.522 | 0.548 | 0.526 | weak |
+
+**Verdict — H14 FALSIFIED at this system's horizon.** No candidate leads: every signal's forward-stress
+AUC decays with horizon (vix_ts_slope, vix_level) or is near-random (credit, breadth, curve). The
+predictive content of regime stress is **coincident**, and the single strongest coincident signal is
+plain **VIX level — which the model already has** (`macro_vix_norm`). The fancier candidates (term
+structure, credit, breadth, curve) add no *leading* power at 5–20 days. Yield-curve inversion at 0.47
+confirms the textbook: it leads at quarters, useless at the trading horizon.
+
+**What this settles:** the "we're missing a leading indicator" intuition doesn't hold for the 5–20d
+horizon this system trades — among the classic candidates there simply isn't one; short-horizon regime
+stress is not anticipable, it is contemporaneous. This *generalizes* the H12/H13 falsification (reacting
+to regime is "too late" because stress genuinely can't be foreseen 10–20d out from these signals) and
+closes the newly-opened leading-indicator axis with the usual suspects.
+
+**Where a real edge could still live (not yet tested — these are the honest next forks):**
+1. **Use the coincident signal for risk control, not prediction** — vol-targeted position sizing that
+   scales exposure down when VIX level/slope is *already* elevated. Doesn't need a leading signal; turns
+   the strong coincident AUC into faster de-risking than the current discrete regime gate.
+2. **Longer horizon strategy** — at 1–6 month horizons credit spreads and the yield curve *do* lead;
+   but that is a different product than the 10d cross-sectional system.
+3. **Non-classic leading data** — options-flow/dealer-gamma, positioning (COT), fund flows, short
+   interest. Not free/clean; would need a data source before any probe.
+
+Recommend option 1 (vol-targeted sizing off the coincident VIX signal) as the next cheap probe if the
+operator wants to keep going; otherwise the model-metric R&D program is exhausted across all three axes
+(regime timing, magnitude, leading indicators).
+
+### Iteration 13 — 2026-07-05 — H15 vol-managed sizing premise → GO (SPY premise + REAL-BASKET validation)
+
+**Motive:** iter-12 fork #1 — turn the strong *coincident* VIX/realized-vol signal into risk control
+(Moreira-Muir volatility-managed portfolios) instead of prediction. Before touching the position sizer,
+two cheap read-only backtests: (a) does vol-targeting beat constant exposure on SPY at all, and (b) —
+after the operator correctly flagged SPY is not the book — does it hold on the **actual traded basket**?
+
+**Pre-registered falsifier (non-loosenable, same bar both runs):** vol-managed LEADS to a build only if
+net-of-cost (1 bp/turn) it improves Sharpe **AND** cuts max drawdown ≥15% relative to constant. If
+Sharpe doesn't beat constant after costs → discard.
+
+**(a) SPY premise** — `scripts/vol_managed_premise_probe.py` (yfinance SPY+VIX, full history):
+
+| strategy | annRet | Sharpe | maxDD | verdict |
+|---|---|---|---|---|
+| constant (buy&hold) | +12.0% | 0.65 | −55.2% | — |
+| vol_managed (20d RV target 12%) | +10.0% | **0.75** | **−39.8%** | GO (+27.9% rel DD) |
+| vix_managed (VIX target) | +6.9% | 0.72 | −30.5% | GO (+44.7% rel DD) |
+
+**(b) REAL basket** — `scripts/real_basket_probe.py`. Reconstructed the traded universe READ-ONLY from
+`trading.db` (`SELECT symbol, SUM(shares*price) FROM trades GROUP BY symbol`): **237 names, dollar-volume
+weighted**, top5 MU/WOLF/FATE/AMD/DDOG — heavily high-beta tech/semis/biotech, **not** the broad market.
+Dollar-vol-weighted daily return, renormalized per-day to constituents with yfinance data (100% name
+coverage; composition thins backward in time as young names drop out — min 14 / median 107 / max 237
+names/day). **Basket vs SPY: beta 1.13 full-history, 1.33 in 2024+; annVol 23.7% vs SPY 15.9% (2024+);
+corr 0.89.** So: directionally SPY-like but ~1.3× the amplitude.
+
+| strategy (full history) | annRet | Sharpe | maxDD | verdict |
+|---|---|---|---|---|
+| constant (buy&hold basket) | +24.1% | 1.03 | −57.5% | — |
+| vol_managed (20d RV target 12%) | +15.0% | **1.15** | **−26.6%** | GO (+53.7% rel DD) |
+| vix_managed (VIX target) | +14.7% | 1.13 | −26.5% | GO (+53.8% rel DD) |
+
+2024+ (live regime): constant Sharpe 1.41 / DD −25.9%  →  vol_managed **1.44 / −16.4%**.
+
+**Verdict — H15 GO on both, and STRONGER on the real book.** The vol-managed sizing rule clears the
+pre-registered bar on SPY (Sharpe +0.11, DD −28% rel) and clears it *by more* on the actual basket
+(Sharpe +0.12, DD **−54% rel**) — because the book is ~1.3× beta, so cutting exposure when realized vol
+spikes removes a bigger tail. It de-levers (avg weight 0.69, annRet 24%→15%): this trades raw return for
+a much better risk-adjusted profile — a portfolio-policy choice, but on the falsifier's terms it is a
+clean GO. Target vol is a dial (12% here); raising it recovers return at the cost of some DD reduction.
+
+**H14 re-validated on the real basket (not just SPY):** re-ran the lead-lag AUC with the *basket* as the
+drop target. Same conclusion — **no macro signal leads.** Forward −3% basket-drop AUC: vix_ts_slope
+0.588→0.549→0.530 (k=5/10/20, decays to random), vix_level 0.633→0.584→0.562 (decays), credit/breadth/
+curve ≈0.50. The strongest forward signal is again plain VIX *level* at k=5 (already a feature). The
+iter-12 finding is not a SPY artifact; it holds on the book the system actually trades.
+
+**Status:** H15 is the **first GO** in the R&D program — but it is a *risk-control / sizing* lever, not a
+model-metric lever (consistent with "the system's edge is its gating, not its point predictions"). Next
+step if pursued = TDD a vol-target multiplier into position sizing (`trading/portfolio.py` sizing path or
+a `BaseAgent` exposure scalar), keyed off trailing realized vol and/or VIX level, capped at 2×, with the
+12% target as an env dial. Not built yet — this iteration only establishes the premise on real data.
