@@ -26,7 +26,7 @@ by over-fitting older folds.
 | H3 | Magnitude miscalibration (rank fine, scale wrong) → fix WFE with post-hoc isotonic/linear map on pred→realized, no retrain | Fit rolling calibration on saved preds vs realized, recompute WFE | open |
 | H4 | Recency-weighted / time-decay training would fit the live regime (current sample_weights only up-weight top-agent-correct, not recency) | Add exp time-decay to sample_weights in a sidecar fit, compare last-fold WFE | open |
 | H5 | Target transform: predict vol-scaled or rank-normalized return instead of raw 10d return → stabler magnitude across regimes | Sidecar fit with y' = y / rv_20d, invert, compare WFE | open |
-| H6 | Select features/configs on last-fold WFE instead of mean_IC (every prior sweep optimized mean_IC, which rewards dead old folds) | Re-score forward-selection log by last_WFE | open |
+| H6 | Select features/configs on last-fold WFE instead of mean_IC (every prior sweep optimized mean_IC, which rewards dead old folds) | Re-score forward-selection log by last_WFE | **FALSIFIED (iter 10)** — 0/38 sweep configs have positive last_WFE; best is `corr_spy_20d` alone at −0.0313. No hidden edge. Honest side-signal: mean_IC selection overfits (16-feat peak generalizes worse than 1-feat), but WFE stays negative → reduces overfit, doesn't create edge. |
 | H7 | The edge is rank (IC), not magnitude (WFE) — gate on rank/direction instead | Recent-fold direction hit-rate from calibration buckets | **FALSIFIED (iter 3)** — current-regime (June) IC is −0.07 and calibration is *inverted*. No rank edge to gate on right now either. |
 | H8 | **W3 blend is net-harmful in the current regime** | Backtest blended vs XGB-only on most-recent fold | open — directionally supported; recheck under iter-3 correction |
 | H9 | **Edge is regime-dependent.** Model works in clean bull (May, IC +0.15..+0.28) and breaks when momentum fades to neutral (June, IC −0.07). It's a long-momentum model. | Reconstruct SPY regime over the 3 fold windows | **SUPPORTED, weakly (iter 4)** — good folds = bull, bad fold = bull→neutral. But n=1 transition; needs multi-window validation (H10). |
@@ -335,3 +335,36 @@ next production retrain will recompute metrics under the correct embargo. Thread
 **3,673 / 3,185 / 1,565** train rows per fold (0.67% / 0.57% / 0.28%) whose 10-day label window reached
 into validation — same order as iter-1's 0.5–1.6%. Post-fix (`embargo_days=10`): **0 leaking rows in
 all three folds.** Confirms the shipped fix excludes exactly the rows iter-1 flagged.
+
+### Iteration 10 — 2026-07-05 — H6 re-score sweep by last_WFE → FALSIFIED
+
+**Setup (cheapest test, zero-compute):** the live backend was serving (port 8000), so instead of a
+retrain-based probe I re-scored the *existing* greedy forward-selection sweep
+(`scripts/forward_selection.log`, 38 nested subsets, ranked by mean_IC) on its recorded `last_WFE`
+column — pure parse of a 90-line log, no parquet load / DB / GPU. **Pre-registered falsifier:** if the
+best config by last-fold WFE still has `last_WFE ≤ 0`, there is no hidden current-regime edge in the
+swept space → H6 falsified.
+
+**Result:**
+- **0 of 38** configs have positive `last_WFE` (range −0.1811 … −0.0313).
+- Best by `last_WFE` = step 1, `corr_spy_20d` alone (1 feature), `last_WFE=-0.0313`, `mean_IC=+0.1308`.
+- The mean_IC "PEAK" (step 16, 16 features, `mean_IC=+0.2691`) has `last_WFE=-0.0822` — **worse**
+  recent-fold generalization than the 1-feature model.
+
+**Verdict — H6 FALSIFIED.** Re-ranking the sweep by last-fold WFE surfaces no positive-WFE config;
+the global best is still negative. Consistent with iters 3–8 (current-regime magnitude edge is absent).
+**Honest side-signal (not a GO):** the least-negative WFE configs are the *smallest* (1–2 features)
+while mean_IC keeps climbing to 16 — i.e. mean_IC selection mildly **overfits to old folds** (adds
+features that help mean_IC but hurt recent-fold WFE). But since absolute WFE stays negative, a
+parsimonious re-selection only *reduces overfit*; it doesn't create edge or unblock the WFE gate.
+
+**Caveat / what a full test would need:** this re-scores the mean_IC-greedy *nested path*, not a fresh
+greedy-by-WFE re-optimization. A clean H6+ would re-run greedy adding the channel that best improves
+`last_WFE` at each step (expected outcome: a much smaller feature set, still negative WFE). That is the
+compute-heavy "infrastructure" step (parquet load + per-fold IC) — gated behind backend-idle and only
+justified on a GO, which this is not.
+
+**Next:** open magnitude-axis hypotheses remaining are H3 (post-hoc calibration map), H4 (recency-
+weighted training), H5 (vol-scaled target). All three need a sidecar *fit* → run only when the live
+backend is idle. H3 is weakest given iter-3 found current-regime calibration is *inverted* (a monotone
+map can't fix an inverted rank); H4/H5 are the better next probes.
