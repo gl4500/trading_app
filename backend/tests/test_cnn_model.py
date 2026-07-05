@@ -205,6 +205,10 @@ class TestSignalCNNPredict(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_predict_direction_bull_when_positive(self):
         """Direction is 'bull' when predicted return > 0.5%."""
+        # Seed for determinism: the CNN's weight init / batch shuffling is
+        # otherwise unseeded, making this directional assertion flaky (~1 in 5).
+        torch.manual_seed(0)
+        np.random.seed(0)
         n = 120
         X = np.zeros((n, N_CHANNELS, WINDOW_SIZE), dtype=np.float32)
         X[:n//2, 0, :] =  1.0
