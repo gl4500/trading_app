@@ -175,7 +175,7 @@ async def news_sentinel_loop() -> None:
                 _logger.warning(f"Sentinel: policy monitor failed: {e}")
                 max_policy_score = 0
 
-            # Run additional sources: RSS, Yahoo Finance, EDGAR 8-K, Finnhub, Unusual Whales
+            # Run additional sources: RSS, Yahoo Finance, EDGAR 8-K, Finnhub, Massive
             try:
                 extra_catalysts = await fetch_all_sources(watchlist_syms)
                 # Merge — deduplicate against headlines already collected

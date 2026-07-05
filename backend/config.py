@@ -47,7 +47,6 @@ class Config:
 
     # Additional data source keys
     FINNHUB_API_KEY: str = os.getenv("FINNHUB_API_KEY", "")
-    UNUSUAL_WHALES_API_KEY: str = os.getenv("UNUSUAL_WHALES_API_KEY", "")
     FRED_API_KEY: str = os.getenv("FRED_API_KEY", "")
 
     # Massive.com financial data
