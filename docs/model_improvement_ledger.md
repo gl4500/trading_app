@@ -24,8 +24,8 @@ by over-fitting older folds.
 | H1 | Walk-forward embargo (1 bar) << 10-day label → train/val leakage inflates IC, hides true magnitude failure | Count train rows whose label window overlaps val | **FALSIFIED as root cause** (iter 1) — leakage only 0.5–1.6%. Real bug, minor effect. **FIXED 2026-06-25** — see Iteration 9. |
 | H2 | Regime non-stationarity: edge exists on old folds, absent in current regime | Re-rank existing experiment metas by *last-fold* WFE, not mean_IC | **REFRAMED (iter 2)** — opposite is true: recent fold is the *best* (+0.015 WFE, +0.16 IC); mean_wfe is dragged down by *oldest* fold. Edge is present NOW. |
 | H3 | Magnitude miscalibration (rank fine, scale wrong) → fix WFE with post-hoc isotonic/linear map on pred→realized, no retrain | Fit rolling calibration on saved preds vs realized, recompute WFE | open |
-| H4 | Recency-weighted / time-decay training would fit the live regime (current sample_weights only up-weight top-agent-correct, not recency) | Add exp time-decay to sample_weights in a sidecar fit, compare last-fold WFE | open |
-| H5 | Target transform: predict vol-scaled or rank-normalized return instead of raw 10d return → stabler magnitude across regimes | Sidecar fit with y' = y / rv_20d, invert, compare WFE | open |
+| H4 | Recency-weighted / time-decay training would fit the live regime (current sample_weights only up-weight top-agent-correct, not recency) | Add exp time-decay to sample_weights in a sidecar fit, compare last-fold WFE | **FALSIFIED (iter 11)** — recency weights (halflife 90/180/365d) all make last_WFE *worse* (−0.80 best vs −0.61 baseline), IC stays ~0. |
+| H5 | Target transform: predict vol-scaled or rank-normalized return instead of raw 10d return → stabler magnitude across regimes | Sidecar fit with y' = y / rv_20d, invert, compare WFE | **FALSIFIED (iter 11)** — vol-scaled target (data-driven rv floor) gives last_WFE −1.80 vs −0.61 baseline, IC ~0. Worse, not stabler. |
 | H6 | Select features/configs on last-fold WFE instead of mean_IC (every prior sweep optimized mean_IC, which rewards dead old folds) | Re-score forward-selection log by last_WFE | **FALSIFIED (iter 10)** — 0/38 sweep configs have positive last_WFE; best is `corr_spy_20d` alone at −0.0313. No hidden edge. Honest side-signal: mean_IC selection overfits (16-feat peak generalizes worse than 1-feat), but WFE stays negative → reduces overfit, doesn't create edge. |
 | H7 | The edge is rank (IC), not magnitude (WFE) — gate on rank/direction instead | Recent-fold direction hit-rate from calibration buckets | **FALSIFIED (iter 3)** — current-regime (June) IC is −0.07 and calibration is *inverted*. No rank edge to gate on right now either. |
 | H8 | **W3 blend is net-harmful in the current regime** | Backtest blended vs XGB-only on most-recent fold | open — directionally supported; recheck under iter-3 correction |
@@ -368,3 +368,43 @@ justified on a GO, which this is not.
 weighted training), H5 (vol-scaled target). All three need a sidecar *fit* → run only when the live
 backend is idle. H3 is weakest given iter-3 found current-regime calibration is *inverted* (a monotone
 map can't fix an inverted rank); H4/H5 are the better next probes.
+
+### Iteration 11 — 2026-07-05 — H4 (recency weights) + H5 (vol-scaled target) → BOTH FALSIFIED
+
+**Setup:** one sidecar probe (`scripts/xgb_recency_voltarget_probe.py`, low CPU priority alongside the
+live backend). Same harness as the feature sweep — `signal_history.get_training_data()` (565,516 rows /
+240 symbols), 10d forward-return label, `build_training_windows` → last-timestep 38ch, 3-fold
+walk-forward — but with the **leak-free embargo** (`embargo_days=LABEL_HORIZON_DAYS=10`, the H1 fix), so
+all configs are honest. WFE = OOS R² (`_compute_wfe`). **Pre-registered falsifier (non-loosenable, = the
+production WFE gate's bar):** a GO requires the most-recent-fold WFE to rise **above 0**.
+
+| config | mean_IC | mean_WFE | last_WFE | verdict |
+|---|---|---|---|---|
+| Baseline (uniform, raw y) | +0.0001 | −0.2295 | **−0.6086** | — |
+| H4 recency, halflife 90d | −0.0079 | −0.3510 | −0.8526 | worse |
+| H4 recency, halflife 180d | −0.0008 | −0.3201 | −0.8086 | worse |
+| H4 recency, halflife 365d | +0.0005 | −0.3059 | −0.8045 | worse |
+| H5 vol-scaled (rv floor p05=0.1304) | +0.0027 | −0.7871 | −1.8018 | worse |
+
+**Verdict — H4 and H5 both FALSIFIED.** Neither lifts recent-fold WFE above 0; both push it *further
+negative* and leave IC at ~0. Recency-weighting the loss and vol-normalizing the target were the two
+remaining "stabilize magnitude across regimes" levers — neither helps. The comparison is internally
+consistent (identical baseline + harness; only the treatment changes), so the deltas are robust.
+
+**Probe-integrity notes (kept for honesty):**
+- **H5 first run was a probe bug, not a real result:** `rv_20d` is *annualized* vol (median 0.30), so a
+  fixed `RV_FLOOR=0.01` let low-/zero-rv rows (3.9% have rv≤0) blow up `y/rv` to ±30, spiking predicted
+  magnitude → WFE hit the −10 clamp while IC spuriously read +0.034. Re-ran with a data-driven floor
+  (5th-pctile of positive rv = 0.1304); IC collapsed to +0.003 and WFE resolved to −1.80. Only the
+  corrected run is the verdict. Lesson: check a transform's units before trusting its metric.
+- **Baseline degraded vs the 05-09 sweep** (mean_IC +0.073 → +0.0001; last_WFE −0.118 → −0.609). Not a
+  harness artifact — it's the regime story continuing: data now runs through July with deeper
+  negative-edge recent folds, and the stricter leak-free embargo trims near-boundary train rows. The
+  model's aggregate walk-forward rank skill has decayed to ~0 in the current sample.
+
+**Next:** only H3 (post-hoc calibration map) remains open on the magnitude axis, and it is the weakest —
+iter-3 found current-regime calibration is *inverted*, so a monotone map cannot manufacture rank edge
+that isn't there. The honest read after iters 3–11: **the magnitude axis is now as exhausted as the
+regime axis (iters 6–8).** No cheap model-side lever creates current-regime edge; the system's realized
+edge remains its *gating* (bull participation, bear avoidance), not its point predictions. Recommend
+pausing model-metric R&D pending genuinely new inputs (a new feature/data source or a regime shift).
