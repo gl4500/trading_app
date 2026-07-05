@@ -461,3 +461,57 @@ closes the newly-opened leading-indicator axis with the usual suspects.
 Recommend option 1 (vol-targeted sizing off the coincident VIX signal) as the next cheap probe if the
 operator wants to keep going; otherwise the model-metric R&D program is exhausted across all three axes
 (regime timing, magnitude, leading indicators).
+
+### Iteration 13 — 2026-07-05 — H15 vol-managed sizing premise → GO (SPY premise + REAL-BASKET validation)
+
+**Motive:** iter-12 fork #1 — turn the strong *coincident* VIX/realized-vol signal into risk control
+(Moreira-Muir volatility-managed portfolios) instead of prediction. Before touching the position sizer,
+two cheap read-only backtests: (a) does vol-targeting beat constant exposure on SPY at all, and (b) —
+after the operator correctly flagged SPY is not the book — does it hold on the **actual traded basket**?
+
+**Pre-registered falsifier (non-loosenable, same bar both runs):** vol-managed LEADS to a build only if
+net-of-cost (1 bp/turn) it improves Sharpe **AND** cuts max drawdown ≥15% relative to constant. If
+Sharpe doesn't beat constant after costs → discard.
+
+**(a) SPY premise** — `scripts/vol_managed_premise_probe.py` (yfinance SPY+VIX, full history):
+
+| strategy | annRet | Sharpe | maxDD | verdict |
+|---|---|---|---|---|
+| constant (buy&hold) | +12.0% | 0.65 | −55.2% | — |
+| vol_managed (20d RV target 12%) | +10.0% | **0.75** | **−39.8%** | GO (+27.9% rel DD) |
+| vix_managed (VIX target) | +6.9% | 0.72 | −30.5% | GO (+44.7% rel DD) |
+
+**(b) REAL basket** — `scripts/real_basket_probe.py`. Reconstructed the traded universe READ-ONLY from
+`trading.db` (`SELECT symbol, SUM(shares*price) FROM trades GROUP BY symbol`): **237 names, dollar-volume
+weighted**, top5 MU/WOLF/FATE/AMD/DDOG — heavily high-beta tech/semis/biotech, **not** the broad market.
+Dollar-vol-weighted daily return, renormalized per-day to constituents with yfinance data (100% name
+coverage; composition thins backward in time as young names drop out — min 14 / median 107 / max 237
+names/day). **Basket vs SPY: beta 1.13 full-history, 1.33 in 2024+; annVol 23.7% vs SPY 15.9% (2024+);
+corr 0.89.** So: directionally SPY-like but ~1.3× the amplitude.
+
+| strategy (full history) | annRet | Sharpe | maxDD | verdict |
+|---|---|---|---|---|
+| constant (buy&hold basket) | +24.1% | 1.03 | −57.5% | — |
+| vol_managed (20d RV target 12%) | +15.0% | **1.15** | **−26.6%** | GO (+53.7% rel DD) |
+| vix_managed (VIX target) | +14.7% | 1.13 | −26.5% | GO (+53.8% rel DD) |
+
+2024+ (live regime): constant Sharpe 1.41 / DD −25.9%  →  vol_managed **1.44 / −16.4%**.
+
+**Verdict — H15 GO on both, and STRONGER on the real book.** The vol-managed sizing rule clears the
+pre-registered bar on SPY (Sharpe +0.11, DD −28% rel) and clears it *by more* on the actual basket
+(Sharpe +0.12, DD **−54% rel**) — because the book is ~1.3× beta, so cutting exposure when realized vol
+spikes removes a bigger tail. It de-levers (avg weight 0.69, annRet 24%→15%): this trades raw return for
+a much better risk-adjusted profile — a portfolio-policy choice, but on the falsifier's terms it is a
+clean GO. Target vol is a dial (12% here); raising it recovers return at the cost of some DD reduction.
+
+**H14 re-validated on the real basket (not just SPY):** re-ran the lead-lag AUC with the *basket* as the
+drop target. Same conclusion — **no macro signal leads.** Forward −3% basket-drop AUC: vix_ts_slope
+0.588→0.549→0.530 (k=5/10/20, decays to random), vix_level 0.633→0.584→0.562 (decays), credit/breadth/
+curve ≈0.50. The strongest forward signal is again plain VIX *level* at k=5 (already a feature). The
+iter-12 finding is not a SPY artifact; it holds on the book the system actually trades.
+
+**Status:** H15 is the **first GO** in the R&D program — but it is a *risk-control / sizing* lever, not a
+model-metric lever (consistent with "the system's edge is its gating, not its point predictions"). Next
+step if pursued = TDD a vol-target multiplier into position sizing (`trading/portfolio.py` sizing path or
+a `BaseAgent` exposure scalar), keyed off trailing realized vol and/or VIX level, capped at 2×, with the
+12% target as an env dial. Not built yet — this iteration only establishes the premise on real data.
