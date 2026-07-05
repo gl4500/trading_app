@@ -54,7 +54,7 @@
   │  news_sentinel_loop  (every 5 min market hours / 15 min off-hours)      │
   │                                                                          │
   │  Sources: Alpaca · CNBC RSS · Reuters RSS · Yahoo Finance · yfinance    │
-  │           SEC EDGAR 8-K · Finnhub · Unusual Whales                     │
+  │           SEC EDGAR 8-K · Finnhub                                        │
   │                                                                          │
   │  Scoring:  standard catalyst (earnings/M&A/FDA/upgrades)                │
   │          + policy monitor   (EO / legislation / tariffs / Fed)          │

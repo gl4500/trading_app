@@ -34,7 +34,7 @@ trading_app/
 │   └── data/
 │       ├── market_data.py          # Central market context builder
 │       ├── news_service.py         # Alpaca News API — 90s cache, semaphore-limited
-│       ├── sentinel_sources.py     # Multi-source sentinel: RSS, EDGAR, Yahoo, Finnhub, Unusual Whales
+│       ├── sentinel_sources.py     # Multi-source sentinel: RSS, EDGAR, Yahoo, Finnhub, Massive
 │       ├── policy_monitor.py       # Congressional & executive order catalyst scorer
 │       ├── technicals.py           # RSI/MACD/BB/ATR/SMA/Stochastic/OBV calculator
 │       ├── signal_aggregator.py    # Multi-source composite signal
@@ -155,7 +155,6 @@ A background loop that monitors news 24/7, polling more frequently during market
 | **yfinance news** | Richer per-symbol article coverage | free |
 | **SEC EDGAR 8-K** | Material event disclosures (earnings, M&A, bankruptcies) | free |
 | **Finnhub** | Company + general market news | `FINNHUB_API_KEY` |
-| **Unusual Whales** | Congressional trades + unusual options flow alerts | `UNUSUAL_WHALES_API_KEY` |
 | **Policy Monitor** | Congressional laws, executive orders, Fed decisions, tariffs | free (keyword scoring) |
 
 ### Catalyst Categories
@@ -460,7 +459,6 @@ GEMINI_API_KEY=your_key
 
 # Additional data sources (optional — sentinel works without these)
 FINNHUB_API_KEY=your_key        # https://finnhub.io
-UNUSUAL_WHALES_API_KEY=your_key # https://unusualwhales.com
 
 # Ollama local inference (zero API cost)
 # Install Ollama: https://ollama.com  →  ollama pull llama3.1:8b

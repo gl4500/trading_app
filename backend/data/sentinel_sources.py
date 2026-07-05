@@ -6,8 +6,6 @@ Sources:
   2. SEC EDGAR  — Recent 8-K filings (material event disclosures, free Atom feed)
   3. Yahoo Finance news — yfinance Ticker.news (richer per-symbol coverage)
   4. Finnhub    — Company news + general market news (requires FINNHUB_API_KEY)
-  5. Unusual Whales — Congressional trades + options flow alerts
-                     (requires UNUSUAL_WHALES_API_KEY)
 
 All functions return List[Dict] using the same catalyst schema as the sentinel:
   {headline, summary, source, date, symbol, score, category, sectors,
@@ -60,8 +58,6 @@ _EDGAR_8K  = (
     "https://www.sec.gov/cgi-bin/browse-edgar"
     "?action=getcurrent&type=8-K&dateb=&owner=include&count=40&output=atom"
 )
-_UNUSUAL_WHALES_CONGRESS = "https://api.unusualwhales.com/api/congress/recent-trades"
-_UNUSUAL_WHALES_FLOW     = "https://api.unusualwhales.com/api/option-contract/flow-alerts"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -318,121 +314,7 @@ async def fetch_finnhub_news(symbols: List[str]) -> List[Dict]:
     return results
 
 
-# ── Source 6: Unusual Whales ──────────────────────────────────────────────────
-
-# Circuit breaker: set True after the first 401 so we stop calling every poll.
-# Resets on process restart — intentional (re-check after key rotation).
-_uw_auth_failed: bool = False
-# Set True after the first 404 on the flow endpoint (endpoint may have changed).
-_uw_flow_missing: bool = False
-
-
-async def fetch_unusual_whales(symbols: List[str]) -> List[Dict]:
-    """
-    Fetch congressional trades and options flow alerts from Unusual Whales.
-    Requires UNUSUAL_WHALES_API_KEY in .env — skipped silently if missing.
-
-    Congressional trades:  members of Congress buying/selling stocks
-    Flow alerts:           unusually large options activity (smart money signals)
-
-    Circuit breaker: after the first 401 the function skips all subsequent calls
-    for the lifetime of the process.  Update UNUSUAL_WHALES_API_KEY in .env and
-    restart the backend to retry.
-    """
-    global _uw_auth_failed, _uw_flow_missing
-
-    if not config.UNUSUAL_WHALES_API_KEY:
-        return []
-
-    if _uw_auth_failed:
-        return []
-
-    headers = {
-        "Authorization": f"Bearer {config.UNUSUAL_WHALES_API_KEY}",
-        "Accept": "application/json",
-        "User-Agent": "TradingApp/1.0",
-    }
-    results: List[Dict] = []
-    sym_set = {s.upper() for s in symbols}
-
-    async with httpx.AsyncClient(timeout=15, headers=headers) as client:
-
-        # ── Congressional trades ──────────────────────────────────────────
-        try:
-            resp = await client.get(_UNUSUAL_WHALES_CONGRESS, params={"limit": 50})
-            if resp.status_code == 401:
-                _uw_auth_failed = True
-                logger.warning(
-                    "Unusual Whales: 401 Unauthorized — API key invalid or subscription lapsed. "
-                    "Disabling source for this session. Update UNUSUAL_WHALES_API_KEY in .env and restart."
-                )
-                return []
-            if resp.status_code == 200:
-                data = resp.json()
-                trades = data if isinstance(data, list) else data.get("data", [])
-                for t in trades:
-                    ticker = (t.get("ticker") or t.get("symbol") or "").upper()
-                    if ticker not in sym_set:
-                        continue
-                    member   = t.get("representative") or t.get("name") or "Congress member"
-                    chamber  = t.get("chamber") or ""
-                    action   = (t.get("transaction_date") or t.get("type") or "trade").upper()
-                    amount   = t.get("amount") or t.get("value") or ""
-                    filed    = t.get("filed_date") or t.get("disclosure_date") or ""
-                    headline = f"Congressional Trade: {member} ({chamber}) — {ticker} {action}"
-                    summary  = f"Disclosed trade of {ticker} worth {amount}. Filed: {filed}"
-                    cat = _make_catalyst(headline, summary, "Unusual Whales / Congress", filed, ticker)
-                    if cat:
-                        cat["score"] = max(cat["score"], 2)
-                        cat["category"] = "policy"
-                        results.append(cat)
-            logger.debug(f"Unusual Whales congress: {len([r for r in results if r.get('source','').startswith('Unusual')])} items")
-        except Exception as e:
-            logger.debug(f"Unusual Whales congress fetch failed: {e}")
-
-        # ── Options flow alerts ───────────────────────────────────────────
-        if _uw_flow_missing:
-            return results  # endpoint previously returned 404 — skip
-        try:
-            resp = await client.get(_UNUSUAL_WHALES_FLOW, params={"limit": 30})
-            if resp.status_code == 401:
-                _uw_auth_failed = True
-                logger.warning(
-                    "Unusual Whales: 401 Unauthorized on flow endpoint — disabling source for this session."
-                )
-                return results
-            if resp.status_code == 404:
-                _uw_flow_missing = True
-                logger.warning(
-                    "Unusual Whales: 404 on flow-alerts endpoint — endpoint may have changed. "
-                    "Skipping flow alerts for this session."
-                )
-                return results
-            if resp.status_code == 200:
-                data = resp.json()
-                flows = data if isinstance(data, list) else data.get("data", [])
-                for f in flows:
-                    ticker = (f.get("ticker") or f.get("symbol") or "").upper()
-                    if ticker not in sym_set:
-                        continue
-                    side      = (f.get("side") or "").upper()          # CALL / PUT
-                    premium   = f.get("premium") or f.get("total_premium") or ""
-                    sentiment = "bullish" if side == "CALL" else "bearish" if side == "PUT" else "unusual"
-                    expiry    = f.get("expiry") or f.get("expiration_date") or ""
-                    headline  = f"Unusual Options Flow: {ticker} {side} — {sentiment} {premium}"
-                    summary   = f"Large {side} order on {ticker}, expiry {expiry}, premium {premium}"
-                    cat = _make_catalyst(headline, summary, "Unusual Whales / Flow", "", ticker)
-                    if cat:
-                        cat["score"] = max(cat["score"], 2)
-                        cat["category"] = "catalyst"
-                        results.append(cat)
-        except Exception as e:
-            logger.debug(f"Unusual Whales flow fetch failed: {e}")
-
-    return results
-
-
-# ── Source 7: Massive.com — options flow + news ───────────────────────────────
+# ── Source 6: Massive.com — options flow + news ───────────────────────────────
 
 async def fetch_massive_signals(symbols: List[str]) -> List[Dict]:
     """
@@ -488,7 +370,6 @@ async def fetch_all_sources(symbols: List[str]) -> List[Dict]:
         fetch_yfinance_news(symbols),
         fetch_edgar_8k(symbols),
         fetch_finnhub_news(symbols),
-        fetch_unusual_whales(symbols),
         fetch_massive_signals(symbols),
     ]
 
