@@ -254,7 +254,7 @@ class SignalW3:
             logger.info(f"SignalW3.fit: only {len(X)} samples — skipping")
             return
 
-        from data.cnn_model import _compute_wfe
+        from data.cnn_model import _compute_wfe, LABEL_HORIZON_DAYS
         from data.cnn_evaluation import (
             compute_ic, compute_ir, walkforward_folds,
         )
@@ -279,7 +279,8 @@ class SignalW3:
         Xz  = ((X_arr - mu) / std).astype(np.float32)
         self._mu, self._std = mu.astype(np.float32), std
 
-        folds = walkforward_folds(t_arr, n_folds=3, min_val_days=14, embargo_bars=1)
+        folds = walkforward_folds(t_arr, n_folds=3, min_val_days=14, embargo_bars=1,
+                                  embargo_days=LABEL_HORIZON_DAYS)
         if not folds:
             logger.warning("SignalW3.fit: dataset too short for 3 folds — skipping")
             return

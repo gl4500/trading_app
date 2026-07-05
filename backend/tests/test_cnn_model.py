@@ -205,6 +205,10 @@ class TestSignalCNNPredict(unittest.TestCase):
     @unittest.skipUnless(HAS_TORCH, "torch not installed")
     def test_predict_direction_bull_when_positive(self):
         """Direction is 'bull' when predicted return > 0.5%."""
+        # Seed for determinism: the CNN's weight init / batch shuffling is
+        # otherwise unseeded, making this directional assertion flaky (~1 in 5).
+        torch.manual_seed(0)
+        np.random.seed(0)
         n = 120
         X = np.zeros((n, N_CHANNELS, WINDOW_SIZE), dtype=np.float32)
         X[:n//2, 0, :] =  1.0
@@ -1095,6 +1099,23 @@ class TestFitProducesWalkforwardMetrics(unittest.TestCase):
         self.assertIn("calibration", summary)
         self.assertIsInstance(summary["calibration"], list)
         self.assertLessEqual(len(summary["calibration"]), 5)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not installed")
+    def test_fit_applies_label_horizon_as_time_embargo(self):
+        # The forward label spans LABEL_HORIZON_DAYS calendar days, so fit() must
+        # pass a time-based embargo of at least that many days to the fold
+        # generator — a 1-bar row embargo leaks the label into validation.
+        from unittest.mock import patch
+        from data.cnn_model import SignalCNN, LABEL_HORIZON_DAYS
+
+        X, y, t = self._make_synthetic_data()
+        cnn = SignalCNN(T=10, n_channels=10)
+        with patch("data.cnn_evaluation.walkforward_folds", return_value=[]) as mock_wf:
+            cnn.fit(X, y, t, epochs=2, batch_size=32, n_folds=3, min_val_days=14)
+        self.assertTrue(mock_wf.called, "fit must call walkforward_folds")
+        _args, kwargs = mock_wf.call_args
+        self.assertEqual(kwargs.get("embargo_days"), LABEL_HORIZON_DAYS,
+                         "fit must embargo at least the label horizon in days")
 
 
 class TestTrainingHistoryRecordSchema(unittest.TestCase):

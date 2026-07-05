@@ -161,6 +161,42 @@ class TestWalkforwardFolds(unittest.TestCase):
         for tr, va in folds:
             self.assertGreater(ts[va].min(), ts[tr].max())
 
+    def test_embargo_days_enforces_time_gap_on_daily_bars(self):
+        # With a 10-day forward label, a time-based embargo must leave a gap of
+        # at least embargo_days between the last train bar and the first val bar.
+        ts = np.arange(0, 120 * ONE_DAY, ONE_DAY, dtype=np.float64)
+        folds = walkforward_folds(ts, n_folds=3, min_val_days=14,
+                                  embargo_bars=1, embargo_days=10)
+        self.assertTrue(folds, "expected non-empty folds for a 120-day daily series")
+        for tr, va in folds:
+            gap = ts[va].min() - ts[tr].max()
+            self.assertGreaterEqual(gap, 10 * ONE_DAY - 1e-3,
+                                    "train/val gap must span at least embargo_days")
+
+    def test_embargo_days_dominates_when_bars_are_dense(self):
+        # 5 bars/day for 120 days. A 1-bar embargo leaves only ~0.2 days of gap,
+        # which leaks a 10-day forward label. embargo_days=10 must still clear
+        # 10 calendar days regardless of how dense the bars are.
+        step = ONE_DAY / 5
+        ts = np.arange(0, 120 * ONE_DAY, step, dtype=np.float64)
+        folds = walkforward_folds(ts, n_folds=3, min_val_days=14,
+                                  embargo_bars=1, embargo_days=10)
+        self.assertTrue(folds, "expected non-empty folds for a dense 120-day series")
+        for tr, va in folds:
+            gap = ts[va].min() - ts[tr].max()
+            self.assertGreaterEqual(gap, 10 * ONE_DAY - 1e-3,
+                                    "dense bars must not defeat the time-based embargo")
+
+    def test_embargo_days_defaults_to_zero_backward_compatible(self):
+        # Without embargo_days, behaviour is unchanged: a 1-bar row embargo on
+        # daily data leaves only a ~1-day gap (not 10).
+        ts = np.arange(0, 90 * ONE_DAY, ONE_DAY, dtype=np.float64)
+        folds = walkforward_folds(ts, n_folds=3, min_val_days=14, embargo_bars=1)
+        for tr, va in folds:
+            gap = ts[va].min() - ts[tr].max()
+            self.assertLess(gap, 3 * ONE_DAY,
+                            "default (no embargo_days) must not impose a 10-day gap")
+
     def test_val_sets_are_disjoint_at_fold_boundaries(self):
         # Place a sample exactly on a fold boundary. Previously both fold 0
         # and fold 1 would include it (closed-closed intervals). Now fold 0

@@ -17,6 +17,7 @@ import numpy as np
 
 from data.cnn_model import (
     ALL_CHANNEL_COLUMNS,
+    LABEL_HORIZON_DAYS,
     LABEL_HORIZON_DIR_THRESHOLD,
     LABEL_HORIZON_FULL_CONF_RET,
     N_CHANNELS,
@@ -247,6 +248,7 @@ class SignalXGBoost:
         n_folds: int = WALKFORWARD_FOLDS,
         min_val_days: int = WALKFORWARD_MIN_VAL_DAYS,
         embargo_bars: int = WALKFORWARD_EMBARGO_BARS,
+        embargo_days: float = LABEL_HORIZON_DAYS,
         **kwargs,   # silently ignore CNN-specific kwargs (epochs, batch_size, patience)
     ) -> None:
         """Train via walk-forward CV. Last fold's booster becomes production."""
@@ -267,6 +269,7 @@ class SignalXGBoost:
             X = X[:, self._feature_filter, :]
         folds = walkforward_folds(
             t, n_folds=n_folds, min_val_days=min_val_days, embargo_bars=embargo_bars,
+            embargo_days=embargo_days,
         )
         if not folds:
             logger.warning(

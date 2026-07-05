@@ -120,6 +120,30 @@ class TestSignalW3Predict(unittest.TestCase):
         self.assertEqual(len(out), 3)
 
 
+class TestSignalW3TimeEmbargo(unittest.TestCase):
+    """W3 walk-forward CV must embargo the full label horizon, not just 1 bar."""
+
+    @unittest.skipUnless(HAS_TORCH, "torch not available")
+    def test_fit_applies_label_horizon_as_time_embargo(self):
+        from unittest.mock import patch
+        from data.w3_model import SignalW3
+        from data.cnn_model import LABEL_HORIZON_DAYS
+        N, C, T = 300, 38, 10
+        rng = np.random.default_rng(3)
+        X = rng.standard_normal((N, C, T)).astype(np.float32)
+        y = (0.10 * X[:, 0, -1]).astype(np.float32)
+        t = np.linspace(0, 90 * 86400, N).astype(np.float64)
+        with tempfile.TemporaryDirectory() as td:
+            m = SignalW3(model_path=os.path.join(td, "w3.pt"))
+            with patch("data.cnn_evaluation.walkforward_folds",
+                       return_value=[]) as mock_wf:
+                m.fit(X, y, t)
+        self.assertTrue(mock_wf.called, "fit must call walkforward_folds")
+        _args, kwargs = mock_wf.call_args
+        self.assertEqual(kwargs.get("embargo_days"), LABEL_HORIZON_DAYS,
+                         "fit must embargo at least the label horizon in days")
+
+
 class TestSignalW3CompatSurface(unittest.TestCase):
     """Attributes the xgb_reasoning_agent expects to find on SignalW3 (parity with SignalXGBoost)."""
 

@@ -623,6 +623,7 @@ class SignalCNN:
         n_folds: int = WALKFORWARD_FOLDS,
         min_val_days: int = WALKFORWARD_MIN_VAL_DAYS,
         embargo_bars: int = WALKFORWARD_EMBARGO_BARS,
+        embargo_days: float = LABEL_HORIZON_DAYS,
     ) -> None:
         """
         Train using walk-forward cross-validation.
@@ -663,6 +664,7 @@ class SignalCNN:
             t, n_folds=n_folds,
             min_val_days=min_val_days,
             embargo_bars=embargo_bars,
+            embargo_days=embargo_days,
         )
         if not folds:
             logger.warning(

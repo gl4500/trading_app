@@ -108,6 +108,21 @@ class TestFitProducesWalkforwardMetrics(unittest.TestCase):
         self.assertTrue(m.is_trained)
         self.assertGreater(m.last_train_time, 0)
 
+    def test_fit_applies_label_horizon_as_time_embargo(self):
+        # The 10-day forward label leaks under a 1-bar embargo; fit() must pass a
+        # time-based embargo of at least the label horizon to the fold generator.
+        from unittest.mock import patch
+        from data.xgboost_model import SignalXGBoost
+        from data.cnn_model import LABEL_HORIZON_DAYS
+        X, y, t = self._make_synthetic()
+        m = SignalXGBoost(T=10, n_channels=14)
+        with patch("data.cnn_evaluation.walkforward_folds", return_value=[]) as mock_wf:
+            m.fit(X, y, t, n_folds=3, min_val_days=14)
+        self.assertTrue(mock_wf.called, "fit must call walkforward_folds")
+        _args, kwargs = mock_wf.call_args
+        self.assertEqual(kwargs.get("embargo_days"), LABEL_HORIZON_DAYS,
+                         "fit must embargo at least the label horizon in days")
+
     def test_predict_after_fit_returns_floats(self):
         from data.xgboost_model import SignalXGBoost
         X, y, t = self._make_synthetic()

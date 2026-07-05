@@ -108,6 +108,7 @@ def walkforward_folds(
     n_folds: int = 3,
     min_val_days: int = 14,
     embargo_bars: int = 1,
+    embargo_days: float = 0.0,
 ) -> List[Tuple[np.ndarray, np.ndarray]]:
     """
     Generate (train_idx, val_idx) tuples for walk-forward cross-validation.
@@ -115,9 +116,14 @@ def walkforward_folds(
     Each fold:
       - Train set is everything strictly before the fold's val start.
       - Val set spans at least `min_val_days` calendar days.
-      - `embargo_bars` rows between train end and val start are excluded from
-        both — prevents the model from seeing samples whose forward outcome
-        overlaps the val period.
+      - The embargo between train end and val start is the LARGER of two rules:
+          * `embargo_bars` rows, and
+          * `embargo_days` calendar days.
+        Both exclude samples whose forward outcome overlaps the val period.
+        A row-count embargo alone is insufficient when the forward label spans
+        many calendar days but bars are dense (e.g. a 10-day label with intraday
+        bars): set `embargo_days >= label horizon` to drop every train row whose
+        label window reaches into the val period, regardless of bar density.
 
     Folds are anchored to the END of the data (rolling-origin from the back),
     so the most recent fold's val is always the last `min_val_days` of data
@@ -130,6 +136,9 @@ def walkforward_folds(
     n_folds      : how many CV folds to produce
     min_val_days : minimum calendar days the val window must span
     embargo_bars : rows to exclude between train end and val start
+    embargo_days : calendar days to exclude before val start (use the label
+                   horizon, e.g. 10 for a 10-day forward label). The effective
+                   embargo is whichever of embargo_bars / embargo_days drops more.
 
     Returns
     -------
@@ -165,7 +174,13 @@ def walkforward_folds(
         else:
             val_mask_sorted = (sorted_ts >= val_start) & (sorted_ts < val_end)
         train_cutoff_idx = int(np.searchsorted(sorted_ts, val_start, side="left"))
-        train_end_idx = max(0, train_cutoff_idx - embargo_bars)
+        # Row-count embargo: drop `embargo_bars` rows before val_start.
+        bars_end_idx = train_cutoff_idx - embargo_bars
+        # Time embargo: drop every row within `embargo_days` of val_start, so a
+        # multi-day forward label can't leak into val even when bars are dense.
+        time_cutoff = val_start - embargo_days * _SECS_PER_DAY
+        days_end_idx = int(np.searchsorted(sorted_ts, time_cutoff, side="left"))
+        train_end_idx = max(0, min(bars_end_idx, days_end_idx))
         if train_end_idx < 1 or not val_mask_sorted.any():
             continue
         train_idx_sorted = np.arange(0, train_end_idx)
