@@ -812,7 +812,7 @@ async def _run_gemini_scanner(candidates: List[Dict], sector_summary: str = "") 
         _genai_types.Content(
             role="user",
             parts=[_genai_types.Part.from_text(
-                f"{_SYSTEM_PROMPT}\n\n{_build_user_message(candidates, sector_summary=sector_summary)}"
+                text=f"{_SYSTEM_PROMPT}\n\n{_build_user_message(candidates, sector_summary=sector_summary)}"
             )],
         )
     ]

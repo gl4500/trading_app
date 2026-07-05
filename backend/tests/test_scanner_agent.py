@@ -1681,5 +1681,40 @@ class TestScannerRecsJsonlLog(unittest.TestCase):
                       msg=f"expected tempfile redirect, got {current}")
 
 
+class TestGeminiScannerPartConstruction(unittest.IsolatedAsyncioTestCase):
+    """Regression: _run_gemini_scanner must build the prompt Part with the
+    keyword-only `text=` form. google-genai >=1.x made Part.from_text()
+    keyword-only, so a positional call raised
+    'Part.from_text() takes 1 positional argument but 2 were given'
+    on every scan trigger, silently disabling the Gemini scanner."""
+
+    async def test_gemini_scanner_builds_prompt_part_without_typeerror(self):
+        from agents.scanner_agent import _run_gemini_scanner
+
+        candidates = [{"symbol": "AAPL", "score": 0.5}]
+
+        # Terminal response: no candidates -> the tool-use loop breaks on the
+        # first round, so the only real code exercised is the prompt-Part build.
+        mock_resp = MagicMock()
+        mock_resp.usage_metadata = None
+        mock_resp.candidates = []
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(return_value=mock_resp)
+
+        mock_cfg = MagicMock()
+        mock_cfg.GEMINI_API_KEY = "test-key"
+
+        with patch("agents.scanner_agent._genai.Client", return_value=mock_client), \
+             patch("agents.scanner_agent._build_gemini_tools", return_value=[]), \
+             patch("agents.scanner_agent._build_user_message", return_value="msg"), \
+             patch("agents.scanner_agent.save_token_log", new_callable=AsyncMock), \
+             patch("agents.scanner_agent.get_daily_token_total",
+                   new_callable=AsyncMock, return_value=0), \
+             patch("config.config", mock_cfg):
+            result = await _run_gemini_scanner(candidates)
+
+        self.assertEqual(result, [])
+
+
 if __name__ == "__main__":
     unittest.main()
