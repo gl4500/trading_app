@@ -1188,5 +1188,51 @@ class TestComputeFeaturesSingleEntryPoint(unittest.TestCase):
         )
 
 
+class TestGetLatestRv20d(unittest.TestCase):
+    """get_latest_rv_20d — annualized trailing realized vol reader used by the
+    XGB vol-managed sizing path (H15). Patches _load so no Parquet touches disk.
+    """
+
+    def _patch_load(self, df):
+        from unittest import mock
+        return mock.patch("data.signal_history._load", return_value=df)
+
+    def test_returns_last_rv_when_present(self):
+        import pandas as pd
+        from data.signal_history import signal_history
+        with self._patch_load(pd.DataFrame({"rv_20d": [0.20, 0.30, 0.35]})):
+            self.assertAlmostEqual(signal_history.get_latest_rv_20d("AAPL"), 0.35)
+
+    def test_skips_trailing_nan(self):
+        import pandas as pd
+        from data.signal_history import signal_history
+        with self._patch_load(pd.DataFrame({"rv_20d": [0.20, 0.30, np.nan]})):
+            self.assertAlmostEqual(signal_history.get_latest_rv_20d("AAPL"), 0.30)
+
+    def test_returns_none_when_column_missing(self):
+        import pandas as pd
+        from data.signal_history import signal_history
+        with self._patch_load(pd.DataFrame({"price": [100.0, 101.0]})):
+            self.assertIsNone(signal_history.get_latest_rv_20d("AAPL"))
+
+    def test_returns_none_when_all_nan(self):
+        import pandas as pd
+        from data.signal_history import signal_history
+        with self._patch_load(pd.DataFrame({"rv_20d": [np.nan, np.nan]})):
+            self.assertIsNone(signal_history.get_latest_rv_20d("AAPL"))
+
+    def test_returns_none_when_empty(self):
+        import pandas as pd
+        from data.signal_history import signal_history
+        with self._patch_load(pd.DataFrame({"rv_20d": []})):
+            self.assertIsNone(signal_history.get_latest_rv_20d("AAPL"))
+
+    def test_returns_none_for_nonpositive_vol(self):
+        import pandas as pd
+        from data.signal_history import signal_history
+        with self._patch_load(pd.DataFrame({"rv_20d": [0.20, 0.0]})):
+            self.assertIsNone(signal_history.get_latest_rv_20d("AAPL"))
+
+
 if __name__ == "__main__":
     unittest.main()

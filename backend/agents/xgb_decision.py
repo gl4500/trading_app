@@ -39,6 +39,8 @@ class BuyContext:
     cash_available: float
     portfolio_value: float
     kelly_fraction: float                   # quarter-Kelly from caller
+    realized_vol: Optional[float] = None    # symbol's annualized trailing rv_20d;
+                                            # None when unavailable (H15 sizing)
 
 
 @dataclass(frozen=True)
@@ -57,6 +59,32 @@ _REGIME_CONF_ADJ = {
     "bear": 0.15,
     "high_vol": 0.20,
 }
+
+
+def _vol_target_multiplier(realized_vol: Optional[float], config) -> Optional[float]:
+    """H15 vol-managed sizing scalar (Moreira-Muir), pure.
+
+    Returns ``clip(VOL_TARGET_ANN_VOL / realized_vol, 0, VOL_TARGET_CAP)`` — a
+    factor to scale the Kelly base size by, shrinking high-vol names and
+    (capped) levering calm ones. Returns ``None`` when there is no usable vol
+    signal (missing / non-positive / non-finite), meaning "leave size as is".
+
+    Independent of the enabled/disabled flag: the caller decides whether to
+    apply the factor or merely shadow-log it, but the number is computed the
+    same way either way.
+    """
+    if realized_vol is None:
+        return None
+    rv = float(realized_vol)
+    if not (rv > 0.0) or rv != rv or rv in (float("inf"), float("-inf")):
+        return None
+    w = config.VOL_TARGET_ANN_VOL / rv
+    cap = config.VOL_TARGET_CAP
+    if w < 0.0:
+        w = 0.0
+    elif w > cap:
+        w = cap
+    return w
 
 
 def decide_buy(ctx: BuyContext, config) -> BuyDecision:
@@ -103,13 +131,27 @@ def decide_buy(ctx: BuyContext, config) -> BuyDecision:
         base_pct *= config.LONEWOLF_MULTIPLIER
         sized_conf *= config.LONEWOLF_MULTIPLIER
 
+    # H15 vol-managed sizing: scale the Kelly base by the vol-target multiplier
+    # BEFORE the [2%, MAX] clamp, so per-position bounds are preserved. The
+    # multiplier is computed whenever a vol signal exists; it is only APPLIED
+    # when VOL_TARGET_SIZING_ENABLED — otherwise it is shadow-only and surfaced
+    # in the reason string for logging (no live sizing change).
+    w = _vol_target_multiplier(ctx.realized_vol, config)
+    vol_note = ""
+    if w is not None:
+        if config.VOL_TARGET_SIZING_ENABLED:
+            base_pct *= w
+            vol_note = f" [volx{w:.2f}]"
+        else:
+            vol_note = f" [volx{w:.2f} shadow]"
+
     size_pct = max(0.02, min(config.MAX_POSITION_SIZE, base_pct))
     target_value = size_pct * ctx.portfolio_value
     shares = int(target_value / ctx.current_price) if ctx.current_price > 0 else 0
 
     if shares < 1:
         return BuyDecision("HOLD", 0, ctx.model_confidence,
-                           f"under-funded: {size_pct:.2%} of ${ctx.portfolio_value:.0f} < 1 share @ ${ctx.current_price:.2f}")
+                           f"under-funded: {size_pct:.2%} of ${ctx.portfolio_value:.0f} < 1 share @ ${ctx.current_price:.2f}{vol_note}")
 
     return BuyDecision("BUY", shares, sized_conf,
-                       f"BUY {shares}@${ctx.current_price:.2f} (size {size_pct:.2%}, conf {sized_conf:.2f})")
+                       f"BUY {shares}@${ctx.current_price:.2f} (size {size_pct:.2%}, conf {sized_conf:.2f}){vol_note}")

@@ -816,8 +816,18 @@ class XGBReasoningAgent(BaseAgent):
             cash_available=float(self.portfolio.cash),
             portfolio_value=float(portfolio_val),
             kelly_fraction=float(self.portfolio.kelly_fraction()),
+            realized_vol=signal_history.get_latest_rv_20d(symbol),   # H15 vol sizing
         )
         buy_decision = decide_buy(ctx, config)
+
+        # H15 shadow visibility: the vol-managed multiplier is embedded in
+        # decide_buy's reason ("[volx0.25]" applied, "[volx0.25 shadow]" when
+        # VOL_TARGET_SIZING_ENABLED is off). Surface it at INFO so the operator
+        # can watch the would-be sizing effect before flipping the flag on.
+        if "volx" in buy_decision.reason:
+            logger.info(
+                f"XGBReasoningAgent [{symbol}]: [VOL_TARGET] {buy_decision.reason}"
+            )
 
         if buy_decision.action == "HOLD":
             # Preserve the historical gate-name substrings so existing

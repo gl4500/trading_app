@@ -183,6 +183,20 @@ class Config:
     # exiting LLM-as-decision-maker. See backlog item for staged plan.
     XGB_LLM_DECISION_MODE: str = os.getenv("XGB_LLM_DECISION_MODE", "ollama").lower().strip()
 
+    # Vol-managed position sizing for the XGBReasoningAgent (H15, added 2026-07-05).
+    # Moreira-Muir volatility targeting: scale the Kelly base size by
+    #   w = clip(VOL_TARGET_ANN_VOL / rv_20d, 0, VOL_TARGET_CAP)
+    # where rv_20d is the symbol's *annualized* trailing realized vol. Applied
+    # BEFORE the existing [2%, MAX_POSITION_SIZE] clamp, so per-position bounds
+    # are unchanged; it only reallocates *within* that band (smaller for
+    # high-vol names, larger for calm ones). Probe (ledger Iteration 13) showed
+    # this cuts basket drawdown ~54% relative while raising Sharpe.
+    # DEFAULT OFF: while disabled the would-be multiplier is still computed and
+    # surfaced in the decision reason for shadow-logging — set =1 to activate.
+    VOL_TARGET_SIZING_ENABLED: bool = os.getenv("VOL_TARGET_SIZING_ENABLED", "0") == "1"
+    VOL_TARGET_ANN_VOL:        float = float(os.getenv("VOL_TARGET_ANN_VOL", "0.12"))
+    VOL_TARGET_CAP:            float = float(os.getenv("VOL_TARGET_CAP", "2.0"))
+
     # Cloud-Claude model selection per call site (added 2026-05-05).
     # ScannerAgent's job is "rank symbols by interest" — Haiku 4.5 is
     # plenty for that and ~15× cheaper than Opus 4.6 ($1/M vs $15/M
