@@ -2,6 +2,7 @@
 import sys
 import os
 import unittest
+from unittest import mock
 
 _BACKEND = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
 _SITE    = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "site-packages"))
@@ -172,6 +173,91 @@ class TestDecideBuySizing(unittest.TestCase):
             config,
         )
         self.assertAlmostEqual(d.sized_confidence, 0.80)
+
+
+class TestVolTargetSizing(unittest.TestCase):
+    """H15 — vol-managed position sizing (Moreira-Muir). Scales base_pct by
+    w = clip(VOL_TARGET_ANN_VOL / realized_vol, 0, VOL_TARGET_CAP) BEFORE the
+    existing [2%, MAX_POSITION_SIZE] clamp. OFF by default (shadow-only):
+    when disabled, realized_vol must NOT change sizing but the would-be
+    multiplier is surfaced in the reason string for shadow-logging.
+
+    Defaults asserted here: target=0.12, cap=2.0. Tests pin them so a changed
+    .env doesn't silently break the math.
+    """
+
+    def _on(self, **cfg):
+        pins = dict(VOL_TARGET_SIZING_ENABLED=True,
+                    VOL_TARGET_ANN_VOL=0.12, VOL_TARGET_CAP=2.0)
+        pins.update(cfg)
+        return mock.patch.multiple(config, **pins)
+
+    def _off(self):
+        return mock.patch.multiple(
+            config, VOL_TARGET_SIZING_ENABLED=False,
+            VOL_TARGET_ANN_VOL=0.12, VOL_TARGET_CAP=2.0)
+
+    def test_disabled_by_default_realized_vol_does_not_change_size(self):
+        # Baseline: kelly 0.10, $100k, $200 -> 50 shares. High realized_vol
+        # must NOT shrink it while the feature is OFF.
+        with self._off():
+            d = decide_buy(_ctx(kelly_fraction=0.10, portfolio_value=100000.0,
+                                current_price=200.0, realized_vol=0.48), config)
+        self.assertEqual(d.action, "BUY")
+        self.assertEqual(d.shares, 50)
+
+    def test_disabled_reason_reports_shadow_multiplier(self):
+        # Shadow visibility: reason shows the would-be multiplier + "shadow".
+        with self._off():
+            d = decide_buy(_ctx(kelly_fraction=0.10, portfolio_value=100000.0,
+                                current_price=200.0, realized_vol=0.48), config)
+        self.assertIn("shadow", d.reason.lower())
+        self.assertIn("0.25", d.reason)   # 0.12 / 0.48 = 0.25
+
+    def test_enabled_high_vol_shrinks_size(self):
+        # w = 0.12/0.48 = 0.25 -> base 0.10*0.25 = 0.025 -> $2.5k -> 12 shares
+        with self._on():
+            d = decide_buy(_ctx(kelly_fraction=0.10, portfolio_value=100000.0,
+                                current_price=200.0, realized_vol=0.48), config)
+        self.assertEqual(d.action, "BUY")
+        self.assertEqual(d.shares, 12)
+
+    def test_enabled_low_vol_levers_up_but_capped_at_2x(self):
+        # w = 0.12/0.02 = 6 -> CAPPED at 2.0. kelly 0.03 -> 0.03*2 = 0.06 ->
+        # $6k -> 30 shares. (Without the cap it would clamp to MAX 0.15 = 75.)
+        with self._on():
+            d = decide_buy(_ctx(kelly_fraction=0.03, portfolio_value=100000.0,
+                                current_price=200.0, realized_vol=0.02), config)
+        self.assertEqual(d.shares, 30)
+
+    def test_enabled_none_realized_vol_is_noop(self):
+        # Missing vol -> multiplier 1.0 -> unchanged 50 shares, no crash.
+        with self._on():
+            d = decide_buy(_ctx(kelly_fraction=0.10, portfolio_value=100000.0,
+                                current_price=200.0, realized_vol=None), config)
+        self.assertEqual(d.shares, 50)
+
+    def test_enabled_zero_or_negative_vol_is_noop(self):
+        with self._on():
+            d = decide_buy(_ctx(kelly_fraction=0.10, portfolio_value=100000.0,
+                                current_price=200.0, realized_vol=0.0), config)
+        self.assertEqual(d.shares, 50)
+
+    def test_enabled_still_respects_2pct_floor(self):
+        # Extreme vol shrinks below the floor; sizing stays clamped to 2%.
+        # w = 0.12/2.0 = 0.06 -> base 0.10*0.06 = 0.006 -> floored to 0.02 ->
+        # $2k -> 10 shares.
+        with self._on():
+            d = decide_buy(_ctx(kelly_fraction=0.10, portfolio_value=100000.0,
+                                current_price=200.0, realized_vol=2.0), config)
+        self.assertEqual(d.shares, 10)
+
+    def test_enabled_reason_reports_applied_multiplier(self):
+        with self._on():
+            d = decide_buy(_ctx(kelly_fraction=0.10, portfolio_value=100000.0,
+                                current_price=200.0, realized_vol=0.48), config)
+        self.assertIn("0.25", d.reason)
+        self.assertNotIn("shadow", d.reason.lower())
 
 
 if __name__ == "__main__":

@@ -515,3 +515,18 @@ model-metric lever (consistent with "the system's edge is its gating, not its po
 step if pursued = TDD a vol-target multiplier into position sizing (`trading/portfolio.py` sizing path or
 a `BaseAgent` exposure scalar), keyed off trailing realized vol and/or VIX level, capped at 2×, with the
 12% target as an env dial. Not built yet — this iteration only establishes the premise on real data.
+
+**BUILT 2026-07-05 (XGB-only, OFF by default + shadow) — TDD, branch `feat/vol-target-sizing-xgb`.**
+Operator scoped it to the XGBReasoningAgent path. Landed in the pure `xgb_decision.decide_buy` (shared
+prod + MC backtester, invariant #10): a new `_vol_target_multiplier(realized_vol, config)` computes
+`w = clip(VOL_TARGET_ANN_VOL / rv_20d, 0, VOL_TARGET_CAP)` and scales the Kelly base size **before** the
+existing `[2%, MAX_POSITION_SIZE]` clamp, so per-position bounds are untouched — it only reallocates
+within the band. `rv_20d` (annualized) is threaded into `BuyContext.realized_vol` via a new
+`signal_history.get_latest_rv_20d(symbol)` accessor. Config knobs `VOL_TARGET_SIZING_ENABLED=0` (default
+OFF), `VOL_TARGET_ANN_VOL=0.12`, `VOL_TARGET_CAP=2.0`. **Shadow mode:** while disabled, `w` is still
+computed and surfaced in the decision reason (`[volx0.25 shadow]`) + logged `[VOL_TARGET]` at INFO, so
+the operator can watch the would-be sizing effect before flipping the flag on — no live sizing change
+until `=1`. 16 new tests (8 sizing + 6 accessor + 2 wiring), full suite green. Falsifier note: the probe
+was a whole-book vol-managed sleeve; this XGB-only per-position implementation is the contained first
+step, not the full-book policy — promote to other agents / raise target vol only after live shadow data
+confirms the effect on the XGB sleeve.

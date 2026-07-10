@@ -1378,5 +1378,47 @@ class TestXGBReasoningAgentRuleBasedMode(unittest.IsolatedAsyncioTestCase):
             signal_w3._trained = orig_w3_trained
 
 
+class TestVolTargetWiring(unittest.TestCase):
+    """H15 — _handle_buy must thread the symbol's trailing realized vol
+    (signal_history.get_latest_rv_20d) into the BuyContext so decide_buy can
+    apply/shadow the vol-managed sizing multiplier."""
+
+    def setUp(self):
+        self.agent = XGBReasoningAgent()
+
+    def test_handle_buy_threads_realized_vol_into_context(self):
+        from agents.xgb_decision import BuyDecision
+        captured = {}
+
+        def _fake_decide(ctx, cfg):
+            captured["ctx"] = ctx
+            return BuyDecision("HOLD", 0, ctx.model_confidence, "stub")
+
+        with patch("agents.xgb_reasoning_agent.decide_buy", side_effect=_fake_decide), \
+             patch("agents.xgb_reasoning_agent.signal_history.get_latest_rv_20d",
+                   return_value=0.37) as m_rv:
+            self.agent._handle_buy("AAPL", 150.0, 0.03, 0.85, "reason", {},
+                                   {"AAPL": 150.0})
+
+        m_rv.assert_called_once_with("AAPL")
+        self.assertAlmostEqual(captured["ctx"].realized_vol, 0.37)
+
+    def test_handle_buy_tolerates_missing_realized_vol(self):
+        from agents.xgb_decision import BuyDecision
+        captured = {}
+
+        def _fake_decide(ctx, cfg):
+            captured["ctx"] = ctx
+            return BuyDecision("HOLD", 0, ctx.model_confidence, "stub")
+
+        with patch("agents.xgb_reasoning_agent.decide_buy", side_effect=_fake_decide), \
+             patch("agents.xgb_reasoning_agent.signal_history.get_latest_rv_20d",
+                   return_value=None):
+            self.agent._handle_buy("AAPL", 150.0, 0.03, 0.85, "reason", {},
+                                   {"AAPL": 150.0})
+
+        self.assertIsNone(captured["ctx"].realized_vol)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1033,6 +1033,26 @@ class SignalHistoryStore:
         combined = np.nan_to_num(combined, nan=0.0)
         return combined.T   # (38, T) post-Sprint-8-MACRO_10D
 
+    def get_latest_rv_20d(self, symbol: str) -> Optional[float]:
+        """Most recent *annualized* 20-day realized vol for ``symbol``.
+
+        Reads the raw stored snapshots (by column name, not channel index) and
+        returns the last finite positive ``rv_20d`` value, or ``None`` when the
+        column is missing / empty / all-NaN / non-positive. Used by the XGB
+        vol-managed sizing path (H15) — a small, robust accessor so the agent
+        never has to index into the raw feature window.
+        """
+        df = _load(symbol)
+        if df is None or len(df) == 0 or "rv_20d" not in df.columns:
+            return None
+        series = df["rv_20d"].dropna()
+        if series.empty:
+            return None
+        val = float(series.iloc[-1])
+        if val > 0.0 and np.isfinite(val):
+            return val
+        return None
+
     def symbols_with_data(self) -> List[str]:
         """List all symbols that have at least one snapshot on disk."""
         if not os.path.isdir(_HISTORY_DIR):
