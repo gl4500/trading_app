@@ -211,7 +211,7 @@ from loops.ws_broadcast_loop import (  # noqa: E402, F401
 app = FastAPI(
     title="AI Trading Competition",
     description="Competitive paper trading with multiple AI agents",
-    version="1.0.0",
+    version="1.0.1",
     lifespan=lifespan,
 )
 

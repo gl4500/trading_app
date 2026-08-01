@@ -530,3 +530,52 @@ until `=1`. 16 new tests (8 sizing + 6 accessor + 2 wiring), full suite green. F
 was a whole-book vol-managed sleeve; this XGB-only per-position implementation is the contained first
 step, not the full-book policy — promote to other agents / raise target vol only after live shadow data
 confirms the effect on the XGB sleeve.
+
+### Iteration 14 — 2026-08-01 — H15 re-validation on current trading.db + live-shadow dead-end
+
+**Why:** ~4 weeks after the iter-13 build, checked whether the live `[VOL_TARGET]` shadow logs had
+accumulated enough real data to make an activation call. They had not — and diagnosing *why* is the
+substantive finding of this iteration.
+
+**Live shadow path is a dead end in the current regime.** Across all live-log rotations since the
+2026-07-17 backend restart (which loaded the H15 code), there are **0** real `[VOL_TARGET]` shadow
+lines. The only 20 lines ever emitted are a single synthetic burst on 2026-07-09 (round placeholder
+prices AAPL $100 / NVDA $150 / MSFT $300 — a test/replay, not live). Root cause: `[VOL_TARGET]` only
+fires when an XGB BUY reaches `decide_buy`, but the **WFE gate is blocking 100% of XGB BUYs** — in the
+current live.log alone, **202 `WFE gate blocked BUY` vs 0 passed** (`mean_wfe ≈ -0.12 < 0`). H15 sits
+downstream of the gate, so it cannot accumulate live evidence while XGB is gated to zero BUYs. The live
+shadow path will keep producing nothing until XGB WFE turns positive (regime shift or a new model). This
+is the same "edge is regime-dependent and currently absent" condition documented since iter-3.
+
+**Offline re-validation (the evidence that actually exists).** Re-ran `scripts/real_basket_probe.py`
+READ-ONLY against the **current `trading.db`** (picks up trades since Jul 5). Same non-loosenable
+falsifier. Basket is now **246 names** (was 237), beta 1.14 full / 1.34 in 2024+, annVol 23.8% vs SPY
+18.6%. Result **re-confirms and slightly strengthens** iter-13:
+
+| strategy (full history) | annRet | Sharpe | maxDD | verdict |
+|---|---|---|---|---|
+| constant (buy&hold basket) | +24.2% | 1.03 | −57.3% | — |
+| vol_managed (20d RV target 12%) | +15.2% | **1.16** | **−26.2%** | GO (+0.12 Sharpe, **+54.3% rel DD**) |
+| vix_managed (VIX target) | +14.8% | 1.13 | −26.3% | GO (+54.0% rel DD) |
+
+Subsamples both GO: 2020+ Sharpe 1.00→1.09, DD −37.2%→−16.1%; 2024+ Sharpe 1.23→1.26, DD −26.3%→−16.1%.
+Full-sample rel-DD improvement moved +53.7% → **+54.3%** vs Jul 5 — stable across a month of new data
+and a larger book, so the GO is not a July artifact. H14 lead-lag half also re-confirms (nothing
+forecasts a forward basket drop; VIX term-structure/level are coincident-only, decay to ~0.5 AUC by
+k=5–20).
+
+**Verdict — H15 GO stands; activation is now a risk-appetite call, not a data-collection one.** The
+offline basket backtest is materially stronger evidence than the live shadow path will ever produce
+(the latter is structurally stuck at zero). The tradeoff is unchanged: vol-managed de-levers (avg
+weight 0.69), trading raw return (~24%→15%) for ~54% smaller drawdown and modestly better Sharpe.
+`VOL_TARGET_ANN_VOL=0.12` is the dial. Flip `VOL_TARGET_SIZING_ENABLED=1` (backend restart, not during
+active trading/retrain) to prioritize drawdown control; leave OFF to keep the book's intentional high
+beta; or activate with target raised to ~0.15–0.18 to split the difference. **Caveat unchanged:** while
+XGB WFE keeps the agent gated to zero live BUYs, activation changes nothing in practice regardless.
+
+**Broader read:** the model-metric R&D axes remain exhausted (regime iters 6–8, magnitude 10–11,
+leading indicators 12–14). H15 is the only GO and it is a sizing/risk lever, not a predictive edge. The
+system is currently providing little live value — XGB gated off, no new predictive signal found — which
+is the honest state this iteration records. Next genuine progress needs a new input (options
+flow/positioning, a longer-horizon product where credit/curve lead), not another pass over the
+existing feature set.
