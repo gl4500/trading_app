@@ -9,6 +9,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2026-08-01] — v1.0.1 · H15 vol-managed sizing re-validated (ledger Iteration 14)
+
+Version bump `1.0.0 → 1.0.1` (`frontend/package.json`, `backend/main.py`). Documentation /
+R&D-ledger only — no behavior change.
+
+### Changed
+
+- **Model-improvement ledger — Iteration 14** (`docs/model_improvement_ledger.md`)
+  - Re-ran `scripts/real_basket_probe.py` READ-ONLY against the current `trading.db` (now 246 traded
+    names, beta 1.14 full / 1.34 in 2024+). H15 vol-managed sizing **re-confirms GO** and slightly
+    strengthens: full-history Sharpe 1.03→1.16, maxDD −57.3%→−26.2% (**+54.3% rel**), net of 1bp cost;
+    GO on 2020+ and 2024+ subsamples too. H14 lead-lag half re-confirms (no macro signal leads).
+  - Documented that the **live `[VOL_TARGET]` shadow path is structurally dead** in the current regime:
+    0 real shadow lines since the 2026-07-17 restart because the XGB WFE gate blocks 100% of BUYs
+    (202 blocked / 0 passed in the current live.log). Activation is now a risk-appetite call, not a
+    data-collection one — the offline basket backtest is the authoritative evidence.
+
+### Notes
+
+- Honest state recorded: model-metric R&D axes remain exhausted (regime, magnitude, leading
+  indicators); H15 is the only GO and is a sizing/risk lever, not a predictive edge. With XGB gated to
+  zero live BUYs, the system is currently providing little live value. `VOL_TARGET_SIZING_ENABLED`
+  stays **OFF** (default); flipping it on is a portfolio-policy choice, not a code fix.
+
+---
+
 ## [2026-04-21] — CI Green · Tax Estimator · Ollama Off-Hours Scan · Auth Hardening
 
 ### Added
