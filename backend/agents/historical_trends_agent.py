@@ -10,7 +10,7 @@ Three pillars:
 import logging
 import math
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -35,6 +35,16 @@ MONTHLY_SEASONAL_BIAS: Dict[int, float] = {
     10: +0.10,  # October: post-Sept recovery, pre-holiday build-up
     11: +0.35,  # November: Q4 rally, pre-holiday buying
     12: +0.40,  # December: Santa Claus rally, year-end positioning
+}
+
+
+# Relative weights of the three non-seasonal pillars. They keep these
+# proportions and share out whatever HIST_SEASONAL_WEIGHT does not claim,
+# so the composite always sums to 1.0. See _composite_weights().
+BASE_NON_SEASONAL_WEIGHTS: Dict[str, float] = {
+    "channel":  0.30,
+    "momentum": 0.40,
+    "volume":   0.10,
 }
 
 
@@ -214,7 +224,76 @@ class HistoricalTrendsAgent(BaseAgent):
         trend_desc = "more volume on up days" if vol_ratio > 0 else "more volume on down days"
         return score, f"Volume pattern: {trend_desc} (ratio={vol_ratio:+.2f})"
 
+    # ── Risk: the trail-arm gap ───────────────────────────────────────────────
+
+    def _prearm_stop_signal(self, symbol: str, price: float) -> Optional[Signal]:
+        """
+        Provisional stop for positions the trailing stop cannot protect yet.
+
+        ``BaseAgent._check_trailing_stops`` only acts once peak unrealized PnL
+        reaches ``TRAIL_ARM_USD``; below that a position is unprotected all the
+        way down to ``HARD_STOP_PCT``. Attribution over this agent's first 338
+        exits found that gap is the whole loss column, so this closes it with a
+        tighter stop that applies *only while the trail is unarmed*.
+
+        Returns a SELL Signal, or None when the stop does not apply.
+        Disabled (returns None) unless ``HIST_PREARM_STOP_PCT > 0``.
+
+        Limitation: ``analyze`` only walks symbols present in
+        ``market_context``, so a held position with no live price this cycle is
+        not checked. It falls through to the ``-8%`` hard stop as it does today
+        — this narrows the gap, it does not close it for untracked symbols.
+        """
+        threshold = config.HIST_PREARM_STOP_PCT
+        if threshold <= 0:
+            return None
+
+        pos = self.portfolio.positions.get(symbol)
+        if pos is None or pos.avg_cost <= 0 or price <= 0:
+            return None
+
+        # Once armed, the trailing stop owns this position — don't double up.
+        if self.portfolio.get_peak_unrealized(symbol) >= config.TRAIL_ARM_USD:
+            return None
+
+        drawdown = (pos.avg_cost - price) / pos.avg_cost
+        if drawdown < threshold:
+            return None
+
+        return Signal(
+            action="SELL",
+            symbol=symbol,
+            confidence=min(0.95, max(0.05, drawdown)),
+            shares=pos.shares,
+            reasoning=(
+                f"HIST TRENDS PRE-ARM STOP: down {drawdown:.1%} from entry "
+                f"(${pos.avg_cost:.2f} → ${price:.2f}) while trailing stop is "
+                f"unarmed (peak uPnL < ${config.TRAIL_ARM_USD:,.0f}); "
+                f"threshold {threshold:.1%}"
+            ),
+        )
+
     # ── Signal generation ─────────────────────────────────────────────────────
+
+    def _composite_weights(self) -> Tuple[float, float, float, float]:
+        """
+        Pillar weights as (seasonal, channel, momentum, volume), summing to 1.0.
+
+        Only the seasonal weight is configurable; the other three keep their
+        relative proportions and absorb whatever the seasonal pillar gives up,
+        so the composite stays on the same scale no matter how it is tuned and
+        the +/-0.25 BUY/SELL thresholds keep their meaning.
+        """
+        seasonal = max(0.0, min(1.0, config.HIST_SEASONAL_WEIGHT))
+        remainder = 1.0 - seasonal
+        base = BASE_NON_SEASONAL_WEIGHTS
+        scale = remainder / sum(base.values())
+        return (
+            seasonal,
+            base["channel"] * scale,
+            base["momentum"] * scale,
+            base["volume"] * scale,
+        )
 
     def _generate_signal(
         self,
@@ -229,7 +308,8 @@ class HistoricalTrendsAgent(BaseAgent):
     ) -> Signal:
         """
         Combine sub-scores into a final BUY / SELL / HOLD signal.
-        Weights: seasonal=20%, channel=30%, momentum=40%, volume=10%.
+        Weights come from _composite_weights() — by default
+        seasonal=20%, channel=30%, momentum=40%, volume=10%.
         BUY threshold:  composite > +0.25 (and no position)
         SELL threshold: composite < −0.25 (and has position)
         """
@@ -240,11 +320,12 @@ class HistoricalTrendsAgent(BaseAgent):
             return Signal(action="HOLD", symbol=symbol, confidence=0, shares=0,
                           reasoning="No price data available")
 
+        w_seasonal, w_channel, w_momentum, w_volume = self._composite_weights()
         composite = (
-            seasonal_score  * 0.20 +
-            channel_score   * 0.30 +
-            momentum_score  * 0.40 +
-            volume_score    * 0.10
+            seasonal_score  * w_seasonal +
+            channel_score   * w_channel +
+            momentum_score  * w_momentum +
+            volume_score    * w_volume
         )
 
         confidence = min(0.95, max(0.05, abs(composite)))
@@ -252,8 +333,14 @@ class HistoricalTrendsAgent(BaseAgent):
         all_reasons = " | ".join(r for r in reasons if r)
 
         if composite > 0.25 and not has_position:
+            # Size on capped conviction: the highest-composite bucket is the
+            # only net-negative one, so let it stop growing the position past
+            # the cap. Reported confidence stays uncapped and honest.
+            sizing_confidence = confidence
+            if config.HIST_CONFIDENCE_CAP > 0:
+                sizing_confidence = min(confidence, config.HIST_CONFIDENCE_CAP)
             portfolio_value = self.portfolio.get_total_value(prices)
-            target_alloc = portfolio_value * config.MAX_POSITION_SIZE * confidence
+            target_alloc = portfolio_value * config.MAX_POSITION_SIZE * sizing_confidence
             target_alloc = min(target_alloc, self.portfolio.cash * 0.95)
             shares = math.floor(target_alloc / current_price * 100) / 100
 
@@ -304,6 +391,14 @@ class HistoricalTrendsAgent(BaseAgent):
             if not isinstance(ctx, dict):
                 continue
             try:
+                # Risk first: a held position that the trailing stop cannot
+                # protect yet gets its own stop, ahead of any pillar analysis.
+                prearm = self._prearm_stop_signal(symbol, prices.get(symbol, 0.0))
+                if prearm is not None:
+                    logger.info(f"{self.name}: PRE-ARM STOP {symbol} | {prearm.reasoning}")
+                    signals.append(prearm)
+                    continue
+
                 # Prefer long-term Stooq bars (up to 5 years) when available,
                 # fall back to the standard 60-day Alpaca bars.
                 lt_bars = ctx.get("long_term_bars")

@@ -105,6 +105,37 @@ class Config:
     # Set HARD_STOP_PCT=0 (or any negative) to disable.
     HARD_STOP_PCT: float = float(os.getenv("HARD_STOP_PCT", "0.08"))
 
+    # ── HistoricalTrendsAgent-only knobs (ledger Iteration 15, 2026-08-02) ────
+    # All three default to CURRENT behaviour — set them explicitly to opt in.
+    # Scoped to this one agent on purpose: it is the book's best performer, so
+    # it is the safest place to test chassis-level ideas before generalising
+    # (same containment pattern as H15's XGB-only vol-target rollout).
+    #
+    # HIST_PREARM_STOP_PCT (H16) — the trail-arm gap. The trailing stop only
+    # arms once peak unrealized PnL reaches TRAIL_ARM_USD, so a position that
+    # never turns profitable has NO protection between entry and HARD_STOP_PCT
+    # (-8%). Attribution over 338 exits: that gap is the entire loss column
+    # (108 hard-stop exits, 0% win rate, -$56,474). When > 0, sell an unarmed
+    # position once it is down this fraction from entry. 0.0 disables.
+    # Suggested first trial: 0.04.
+    HIST_PREARM_STOP_PCT: float = float(os.getenv("HIST_PREARM_STOP_PCT", "0.0"))
+
+    # HIST_SEASONAL_WEIGHT (H17) — weight of the month-of-year/quarter pillar
+    # in the composite. It is long-run S&P *index* seasonality applied to
+    # single names, and its sign is inverted on the live sample (May bias
+    # -0.14 was the best month, July bias +0.07 the worst). Set 0.0 to drop it;
+    # the remaining pillars are renormalised so the composite keeps its scale
+    # and the +/-0.25 thresholds keep their meaning. Default 0.20 = unchanged.
+    HIST_SEASONAL_WEIGHT: float = float(os.getenv("HIST_SEASONAL_WEIGHT", "0.20"))
+
+    # HIST_CONFIDENCE_CAP (H17) — position size scales with
+    # confidence = |composite|, but composite > +0.60 is the ONLY net-negative
+    # entry bucket (22 trades, 45.5% win, -$691) while being sized largest.
+    # When > 0, cap the confidence used for SIZING at this value; the
+    # confidence reported on the signal is left honest. 0.0 disables.
+    # Suggested first trial: 0.45.
+    HIST_CONFIDENCE_CAP: float = float(os.getenv("HIST_CONFIDENCE_CAP", "0.0"))
+
     # Model backend selector (added 2026-05-02). Default keeps the legacy
     # CNN; set to "xgboost" to switch to the gradient-boosted regressor.
     MODEL_BACKEND: str = os.getenv("MODEL_BACKEND", "cnn").lower().strip()
