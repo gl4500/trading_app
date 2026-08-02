@@ -1420,5 +1420,46 @@ class TestVolTargetWiring(unittest.TestCase):
         self.assertIsNone(captured["ctx"].realized_vol)
 
 
+class TestTermStructureWiring(unittest.TestCase):
+    """Term-structure gate — _handle_buy must thread the detector's current
+    gate_delta into the BuyContext so decide_buy can apply/shadow it."""
+
+    def setUp(self):
+        self.agent = XGBReasoningAgent()
+
+    def _capture(self):
+        from agents.xgb_decision import BuyDecision
+        captured = {}
+
+        def _fake_decide(ctx, cfg):
+            captured["ctx"] = ctx
+            return BuyDecision("HOLD", 0, ctx.model_confidence, "stub")
+
+        return captured, _fake_decide
+
+    def test_handle_buy_threads_topping_delta_into_context(self):
+        from data.regime_term_structure import term_structure_detector
+        px = [100.0 * (1.004 ** i) for i in range(95)]
+        for _ in range(20):
+            px.append(px[-1] * (1.0 - 0.004))
+        term_structure_detector.update(px)
+        self.assertEqual(term_structure_detector.get_state(), "topping")
+
+        captured, fake = self._capture()
+        with patch("agents.xgb_reasoning_agent.decide_buy", side_effect=fake):
+            self.agent._handle_buy("AAPL", 150.0, 0.03, 0.85, "reason", {},
+                                   {"AAPL": 150.0})
+        self.assertAlmostEqual(captured["ctx"].term_structure_delta, 0.10)
+
+    def test_handle_buy_threads_zero_delta_when_neutral(self):
+        from data.regime_term_structure import term_structure_detector
+        term_structure_detector.update([])   # neutral -> delta 0
+        captured, fake = self._capture()
+        with patch("agents.xgb_reasoning_agent.decide_buy", side_effect=fake):
+            self.agent._handle_buy("AAPL", 150.0, 0.03, 0.85, "reason", {},
+                                   {"AAPL": 150.0})
+        self.assertEqual(captured["ctx"].term_structure_delta, 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()

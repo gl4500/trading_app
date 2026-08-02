@@ -44,6 +44,7 @@ from agents.agent_utils import get_fallback_signals
 from agents.xgb_decision import BuyContext, decide_buy
 from config import config
 from data.signal_history import signal_history
+from data.regime_term_structure import term_structure_detector
 from data.cnn_model import build_training_windows, MIN_TRAIN_SAMPLES
 from data.signal_model import signal_model as signal_cnn
 from data.w3_model import signal_w3
@@ -100,6 +101,7 @@ class XGBReasoningAgent(BaseAgent):
         self._model_loaded    = False
         self._last_train_check = 0.0
         self._training_lock   = asyncio.Lock()
+        self._last_ts_state   = None   # term-structure gate: log only on transition
 
     # ── model lifecycle ───────────────────────────────────────────────────────
 
@@ -817,6 +819,7 @@ class XGBReasoningAgent(BaseAgent):
             portfolio_value=float(portfolio_val),
             kelly_fraction=float(self.portfolio.kelly_fraction()),
             realized_vol=signal_history.get_latest_rv_20d(symbol),   # H15 vol sizing
+            term_structure_delta=term_structure_detector.get_gate_delta(),  # trend gate
         )
         buy_decision = decide_buy(ctx, config)
 
@@ -951,6 +954,30 @@ class XGBReasoningAgent(BaseAgent):
 
         # Build portfolio + goal context once per cycle (shared across all symbols)
         portfolio_context = self._build_portfolio_context(prices)
+
+        # Term-structure gate (book-proxy trend). Update once per cycle from the
+        # proxy's bars; fail-open (missing/short data leaves the delta at 0). The
+        # cached delta is read per-symbol in _handle_buy.
+        try:
+            proxy_ctx  = market_context.get(config.TERM_STRUCTURE_PROXY, {})
+            proxy_bars = proxy_ctx.get("bars") if isinstance(proxy_ctx, dict) else None
+            if proxy_bars is not None and not proxy_bars.empty and len(proxy_bars) >= 91:
+                term_structure_detector.update(
+                    proxy_bars["close"].astype(float).tolist(),
+                    cutoff=config.TERM_STRUCTURE_Z_CUTOFF,
+                    delta_topping=config.TERM_STRUCTURE_DELTA_TOPPING,
+                    delta_weak=config.TERM_STRUCTURE_DELTA_WEAK,
+                )
+            ts_state = term_structure_detector.get_state()
+            if ts_state != self._last_ts_state:       # log only on transition (low noise)
+                self._last_ts_state = ts_state
+                shadow = "" if config.TERM_STRUCTURE_GATE_ENABLED else " (shadow)"
+                logger.info(
+                    f"XGBReasoningAgent: [TERM_STRUCT] state={ts_state} "
+                    f"delta={term_structure_detector.get_gate_delta():.2f}{shadow}"
+                )
+        except Exception as _e:
+            logger.debug(f"XGBReasoningAgent: term-structure update error: {_e}")
 
         for symbol, ctx in market_context.items():
             if not isinstance(ctx, dict):
