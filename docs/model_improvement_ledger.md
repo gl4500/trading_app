@@ -34,6 +34,8 @@ by over-fitting older folds.
 | H11 | XGB trades still *leak through* in bear despite the +0.15 penalty | Join trades (trading.db) to regime; PnL/win-rate by regime | **FALSIFIED for XGB (iter 6)** — 94% of XGB BUYs are in bull; gate works. XGB system net **+$12.5K realized**. But non-gated rule-based agents bleed **−$19.3K in bear**. |
 | H12 | Extending the bear/high_vol participation gate to the **non-gated rule-based agents** (Momentum, MeanRev, Tech, HistTrends) would recover much of the −$19.3K bear bleed | Design a shared `BaseAgent` regime-entry gate; the XGB agent's 94%-bull / +$12.5K record is the proof-of-concept | open — **highest-EV finding; operator decision + TDD** |
 | H14 | A classic macro signal (VIX term structure, credit spreads, breadth, yield curve) *leads* regime change → add it as an anticipatory feature | Lead-lag rank-AUC: does signal(t) predict forward SPY stress at t+k, non-decaying? | **FALSIFIED (iter 12)** — at the 5–20d horizon none leads: all coincident/decaying, best is VIX *level* (already a feature). Curve inversion 0.47 (leads by quarters, not weeks). |
+| H16 | **The binding constraint on the best live agent is exit mechanics, not entry signal.** Positions that never reach `TRAIL_ARM_USD` (+$100 peak uPnL) have *no* protection between entry and the −8% hard stop; that unprotected gap is 100% of the loss column | Attribute every SELL to its exit branch, split W/L and PnL (read-only `trading.db`) | **SUPPORTED (iter 15)** — HistoricalTrendsAgent: trail-stop 223 exits / 90.6% W / **+$70,425**; hard stop 108 exits / **0% W** / **−$56,474**. Next test = time-stop or pre-arm stop, backtest-only. |
+| H17 | Inside a rule-based agent, individual pillars can be *net-negative* yet keep their weight because the composite is never decomposed against outcomes | Bucket realized PnL by each pillar's value at entry | **SUPPORTED (iter 15)** — HistTrends seasonal pillar (w=0.20) is sign-inverted on live sample; channel pillar (w=0.30) is overridden on 69% of entries; composite >+0.60 is the *only* net-negative entry bucket yet is sized largest (size ∝ confidence = \|composite\|). |
 
 ## Iterations
 
@@ -530,3 +532,114 @@ until `=1`. 16 new tests (8 sizing + 6 accessor + 2 wiring), full suite green. F
 was a whole-book vol-managed sleeve; this XGB-only per-position implementation is the contained first
 step, not the full-book policy — promote to other agents / raise target vol only after live shadow data
 confirms the effect on the XGB sleeve.
+
+### Iteration 15 — 2026-08-02 — H16/H17 decision-tree attribution on HistoricalTrendsAgent → both SUPPORTED
+
+> **Numbering note:** Iteration 14 (2026-08-01, H15 re-validation on the current `trading.db` + the
+> live-shadow dead-end) is recorded on branch `docs/ledger-iter14-v1.0.1` and is deliberately **not**
+> part of this change, which is scoped to the HistoricalTrendsAgent audit alone. The gap is expected.
+
+**Why:** every prior iteration attacked the *XGB/W3* model metrics, and all three axes came back
+exhausted. This iteration changes target: audit the **best-performing live agent** —
+`HistoricalTrendsAgent`, +15.55% and #1 of 10 — end-to-end, and ask which branch of its decision tree
+actually earns the money. Read-only `trading.db` attribution, no retrain, no code change.
+
+**Code-history note:** `backend/agents/historical_trends_agent.py` has exactly **one** commit in its life
+(`c3d9710`, 2026-03-29, "replace OpenClawAgent with HistoricalTrendsAgent + Stooq free historical data")
+and has never been edited since. Every behavioral change in 4 months came from the shared chassis, not
+the agent — most importantly the 2026-05-16 trail tightening (`TRAIL_GIVEBACK_PCT` 0.20→0.10,
+`TRAIL_ARM_USD` $25→$100, 4h cooldown) and the 2026-05-17 cash-replay reconciliation (issue #64), which
+found **$18,720.78 of phantom cash on this specific agent** (visible as the −$11,271 equity step on
+05-18; not a trading loss).
+
+**Sample:** 694 trades (356 BUY / 338 SELL), 2026-03-30 → 2026-07-31, agent_id 82. Realized
+**+$15,590.55**; equity **$115,548 (+15.55%)**, rank **1/10**; win rate 60.7% (205W/133L); avg win $362
+vs avg loss $440; profit factor 1.27; **Sharpe −0.11**; peak $133,477 (Jul 1) → trough $113,791 (Jul 27)
+= **−14.7% drawdown**.
+
+**H16 — exit-branch attribution (the headline):**
+
+| exit branch | n | W | L | win% | total PnL | avg |
+|---|---|---|---|---|---|---|
+| TRAIL-STOP (BaseAgent) | 223 | 202 | 21 | **90.6%** | **+$70,425** | +$316 |
+| BAYES early exit | 3 | 2 | 1 | 66.7% | +$1,665 | +$555 |
+| agent's own SELL (`composite < −0.25`) | **4** | 1 | 3 | 25.0% | −$26 | −$6 |
+| HARD STOP −8% (risk manager) | 108 | 0 | 108 | **0.0%** | **−$56,474** | −$523 |
+
+The agent's *own* sell rule fired **4 times out of 338 exits (1.2%)** in four months. In a long-only book
+where every entry requires momentum ≥ +0.25, a symmetric −0.25 exit essentially never triggers before
+the risk manager gets there. **HistoricalTrendsAgent is functionally an entry-only signal wrapped in the
+shared risk chassis.** All the P&L — both signs of it — is made by branches that live in `BaseAgent` /
+the risk manager. The trail is near-100% win *by construction* (it arms only after +$100 peak uPnL, then
+exits on a 10% giveback), and the −8% hard stop is 0% win by construction. The whole loss column is the
+**unprotected gap**: positions that never reach +$100 uPnL have nothing between entry and −8%.
+
+Monthly, by branch — the stop side scaled faster than the trail side every single month:
+
+| month | trail | hard stop | net realized |
+|---|---|---|---|
+| 2026-04 | +$1,028 | −$3,703 | −$999 |
+| 2026-05 | +$33,077 | −$12,123 | **+$20,943** |
+| 2026-06 | +$24,849 | −$14,370 | +$10,453 |
+| 2026-07 | +$11,471 | −$26,278 | **−$14,807** |
+
+May is where the 2026-05-16 trail tightening lands — trail capture jumps 32× month-over-month. July is
+the same machine in chop: trail capture collapses to a third while stop losses double, and the quarter's
+gain comes back. That is the shape behind **positive return with a negative Sharpe**.
+
+**H17 — pillar and sizing decomposition** (FIFO-paired round trips; entry-side buckets are approximate
+where a symbol held overlapping lots — exit-branch and monthly figures above are exact):
+
+*Entry composite vs outcome — conviction inverts above +0.45, and size scales with conviction:*
+
+| composite band | n | win% | total PnL | avg |
+|---|---|---|---|---|
+| +0.25 … +0.35 | 199 | 60.8% | +$7,652 | +$38 |
+| +0.35 … +0.45 | 74 | 62.2% | +$7,786 | **+$105** |
+| +0.45 … +0.60 | 43 | 65.1% | +$844 | +$20 |
+| +0.60 and up | 22 | 45.5% | **−$691** | −$31 |
+
+`_generate_signal` sizes `portfolio × MAX_POSITION_SIZE × confidence` with `confidence = |composite|`, so
+the **only net-negative bucket gets the largest positions**.
+
+*Channel pillar (w=0.30) — works where it's allowed to speak, but it usually isn't:*
+
+| entry position in channel | n | win% | total PnL | avg |
+|---|---|---|---|---|
+| <25% (near period low) | 7 | 85.7% | +$5,678 | +$811 |
+| 25–50% | 18 | 77.8% | +$5,752 | +$320 |
+| 50–75% | 80 | 56.2% | +$4,216 | +$53 |
+| >75% (near period **high**) | 233 | 60.1% | **−$55** | ≈$0 |
+
+**69% of all entries fire where the channel pillar scores ≈ −1.** The `sma_slope * 5.0` adjustment plus
+momentum's larger weight (0.40 vs 0.30) routinely override it. The 25 trades where channel actually
+agreed produced $11.4K of the $15.6K total.
+
+*Momentum pillar (w=0.40) — the only pillar earning its weight:* alignment 100% → 213 trades, 60.6% W,
+**+$15,561**; 75% → 78, 64.1% W, +$2,828; **50% (split tape) → 40, 50.0% W, −$4,325**; 25% → 7 (n too
+small).
+
+*Seasonal pillar (w=0.20) — sign-inverted on the live sample.* Realized-by-month: May (agent bias
+**−0.14**, i.e. bearish) = **+$20,943**, the best month; July (bias **+0.07**, bullish) = **−$14,807**,
+the worst. It is long-run S&P *index* seasonality applied to single names at 20% of the score.
+
+**Symbols:** semis carried it — AMD +$5,569, ARM +$4,977, QCOM +$3,431, HUM +$3,051, MU +$2,165. Worst:
+FATE −$2,137 over 16 round trips (repeatedly re-bought), SRPT −$1,619, AMAT −$1,465, FSLY −$1,227.
+
+**Verdict — H16 and H17 both SUPPORTED, and they relocate the R&D frontier.** After fourteen iterations
+of failing to improve the *predictive* layer, the top live agent turns out to make 100% of its money in
+the *exit* layer, from a rule with no model in it at all. This is the same conclusion as iter 6/13 stated
+from the other direction ("the system's edge is its gating and risk control, not its point predictions") —
+now measured on the agent that actually leads the book.
+
+**Next (cheapest first, all backtest-only, no live change):**
+1. **Close the trail-arm gap** — time-stop, or a tighter provisional stop that applies only while
+   `peak_uPnL < TRAIL_ARM_USD`. This targets the entire −$56,474 column. Operator has scoped the first
+   build to **HistoricalTrendsAgent only, env-gated OFF by default** (same containment pattern as H15's
+   XGB-only rollout); generalize to the other rule agents only after it proves out.
+2. **Zero the seasonal weight** and redistribute to momentum/channel — 20% of the score with an inverted
+   live sign is a free correction.
+3. **Cap sizing above composite +0.45** — stop putting the biggest bets in the only losing bucket.
+
+Caveat throughout: paper trading, single 4-month sample spanning one bull leg and one chop leg; the
+trail's 90.6% win rate is mechanical, not predictive, and must not be read as signal quality.
