@@ -1,6 +1,10 @@
 import unittest
 
-from data.regime_term_structure import compute_term_structure, TermStructureResult
+from data.regime_term_structure import (
+    compute_term_structure,
+    TermStructureResult,
+    term_structure_detector,
+)
 
 
 def _series(n=120, drift=0.0, start=100.0):
@@ -49,6 +53,27 @@ class TestComputeTermStructure(unittest.TestCase):
         r = compute_term_structure(px, delta_topping=0.07)
         self.assertEqual(r.state, "topping")
         self.assertAlmostEqual(r.gate_delta, 0.07, places=6)
+
+
+class TestTermStructureDetectorSingleton(unittest.TestCase):
+    def test_update_then_get_reflects_classification(self):
+        px = _series(drift=0.002)   # sustained uptrend (with wobble → non-zero vol)
+        term_structure_detector.update(px)
+        self.assertEqual(term_structure_detector.get_state(), "trending_up")
+        self.assertEqual(term_structure_detector.get_gate_delta(), 0.0)
+
+    def test_empty_update_is_neutral_zero_delta(self):
+        term_structure_detector.update([])
+        self.assertEqual(term_structure_detector.get_state(), "neutral")
+        self.assertEqual(term_structure_detector.get_gate_delta(), 0.0)
+
+    def test_summary_carries_zscores(self):
+        px = _series(drift=0.002)
+        term_structure_detector.update(px)
+        s = term_structure_detector.summary()
+        self.assertIn("long_z", s)
+        self.assertIn("short_z", s)
+        self.assertIn("vol20d", s)
 
 
 if __name__ == "__main__":
