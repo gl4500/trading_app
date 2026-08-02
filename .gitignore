@@ -1,5 +1,13 @@
 # Secrets - NEVER commit these
+# Secrets — never commit real env files or their backups (operator rule, 2026-08-02).
+# Covers .env, .env.local, .env.bak.YYYY-MM-DD, prod.env, backend/.env and similar.
+# .env.example is the tracked template the fresh-install script depends on, so it
+# is explicitly re-included. Keep that negation LAST or it stops working.
 .env
+.env.*
+*.env
+*.env.bak
+!.env.example
 certs/
 
 # Python

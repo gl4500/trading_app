@@ -154,9 +154,16 @@ Co-Authored-By line required (added automatically by implementation agent).
 
 Every `git commit` runs `.git/hooks/pre-commit` automatically (3 steps, < 10 sec):
 
-1. **Block staged `.env`** — prevents API keys reaching GitHub
+1. **Block staged env files** — prevents API keys reaching GitHub. Matches `.env`, `.env.local`, `.env.bak.YYYY-MM-DD`, `prod.env`, `backend/.env` — everything except the tracked `.env.example` template. Widened 2026-08-02 after an `.env.bak` written during a config change sat in the repo as an untracked file, outside both the old hook pattern and the old `.gitignore` rule.
 2. **Secret pattern scan** — rejects Anthropic/OpenAI/Google/AWS/Alpaca key patterns in staged `.py/.ts/.js/.json` files
 3. **Bandit SAST** — medium+/medium+ severity, excludes `tests/`, uses `site-packages/` runtime
+
+**Operator rule — env files never enter the repo.** `.env` holds live API keys. Never commit it, never
+copy it to a path inside the repo (`.env.bak`, `.env.save`, `.env.old` — all forbidden, even untracked,
+because the next `git add -A` sweeps them up). When you need a backup before editing `.env`, write it
+**outside the repo tree** (the session scratchpad). Two layers enforce this: the `.gitignore` block at the
+top of the file, and step 1 of the pre-commit hook. `.env.example` is the one tracked exception and must
+be kept.
 
 **Security tests run on-demand** (not per-commit — PyTorch import makes it ~2 min):
 ```bash
