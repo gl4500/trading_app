@@ -941,14 +941,19 @@ class TestXGBPromptPortfolioSection(unittest.TestCase):
 
 
 class TestXGBGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
-    """analyze() uses size_pct from Ollama to size BUY positions."""
+    """BUY position sizing. Since the decide_buy refactor (issue #75), sizing is
+    driven by portfolio.kelly_fraction() (single source of truth shared with the
+    MC backtester), NOT by Ollama's size_pct — the size_pct field is still
+    prompted for but no longer consumed by the sizing path."""
 
     def setUp(self):
         self.agent = XGBReasoningAgent()
         self.agent.portfolio.cash = 100_000.0
 
-    async def test_buy_uses_size_pct_from_ollama(self):
-        """size_pct=0.10 → 10% of $100k portfolio at $100/share = 100 shares.
+    async def test_buy_sizing_uses_kelly_not_ollama_size_pct(self):
+        """BUY sizing comes from kelly_fraction() via decide_buy — Ollama's
+        size_pct is ignored. Kelly 0.05 of $100k at $100 = 50 shares, NOT the
+        100 that Ollama's size_pct=0.10 would have produced.
         Inject 2 corroborators so the lone-wolf discount doesn't apply."""
         mkt = _make_market(["AAPL"], price=100.0)
         mkt["__agent_signals__"] = {"AAPL": {
@@ -956,12 +961,17 @@ class TestXGBGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
             "MomentumAgent": ("BUY", 0.6),
         }}
         buy_resp = {"action": "BUY", "confidence": 0.80, "size_pct": 0.10, "reasoning": "strong"}
+        # Pin VOL_TARGET off so this tests the kelly path in isolation (H15
+        # vol-managed sizing has its own tests + may be enabled via .env).
+        from config import config
         with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(config, "VOL_TARGET_SIZING_ENABLED", False), \
+             patch.object(self.agent.portfolio, "kelly_fraction", return_value=0.05), \
              patch.object(self.agent, "_ollama_decision", new=AsyncMock(return_value=buy_resp)):
             signals = await self.agent.analyze(mkt)
         buys = [s for s in signals if s.action == "BUY"]
         self.assertEqual(len(buys), 1)
-        self.assertEqual(buys[0].shares, 100)
+        self.assertEqual(buys[0].shares, 50)
 
     async def test_size_pct_clamped_at_max_position_size(self):
         """size_pct > MAX_POSITION_SIZE is clamped to MAX_POSITION_SIZE (15%)."""
@@ -986,8 +996,9 @@ class TestXGBGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
         # 2% of $100k at $100 = 20 shares minimum
         self.assertGreaterEqual(buys[0].shares, 20)
 
-    async def test_missing_size_pct_defaults_to_10pct(self):
-        """If Ollama omits size_pct, fall back to 10% of portfolio value.
+    async def test_buy_still_sizes_from_kelly_when_ollama_omits_size_pct(self):
+        """A BUY sizes from kelly_fraction() even when Ollama omits size_pct —
+        the sizing path never reads size_pct. Kelly 0.08 of $100k at $100 = 80.
         Inject 2 corroborators so the lone-wolf discount doesn't apply."""
         mkt = _make_market(["AAPL"], price=100.0)
         mkt["__agent_signals__"] = {"AAPL": {
@@ -995,12 +1006,16 @@ class TestXGBGoalAwareSizing(unittest.IsolatedAsyncioTestCase):
             "MomentumAgent": ("BUY", 0.6),
         }}
         buy_resp = {"action": "BUY", "confidence": 0.75, "reasoning": "no size"}
+        from config import config
         with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(config, "VOL_TARGET_SIZING_ENABLED", False), \
+             patch.object(self.agent.portfolio, "kelly_fraction", return_value=0.08), \
              patch.object(self.agent, "_ollama_decision", new=AsyncMock(return_value=buy_resp)):
             signals = await self.agent.analyze(mkt)
         buys = [s for s in signals if s.action == "BUY"]
-        # 10% of $100k at $100 = 100 shares
-        self.assertEqual(buys[0].shares, 100)
+        self.assertEqual(len(buys), 1)
+        # kelly 0.08 of $100k at $100 = 80 shares
+        self.assertEqual(buys[0].shares, 80)
 
 
 class TestXGBReasoningAgentHelpers(unittest.TestCase):
