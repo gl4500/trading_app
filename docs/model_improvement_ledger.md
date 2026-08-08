@@ -643,3 +643,73 @@ now measured on the agent that actually leads the book.
 
 Caveat throughout: paper trading, single 4-month sample spanning one bull leg and one chop leg; the
 trail's 90.6% win rate is mechanical, not predictive, and must not be read as signal quality.
+
+### Iteration 16 — 2026-08-08 — validate iter-15's three shipped knobs → all three unsupported (H18 falsified; H19/H20 do not survive)
+
+> **Coordination note:** iter-15's three "Next" builds were implemented by a *concurrent* session
+> (PR #93 `4789bb6`, MERGED, all OFF by default): `HIST_PREARM_STOP_PCT` (pre-arm/trail-arm-gap stop),
+> `HIST_SEASONAL_WEIGHT` (tunable seasonal), `HIST_CONFIDENCE_CAP` (sizing cap). They shipped
+> **unvalidated**, and the live `.env` had since turned them on (`0.04` / `0.0` / `0.45`). This iteration
+> supplies the missing validation. Work was done in an isolated git worktree to avoid colliding with the
+> other session; probes are read-only against `trading.db` + the offline `data/history/*.parquet`
+> snapshot cache.
+
+**Why:** iter 15 SUPPORTED H16/H17 and produced three ranked fixes, which were then built and activated.
+But H16/H17 were *attribution* on approximate FIFO buckets, not tests that any fix earns money. Before
+letting three new behaviours run live on the book's best agent, validate each against the same trades.
+
+**Method / falsifier discipline:** every knob got a **pre-registered, non-loosenable** falsifier fixed
+before results were seen. Both probes reconcile **exactly** with the iter-15 audit (exit-branch totals
+TRAIL +70,425 / HARD_STOP −56,474; composite table [0.45,0.60)=+844 / ≥0.60=−691), confirming the
+replay reads the same reality.
+
+**H18 — `HIST_PREARM_STOP_PCT` (pre-arm stop). Probe `scripts/trail_arm_gap_probe.py`. REJECTED.**
+Replays all 338 round trips against the observed price path, modelling the exact shipped
+`_prearm_stop_signal()` (SELL an *unarmed* position — peak uPnL < `TRAIL_ARM_USD` $100 — once down p%;
+disengage the moment the trail arms). Falsifier: best single setting must clear net ≥ +$8,000,
+loss_saved > winner_damage, and top-1 symbol < 50% of net.
+
+| variant | best | net Δ | loss_saved | winner_dmg | verdict |
+|---|---|---|---|---|---|
+| price-stop (the shipped knob) | 2% | **+$3,060** | 26,596 | 23,536 | FAIL materiality + robustness (QCOM −$2,879) |
+| price-stop at the live 0.04 | — | **+$1,046** | 17,981 | 16,935 | noise |
+| price-stop ≥ 5% | — | **negative** | — | — | — |
+| time-stop (un-shipped alternative) | any 2–15d | **negative** | — | — | FAIL |
+
+*Structural finding:* the −$56,474 hard-stop column is **not separable** from the +$70,425 trail column.
+The same volatility that produces the −8% losers produces the dips the trail winners recover from, and an
+*un-armed* stop (price or time) cannot tell them apart. The −8% hard stop is loose **by necessity.**
+
+**H19 — `HIST_CONFIDENCE_CAP=0.45` (sizing cap). Probe `scripts/hist_knob_validation_probe.py`. No PnL
+case.** The cap rescales only positions with `|composite| > 0.45` (entries/exits unchanged → realized pnl
+scales linearly). The audit premise reproduces (≥0.60 bucket = −$691, sized largest), but *capping* nets
+only **−$166**: shrinking the +$844 `[0.45,0.60)` winners costs slightly more than shrinking the −$691
+`≥0.60` losers saves. Pre-registered bar (net ≥ +$1,000, robust) FAILS. Only a mild drawdown-control
+rationale remains.
+
+**H20 — `HIST_SEASONAL_WEIGHT=0.0` (drop the "inverted" pillar). Directional; evidence leans AGAINST.**
+The inversion was a *monthly* aggregate (confounded with the May trail-tightening / semis leg). At the
+**trade level it goes the other way** — bucketing by the seasonal contribution (0.20·bias): bearish
+n=142 +$7,551 (avg +$53), neutral n=139 −$8,835 (avg −$64), **bullish n=57 +$16,874 (avg +$296)**. The
+most-bullish-seasonal entries were the *best*, not the worst, and zeroing the pillar drops **0** of the
+taken trades. Blind spot: entries that would *newly* qualify without seasonal are unobservable from
+realized data, so a firm verdict needs a re-selection backtest — but the cheap evidence does not support
+zeroing.
+
+**Verdict — all three iter-15 knobs that were activated live lack supporting evidence.** The audit's
+exit-side build is falsified by replay; its two entry-side sub-conclusions (H17) do not survive an
+independent re-pairing. Actions taken this iteration:
+- `HIST_PREARM_STOP_PCT` **reverted 0.04 → 0.0** in live `.env`.
+- `HIST_SEASONAL_WEIGHT` **reverted 0.0 → 0.20** (default) — evidence contradicts zeroing.
+- `HIST_CONFIDENCE_CAP` **reverted 0.45 → 0.0** (default) — PnL-neutral, no case to keep it on.
+
+**Where this leaves the frontier:** iter 15's headline still stands (the agent's edge is the *armed*
+trailing stop, a mechanical rule with no model in it), but none of the three cheap "improve the exit/entry
+mechanics" levers it proposed actually improves the book. The next genuine progress needs either a **new
+input** or a **re-selection backtest harness** (re-run the agent's signal generation over history so
+entry-changing knobs like seasonal can be evaluated without the realized-only blind spot) — not another
+cheap replay of the existing trades.
+
+*Caveats throughout:* single 4-month paper sample; H18 is a valid what-if (a stop only changes exits, not
+entries) but in-sample; H19/H20 are entry-side and limited by the FIFO overlapping-lot approximation the
+audit itself flagged.
