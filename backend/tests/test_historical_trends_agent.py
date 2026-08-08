@@ -21,7 +21,10 @@ try:
 except ImportError:
     HAS_PANDAS = False
 
+import unittest.mock as mock
+
 from agents.historical_trends_agent import HistoricalTrendsAgent, MONTHLY_SEASONAL_BIAS
+from config import config
 from trading.portfolio import Position
 
 
@@ -400,6 +403,148 @@ class TestHistoricalTrendsAnalyze(unittest.TestCase):
         # With strong uptrend + November, should be BUY or at minimum high confidence HOLD
         self.assertIn(signals[0].action, ("BUY", "HOLD"))
 
+
+# ── Fix 1: pre-arm stop — the trail-arm gap (ledger Iteration 15, H16) ────────
+#
+# A position that never reaches TRAIL_ARM_USD of peak unrealized profit is never
+# protected by the trailing stop, so nothing stands between its entry and the
+# -8% hard stop. That gap is 100% of this agent's realized loss column.
+# HIST_PREARM_STOP_PCT installs a tighter provisional stop that applies ONLY
+# while the trail is unarmed. Default 0.0 = disabled, behaviour unchanged.
+
+class TestPreArmStop(unittest.TestCase):
+
+    def setUp(self):
+        self.agent = HistoricalTrendsAgent()
+        self.agent.portfolio.positions["AAPL"] = Position("AAPL", 10, 100.0)
+        self.agent.portfolio._position_peak_unrealized["AAPL"] = 0.0
+
+    def test_disabled_by_default_returns_none(self):
+        """Default config must not change live behaviour: no pre-arm stop fires."""
+        self.assertEqual(config.HIST_PREARM_STOP_PCT, 0.0)
+        self.assertIsNone(self.agent._prearm_stop_signal("AAPL", 80.0))
+
+    def test_sells_unprotected_loser_while_trail_is_unarmed(self):
+        with mock.patch.object(config, "HIST_PREARM_STOP_PCT", 0.04):
+            signal = self.agent._prearm_stop_signal("AAPL", 95.0)   # down 5%
+        self.assertIsNotNone(signal)
+        self.assertEqual(signal.action, "SELL")
+        self.assertEqual(signal.shares, 10)
+
+    def test_holds_position_that_has_not_breached_the_stop(self):
+        with mock.patch.object(config, "HIST_PREARM_STOP_PCT", 0.04):
+            self.assertIsNone(self.agent._prearm_stop_signal("AAPL", 98.0))  # down 2%
+
+    def test_defers_to_trailing_stop_once_armed(self):
+        """Past TRAIL_ARM_USD the trailing stop owns the position — do not double up."""
+        self.agent.portfolio._position_peak_unrealized["AAPL"] = config.TRAIL_ARM_USD + 1.0
+        with mock.patch.object(config, "HIST_PREARM_STOP_PCT", 0.04):
+            self.assertIsNone(self.agent._prearm_stop_signal("AAPL", 95.0))
+
+    def test_no_position_returns_none(self):
+        with mock.patch.object(config, "HIST_PREARM_STOP_PCT", 0.04):
+            self.assertIsNone(self.agent._prearm_stop_signal("MSFT", 1.0))
+
+    def test_analyze_emits_the_prearm_sell_instead_of_a_composite_signal(self):
+        bars = _make_bars(n=50, trend=0.5)
+        ctx = {"AAPL": {"bars": bars, "price": 95.0}}
+        with mock.patch.object(config, "HIST_PREARM_STOP_PCT", 0.04):
+            signals = run(self.agent.analyze(ctx))
+        self.assertEqual(len(signals), 1)
+        self.assertEqual(signals[0].action, "SELL")
+        self.assertIn("PRE-ARM STOP", signals[0].reasoning)
+
+
+# ── Fix 2: seasonal weight is configurable (H17) ──────────────────────────────
+#
+# The seasonal pillar is long-run S&P *index* seasonality applied to single
+# names; on the live sample its sign is inverted. HIST_SEASONAL_WEIGHT makes it
+# tunable. Zeroing it renormalises the remaining pillars so the composite stays
+# on the same scale and the +/-0.25 thresholds keep their meaning.
+
+class TestSeasonalWeightKnob(unittest.TestCase):
+
+    def setUp(self):
+        self.agent = HistoricalTrendsAgent()
+
+    def test_default_weights_match_the_documented_mix(self):
+        seasonal, channel, momentum, volume = self.agent._composite_weights()
+        self.assertAlmostEqual(seasonal, 0.20)
+        self.assertAlmostEqual(channel,  0.30)
+        self.assertAlmostEqual(momentum, 0.40)
+        self.assertAlmostEqual(volume,   0.10)
+
+    def test_weights_always_sum_to_one(self):
+        for weight in (0.0, 0.10, 0.20, 0.50):
+            with mock.patch.object(config, "HIST_SEASONAL_WEIGHT", weight):
+                self.assertAlmostEqual(sum(self.agent._composite_weights()), 1.0)
+
+    def test_zeroing_seasonal_redistributes_proportionally(self):
+        with mock.patch.object(config, "HIST_SEASONAL_WEIGHT", 0.0):
+            seasonal, channel, momentum, volume = self.agent._composite_weights()
+        self.assertAlmostEqual(seasonal, 0.0)
+        self.assertAlmostEqual(channel,  0.375)   # 0.30 / 0.80
+        self.assertAlmostEqual(momentum, 0.500)   # 0.40 / 0.80
+        self.assertAlmostEqual(volume,   0.125)   # 0.10 / 0.80
+
+    def test_zeroed_seasonal_score_cannot_move_the_composite(self):
+        bars = _make_bars(n=50, trend=0.5)
+        prices = {"AAPL": 100.0}
+        with mock.patch.object(config, "HIST_SEASONAL_WEIGHT", 0.0):
+            bullish = self.agent._generate_signal(
+                "AAPL", seasonal_score=1.0, channel_score=0.1, momentum_score=0.1,
+                volume_score=0.0, reasons=[], prices=prices, df=bars)
+            bearish = self.agent._generate_signal(
+                "AAPL", seasonal_score=-1.0, channel_score=0.1, momentum_score=0.1,
+                volume_score=0.0, reasons=[], prices=prices, df=bars)
+        self.assertAlmostEqual(bullish.confidence, bearish.confidence)
+
+
+# ── Fix 3: sizing confidence cap (H17) ───────────────────────────────────────
+#
+# Size scales with confidence = |composite|, but composite > +0.60 is the only
+# net-negative entry bucket — so the worst bucket gets the largest positions.
+# HIST_CONFIDENCE_CAP caps the confidence used for SIZING only; the confidence
+# reported on the signal stays honest. Default 0.0 = disabled.
+
+class TestSizingConfidenceCap(unittest.TestCase):
+
+    def setUp(self):
+        self.agent = HistoricalTrendsAgent()
+        self.bars = _make_bars(n=50, trend=0.5)
+        self.prices = {"AAPL": 100.0}
+
+    def _buy(self, score):
+        return self.agent._generate_signal(
+            "AAPL", seasonal_score=score, channel_score=score, momentum_score=score,
+            volume_score=0.0, reasons=[], prices=self.prices, df=self.bars)
+
+    def test_disabled_by_default(self):
+        self.assertEqual(config.HIST_CONFIDENCE_CAP, 0.0)
+
+    def test_cap_shrinks_a_high_conviction_position(self):
+        uncapped = self._buy(0.9)
+        with mock.patch.object(config, "HIST_CONFIDENCE_CAP", 0.45):
+            capped = self.agent._generate_signal(
+                "AAPL", seasonal_score=0.9, channel_score=0.9, momentum_score=0.9,
+                volume_score=0.0, reasons=[], prices=self.prices, df=self.bars)
+        self.assertEqual(uncapped.action, "BUY")
+        self.assertEqual(capped.action, "BUY")
+        self.assertLess(capped.shares, uncapped.shares)
+
+    def test_cap_leaves_positions_below_the_cap_untouched(self):
+        uncapped = self._buy(0.30)
+        with mock.patch.object(config, "HIST_CONFIDENCE_CAP", 0.45):
+            capped = self.agent._generate_signal(
+                "AAPL", seasonal_score=0.30, channel_score=0.30, momentum_score=0.30,
+                volume_score=0.0, reasons=[], prices=self.prices, df=self.bars)
+        self.assertEqual(capped.shares, uncapped.shares)
+
+    def test_reported_confidence_is_not_capped(self):
+        """The cap governs sizing only — the signal must still report true conviction."""
+        with mock.patch.object(config, "HIST_CONFIDENCE_CAP", 0.45):
+            signal = self._buy(0.9)
+        self.assertGreater(signal.confidence, 0.45)
 
 if __name__ == "__main__":
     unittest.main()
