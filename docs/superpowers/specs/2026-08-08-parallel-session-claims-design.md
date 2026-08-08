@@ -1,6 +1,6 @@
 # Parallel-session claims — design
 
-**Date:** 2026-08-08 (rev 2 — claim store changed from per-session to per-idea)
+**Date:** 2026-08-08 (rev 3 — closed ideas are archived, not deleted)
 **Applies to:** `trading_app` **and** `polymarket_app`
 **Status:** design, pending operator review
 
@@ -116,19 +116,58 @@ Per-idea files do allow two sessions to open the same file. That is the one coll
 loudly and early: it means two sessions are chasing the same hypothesis, and they should discover that
 at claim time rather than at merge.
 
-### 3. Boundary with the ledger — no second tracker
+### 3. Closing — archive, never delete
+
+An idea closes by **moving** its file from `docs/ideas/` to `docs/ideas/_archive/`. The move is the
+whole ceremony:
+
+```
+docs/ideas/H18.md   ->   docs/ideas/_archive/H18.md
+```
+
+**The directory is the state.** A file under `docs/ideas/` is live and its `claims:` are enforced; a
+file under `_archive/` is history and enforces nothing. The hook globs `docs/ideas/*.md` only, so an
+archived file's stale `claims:` list can never block anyone. Nothing else has to be updated, and there
+is no release step to forget. (`_archive/` matches the naming already used by the operator's memory
+store, so the convention reads the same in both places.)
+
+On archiving, the owner adds the closing fields:
+
+```markdown
+status:   closed
+outcome:  REJECTED          # or LANDED / SUPERSEDED / ABANDONED
+closed:   2026-08-08
+ledger:   Iteration 16      # where the settled verdict lives
+```
+
+**Why keep it.** The ledger records the verdict; the idea file records the *work* — the thresholds
+tried and discarded, the probe that had a bug, the reasoning that was reframed halfway. A future
+session picking up an adjacent hypothesis needs that far more than it needs the summary, and it is
+exactly what is lost when the working document is thrown away at the end.
+
+**Archived files are read-only in practice.** Once closed, an idea file is not edited again except to
+fix a broken link. It is a point-in-time record, and its conclusions may have been overtaken.
+
+### 3a. Boundary with the ledger — no second tracker
 
 `docs/model_improvement_ledger.md` already has a hypothesis backlog table and per-iteration verdicts.
 The idea files must not duplicate it. The split:
 
 | | idea file | ledger |
 |---|---|---|
-| holds | **in-flight** state: owner, branch, status, working notes, partial results | the **settled** verdict and its reasoning |
-| lifetime | created at claim, deleted (or moved to `docs/ideas/_closed/`) when the idea closes | permanent |
+| holds | the **working record**: owner, branch, status, notes, dead ends, partial results | the **settled** verdict and its reasoning |
+| lifetime | `docs/ideas/` while live → `docs/ideas/_archive/` once closed. Never deleted. | permanent |
 | written by | the owner, continuously, while the work is live | the owner, once, as part of the landing PR |
+| authority | context only | **authoritative** |
 
-Closing an idea is therefore a single act: the owner writes the ledger entry and removes the idea
-file, in the same PR. If both ever disagree, **the ledger wins** — it is the durable record.
+Closing is a single act in one PR: the owner writes the ledger entry **and** moves the idea file to
+`_archive/`. If the two ever disagree, **the ledger wins**.
+
+Every archived file therefore opens with this line, so a future session cannot mistake a working note
+for a current conclusion:
+
+> *Archived working record. The settled verdict is in `docs/model_improvement_ledger.md` — see the
+> `ledger:` field above. Anything here may have been superseded.*
 
 ### 4. Contract — five rules
 
@@ -163,10 +202,11 @@ BLOCKED: scripts/trail_arm_gap_probe.py
 Behaviour:
 
 1. Derive own handle from the worktree basename (normalised), or an explicit override.
-2. Read every `docs/ideas/*.md` **from `HEAD`, not the worktree** — a half-edited idea file must never
-   wedge a commit.
-3. Collect `file:` claims from each, with their `owner`. Block a staged path if a **different** handle
-   claims it and the idea's `status` is not `landed`.
+2. Read `docs/ideas/*.md` **from `HEAD`, not the worktree** — a half-edited idea file must never wedge
+   a commit. The glob is deliberately non-recursive: `docs/ideas/_archive/**` is never read, so a
+   closed idea's stale `claims:` list can never block anyone.
+3. Collect `file:` claims from each live idea, with their `owner`. Block a staged path if a
+   **different** handle claims it.
 4. `doc:` claims print a warning and do not block.
 5. Own claims never block. `--no-verify` remains the documented escape hatch.
 
@@ -176,7 +216,8 @@ rather than after a seven-minute test run.
 
 ### 6. Rollout
 
-1. `docs/ideas/` + `README.md` (the frontmatter schema, the five rules) in both repos.
+1. `docs/ideas/` + `docs/ideas/_archive/` + `README.md` (frontmatter schema, the five rules, the
+   archive-on-close step) in both repos.
 2. Hook step 0 in both repos.
 3. Replace the stale "Two-Agent Setup" section in `trading_app/CLAUDE.md`; add the equivalent to
    `polymarket_app/CLAUDE.md`.
@@ -210,9 +251,15 @@ cherry-picks: ledger Iteration 14, and `it15`'s Iteration 16 probe script. Under
   invisible to everyone else.
 - **Two sessions can edit one idea file.** By design — that is the conflict worth surfacing. But it is
   a real merge conflict, not a clean error message.
-- **Idea files can rot.** An abandoned session leaves a file claiming paths forever. Mitigation is
-  social (the `updated` field makes staleness visible); no expiry mechanism is proposed, because an
-  automatic one would release claims on work that is merely paused.
+- **Idea files can rot.** An abandoned session leaves a *live* file claiming paths forever. Mitigation
+  is social — the `updated` field makes staleness visible, and anyone may move a clearly-dead idea to
+  `_archive/` with `outcome: ABANDONED`. No expiry mechanism is proposed, because an automatic one
+  would release claims on work that is merely paused.
+- **The archive can mislead.** A closed idea file is a point-in-time record whose conclusions may have
+  been overtaken — a real instance of this happened while drafting: a note reading "these two knobs
+  remain unvalidated" was already stale when written, because another session had begun validating
+  them that hour. The `ledger:` field and the archived-record banner are the mitigation; a future
+  session must treat an archived file as context, never as current fact.
 
 ## Alternatives considered
 
