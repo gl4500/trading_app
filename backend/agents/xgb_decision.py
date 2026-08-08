@@ -41,6 +41,8 @@ class BuyContext:
     kelly_fraction: float                   # quarter-Kelly from caller
     realized_vol: Optional[float] = None    # symbol's annualized trailing rv_20d;
                                             # None when unavailable (H15 sizing)
+    term_structure_delta: Optional[float] = None   # book-proxy trend gate add-on
+                                            # (>=0); None when unavailable
 
 
 @dataclass(frozen=True)
@@ -107,12 +109,22 @@ def decide_buy(ctx: BuyContext, config) -> BuyDecision:
         return BuyDecision("HOLD", 0, ctx.model_confidence,
                            f"conf {ctx.model_confidence:.2f} < {config.CNN_BUY_THRESHOLD_BASE:.2f}")
 
-    # Gate 3: regime-adjusted floor (adds 0.15 in bear, 0.20 in high_vol)
+    # Gate 3: regime-adjusted floor (adds 0.15 in bear, 0.20 in high_vol).
+    # Term-structure gate (opt-in): combine via max() — never sum, never lower.
+    # Tighten-only; the WFE falsifier is evaluated separately and is unaffected.
     regime_add = _REGIME_CONF_ADJ.get(ctx.regime, 0.0)
+    ts_delta = ctx.term_structure_delta or 0.0
+    ts_note = ""
+    if ts_delta > 0.0:
+        if config.TERM_STRUCTURE_GATE_ENABLED:
+            regime_add = max(regime_add, ts_delta)
+            ts_note = f" [ts+{ts_delta:.2f}]"
+        else:
+            ts_note = f" [ts+{ts_delta:.2f} shadow]"
     needed = config.CNN_BUY_THRESHOLD_BASE + regime_add
     if ctx.model_confidence < needed:
         return BuyDecision("HOLD", 0, ctx.model_confidence,
-                           f"regime gate ({ctx.regime}): conf {ctx.model_confidence:.2f} < {needed:.2f}")
+                           f"regime gate ({ctx.regime}): conf {ctx.model_confidence:.2f} < {needed:.2f}{ts_note}")
 
     # Gate 4: portfolio uPnL drawdown
     if (ctx.portfolio_unpnl_frac is not None

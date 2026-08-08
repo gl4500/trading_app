@@ -228,6 +228,16 @@ class Config:
     VOL_TARGET_ANN_VOL:        float = float(os.getenv("VOL_TARGET_ANN_VOL", "0.12"))
     VOL_TARGET_CAP:            float = float(os.getenv("VOL_TARGET_CAP", "2.0"))
 
+    # ── Term-structure regime gate (2026-08-02) ──────────────────────────────
+    # Multi-horizon trend signal on a book-matched proxy (QQQ). Tighten-only
+    # conservatism dial on the XGB BUY threshold; combined via max() with the
+    # regime add-on, never sum. Default OFF + shadow (see regime_term_structure.py).
+    TERM_STRUCTURE_GATE_ENABLED: bool  = os.getenv("TERM_STRUCTURE_GATE_ENABLED", "0") == "1"
+    TERM_STRUCTURE_PROXY:        str   = os.getenv("TERM_STRUCTURE_PROXY", "QQQ")
+    TERM_STRUCTURE_Z_CUTOFF:     float = float(os.getenv("TERM_STRUCTURE_Z_CUTOFF", "0.5"))
+    TERM_STRUCTURE_DELTA_TOPPING: float = float(os.getenv("TERM_STRUCTURE_DELTA_TOPPING", "0.10"))
+    TERM_STRUCTURE_DELTA_WEAK:   float = float(os.getenv("TERM_STRUCTURE_DELTA_WEAK", "0.15"))
+
     # Cloud-Claude model selection per call site (added 2026-05-05).
     # ScannerAgent's job is "rank symbols by interest" — Haiku 4.5 is
     # plenty for that and ~15× cheaper than Opus 4.6 ($1/M vs $15/M

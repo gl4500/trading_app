@@ -260,5 +260,40 @@ class TestVolTargetSizing(unittest.TestCase):
         self.assertNotIn("shadow", d.reason.lower())
 
 
+class TestTermStructureGate(unittest.TestCase):
+    """Term-structure gate: gate_delta combined with the regime add-on via
+    max() (never sum), tighten-only, and shadow-only (no effect) when disabled."""
+
+    def test_enabled_topping_delta_raises_threshold_and_holds(self):
+        base = config.CNN_BUY_THRESHOLD_BASE
+        # neutral regime (add 0) + ts 0.15 -> needed base+0.15; conf base+0.05 blocked.
+        with mock.patch.object(config, "TERM_STRUCTURE_GATE_ENABLED", True):
+            d = decide_buy(_ctx(model_confidence=base + 0.05,
+                                term_structure_delta=0.15), config)
+        self.assertEqual(d.action, "HOLD")
+        self.assertIn("regime gate", d.reason)
+
+    def test_disabled_delta_is_shadow_only_buys(self):
+        base = config.CNN_BUY_THRESHOLD_BASE
+        # disabled -> ts ignored; needed stays base; conf base+0.05 buys.
+        with mock.patch.object(config, "TERM_STRUCTURE_GATE_ENABLED", False):
+            d = decide_buy(_ctx(model_confidence=base + 0.05,
+                                term_structure_delta=0.15), config)
+        self.assertEqual(d.action, "BUY")
+
+    def test_combined_via_max_not_sum(self):
+        base = config.CNN_BUY_THRESHOLD_BASE
+        # bear (+0.15) AND ts (+0.15): max = 0.15 -> needed base+0.15 (NOT base+0.30).
+        with mock.patch.object(config, "TERM_STRUCTURE_GATE_ENABLED", True):
+            d = decide_buy(_ctx(regime="bear", model_confidence=base + 0.16,
+                                term_structure_delta=0.15), config)
+        self.assertEqual(d.action, "BUY")   # would HOLD if summed to base+0.30
+
+    def test_none_delta_behaves_as_before(self):
+        with mock.patch.object(config, "TERM_STRUCTURE_GATE_ENABLED", True):
+            d = decide_buy(_ctx(term_structure_delta=None), config)
+        self.assertEqual(d.action, "BUY")
+
+
 if __name__ == "__main__":
     unittest.main()
