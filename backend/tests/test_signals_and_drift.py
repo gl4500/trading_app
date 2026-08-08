@@ -837,5 +837,40 @@ class TestLedgerDriftInvariant(unittest.IsolatedAsyncioTestCase):
         )
 
 
+class TestInjectableClock(unittest.TestCase):
+    """The as-of clock seam the backtest harness drives. Default must be wall-clock."""
+
+    def test_now_defaults_to_wallclock(self):
+        from agents.historical_trends_agent import HistoricalTrendsAgent
+        from datetime import datetime, timezone
+        a = HistoricalTrendsAgent()
+        self.assertIsNone(a._clock)
+        delta = abs((a._now() - datetime.now(timezone.utc)).total_seconds())
+        self.assertLess(delta, 2.0)
+
+    def test_now_uses_injected_clock(self):
+        from agents.historical_trends_agent import HistoricalTrendsAgent
+        from datetime import datetime, timezone
+        a = HistoricalTrendsAgent()
+        fixed = datetime(2026, 5, 15, 21, 0, tzinfo=timezone.utc)
+        a._clock = lambda: fixed
+        self.assertEqual(a._now(), fixed)
+
+    def test_seasonal_pillar_reads_injected_date(self):
+        # Injecting a May date must make the seasonal reason say "May",
+        # proving analyze() uses the seam and not the real calendar.
+        import asyncio
+        from agents.historical_trends_agent import HistoricalTrendsAgent
+        from datetime import datetime, timezone
+        import pandas as pd
+        a = HistoricalTrendsAgent()
+        a._clock = lambda: datetime(2026, 5, 15, 21, 0, tzinfo=timezone.utc)
+        bars = pd.DataFrame({"close": [100.0 + i * 0.1 for i in range(40)],
+                             "volume": [1000] * 40})
+        ctx = {"AAA": {"price": 104.0, "long_term_bars": bars}}
+        signals = asyncio.run(a.analyze(ctx))
+        self.assertTrue(any("May seasonal bias" in (s.reasoning or "") for s in signals))
+
+
 if __name__ == "__main__":
     unittest.main()
