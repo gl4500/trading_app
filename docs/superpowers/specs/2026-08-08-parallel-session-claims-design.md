@@ -60,6 +60,36 @@ merged config knobs had no effect — because the backend ran from a checkout pa
 feature branch — cannot recur if the bare checkout is always `main`. `polymarket_app`'s bare checkout
 is currently on `feat/scan-loop-resilience`, so adopting this is a change there, not a formalisation.
 
+**Worktrees are cheap — but make them cheaper with sparse-checkout.** A worktree does *not* copy the
+repository. The object database in `.git/` (237 MB) is **shared**, and everything large in
+`trading_app` is untracked and therefore never materialised: `runtime/` 4.9 GB, `site-packages/`
+929 MB, `frontend/node_modules/` 129 MB. Of the folder's 6.4 GB, a worktree checks out the **114 MB**
+of tracked files — and 95 MB of that is `backend/packages`, the committed offline wheel cache that no
+worktree needs.
+
+Create worktrees sparse, so only the paths being worked on land on disk:
+
+```bash
+git worktree add --no-checkout <path> -b <branch> origin/main
+cd <path>
+git sparse-checkout init --cone
+git sparse-checkout set docs scripts          # docs work
+# or: git sparse-checkout set backend/agents backend/tests docs
+git checkout
+```
+
+Measured on this repo: full checkout **114 MB** → docs-only sparse **16 MB** → typical code set
+**19 MB**. Widening later is one `git sparse-checkout set` away, no re-clone.
+
+*Two gotchas, both measured rather than assumed.* Cone mode always materialises **root-level tracked
+files**, and this repo has `Start Trading App.exe` — a 14 MB binary committed at the root — so that one
+file accounts for almost all of the 16 MB docs-only figure. Removing it from git would take a
+docs-only worktree to roughly 2 MB and shrink `.git` as well; out of scope here, but worth a separate
+decision. Second: the gitignored `runtime/` and `site-packages/` are **absent** from a new worktree,
+so the pre-commit hook's Bandit step cannot run and **every commit silently aborts**. Link them in
+once per worktree with directory junctions (`mklink /J`), which cost no disk. **Remove the junctions
+before deleting a worktree** — `rm -rf` follows a junction and would delete the real 4.9 GB runtime.
+
 **Identity is separate from isolation.** A session's handle is short and stable (`hta`, `it15`), and
 defaults to the worktree's basename normalised — strip a leading `.`, a `<repo>-` prefix, a
 `-worktree` suffix. A session may also be given a handle explicitly. `polymarket_app` already runs
