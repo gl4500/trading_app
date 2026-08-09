@@ -12,10 +12,15 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import pandas as pd
+import pyarrow.parquet as pq
+
+_REQUIRED_COLUMNS = {"snapshot_ts", "price", "volume"}
+
+_DEFAULT_TRAILING_BARS = 504  # ~2 trading years; empirically reproduces live HistoricalTrendsAgent PnL to ~4% rel_err (Task 4 trust gate). 1260 (5yr) gave ~48%.
 
 
 class BarsProvider:
-    def __init__(self, history_dir: Path, trailing_bars: int = 1260):
+    def __init__(self, history_dir: Path, trailing_bars: int = _DEFAULT_TRAILING_BARS):
         self._dir = Path(history_dir)
         self._trailing = trailing_bars
         self._cache: Dict[str, Optional[pd.DataFrame]] = {}
@@ -24,7 +29,15 @@ class BarsProvider:
         """Full daily close/volume series for a symbol (cached), ascending index."""
         if symbol not in self._cache:
             path = self._dir / f"{symbol}.parquet"
-            if not path.exists():
+            # Stray/legacy cache files can predate the volume/return_10d schema
+            # (e.g. a superseded INTEL.parquet alongside the live INTC.parquet).
+            # Treat schema-incompatible files as "no data" rather than crashing
+            # the whole directory-wide scan in trading_days().
+            has_required_cols = (
+                path.exists()
+                and _REQUIRED_COLUMNS.issubset(pq.ParquetFile(path).schema_arrow.names)
+            )
+            if not has_required_cols:
                 self._cache[symbol] = None
             else:
                 raw = pd.read_parquet(path, columns=["snapshot_ts", "price", "volume"])

@@ -67,7 +67,7 @@ async def run_backtest(
             held = list(agent.portfolio.positions.keys())
             prices: Dict[str, float] = {}
             market_context: Dict[str, dict] = {}
-            for sym in set(universe) | set(held):
+            for sym in sorted(set(universe) | set(held)):
                 close = bars.close_asof(sym, day)
                 if close is None:
                     continue
