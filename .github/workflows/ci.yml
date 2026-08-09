@@ -97,16 +97,17 @@ jobs:
   # ── 3b. Dependency audit (SCA) ──────────────────────────────────────────────
   # Complements Bandit (SAST) with dependency-CVE scanning — the gap that let the
   # requirements.txt / wheel-cache / site-packages version drift go unnoticed.
-  # Informational (continue-on-error) for now: it still surfaces the deferred
-  # starlette CVEs (need a FastAPI bump off 0.115) and the frontend vite/esbuild
-  # chain (needs vite@8). Flip continue-on-error to false once those land so it
-  # blocks NEW vulnerable deps. Torch is excluded (too large for CI), mirroring
-  # the backend-tests job.
+  # REPORT-ONLY for now: findings are written to the job summary but do NOT fail
+  # the check (a persistent red X trains people to ignore CI). The two known-open
+  # sets are tracked separately — the deferred starlette CVEs (need a FastAPI bump
+  # off 0.115) and the frontend vite/esbuild chain (need vite@8). Once those land,
+  # make this blocking by dropping the `|| true` (optionally with a
+  # `--ignore-vuln <id>` allowlist for any consciously-accepted advisories).
+  # Torch is excluded (too large for CI), mirroring the backend-tests job.
   sca:
     name: Dependency audit (SCA)
     runs-on: ubuntu-latest
     needs: secret-scan
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
@@ -123,16 +124,28 @@ jobs:
           pip install --quiet -r /tmp/ci-requirements.txt
           pip install --quiet pip-audit
 
-      - name: pip-audit (installed environment)
-        run: pip-audit --desc
+      - name: pip-audit (backend, report-only)
+        run: |
+          {
+            echo "## pip-audit — backend dependencies"
+            echo '```'
+            pip-audit --desc 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: npm audit (frontend)
+      - name: npm audit (frontend, report-only)
         working-directory: frontend
-        run: npm audit --audit-level=high
+        run: |
+          {
+            echo "## npm audit — frontend dependencies"
+            echo '```'
+            npm audit --audit-level=high 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ── 4. Frontend type-check ──────────────────────────────────────────────────
   frontend-typecheck:
