@@ -94,66 +94,13 @@ jobs:
           name: bandit-report
           path: backend/bandit-report.json
 
-  # ── 3b. Dependency audit (SCA) ──────────────────────────────────────────────
-  # Complements Bandit (SAST) with dependency-CVE scanning — the gap that let the
-  # requirements.txt / wheel-cache / site-packages version drift go unnoticed.
-  # REPORT-ONLY for now: findings are written to the job summary but do NOT fail
-  # the check (a persistent red X trains people to ignore CI). The two known-open
-  # sets are tracked separately — the deferred starlette CVEs (need a FastAPI bump
-  # off 0.115) and the frontend vite/esbuild chain (need vite@8). Once those land,
-  # make this blocking by dropping the `|| true` (optionally with a
-  # `--ignore-vuln <id>` allowlist for any consciously-accepted advisories).
-  # Torch is excluded (too large for CI), mirroring the backend-tests job.
-  sca:
-    name: Dependency audit (SCA)
-    runs-on: ubuntu-latest
-    needs: secret-scan
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install backend deps (minus torch) + pip-audit
-        working-directory: backend
-        run: |
-          grep -v '^torch' requirements.txt > /tmp/ci-requirements.txt
-          pip install --quiet -r /tmp/ci-requirements.txt
-          pip install --quiet pip-audit
-
-      - name: pip-audit (backend, report-only)
-        run: |
-          {
-            echo "## pip-audit — backend dependencies"
-            echo '```'
-            pip-audit --desc 2>&1 || true
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: npm audit (frontend, report-only)
-        working-directory: frontend
-        run: |
-          {
-            echo "## npm audit — frontend dependencies"
-            echo '```'
-            npm audit --audit-level=high 2>&1 || true
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  # ── 3c. Snyk (uses the SNYK_TOKEN repo secret) ──────────────────────────────
-  # Runs the Snyk CLI (SCA) against the repo using the SNYK_TOKEN secret. Report-only
+  # ── 3b. Snyk (SCA, uses the SNYK_TOKEN repo secret) ─────────────────────────
+  # Sole dependency-CVE scanner (replaced the pip-audit/npm-audit job — Snyk uses its
+  # own DB and pairs with the Snyk Code/SAST from the SCM integration). Report-only
   # for now (continue-on-error): `snyk test` exits non-zero when it FINDS vulns — that
-  # still means the token authenticated; it only errors out on a bad/missing token.
-  # The explicit auth step below makes token validity visible in the job summary.
-  # Make blocking (remove continue-on-error) once the deferred starlette/vite items
-  # land, or drop this job if pip-audit/npm audit above is sufficient.
+  # still means the token authenticated; it only errors on a bad/missing token.
+  # Make blocking (remove continue-on-error) once the deferred starlette (FastAPI bump
+  # off 0.115) and frontend vite@8 items land.
   snyk:
     name: Snyk test
     runs-on: ubuntu-latest
