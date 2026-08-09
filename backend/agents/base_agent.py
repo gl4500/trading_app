@@ -9,7 +9,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Deque, Dict, List, Optional, Any, Tuple
+from typing import Deque, Dict, List, Optional, Any, Tuple, Callable
 from datetime import datetime, timezone
 
 import numpy as np
@@ -68,6 +68,14 @@ class BaseAgent(ABC):
         # Used by _in_trail_cooldown() to block new BUYs for
         # config.TRAIL_COOLDOWN_HOURS after any trail-stop fire.
         self._last_trail_stop_ts: Optional[datetime] = None
+        # Backtest seam: when set, all decision-time "now" reads go through this.
+        # Default None -> real wall clock, so live behavior is unchanged.
+        self._clock: Optional[Callable[[], datetime]] = None
+
+    def _now(self) -> datetime:
+        """Decision-time clock. Real wall-clock in production; the backtest
+        harness injects an as-of time via ``self._clock``."""
+        return self._clock() if self._clock is not None else datetime.now(timezone.utc)
 
     # ── Picks persistence ────────────────────────────────────────────────────
 
@@ -458,7 +466,7 @@ class BaseAgent(ABC):
         if exits:
             # Arm the trail-stop cool-down — blocks new BUYs for
             # config.TRAIL_COOLDOWN_HOURS to prevent rebuy whipsaw.
-            self._last_trail_stop_ts = datetime.now(timezone.utc)
+            self._last_trail_stop_ts = self._now()
         return exits
 
     def _in_trail_cooldown(self) -> bool:
@@ -468,7 +476,7 @@ class BaseAgent(ABC):
         if not self._last_trail_stop_ts or config.TRAIL_COOLDOWN_HOURS <= 0:
             return False
         from datetime import timedelta
-        elapsed = datetime.now(timezone.utc) - self._last_trail_stop_ts
+        elapsed = self._now() - self._last_trail_stop_ts
         return elapsed < timedelta(hours=config.TRAIL_COOLDOWN_HOURS)
 
     async def _execute_signal(

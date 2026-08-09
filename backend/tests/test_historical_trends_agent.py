@@ -391,14 +391,15 @@ class TestHistoricalTrendsAnalyze(unittest.TestCase):
 
     def test_analyze_uptrend_in_november_likely_buy(self):
         """Strong uptrend + November (seasonal tailwind) should lean BUY."""
-        import unittest.mock as mock
+        from datetime import datetime, timezone
         bars = _make_bars(n=50, trend=3.0, start=50.0)
         price = float(bars["close"].iloc[-1])
         ctx = {"AAPL": {"bars": bars, "price": price}}
-        # Patch datetime.now().date() to return November
-        with mock.patch("agents.historical_trends_agent.datetime") as mock_dt:
-            mock_dt.now.return_value.date.return_value = date(2026, 11, 15)
-            signals = run(self.agent.analyze(ctx))
+        # Inject the as-of clock so the seasonal pillar sees November. (Since the
+        # clock seam landed, the date flows through self._now(), not module-level
+        # datetime — patching the latter would silently no-op.)
+        self.agent._clock = lambda: datetime(2026, 11, 15, tzinfo=timezone.utc)
+        signals = run(self.agent.analyze(ctx))
         self.assertEqual(len(signals), 1)
         # With strong uptrend + November, should be BUY or at minimum high confidence HOLD
         self.assertIn(signals[0].action, ("BUY", "HOLD"))

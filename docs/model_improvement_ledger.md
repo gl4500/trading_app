@@ -713,3 +713,46 @@ cheap replay of the existing trades.
 *Caveats throughout:* single 4-month paper sample; H18 is a valid what-if (a stop only changes exits, not
 entries) but in-sample; H19/H20 are entry-side and limited by the FIFO overlapping-lot approximation the
 audit itself flagged.
+
+### Iteration 17 — 2026-08-08 — built the re-selection backtest harness; H20 seasonal settled → keep the pillar (REJECT zeroing)
+
+**What this closes:** Iteration 16 could only answer the seasonal knob (`HIST_SEASONAL_WEIGHT`)
+*directionally* — realized data can't show entries that never happened. This iteration builds the tool
+that removes the blind spot and uses it to settle H20 for real.
+
+**The harness** (`backend/backtest/`, new package; `scripts/reselection_backtest.py`; spec
+`docs/superpowers/specs/2026-08-08-reselection-backtest-harness-design.md`): a **full-chassis daily event
+loop** that drives the *real* `BaseAgent.run_cycle` over point-in-time bars (an injectable `_now()` clock
+seam feeds the as-of date; `BarsProvider` serves no-lookahead daily bars from the offline parquet cache).
+Because it runs the live entry logic **and** the live exit chassis, entry-changing configs can be A/B'd on
+the *re-selected* trade set — the thing iter-16's replay could not do. Built TDD via subagent-driven
+development (5 tasks, each spec+quality reviewed).
+
+**Trust gate (the first deliverable, non-negotiable):** baseline config reproduces the live agent's
+realized PnL over 2026-03-30→2026-07-31 within ±15%. Result: **live +$15,448 vs backtest +$16,077 =
+4.1% rel_err**, and **deterministic** (identical across runs). Two fidelity facts fell out of hitting the
+gate: (1) the live channel lookback is **~2 trading years (504 bars), not 5** — 1260 bars gave 48% error,
+504 gave 4.1%; (2) the per-cycle symbol loop had to be `sorted()` to be reproducible.
+
+**H20 — zero the seasonal pillar? Pre-registered: SUPPORTED only if `no_seasonal` materially beats
+baseline.** Full re-selection A/B over the live universe (102 symbols):
+
+| variant | realized PnL | trades | max DD |
+|---|---|---|---|
+| baseline (`HIST_SEASONAL_WEIGHT=0.20`) | **+$16,077** | 116 | **8.1%** |
+| no_seasonal (`=0.0`) | +$13,676 | 128 | 8.4% |
+
+Dropping seasonal is **−$2,401 (~15% worse) with higher drawdown → REJECTED.** The seasonal pillar is
+**net additive** over the full window. This **confirms the iter-16 revert to 0.20** and reconciles the
+story: iter-15's monthly "inversion" was a confound; iter-16's trade-level read (bullish-seasonal bucket
+best) and now the full-chassis re-selection backtest both say the pillar helps.
+
+**Where this leaves things:** all three iter-15 knobs are now settled against real evidence and sit at
+their validated defaults (pre-arm off, seasonal 0.20, cap off). More importantly, the **entry-side blind
+spot is gone** — the harness is reusable infrastructure for any future entry idea on HistoricalTrendsAgent
+(and, by design, extensible to the other rule agents). Next candidates it unblocks: new entry pillars, and
+generalising the harness to Momentum/MeanReversion.
+
+*Caveats:* single 4-month paper sample; daily cadence can't reproduce the sub-day 4h trail cooldown;
+parquet daily-close ≈ live Stooq bars (the ±15% gate bounds the residual). Landed via subagent-driven
+TDD; branch `feat/reselection-harness`.

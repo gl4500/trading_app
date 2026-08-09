@@ -9,7 +9,6 @@ Three pillars:
 """
 import logging
 import math
-from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -380,7 +379,7 @@ class HistoricalTrendsAgent(BaseAgent):
     async def analyze(self, market_context: Dict) -> List[Signal]:
         """Analyze all symbols using historical trend patterns."""
         signals = []
-        today = datetime.now().date()
+        today = self._now().date()
         prices = {
             s: ctx.get("price", 0)
             for s, ctx in market_context.items()
