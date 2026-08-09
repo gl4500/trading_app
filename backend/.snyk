@@ -1,0 +1,52 @@
+# Snyk policy file — CI `snyk test` ignores (accepted, tracked security exceptions).
+# These block NEW vulns, not these known ones; entries expire to force periodic re-review.
+version: v1.25.0
+ignore:
+  SNYK-PYTHON-STARLETTE-13733964:
+    - '*':
+        reason: "Deferred: fixed only in starlette >=1.x, which needs a FastAPI 0.115->0.141 major upgrade (separate tested change). Low practical risk on a localhost single-user, non-internet-exposed API (DoS/SSRF/ReDoS)."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-STARLETTE-17342498:
+    - '*':
+        reason: "Deferred: fixed only in starlette >=1.x, which needs a FastAPI 0.115->0.141 major upgrade (separate tested change). Low practical risk on a localhost single-user, non-internet-exposed API (DoS/SSRF/ReDoS)."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-STARLETTE-17342515:
+    - '*':
+        reason: "Deferred: fixed only in starlette >=1.x, which needs a FastAPI 0.115->0.141 major upgrade (separate tested change). Low practical risk on a localhost single-user, non-internet-exposed API (DoS/SSRF/ReDoS)."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-STARLETTE-17342519:
+    - '*':
+        reason: "Deferred: fixed only in starlette >=1.x, which needs a FastAPI 0.115->0.141 major upgrade (separate tested change). Low practical risk on a localhost single-user, non-internet-exposed API (DoS/SSRF/ReDoS)."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-STARLETTE-8186175:
+    - '*':
+        reason: "Deferred: fixed only in starlette >=1.x, which needs a FastAPI 0.115->0.141 major upgrade (separate tested change). Low practical risk on a localhost single-user, non-internet-exposed API (DoS/SSRF/ReDoS)."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-TRANSFORMERS-14560695:
+    - '*':
+        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-TRANSFORMERS-14563374:
+    - '*':
+        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-TRANSFORMERS-14564275:
+    - '*':
+        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-TRANSFORMERS-14564363:
+    - '*':
+        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-TRANSFORMERS-14564364:
+    - '*':
+        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-TRANSFORMERS-14564365:
+    - '*':
+        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        expires: 2026-11-30T00:00:00.000Z
+  SNYK-PYTHON-TRANSFORMERS-14564366:
+    - '*':
+        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        expires: 2026-11-30T00:00:00.000Z

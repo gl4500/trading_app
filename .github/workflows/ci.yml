@@ -95,17 +95,15 @@ jobs:
           path: backend/bandit-report.json
 
   # ── 3b. Snyk (SCA, uses the SNYK_TOKEN repo secret) ─────────────────────────
-  # Sole dependency-CVE scanner (replaced the pip-audit/npm-audit job — Snyk uses its
-  # own DB and pairs with the Snyk Code/SAST from the SCM integration). Report-only
-  # for now (continue-on-error): `snyk test` exits non-zero when it FINDS vulns — that
-  # still means the token authenticated; it only errors on a bad/missing token.
-  # Make blocking (remove continue-on-error) once the deferred starlette (FastAPI bump
-  # off 0.115) and frontend vite@8 items land.
+  # Sole dependency-CVE scanner (Snyk's own DB; pairs with Snyk Code/SAST from the SCM
+  # integration). BLOCKING: `snyk test` fails the job on any high+ vuln NOT accepted in
+  # backend/.snyk — the policy file of tracked, time-limited exceptions (currently the
+  # deferred starlette CVEs, and the no-upstream-fix transformers CVEs). New vulnerable
+  # deps therefore fail CI; accepted ones auto-expire to force periodic re-review.
   snyk:
     name: Snyk test
     runs-on: ubuntu-latest
     needs: secret-scan
-    continue-on-error: true
     env:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -119,20 +117,15 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      # Snyk's Python scanner needs the manifest's packages installed. Torch is
-      # excluded (too large for CI), so scan a torch-excluded manifest that matches
-      # what we install — otherwise Snyk errors SNYK-OS-PYTHON-0013 (missing packages).
+      # Snyk's Python scanner needs the manifest's packages installed. Torch is excluded
+      # (too large for CI), so scan a torch-excluded manifest matching the install, else
+      # Snyk errors SNYK-OS-PYTHON-0013. Run from backend/ so snyk reads backend/.snyk.
       - name: Snyk backend (Python)
         working-directory: backend
         run: |
           grep -v '^torch' requirements.txt > requirements-scan.txt
           pip install --quiet -r requirements-scan.txt
-          {
-            echo "## Snyk — backend (Python, torch excluded)"
-            echo '```'
-            snyk test --package-manager=pip --file=requirements-scan.txt --severity-threshold=high 2>&1 || true
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          snyk test --package-manager=pip --file=requirements-scan.txt --severity-threshold=high
 
       - uses: actions/setup-node@v4
         with:
@@ -142,12 +135,7 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
-          {
-            echo "## Snyk — frontend (Node)"
-            echo '```'
-            snyk test --severity-threshold=high 2>&1 || true
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          snyk test --severity-threshold=high
 
   # ── 4. Frontend type-check ──────────────────────────────────────────────────
   frontend-typecheck:
