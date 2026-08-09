@@ -8,10 +8,10 @@ alpaca-py==0.31.0
 pandas>=2.2.3
 pandas-ta==0.4.71b0
 numpy>=2.0.0
-python-dotenv==1.0.0
+python-dotenv>=1.2.2
 yfinance>=1.2.0
 finnhub-python>=2.4.0
-lxml>=5.0.0
+lxml>=6.1.0
 httpx==0.27.0
 pydantic>=2.10.0
 pytest>=8.0.0
@@ -20,3 +20,17 @@ pyarrow>=14.0.0
 torch>=2.2.0
 transformers>=4.40.0
 xgboost>=2.0,<3.0
+
+# --- Security floors for transitively-pulled deps (CVE remediation 2026-08-09; Snyk + OSV) ---
+# These are not direct imports; they arrive via requests/yfinance/google-api/etc.
+# Pinned to the first fixed release so a fresh resolve cannot regress to a
+# vulnerable version (Snyk was resolving urllib3 2.0.7, requests 2.31.0, etc.).
+urllib3>=2.7.0          # CVE-2026-44431/44432, 2025-66471/66418 (DoS, sensitive-info leak)
+requests>=2.33.0        # CVE-2026-25645, 2024-47081/35195
+idna>=3.15              # CVE-2026-45409 (ReDoS via idna.encode)
+cryptography>=46.0.7    # CVE-2026-39892 (buffer overflow), CVE-2026-34073 (DNS name constraints)
+soupsieve>=2.8.4        # CVE-2026-49476/49477 (ReDoS / unbounded allocation)
+curl-cffi>=0.15.0       # CVE-2026-33752 (redirect-based SSRF)
+httplib2>=0.32.0        # CVE-2026-59939 (gzip decompression bomb DoS)
+msgpack>=1.2.1          # CVE-2026-57585 (out-of-bounds read on Unpacker reuse)
+pyasn1>=0.6.4           # CVE-2026-30922/59884/59885/59886 (decoder DoS)
