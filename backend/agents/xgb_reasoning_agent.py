@@ -102,6 +102,22 @@ class XGBReasoningAgent(BaseAgent):
         self._last_train_check = 0.0
         self._training_lock   = asyncio.Lock()
         self._last_ts_state   = None   # term-structure gate: log only on transition
+        # Other agents' previous-cycle signals {symbol: {agent: (action, conf)}},
+        # handed over by the trading loop (see set_peer_signals).
+        self._peer_signals: Dict[str, Dict[str, tuple]] = {}
+
+    def set_peer_signals(self, sigs: Dict[str, Dict[str, tuple]]) -> None:
+        """Receive the per-symbol agent signals the trading loop collected after
+        the last cycle, for corroboration (lone-wolf sizing) and the LLM prompt.
+
+        Our own previous signal is dropped so XGB never corroborates itself.
+        Kept off market_context on purpose: a dict-valued key there would be
+        iterated as a symbol by every agent's ``isinstance(ctx, dict)`` loop.
+        """
+        self._peer_signals = {
+            sym: {agent: sig for agent, sig in by_agent.items() if agent != self.name}
+            for sym, by_agent in (sigs or {}).items()
+        }
 
     # ── model lifecycle ───────────────────────────────────────────────────────
 
@@ -458,7 +474,7 @@ class XGBReasoningAgent(BaseAgent):
 
         # Other agents' current signals for this symbol
         other_agent_signals: Dict[str, tuple] = {}
-        raw_agent_sigs = market_context.get("__agent_signals__", {})
+        raw_agent_sigs = market_context.get("__agent_signals__") or self._peer_signals
         if isinstance(raw_agent_sigs, dict) and symbol in raw_agent_sigs:
             other_agent_signals = raw_agent_sigs[symbol]
 

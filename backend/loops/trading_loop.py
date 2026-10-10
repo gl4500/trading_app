@@ -45,6 +45,20 @@ async def _refresh_summary(prices: Dict[str, float], market_status: str) -> None
         logger.warning(f"Summary refresh failed: {e}")
 
 
+def _publish_peer_signals(agents, sym_agent_sigs: Dict[str, Dict[str, tuple]]) -> None:
+    """Give each agent that declares ``set_peer_signals`` this cycle's per-symbol
+    agent signals, for use on its next cycle. One failing receiver never blocks
+    the rest."""
+    for agent in agents:
+        receiver = getattr(agent, "set_peer_signals", None)
+        if receiver is None:
+            continue
+        try:
+            receiver(sym_agent_sigs)
+        except Exception as exc:
+            logger.warning(f"set_peer_signals failed for {getattr(agent, 'name', agent)}: {exc}")
+
+
 async def run_agent_cycle(agent, market_context: Dict, prices: Dict[str, float]) -> None:
     """Run one trading cycle for a single agent."""
     import main  # late import for test patches against main.save_trade, main.upsert_portfolio_position
@@ -360,8 +374,11 @@ async def trading_loop() -> None:
                             signal_history.update_top_agent_correct(sym, prices.get(sym, 0))
                         )
 
-                    # Make current agent signals available to XGBReasoningAgent next cycle
-                    market_context["__agent_signals__"] = sym_agent_sigs
+                    # Hand current agent signals to XGBReasoningAgent for next cycle.
+                    # (Previously written into this cycle's market_context after every
+                    # agent had run; the next cycle builds a fresh context, so XGB never
+                    # saw them and every BUY was lone-wolf half-sized — finding X-2.)
+                    _publish_peer_signals(non_ensemble_agents, sym_agent_sigs)
             except Exception as _exc:
                 _logger.warning(f"Agent signal recording failed: {_exc}")
 
