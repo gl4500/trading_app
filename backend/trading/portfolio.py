@@ -252,23 +252,26 @@ class Portfolio:
         Returns 0.0 if no position or peak never went positive."""
         return self._position_peak_unrealized.get(symbol, 0.0)
 
-    def reset_daily_tracking(self, prices: Dict[str, float]) -> None:
-        """Reset daily tracking at market open."""
+    def reset_daily_tracking(self, prices: Dict[str, float]) -> bool:
+        """Reset daily tracking at market open. Returns True when a new trading
+        day started (BaseAgent uses it to clear the daily-loss halt - C-12)."""
         today = date.today()
-        if today != self.daily_start_date:
-            self.daily_starting_value = self.get_total_value(prices)
-            self.daily_start_date = today
-            # Snapshot today's opening price for each held position so the
-            # daily-move risk gate (Backlog 0.5) can compute intraday drawdown.
-            # Falls back to avg_cost when the symbol's price isn't in the
-            # current prices dict (rare — happens when a held symbol drops
-            # off the watchlist).
-            for sym, pos in self.positions.items():
-                price = prices.get(sym)
-                if price and price > 0:
-                    self._position_today_open[sym] = price
-                else:
-                    self._position_today_open.setdefault(sym, pos.avg_cost)
+        if today == self.daily_start_date:
+            return False
+        self.daily_starting_value = self.get_total_value(prices)
+        self.daily_start_date = today
+        # Snapshot today's opening price for each held position so the
+        # daily-move risk gate (Backlog 0.5) can compute intraday drawdown.
+        # Falls back to avg_cost when the symbol's price isn't in the
+        # current prices dict (rare - happens when a held symbol drops
+        # off the watchlist).
+        for sym, pos in self.positions.items():
+            price = prices.get(sym)
+            if price and price > 0:
+                self._position_today_open[sym] = price
+            else:
+                self._position_today_open.setdefault(sym, pos.avg_cost)
+        return True
 
     def get_today_open(self, symbol: str) -> Optional[float]:
         """Today's opening price for an open position, or None if not tracked."""

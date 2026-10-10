@@ -948,3 +948,96 @@ class TestCycleSignalSnapshot(unittest.IsolatedAsyncioTestCase):
         with patch.object(agent, "_save_picks"):
             agent.reset()
         self.assertEqual(agent._cycle_signals, {})
+
+
+class _ExitStub:
+    """Concrete BaseAgent whose analyze() can return signals or raise; counts calls."""
+
+    def __init__(self, signals=None, raises=None):
+        from agents.base_agent import BaseAgent
+
+        class _A(BaseAgent):
+            def __init__(self):
+                with patch("agents.base_agent.BaseAgent._load_picks"):
+                    super().__init__("ExitStub", "stub")
+                self.analyze_calls = 0
+
+            async def analyze(self, market_context):
+                self.analyze_calls += 1
+                if raises:
+                    raise raises
+                return list(signals or [])
+
+        self.agent = _A()
+
+
+class TestExitsAlwaysRun(unittest.IsolatedAsyncioTestCase):
+    """C-8 / C-10: Bayes, trailing and hard stops must run every cycle, even when
+    entries are blocked (daily-loss halt), analyze() raises, the agent was
+    deactivated after repeated errors, or executing one signal raises."""
+
+    CTX = {"AAPL": {"price": 80.0, "bars": None, "news": []}}
+    PRICES = {"AAPL": 80.0}     # 20% below the 100.0 entry -> hard stop (8%)
+
+    def _holding(self, stub):
+        agent = stub.agent
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        self.assertIn("AAPL", agent.portfolio.positions)
+        return agent
+
+    async def _run(self, agent, daily_ok=True):
+        with patch.object(agent.risk_manager, "check_daily_loss", return_value=daily_ok), \
+             patch.object(agent, "_save_picks"):
+            return await agent.run_cycle(self.CTX, self.PRICES)
+
+    async def test_daily_loss_halt_skips_entries_but_runs_hard_stop(self):
+        agent = self._holding(_ExitStub())
+        await self._run(agent, daily_ok=False)
+        self.assertEqual(agent.analyze_calls, 0, "no new analysis/entries while halted")
+        self.assertNotIn("AAPL", agent.portfolio.positions, "hard stop must still fire")
+
+    async def test_analyze_exception_still_runs_hard_stop(self):
+        agent = self._holding(_ExitStub(raises=RuntimeError("model down")))
+        await self._run(agent)
+        self.assertNotIn("AAPL", agent.portfolio.positions)
+        self.assertEqual(agent._error_count, 1)
+
+    async def test_deactivated_agent_still_runs_hard_stop(self):
+        agent = self._holding(_ExitStub())
+        agent._is_active = False
+        await self._run(agent)
+        self.assertEqual(agent.analyze_calls, 0, "inactive agent takes no new entries")
+        self.assertNotIn("AAPL", agent.portfolio.positions, "but keeps its stops")
+
+    async def test_failing_signal_execution_does_not_block_hard_stop(self):
+        from agents.base_agent import Signal
+        buy = Signal(action="BUY", symbol="AAPL", confidence=0.9, shares=1, reasoning="")
+        agent = self._holding(_ExitStub(signals=[buy]))
+        with patch.object(agent, "_execute_signal", side_effect=RuntimeError("broker")):
+            await self._run(agent)
+        self.assertNotIn("AAPL", agent.portfolio.positions)
+
+
+class TestDailyHaltResetsOnNewDay(unittest.IsolatedAsyncioTestCase):
+    """C-12: the daily-loss halt flag (which blocks every BUY via
+    check_buy_allowed) must clear when the trading day changes."""
+
+    async def _cycle(self, agent):
+        with patch.object(agent, "_save_picks"):
+            await agent.run_cycle({}, {})
+
+    async def test_halt_cleared_on_new_day(self):
+        from datetime import date
+        agent = _ExitStub().agent
+        agent.risk_manager._trading_halted = True
+        agent.portfolio.daily_start_date = date(2000, 1, 1)
+        await self._cycle(agent)
+        self.assertTrue(agent.risk_manager.is_trading_allowed()[0])
+
+    async def test_halt_kept_within_same_day(self):
+        from datetime import date
+        agent = _ExitStub().agent
+        agent.portfolio.daily_start_date = date.today()
+        agent.risk_manager._trading_halted = True
+        await self._cycle(agent)
+        self.assertFalse(agent.risk_manager.is_trading_allowed()[0])

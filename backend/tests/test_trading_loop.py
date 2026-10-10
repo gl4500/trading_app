@@ -136,5 +136,53 @@ class TestRecordAndPublishAgentSignals(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(xgb.received, {})
 
 
+
+class _Holder:
+    def __init__(self, name, held, picks=()):
+        self.name = name
+        self.portfolio = MagicMock()
+        self.portfolio.positions = {s: object() for s in held}
+        self._picks = list(picks)
+
+    def get_pick_symbols(self):
+        return list(self._picks)
+
+
+class TestHeldPositionsArePriced(unittest.TestCase):
+    """C-11: every held symbol must be fetched each cycle, not only the
+    watchlist / scanner / picks, so a position that drops off the watchlist
+    keeps its stops; any held symbol still unpriced is reported."""
+
+    def test_held_symbols_not_in_context_are_fetched(self):
+        from loops.trading_loop import _symbols_needing_prices
+        agents = [_Holder("A", held=["LC", "AAPL"], picks=["NVDA"])]
+        self.assertEqual(_symbols_needing_prices(agents, {"AAPL": {}}), {"LC", "NVDA"})
+
+    def test_unpriced_held_symbols_reported_per_agent(self):
+        from loops.trading_loop import _unpriced_held_symbols
+        agents = [_Holder("MomentumAgent", held=["LC", "AAPL", "ZERO"])]
+        self.assertEqual(
+            _unpriced_held_symbols(agents, {"AAPL": 100.0, "ZERO": 0.0}),
+            {"MomentumAgent": ["LC", "ZERO"]},
+        )
+
+
+class TestInactiveAgentStillCycles(unittest.IsolatedAsyncioTestCase):
+    """C-10: run_agent_cycle must not skip a deactivated agent — run_cycle runs
+    it in exit-only mode so its positions keep their stops."""
+
+    async def test_run_cycle_called_for_inactive_agent(self):
+        from unittest.mock import patch
+        from loops.trading_loop import run_agent_cycle
+        agent = MagicMock()
+        agent.name, agent.agent_id, agent._is_active = "Halted", 1, False
+        agent.portfolio.positions = {}
+        agent.portfolio.trade_history = []
+        agent.run_cycle = AsyncMock(return_value=[])
+        with patch("main.save_trade", new_callable=AsyncMock),              patch("main.upsert_portfolio_position", new_callable=AsyncMock):
+            await run_agent_cycle(agent, {}, {})
+        agent.run_cycle.assert_awaited_once()
+
+
 if __name__ == "__main__":
     unittest.main()

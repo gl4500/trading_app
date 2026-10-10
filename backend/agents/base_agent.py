@@ -196,76 +196,88 @@ class BaseAgent(ABC):
 
     async def run_cycle(self, market_context: Dict, prices: Dict[str, float]) -> List[Signal]:
         """
-        Run one full trading cycle: analyze + execute signals.
-        Returns the list of signals generated.
-        """
-        if not self._is_active:
-            return []
+        Run one full trading cycle and return the agent's analysis signals.
 
+        Two phases (C-8 / C-10). The ENTRIES phase - analyze() plus executing
+        its BUY/SELL signals - runs only when the agent is active and not
+        daily-loss halted, and an analyze() failure only skips it. The EXITS
+        phase - Bayes exits, trailing stops, hard stops - runs every cycle
+        regardless, each stage isolated so one failure cannot skip the rest.
+        A deactivated or halted agent is therefore exit-only, never unmanaged.
+        """
         async with self._lock:
             try:
-                # Reset daily tracking
-                self.portfolio.reset_daily_tracking(prices)
+                # New trading day: reset daily tracking and the daily-loss halt
+                # flag, which otherwise blocks every BUY until restart (C-12).
+                if self.portfolio.reset_daily_tracking(prices):
+                    self.risk_manager.reset_daily_halt()
 
-                # Check daily loss limit
-                if not self.risk_manager.check_daily_loss(self.portfolio, prices):
-                    logger.info(f"{self.name}: Trading halted due to daily loss limit")
-                    return []
+                signals: List[Signal] = []
+                entries_allowed = self._is_active
+                if entries_allowed and not self.risk_manager.check_daily_loss(self.portfolio, prices):
+                    logger.info(f"{self.name}: daily loss limit - entries halted, exits still run")
+                    entries_allowed = False
 
-                # Generate signals
-                signals = await self.analyze(market_context)
-                self._error_count = 0  # reset on success
-                # Publish this cycle's snapshot and its stamp together, before any
-                # further await can fail and leave an older map looking fresh.
-                self._cycle_signals = {sig.symbol: sig for sig in signals}
-                self._last_signals_at = time.monotonic()
+                portfolio_returns: Dict[str, np.ndarray] = {}
+                if entries_allowed:
+                    try:
+                        signals = await self.analyze(market_context)
+                        self._error_count = 0  # reset on success
+                        # Publish this cycle's snapshot and its stamp together, before any
+                        # further await can fail and leave an older map looking fresh.
+                        self._cycle_signals = {sig.symbol: sig for sig in signals}
+                        self._last_signals_at = time.monotonic()
 
-                # Update persistent pick memory before executing
-                self._update_picks(signals)
+                        # Update persistent pick memory before executing
+                        self._update_picks(signals)
 
-                # Prune stale symbols from _last_signals
-                current_symbols = {s for s, v in market_context.items() if isinstance(v, dict)}
-                for stale in [k for k in self._last_signals if k not in current_symbols]:
-                    del self._last_signals[stale]
+                        # Prune stale symbols from _last_signals
+                        current_symbols = {s for s, v in market_context.items() if isinstance(v, dict)}
+                        for stale in [k for k in self._last_signals if k not in current_symbols]:
+                            del self._last_signals[stale]
 
-                # Build returns cache for Markowitz correlation gate (one pass per cycle)
-                all_syms = (
-                    list(self.portfolio.positions.keys()) +
-                    [s for s in market_context if isinstance(market_context.get(s), dict)]
-                )
-                portfolio_returns = self._build_portfolio_returns(market_context, all_syms)
+                        # Build returns cache for Markowitz correlation gate (one pass per cycle)
+                        all_syms = (
+                            list(self.portfolio.positions.keys()) +
+                            [s for s in market_context if isinstance(market_context.get(s), dict)]
+                        )
+                        portfolio_returns = self._build_portfolio_returns(market_context, all_syms)
+                    except Exception as e:
+                        signals = []
+                        self._record_cycle_error("analyze", e)
 
-                # Bayesian early exits — must run before agent signals so the
+                # Bayesian early exits - must run before agent signals so the
                 # position is already closed if the agent also emits a SELL.
-                bayes_exits = await self._check_bayes_exits(prices)
-                for sig in bayes_exits:
+                for sig in await self._run_exit_stage("bayes exits", self._check_bayes_exits(prices)):
                     self._last_signals[sig.symbol] = sig
                     self._cycle_signals[sig.symbol] = sig
 
-                # Trailing stop exits — locks in gains by selling positions
+                # Trailing stop exits - locks in gains by selling positions
                 # that have given back >= TRAIL_GIVEBACK_PCT of their peak
                 # unrealized profit. Runs after bayes so closed positions
                 # don't double-trigger.
-                trail_exits = await self._check_trailing_stops(prices)
-                for sig in trail_exits:
+                for sig in await self._run_exit_stage("trailing stops", self._check_trailing_stops(prices)):
                     self._last_signals[sig.symbol] = sig
                     self._cycle_signals[sig.symbol] = sig
 
-                # Execute actionable signals (the agent's primary decision —
-                # LLM-driven BUY / SELL / HOLD).
-                executed = []
+                # Execute actionable signals (the agent's primary decision -
+                # LLM-driven BUY / SELL / HOLD). One failing signal is logged and
+                # skipped; it no longer aborts the cycle before the hard stop.
                 for signal in signals:
                     signal.agent_name = self.name
                     self._last_signals[signal.symbol] = signal
-
                     if signal.is_actionable():
-                        success = await self._execute_signal(
-                            signal, prices, portfolio_returns=portfolio_returns
-                        )
-                        if success:
-                            executed.append(signal)
+                        try:
+                            await self._execute_signal(
+                                signal, prices, portfolio_returns=portfolio_returns
+                            )
+                        except Exception as e:
+                            logger.error(
+                                f"{self.name}: executing {signal.action} {signal.symbol} failed: {e}",
+                                exc_info=True,
+                            )
 
-                # Hard stop-loss — fallback safety net (Backlog 0.4, refined 2026-05-02).
+                # Hard stop-loss - fallback safety net (Backlog 0.4, refined 2026-05-02).
                 # Runs LAST, after the agent's primary decision (LLM signals)
                 # has had a chance to act. Catches positions that none of the
                 # primary mechanisms (Bayes / trailing / LLM SELL) closed and
@@ -273,8 +285,7 @@ class BaseAgent(ABC):
                 # agent already SELLed or averaged-down (which can lower
                 # avg_cost out of the danger zone), the hard stop naturally
                 # becomes a no-op or re-evaluates against the new avg_cost.
-                hard_exits = await self._check_hard_stops(prices)
-                for sig in hard_exits:
+                for sig in await self._run_exit_stage("hard stops", self._check_hard_stops(prices)):
                     self._last_signals[sig.symbol] = sig
                     self._cycle_signals[sig.symbol] = sig
 
@@ -321,12 +332,26 @@ class BaseAgent(ABC):
                 return signals
 
             except Exception as e:
-                self._error_count += 1
                 logger.error(f"{self.name} error in run_cycle: {e}", exc_info=True)
-                if self._error_count >= self._max_errors:
-                    logger.error(f"{self.name}: Too many errors, deactivating")
-                    self._is_active = False
                 return []
+
+    async def _run_exit_stage(self, label: str, stage) -> List[Signal]:
+        """Await one exit stage; a failure is logged and yields no signals so the
+        remaining exit stages still run."""
+        try:
+            return await stage
+        except Exception as e:
+            logger.error(f"{self.name}: {label} failed: {e}", exc_info=True)
+            return []
+
+    def _record_cycle_error(self, where: str, exc: Exception) -> None:
+        """Count an entries-phase failure; after _max_errors in a row the agent
+        is deactivated, which now means exit-only (stops keep running)."""
+        self._error_count += 1
+        logger.error(f"{self.name} error in {where}: {exc}", exc_info=True)
+        if self._error_count >= self._max_errors and self._is_active:
+            logger.error(f"{self.name}: Too many errors, deactivating entries (exits keep running)")
+            self._is_active = False
 
     @staticmethod
     def _build_portfolio_returns(
