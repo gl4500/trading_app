@@ -847,3 +847,21 @@ class TestUnpnlFrac(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPortfolioRejectsNonFinitePrices(unittest.TestCase):
+    """Scenario matrix row 5: the portfolio is the final guard - a fill at a
+    non-finite or non-positive price is refused and cash/positions are unchanged."""
+
+    def test_sell_and_buy_refuse_bad_prices(self):
+        import math
+        for bad in (float("nan"), float("inf"), float("-inf"), 0.0, -5.0):
+            p = Portfolio(starting_capital=100_000)
+            p.execute_buy("AAPL", 10, 100.0)
+            cash = p.cash
+            self.assertFalse(p.execute_sell("AAPL", 10, bad), f"sell at {bad}")
+            self.assertFalse(p.execute_buy("MSFT", 1, bad), f"buy at {bad}")
+            self.assertEqual(p.cash, cash)
+            self.assertTrue(math.isfinite(p.cash))
+            self.assertEqual(p.positions["AAPL"].shares, 10)
+            self.assertNotIn("MSFT", p.positions)

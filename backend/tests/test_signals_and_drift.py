@@ -1085,3 +1085,21 @@ class TestDailyPrepFailureStillRunsExits(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(agent._exit_failure_count, 1)
         self.assertEqual(agent._error_count, 0, "exit failures never deactivate entries")
         self.assertTrue(agent._is_active)
+
+
+class TestNoTradeAtUnusablePrice(unittest.IsolatedAsyncioTestCase):
+    """Scenario matrix rows 2-3, end to end through run_cycle: a held symbol
+    priced NaN / inf / None produces no trade and cash stays finite."""
+
+    async def test_unusable_held_price_never_trades(self):
+        import math
+        for bad in (float("nan"), float("inf"), None):
+            agent = _ExitStub().agent
+            agent.portfolio.execute_buy("BAD", 10, 100.0)
+            n_trades = len(agent.portfolio.trade_history)
+            with patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+                 patch.object(agent, "_save_picks"):
+                await agent.run_cycle({"BAD": {"price": bad, "bars": None, "news": []}}, {"BAD": bad})
+            self.assertEqual(len(agent.portfolio.trade_history), n_trades, f"traded at {bad}")
+            self.assertTrue(math.isfinite(agent.portfolio.cash))
+            self.assertIn("BAD", agent.portfolio.positions)

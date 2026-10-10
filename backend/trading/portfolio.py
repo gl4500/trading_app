@@ -13,6 +13,14 @@ from api.schemas import PortfolioMetrics, PositionSummary
 logger = logging.getLogger(__name__)
 
 
+def _usable_price(price) -> bool:
+    """Finite and > 0: the only prices a fill may execute at."""
+    try:
+        return math.isfinite(float(price)) and float(price) > 0
+    except (TypeError, ValueError):
+        return False
+
+
 @dataclass
 class Position:
     symbol: str
@@ -120,6 +128,9 @@ class Portfolio:
 
     def execute_buy(self, symbol: str, shares: float, price: float, reasoning: str = "",
                     entry_confidence: float = 0.5) -> bool:
+        if not _usable_price(price):
+            logger.warning(f"Buy refused: unusable price {price!r} for {symbol}")
+            return False
         """Execute a buy order, return True if successful."""
         cost = shares * price
         if cost > self.cash:
@@ -162,6 +173,9 @@ class Portfolio:
         return True
 
     def execute_sell(self, symbol: str, shares: float, price: float, reasoning: str = "") -> bool:
+        if not _usable_price(price):
+            logger.warning(f"Sell refused: unusable price {price!r} for {symbol}")
+            return False
         """Execute a sell order, return True if successful."""
         if symbol not in self.positions:
             logger.warning(f"Sell failed: no position in {symbol}")

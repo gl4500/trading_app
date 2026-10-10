@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 import numpy as np
 
 from config import config
-from trading.portfolio import Portfolio
+from trading.portfolio import _usable_price, Portfolio
 from trading.risk_manager import RiskManager
 from api.schemas import AgentState
 
@@ -412,7 +412,7 @@ class BaseAgent(ABC):
             if drop < threshold:
                 continue
             price = prices.get(sym)
-            if not price or price <= 0:
+            if not _usable_price(price):
                 continue
             reasoning = (
                 f"Bayes early exit: confidence dropped {drop:.0%} "
@@ -450,7 +450,7 @@ class BaseAgent(ABC):
             return exits   # disabled
         for sym, pos in list(self.portfolio.positions.items()):
             price = prices.get(sym)
-            if not price or price <= 0 or pos.avg_cost <= 0:
+            if not _usable_price(price) or pos.avg_cost <= 0:
                 continue
             drawdown_pct = (pos.avg_cost - price) / pos.avg_cost
             if drawdown_pct < threshold:
@@ -488,7 +488,7 @@ class BaseAgent(ABC):
         arm_usd      = config.TRAIL_ARM_USD
         for sym, pos in list(self.portfolio.positions.items()):
             price = prices.get(sym)
-            if not price or price <= 0:
+            if not _usable_price(price):
                 continue
             peak = self.portfolio.get_peak_unrealized(sym)
             if peak < arm_usd:
@@ -536,7 +536,7 @@ class BaseAgent(ABC):
     ) -> bool:
         """Execute a trading signal after risk checks."""
         price = prices.get(signal.symbol)
-        if not price or price <= 0:
+        if not _usable_price(price):
             logger.warning(f"{self.name}: No price for {signal.symbol}")
             return False
 

@@ -203,3 +203,35 @@ class TestInactiveAgentStillCycles(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestRetryNeverPublishesUnusablePrices(unittest.TestCase):
+    """Review of d0d9486 (scenario matrix rows 1, 4, 6): an unusable retry value
+    (NaN / inf / None / 0) is never written into the execution price map, and a
+    valid existing price survives a failed retry."""
+
+    def test_nan_retry_with_no_prior_price_is_not_published(self):
+        from loops.trading_loop import _merge_retry_prices
+        prices = {}
+        _merge_retry_prices(prices, {"BAD": {"price": float("nan")}, "INF": {"price": float("inf")},
+                                     "NONE": {"price": None}, "OK": {"price": 12.5}})
+        self.assertEqual(prices, {"OK": 12.5})
+
+    def test_existing_unusable_price_is_not_replaced_by_unusable_retry(self):
+        import math
+        from loops.trading_loop import _merge_retry_prices
+        prices = {"BAD": float("nan")}
+        _merge_retry_prices(prices, {"BAD": {"price": float("nan")}})
+        self.assertFalse(math.isfinite(prices.get("BAD", float("nan"))) and prices.get("BAD", 0) > 0)
+
+    def test_valid_price_survives_unusable_retry(self):
+        from loops.trading_loop import _merge_retry_prices
+        prices = {"AAPL": 100.0}
+        _merge_retry_prices(prices, {"AAPL": {"price": float("nan")}})
+        self.assertEqual(prices["AAPL"], 100.0)
+
+    def test_infinite_price_counts_as_unpriced(self):
+        from loops.trading_loop import _unpriced_held_symbols
+        agents = [_Holder("MomentumAgent", held=["INF", "AAPL"])]
+        self.assertEqual(_unpriced_held_symbols(agents, {"INF": float("inf"), "AAPL": 100.0}),
+                         {"MomentumAgent": ["INF"]})

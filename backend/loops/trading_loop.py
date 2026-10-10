@@ -140,14 +140,15 @@ def _symbols_needing_prices(agents, market_context: Dict) -> set:
 
 
 def _merge_retry_prices(prices: Dict[str, float], retry_ctx: Dict) -> None:
-    """Merge prices from a retry fetch without letting an unusable retry value
-    overwrite a valid existing price. New symbols are added as fetched."""
+    """Merge prices from a retry fetch. Only usable (finite, > 0) values are
+    written: an unusable retry never overwrites a valid price and is never
+    published as an executable price for a symbol that had none."""
     for sym, ctx in retry_ctx.items():
         if not isinstance(ctx, dict):
             continue
-        new = ctx.get("price", 0)
-        if _usable_price(new) or not _usable_price(prices.get(sym)):
-            prices[sym] = new
+        new = ctx.get("price")
+        if _usable_price(new):
+            prices[sym] = new   # never publish an unusable retry value (review of d0d9486)
 
 
 def _unpriced_held_symbols(agents, prices: Dict[str, float]) -> Dict[str, list]:
@@ -157,7 +158,7 @@ def _unpriced_held_symbols(agents, prices: Dict[str, float]) -> Dict[str, list]:
     for agent in agents:
         missing = sorted(
             sym for sym in agent.portfolio.positions
-            if not (prices.get(sym) or 0) > 0
+            if not _usable_price(prices.get(sym))
         )
         if missing:
             out[agent.name] = missing
