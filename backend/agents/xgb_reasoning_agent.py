@@ -655,6 +655,22 @@ class XGBReasoningAgent(BaseAgent):
 
     # ── post-Ollama safety gates ─────────────────────────────────────────────
 
+    @staticmethod
+    def _gating_mean_wfe() -> Optional[float]:
+        """The mean_wfe the WFE gate compares against 0, or None when unmeasured.
+
+        W3 blend gate (added 2026-05-23): when blend enabled and W3 trained,
+        gate on max(xgb_wfe, w3_wfe). If either model has positive WFE the
+        blend's expected edge is positive too, so BUYs should pass.
+        """
+        mean_wfe_val = signal_cnn.mean_wfe
+        if config.W3_BLEND_ENABLED and signal_w3.is_trained and signal_w3.mean_wfe is not None:
+            mean_wfe_val = max(
+                mean_wfe_val if mean_wfe_val is not None else float("-inf"),
+                signal_w3.mean_wfe,
+            )
+        return mean_wfe_val
+
     def _apply_wfe_gate(
         self,
         symbol: str,
@@ -671,15 +687,7 @@ class XGBReasoningAgent(BaseAgent):
         """
         if action != "BUY":
             return action, reasoning
-        mean_wfe_val = signal_cnn.mean_wfe
-        # W3 blend gate (added 2026-05-23): when blend enabled and W3 trained,
-        # gate on max(xgb_wfe, w3_wfe). If either model has positive WFE the
-        # blend's expected edge is positive too, so BUYs should pass.
-        if config.W3_BLEND_ENABLED and signal_w3.is_trained and signal_w3.mean_wfe is not None:
-            mean_wfe_val = max(
-                mean_wfe_val if mean_wfe_val is not None else float("-inf"),
-                signal_w3.mean_wfe,
-            )
+        mean_wfe_val = self._gating_mean_wfe()
         if mean_wfe_val is None or mean_wfe_val >= 0.0:
             return action, reasoning
         logger.info(
@@ -1007,6 +1015,21 @@ class XGBReasoningAgent(BaseAgent):
             )
             if entropy_signal is not None:
                 signals.append(entropy_signal)
+                continue
+
+            # WFE short-circuit (finding C-21). While the gate is shut a BUY is
+            # demoted to HOLD and a SELL on an unheld symbol degrades to HOLD, so
+            # for an unheld symbol HOLD is the only reachable outcome — skip the
+            # ~50s Ollama call instead of paying it per symbol per cycle. Held
+            # symbols still go through the LLM so SELLs keep working.
+            gate_wfe = self._gating_mean_wfe()
+            if (symbol not in self.portfolio.positions
+                    and gate_wfe is not None and gate_wfe < 0.0):
+                signals.append(self._handle_hold(
+                    symbol, cnn_conf,
+                    f"WFE gate closed (mean_wfe={gate_wfe:.4f} < 0) and not held "
+                    f"— no BUY possible, LLM skipped",
+                ))
                 continue
 
             # Decision-mode branch (added 2026-05-24, Stage 1 of LLM-as-news-only).
