@@ -110,8 +110,9 @@ def _build_trading_agents() -> list:
     Six models were deprecated on 2026-07-05 for net-negative or idle realized
     performance and are intentionally NOT built here (their code remains on disk):
     EnsembleAgent, ClaudeAgent, TechAgent, GeminiAgent, OllamaAgent, OpenClawAgent.
-    Three more were deprecated on 2026-10-10 for total return (realized + unrealized
-    on their $100K) at or below 10%: MeanReversionAgent, SentimentAgent,
+    Three more were deprecated on 2026-10-10 (ROSTER-R3) because their total return
+    on their $100K was not confirmed above 10% in the split-corrected, replicated
+    R3 reconstruction (valued at 2026-08-12 closes): MomentumAgent, SentimentAgent,
     ScannerPortfolioAgent ("ScannerAgent"). Their open positions are left as-is.
     To re-enable a model, construct it and append it to the returned list.
 
@@ -121,12 +122,12 @@ def _build_trading_agents() -> list:
     """
     # Late imports so the agent classes resolve at call time (keeps the import
     # graph lazy and matches the historical init_agents pattern).
-    from agents.momentum_agent import MomentumAgent
+    from agents.mean_reversion_agent import MeanReversionAgent
     from agents.historical_trends_agent import HistoricalTrendsAgent
     from agents.xgb_reasoning_agent import XGBReasoningAgent
 
     return [
-        MomentumAgent(),
+        MeanReversionAgent(),
         HistoricalTrendsAgent(),
         XGBReasoningAgent(),
     ]
