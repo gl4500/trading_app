@@ -16,7 +16,7 @@ import asyncio
 import logging
 import os
 import time
-from typing import Dict
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,57 @@ def _publish_peer_signals(agents, sym_agent_sigs: Dict[str, Dict[str, tuple]]) -
             receiver(sym_agent_sigs)
         except Exception as exc:
             logger.warning(f"set_peer_signals failed for {getattr(agent, 'name', agent)}: {exc}")
+
+
+def _collect_agent_signals(
+    agents, market_context: Dict, since: Optional[float] = None,
+) -> Dict[str, Dict[str, tuple]]:
+    """Build ``{symbol: {agent_name: (action, confidence)}}`` from each agent's
+    ``_last_signals`` for symbols present in ``market_context``.
+
+    With ``since`` (a ``time.monotonic()`` value), only agents whose
+    ``_last_signals_at`` is at or after it contribute — i.e. agents that actually
+    produced signals this cycle. An inactive, daily-halted or erroring agent keeps
+    its previous map and must not be republished as a current vote (X-2 review).
+    """
+    out: Dict[str, Dict[str, tuple]] = {}
+    for agent in agents:
+        if agent.name in ("EnsembleAgent", "GeminiAgent"):
+            continue
+        if since is not None and getattr(agent, "_last_signals_at", 0.0) < since:
+            continue
+        for sym, sig in (getattr(agent, "_last_signals", None) or {}).items():
+            if not isinstance(market_context.get(sym), dict):
+                continue
+            out.setdefault(sym, {})[agent.name] = (sig.action, sig.confidence)
+    return out
+
+
+async def _record_and_publish_agent_signals(
+    agents, market_context: Dict, prices: Dict[str, float], cycle_start: float,
+    tracker, history,
+) -> None:
+    """Hand this cycle's fresh peer signals to receiving agents, then record
+    consensus into signal_history.
+
+    The hand-off runs first and unconditionally — even with an empty map, which
+    clears a receiver's cache — so a failing score refresh or history write can
+    never leave stale votes in place. Recording keeps its pre-existing input
+    (all agents' ``_last_signals``) so training features are unchanged.
+    """
+    _publish_peer_signals(agents, _collect_agent_signals(agents, market_context, since=cycle_start))
+    try:
+        sym_agent_sigs = _collect_agent_signals(agents, market_context)
+        if sym_agent_sigs:
+            # Refresh agent performance scores from DB (rate-limited to every 5 min)
+            await tracker.get_scores()
+            for sym, sigs in sym_agent_sigs.items():
+                consensus = tracker.consensus_score(sigs)
+                agreement = tracker.agreement_fraction(sigs)
+                asyncio.create_task(history.record_agent_signals(sym, consensus, agreement))
+                asyncio.create_task(history.update_top_agent_correct(sym, prices.get(sym, 0)))
+    except Exception as exc:
+        logger.warning(f"Agent signal recording failed: {exc}")
 
 
 async def run_agent_cycle(agent, market_context: Dict, prices: Dict[str, float]) -> None:
@@ -343,44 +394,18 @@ async def trading_loop() -> None:
             if ensemble_agent:
                 agent_tasks.append(main.run_agent_cycle(ensemble_agent, market_context, prices))
 
+            _cycle_start = time.monotonic()
             await asyncio.gather(*agent_tasks, return_exceptions=True)
 
-            # Collect per-symbol agent signals and inject into signal_history
-            # (enables CNN training with agent consensus features)
-            try:
-                # Build {symbol: {agent_name: (action, confidence)}} from all non-ensemble agents
-                sym_agent_sigs: Dict[str, Dict[str, tuple]] = {}
-                for agent in non_ensemble_agents:
-                    if agent.name in ("EnsembleAgent", "GeminiAgent"):
-                        continue
-                    for sym, sig in (agent._last_signals or {}).items():
-                        if not isinstance(market_context.get(sym), dict):
-                            continue
-                        if sym not in sym_agent_sigs:
-                            sym_agent_sigs[sym] = {}
-                        sym_agent_sigs[sym][agent.name] = (sig.action, sig.confidence)
-
-                if sym_agent_sigs:
-                    # Refresh agent performance scores from DB (rate-limited to every 5 min)
-                    await agent_performance_tracker.get_scores()
-
-                    for sym, sigs in sym_agent_sigs.items():
-                        consensus = agent_performance_tracker.consensus_score(sigs)
-                        agreement = agent_performance_tracker.agreement_fraction(sigs)
-                        asyncio.create_task(
-                            signal_history.record_agent_signals(sym, consensus, agreement)
-                        )
-                        asyncio.create_task(
-                            signal_history.update_top_agent_correct(sym, prices.get(sym, 0))
-                        )
-
-                    # Hand current agent signals to XGBReasoningAgent for next cycle.
-                    # (Previously written into this cycle's market_context after every
-                    # agent had run; the next cycle builds a fresh context, so XGB never
-                    # saw them and every BUY was lone-wolf half-sized — finding X-2.)
-                    _publish_peer_signals(non_ensemble_agents, sym_agent_sigs)
-            except Exception as _exc:
-                _logger.warning(f"Agent signal recording failed: {_exc}")
+            # Hand fresh peer signals to XGBReasoningAgent for next cycle, then
+            # record agent consensus into signal_history (CNN/XGB training
+            # features). Signals used to be written into this cycle's
+            # market_context after every agent had run, so XGB never saw them
+            # and every BUY was lone-wolf half-sized (finding X-2).
+            await _record_and_publish_agent_signals(
+                non_ensemble_agents, market_context, prices, _cycle_start,
+                agent_performance_tracker, signal_history,
+            )
 
             # Save performance snapshots
             await main.save_performance_snapshots(prices)

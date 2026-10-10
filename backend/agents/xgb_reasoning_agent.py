@@ -119,6 +119,12 @@ class XGBReasoningAgent(BaseAgent):
             for sym, by_agent in (sigs or {}).items()
         }
 
+    def reset(self) -> None:
+        """BaseAgent reset plus the peer-signal cache, so pre-reset votes are
+        never consumed after a competition reset."""
+        super().reset()
+        self._peer_signals = {}
+
     # ── model lifecycle ───────────────────────────────────────────────────────
 
     async def _ensure_model(self) -> None:
@@ -473,10 +479,18 @@ class XGBReasoningAgent(BaseAgent):
         }
 
         # Other agents' current signals for this symbol
+        # An explicit market_context entry wins (even when empty); otherwise use
+        # the peer signals the loop handed over. Our own vote is always dropped.
         other_agent_signals: Dict[str, tuple] = {}
-        raw_agent_sigs = market_context.get("__agent_signals__") or self._peer_signals
-        if isinstance(raw_agent_sigs, dict) and symbol in raw_agent_sigs:
-            other_agent_signals = raw_agent_sigs[symbol]
+        if "__agent_signals__" in market_context:
+            raw_agent_sigs = market_context["__agent_signals__"]
+        else:
+            raw_agent_sigs = self._peer_signals
+        if isinstance(raw_agent_sigs, dict) and isinstance(raw_agent_sigs.get(symbol), dict):
+            other_agent_signals = {
+                agent: sig for agent, sig in raw_agent_sigs[symbol].items()
+                if agent != self.name
+            }
 
         # Sentinel catalysts — symbol-specific first, then broad market (cap 6)
         raw_catalysts = market_context.get("__overnight_catalysts__", [])

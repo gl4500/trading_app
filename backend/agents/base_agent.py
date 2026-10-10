@@ -51,6 +51,9 @@ class BaseAgent(ABC):
         self.risk_manager = RiskManager()
         self._last_reasoning: Dict[str, str] = {}
         self._last_signals: Dict[str, Signal] = {}
+        # time.monotonic() of the last successful analyze(); peers publish only
+        # signals stamped after the current cycle started (X-2 review).
+        self._last_signals_at: float = 0.0
         self._error_count: int = 0
         self._max_errors: int = 5
         self._is_active: bool = True
@@ -209,6 +212,7 @@ class BaseAgent(ABC):
                 # Generate signals
                 signals = await self.analyze(market_context)
                 self._error_count = 0  # reset on success
+                self._last_signals_at = time.monotonic()
 
                 # Update persistent pick memory before executing
                 self._update_picks(signals)
@@ -632,6 +636,7 @@ class BaseAgent(ABC):
         self.risk_manager = RiskManager()
         self._last_reasoning = {}
         self._last_signals = {}
+        self._last_signals_at = 0.0
         self._picks = {}
         self._save_picks()
         self._error_count = 0
