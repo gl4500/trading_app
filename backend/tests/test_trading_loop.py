@@ -156,7 +156,24 @@ class TestHeldPositionsArePriced(unittest.TestCase):
     def test_held_symbols_not_in_context_are_fetched(self):
         from loops.trading_loop import _symbols_needing_prices
         agents = [_Holder("A", held=["LC", "AAPL"], picks=["NVDA"])]
-        self.assertEqual(_symbols_needing_prices(agents, {"AAPL": {}}), {"LC", "NVDA"})
+        self.assertEqual(_symbols_needing_prices(agents, {"AAPL": {"price": 100.0}}), {"LC", "NVDA"})
+
+    def test_held_symbols_with_unusable_context_price_are_refetched(self):
+        """Context membership is not proof of a price: get_market_context emits
+        price=0 when bars/quotes are missing, so held symbols with a zero,
+        missing or NaN price must be retried; a valid held price is not."""
+        from loops.trading_loop import _symbols_needing_prices
+        agents = [_Holder("A", held=["LC", "NOPRICE", "NAN", "AAPL"])]
+        ctx = {"LC": {"price": 0}, "NOPRICE": {}, "NAN": {"price": float("nan")},
+               "AAPL": {"price": 100.0}}
+        self.assertEqual(_symbols_needing_prices(agents, ctx), {"LC", "NOPRICE", "NAN"})
+
+    def test_merge_keeps_valid_price_when_retry_returns_unusable(self):
+        from loops.trading_loop import _merge_retry_prices
+        prices = {"AAPL": 100.0, "LC": 0}
+        _merge_retry_prices(prices, {"LC": {"price": 0}, "NEW": {"price": 12.5},
+                                     "AAPL": {"price": 0}})
+        self.assertEqual(prices, {"AAPL": 100.0, "LC": 0, "NEW": 12.5})
 
     def test_unpriced_held_symbols_reported_per_agent(self):
         from loops.trading_loop import _unpriced_held_symbols

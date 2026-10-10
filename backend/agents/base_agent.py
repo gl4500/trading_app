@@ -57,6 +57,8 @@ class BaseAgent(ABC):
         # UI/pick memory (X-2 review).
         self._cycle_signals: Dict[str, Signal] = {}
         self._last_signals_at: float = 0.0
+        # Failed exit stages (Bayes / trailing / hard stop); observability only.
+        self._exit_failure_count: int = 0
         self._error_count: int = 0
         self._max_errors: int = 5
         self._is_active: bool = True
@@ -207,16 +209,22 @@ class BaseAgent(ABC):
         """
         async with self._lock:
             try:
-                # New trading day: reset daily tracking and the daily-loss halt
-                # flag, which otherwise blocks every BUY until restart (C-12).
-                if self.portfolio.reset_daily_tracking(prices):
-                    self.risk_manager.reset_daily_halt()
-
                 signals: List[Signal] = []
                 entries_allowed = self._is_active
-                if entries_allowed and not self.risk_manager.check_daily_loss(self.portfolio, prices):
-                    logger.info(f"{self.name}: daily loss limit - entries halted, exits still run")
+                # Daily preparation. A failure here fails CLOSED for entries but
+                # never skips the exits below (review of b7c099d).
+                try:
+                    # New trading day: reset daily tracking and the daily-loss halt
+                    # flag, which otherwise blocks every BUY until restart (C-12).
+                    # The halt is only cleared when the reset itself succeeded.
+                    if self.portfolio.reset_daily_tracking(prices):
+                        self.risk_manager.reset_daily_halt()
+                    if entries_allowed and not self.risk_manager.check_daily_loss(self.portfolio, prices):
+                        logger.info(f"{self.name}: daily loss limit - entries halted, exits still run")
+                        entries_allowed = False
+                except Exception as e:
                     entries_allowed = False
+                    self._record_cycle_error("daily preparation", e)
 
                 portfolio_returns: Dict[str, np.ndarray] = {}
                 if entries_allowed:
@@ -341,6 +349,9 @@ class BaseAgent(ABC):
         try:
             return await stage
         except Exception as e:
+            # Counted separately: exit failures are observable but never
+            # deactivate anything - protective exits must keep running.
+            self._exit_failure_count += 1
             logger.error(f"{self.name}: {label} failed: {e}", exc_info=True)
             return []
 

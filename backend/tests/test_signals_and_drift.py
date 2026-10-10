@@ -1041,3 +1041,47 @@ class TestDailyHaltResetsOnNewDay(unittest.IsolatedAsyncioTestCase):
         agent.risk_manager._trading_halted = True
         await self._cycle(agent)
         self.assertFalse(agent.risk_manager.is_trading_allowed()[0])
+
+
+class TestDailyPrepFailureStillRunsExits(unittest.IsolatedAsyncioTestCase):
+    """Review of b7c099d: a failure in daily preparation (reset_daily_tracking /
+    check_daily_loss) jumped straight to `return []`, skipping every exit. It
+    must fail closed for entries, be counted, and still run the stops - and must
+    not clear the daily halt when the reset itself failed."""
+
+    CTX = {"AAPL": {"price": 80.0, "bars": None, "news": []}}
+    PRICES = {"AAPL": 80.0}
+
+    def _holding(self):
+        agent = _ExitStub().agent
+        agent.portfolio.execute_buy("AAPL", 10, 100.0)
+        return agent
+
+    async def test_reset_daily_tracking_failure_still_runs_hard_stop(self):
+        agent = self._holding()
+        agent.risk_manager._trading_halted = True
+        with patch.object(agent.portfolio, "reset_daily_tracking", side_effect=RuntimeError("valuation")), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(self.CTX, self.PRICES)
+        self.assertEqual(agent.analyze_calls, 0, "entries fail closed")
+        self.assertNotIn("AAPL", agent.portfolio.positions, "hard stop must still fire")
+        self.assertTrue(agent.risk_manager._trading_halted, "halt not cleared by a failed reset")
+        self.assertEqual(agent._error_count, 1)
+
+    async def test_check_daily_loss_failure_still_runs_hard_stop(self):
+        agent = self._holding()
+        with patch.object(agent.risk_manager, "check_daily_loss", side_effect=RuntimeError("risk")), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(self.CTX, self.PRICES)
+        self.assertEqual(agent.analyze_calls, 0)
+        self.assertNotIn("AAPL", agent.portfolio.positions)
+
+    async def test_exit_stage_failure_is_counted_separately(self):
+        agent = self._holding()
+        with patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"), \
+             patch.object(agent, "_check_bayes_exits", side_effect=RuntimeError("bayes")):
+            await agent.run_cycle(self.CTX, self.PRICES)
+        self.assertEqual(agent._exit_failure_count, 1)
+        self.assertEqual(agent._error_count, 0, "exit failures never deactivate entries")
+        self.assertTrue(agent._is_active)
