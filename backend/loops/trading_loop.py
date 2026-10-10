@@ -67,7 +67,8 @@ def _collect_agent_signals(
 
     With ``since`` (a ``time.monotonic()`` value), only agents whose
     ``_last_signals_at`` is at or after it contribute — i.e. agents that actually
-    produced signals this cycle. An inactive, daily-halted or erroring agent keeps
+    produced signals this cycle — and only their ``_cycle_signals`` snapshot
+    (this cycle's analysis + exits) is read. An inactive, daily-halted or erroring agent keeps
     its previous map and must not be republished as a current vote (X-2 review).
     """
     out: Dict[str, Dict[str, tuple]] = {}
@@ -76,7 +77,10 @@ def _collect_agent_signals(
             continue
         if since is not None and getattr(agent, "_last_signals_at", 0.0) < since:
             continue
-        for sym, sig in (getattr(agent, "_last_signals", None) or {}).items():
+        # Fresh hand-off reads the agent's current-cycle snapshot; history
+        # recording (since=None) keeps its existing _last_signals input.
+        source = "_cycle_signals" if since is not None else "_last_signals"
+        for sym, sig in (getattr(agent, source, None) or {}).items():
             if not isinstance(market_context.get(sym), dict):
                 continue
             out.setdefault(sym, {})[agent.name] = (sig.action, sig.confidence)

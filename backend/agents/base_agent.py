@@ -51,8 +51,11 @@ class BaseAgent(ABC):
         self.risk_manager = RiskManager()
         self._last_reasoning: Dict[str, str] = {}
         self._last_signals: Dict[str, Signal] = {}
-        # time.monotonic() of the last successful analyze(); peers publish only
-        # signals stamped after the current cycle started (X-2 review).
+        # This cycle's signals only (analysis + this cycle's exits), replaced
+        # atomically with _last_signals_at right after analyze(). Peer hand-off
+        # reads this, never _last_signals, which also retains older symbols for
+        # UI/pick memory (X-2 review).
+        self._cycle_signals: Dict[str, Signal] = {}
         self._last_signals_at: float = 0.0
         self._error_count: int = 0
         self._max_errors: int = 5
@@ -212,6 +215,9 @@ class BaseAgent(ABC):
                 # Generate signals
                 signals = await self.analyze(market_context)
                 self._error_count = 0  # reset on success
+                # Publish this cycle's snapshot and its stamp together, before any
+                # further await can fail and leave an older map looking fresh.
+                self._cycle_signals = {sig.symbol: sig for sig in signals}
                 self._last_signals_at = time.monotonic()
 
                 # Update persistent pick memory before executing
@@ -234,6 +240,7 @@ class BaseAgent(ABC):
                 bayes_exits = await self._check_bayes_exits(prices)
                 for sig in bayes_exits:
                     self._last_signals[sig.symbol] = sig
+                    self._cycle_signals[sig.symbol] = sig
 
                 # Trailing stop exits — locks in gains by selling positions
                 # that have given back >= TRAIL_GIVEBACK_PCT of their peak
@@ -242,6 +249,7 @@ class BaseAgent(ABC):
                 trail_exits = await self._check_trailing_stops(prices)
                 for sig in trail_exits:
                     self._last_signals[sig.symbol] = sig
+                    self._cycle_signals[sig.symbol] = sig
 
                 # Execute actionable signals (the agent's primary decision —
                 # LLM-driven BUY / SELL / HOLD).
@@ -268,6 +276,7 @@ class BaseAgent(ABC):
                 hard_exits = await self._check_hard_stops(prices)
                 for sig in hard_exits:
                     self._last_signals[sig.symbol] = sig
+                    self._cycle_signals[sig.symbol] = sig
 
                 # Record portfolio value
                 self.portfolio.record_value(prices)
@@ -636,6 +645,7 @@ class BaseAgent(ABC):
         self.risk_manager = RiskManager()
         self._last_reasoning = {}
         self._last_signals = {}
+        self._cycle_signals = {}
         self._last_signals_at = 0.0
         self._picks = {}
         self._save_picks()

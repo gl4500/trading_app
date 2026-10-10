@@ -65,9 +65,10 @@ class _Sig:
 
 class _Peer:
     """Stand-in agent with a last-signals map and freshness stamp."""
-    def __init__(self, name, sigs, stamp):
+    def __init__(self, name, sigs, stamp, cycle_sigs=None):
         self.name = name
         self._last_signals = sigs
+        self._cycle_signals = sigs if cycle_sigs is None else cycle_sigs
         self._last_signals_at = stamp
 
 
@@ -96,6 +97,19 @@ class TestCollectAgentSignals(unittest.TestCase):
         ens = _Peer("EnsembleAgent", {"AAPL": _Sig("BUY")}, stamp=10.0)
         gone = _Peer("MomentumAgent", {"MSFT": _Sig("BUY")}, stamp=10.0)
         self.assertEqual(_collect_agent_signals([ens, gone], _CTX, since=9.0), {})
+
+
+class TestCollectUsesCycleSnapshot(unittest.TestCase):
+
+    def test_fresh_peer_publishes_cycle_snapshot_not_retained_last_signals(self):
+        from loops.trading_loop import _collect_agent_signals
+        peer = _Peer("MomentumAgent", {"AAPL": _Sig("BUY")}, stamp=10.0,
+                     cycle_sigs={"AAPL": _Sig("HOLD")})
+        self.assertEqual(_collect_agent_signals([peer], _CTX, since=9.0),
+                         {"AAPL": {"MomentumAgent": ("HOLD", 0.6)}})
+        self.assertEqual(_collect_agent_signals([peer], _CTX),
+                         {"AAPL": {"MomentumAgent": ("BUY", 0.6)}},
+                         "history recording keeps reading _last_signals")
 
 
 class TestRecordAndPublishAgentSignals(unittest.IsolatedAsyncioTestCase):
