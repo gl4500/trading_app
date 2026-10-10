@@ -46,6 +46,10 @@ class BarsProvider:
                 raw = raw.sort_values("dt")
                 # Collapse to one row per calendar day: last snapshot wins.
                 daily = raw.set_index("dt").resample("1D").last().dropna(subset=["price"])
+                # Weekdays only: weekend snapshots (a live app running on a Saturday/
+                # Sunday, possibly with a stale or unadjusted quote) are not trading
+                # sessions and must not become bars (C-32: BKNG Sunday 2026-04-05).
+                daily = daily[daily.index.dayofweek < 5]
                 self._cache[symbol] = daily[["price", "volume"]].rename(columns={"price": "close"})
         return self._cache[symbol]
 
