@@ -7,6 +7,11 @@ Their code stays on disk but they are no longer constructed or registered for
 trading. `_build_trading_agents()` is the single source of truth for which agents
 trade; these tests pin the surviving roster so a future edit can't silently
 re-introduce a deprecated model (or drop a survivor).
+
+2026-10-10: three more deprecated for total return (realized + unrealized on
+their $100K) at or below the 10% bar — MeanReversionAgent (+7.8%),
+ScannerAgent (+5.1%), SentimentAgent (-0.8%). Survivors: HistoricalTrendsAgent,
+MomentumAgent, XGBReasoningAgent.
 """
 import os
 import sys
@@ -20,11 +25,8 @@ for _p in (_BACKEND, _SITE):
 
 _SURVIVORS = {
     "MomentumAgent",
-    "MeanReversionAgent",
-    "SentimentAgent",
     "HistoricalTrendsAgent",
     "XGBReasoningAgent",
-    "ScannerAgent",
 }
 _DEPRECATED = {
     "EnsembleAgent",
@@ -33,11 +35,15 @@ _DEPRECATED = {
     "GeminiAgent",
     "OllamaAgent",
     "OpenClawAgent",
+    # 2026-10-10: total return (realized + unrealized on $100K) at or below 10%.
+    "MeanReversionAgent",
+    "SentimentAgent",
+    "ScannerAgent",
 }
 
 
 class TestTradingRoster(unittest.TestCase):
-    def test_build_trading_agents_returns_exactly_the_six_survivors(self):
+    def test_build_trading_agents_returns_exactly_the_survivors(self):
         from lifespan import _build_trading_agents
         names = {a.name for a in _build_trading_agents()}
         self.assertEqual(names, _SURVIVORS)

@@ -110,6 +110,9 @@ def _build_trading_agents() -> list:
     Six models were deprecated on 2026-07-05 for net-negative or idle realized
     performance and are intentionally NOT built here (their code remains on disk):
     EnsembleAgent, ClaudeAgent, TechAgent, GeminiAgent, OllamaAgent, OpenClawAgent.
+    Three more were deprecated on 2026-10-10 for total return (realized + unrealized
+    on their $100K) at or below 10%: MeanReversionAgent, SentimentAgent,
+    ScannerPortfolioAgent ("ScannerAgent"). Their open positions are left as-is.
     To re-enable a model, construct it and append it to the returned list.
 
     XGBReasoningAgent was renamed from CNNReasoningAgent in issue #75; the DB
@@ -119,19 +122,13 @@ def _build_trading_agents() -> list:
     # Late imports so the agent classes resolve at call time (keeps the import
     # graph lazy and matches the historical init_agents pattern).
     from agents.momentum_agent import MomentumAgent
-    from agents.mean_reversion_agent import MeanReversionAgent
-    from agents.sentiment_agent import SentimentAgent
     from agents.historical_trends_agent import HistoricalTrendsAgent
     from agents.xgb_reasoning_agent import XGBReasoningAgent
-    from agents.scanner_portfolio_agent import ScannerPortfolioAgent
 
     return [
         MomentumAgent(),
-        MeanReversionAgent(),
-        SentimentAgent(),
         HistoricalTrendsAgent(),
         XGBReasoningAgent(),
-        ScannerPortfolioAgent(),
     ]
 
 
@@ -142,9 +139,8 @@ async def init_agents() -> None:
     logger.info("Initializing trading agents...")
     app_state = main.app_state
 
-    # Active trading roster. Six models were deprecated 2026-07-05 (net-negative
-    # or idle: EnsembleAgent, ClaudeAgent, TechAgent, GeminiAgent, OllamaAgent,
-    # OpenClawAgent) — their code stays on disk but is no longer registered.
+    # Active trading roster — see _build_trading_agents for the deprecation history.
+    # Deprecated models' code stays on disk but they are no longer registered.
     all_agents = _build_trading_agents()
 
     # GeminiAgent was a news/context source (injected __gemini_market_view__ into
@@ -272,8 +268,9 @@ async def init_agents() -> None:
         logger.warning(f"Could not restore price snapshots from DB: {_e}")
 
     # Seed rolling 24h token windows from DB after restart. Only the cloud
-    # token-logging agents define seed_from_history; after the 2026-07-05
-    # deprecations that's just SentimentAgent among the active roster.
+    # token-logging agents define seed_from_history; since SentimentAgent was
+    # deprecated 2026-10-10, no agent in the active roster does (kept so a
+    # re-enabled token-logging agent is seeded without further edits).
     for _token_agent in all_agents:
         if not hasattr(_token_agent, "seed_from_history"):
             continue
