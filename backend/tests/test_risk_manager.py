@@ -337,3 +337,26 @@ class TestCorrelationGate(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestChurnGateUsesPortfolioClock(unittest.TestCase):
+    """The 30-minute re-entry block must measure elapsed time on the portfolio's
+    clock, so a backtest can re-enter a symbol sold on an earlier simulated day."""
+
+    def _setup(self, minutes_after_exit):
+        from datetime import datetime, timedelta, timezone
+        p = Portfolio(starting_capital=100_000)
+        exit_t = datetime(2026, 4, 6, 21, 0, tzinfo=timezone.utc)
+        p._recent_exits["AAPL"] = exit_t
+        p._clock = lambda: exit_t + timedelta(minutes=minutes_after_exit)
+        return p
+
+    def test_reentry_allowed_days_later_in_simulated_time(self):
+        p = self._setup(minutes_after_exit=2 * 24 * 60)
+        allowed, reason = RiskManager().check_buy_allowed("AAPL", 1, 100.0, p, {"AAPL": 100.0})
+        self.assertNotIn("churn", reason.lower())
+
+    def test_reentry_blocked_minutes_later_in_simulated_time(self):
+        p = self._setup(minutes_after_exit=10)
+        allowed, reason = RiskManager().check_buy_allowed("AAPL", 1, 100.0, p, {"AAPL": 100.0})
+        self.assertFalse(allowed)
