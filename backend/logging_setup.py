@@ -39,7 +39,7 @@ def _write_crash(msg: str) -> None:
         os.makedirs(os.path.dirname(_CRASH_LOG_PATH), exist_ok=True)
         ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         with open(_CRASH_LOG_PATH, "a", encoding="utf-8") as _f:
-            _f.write(f"{ts} {msg}\n")
+            _f.write(f"{ts} {_redact(msg)}\n")
     except Exception:
         pass
 
@@ -49,10 +49,15 @@ def _crash_excepthook(exc_type, exc_value, exc_tb) -> None:
     import traceback
     tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
     _write_crash(f"[UNHANDLED EXCEPTION]\n{tb_str}")
-    # Also log via standard logging so it still appears in error.log
+    # Also log via standard logging so it still appears in error.log (redacted by _RedactSecrets)
     logger.critical(f"Unhandled exception: {exc_value}", exc_info=(exc_type, exc_value, exc_tb))
-    # Call the default handler so the process exits normally
-    sys.__excepthook__(exc_type, exc_value, exc_tb)
+    # C-2: print the traceback ourselves, redacted, instead of sys.__excepthook__ (which writes it raw to
+    # stderr / backend_stderr.log). The interpreter still exits after the hook returns.
+    try:
+        sys.stderr.write(_redact(tb_str))
+        sys.stderr.flush()
+    except Exception:
+        pass
 
 
 # ─── Secret redaction (finding C-2, 2026-10-11) ─────────────────────────────
@@ -60,19 +65,44 @@ def _crash_excepthook(exc_type, exc_value, exc_tb) -> None:
 # parameters, so their keys were written to live.log / backend_stderr.log in plain text. This filter rewrites
 # the formatted message with secret query values masked. Attached to the httpx/httpcore loggers (so every
 # handler sees the clean record) and to every root handler as a second layer.
-_SECRET_PARAM_RE = re.compile(r"(?i)(api_?key|access_token|token|secret)=([^&\s\"'#]+)")
+# A query value runs to the next '&', whitespace or '#': every other character (incl. sub-delimiters such as
+# ' ! $ ( ) * + , ; = and percent-escapes) belongs to the value and is redacted with it.
+_SECRET_PARAM_RE = re.compile(r"(?i)(api_?key|access_token|token|secret)=([^&\s#]+)")
+
+
+def _redact(text: str) -> str:
+    return _SECRET_PARAM_RE.sub(lambda m: f"{m.group(1)}=***", text)
 
 
 class _RedactSecrets(logging.Filter):
+    """Masks secret query values in the message, the exception traceback and stack_info of every record.
+    Must run BEFORE any other filter that formats the record (e.g. _SuppressWin10054). A malformed record
+    (format/args mismatch) is replaced by a safe, redacted description instead of reaching logging's raw
+    error diagnostic. Never drops a record."""
+
     def filter(self, record: logging.LogRecord) -> bool:
         try:
             msg = record.getMessage()
-        except Exception:
-            return True                      # malformed record: leave it to logging's own error handling
-        redacted = _SECRET_PARAM_RE.sub(lambda m: f"{m.group(1)}=***", msg)
+        except Exception as e:
+            msg = (f"<unformattable log record ({type(e).__name__}): msg={_redact(str(record.msg))} "
+                   f"args={_redact(repr(record.args))}>")
+            record.msg, record.args = msg, None
+        redacted = _redact(msg)
         if redacted != msg:
             record.msg, record.args = redacted, None
+        if record.exc_info and not record.exc_text:
+            record.exc_text = logging.Formatter().formatException(record.exc_info)
+        if record.exc_text:
+            record.exc_text = _redact(record.exc_text)
+        if record.stack_info:
+            record.stack_info = _redact(record.stack_info)
         return True
+
+
+def _install_first(target, f) -> None:
+    """Attach the redaction filter to a logger/handler exactly once, ahead of every other filter."""
+    if not any(isinstance(x, _RedactSecrets) for x in target.filters):
+        target.filters.insert(0, f)
 
 
 # ─── Win10054 noise suppression ─────────────────────────────────────────────
@@ -121,9 +151,9 @@ def _add_log_handler(
             "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         ))
+        handler.addFilter(_RedactSecrets())             # first: every later filter sees a safe record
         if win10054_filter is not None:
             handler.addFilter(win10054_filter)
-        handler.addFilter(_RedactSecrets())
         already_added = any(
             isinstance(h, RotatingFileHandler)
             and os.path.abspath(getattr(h, "baseFilename", "")) == os.path.abspath(path)
@@ -194,12 +224,10 @@ def install_logging() -> "_SuppressWin10054":
     # C-2: redact secret query parameters at the source loggers and on every root handler (incl. the
     # basicConfig console stream that feeds backend_stderr.log).
     redact = _RedactSecrets()
-    for name in ("httpx", "httpcore"):
-        lg = logging.getLogger(name)
-        if not any(isinstance(f, _RedactSecrets) for f in lg.filters):
-            lg.addFilter(redact)
+    for name in ("httpx", "httpcore", "asyncio", "uvicorn.error", "uvicorn.access"):
+        _install_first(logging.getLogger(name), redact)
+    _install_first(logging.root, redact)
     for h in logging.root.handlers:
-        if not any(isinstance(f, _RedactSecrets) for f in h.filters):
-            h.addFilter(redact)
+        _install_first(h, redact)
 
     return win10054
