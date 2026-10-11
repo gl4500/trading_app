@@ -55,6 +55,26 @@ def _crash_excepthook(exc_type, exc_value, exc_tb) -> None:
     sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 
+# ─── Secret redaction (finding C-2, 2026-10-11) ─────────────────────────────
+# httpx logs every request URL at INFO. Massive (apiKey=) and FRED (api_key=) authenticate with query
+# parameters, so their keys were written to live.log / backend_stderr.log in plain text. This filter rewrites
+# the formatted message with secret query values masked. Attached to the httpx/httpcore loggers (so every
+# handler sees the clean record) and to every root handler as a second layer.
+_SECRET_PARAM_RE = re.compile(r"(?i)(api_?key|access_token|token|secret)=([^&\s\"'#]+)")
+
+
+class _RedactSecrets(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        try:
+            msg = record.getMessage()
+        except Exception:
+            return True                      # malformed record: leave it to logging's own error handling
+        redacted = _SECRET_PARAM_RE.sub(lambda m: f"{m.group(1)}=***", msg)
+        if redacted != msg:
+            record.msg, record.args = redacted, None
+        return True
+
+
 # ─── Win10054 noise suppression ─────────────────────────────────────────────
 
 class _SuppressWin10054(logging.Filter):
@@ -103,6 +123,7 @@ def _add_log_handler(
         ))
         if win10054_filter is not None:
             handler.addFilter(win10054_filter)
+        handler.addFilter(_RedactSecrets())
         already_added = any(
             isinstance(h, RotatingFileHandler)
             and os.path.abspath(getattr(h, "baseFilename", "")) == os.path.abspath(path)
@@ -169,5 +190,16 @@ def install_logging() -> "_SuppressWin10054":
     _add_log_handler(_ERROR_LOG_PATH,       logging.WARNING, win10054)
     _add_log_handler(_ERRORS_ONLY_LOG_PATH, logging.ERROR,   win10054)
     _add_log_handler(_LIVE_LOG_PATH,        logging.INFO,    win10054)
+
+    # C-2: redact secret query parameters at the source loggers and on every root handler (incl. the
+    # basicConfig console stream that feeds backend_stderr.log).
+    redact = _RedactSecrets()
+    for name in ("httpx", "httpcore"):
+        lg = logging.getLogger(name)
+        if not any(isinstance(f, _RedactSecrets) for f in lg.filters):
+            lg.addFilter(redact)
+    for h in logging.root.handlers:
+        if not any(isinstance(f, _RedactSecrets) for f in h.filters):
+            h.addFilter(redact)
 
     return win10054
