@@ -171,6 +171,48 @@ class TestXGBReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
         finally:
             signal_cnn._mean_wfe = original_mean_wfe
 
+    async def _analyze_with_wfe(self, mean_wfe, ollama_resp, mkt):
+        """Run analyze() with the selector's mean_wfe forced and W3 blend off."""
+        from data.signal_model import signal_model as signal_cnn
+        import config as config_mod
+        original_mean_wfe = signal_cnn._mean_wfe
+        ollama = AsyncMock(return_value=ollama_resp)
+        try:
+            signal_cnn._mean_wfe = mean_wfe
+            with patch.object(config_mod.config, "W3_BLEND_ENABLED", False), \
+                 patch.object(config_mod.config, "XGB_LLM_DECISION_MODE", "ollama"), \
+                 patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+                 patch.object(self.agent, "_entropy_prefilter_signal", return_value=None), \
+                 patch.object(self.agent, "_ollama_decision", new=ollama):
+                signals = await self.agent.analyze(mkt)
+        finally:
+            signal_cnn._mean_wfe = original_mean_wfe
+        return signals, ollama
+
+    async def test_llm_skipped_for_unheld_symbol_when_wfe_gate_closed(self):
+        """C-21: gate shut + symbol not held -> only HOLD is reachable, so no LLM call."""
+        mkt = _make_market(["AAPL"], price=150.0)
+        signals, ollama = await self._analyze_with_wfe(
+            -0.07, {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}, mkt)
+        ollama.assert_not_awaited()
+        self.assertEqual([s.action for s in signals], ["HOLD"])
+        self.assertIn("WFE gate", signals[0].reasoning)
+
+    async def test_llm_still_called_for_held_symbol_when_wfe_gate_closed(self):
+        """Held symbols keep the LLM call so a SELL can still fire under a shut gate."""
+        self.agent.portfolio.execute_buy("AAPL", 10, 150.0)
+        mkt = _make_market(["AAPL"], price=150.0)
+        signals, ollama = await self._analyze_with_wfe(
+            -0.07, {"action": "SELL", "confidence": 0.8, "reasoning": "exit"}, mkt)
+        ollama.assert_awaited_once()
+        self.assertIn("SELL", [s.action for s in signals])
+
+    async def test_llm_called_for_unheld_symbol_when_wfe_gate_open(self):
+        mkt = _make_market(["AAPL"], price=150.0)
+        signals, ollama = await self._analyze_with_wfe(
+            0.10, {"action": "BUY", "confidence": 0.85, "reasoning": "strong"}, mkt)
+        ollama.assert_awaited_once()
+
     async def test_buy_allowed_when_mean_wfe_positive(self):
         """When mean_wfe >= 0, BUY signals should pass the gate."""
         # Use the SELECTOR singleton (resolves to SignalCNN or SignalXGBoost
