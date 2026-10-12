@@ -7,6 +7,14 @@ Their code stays on disk but they are no longer constructed or registered for
 trading. `_build_trading_agents()` is the single source of truth for which agents
 trade; these tests pin the surviving roster so a future edit can't silently
 re-introduce a deprecated model (or drop a survivor).
+
+2026-10-10 (requirement ROSTER-R3, operator decision on the replicated R3
+reconstruction): the roster is the agents whose split-corrected total return on
+their $100K, valued at 2026-08-12 closes, clears 10% with full price coverage —
+HistoricalTrendsAgent (+17.9%), MeanReversionAgent (+22.9%), XGBReasoningAgent
+(+11.2%). Deprecated: MomentumAgent (+10.2% but one unpriced holding makes it
+inconclusive; +7.3% with that holding at zero), ScannerAgent (+5.2%),
+SentimentAgent (+0.0%).
 """
 import os
 import sys
@@ -19,12 +27,9 @@ for _p in (_BACKEND, _SITE):
         sys.path.insert(0, _p)
 
 _SURVIVORS = {
-    "MomentumAgent",
     "MeanReversionAgent",
-    "SentimentAgent",
     "HistoricalTrendsAgent",
     "XGBReasoningAgent",
-    "ScannerAgent",
 }
 _DEPRECATED = {
     "EnsembleAgent",
@@ -33,11 +38,15 @@ _DEPRECATED = {
     "GeminiAgent",
     "OllamaAgent",
     "OpenClawAgent",
+    # 2026-10-10 (ROSTER-R3): not confirmed above 10% total return on $100K.
+    "MomentumAgent",
+    "SentimentAgent",
+    "ScannerAgent",
 }
 
 
 class TestTradingRoster(unittest.TestCase):
-    def test_build_trading_agents_returns_exactly_the_six_survivors(self):
+    def test_build_trading_agents_returns_exactly_the_survivors(self):
         from lifespan import _build_trading_agents
         names = {a.name for a in _build_trading_agents()}
         self.assertEqual(names, _SURVIVORS)
