@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import os
 import time
 from typing import Dict, Optional
@@ -114,14 +115,63 @@ async def _record_and_publish_agent_signals(
         logger.warning(f"Agent signal recording failed: {exc}")
 
 
+def _usable_price(value) -> bool:
+    """A price exits can act on: a finite number above zero."""
+    try:
+        return math.isfinite(float(value)) and float(value) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _symbols_needing_prices(agents, market_context: Dict) -> set:
+    """Symbols to fetch beyond the watchlist/scanner context (C-11):
+    every agent's retained picks that are not in the context yet, and every held
+    position whose context price is absent or unusable. get_market_context emits
+    price=0 when bars/quotes are missing, so context membership alone is not
+    proof of a price (review of b7c099d)."""
+    wanted = set()
+    for agent in agents:
+        wanted.update(s for s in agent.get_pick_symbols() if s not in market_context)
+        for sym in agent.portfolio.positions:
+            ctx = market_context.get(sym)
+            if not (isinstance(ctx, dict) and _usable_price(ctx.get("price"))):
+                wanted.add(sym)
+    return wanted
+
+
+def _merge_retry_prices(prices: Dict[str, float], retry_ctx: Dict) -> None:
+    """Merge prices from a retry fetch. Only usable (finite, > 0) values are
+    written: an unusable retry never overwrites a valid price and is never
+    published as an executable price for a symbol that had none."""
+    for sym, ctx in retry_ctx.items():
+        if not isinstance(ctx, dict):
+            continue
+        new = ctx.get("price")
+        if _usable_price(new):
+            prices[sym] = new   # never publish an unusable retry value (review of d0d9486)
+
+
+def _unpriced_held_symbols(agents, prices: Dict[str, float]) -> Dict[str, list]:
+    """``{agent_name: [symbols]}`` for held positions with no usable (>0) price
+    this cycle — their stops cannot run, so the loop reports them."""
+    out: Dict[str, list] = {}
+    for agent in agents:
+        missing = sorted(
+            sym for sym in agent.portfolio.positions
+            if not _usable_price(prices.get(sym))
+        )
+        if missing:
+            out[agent.name] = missing
+    return out
+
+
 async def run_agent_cycle(agent, market_context: Dict, prices: Dict[str, float]) -> None:
     """Run one trading cycle for a single agent."""
     import main  # late import for test patches against main.save_trade, main.upsert_portfolio_position
     from data.risk_assessor import record_trade as record_risk_trade
 
-    if not agent._is_active:
-        return
-
+    # No _is_active early return: run_cycle runs a deactivated agent in
+    # exit-only mode so its open positions keep their stops (C-10).
     try:
         # Record trade history before cycle
         trades_before = set(id(t) for t in agent.portfolio.trade_history)
@@ -327,19 +377,22 @@ async def trading_loop() -> None:
 
             # Inject each agent's retained picks so they always get fresh data
             # for symbols they have conviction on, even after scanner cache expires.
+            # Held positions are included (C-11) so their exits always have a price.
             try:
-                pick_syms = set()
-                for agent in app_state.agents.values():
-                    for sym in agent.get_pick_symbols():
-                        if sym not in market_context:
-                            pick_syms.add(sym)
+                pick_syms = _symbols_needing_prices(app_state.agents.values(), market_context)
                 if pick_syms:
                     picks_ctx = await market_data_service.get_market_context(list(pick_syms))
-                    market_context.update(picks_ctx)
-                    prices.update({s: c.get("price", 0) for s, c in picks_ctx.items() if isinstance(c, dict)})
-                    _logger.info(f"Agent picks: added {len(pick_syms)} retained symbols to context: {sorted(pick_syms)}")
+                    for _sym, _ctx in picks_ctx.items():
+                        # Don't replace a usable context entry with a failed retry.
+                        _old = market_context.get(_sym)
+                        if not (isinstance(_old, dict) and _usable_price(_old.get("price"))):
+                            market_context[_sym] = _ctx
+                    _merge_retry_prices(prices, picks_ctx)
+                    _logger.info(f"Agent picks/holdings: added {len(pick_syms)} symbols to context: {sorted(pick_syms)}")
             except Exception as e:
-                _logger.warning(f"Could not augment market context with agent picks: {e}")
+                _logger.warning(f"Could not augment market context with agent picks/holdings: {e}")
+            for _agent_name, _syms in _unpriced_held_symbols(app_state.agents.values(), prices).items():
+                _logger.warning(f"{_agent_name}: no usable price for held {_syms} - exits cannot run for them")
 
             # Inject overnight sentinel catalysts so agents see what happened after hours
             if app_state.after_hours_catalysts:

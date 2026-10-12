@@ -136,5 +136,102 @@ class TestRecordAndPublishAgentSignals(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(xgb.received, {})
 
 
+
+class _Holder:
+    def __init__(self, name, held, picks=()):
+        self.name = name
+        self.portfolio = MagicMock()
+        self.portfolio.positions = {s: object() for s in held}
+        self._picks = list(picks)
+
+    def get_pick_symbols(self):
+        return list(self._picks)
+
+
+class TestHeldPositionsArePriced(unittest.TestCase):
+    """C-11: every held symbol must be fetched each cycle, not only the
+    watchlist / scanner / picks, so a position that drops off the watchlist
+    keeps its stops; any held symbol still unpriced is reported."""
+
+    def test_held_symbols_not_in_context_are_fetched(self):
+        from loops.trading_loop import _symbols_needing_prices
+        agents = [_Holder("A", held=["LC", "AAPL"], picks=["NVDA"])]
+        self.assertEqual(_symbols_needing_prices(agents, {"AAPL": {"price": 100.0}}), {"LC", "NVDA"})
+
+    def test_held_symbols_with_unusable_context_price_are_refetched(self):
+        """Context membership is not proof of a price: get_market_context emits
+        price=0 when bars/quotes are missing, so held symbols with a zero,
+        missing or NaN price must be retried; a valid held price is not."""
+        from loops.trading_loop import _symbols_needing_prices
+        agents = [_Holder("A", held=["LC", "NOPRICE", "NAN", "AAPL"])]
+        ctx = {"LC": {"price": 0}, "NOPRICE": {}, "NAN": {"price": float("nan")},
+               "AAPL": {"price": 100.0}}
+        self.assertEqual(_symbols_needing_prices(agents, ctx), {"LC", "NOPRICE", "NAN"})
+
+    def test_merge_keeps_valid_price_when_retry_returns_unusable(self):
+        from loops.trading_loop import _merge_retry_prices
+        prices = {"AAPL": 100.0, "LC": 0}
+        _merge_retry_prices(prices, {"LC": {"price": 0}, "NEW": {"price": 12.5},
+                                     "AAPL": {"price": 0}})
+        self.assertEqual(prices, {"AAPL": 100.0, "LC": 0, "NEW": 12.5})
+
+    def test_unpriced_held_symbols_reported_per_agent(self):
+        from loops.trading_loop import _unpriced_held_symbols
+        agents = [_Holder("MomentumAgent", held=["LC", "AAPL", "ZERO"])]
+        self.assertEqual(
+            _unpriced_held_symbols(agents, {"AAPL": 100.0, "ZERO": 0.0}),
+            {"MomentumAgent": ["LC", "ZERO"]},
+        )
+
+
+class TestInactiveAgentStillCycles(unittest.IsolatedAsyncioTestCase):
+    """C-10: run_agent_cycle must not skip a deactivated agent — run_cycle runs
+    it in exit-only mode so its positions keep their stops."""
+
+    async def test_run_cycle_called_for_inactive_agent(self):
+        from unittest.mock import patch
+        from loops.trading_loop import run_agent_cycle
+        agent = MagicMock()
+        agent.name, agent.agent_id, agent._is_active = "Halted", 1, False
+        agent.portfolio.positions = {}
+        agent.portfolio.trade_history = []
+        agent.run_cycle = AsyncMock(return_value=[])
+        with patch("main.save_trade", new_callable=AsyncMock),              patch("main.upsert_portfolio_position", new_callable=AsyncMock):
+            await run_agent_cycle(agent, {}, {})
+        agent.run_cycle.assert_awaited_once()
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestRetryNeverPublishesUnusablePrices(unittest.TestCase):
+    """Review of d0d9486 (scenario matrix rows 1, 4, 6): an unusable retry value
+    (NaN / inf / None / 0) is never written into the execution price map, and a
+    valid existing price survives a failed retry."""
+
+    def test_nan_retry_with_no_prior_price_is_not_published(self):
+        from loops.trading_loop import _merge_retry_prices
+        prices = {}
+        _merge_retry_prices(prices, {"BAD": {"price": float("nan")}, "INF": {"price": float("inf")},
+                                     "NONE": {"price": None}, "OK": {"price": 12.5}})
+        self.assertEqual(prices, {"OK": 12.5})
+
+    def test_existing_unusable_price_is_not_replaced_by_unusable_retry(self):
+        import math
+        from loops.trading_loop import _merge_retry_prices
+        prices = {"BAD": float("nan")}
+        _merge_retry_prices(prices, {"BAD": {"price": float("nan")}})
+        self.assertFalse(math.isfinite(prices.get("BAD", float("nan"))) and prices.get("BAD", 0) > 0)
+
+    def test_valid_price_survives_unusable_retry(self):
+        from loops.trading_loop import _merge_retry_prices
+        prices = {"AAPL": 100.0}
+        _merge_retry_prices(prices, {"AAPL": {"price": float("nan")}})
+        self.assertEqual(prices["AAPL"], 100.0)
+
+    def test_infinite_price_counts_as_unpriced(self):
+        from loops.trading_loop import _unpriced_held_symbols
+        agents = [_Holder("MomentumAgent", held=["INF", "AAPL"])]
+        self.assertEqual(_unpriced_held_symbols(agents, {"INF": float("inf"), "AAPL": 100.0}),
+                         {"MomentumAgent": ["INF"]})
