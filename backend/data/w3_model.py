@@ -277,7 +277,9 @@ class SignalW3:
         std = X_arr.std(axis=0)
         std = np.where(std == 0, 1.0, std).astype(np.float32)
         Xz  = ((X_arr - mu) / std).astype(np.float32)
-        self._mu, self._std = mu.astype(np.float32), std
+        # Normalization is published together with the model at the end of a
+        # successful fit — never here, where an early return (no folds) would
+        # leave the live W3 pairing new normalization with its old model.
 
         folds = walkforward_folds(t_arr, n_folds=3, min_val_days=14, embargo_bars=1,
                                   embargo_days=LABEL_HORIZON_DAYS)
@@ -344,7 +346,11 @@ class SignalW3:
                 last_train_mse = train_mse_last
                 last_val_mse = best_val
 
-        self._model = last_model.to(torch.device("cpu")) if last_model is not None else None
+        if last_model is None:
+            logger.warning("SignalW3.fit: no fold produced a model — keeping previous model")
+            return
+        self._model = last_model.to(torch.device("cpu"))
+        self._mu, self._std = mu.astype(np.float32), std
         if self._model is not None:
             self._model.eval()
         self._fold_metrics = fold_metrics

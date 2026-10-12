@@ -214,3 +214,51 @@ class TestSignalW3DeviceSelection(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSignalW3FitKeepsPriorStateOnNoOp(unittest.TestCase):
+    """fit() used to assign the live normalization (_mu/_std) before returning
+    early when the data was too short for walk-forward folds, leaving the live
+    W3 with the NEW normalization on its OLD model. Normalization must change
+    only together with the model, on a successful fit."""
+
+    def _dataset(self, n, days, scale=1.0, shift=0.0, seed=7):
+        rng = np.random.default_rng(seed)
+        X = (rng.standard_normal((n, 38, 10)) * scale + shift).astype(np.float32)
+        y = (0.05 * X[:, 0, -1] + 0.001 * rng.standard_normal(n)).astype(np.float32)
+        t = np.linspace(0, days * 86400, n).astype(np.float64)
+        return X, y, t
+
+    def _trained(self, td):
+        from data.w3_model import SignalW3
+        m = SignalW3(model_path=os.path.join(td, "w3.pt"))
+        m.fit(*self._dataset(400, 90))
+        self.assertTrue(m.is_trained)
+        return m
+
+    @unittest.skipUnless(HAS_TORCH, "torch not available")
+    def test_no_fold_fit_leaves_normalization_and_model_untouched(self):
+        with tempfile.TemporaryDirectory() as td:
+            m = self._trained(td)
+            mu, std = m._mu.copy(), m._std.copy()
+            weights = {k: v.clone() for k, v in m._model.state_dict().items()}
+            ts = m._train_ts
+            # 400 rows inside one day: too short for 3 folds -> fit returns early.
+            m.fit(*self._dataset(400, 1, scale=5.0, shift=3.0, seed=11))
+            np.testing.assert_array_equal(m._mu, mu)
+            np.testing.assert_array_equal(m._std, std)
+            for k, v in m._model.state_dict().items():
+                self.assertTrue(torch.equal(v, weights[k]), f"model param {k} changed")
+            self.assertEqual(m._train_ts, ts)
+            self.assertTrue(m.is_trained)
+
+    @unittest.skipUnless(HAS_TORCH, "torch not available")
+    def test_successful_refit_updates_normalization_with_model(self):
+        with tempfile.TemporaryDirectory() as td:
+            m = self._trained(td)
+            ts = m._train_ts
+            X, y, t = self._dataset(400, 90, scale=5.0, shift=3.0, seed=11)
+            m.fit(X, y, t)
+            np.testing.assert_allclose(m._mu, X[:, :, -1].mean(axis=0), rtol=1e-5)
+            self.assertGreaterEqual(m._train_ts, ts)
+            self.assertTrue(m.is_trained)
