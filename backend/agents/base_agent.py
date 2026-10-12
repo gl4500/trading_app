@@ -49,6 +49,7 @@ class BaseAgent(ABC):
         self.agent_id: Optional[int] = None  # set after DB registration
         self.portfolio = Portfolio(starting_capital=config.STARTING_CAPITAL)
         self.risk_manager = RiskManager()
+        self.portfolio._clock = self._now  # follow the agent's (injectable) clock
         self._last_reasoning: Dict[str, str] = {}
         self._last_signals: Dict[str, Signal] = {}
         # This cycle's signals only (analysis + this cycle's exits), replaced
@@ -679,6 +680,7 @@ class BaseAgent(ABC):
         """Reset agent to initial state."""
         self.portfolio = Portfolio(starting_capital=config.STARTING_CAPITAL)
         self.risk_manager = RiskManager()
+        self.portfolio._clock = self._now  # follow the agent's (injectable) clock
         self._last_reasoning = {}
         self._last_signals = {}
         self._cycle_signals = {}

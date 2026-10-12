@@ -96,7 +96,9 @@ class RiskManager:
         recent_exits = getattr(portfolio, '_recent_exits', {})
         last_exit = recent_exits.get(symbol)
         if last_exit is not None:
-            elapsed_seconds = (datetime.now(timezone.utc) - last_exit).total_seconds()
+            # Portfolio's clock: simulated time in backtests, wall clock live.
+            now = portfolio._now() if hasattr(portfolio, "_now") else datetime.now(timezone.utc)
+            elapsed_seconds = (now - last_exit).total_seconds()
             elapsed_minutes = elapsed_seconds / 60
             if elapsed_minutes < CHURN_COOLOFF_MINUTES:
                 remaining = int(CHURN_COOLOFF_MINUTES - elapsed_minutes)

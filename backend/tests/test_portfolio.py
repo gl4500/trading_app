@@ -865,3 +865,29 @@ class TestPortfolioRejectsNonFinitePrices(unittest.TestCase):
             self.assertTrue(math.isfinite(p.cash))
             self.assertEqual(p.positions["AAPL"].shares, 10)
             self.assertNotIn("MSFT", p.positions)
+class TestPortfolioInjectedClock(unittest.TestCase):
+    """Backtests drive the portfolio on a simulated clock; trade timestamps,
+    recent-exit (churn) stamps and the daily-tracking date must follow it,
+    not the wall clock (T1 red team / finding C-16)."""
+
+    def _at(self, y, m, d, h=21):
+        from datetime import timezone
+        return datetime(y, m, d, h, 0, tzinfo=timezone.utc)
+
+    def test_trades_and_recent_exits_use_injected_clock(self):
+        p = Portfolio(starting_capital=100_000)
+        t = self._at(2026, 4, 6)
+        p._clock = lambda: t
+        p.execute_buy("AAPL", 10, 100.0)
+        p.execute_sell("AAPL", 10, 110.0)
+        self.assertEqual(p._recent_exits["AAPL"], t)
+        self.assertTrue(all(tr.timestamp == t for tr in p.trade_history))
+
+    def test_reset_daily_tracking_follows_injected_date(self):
+        from datetime import date as _date
+        p = Portfolio(starting_capital=100_000)
+        p.daily_start_date = _date(2026, 4, 5)
+        p._clock = lambda: self._at(2026, 4, 6)
+        self.assertTrue(p.reset_daily_tracking({}))
+        self.assertEqual(p.daily_start_date, _date(2026, 4, 6))
+        self.assertFalse(p.reset_daily_tracking({}), "same simulated day -> no reset")

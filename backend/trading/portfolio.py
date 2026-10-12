@@ -4,7 +4,7 @@ Portfolio management: tracks cash, positions, and performance metrics.
 import math
 import logging
 from datetime import datetime, date, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 
 from config import config
@@ -67,9 +67,13 @@ class Portfolio:
         self.positions: Dict[str, Position] = {}
         self.trade_history: List[TradeRecord] = []
         self.daily_starting_value: float = self.starting_capital
-        self.daily_start_date: date = date.today()
+        # Injectable clock (UTC-aware). None = wall clock. Backtests set it (via
+        # BaseAgent) so trade timestamps, churn stamps and the daily-tracking date
+        # follow simulated time instead of the wall clock (T1 red team, C-16).
+        self._clock: Optional[Callable[[], datetime]] = None
+        self.daily_start_date: date = self._today()
         self._value_history: List[Tuple[datetime, float]] = [
-            (datetime.now(timezone.utc), self.starting_capital)
+            (self._now(), self.starting_capital)
         ]
         self._recent_exits: Dict[str, datetime] = {}
         self._position_high: Dict[str, float] = {}       # MFE tracker: highest price seen since entry
@@ -165,11 +169,11 @@ class Portfolio:
             action="BUY",
             shares=shares,
             price=price,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=self._now(),
             reasoning=reasoning,
         )
         self.trade_history.append(record)
-        self._value_history.append((datetime.now(timezone.utc), self.cash))  # snapshot
+        self._value_history.append((self._now(), self.cash))  # snapshot
         return True
 
     def execute_sell(self, symbol: str, shares: float, price: float, reasoning: str = "") -> bool:
@@ -214,21 +218,21 @@ class Portfolio:
             action="SELL",
             shares=shares_to_sell,
             price=price,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=self._now(),
             reasoning=reasoning,
             pnl=realized_pnl,
             mae_pct=max(0.0, mae_pct),
             mfe_pct=max(0.0, mfe_pct),
         )
         self.trade_history.append(record)
-        self._value_history.append((datetime.now(timezone.utc), self.cash))
-        self._recent_exits[symbol] = datetime.now(timezone.utc)
+        self._value_history.append((self._now(), self.cash))
+        self._recent_exits[symbol] = self._now()
         return True
 
     def record_value(self, prices: Dict[str, float]) -> float:
         """Record current portfolio value and update MAE/MFE trackers for open positions."""
         total_value = self.get_total_value(prices)
-        self._value_history.append((datetime.now(timezone.utc), total_value))
+        self._value_history.append((self._now(), total_value))
         if len(self._value_history) > 2000:
             self._value_history = self._value_history[-2000:]
 
@@ -266,10 +270,19 @@ class Portfolio:
         Returns 0.0 if no position or peak never went positive."""
         return self._position_peak_unrealized.get(symbol, 0.0)
 
+    def _now(self) -> datetime:
+        """Current time on the injected clock, or the wall clock (UTC)."""
+        return self._clock() if self._clock is not None else datetime.now(timezone.utc)
+
+    def _today(self) -> date:
+        """Local calendar date of _now(). Matches the previous date.today() on the
+        wall clock, so live daily resets are unchanged."""
+        return self._now().astimezone().date()
+
     def reset_daily_tracking(self, prices: Dict[str, float]) -> bool:
         """Reset daily tracking at market open. Returns True when a new trading
         day started (BaseAgent uses it to clear the daily-loss halt - C-12)."""
-        today = date.today()
+        today = self._today()
         if today == self.daily_start_date:
             return False
         self.daily_starting_value = self.get_total_value(prices)
@@ -344,7 +357,7 @@ class Portfolio:
             action="SPLIT",
             shares=(new_shares - old_shares),
             price=0.0,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=self._now(),
             reasoning=(
                 f"Split applied: ratio={ratio:g} | shares {old_shares:g}→{new_shares:g} "
                 f"| avg_cost ${old_avg_cost:.4f}→${new_avg_cost:.4f}"

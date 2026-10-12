@@ -48,6 +48,22 @@ class _ScriptedAgent(BaseAgent):
         return [Signal(action="HOLD", symbol="SYM", confidence=0.0, shares=0, reasoning="hold")]
 
 
+class _ReentryAgent(BaseAgent):
+    """BUY SYM day 1, SELL day 2, BUY SYM again day 3 (simulated days)."""
+    def __init__(self):
+        super().__init__(name="ReentryAgent", strategy_description="test")
+        self._cycles = 0
+
+    async def analyze(self, market_context: Dict) -> List[Signal]:
+        self._cycles += 1
+        if self._cycles in (1, 3) and "SYM" not in self.portfolio.positions:
+            return [Signal(action="BUY", symbol="SYM", confidence=0.5, shares=10, reasoning="buy")]
+        if self._cycles == 2 and "SYM" in self.portfolio.positions:
+            return [Signal(action="SELL", symbol="SYM", confidence=0.5,
+                           shares=self.portfolio.positions["SYM"].shares, reasoning="sell")]
+        return [Signal(action="HOLD", symbol="SYM", confidence=0.0, shares=0, reasoning="hold")]
+
+
 class TestRunBacktest(unittest.TestCase):
     def setUp(self):
         self.days = [date(2026, 1, 5), date(2026, 1, 6), date(2026, 1, 7)]
@@ -69,6 +85,16 @@ class TestRunBacktest(unittest.TestCase):
         expected = (sold[0]["price"] - buys[0]["price"]) * sold[0]["shares"]
         self.assertAlmostEqual(res.realized_pnl, expected, places=2)
         self.assertGreater(res.realized_pnl, 0.0)
+
+    def test_can_reenter_symbol_sold_on_an_earlier_simulated_day(self):
+        """T1 red team: the harness used the wall clock for the churn gate, so a
+        replay finishing within 30 real minutes could never re-buy a sold symbol."""
+        from unittest.mock import patch
+        with patch.object(_ReentryAgent, "_save_picks", lambda self: None):
+            res = asyncio.run(run_backtest(
+                _ReentryAgent, universe=["SYM"],
+                start=self.days[0], end=self.days[-1], bars=self.bars))
+        self.assertEqual([t["action"] for t in res.trades], ["BUY", "SELL", "BUY"])
 
     def test_config_overrides_are_restored(self):
         before = config.HIST_SEASONAL_WEIGHT
