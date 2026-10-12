@@ -589,6 +589,72 @@ class TestXGBReasoningAgentAnalyze(unittest.IsolatedAsyncioTestCase):
         self.assertIn("LONE-WOLF", buys[0].reasoning,
                       "SELL/HOLD must not count as corroboration")
 
+    async def test_peer_signals_from_previous_cycle_count_as_corroboration(self):
+        """X-2: the loop hands last cycle's peer signals to XGB via set_peer_signals.
+
+        market_context carries no __agent_signals__ (the loop builds a fresh one
+        each cycle), so corroboration must come from the handed-off peer signals.
+        """
+        self.agent.set_peer_signals({
+            "AAPL": {
+                "MomentumAgent":         ("BUY", 0.6),
+                "HistoricalTrendsAgent": ("BUY", 0.7),
+            }
+        })
+        mkt = _make_market(["AAPL"], price=150.0)
+        buy_resp = {"action": "BUY", "confidence": 0.85, "size_pct": 0.10, "reasoning": "strong"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision",
+                          new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        self.assertEqual(len(buys), 1)
+        self.assertNotIn("LONE-WOLF", buys[0].reasoning)
+
+    async def test_peer_signals_exclude_own_previous_signal(self):
+        """XGB's own last-cycle BUY must not corroborate itself."""
+        self.agent.set_peer_signals({
+            "AAPL": {
+                "XGBReasoningAgent": ("BUY", 0.9),
+                "MomentumAgent":     ("BUY", 0.6),
+            }
+        })
+        mkt = _make_market(["AAPL"], price=150.0)
+        buy_resp = {"action": "BUY", "confidence": 0.85, "size_pct": 0.10, "reasoning": "strong"}
+        with patch.object(self.agent, "_ensure_model", new=AsyncMock()), \
+             patch.object(self.agent, "_ollama_decision",
+                          new=AsyncMock(return_value=buy_resp)):
+            signals = await self.agent.analyze(mkt)
+        buys = [s for s in signals if s.action == "BUY"]
+        self.assertEqual(len(buys), 1)
+        self.assertIn("LONE-WOLF", buys[0].reasoning,
+                      "only one genuine peer BUY -> still below LONEWOLF_MIN_CORROBORATORS=2")
+
+    def test_reset_clears_peer_signal_cache(self):
+        """A competition reset must not carry pre-reset peer votes forward."""
+        self.agent.set_peer_signals({"AAPL": {"MomentumAgent": ("BUY", 0.6),
+                                              "HistoricalTrendsAgent": ("BUY", 0.7)}})
+        with patch.object(self.agent, "_save_picks"):
+            self.agent.reset()
+        sym_ctx = self.agent._extract_symbol_context(
+            "AAPL", _make_market(["AAPL"])["AAPL"], _make_market(["AAPL"]))
+        self.assertEqual(sym_ctx["other_agent_signals"], {})
+
+    def test_explicit_empty_market_context_signals_override_cache(self):
+        """Presence of __agent_signals__ wins over the cache, even when empty."""
+        self.agent.set_peer_signals({"AAPL": {"MomentumAgent": ("BUY", 0.6)}})
+        mkt = _make_market(["AAPL"])
+        mkt["__agent_signals__"] = {}
+        sym_ctx = self.agent._extract_symbol_context("AAPL", mkt["AAPL"], mkt)
+        self.assertEqual(sym_ctx["other_agent_signals"], {})
+
+    def test_own_signal_excluded_on_market_context_path_too(self):
+        mkt = _make_market(["AAPL"])
+        mkt["__agent_signals__"] = {"AAPL": {"XGBReasoningAgent": ("BUY", 0.9),
+                                             "MomentumAgent": ("BUY", 0.6)}}
+        sym_ctx = self.agent._extract_symbol_context("AAPL", mkt["AAPL"], mkt)
+        self.assertEqual(sym_ctx["other_agent_signals"], {"MomentumAgent": ("BUY", 0.6)})
+
     async def test_daily_move_risk_alert_injected_when_position_drops(self):
         """Held position down >5% today triggers risk alert injected into prompt."""
         # Setup: buy AAPL at $100, then today's price drops to $94 (-6%)

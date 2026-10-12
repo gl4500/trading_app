@@ -874,3 +874,77 @@ class TestInjectableClock(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLastSignalsFreshnessStamp(unittest.IsolatedAsyncioTestCase):
+    """X-2 review: peers publish only signals produced this cycle, so run_cycle
+    stamps _last_signals_at when analyze() succeeds — and NOT when the cycle
+    returns early (daily-loss halt, inactive) leaving _last_signals stale."""
+
+    def _ctx(self):
+        return {"AAPL": {"price": 100.0, "bars": None, "news": []}}
+
+    async def test_stamp_set_when_analyze_succeeds(self):
+        import time as _t
+        from agents.base_agent import Signal
+        agent = _StubAgent([Signal(action="HOLD", symbol="AAPL", confidence=0.5,
+                                   shares=0, reasoning="")]).agent
+        before = _t.monotonic()
+        with patch.object(agent, "_execute_signal", return_value=False), \
+             patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.portfolio, "record_value"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=True), \
+             patch.object(agent, "_save_picks"):
+            await agent.run_cycle(self._ctx(), {"AAPL": 100.0})
+        self.assertGreaterEqual(agent._last_signals_at, before)
+
+    async def test_stamp_untouched_when_daily_loss_halts(self):
+        agent = _StubAgent([]).agent
+        agent._last_signals_at = 0.0
+        with patch.object(agent.portfolio, "reset_daily_tracking"), \
+             patch.object(agent.risk_manager, "check_daily_loss", return_value=False):
+            await agent.run_cycle(self._ctx(), {"AAPL": 100.0})
+        self.assertEqual(agent._last_signals_at, 0.0)
+
+    def test_reset_clears_stamp(self):
+        agent = _StubAgent([]).agent
+        agent._last_signals_at = 123.0
+        with patch.object(agent, "_save_picks"):
+            agent.reset()
+        self.assertEqual(agent._last_signals_at, 0.0)
+
+
+class TestCycleSignalSnapshot(unittest.IsolatedAsyncioTestCase):
+    """X-2 re-review: the published peer snapshot must hold ONLY this cycle's
+    analysis (plus this cycle's exits), set atomically with its timestamp right
+    after analyze(), so a later failure or a partial analysis can never pass
+    off a previous cycle's vote as fresh."""
+
+    def _ctx(self, *syms):
+        return {s: {"price": 100.0, "bars": None, "news": []} for s in syms}
+
+    def _sig(self, sym, action):
+        from agents.base_agent import Signal
+        return Signal(action=action, symbol=sym, confidence=0.6, shares=0, reasoning="")
+
+    async def test_failure_after_analyze_keeps_current_snapshot_not_old_vote(self):
+        agent = _StubAgent([self._sig("AAPL", "HOLD")]).agent
+        agent._last_signals["AAPL"] = self._sig("AAPL", "BUY")   # previous cycle
+        with patch.object(agent.portfolio, "reset_daily_tracking"),              patch.object(agent.risk_manager, "check_daily_loss", return_value=True),              patch.object(agent, "_save_picks"),              patch.object(agent, "_check_bayes_exits", side_effect=RuntimeError("boom")):
+            await agent.run_cycle(self._ctx("AAPL"), {"AAPL": 100.0})
+        self.assertEqual({k: v.action for k, v in agent._cycle_signals.items()}, {"AAPL": "HOLD"})
+
+    async def test_partial_analysis_does_not_republish_retained_symbols(self):
+        agent = _StubAgent([self._sig("AAPL", "HOLD")]).agent
+        agent._last_signals["MSFT"] = self._sig("MSFT", "BUY")   # retained from before
+        with patch.object(agent, "_execute_signal", return_value=False),              patch.object(agent.portfolio, "reset_daily_tracking"),              patch.object(agent.portfolio, "record_value"),              patch.object(agent.risk_manager, "check_daily_loss", return_value=True),              patch.object(agent, "_save_picks"):
+            await agent.run_cycle(self._ctx("AAPL", "MSFT"), {"AAPL": 100.0, "MSFT": 100.0})
+        self.assertNotIn("MSFT", agent._cycle_signals)
+        self.assertIn("MSFT", agent._last_signals, "UI/pick memory keeps retained symbols")
+
+    def test_reset_clears_cycle_snapshot(self):
+        agent = _StubAgent([]).agent
+        agent._cycle_signals = {"AAPL": self._sig("AAPL", "BUY")}
+        with patch.object(agent, "_save_picks"):
+            agent.reset()
+        self.assertEqual(agent._cycle_signals, {})
