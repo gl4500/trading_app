@@ -165,6 +165,12 @@ because the next `git add -A` sweeps them up). When you need a backup before edi
 top of the file, and step 1 of the pre-commit hook. `.env.example` is the one tracked exception and must
 be kept.
 
+**Secrets in logs (finding C-2, 2026-10-11).** Massive (`apiKey=`) and FRED (`api_key=`) authenticate with URL
+query parameters, and httpx logs every request URL at INFO, so keys were written to `live.log` and
+`backend_stderr.log`. `logging_setup._RedactSecrets` masks `*api_key*` / `*apikey*` / `*token*` / `*secret*`
+query values; `install_logging()` attaches it to the `httpx`/`httpcore` loggers and to every root handler.
+Never log a URL or header carrying a credential some other way, and never remove either layer.
+
 **Security tests run on-demand** (not per-commit — PyTorch import makes it ~2 min):
 ```bash
 scripts\run_security_tests.bat  # Windows convenience script
