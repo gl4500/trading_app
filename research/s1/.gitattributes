@@ -1,0 +1,3 @@
+# Hash-pinned frozen E1 files: keep bytes exact (no line-ending conversion)
+e1_sim.py -text
+e1_fetch.py -text
