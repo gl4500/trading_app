@@ -1,0 +1,5 @@
+# S1 runtime outputs and caches: never committed (they hold ledger projections and live-state captures)
+s1_out/
+__pycache__/
+*.sqlite3
+*.db
