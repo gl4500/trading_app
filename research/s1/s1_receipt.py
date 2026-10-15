@@ -214,8 +214,11 @@ def restart_gaps(prev, obs) -> list:
     elif pr["sha256"] is not None and nr.get("prefix_sha256") is not None and nr["prefix_sha256"] != pr["sha256"]:
         gaps.append("crash.log rewritten (earlier bytes changed)")
     new_pids = {s["pid"] for s in nr["starts"]} - {s["pid"] for s in pr["starts"]}
-    if obs["pid"] != prev["pid"] and obs["pid"] not in new_pids:
-        gaps.append(f"pid {prev['pid']} -> {obs['pid']} without a PROCESS START line")
+    opid, ppid = obs.get("pid"), prev.get("pid")
+    if opid is None:                       # a failed or empty lookup is a gap, never a restart or "no change"
+        gaps.append(f"process not observed ({obs.get('error') or 'nothing listening'})")
+    elif ppid is not None and opid != ppid and opid not in new_pids:
+        gaps.append(f"pid {ppid} -> {opid} without a PROCESS START line")
     return gaps
 
 

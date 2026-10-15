@@ -1,0 +1,4 @@
+# /c/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m pytest s1_tests -q -p no:cacheprovider
+........................................................................ [ 77%]
+.....................                                                    [100%]
+93 passed in 8.38s

@@ -1,0 +1,36 @@
+..................F.F                                                    [100%]
+================================== FAILURES ===================================
+_______ test_pid_change_across_a_pidless_run_without_start_line_is_gap ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10734/test_pid_change_across_a_pidle0')
+ledger = <conftest.Ledger object at 0x0000020D7B6B77D0>
+
+    def test_pid_change_across_a_pidless_run_without_start_line_is_gap(tmp_path, ledger):
+        """Retrospective (Task 5 review fix round 2), N1: pid 2 -> {} -> pid 77, no new PROCESS START line."""
+        _good(tmp_path, ledger)
+        run(tmp_path, ledger, minutes=45, pid=2)
+        run(tmp_path, ledger, minutes=47, proc={})
+        rep = run(tmp_path, ledger, minutes=49, pid=77)
+>       assert any("pid 2 -> 77" in g for g in rep["restart_gaps"])
+E       assert False
+E        +  where False = any(<generator object test_pid_change_across_a_pidless_run_without_start_line_is_gap.<locals>.<genexpr> at 0x0000020D7B6CDB10>)
+
+s1_tests\test_s1_checkpoint.py:252: AssertionError
+_______________ test_first_run_pidless_reports_not_observed_gap _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10734/test_first_run_pidless_reports0')
+ledger = <conftest.Ledger object at 0x0000020D7B6EEDB0>
+
+    def test_first_run_pidless_reports_not_observed_gap(tmp_path, ledger):
+        """Retrospective (Task 5 review fix round 2), N1: a first-ever pid-less observation is itself a gap."""
+        _good(tmp_path, ledger)
+        rep = run(tmp_path, ledger, minutes=45, proc={})
+>       assert any("process not observed (nothing listening)" in g for g in rep["restart_gaps"])
+E       assert False
+E        +  where False = any(<generator object test_first_run_pidless_reports_not_observed_gap.<locals>.<genexpr> at 0x0000020D7B6CD3C0>)
+
+s1_tests\test_s1_checkpoint.py:272: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_checkpoint.py::test_pid_change_across_a_pidless_run_without_start_line_is_gap
+FAILED s1_tests/test_s1_checkpoint.py::test_first_run_pidless_reports_not_observed_gap
+2 failed, 19 passed in 1.63s
