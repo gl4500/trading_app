@@ -1,0 +1,71 @@
+.................FFFFF...                                                [100%]
+================================== FAILURES ===================================
+_________ test_seal_after_today_raises_and_open_window_is_not_missed __________
+
+    def test_seal_after_today_raises_and_open_window_is_not_missed():
+        """Retrospective (Task 3 review fix round 1): a seal ahead of the clock is a bad record; an unfinished
+        window is never counted as missed."""
+        start = datetime(2026, 10, 14, 13, 30, tzinfo=UTC)
+>       with pytest.raises(ValueError, match="after today"):
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+s1_tests\test_s1_seal.py:176: Failed
+_____________________ test_backdating_is_checked_per_seal _____________________
+
+    def test_backdating_is_checked_per_seal():
+        """Retrospective (Task 3 review fix round 1): row stored before C1 but absent from C1's seal is a violation
+        even though C2's seal contains it."""
+        r1 = tr(1, "A", "BUY", 10, 50, 5)
+        r2 = {**tr(2, "A", "BUY", 1, 50, 5), "ts": "2026-10-05T19:00:00+00:00"}
+        s1 = {"close": "2026-10-05T20:00:00+00:00", "fence": z.fence({"trades": [r1]}), "max_id": 1}
+        s2 = {"close": "2026-10-06T20:00:00+00:00", "fence": z.fence({"trades": [r1, r2]}), "max_id": 2}
+        v = z.check_fences([s1, s2], {"trades": [r1, r2]})
+>       assert any("backdated" in x for x in v)
+E       assert False
+E        +  where False = any(<generator object test_backdating_is_checked_per_seal.<locals>.<genexpr> at 0x0000017C93C49220>)
+
+s1_tests\test_s1_seal.py:192: AssertionError
+______________ test_choose_seal_prefers_slot_order_within_slack _______________
+
+    def test_choose_seal_prefers_slot_order_within_slack():
+        """Retrospective (Task 3 review fix round 1): slot 45 taken at minute 54 beats slot 47 taken at 47."""
+        s = z.choose_seal(DAY, CAL, [cap(47), cap(45, late=9)])
+>       assert s["scheduled"] == cap(45)["scheduled"]
+E       AssertionError: assert '2026-10-15T20:47:00+00:00' == '2026-10-15T20:45:00+00:00'
+E         
+E         - 2026-10-15T20:45:00+00:00
+E         ?                ^
+E         + 2026-10-15T20:47:00+00:00
+E         ?                ^
+
+s1_tests\test_s1_seal.py:198: AssertionError
+________ test_reversed_calendar_gives_same_window_and_duplicates_raise ________
+
+    def test_reversed_calendar_gives_same_window_and_duplicates_raise():
+        """Retrospective (Task 3 review fix round 1)."""
+>       assert z.window_end(DAY, list(reversed(CAL))) == z.window_end(DAY, CAL)
+E       AssertionError: assert datetime.datetime(2027, 6, 30, 12, 0, tzinfo=datetime.timezone.utc) == datetime.datetime(2026, 10, 16, 12, 0, tzinfo=datetime.timezone.utc)
+E        +  where datetime.datetime(2027, 6, 30, 12, 0, tzinfo=datetime.timezone.utc) = <function window_end at 0x0000017C9394C040>({'close': '16:00', 'date': '2026-10-15', 'open': '09:30'}, [{'close': '16:00', 'date': '2027-06-30', 'open': '09:30'}, {'close': '16:00', 'date': '2027-06-29', 'open': '09:30'},...lose': '16:00', 'date': '2027-06-24', 'open': '09:30'}, {'close': '16:00', 'date': '2027-06-23', 'open': '09:30'}, ...])
+E        +    where <function window_end at 0x0000017C9394C040> = z.window_end
+E        +    and   [{'close': '16:00', 'date': '2027-06-30', 'open': '09:30'}, {'close': '16:00', 'date': '2027-06-29', 'open': '09:30'},...lose': '16:00', 'date': '2027-06-24', 'open': '09:30'}, {'close': '16:00', 'date': '2027-06-23', 'open': '09:30'}, ...] = list(<list_reverseiterator object at 0x0000017C93D8AFB0>)
+E        +      where <list_reverseiterator object at 0x0000017C93D8AFB0> = reversed([{'close': '16:00', 'date': '2026-10-01', 'open': '09:30'}, {'close': '16:00', 'date': '2026-10-02', 'open': '09:30'},...lose': '16:00', 'date': '2026-10-07', 'open': '09:30'}, {'close': '16:00', 'date': '2026-10-08', 'open': '09:30'}, ...])
+E        +  and   datetime.datetime(2026, 10, 16, 12, 0, tzinfo=datetime.timezone.utc) = <function window_end at 0x0000017C9394C040>({'close': '16:00', 'date': '2026-10-15', 'open': '09:30'}, [{'close': '16:00', 'date': '2026-10-01', 'open': '09:30'}, {'close': '16:00', 'date': '2026-10-02', 'open': '09:30'},...lose': '16:00', 'date': '2026-10-07', 'open': '09:30'}, {'close': '16:00', 'date': '2026-10-08', 'open': '09:30'}, ...])
+E        +    where <function window_end at 0x0000017C9394C040> = z.window_end
+
+s1_tests\test_s1_seal.py:203: AssertionError
+__________________ test_duplicate_seals_for_one_close_raise ___________________
+
+    def test_duplicate_seals_for_one_close_raise():
+        """Retrospective (Task 3 review fix round 1)."""
+        start = datetime(2026, 10, 14, 13, 30, tzinfo=UTC)
+>       with pytest.raises(ValueError, match="two seals"):
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+s1_tests\test_s1_seal.py:212: Failed
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_seal.py::test_seal_after_today_raises_and_open_window_is_not_missed
+FAILED s1_tests/test_s1_seal.py::test_backdating_is_checked_per_seal - assert...
+FAILED s1_tests/test_s1_seal.py::test_choose_seal_prefers_slot_order_within_slack
+FAILED s1_tests/test_s1_seal.py::test_reversed_calendar_gives_same_window_and_duplicates_raise
+FAILED s1_tests/test_s1_seal.py::test_duplicate_seals_for_one_close_raise - F...
+5 failed, 20 passed in 1.32s
