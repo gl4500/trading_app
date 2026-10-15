@@ -111,8 +111,9 @@ def _dump(path: Path, obj):
     path.write_text(json.dumps(obj, indent=1, sort_keys=True), encoding="utf-8")
 
 
-def _write_seal(out: Path, day: str, close_dt, trades, receipt):
-    """A seal exactly as s1_checkpoint writes it, plus its preserved capture projection."""
+def _write_seal(out: Path, day: str, close_dt, trades, receipt, *, start=None, opening_close=None):
+    """A seal exactly as s1_checkpoint writes it, plus its preserved capture projection. Task 8b (controller-added):
+    a post-START seal (`start` given, close >= start) carries the bridge record s1_seal.bridge_record."""
     from datetime import timedelta
     import s1_common as c
     import s1_seal as z
@@ -129,6 +130,8 @@ def _write_seal(out: Path, day: str, close_dt, trades, receipt):
             "restart_record": {"starts": [], "size": 0, "sha256": None, "prefix_sha256": None},
             "process": {"pid": 1, "process_start": "2026-10-01T09:00:00"},
             "receipt_sha256": c.sha256_bytes(c.canonical(receipt)), "receipt_match": True}
+    if start is not None and close_dt >= start:
+        seal["bridge"] = z.bridge_record(trades, start, opening_close)
     (out / "seals").mkdir(parents=True, exist_ok=True)
     (out / "seals" / f"{day}.json").write_text(json.dumps(seal), encoding="utf-8")
 
@@ -285,7 +288,7 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     for i in seal_days:
         cl = z.close_of(sessions[i], cal)
         _write_seal(out, sessions[i], cl, [t for t in rows if c.aware(t["ts"]) <= cl + timedelta(minutes=45)],
-                    receipt)
+                    receipt, start=start, opening_close=oc)
         last_close = max(last_close, cl)
     seals = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((out / "seals").glob("*.json"))]
     t = last_close + timedelta(days=1)

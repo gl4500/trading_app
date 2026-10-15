@@ -467,6 +467,14 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     assert not set(bridge_ids) & o["cohort_ids"]
     assert not set(bridge_ids) & ({x["id"] for x in rep["lots"]} | {int(i) for i in rep["excluded"]})
     assert rep["carry_in"]["bridge_rows"] == bridge_ids and "NEWT" in rep["carry_in"]["held_at_start"]
+    # Task 8b (controller-added): the first post-START seal classifies the 20:00 bridge rows as bridge and records
+    # the bridge hash; the score's provenance carries that same hash (recomputed from the frozen final ledger)
+    first_post = min((json.loads(p.read_text(encoding="utf-8")) for p in (out / "seals").glob("*.json")),
+                     key=lambda x: (s1_common.aware(x["close"]) < START, s1_common.aware(x["close"])))
+    assert s1_common.aware(first_post["close"]) >= START
+    assert set(bridge_ids) <= set(first_post["bridge"]["bridge_row_ids"])
+    assert not set(bridge_ids) & set(first_post["bridge"]["cohort_era_row_ids"])
+    assert rep["bridge_provenance"]["bridge_sha256"] == first_post["bridge"]["bridge_sha256"]
     # the spin-off lot is excluded in BOTH arms (absent from the paired lots); the later SPN lot is retained
     assert set(rep["excluded"]) == {str(spin_lots[0])}
     assert rep["excluded"][str(spin_lots[0])] == [f"spin_offs spin-1 on {spin_date}"]
@@ -508,6 +516,6 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     # 12. a second score refuses and no file under s1_out changes
     before = tree_hashes(out)
     at(acq_at + timedelta(days=1, hours=3))
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):   # Task 8 review M1
         r.score(root, "score-ack")
     assert tree_hashes(out) == before

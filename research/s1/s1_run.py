@@ -584,7 +584,10 @@ def _final_snapshot_problems(out: Path, seals) -> list:
     if not proj_p.is_file() or c.sha256_file(proj_p) != rep.get("projection_sha256"):
         return bad + ["final snapshot: projection differs from its recorded hash"]
     try:
-        again = z.check_fences([s for _, s in seals], _load(proj_p))
+        snap = _load(proj_p)
+        again = z.check_fences([s for _, s in seals], snap)
+        again += z.check_bridge([s for _, s in seals], snap["trades"],                       # Task 8b
+                                c.aware(_load(out / "prereg.json")["start"]))
     except (ValueError, KeyError, TypeError) as e:
         again = [f"bad seal record: {type(e).__name__}: {e}"]
     return bad + [f"final snapshot: {v}" for v in again if f"final snapshot: {v}" not in bad]
@@ -611,6 +614,29 @@ def _seal_chain_problems(out: Path, seals, receipt_sha: str) -> list:
             bad.append(f"seal {name}: rows differ from the preserved capture projection")
     for i, (p, s) in enumerate(ordered):
         bad += [f"seal {p.stem}: {v}" for v in z.check_fences([x for _, x in ordered[:i]], {"trades": s["trades"]})]
+    return bad
+
+
+def _bridge_problems(rep: dict, seals, asof, start, cal) -> list:
+    """Task 8b (§6/§11 Bootstrap): every post-START seal carries a bridge record that matches its own rows and the
+    FIRST post-START seal's hash; the bridge recomputed from the frozen final ledger (`asof`, the stop seal's rows
+    through the stop) must hash the same. Records the bridge hash and row counts in rep["bridge_provenance"]."""
+    post = z.post_start_seals(seals, start)
+    if not post:
+        return []
+    try:
+        oc = z.opening_close_of(start, cal)
+        bad = [f"post-START seal {s['close']}: bridge record does not match its rows" for s in post
+               if isinstance(s.get("bridge"), dict) and s["bridge"] != z.bridge_record(s["trades"], start, oc)]
+        bad += z.check_bridge(seals, asof if asof is not None else post[0]["trades"], start)
+        if asof is not None:
+            rec = z.bridge_record(asof, start, oc)
+            rep["bridge_provenance"] = {"bridge_sha256": rec["bridge_sha256"],
+                                        "bridge_row_count": len(rec["bridge_row_ids"]),
+                                        "post_opening_row_count": len(rec["post_opening_row_ids"]),
+                                        "first_post_start_seal": post[0]["close"]}
+    except (ValueError, KeyError, TypeError, AttributeError) as e:
+        bad = [f"bridge check failed: {type(e).__name__}: {e}"]
     return bad
 
 
@@ -738,6 +764,7 @@ def _score(out: Path) -> dict:
             rep["quantity_bridge"] = b.bridge(asof, stop_dt)
         except b.BookError as e:
             invalid.append(f"final ledger unreadable: {e}")
+    invalid += _bridge_problems(rep, [s for _, s in seals], asof, start, cal)
     if invalid:
         return done("ABORTED-INVALID", attest)
 

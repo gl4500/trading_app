@@ -137,9 +137,10 @@ def _read_capture(cap_dir: Path, meta: dict, rep: dict, counts) -> dict:
 
 
 def _try_seal(out: Path, day, cal, close: datetime, rep: dict, meta: dict, cap_dir: Path, proj: dict, rec: dict,
-              proc: dict, receipt_sha: str, before_seal=None) -> bool:
+              proc: dict, receipt_sha: str, before_seal=None, bridge=None) -> bool:
     """Write the close's seal (exclusive) if this capture is the schedule's seal; updates rep["seal"].
-    `before_seal()`, if given, runs once the capture is chosen and before the seal is built or written."""
+    `before_seal()`, if given, runs once the capture is chosen and before the seal is built or written.
+    `bridge` (Task 8b): the post-START seal's bridge record (s1_seal.bridge_record); None for the opening seal."""
     cap = {"scheduled": rep["scheduled"], "actual": rep["actual"], "ok": True,
            "consistent": True, "projection_sha256": meta["projection_sha256"], "dir": str(cap_dir)}
     seal_path = out / "seals" / f"{day['date']}.json"
@@ -151,6 +152,8 @@ def _try_seal(out: Path, day, cal, close: datetime, rep: dict, meta: dict, cap_d
     seal = {"close": close.isoformat(), "fence": z.fence(proj), "max_id": meta["max_trade_id"],
             "trades": proj["trades"], "capture": cap, "restart_record": rec, "process": proc,
             "receipt_sha256": receipt_sha, "receipt_match": True}
+    if bridge is not None:
+        seal["bridge"] = bridge
     with seal_path.open("x", encoding="utf-8") as f:
         json.dump(seal, f)
     rep["seal"] = {"written": True, "sha256": c.sha256_file(seal_path)}
@@ -184,6 +187,7 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
                                                              z.count_sold(trades, start, close)))
     if proj is not None:
         rep["fence_violations"] = z.check_fences(seals, proj)
+        rep["fence_violations"] += z.check_bridge(seals, proj["trades"], start)   # Task 8b (§6/§11)
     reason = None
     if already is None:
         if not rep["receipt_match"]:
@@ -194,7 +198,9 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
             already = _write_abort(out, reason, rep, rep["snapshot"], receipt_sha)
     if (already is None and proj is not None and rep["consistent"] and rep["receipt_match"]
             and not rep["fence_violations"]):
-        if _try_seal(out, day, cal, close, rep, meta, cap_dir, proj, rec, proc, receipt_sha):
+        bridge = (z.bridge_record(proj["trades"], start, z.opening_close_of(start, cal)) if close >= start
+                  else None)
+        if _try_seal(out, day, cal, close, rep, meta, cap_dir, proj, rec, proc, receipt_sha, bridge=bridge):
             seals = _seals(out)
     if already is None:
         try:
@@ -387,6 +393,8 @@ def run_final_snapshot(root, live_db, now=c.now_utc) -> dict:
         proj = _load(d / attempt / "projection.json")
         try:
             rep["fence_violations"] = z.check_fences(seals, proj)
+            rep["fence_violations"] += z.check_bridge(seals, proj["trades"], c.aware(_load(out / "prereg.json")
+                                                                                     ["start"]))   # Task 8b
         except (ValueError, KeyError, TypeError) as e:     # a malformed seal cannot vouch for anything
             rep["fence_violations"] = [f"bad seal record: {type(e).__name__}: {e}"]
         rep["fence_checked"] = True

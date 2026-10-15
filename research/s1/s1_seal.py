@@ -107,6 +107,62 @@ def split_bridge(trades, start: datetime):
     return [t for t in rs if c.aware(t["ts"]) < start], [t for t in rs if c.aware(t["ts"]) >= start]
 
 
+def _bridge_row(t) -> dict:
+    """The per-row fields the seal fence hashes, with the stored time normalised to canonical aware UTC so two
+    spellings of one instant (Z / +00:00 / naive) give the same bridge hash."""
+    r = {k: t[k] for k in ("id", "symbol", "action", "shares", "price", "reasoning_sha256")}
+    r["timestamp"] = c.aware(t["ts"]).isoformat()
+    return r
+
+
+def bridge_record(trades, start: datetime, opening_close) -> dict:
+    """§11 Bootstrap (Task 8b): classify rows by stored time into PRE-START bridge (< START) and cohort-era
+    (>= START) and hash the bridge rows (canonical JSON, rows sorted by (aware ts, id)). `post_opening_row_ids` are
+    the bridge rows stored after the opening seal's close (the part the pre-start audit never saw)."""
+    oc = c.aware(opening_close) if isinstance(opening_close, str) else opening_close
+    bridge, era = split_bridge(trades, start)
+    return {"bridge_row_ids": sorted(t["id"] for t in bridge),
+            "cohort_era_row_ids": sorted(t["id"] for t in era),
+            "post_opening_row_ids": sorted(t["id"] for t in bridge if oc is not None and c.aware(t["ts"]) > oc),
+            "opening_close": None if oc is None else oc.isoformat(),
+            "bridge_sha256": c.sha256_bytes(c.canonical([_bridge_row(t) for t in bridge]))}
+
+
+def opening_close_of(start: datetime, calendar) -> datetime:
+    """Close of the session immediately before planned START (the opening seal's close, §4/§6)."""
+    sd = start.astimezone(c.NY).date().isoformat()
+    prior = [d for d in _sorted_calendar(calendar) if d["date"] < sd]
+    if not prior:
+        raise ValueError(f"no calendar session before START {start.isoformat()}")
+    return _close(prior[-1])
+
+
+def post_start_seals(seals, start: datetime) -> list:
+    """Seals of closes >= START, in close order."""
+    return sorted((s for s in seals if c.aware(s["close"]) >= start), key=lambda s: c.aware(s["close"]))
+
+
+def check_bridge(seals, trades, start: datetime) -> list:
+    """§6/§11 (Task 8b): every post-START seal must carry a bridge record equal to the FIRST post-START seal's, and
+    the bridge recomputed from `trades` must hash the same. A pre-START row that appeared, vanished or changed after
+    the bootstrap is a fence violation. No post-START seal yet -> nothing to compare."""
+    post = post_start_seals(seals, start)
+    if not post:
+        return []
+    out = [f"post-START seal {s['close']}: no bridge record" for s in post
+           if not isinstance(s.get("bridge"), dict) or "bridge_sha256" not in s["bridge"]]
+    if out:
+        return out
+    want = post[0]["bridge"]["bridge_sha256"]
+    out += [f"post-START seal {s['close']}: bridge hash differs from the first post-START seal {post[0]['close']}"
+            for s in post[1:] if s["bridge"]["bridge_sha256"] != want]
+    got = bridge_record(trades, start, None)["bridge_sha256"]
+    if got != want:
+        out.append(f"bridge (pre-START rows) changed since the first post-START seal {post[0]['close']}: "
+                   f"{got[:12]} != {want[:12]}")
+    return out
+
+
 def cohort(trades, start: datetime, close: datetime) -> list:
     """BUY rows with START <= stored time <= close. Rows come back with `ts` normalised to canonical aware UTC so
     two spellings of one instant (Z / +00:00 / naive) give identical cohorts."""

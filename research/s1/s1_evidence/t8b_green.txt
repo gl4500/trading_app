@@ -1,0 +1,5 @@
+Task 8b GREEN  test file sha256: b9f8842979dfac64babb498d7757d88066fac6b7f5ada26e3aed123b6a3009e8
+...........                                                              [100%]
+11 passed in 94.70s (0:01:34)
+
+Full suite (python -m pytest s1_tests -q -p no:cacheprovider): 283 passed in 250.63s
