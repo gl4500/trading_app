@@ -1,0 +1,225 @@
+........................................................................ [ 74%]
+....FFFF.FFF............F                                                [100%]
+================================== FAILURES ===================================
+________ test_early_score_ack_while_running_is_refused_with_no_output _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10766/test_early_score_ack_while_run0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018EFE088B90>
+
+    def test_early_score_ack_while_running_is_refused_with_no_output(tmp_path, monkeypatch):
+        """Retrospective (Task 7 review fix round 1), I-1: an early SCORE-ACK (absent/absent token) while the trial is
+        RUNNING writes nothing; the same ACK once the trial has ended (here NO-VALID-SEAL) scores normally."""
+        st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
+        at(monkeypatch, START_DT + timedelta(days=2))
+        s1_mailbox(tmp_path, "early", r.score_token(tmp_path), START_DT + timedelta(days=1))
+>       with pytest.raises(SystemExit, match="RUNNING"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_run.py:567: Failed
+____ test_run_ack_not_strictly_after_start_attestation_is_refused[offset0] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10766/test_run_ack_not_strictly_afte0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018EFE14A750>
+offset = datetime.timedelta(days=-1, seconds=82800)
+
+    @pytest.mark.parametrize("offset", [timedelta(hours=-1), timedelta(0)])
+    def test_run_ack_not_strictly_after_start_attestation_is_refused(tmp_path, monkeypatch, offset):
+        """Retrospective (Task 7 review fix round 1), I-2: the RUN-ACK binds attest_start_sha256 and must be created
+        strictly after the START attestation was recorded."""
+        s1_state(tmp_path, START)
+        out = tmp_path / "s1_out"
+>       assert f"attest_start_sha256={s1_common.sha256_file(out / 'attest_start.json')}" in r.run_token(tmp_path)
+E       AssertionError: assert 'attest_start_sha256=92b2a16147616088270feb91e66a30a4dd946e5e6364dda5bea36ea5ab63d4e8' in 'S1-RUN-ACK runner_sha256=8b389f3134eb6f5fa5b352007187a2cce0533e4f677f4ff12a10b1c4ec3c1ce6 plan_sha256=7305e3d358fdc33...audit_manifest_sha256=3170ae338d96c13ba6bf3ae164219635de0e2e2efa27031a391149ba05a9a798 start=2026-10-26T13:30:00+00:00'
+E        +  where 'S1-RUN-ACK runner_sha256=8b389f3134eb6f5fa5b352007187a2cce0533e4f677f4ff12a10b1c4ec3c1ce6 plan_sha256=7305e3d358fdc33...audit_manifest_sha256=3170ae338d96c13ba6bf3ae164219635de0e2e2efa27031a391149ba05a9a798 start=2026-10-26T13:30:00+00:00' = <function run_token at 0x0000018EFE453060>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10766/test_run_ack_not_strictly_afte0'))
+E        +    where <function run_token at 0x0000018EFE453060> = r.run_token
+
+s1_tests\test_s1_run.py:580: AssertionError
+____ test_run_ack_not_strictly_after_start_attestation_is_refused[offset1] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10766/test_run_ack_not_strictly_afte1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018EFDFD4830>
+offset = datetime.timedelta(0)
+
+    @pytest.mark.parametrize("offset", [timedelta(hours=-1), timedelta(0)])
+    def test_run_ack_not_strictly_after_start_attestation_is_refused(tmp_path, monkeypatch, offset):
+        """Retrospective (Task 7 review fix round 1), I-2: the RUN-ACK binds attest_start_sha256 and must be created
+        strictly after the START attestation was recorded."""
+        s1_state(tmp_path, START)
+        out = tmp_path / "s1_out"
+>       assert f"attest_start_sha256={s1_common.sha256_file(out / 'attest_start.json')}" in r.run_token(tmp_path)
+E       AssertionError: assert 'attest_start_sha256=d6ee6b8ccea2cc4f61fe40f8a66a17058b6abe3c988e22906d4ef5a63a7db1cb' in 'S1-RUN-ACK runner_sha256=8b389f3134eb6f5fa5b352007187a2cce0533e4f677f4ff12a10b1c4ec3c1ce6 plan_sha256=7305e3d358fdc33...audit_manifest_sha256=3170ae338d96c13ba6bf3ae164219635de0e2e2efa27031a391149ba05a9a798 start=2026-10-26T13:30:00+00:00'
+E        +  where 'S1-RUN-ACK runner_sha256=8b389f3134eb6f5fa5b352007187a2cce0533e4f677f4ff12a10b1c4ec3c1ce6 plan_sha256=7305e3d358fdc33...audit_manifest_sha256=3170ae338d96c13ba6bf3ae164219635de0e2e2efa27031a391149ba05a9a798 start=2026-10-26T13:30:00+00:00' = <function run_token at 0x0000018EFE453060>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10766/test_run_ack_not_strictly_afte1'))
+E        +    where <function run_token at 0x0000018EFE453060> = r.run_token
+
+s1_tests\test_s1_run.py:580: AssertionError
+_________ test_carry_in_sold_before_a_later_split_is_not_inconclusive _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10766/test_carry_in_sold_before_a_la0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018EFE15C080>
+
+    def test_carry_in_sold_before_a_later_split_is_not_inconclusive(tmp_path, monkeypatch):
+        """Retrospective (Task 7 review fix round 1), I-3: carry-in CI fully sold on the START session; a CI split the
+        next session finds no carry-in lot open across it, so the trial is not INCONCLUSIVE."""
+        _, rep, _ = scored(tmp_path, monkeypatch, bridge=(("CI", "SELL", 10, 55.0, "2026-10-26T18:30:00+00:00"),),
+                           final_actions=[split("CI", "2026-10-27", i="ci-split")])
+>       assert rep["verdict"] == "SHADOW PASS" and not any("CI" in x for x in rep["reasons"])
+E       AssertionError: assert ('INCONCLUSIVE' == 'SHADOW PASS'
+E         
+E         - SHADOW PASS
+E         + INCONCLUSIVE)
+
+s1_tests\test_s1_run.py:595: AssertionError
+__ test_fifo_untrust_triggers_are_unit_identity_actions_only[action0-False] ___
+
+action = {'ex_date': '2026-10-28', 'id': 'd', 'special': True, 'symbol': 'A', ...}
+trigger = False
+
+    @pytest.mark.parametrize("action,trigger", [
+        ({"type": "cash_dividends", "id": "d", "symbol": "A", "special": True, "ex_date": "2026-10-28"}, False),
+        ({"type": "spin_offs", "id": "so", "source_symbol": "A", "new_symbol": "C", "ex_date": "2026-10-28"}, False),
+        ({"type": "rights_distributions", "id": "rd", "source_symbol": "A", "new_symbol": "R",
+          "ex_date": "2026-10-28"}, False),
+        ({"type": "stock_dividends", "id": "sd", "symbol": "A", "ex_date": "2026-10-28"}, True),
+        ({"type": "name_changes", "id": "nc", "old_symbol": "A", "new_symbol": "B", "process_date": "2026-10-28"}, True),
+        ({"type": "cash_mergers", "id": "cm", "acquiree_symbol": "A", "effective_date": "2026-10-28"}, True),
+        ({"type": "redemptions", "id": "rm", "symbol": "A", "process_date": "2026-10-28"}, True),
+        ({"type": "worthless_removals", "id": "wr", "symbol": "A", "process_date": "2026-10-28"}, True),
+        ({"type": "unit_splits", "id": "us", "old_symbol": "A", "new_symbol": "V", "alternate_symbol": "W",
+          "effective_date": "2026-10-28"}, True),
+        ({"type": "brand_new_kind", "id": "nk", "symbol": "A", "ex_date": "2026-10-28"}, True),
+    ])
+    def test_fifo_untrust_triggers_are_unit_identity_actions_only(action, trigger):
+        """Retrospective (Task 7 review fix round 1), M-1: special dividends and spin-off/rights sources stay ordinary
+        per-lot exclusions (lot 1's window still excludes it) but do not untrust the symbol's later lots."""
+        rows = [row(1, "A", "BUY", 10, "2026-10-26"), row(2, "A", "BUY", 10, "2026-10-29")]
+        untrusted = r.fifo_untrusted(rows, [action], "2026-10-26", "2026-10-30")
+>       assert ("A" in untrusted) is trigger
+E       AssertionError: assert ('A' in {'A': ['FIFO attribution untrusted after d on 2026-10-28']}) is False
+
+s1_tests\test_s1_run.py:623: AssertionError
+__ test_fifo_untrust_triggers_are_unit_identity_actions_only[action1-False] ___
+
+action = {'ex_date': '2026-10-28', 'id': 'so', 'new_symbol': 'C', 'source_symbol': 'A', ...}
+trigger = False
+
+    @pytest.mark.parametrize("action,trigger", [
+        ({"type": "cash_dividends", "id": "d", "symbol": "A", "special": True, "ex_date": "2026-10-28"}, False),
+        ({"type": "spin_offs", "id": "so", "source_symbol": "A", "new_symbol": "C", "ex_date": "2026-10-28"}, False),
+        ({"type": "rights_distributions", "id": "rd", "source_symbol": "A", "new_symbol": "R",
+          "ex_date": "2026-10-28"}, False),
+        ({"type": "stock_dividends", "id": "sd", "symbol": "A", "ex_date": "2026-10-28"}, True),
+        ({"type": "name_changes", "id": "nc", "old_symbol": "A", "new_symbol": "B", "process_date": "2026-10-28"}, True),
+        ({"type": "cash_mergers", "id": "cm", "acquiree_symbol": "A", "effective_date": "2026-10-28"}, True),
+        ({"type": "redemptions", "id": "rm", "symbol": "A", "process_date": "2026-10-28"}, True),
+        ({"type": "worthless_removals", "id": "wr", "symbol": "A", "process_date": "2026-10-28"}, True),
+        ({"type": "unit_splits", "id": "us", "old_symbol": "A", "new_symbol": "V", "alternate_symbol": "W",
+          "effective_date": "2026-10-28"}, True),
+        ({"type": "brand_new_kind", "id": "nk", "symbol": "A", "ex_date": "2026-10-28"}, True),
+    ])
+    def test_fifo_untrust_triggers_are_unit_identity_actions_only(action, trigger):
+        """Retrospective (Task 7 review fix round 1), M-1: special dividends and spin-off/rights sources stay ordinary
+        per-lot exclusions (lot 1's window still excludes it) but do not untrust the symbol's later lots."""
+        rows = [row(1, "A", "BUY", 10, "2026-10-26"), row(2, "A", "BUY", 10, "2026-10-29")]
+        untrusted = r.fifo_untrusted(rows, [action], "2026-10-26", "2026-10-30")
+>       assert ("A" in untrusted) is trigger
+E       AssertionError: assert ('A' in {'A': ['FIFO attribution untrusted after so on 2026-10-28']}) is False
+
+s1_tests\test_s1_run.py:623: AssertionError
+__ test_fifo_untrust_triggers_are_unit_identity_actions_only[action2-False] ___
+
+action = {'ex_date': '2026-10-28', 'id': 'rd', 'new_symbol': 'R', 'source_symbol': 'A', ...}
+trigger = False
+
+    @pytest.mark.parametrize("action,trigger", [
+        ({"type": "cash_dividends", "id": "d", "symbol": "A", "special": True, "ex_date": "2026-10-28"}, False),
+        ({"type": "spin_offs", "id": "so", "source_symbol": "A", "new_symbol": "C", "ex_date": "2026-10-28"}, False),
+        ({"type": "rights_distributions", "id": "rd", "source_symbol": "A", "new_symbol": "R",
+          "ex_date": "2026-10-28"}, False),
+        ({"type": "stock_dividends", "id": "sd", "symbol": "A", "ex_date": "2026-10-28"}, True),
+        ({"type": "name_changes", "id": "nc", "old_symbol": "A", "new_symbol": "B", "process_date": "2026-10-28"}, True),
+        ({"type": "cash_mergers", "id": "cm", "acquiree_symbol": "A", "effective_date": "2026-10-28"}, True),
+        ({"type": "redemptions", "id": "rm", "symbol": "A", "process_date": "2026-10-28"}, True),
+        ({"type": "worthless_removals", "id": "wr", "symbol": "A", "process_date": "2026-10-28"}, True),
+        ({"type": "unit_splits", "id": "us", "old_symbol": "A", "new_symbol": "V", "alternate_symbol": "W",
+          "effective_date": "2026-10-28"}, True),
+        ({"type": "brand_new_kind", "id": "nk", "symbol": "A", "ex_date": "2026-10-28"}, True),
+    ])
+    def test_fifo_untrust_triggers_are_unit_identity_actions_only(action, trigger):
+        """Retrospective (Task 7 review fix round 1), M-1: special dividends and spin-off/rights sources stay ordinary
+        per-lot exclusions (lot 1's window still excludes it) but do not untrust the symbol's later lots."""
+        rows = [row(1, "A", "BUY", 10, "2026-10-26"), row(2, "A", "BUY", 10, "2026-10-29")]
+        untrusted = r.fifo_untrusted(rows, [action], "2026-10-26", "2026-10-30")
+>       assert ("A" in untrusted) is trigger
+E       AssertionError: assert ('A' in {'A': ['FIFO attribution untrusted after rd on 2026-10-28']}) is False
+
+s1_tests\test_s1_run.py:623: AssertionError
+_________ test_report_is_serialised_before_the_output_file_is_opened __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10766/test_report_is_serialised_befo0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018EFE0255B0>
+
+    def test_report_is_serialised_before_the_output_file_is_opened(tmp_path, monkeypatch):
+        """Retrospective (Task 7 review fix round 1), M-6: an unserialisable report never leaves an empty s1.json; the
+        ABORTED record is written instead."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        at(monkeypatch, st_["now"])
+        real = r._score
+        monkeypatch.setattr(r, "_score", lambda out: dict(real(out), bad=object()))
+        with pytest.raises(SystemExit, match="ABORTED"):
+>           r.score(tmp_path, "score-ack")
+
+s1_tests\test_s1_run.py:681: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_run.py:454: in score
+    k._write_once(out / "score" / "s1.json", _clean(rep))
+s1_collect.py:42: in _write_once
+    f.write(json.dumps(obj, indent=1, sort_keys=True))
+..\..\..\trading_app\runtime\python\Lib\json\__init__.py:238: in dumps
+    **kw).encode(obj)
+..\..\..\trading_app\runtime\python\Lib\json\encoder.py:202: in encode
+    chunks = list(chunks)
+..\..\..\trading_app\runtime\python\Lib\json\encoder.py:432: in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+..\..\..\trading_app\runtime\python\Lib\json\encoder.py:406: in _iterencode_dict
+    yield from chunks
+..\..\..\trading_app\runtime\python\Lib\json\encoder.py:439: in _iterencode
+    o = _default(o)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000018EFDFBB410>
+o = <object object at 0x0000018EFA9BB520>
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return super().default(o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type object is not JSON serializable
+
+..\..\..\trading_app\runtime\python\Lib\json\encoder.py:180: TypeError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_run.py::test_early_score_ack_while_running_is_refused_with_no_output
+FAILED s1_tests/test_s1_run.py::test_run_ack_not_strictly_after_start_attestation_is_refused[offset0]
+FAILED s1_tests/test_s1_run.py::test_run_ack_not_strictly_after_start_attestation_is_refused[offset1]
+FAILED s1_tests/test_s1_run.py::test_carry_in_sold_before_a_later_split_is_not_inconclusive
+FAILED s1_tests/test_s1_run.py::test_fifo_untrust_triggers_are_unit_identity_actions_only[action0-False]
+FAILED s1_tests/test_s1_run.py::test_fifo_untrust_triggers_are_unit_identity_actions_only[action1-False]
+FAILED s1_tests/test_s1_run.py::test_fifo_untrust_triggers_are_unit_identity_actions_only[action2-False]
+FAILED s1_tests/test_s1_run.py::test_report_is_serialised_before_the_output_file_is_opened
+8 failed, 89 passed in 60.95s (0:01:00)

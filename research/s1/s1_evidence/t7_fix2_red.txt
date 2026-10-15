@@ -1,0 +1,129 @@
+....FFFFFF.                                                              [100%]
+================================== FAILURES ===================================
+_______ test_score_ack_created_while_running_is_refused_after_the_stop ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10771/test_score_ack_created_while_r0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021A3FD79E50>
+
+    def test_score_ack_created_while_running_is_refused_after_the_stop(tmp_path, monkeypatch):
+        """Retrospective (Task 7 review fix round 2), R-1: an absent/absent SCORE-ACK created while the trial was RUNNING
+        is still refused once the trial has stopped; nothing is written."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        drop_final_and_attestation(tmp_path)
+        s1_mailbox(tmp_path, "early", r.score_token(tmp_path), START_DT + timedelta(hours=6))
+        at(monkeypatch, st_["now"])
+>       with pytest.raises(SystemExit, match="SCORE-ACK"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_run.py:711: Failed
+___ test_score_ack_after_the_stop_but_before_any_final_manifest_is_refused ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10771/test_score_ack_after_the_stop_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021A3FC63500>
+
+    def test_score_ack_after_the_stop_but_before_any_final_manifest_is_refused(tmp_path, monkeypatch):
+        """Retrospective (Task 7 review fix round 2), R-1: STOPPED/TIMEOUT need s1_out/final/manifest.json first."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        drop_final_and_attestation(tmp_path)
+        s1_mailbox(tmp_path, "post-stop", r.score_token(tmp_path), STOP_CLOSE + timedelta(hours=1))
+        at(monkeypatch, st_["now"])
+>       with pytest.raises(SystemExit, match="final"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_run.py:722: Failed
+_____ test_score_ack_strictly_after_the_stop_with_a_final_manifest_scores _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10771/test_score_ack_strictly_after_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021A3FEF7FB0>
+
+    def test_score_ack_strictly_after_the_stop_with_a_final_manifest_scores(tmp_path, monkeypatch):
+        """Retrospective (Task 7 review fix round 2), R-1: an ACK at exactly the stop close is refused; one minute later
+        (final manifest present) it scores."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        s1_mailbox(tmp_path, "at-stop", r.score_token(tmp_path), STOP_CLOSE)
+        s1_mailbox(tmp_path, "after-stop", r.score_token(tmp_path), STOP_CLOSE + timedelta(minutes=1))
+        at(monkeypatch, st_["now"])
+>       with pytest.raises(SystemExit, match="SCORE-ACK"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_run.py:734: Failed
+________ test_score_ack_before_the_no_valid_seal_window_end_is_refused ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10771/test_score_ack_before_the_no_v0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021A3FEF7BF0>
+
+    def test_score_ack_before_the_no_valid_seal_window_end_is_refused(tmp_path, monkeypatch):
+        """Retrospective (Task 7 review fix round 2), R-1: for NO-VALID-SEAL the end instant is the last eligible
+        session's seal window end."""
+        st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
+        s1_mailbox(tmp_path, "before-end", r.score_token(tmp_path), st_["now"] - timedelta(days=5))
+        at(monkeypatch, st_["now"])
+>       with pytest.raises(SystemExit, match="SCORE-ACK"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_run.py:746: Failed
+_____________ test_score_ack_before_the_recorded_abort_is_refused _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10771/test_score_ack_before_the_reco0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021A564F8B60>
+
+    def test_score_ack_before_the_recorded_abort_is_refused(tmp_path, monkeypatch):
+        """Retrospective (Task 7 review fix round 2), R-1: for an abort the end instant is aborted.json's recorded
+        (capture) time."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        (tmp_path / "s1_out" / "aborted.json").write_text(json.dumps(
+            {"reason": "semantic receipt changed", "actual": (st_["now"] - timedelta(hours=1)).isoformat()}),
+            encoding="utf-8")
+        at(monkeypatch, st_["now"])
+>       with pytest.raises(SystemExit, match="SCORE-ACK"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_run.py:760: Failed
+___ test_malformed_seal_is_recorded_as_aborted_invalid_not_refused_forever ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10771/test_malformed_seal_is_recorde0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021A5655C3B0>
+
+    def test_malformed_seal_is_recorded_as_aborted_invalid_not_refused_forever(tmp_path, monkeypatch):
+        """Retrospective (Task 7 review fix round 2), m-1: a seal missing "close" does not block the pre-reservation
+        check; the attempt records ABORTED-INVALID."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        p = tmp_path / "s1_out" / "seals" / "2026-10-26.json"
+        seal = read(p)
+        del seal["close"]
+        p.write_text(json.dumps(seal), encoding="utf-8")
+        at(monkeypatch, st_["now"])
+        try:
+>           rep = r.score(tmp_path, "score-ack")
+
+s1_tests\test_s1_run.py:777: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_run.py:469: in score
+    _refuse_while_running(out)
+s1_run.py:499: in _refuse_while_running
+    st_ = z.stop_decision([s for _, s in _seals(out)], c.aware(pr["start"]), pr["calendar"], today=c.now_utc())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+seals = [{'capture': {'actual': '2026-10-23T20:45:30+00:00', 'consistent': True, 'dir': 'C:\\Users\\gl450\\AppData\\Local\\Tem...f1cd77a86c998a9', '101': '26d9b854f3b498fcc86da9b8bdb72d75a9c00de8ead27a67634a0b3209daadf7', ...}, 'max_id': 201, ...}]
+start = datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc)
+calendar = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+
+    def stop_decision(seals, start: datetime, calendar, *, today: datetime) -> dict:
+        """seals: [{"close": iso, "trades": projection trades of that seal, ...}] — the seal is authoritative.
+        `today` is required (no real-clock default); a seal dated after it, or two seals for one close, is a bad record."""
+        calendar = _sorted_calendar(calendar)
+        dl = deadline(start).isoformat()
+        by_close = {}
+        for s in seals:
+>           k = c.aware(s["close"])
+E           KeyError: 'close'
+
+s1_seal.py:137: KeyError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_run.py::test_score_ack_created_while_running_is_refused_after_the_stop
+FAILED s1_tests/test_s1_run.py::test_score_ack_after_the_stop_but_before_any_final_manifest_is_refused
+FAILED s1_tests/test_s1_run.py::test_score_ack_strictly_after_the_stop_with_a_final_manifest_scores
+FAILED s1_tests/test_s1_run.py::test_score_ack_before_the_no_valid_seal_window_end_is_refused
+FAILED s1_tests/test_s1_run.py::test_score_ack_before_the_recorded_abort_is_refused
+FAILED s1_tests/test_s1_run.py::test_malformed_seal_is_recorded_as_aborted_invalid_not_refused_forever
+6 failed, 5 passed, 93 deselected in 19.61s

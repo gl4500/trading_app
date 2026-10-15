@@ -1,0 +1,86 @@
+FFFFF                                                                    [100%]
+================================== FAILURES ===================================
+____ test_split_with_a_lot_open_across_it_excludes_every_lot_of_the_symbol ____
+
+    def test_split_with_a_lot_open_across_it_excludes_every_lot_of_the_symbol():
+        """Retrospective (Task 7 controller rulings): lot A entered before the split and still open across it, lot B
+        entered after it -> FIFO attribution untrusted, both excluded in both arms."""
+        rows = [row(1, "A", "BUY", 10, "2026-10-26"), row(2, "A", "BUY", 10, "2026-10-29")]
+        acts = [split("A", "2026-10-28", i="sp1")]
+>       untrusted = r.fifo_untrusted(rows, acts, "2026-10-26", "2026-10-30")
+E       AttributeError: module 's1_run' has no attribute 'fifo_untrusted'
+
+s1_tests\test_s1_run.py:505: AttributeError
+______ test_split_with_no_lot_open_across_it_does_not_exclude_later_lots ______
+
+    def test_split_with_no_lot_open_across_it_does_not_exclude_later_lots():
+        """Retrospective (Task 7 controller rulings): the earlier lot was fully closed before the split; lots entered
+        after the split are not excluded for it."""
+        rows = [row(1, "A", "BUY", 10, "2026-10-26"), row(2, "A", "SELL", 10, "2026-10-27"),
+                row(3, "A", "BUY", 10, "2026-10-29")]
+        acts = [split("A", "2026-10-28", i="sp1")]
+>       assert r.fifo_untrusted(rows, acts, "2026-10-26", "2026-10-30") == {}
+E       AttributeError: module 's1_run' has no attribute 'fifo_untrusted'
+
+s1_tests\test_s1_run.py:520: AttributeError
+_ test_fifo_untrusted_ignores_actions_outside_the_trial_window_and_acquirer_side _
+
+    def test_fifo_untrusted_ignores_actions_outside_the_trial_window_and_acquirer_side():
+        """Retrospective (Task 7 controller rulings)."""
+        rows = [row(1, "A", "BUY", 10, "2026-10-26")]
+        acts = [split("A", "2026-10-31", i="late"),
+                {"type": "stock_mergers", "id": "m", "acquirer_symbol": "A", "acquiree_symbol": "T",
+                 "effective_date": "2026-10-28"}]
+>       assert r.fifo_untrusted(rows, acts, "2026-10-26", "2026-10-30") == {}
+E       AttributeError: module 's1_run' has no attribute 'fifo_untrusted'
+
+s1_tests\test_s1_run.py:531: AttributeError
+_ test_score_excludes_post_split_lot_when_an_earlier_lot_was_open_across_the_split _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10762/test_score_excludes_post_split0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002386C5922A0>
+
+    def test_score_excludes_post_split_lot_when_an_earlier_lot_was_open_across_the_split(tmp_path, monkeypatch):
+        """Retrospective (Task 7 controller rulings): X1 bought day 0 and sold day 2, split on day 1, X2 bought day 2
+        (after the split) -> both X lots excluded; X2 with the FIFO-attribution reason."""
+        lots = ([{"symbol": "X", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (2, 80.0)},
+                 {"symbol": "X", "qty": 10, "px": 100.0, "buy_day": 2, "sell": (2, 80.0)}]
+                + [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, 80.0)} for i in range(98)])
+        st_, rep, _ = scored(tmp_path, monkeypatch, lots=lots, final_actions=[split("X", "2026-10-27", i="spx")])
+        assert st_["stop"]["stop_close"] == "2026-10-28T20:00:00+00:00"
+        x_ids = [t["id"] for t in st_["rows"] if t["symbol"] == "X" and t["action"] == "BUY"]
+>       assert set(rep["excluded"]) == {str(i) for i in x_ids}
+E       AssertionError: assert {'2'} == {'199', '2'}
+E         
+E         Extra items in the right set:
+E         '199'
+E         Use -v to get more diff
+
+s1_tests\test_s1_run.py:543: AssertionError
+______________ test_score_runner_changed_since_prereg_is_invalid ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10762/test_score_runner_changed_sinc0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002386C6F2AB0>
+
+    def test_score_runner_changed_since_prereg_is_invalid(tmp_path, monkeypatch):
+        """Retrospective (Task 7 controller rulings): a runner hash different from prereg's runner_sha256 makes the
+        verdict ABORTED-INVALID, even under a SCORE-ACK that binds the new runner."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        monkeypatch.setattr(r, "runner_sha", lambda: "0" * 64)
+        s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+        at(monkeypatch, st_["now"])
+        rep = r.score(tmp_path, "score-ack-2")
+>       assert rep["verdict"] == "ABORTED-INVALID" and "runner changed since prereg" in rep["reasons"]
+E       AssertionError: assert ('SHADOW PASS' == 'ABORTED-INVALID'
+E         
+E         - ABORTED-INVALID
+E         + SHADOW PASS)
+
+s1_tests\test_s1_run.py:556: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_run.py::test_split_with_a_lot_open_across_it_excludes_every_lot_of_the_symbol
+FAILED s1_tests/test_s1_run.py::test_split_with_no_lot_open_across_it_does_not_exclude_later_lots
+FAILED s1_tests/test_s1_run.py::test_fifo_untrusted_ignores_actions_outside_the_trial_window_and_acquirer_side
+FAILED s1_tests/test_s1_run.py::test_score_excludes_post_split_lot_when_an_earlier_lot_was_open_across_the_split
+FAILED s1_tests/test_s1_run.py::test_score_runner_changed_since_prereg_is_invalid
+5 failed, 71 deselected in 6.68s
