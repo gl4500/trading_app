@@ -1,0 +1,12 @@
+# Task 8 GREEN (round 2): python -m pytest s1_tests/test_s1_connected.py -v -p no:cacheprovider (from research/s1)
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-8.3.3, pluggy-1.6.0 -- C:\Users\gl450\.coordination\trading_app\testenv\Scripts\python.exe
+hypothesis profile 'default' -> database=DirectoryBasedExampleDatabase(WindowsPath('C:/Users/gl450/trading_app-s1/research/s1/.hypothesis/examples'))
+rootdir: C:\Users\gl450\trading_app-s1\research\s1
+plugins: anyio-4.15.1, hypothesis-6.112.1
+collecting ... collected 2 items
+
+s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] PASSED [ 50%]
+s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[trend-SHADOW PASS] PASSED [100%]
+
+======================== 2 passed in 83.17s (0:01:23) =========================

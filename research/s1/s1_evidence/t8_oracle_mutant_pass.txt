@@ -1,0 +1,222 @@
+# Task 8 round 2 PASS-path oracle-teeth mutant (scratch copy; the real s1_run.py is untouched)
+# real s1_run.py sha256: b78d03a5e742adbd3dfc4aaada974f4a4ce3b28801389b43f7b7a23a788dbe66
+# test file sha256: 9c6acf8090e7a4f8d65a1bfb9416ac69090fcae39f79843d14b0bb1cb0f88b9c
+## MUTANT C: candidate_economics hard stop 0.08 -> 0.07, run on [trend-SHADOW PASS]
+mutant s1_run.py sha256: bc588237cf3df2b6d6bec0661c746f51d21a43353521274df91d1c2fd05d143c (sed may also have normalised line endings; diff below ignores CR)
+204c204
+<                          policy=c.p13(), endpoint_date=stop_date)
+---
+>                          policy=dict(c.p13(), hard=0.07), endpoint_date=stop_date)
+F                                                                        [100%]
+================================== FAILURES ===================================
+___ test_connected_lifecycle_matches_independent_oracle[trend-SHADOW PASS] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10814/test_connected_lifecycle_match0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002BBF8DF1A00>
+regime = 'trend', expected = 'SHADOW PASS'
+
+    @pytest.mark.parametrize("regime,expected", [("chop", "FAIL"), ("trend", "SHADOW PASS")])
+    def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, regime, expected):
+        """Task 8: plan -> audit -> opening seal -> bridge -> START attestation -> prereg -> scheduled checkpoints
+        (inconsistent/retried, late, restart) -> stop -> stop attestation -> final plan -> final acquisition -> final
+        snapshot -> one score == the independent Fraction oracle; a second score refuses and overwrites nothing."""
+        root, out = tmp_path, tmp_path / "s1_out"
+        cal, sessions, tdays, bars, events = build_world(regime)
+        clock = {"t": START - timedelta(days=14)}
+        monkeypatch.setattr(s1_common, "now_utc", lambda: clock["t"])
+    
+        def at(t):
+            clock["t"] = t
+            return t
+    
+        proc = {"pid": 1000, "process_start": "2026-10-01T09:00:00"}
+        crash = root / "crash.log"
+        crash.write_text("2026-10-01 09:00:00,000 [PROCESS START] pid=1000\n" * 2, encoding="utf-8")
+        ledger = Ledger(root / "trading.db")
+        app = App(ledger)
+        receipt_fn, process_fn = (lambda: json.loads(json.dumps(RECEIPT))), (lambda: dict(proc))
+    
+        def close_of(day: str) -> datetime:
+            row = next(x for x in cal if x["date"] == day)
+            return ny(day, row["close"])
+    
+        # 1. plan (fixed 14 days before START) and 2. the audit: calendar + no corporate actions, metadata only
+        app.trade(next(e for e in events if e["kind"] == "carry"))
+        k.write_plan(root, START, OPENING_CLOSE, ["CI"], FIRST_TRADE_DATE)
+        calls = []
+    
+        def audit_handler(req):
+            calls.append(str(req.url))
+            if "calendar" in str(req.url):
+                return httpx.Response(200, json=cal)
+            return httpx.Response(200, json={"corporate_actions": {}, "next_page_token": None})
+        s1_mailbox(root, "audit-ack", k.audit_token(root), at(START - timedelta(days=13, hours=1)))
+        at(START - timedelta(days=13))
+        m = k.do_audit(root, "audit-ack", httpx.Client(transport=httpx.MockTransport(audit_handler)), KEYS)
+        assert m["outcome"] == "COMPLETE" and calls and not any("/bars" in u for u in calls)
+    
+        # 3. the OPENING SEAL (the close immediately before START), by the real opening checkpoint
+        sch = close_of(OPENING_CLOSE) + timedelta(minutes=45)
+        act = at(sch + timedelta(seconds=30))
+        rep = ck.run_opening_checkpoint(root, ledger.path, sch, receipt_fn, process_fn, crash, now=lambda: act)
+        assert rep["seal"]["written"] and rep["consistent"] and rep["entries"] == ck.NA
+    
+        # 4. pre-START bridge rows stored at 20:00 / 20:05 ET, after the opening seal
+        bridge = [e for e in events if e["kind"] == "bridge"]
+        for e in bridge:
+            app.trade(e)
+    
+        # 5. START attestation, then RUN-ACK strictly after it, then prereg (all strictly before START)
+        at(START - timedelta(days=1, hours=2, minutes=30))
+        r.attest_start(root, r.START_STATEMENT, receipt_fn())
+        s1_mailbox(root, "run-ack", r.run_token(root), START - timedelta(days=1, hours=1, minutes=30))
+        at(START - timedelta(hours=24))
+        pr = r.do_prereg(root, "run-ack", receipt_fn())
+        assert pr["start"] == START.isoformat()
+    
+        # 6. sessions: trade commits then upserts; scheduled checkpoints
+        def checkpoint(scheduled, actual):
+            at(actual)
+            return ck.run_checkpoint(root, ledger.path, scheduled, receipt_fn, process_fn, crash, now=lambda: actual)
+    
+        reports = {}
+        for i, d in enumerate(tdays):
+            if i == RESTART_DAY:                                   # the operator restarts the app (identical files)
+                with crash.open("a", encoding="utf-8") as f:
+                    f.write("2026-11-16 08:00:00,000 [PROCESS START] pid=2000\n" * 2)
+                proc.update(pid=2000, process_start="2026-11-16T08:00:00")
+            for e in sorted((e for e in events if e.get("day") == i and e["kind"] == "intraday"), key=lambda e: e["t"]):
+                app.trade(e)
+            C = close_of(d)
+            late = [e for e in events if e.get("day") == i and e["kind"] == "late"]
+            if late:
+                app.trade(late[0], upsert=False)                   # the trade commit lands; the upsert has not
+                r45 = checkpoint(C + timedelta(minutes=45), C + timedelta(minutes=45, seconds=30))
+                assert r45["capture_ok"] and not r45["consistent"] and not r45["seal"]["written"], (d, r45)
+                app.upsert(late[0]["sym"])
+                rep = checkpoint(C + timedelta(minutes=47), C + timedelta(minutes=47, seconds=30))
+                assert rep["consistent"] and rep["seal"]["written"], (d, rep)
+            elif i == UNSEALED_DAY:                                # scheduler fired 3 h late (PC asleep)
+                rep = checkpoint(C + timedelta(minutes=45), C + timedelta(hours=3, minutes=45))
+                assert rep["late"] and rep["consistent"] and not rep["seal"]["written"], (d, rep)
+            else:
+                rep = checkpoint(C + timedelta(minutes=45), C + timedelta(minutes=45, seconds=30))
+                assert rep["consistent"] and rep["seal"]["written"], (d, rep)
+            assert rep["fence_violations"] == [] and rep["receipt_match"] is True and rep["restart_gaps"] == [], rep
+            assert (rep["entries"], rep["sold"]) == oracle_counts(events, C), (d, rep["entries"], rep["sold"])
+            assert rep["stop"]["status"] == ("STOPPED" if i == N_DAYS - 1 else "RUNNING"), (d, rep["stop"])
+            reports[i] = rep
+    
+        stop_close = close_of(tdays[-1])
+        unsealed_close = close_of(tdays[UNSEALED_DAY])
+        # independent stop expectation: the first qualifying close is unsealed; the next (sealed) one is the stop,
+        # with overshoot and every entry through it
+        assert oracle_counts(events, close_of(tdays[UNSEALED_DAY - 1]))[1] < 100 <= oracle_counts(events, unsealed_close)[1]
+        assert oracle_counts(events, stop_close)[1] > 100
+        assert reports[N_DAYS - 1]["stop"] == {"status": "STOPPED", "stop_close": stop_close.isoformat(),
+                                               "missed": [tdays[UNSEALED_DAY]]}
+        for L in LATE_DAYS:                                        # the inconsistent C+45 capture is preserved
+            cap = out / "captures" / tdays[L]
+            assert len(list(cap.glob("*.report.json"))) == 2
+            seal = json.loads((out / "seals" / f"{tdays[L]}.json").read_text(encoding="utf-8"))
+            assert seal["capture"]["scheduled"] == (close_of(tdays[L]) + timedelta(minutes=47)).isoformat()
+        assert not (out / "seals" / f"{tdays[UNSEALED_DAY]}.json").exists()
+    
+        # 7. post-stop: the unsold open lot is sold by the app after the stop (must not reach either arm)
+        app.trade(next(e for e in events if e["kind"] == "post"))
+    
+        # 8. stop attestation, then the final plan (carry-in incl. the bridge ticker)
+        at(stop_close + timedelta(hours=15))
+        att = r.attest_stop(root, r.STOP_STATEMENT)
+        assert att["stop_close"] == stop_close.isoformat()
+        cohort_syms = sorted({e["sym"] for e in events if e["action"] == "BUY" and START <= e["t"] <= stop_close})
+        at(stop_close + timedelta(hours=16))
+        fplan = json.loads(k.write_final_plan(root, att["stop_close"], cohort_syms, ["CI", "NEWT"],
+                                              FIRST_TRADE_DATE).read_text(encoding="utf-8"))
+        assert "NEWT" in fplan["bar_symbols"] and fplan["ca_symbols_full_history"] == ["CI", "NEWT"]
+    
+        # 9. the final acquisition: two bar pages (irregular cents), one spin-off inside one SPN lot's window
+        spin_date = tdays[SPIN_DAY]
+        spin = {"id": "spin-1", "source_symbol": "SPN", "source_cusip": "000000001", "source_rate": 1.0,
+                "new_symbol": "SPNC", "new_cusip": "000000002", "new_rate": 0.5, "process_date": spin_date,
+                "ex_date": spin_date}
+        fcalls = []
+    
+        def final_handler(req):
+            fcalls.append(req)
+            p = req.url.params
+            if "/bars" in str(req.url):
+                syms = p["symbols"].split(",")
+                half = syms[: len(syms) // 2] if "page_token" not in p else syms[len(syms) // 2:]
+                page = {s: [{"t": ny(d, "00:00").strftime("%Y-%m-%dT%H:%M:%SZ"), "v": 100, **bars[s][d]}
+                            for d in tdays] for s in half}
+                return httpx.Response(200, json={"bars": page, "next_page_token": None if "page_token" in p else "pg2"})
+            found = {"spin_offs": [spin]} if "SPN" in p["symbols"].split(",") and p["start"] == START_DAY else {}
+            return httpx.Response(200, json={"corporate_actions": found, "next_page_token": None})
+        acq_at = ny(sessions[N_DAYS + 3], "07:00")                 # after the close of the 3rd session after the stop
+        s1_mailbox(root, "acq-ack", k.ACQUIRE_ACK.format(collector=k.collector_sha(),
+                                                         plan=s1_common.sha256_file(out / "final_plan.json"),
+                                                         prereg=s1_common.sha256_file(out / "prereg.json")),
+                   acq_at - timedelta(hours=1))
+        at(acq_at)
+        fm = k.do_final(root, "acq-ack", httpx.Client(transport=httpx.MockTransport(final_handler)), KEYS)
+        assert fm["outcome"] == "COMPLETE"
+        assert json.loads((out / "final" / "bar_problems.json").read_text(encoding="utf-8")) == []
+        assert sum(1 for q in fcalls if "/bars" in str(q.url)) == 2
+    
+        # 10. the acquisition-time final snapshot, fence-checked against every seal
+        snap_at = at(acq_at + timedelta(hours=1))
+        snap = ck.run_final_snapshot(root, ledger.path, now=lambda: snap_at)
+        assert snap["capture_ok"] and snap["fence_checked"] and snap["fence_violations"] == [], snap
+    
+        # 11. SCORE-ACK and the one score
+        s1_mailbox(root, "score-ack", r.score_token(root), acq_at + timedelta(days=1))
+        at(acq_at + timedelta(days=1, hours=2))
+        rep = r.score(root, "score-ack")
+    
+        # ---- assertions against the raw scenario and the independent oracle
+        o = oracle_score(events, bars, tdays, stop_close, spin_date)
+        assert o["verdict"] == expected, (regime, o["verdict"])      # the oracle's own verdict (both branches covered)
+        bridge_ids = [e["id"] for e in bridge]
+        spin_lots = [e["id"] for e in events if e["sym"] == "SPN" and e["action"] == "BUY"]
+        assert o["excluded"] == {spin_lots[0]} and o["n"] >= 100 and o["k"] == 1
+        assert rep["outcome"] == "SCORED" and rep["reasons"] == [], rep["reasons"]
+        assert rep["stop"]["stop_close"] == stop_close.isoformat() and rep["missed_seals"] == [tdays[UNSEALED_DAY]]
+        # cohort excludes the bridge rows; the bridge ticker is carry-in inventory
+        assert not set(bridge_ids) & o["cohort_ids"]
+        assert not set(bridge_ids) & ({x["id"] for x in rep["lots"]} | {int(i) for i in rep["excluded"]})
+        assert rep["carry_in"]["bridge_rows"] == bridge_ids and "NEWT" in rep["carry_in"]["held_at_start"]
+        # the spin-off lot is excluded in BOTH arms (absent from the paired lots); the later SPN lot is retained
+        assert set(rep["excluded"]) == {str(spin_lots[0])}
+        assert rep["excluded"][str(spin_lots[0])] == [f"spin_offs spin-1 on {spin_date}"]
+        assert spin_lots[0] not in {x["id"] for x in rep["lots"]} and spin_lots[1] in {x["id"] for x in rep["lots"]}
+        # the restart is listed (observed in crash.log), no observation gap
+        assert rep["restarts"] == {"observed_in_crash_log_minimum": [{"ts": "2026-11-16 08:00:00,000", "pid": 2000}],
+                                   "observation_gaps": []}
+        # quantity bridge: the dust write-off vs the economic residual (reported, never forced to zero)
+        assert abs(rep["quantity_bridge"]["DST"]["writeoff"] - 0.0005) < 1e-12
+        assert abs(rep["quantity_bridge"]["DST"]["economic_residual"] - 0.0005) < 1e-12
+        end_lot = next(e["id"] for e in events if e["sym"] == "END")
+        assert rep["zero_eligible"] == [end_lot]
+        # counts, verdict and provenance
+        assert (rep["n"], rep["k"], rep["retained"]) == (o["n"], o["k"], o["n"] - o["k"])
+        assert rep["verdict"] == o["verdict"] and rep["provenance"] == "VERIFIED"
+        assert rep["nomination"] is (o["verdict"] == "SHADOW PASS")
+        # every retained lot, both arms, every cost level: equal to the oracle (exact value, correctly rounded)
+        got = {x["id"]: x for x in rep["lots"]}
+        assert set(got) == set(o["per"])
+        for lid, want in o["per"].items():
+            g = got[lid]
+            cand = g["cand"]["5"]["P13"]
+>           assert (cand["reason"], cand["exit_date"], cand["eligible_sessions"]) == \
+                (want["cand"]["reason"], want["cand"]["date"], want["cand"]["eligible"]), (lid, cand, want["cand"])
+E           AssertionError: (8, {'eligible_sessions': 16, 'entry_cost': 2.034375, 'exit_cost': 1.818625, 'exit_date': '2026-11-24', ...}, {'date': '2026-11-24', 'eligible': 16, 'exit': Fraction(14549, 100), 'fill': 'open', ...})
+E           assert ('hard', '2026-11-24', 16) == ('trail', '2026-11-24', 16)
+E             
+E             At index 0 diff: 'hard' != 'trail'
+E             Use -v to get more diff
+
+s1_tests\test_s1_connected.py:492: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[trend-SHADOW PASS]
+1 failed in 39.18s
