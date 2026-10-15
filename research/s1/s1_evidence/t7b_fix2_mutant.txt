@@ -1,0 +1,31 @@
+# Task 7b fix round 2 MUTANT: the _ReceiptConflict try/except handler in run_opening_checkpoint removed
+mutant s1_checkpoint.py sha256:
+6d0aac6580b53e71bd5b5dcb3bef41100bff62d0d7862311f78585be37a965c8 *s1_checkpoint.py
+test file sha256:
+7f6c34f0b3aa0a7bbbf6e30a9639636921bbb2eb0ab786e6f4fad93bfaa4f863 *s1_tests/test_s1_checkpoint_7b.py
+
+        """Task 7b fix round 2 (controller-added, retrospective: written after the handler existed; proven by the
+        t7b_fix2_mutant.txt run with the handler removed), review2 m-1 / M-2: a differing receipt stored by a concurrent
+        run AFTER the early check, at the moment this run stores its own, raises ck._ReceiptConflict; the capture's
+        .report.json is still written with the "(concurrent)" reason and no seal is written."""
+        opening_ready(tmp_path, ledger)
+        out = tmp_path / "s1_out"
+        real = ck._store_opening_receipt
+    
+        def racing(p, receipt):
+            assert not p.exists()                                      # the early check has already passed
+            p.write_text(json.dumps(dict(S1_RECEIPT, head="other")), encoding="utf-8")
+            return real(p, receipt)
+        monkeypatch.setattr(ck, "_store_opening_receipt", racing)
+        with pytest.raises(ck._ReceiptConflict, match="differs"):
+            opening(tmp_path, ledger, minutes=45)
+        rp = out / "captures" / OPEN_DAY / "20261023T204500Z.report.json"
+>       assert rp.exists()
+E       AssertionError: assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10802/test_receipt_stored_concurrent0/s1_out/captures/2026-10-23/20261023T204500Z.report.json').exists
+
+s1_tests\test_s1_checkpoint_7b.py:531: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_receipt_stored_concurrently_after_the_early_check_is_reported
+1 failed, 34 passed in 37.15s

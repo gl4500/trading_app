@@ -1,0 +1,44 @@
+# Task 7b fix round 1 RED (tests written before code changes)
+sha256 of s1_tests/test_s1_checkpoint_7b.py at RED time:
+6b6c3bc05d99593c7a9bbea5e47c7d409cb871f73318dca1cf1a13e8acc65a00 *s1_tests/test_s1_checkpoint_7b.py
+
+        rep = read(out / "captures" / OPEN_DAY / "20261023T204700Z.report.json")
+>       assert rep["capture_ok"] is True and rep["consistent"] is True and rep["snapshot"] is not None
+E       assert (True is True and False is True)
+
+s1_tests\test_s1_checkpoint_7b.py:486: AssertionError
+___ test_concurrent_opening_receipt_refusal_still_writes_the_capture_report ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10793/test_concurrent_opening_receip0')
+ledger = <conftest.Ledger object at 0x000001BAFE4E8860>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001BAFE4E9B20>
+
+    def test_concurrent_opening_receipt_refusal_still_writes_the_capture_report(tmp_path, ledger, monkeypatch):
+        """Task 7b fix round 1 (controller-added), review M-2: a differing receipt stored by a concurrent run after the
+        early check makes this run refuse, but the capture's .report.json is written (with the reason) first."""
+        opening_ready(tmp_path, ledger)
+        out = tmp_path / "s1_out"
+        real = ck._read_capture
+    
+        def racing(*a, **kw):
+            proj = real(*a, **kw)
+            (out / "opening_receipt.json").write_text(json.dumps(dict(S1_RECEIPT, head="other")), encoding="utf-8")
+            return proj
+        monkeypatch.setattr(ck, "_read_capture", racing)
+        with pytest.raises(SystemExit, match="differs"):
+            opening(tmp_path, ledger, minutes=45)
+        rp = out / "captures" / OPEN_DAY / "20261023T204500Z.report.json"
+>       assert rp.exists()
+E       AssertionError: assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10793/test_concurrent_opening_receip0/s1_out/captures/2026-10-23/20261023T204500Z.report.json').exists
+
+s1_tests\test_s1_checkpoint_7b.py:506: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_deleted_report_after_a_successful_attempt_refuses_a_new_attempt
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_the_report_is_gone_but_an_ok_attempt_exists[missing]
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_the_report_is_gone_but_an_ok_attempt_exists[unreadable]
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_another_attempt_is_ok_too
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_receipt_conflict_report_records_the_real_consistency_and_never_seals
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_concurrent_opening_receipt_refusal_still_writes_the_capture_report
+6 failed, 28 passed in 36.88s

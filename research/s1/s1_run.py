@@ -14,7 +14,8 @@ import s1_seal as z
 
 RUN_ACK = ("S1-RUN-ACK runner_sha256={runner} plan_sha256={plan} audit_manifest_sha256={audit} "
            "attest_start_sha256={attest} start={start}")
-SCORE_ACK = "S1-SCORE-ACK runner_sha256={runner} final_manifest_sha256={final} stop_attest_sha256={attest}"
+SCORE_ACK = ("S1-SCORE-ACK runner_sha256={runner} final_manifest_sha256={final} stop_attest_sha256={attest} "
+             "final_snapshot_sha256={snap}")
 START_STATEMENT = "I confirm the trading_app backend runs from the recorded checkout, started after the S1 receipt."
 STOP_STATEMENT = ("I confirm that between START and the stop no MeanReversion code, config or package changed "
                   "(including changed and reverted) and no MeanReversion trade was placed or edited by hand.")
@@ -249,7 +250,8 @@ def run_token(root) -> str:
 def score_token(root) -> str:
     out = _out(root)
     return SCORE_ACK.format(runner=runner_sha(), final=_sha_or_absent(out / "final" / "manifest.json"),
-                            attest=_sha_or_absent(out / "attest_stop.json"))
+                            attest=_sha_or_absent(out / "attest_stop.json"),
+                            snap=_sha_or_absent(out / "final_snapshot" / "report.json"))   # Task 7b ruling 1
 
 
 def _attempt(d: Path, names) -> tuple:
@@ -330,6 +332,19 @@ def _write_once(path: Path, obj, what: str):
         raise SystemExit(f"{what} already recorded: refusing") from None
 
 
+def _opening_receipt(out: Path, opening_seal: dict) -> dict:
+    """Task 7b: s1_out/opening_receipt.json, written by the opening checkpoint; it must hash to the opening seal's
+    receipt_sha256."""
+    p = out / "opening_receipt.json"
+    if not p.exists():
+        raise SystemExit("START attestation refused: no opening receipt (run s1_checkpoint.py --opening first)")
+    rec = _load(p)
+    if opening_seal.get("receipt_sha256") != _receipt_sha(rec):
+        raise SystemExit("START attestation refused: the opening receipt does not match the opening seal's "
+                         "receipt_sha256")
+    return rec
+
+
 # ------------------------------------------------------------------ gates (§12, §15)
 def attest_start(root, statement: str, receipt) -> dict:
     """START attestation (§12): before RUN-ACK/prereg and strictly before planned START; binds trial ID, planned
@@ -344,11 +359,15 @@ def attest_start(root, statement: str, receipt) -> dict:
         raise SystemExit("START attestation already recorded: refusing")
     try:
         _, files = _attempt(out / "audit", AUDIT_FILES)
-        seal_p, _ = _opening_seal(out, plan, _calendar(files["calendar.json"]))
+        seal_p, seal = _opening_seal(out, plan, _calendar(files["calendar.json"]))
     except Invalid as e:
         raise SystemExit(f"START attestation refused: {e}") from None
+    opening_receipt = _opening_receipt(out, seal)                     # Task 7b: the receipt the opening sealed with
+    if receipt != opening_receipt:
+        raise SystemExit("START attestation refused: the receipt differs from the opening receipt "
+                         "(s1_out/opening_receipt.json)")
     rec = {"statement": statement, "trial_id": TRIAL_ID, "planned_start": plan["planned_start"],
-           "receipt_sha256": _receipt_sha(receipt), "plan_sha256": c.sha256_file(out / "plan.json"),
+           "receipt_sha256": _receipt_sha(opening_receipt), "plan_sha256": c.sha256_file(out / "plan.json"),
            "audit_manifest_sha256": c.sha256_file(out / "audit" / "manifest.json"),
            "opening_seal_sha256": c.sha256_file(seal_p), "recorded_utc": c.now_utc().isoformat()}
     _write_once(out / "attest_start.json", rec, "START attestation")
@@ -521,6 +540,54 @@ def _pre_reserve_gate(out: Path, ack: dict) -> None:
                          f"({end.isoformat()}); nothing written")
     if need_final and not (out / "final" / "manifest.json").exists():
         raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+    d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+    if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+        raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                         "stop); nothing written")
+
+
+def _ok_attempts(d: Path) -> list:
+    """final_snapshot/attempt-NN names whose meta.json records ok=True (fix round 1, I-1: success is decided by the
+    attempts, not by report.json). Kept here, not imported from s1_checkpoint, so runner_sha covers it."""
+    found = []
+    for p in sorted(d.glob("attempt-*")):
+        try:
+            if json.loads((p / "meta.json").read_text(encoding="utf-8")).get("ok") is True:
+                found.append(p.name)
+        except (OSError, ValueError, AttributeError):
+            pass
+    return found
+
+
+def _final_snapshot_problems(out: Path, seals) -> list:
+    """Task 7b (§6): the acquisition-time snapshot must have been captured, still hash to its recorded projection,
+    and hold every sealed slice's fence (the recorded check AND an offline re-check against the current seals)."""
+    d = out / "final_snapshot"
+    oks = _ok_attempts(d)
+    try:
+        rep = _load(d / "report.json")
+        if not isinstance(rep, dict):
+            raise ValueError("not a JSON object")
+    except (OSError, ValueError) as e:                      # fix round 1 (I-1): lost report, ok attempt on disk
+        return [f"final snapshot: report.json missing or unreadable ({type(e).__name__}) while successful "
+                f"attempt(s) exist: {', '.join(oks) or 'none'}"]
+    attempt = str(rep.get("attempt", ""))                   # Task 7b ruling 2: the successful attempt's capture
+    others = [x for x in oks if x != attempt]
+    if others:                                              # fix round 1 (I-1): one successful capture only
+        return [f"final snapshot: successful attempt(s) other than the reported {attempt!r}: {', '.join(others)}"]
+    if rep.get("capture_ok") is not True or rep.get("fence_checked") is not True:
+        return [f"final snapshot capture failed: {rep.get('capture_error')}"]
+    bad = [f"final snapshot: {v}" for v in rep.get("fence_violations") or []]
+    if not re.fullmatch(r"attempt-\d{2,}", attempt):
+        return bad + [f"final snapshot: report names no valid attempt ({attempt!r})"]
+    proj_p = d / attempt / "projection.json"
+    if not proj_p.is_file() or c.sha256_file(proj_p) != rep.get("projection_sha256"):
+        return bad + ["final snapshot: projection differs from its recorded hash"]
+    try:
+        again = z.check_fences([s for _, s in seals], _load(proj_p))
+    except (ValueError, KeyError, TypeError) as e:
+        again = [f"bad seal record: {type(e).__name__}: {e}"]
+    return bad + [f"final snapshot: {v}" for v in again if f"final snapshot: {v}" not in bad]
 
 
 def _seal_chain_problems(out: Path, seals, receipt_sha: str) -> list:
@@ -625,6 +692,7 @@ def _score(out: Path) -> dict:
         invalid.append(f"{type(e).__name__}: {e}")
     seals = _seals(out)
     invalid += _seal_chain_problems(out, seals, _receipt_sha(pr["receipt"]))
+    invalid += _final_snapshot_problems(out, seals)
     stop = None
     try:
         stop = z.stop_decision([s for _, s in seals], start, cal, today=c.now_utc())

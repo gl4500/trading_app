@@ -137,9 +137,68 @@ def _default_lots():
     return [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, 80.0)} for i in range(100)]
 
 
+S1_PROCESS = {"pid": 1, "process_start": "2026-10-01T09:00:00"}
+
+
+def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=()):
+    """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+    clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+    Returns (start, raw calendar, opening close date, plan creation instant)."""
+    from datetime import timedelta
+    import s1_collect as k
+    import s1_common as c
+    import s1_seal as z
+
+    out = Path(root) / "s1_out"
+    start = c.aware(planned_start)
+    start_day = start.astimezone(c.NY).date().isoformat()
+    dl = z.deadline(start)
+    raw_cal = _weekdays((start - timedelta(days=40)).date().isoformat(), (dl + timedelta(days=40)).isoformat())
+    opening_close = max(d["date"] for d in raw_cal if d["date"] < start_day)
+    created = start - timedelta(days=14)
+    with _Clock(created):
+        k.write_plan(root, start, opening_close, sorted(set(carry_in_syms)), first_day or start_day)
+    audit = out / "audit"
+    _dump(audit / "attempt.json", {"reserved_utc": (created + timedelta(days=1)).isoformat(), "ack": {}})
+    _dump(audit / "calendar.json", raw_cal)
+    _dump(audit / "corporate_actions.json", list(audit_actions))
+    _dump(audit / "ca_problems.json", list(audit_problems))
+    _dump(audit / "manifest.json", {"outcome": "COMPLETE", "ack": {}, "pages": {}, "coverage": {},
+                                    "files": {n: c.sha256_file(audit / n) for n in
+                                              ("attempt.json", "calendar.json", "corporate_actions.json",
+                                               "ca_problems.json")}})
+    return start, raw_cal, opening_close, created
+
+
+def s1_sync_portfolio(ledger, trades):
+    """Task 7b (controller-added) helper: make the synthetic portfolios table equal the operational replay of
+    `trades` (so a capture of the synthetic ledger is consistent)."""
+    import s1_books as b
+    qty = b.operational_replay(trades)["qty"]
+    for sym in sorted({t["symbol"] for t in trades}):
+        if sym in qty:
+            ledger.set_portfolio(sym, qty[sym])
+        else:
+            ledger.drop_portfolio(sym)
+
+
+def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=45):
+    """Task 7b (controller-added) helper: run the REAL opening checkpoint for the slot opening close + `minutes`,
+    30 s after the slot, on a fixed clock."""
+    from datetime import timedelta
+    import s1_checkpoint as ck
+    import s1_seal as z
+    sch = z.close_of(opening_close, cal) + timedelta(minutes=minutes)
+    act = sch + timedelta(seconds=30)
+    with _Clock(act):
+        return ck.run_opening_checkpoint(root, ledger.path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+                                         Path(root) / "crash.log", now=lambda: act)
+
+
 def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.0, "2026-10-01T15:00:00+00:00"),),
              bridge=(), audit_actions=(), audit_problems=(), lots=None, bar_fn=None, final_actions=(),
-             final_problems=(), bar_problems=(), seal_days=None, stop_attest=True, receipt=None):
+             final_problems=(), bar_problems=(), seal_days=None, stop_attest=True, receipt=None,
+             final_snapshot=True):
     """Build a synthetic s1_out/ under `root` through the REAL product gates (Task 7 test helper, not product code).
 
     Always: plan (s1_collect.write_plan), a COMPLETE audit attempt (calendar + corporate actions, manifest hashes),
@@ -148,10 +207,17 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     With score_ready: prereg (s1_run.do_prereg), cohort rows (`lots`: symbol, qty, px, buy_day, sell=(day, px)|None,
     day = index of the post-START session), seals for `seal_days` (default: every session through the last trade),
     the stop attestation (if `stop_attest` and a stop exists), the final plan + a COMPLETE final attempt (bars from
-    `bar_fn(symbol, date)`, None = missing) when a stop exists, and a SCORE-ACK message "score-ack".
+    `bar_fn(symbol, date)`, None = missing) when a stop exists, the acquisition-time final snapshot (if
+    `final_snapshot`) and a SCORE-ACK message "score-ack".
     carry_in: (symbol, qty, px, ts) BUYs before the opening close; bridge: (symbol, action, qty, px, ts) rows after
-    the opening seal and before START. Returns start, calendar, sessions, rows, stop and `now` (after everything)."""
+    the opening seal and before START. Returns start, calendar, sessions, rows, stop, the synthetic `ledger` and
+    `now` (after everything).
+    Task 7b (controller-added): the rows live in a synthetic SQLite ledger (root/s1_ledger.sqlite3, inserted in
+    stored-time order so ids increase with time); the opening seal is produced by
+    s1_checkpoint.run_opening_checkpoint (no hand-written opening seal) and the final snapshot by
+    s1_checkpoint.run_final_snapshot. Post-START seals are still written in the checkpoint's seal format."""
     from datetime import timedelta
+    import s1_checkpoint as ck
     import s1_collect as k
     import s1_common as c
     import s1_run as r
@@ -163,11 +229,12 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     start = c.aware(planned_start)
     start_day = start.astimezone(c.NY).date().isoformat()
     dl = z.deadline(start)
-    raw_cal = _weekdays((start - timedelta(days=40)).date().isoformat(), (dl + timedelta(days=40)).isoformat())
+    first_day = min((c.aware(x[3]).astimezone(c.NY).date().isoformat() for x in carry_in), default=start_day)
+    start, raw_cal, opening_close, created = s1_plan_audit(
+        root, planned_start, carry_in_syms=[x[0] for x in carry_in], first_day=first_day,
+        audit_actions=audit_actions, audit_problems=audit_problems)
     cal = [dict(d) for d in raw_cal]
-    opening_close = max(d["date"] for d in cal if d["date"] < start_day)
     sessions = [d["date"] for d in cal if d["date"] >= start_day]
-    created = start - timedelta(days=14)
 
     # all rows in stored-time order; ids increase with time (as the app's autoincrement gives them)
     lots = (_default_lots() if lots is None else lots) if score_ready else []
@@ -179,30 +246,32 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
             pending.append((f"{sessions[L['sell'][0]]}T18:00:00+00:00", L["symbol"], "SELL", L["qty"],
                             L["sell"][1]))
     pending.sort(key=lambda p: c.aware(p[0]))
-    rows = [{"id": i, "symbol": sym, "action": act, "shares": q, "price": px, "timestamp": ts,
-             "ts": c.aware(ts).isoformat(), "reasoning_sha256": "0" * 64}
+    reason_sha = c.sha256_bytes(b"r")                                  # Ledger.trade's default reasoning
+    rows = [{"id": i, "symbol": sym, "action": act, "shares": float(q), "price": float(px), "timestamp": ts,
+             "ts": c.aware(ts).isoformat(), "reasoning_sha256": reason_sha}
             for i, (ts, sym, act, q, px) in enumerate(pending, start=1)]
     held_syms = sorted({x[0] for x in carry_in} | {x[0] for x in bridge})
-    first_day = min((c.aware(x[3]).astimezone(c.NY).date().isoformat() for x in carry_in), default=start_day)
 
-    with _Clock(created):
-        k.write_plan(root, start, opening_close, sorted({x[0] for x in carry_in}), first_day)
-    audit = out / "audit"
-    _dump(audit / "attempt.json", {"reserved_utc": (created + timedelta(days=1)).isoformat(), "ack": {}})
-    _dump(audit / "calendar.json", raw_cal)
-    _dump(audit / "corporate_actions.json", list(audit_actions))
-    _dump(audit / "ca_problems.json", list(audit_problems))
-    _dump(audit / "manifest.json", {"outcome": "COMPLETE", "ack": {}, "pages": {}, "coverage": {},
-                                    "files": {n: c.sha256_file(audit / n) for n in
-                                              ("attempt.json", "calendar.json", "corporate_actions.json",
-                                               "ca_problems.json")}})
+    ledger = Ledger(root / "s1_ledger.sqlite3")
+    stored = []
+
+    def store_until(limit):
+        for t in rows[len(stored):]:
+            if limit is not None and c.aware(t["ts"]) > limit:
+                break
+            assert ledger.trade(t["symbol"], t["action"], t["shares"], t["price"], t["timestamp"]) == t["id"]
+            stored.append(t)
+        s1_sync_portfolio(ledger, stored)
+
     oc = z.close_of(opening_close, cal)
-    _write_seal(out, opening_close, oc, [t for t in rows if c.aware(t["ts"]) <= oc + timedelta(minutes=45)],
-                receipt)
+    store_until(oc + timedelta(minutes=45))
+    rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
+    assert rep["seal"]["written"], rep
+    store_until(None)                                                  # bridge + cohort rows, stored after it
     with _Clock(start - timedelta(days=2)):
         r.attest_start(root, r.START_STATEMENT, receipt)
     s1_mailbox(root, "run-ack", r.run_token(root), start - timedelta(days=1, hours=1))
-    info = {"start": start, "calendar": cal, "sessions": sessions, "rows": rows, "stop": None,
+    info = {"start": start, "calendar": cal, "sessions": sessions, "rows": rows, "stop": None, "ledger": ledger,
             "now": start - timedelta(hours=12)}
     if not score_ready:
         return info
@@ -254,6 +323,10 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
                                       "files": {n: c.sha256_file(fin / n) for n in
                                                 ("attempt.json", "bars.json", "bar_problems.json",
                                                  "corporate_actions.json", "ca_problems.json")}})
+    info["snapshot_at"] = t + timedelta(days=2, minutes=5)          # the acquisition-time snapshot (§6)
+    if final_snapshot:
+        with _Clock(info["snapshot_at"]):
+            ck.run_final_snapshot(root, ledger.path, now=lambda: info["snapshot_at"])
     s1_mailbox(root, "score-ack", r.score_token(root), t + timedelta(days=3))
     info["now"] = t + timedelta(days=4)
     return info

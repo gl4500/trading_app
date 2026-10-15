@@ -1,0 +1,762 @@
+FFFFFFFFFFFFFFFFFFFFFF                                                   [100%]
+================================== FAILURES ===================================
+_ test_opening_mode_seals_the_opening_close_from_plan_and_audit_without_prereg _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_seals_the_op0')
+ledger = <conftest.Ledger object at 0x000001AC02473B60>
+
+    def test_opening_mode_seals_the_opening_close_from_plan_and_audit_without_prereg(tmp_path, ledger):
+        """Task 7b (controller-added), C-1: the opening seal exists before any prereg/START attestation."""
+        opening_ready(tmp_path, ledger)
+        out = tmp_path / "s1_out"
+        assert not (out / "prereg.json").exists()
+>       rep = opening(tmp_path, ledger)
+
+s1_tests\test_s1_checkpoint_7b.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_seals_the_op0')
+ledger = <conftest.Ledger object at 0x000001AC02473B60>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = None, delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+__________ test_opening_mode_refuses_a_non_opening_slot[scheduled0] ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_a_no0')
+ledger = <conftest.Ledger object at 0x000001AC02472450>
+scheduled = datetime.datetime(2026, 10, 22, 20, 45, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize("scheduled", [
+        datetime(2026, 10, 22, 20, 45, tzinfo=UTC),                   # a slot of an earlier close
+        datetime(2026, 10, 26, 20, 45, tzinfo=UTC),                   # a slot of the START session's close
+        OPEN_CLOSE + timedelta(minutes=46),                           # not a registered slot at all
+    ])
+    def test_opening_mode_refuses_a_non_opening_slot(tmp_path, ledger, scheduled):
+        """Task 7b (controller-added)."""
+        opening_ready(tmp_path, ledger)
+        with pytest.raises(SystemExit, match="opening"):
+>           opening(tmp_path, ledger, scheduled=scheduled)
+
+s1_tests\test_s1_checkpoint_7b.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_a_no0')
+ledger = <conftest.Ledger object at 0x000001AC02472450>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = datetime.datetime(2026, 10, 22, 20, 45, tzinfo=datetime.timezone.utc)
+delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+__________ test_opening_mode_refuses_a_non_opening_slot[scheduled1] ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_a_no1')
+ledger = <conftest.Ledger object at 0x000001AC02E488F0>
+scheduled = datetime.datetime(2026, 10, 26, 20, 45, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize("scheduled", [
+        datetime(2026, 10, 22, 20, 45, tzinfo=UTC),                   # a slot of an earlier close
+        datetime(2026, 10, 26, 20, 45, tzinfo=UTC),                   # a slot of the START session's close
+        OPEN_CLOSE + timedelta(minutes=46),                           # not a registered slot at all
+    ])
+    def test_opening_mode_refuses_a_non_opening_slot(tmp_path, ledger, scheduled):
+        """Task 7b (controller-added)."""
+        opening_ready(tmp_path, ledger)
+        with pytest.raises(SystemExit, match="opening"):
+>           opening(tmp_path, ledger, scheduled=scheduled)
+
+s1_tests\test_s1_checkpoint_7b.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_a_no1')
+ledger = <conftest.Ledger object at 0x000001AC02E488F0>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = datetime.datetime(2026, 10, 26, 20, 45, tzinfo=datetime.timezone.utc)
+delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+__________ test_opening_mode_refuses_a_non_opening_slot[scheduled2] ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_a_no2')
+ledger = <conftest.Ledger object at 0x000001AC02E9BEC0>
+scheduled = datetime.datetime(2026, 10, 23, 20, 46, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize("scheduled", [
+        datetime(2026, 10, 22, 20, 45, tzinfo=UTC),                   # a slot of an earlier close
+        datetime(2026, 10, 26, 20, 45, tzinfo=UTC),                   # a slot of the START session's close
+        OPEN_CLOSE + timedelta(minutes=46),                           # not a registered slot at all
+    ])
+    def test_opening_mode_refuses_a_non_opening_slot(tmp_path, ledger, scheduled):
+        """Task 7b (controller-added)."""
+        opening_ready(tmp_path, ledger)
+        with pytest.raises(SystemExit, match="opening"):
+>           opening(tmp_path, ledger, scheduled=scheduled)
+
+s1_tests\test_s1_checkpoint_7b.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_a_no2')
+ledger = <conftest.Ledger object at 0x000001AC02E9BEC0>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = datetime.datetime(2026, 10, 23, 20, 46, tzinfo=datetime.timezone.utc)
+delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+___________ test_opening_mode_refuses_an_incomplete_audit[outcome] ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_an_i0')
+ledger = <conftest.Ledger object at 0x000001AC02EB09B0>, breakage = 'outcome'
+
+    @pytest.mark.parametrize("breakage", ["outcome", "calendar_hash", "no_manifest"])
+    def test_opening_mode_refuses_an_incomplete_audit(tmp_path, ledger, breakage):
+        """Task 7b (controller-added)."""
+        opening_ready(tmp_path, ledger)
+        audit = tmp_path / "s1_out" / "audit"
+        if breakage == "outcome":
+            (audit / "manifest.json").write_text(json.dumps(dict(read(audit / "manifest.json"), outcome="ABORTED")),
+                                                 encoding="utf-8")
+        elif breakage == "calendar_hash":
+            cal = read(audit / "calendar.json")
+            (audit / "calendar.json").write_text(json.dumps(cal[1:]), encoding="utf-8")
+        else:
+            (audit / "manifest.json").unlink()
+        with pytest.raises(SystemExit, match="audit"):
+>           opening(tmp_path, ledger)
+
+s1_tests\test_s1_checkpoint_7b.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_an_i0')
+ledger = <conftest.Ledger object at 0x000001AC02EB09B0>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = None, delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+________ test_opening_mode_refuses_an_incomplete_audit[calendar_hash] _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_an_i1')
+ledger = <conftest.Ledger object at 0x000001AC02CF17C0>
+breakage = 'calendar_hash'
+
+    @pytest.mark.parametrize("breakage", ["outcome", "calendar_hash", "no_manifest"])
+    def test_opening_mode_refuses_an_incomplete_audit(tmp_path, ledger, breakage):
+        """Task 7b (controller-added)."""
+        opening_ready(tmp_path, ledger)
+        audit = tmp_path / "s1_out" / "audit"
+        if breakage == "outcome":
+            (audit / "manifest.json").write_text(json.dumps(dict(read(audit / "manifest.json"), outcome="ABORTED")),
+                                                 encoding="utf-8")
+        elif breakage == "calendar_hash":
+            cal = read(audit / "calendar.json")
+            (audit / "calendar.json").write_text(json.dumps(cal[1:]), encoding="utf-8")
+        else:
+            (audit / "manifest.json").unlink()
+        with pytest.raises(SystemExit, match="audit"):
+>           opening(tmp_path, ledger)
+
+s1_tests\test_s1_checkpoint_7b.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_an_i1')
+ledger = <conftest.Ledger object at 0x000001AC02CF17C0>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = None, delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+_________ test_opening_mode_refuses_an_incomplete_audit[no_manifest] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_an_i2')
+ledger = <conftest.Ledger object at 0x000001AC0246D910>
+breakage = 'no_manifest'
+
+    @pytest.mark.parametrize("breakage", ["outcome", "calendar_hash", "no_manifest"])
+    def test_opening_mode_refuses_an_incomplete_audit(tmp_path, ledger, breakage):
+        """Task 7b (controller-added)."""
+        opening_ready(tmp_path, ledger)
+        audit = tmp_path / "s1_out" / "audit"
+        if breakage == "outcome":
+            (audit / "manifest.json").write_text(json.dumps(dict(read(audit / "manifest.json"), outcome="ABORTED")),
+                                                 encoding="utf-8")
+        elif breakage == "calendar_hash":
+            cal = read(audit / "calendar.json")
+            (audit / "calendar.json").write_text(json.dumps(cal[1:]), encoding="utf-8")
+        else:
+            (audit / "manifest.json").unlink()
+        with pytest.raises(SystemExit, match="audit"):
+>           opening(tmp_path, ledger)
+
+s1_tests\test_s1_checkpoint_7b.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_an_i2')
+ledger = <conftest.Ledger object at 0x000001AC0246D910>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = None, delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+_______________ test_opening_mode_refuses_a_wrong_opening_close _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_a_wr0')
+ledger = <conftest.Ledger object at 0x000001AC02E4BD40>
+
+    def test_opening_mode_refuses_a_wrong_opening_close(tmp_path, ledger):
+        """Task 7b (controller-added): the plan's opening_close must be the session immediately before START."""
+        opening_ready(tmp_path, ledger)
+        p = tmp_path / "s1_out" / "plan.json"
+        p.write_text(json.dumps(dict(read(p), opening_close="2026-10-22")), encoding="utf-8")
+        with pytest.raises(SystemExit, match="opening_close"):
+>           opening(tmp_path, ledger)
+
+s1_tests\test_s1_checkpoint_7b.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_a_wr0')
+ledger = <conftest.Ledger object at 0x000001AC02E4BD40>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = None, delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+_____ test_opening_mode_refuses_a_second_run_once_the_opening_seal_exists _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_a_se0')
+ledger = <conftest.Ledger object at 0x000001AC0246C530>
+
+    def test_opening_mode_refuses_a_second_run_once_the_opening_seal_exists(tmp_path, ledger):
+        """Task 7b (controller-added)."""
+        opening_ready(tmp_path, ledger)
+>       opening(tmp_path, ledger, minutes=45)
+
+s1_tests\test_s1_checkpoint_7b.py:113: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_mode_refuses_a_se0')
+ledger = <conftest.Ledger object at 0x000001AC0246C530>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = None, delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+_ test_opening_inconsistent_capture_does_not_seal_rerun_refused_retry_slot_seals _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_inconsistent_capt0')
+ledger = <conftest.Ledger object at 0x000001AC02EB0B00>
+
+    def test_opening_inconsistent_capture_does_not_seal_rerun_refused_retry_slot_seals(tmp_path, ledger):
+        """Task 7b (controller-added): run_checkpoint's capture/consistency/no-overwrite/rerun rules apply."""
+        opening_ready(tmp_path, ledger)
+        ledger.drop_portfolio("A")                                     # replay 10 vs portfolio 0: inconsistent
+        out = tmp_path / "s1_out"
+>       rep = opening(tmp_path, ledger, minutes=45)
+
+s1_tests\test_s1_checkpoint_7b.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_inconsistent_capt0')
+ledger = <conftest.Ledger object at 0x000001AC02EB0B00>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = None, delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+___________________ test_opening_late_capture_does_not_seal ___________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_late_capture_does0')
+ledger = <conftest.Ledger object at 0x000001AC02EB78F0>
+
+    def test_opening_late_capture_does_not_seal(tmp_path, ledger):
+        """Task 7b (controller-added): the seal is the first consistent capture within SCHEDULE_SLACK of its slot."""
+        opening_ready(tmp_path, ledger)
+>       rep = opening(tmp_path, ledger, minutes=45, delay=11 * 60)
+
+s1_tests\test_s1_checkpoint_7b.py:141: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_opening_late_capture_does0')
+ledger = <conftest.Ledger object at 0x000001AC02EB78F0>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = None, delay = 660
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+___ test_attest_start_binds_the_opening_receipt_and_refuses_a_different_one ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_attest_start_binds_the_op0')
+ledger = <conftest.Ledger object at 0x000001AC02CF1850>
+
+    def test_attest_start_binds_the_opening_receipt_and_refuses_a_different_one(tmp_path, ledger):
+        """Task 7b (controller-added): attest_start binds the opening seal and s1_out/opening_receipt.json."""
+        opening_ready(tmp_path, ledger)
+        out = tmp_path / "s1_out"
+        rp = out / "opening_receipt.json"
+        with _Clock(START_DT - timedelta(days=2)):
+            with pytest.raises(SystemExit, match="opening receipt"):           # no opening checkpoint yet
+>               r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+
+s1_tests\test_s1_checkpoint_7b.py:152: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_attest_start_binds_the_op0')
+statement = 'I confirm the trading_app backend runs from the recorded checkout, started after the S1 receipt.'
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+
+    def attest_start(root, statement: str, receipt) -> dict:
+        """START attestation (§12): before RUN-ACK/prereg and strictly before planned START; binds trial ID, planned
+        START, the semantic receipt, the plan, the COMPLETE audit and the opening seal."""
+        if statement != START_STATEMENT:
+            raise SystemExit("START attestation refused: the statement must be exactly START_STATEMENT")
+        out = _out(root)
+        plan = _load(out / "plan.json")
+        if c.now_utc() >= c.aware(plan["planned_start"]):
+            raise SystemExit("planned START has passed: re-register")
+        if (out / "attest_start.json").exists():
+            raise SystemExit("START attestation already recorded: refusing")
+        try:
+            _, files = _attempt(out / "audit", AUDIT_FILES)
+            seal_p, _ = _opening_seal(out, plan, _calendar(files["calendar.json"]))
+        except Invalid as e:
+>           raise SystemExit(f"START attestation refused: {e}") from None
+E           SystemExit: START attestation refused: opening seal 2026-10-23 missing
+
+s1_run.py:349: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_attest_start_binds_the_op0')
+ledger = <conftest.Ledger object at 0x000001AC02CF1850>
+
+    def test_attest_start_binds_the_opening_receipt_and_refuses_a_different_one(tmp_path, ledger):
+        """Task 7b (controller-added): attest_start binds the opening seal and s1_out/opening_receipt.json."""
+        opening_ready(tmp_path, ledger)
+        out = tmp_path / "s1_out"
+        rp = out / "opening_receipt.json"
+        with _Clock(START_DT - timedelta(days=2)):
+>           with pytest.raises(SystemExit, match="opening receipt"):           # no opening checkpoint yet
+E           AssertionError: Regex pattern did not match.
+E            Regex: 'opening receipt'
+E            Input: 'START attestation refused: opening seal 2026-10-23 missing'
+
+s1_tests\test_s1_checkpoint_7b.py:151: AssertionError
+__ test_attest_start_refuses_when_the_opening_receipt_differs_from_the_seal ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_attest_start_refuses_when0')
+ledger = <conftest.Ledger object at 0x000001AC02E48800>
+
+    def test_attest_start_refuses_when_the_opening_receipt_differs_from_the_seal(tmp_path, ledger):
+        """Task 7b (controller-added): an edited opening_receipt.json no longer matches the sealed receipt hash."""
+        opening_ready(tmp_path, ledger)
+>       opening(tmp_path, ledger)
+
+s1_tests\test_s1_checkpoint_7b.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_attest_start_refuses_when0')
+ledger = <conftest.Ledger object at 0x000001AC02E48800>, minutes = 45
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+scheduled = None, delay = 30
+
+    def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+        sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=delay)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
+                                             tmp_path / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\test_s1_checkpoint_7b.py:35: AttributeError
+________ test_final_snapshot_refuses_without_prereg_and_while_running _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_final_snapshot_refuses_wi0')
+
+    def test_final_snapshot_refuses_without_prereg_and_while_running(tmp_path):
+        """Task 7b (controller-added)."""
+>       st_ = s1_state(tmp_path, START)
+
+s1_tests\test_s1_checkpoint_7b.py:178: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:268: in s1_state
+    rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_final_snapshot_refuses_wi0')
+ledger = <conftest.Ledger object at 0x000001AC02EB67B0>
+opening_close = '2026-10-23'
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+
+    def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=45):
+        """Task 7b (controller-added) helper: run the REAL opening checkpoint for the slot opening close + `minutes`,
+        30 s after the slot, on a fixed clock."""
+        from datetime import timedelta
+        import s1_checkpoint as ck
+        import s1_seal as z
+        sch = z.close_of(opening_close, cal) + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=30)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(root, ledger.path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+                                             Path(root) / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\conftest.py:194: AttributeError
+_____________ test_final_snapshot_after_a_recorded_abort_is_taken _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_final_snapshot_after_a_re0')
+
+    def test_final_snapshot_after_a_recorded_abort_is_taken(tmp_path):
+        """Task 7b (controller-added): an aborted trial has stopped too (aborted.json)."""
+>       st_ = s1_state(tmp_path, START)
+
+s1_tests\test_s1_checkpoint_7b.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:268: in s1_state
+    rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_final_snapshot_after_a_re0')
+ledger = <conftest.Ledger object at 0x000001AC02CF0E90>
+opening_close = '2026-10-23'
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+
+    def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=45):
+        """Task 7b (controller-added) helper: run the REAL opening checkpoint for the slot opening close + `minutes`,
+        30 s after the slot, on a fixed clock."""
+        from datetime import timedelta
+        import s1_checkpoint as ck
+        import s1_seal as z
+        sch = z.close_of(opening_close, cal) + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=30)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(root, ledger.path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+                                             Path(root) / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\conftest.py:194: AttributeError
+_______ test_final_snapshot_writes_once_after_the_stop_and_never_seals ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_final_snapshot_writes_onc0')
+
+    def test_final_snapshot_writes_once_after_the_stop_and_never_seals(tmp_path):
+        """Task 7b (controller-added), C-3: one acquisition-time capture, fence-checked against EVERY seal."""
+>       st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+
+s1_tests\test_s1_checkpoint_7b.py:203: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:268: in s1_state
+    rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_final_snapshot_writes_onc0')
+ledger = <conftest.Ledger object at 0x000001AC016238F0>
+opening_close = '2026-10-23'
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+
+    def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=45):
+        """Task 7b (controller-added) helper: run the REAL opening checkpoint for the slot opening close + `minutes`,
+        30 s after the slot, on a fixed clock."""
+        from datetime import timedelta
+        import s1_checkpoint as ck
+        import s1_seal as z
+        sch = z.close_of(opening_close, cal) + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=30)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(root, ledger.path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+                                             Path(root) / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\conftest.py:194: AttributeError
+__ test_final_snapshot_records_a_backdated_row_and_score_is_aborted_invalid ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_final_snapshot_records_a_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AC02E49A60>
+
+    def test_final_snapshot_records_a_backdated_row_and_score_is_aborted_invalid(tmp_path, monkeypatch):
+        """Task 7b (controller-added), C-3: a row stored after the stop with a stored time <= a sealed close."""
+>       st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+
+s1_tests\test_s1_checkpoint_7b.py:224: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:268: in s1_state
+    rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_final_snapshot_records_a_0')
+ledger = <conftest.Ledger object at 0x000001AC02E495B0>
+opening_close = '2026-10-23'
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+
+    def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=45):
+        """Task 7b (controller-added) helper: run the REAL opening checkpoint for the slot opening close + `minutes`,
+        30 s after the slot, on a fixed clock."""
+        from datetime import timedelta
+        import s1_checkpoint as ck
+        import s1_seal as z
+        sch = z.close_of(opening_close, cal) + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=30)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(root, ledger.path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+                                             Path(root) / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\conftest.py:194: AttributeError
+____ test_score_refuses_with_no_output_when_the_final_snapshot_is_missing _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_score_refuses_with_no_out0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AC02E99880>
+
+    def test_score_refuses_with_no_output_when_the_final_snapshot_is_missing(tmp_path, monkeypatch):
+        """Task 7b (controller-added): the refusal happens before the reservation."""
+>       st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+
+s1_tests\test_s1_checkpoint_7b.py:241: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:268: in s1_state
+    rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_score_refuses_with_no_out0')
+ledger = <conftest.Ledger object at 0x000001AC023A5640>
+opening_close = '2026-10-23'
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+
+    def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=45):
+        """Task 7b (controller-added) helper: run the REAL opening checkpoint for the slot opening close + `minutes`,
+        30 s after the slot, on a fixed clock."""
+        from datetime import timedelta
+        import s1_checkpoint as ck
+        import s1_seal as z
+        sch = z.close_of(opening_close, cal) + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=30)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(root, ledger.path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+                                             Path(root) / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\conftest.py:194: AttributeError
+___ test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_score_with_a_tampered_fin0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AC02EB1970>
+
+    def test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid(tmp_path, monkeypatch):
+        """Task 7b (controller-added): the preserved projection must still hash to the recorded value."""
+>       st_ = s1_state(tmp_path, START, score_ready=True)
+
+s1_tests\test_s1_checkpoint_7b.py:250: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:268: in s1_state
+    rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_score_with_a_tampered_fin0')
+ledger = <conftest.Ledger object at 0x000001AC0246F7D0>
+opening_close = '2026-10-23'
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+
+    def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=45):
+        """Task 7b (controller-added) helper: run the REAL opening checkpoint for the slot opening close + `minutes`,
+        30 s after the slot, on a fixed clock."""
+        from datetime import timedelta
+        import s1_checkpoint as ck
+        import s1_seal as z
+        sch = z.close_of(opening_close, cal) + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=30)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(root, ledger.path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+                                             Path(root) / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\conftest.py:194: AttributeError
+_ test_full_synthetic_lifecycle_uses_the_real_opening_seal_and_final_snapshot _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_full_synthetic_lifecycle_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AC02070500>
+
+    def test_full_synthetic_lifecycle_uses_the_real_opening_seal_and_final_snapshot(tmp_path, monkeypatch):
+        """Task 7b (controller-added): s1_state now runs the opening checkpoint and the final snapshot for real."""
+>       st_ = s1_state(tmp_path, START, score_ready=True,
+                       bar_fn=lambda s, d: {"date": d, "o": 100, "h": 100, "l": 85, "c": 90} if d == "2026-10-27"
+                       else {"date": d, "o": 100, "h": 101, "l": 99, "c": 100})
+
+s1_tests\test_s1_checkpoint_7b.py:260: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:268: in s1_state
+    rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_full_synthetic_lifecycle_0')
+ledger = <conftest.Ledger object at 0x000001AC023FF500>
+opening_close = '2026-10-23'
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+
+    def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=45):
+        """Task 7b (controller-added) helper: run the REAL opening checkpoint for the slot opening close + `minutes`,
+        30 s after the slot, on a fixed clock."""
+        from datetime import timedelta
+        import s1_checkpoint as ck
+        import s1_seal as z
+        sch = z.close_of(opening_close, cal) + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=30)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(root, ledger.path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+                                             Path(root) / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\conftest.py:194: AttributeError
+____________ test_no_valid_seal_trial_can_take_its_final_snapshot _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_no_valid_seal_trial_can_t0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AC02E728A0>
+
+    def test_no_valid_seal_trial_can_take_its_final_snapshot(tmp_path, monkeypatch):
+        """Task 7b (controller-added): NO-VALID-SEAL is a terminal trial state too (decision recorded in the report)."""
+>       st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
+
+s1_tests\test_s1_checkpoint_7b.py:276: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:268: in s1_state
+    rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10776/test_no_valid_seal_trial_can_t0')
+ledger = <conftest.Ledger object at 0x000001AC02CF2900>
+opening_close = '2026-10-23'
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+receipt = {'config': {}, 'dirty': [], 'files': {'agents/mean_reversion_agent.py': '1'}, 'head': 'h', ...}
+
+    def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=45):
+        """Task 7b (controller-added) helper: run the REAL opening checkpoint for the slot opening close + `minutes`,
+        30 s after the slot, on a fixed clock."""
+        from datetime import timedelta
+        import s1_checkpoint as ck
+        import s1_seal as z
+        sch = z.close_of(opening_close, cal) + timedelta(minutes=minutes)
+        act = sch + timedelta(seconds=30)
+        with _Clock(act):
+>           return ck.run_opening_checkpoint(root, ledger.path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+                                             Path(root) / "crash.log", now=lambda: act)
+E           AttributeError: module 's1_checkpoint' has no attribute 'run_opening_checkpoint'
+
+s1_tests\conftest.py:194: AttributeError
+_______________________ test_cli_takes_exactly_one_mode _______________________
+
+    def test_cli_takes_exactly_one_mode():
+        """Task 7b (controller-added): `--scheduled`, `--opening --scheduled`, `--final-snapshot`; one per call."""
+        t = "2026-10-23T20:45:00+00:00"
+>       assert ck.parse_mode(["--scheduled", t]) == ("scheduled", c.aware(t))
+E       AttributeError: module 's1_checkpoint' has no attribute 'parse_mode'
+
+s1_tests\test_s1_checkpoint_7b.py:286: AttributeError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_seals_the_opening_close_from_plan_and_audit_without_prereg
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot[scheduled0]
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot[scheduled1]
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot[scheduled2]
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_an_incomplete_audit[outcome]
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_an_incomplete_audit[calendar_hash]
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_an_incomplete_audit[no_manifest]
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_wrong_opening_close
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_second_run_once_the_opening_seal_exists
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_inconsistent_capture_does_not_seal_rerun_refused_retry_slot_seals
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_late_capture_does_not_seal
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_attest_start_binds_the_opening_receipt_and_refuses_a_different_one
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_attest_start_refuses_when_the_opening_receipt_differs_from_the_seal
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_refuses_without_prereg_and_while_running
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_after_a_recorded_abort_is_taken
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_writes_once_after_the_stop_and_never_seals
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_records_a_backdated_row_and_score_is_aborted_invalid
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_score_refuses_with_no_output_when_the_final_snapshot_is_missing
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_full_synthetic_lifecycle_uses_the_real_opening_seal_and_final_snapshot
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_no_valid_seal_trial_can_take_its_final_snapshot
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_cli_takes_exactly_one_mode - A...
+22 failed in 1.43s

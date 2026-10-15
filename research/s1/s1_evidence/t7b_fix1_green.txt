@@ -1,0 +1,4 @@
+..................................                                       [100%]
+34 passed in 35.77s
+
+# whole suite (python -m pytest s1_tests -q -p no:cacheprovider): 271 passed in 152.18s

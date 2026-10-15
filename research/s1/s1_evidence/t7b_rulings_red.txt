@@ -1,0 +1,200 @@
+...............F..F...FFFFFF                                             [100%]
+================================== FAILURES ===================================
+_______ test_final_snapshot_writes_once_after_the_stop_and_never_seals ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_final_snapshot_writes_onc0')
+
+    def test_final_snapshot_writes_once_after_the_stop_and_never_seals(tmp_path):
+        """Task 7b (controller-added), C-3: one acquisition-time capture, fence-checked against EVERY seal."""
+        st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+        out = tmp_path / "s1_out"
+        seals_before = {p.name: p.read_bytes() for p in (out / "seals").glob("*.json")}
+        rep = ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+        disk = read(out / "final_snapshot" / "report.json")
+        assert disk == rep and rep["capture_ok"] is True and rep["fence_violations"] == []
+        assert rep["trial_status"] == st_["stop"]["status"]
+>       assert rep["projection_sha256"] == c.sha256_file(out / "final_snapshot" / rep["attempt"] / "projection.json")
+E       KeyError: 'attempt'
+
+s1_tests\test_s1_checkpoint_7b.py:220: KeyError
+___ test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_score_with_a_tampered_fin0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001293F8DF2C0>
+
+    def test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid(tmp_path, monkeypatch):
+        """Task 7b (controller-added): the preserved projection must still hash to the recorded value."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        p = tmp_path / "s1_out" / "final_snapshot" / "attempt-01" / "projection.json"
+>       p.write_bytes(p.read_bytes() + b" ")
+
+s1_tests\test_s1_checkpoint_7b.py:265: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_score_with_a_tampered_fin0/s1_out/final_snapshot/attempt-01/projection.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-10783\\test_score_with_a_tampered_fin0\\s1_out\\final_snapshot\\attempt-01\\projection.json'
+
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+_ test_score_ack_binds_the_final_snapshot_report_and_an_edit_after_the_ack_is_refused _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_score_ack_binds_the_final0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001293F8789B0>
+
+    def test_score_ack_binds_the_final_snapshot_report_and_an_edit_after_the_ack_is_refused(tmp_path, monkeypatch):
+        """Task 7b (controller rulings), concern 1: SCORE_ACK binds final_snapshot_sha256."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        p = tmp_path / "s1_out" / "final_snapshot" / "report.json"
+>       assert f"final_snapshot_sha256={c.sha256_file(p)}" in r.score_token(tmp_path)
+E       AssertionError: assert 'final_snapshot_sha256=1bbfff2eee92a67250d2bcd177ef1ee811e333276be4f130d885a9b041e7551d' in 'S1-SCORE-ACK runner_sha256=4f1ab3c154372e2ae4f392ddf8dd681c4ebe19fa091c5b7c7bde174ac986ca49 final_manifest_sha256=9de...81539873cda59931de6b015f020fb15d21 stop_attest_sha256=261638922da492c658c0fe66f40f9d9245347f98e534564270ca2ad8f7ac1859'
+E        +  where 'S1-SCORE-ACK runner_sha256=4f1ab3c154372e2ae4f392ddf8dd681c4ebe19fa091c5b7c7bde174ac986ca49 final_manifest_sha256=9de...81539873cda59931de6b015f020fb15d21 stop_attest_sha256=261638922da492c658c0fe66f40f9d9245347f98e534564270ca2ad8f7ac1859' = <function score_token at 0x00000129404E13A0>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_score_ack_binds_the_final0'))
+E        +    where <function score_token at 0x00000129404E13A0> = r.score_token
+
+s1_tests\test_s1_checkpoint_7b.py:312: AssertionError
+__________ test_score_ack_final_snapshot_is_absent_when_none_exists ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_score_ack_final_snapshot_0')
+
+    def test_score_ack_final_snapshot_is_absent_when_none_exists(tmp_path):
+        """Task 7b (controller rulings), concern 1: "absent" placeholder before the snapshot."""
+        s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+>       assert "final_snapshot_sha256=absent" in r.score_token(tmp_path)
+E       AssertionError: assert 'final_snapshot_sha256=absent' in 'S1-SCORE-ACK runner_sha256=4f1ab3c154372e2ae4f392ddf8dd681c4ebe19fa091c5b7c7bde174ac986ca49 final_manifest_sha256=9ba...d5746e6c98c78babf8bd31954029f6db73 stop_attest_sha256=15e15defed24aa9b46982570b45d7d3227e9c3dc7e54a90fada7daccf0a1021f'
+E        +  where 'S1-SCORE-ACK runner_sha256=4f1ab3c154372e2ae4f392ddf8dd681c4ebe19fa091c5b7c7bde174ac986ca49 final_manifest_sha256=9ba...d5746e6c98c78babf8bd31954029f6db73 stop_attest_sha256=15e15defed24aa9b46982570b45d7d3227e9c3dc7e54a90fada7daccf0a1021f' = <function score_token at 0x00000129404E13A0>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_score_ack_final_snapshot_0'))
+E        +    where <function score_token at 0x00000129404E13A0> = r.score_token
+
+s1_tests\test_s1_checkpoint_7b.py:323: AssertionError
+_______ test_failed_final_capture_is_preserved_and_a_later_run_succeeds _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_failed_final_capture_is_p0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000012956745B50>
+
+    def test_failed_final_capture_is_preserved_and_a_later_run_succeeds(tmp_path, monkeypatch):
+        """Task 7b (controller rulings), concern 2: a locked-DB failure, then a successful run -> report from the
+        second attempt; the failed attempt stays preserved; a run after the success refuses."""
+        st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+        d = tmp_path / "s1_out" / "final_snapshot"
+        _locked(monkeypatch)
+        first = ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+>       assert first["capture_ok"] is False and first["attempt"] == "attempt-01"
+E       KeyError: 'attempt'
+
+s1_tests\test_s1_checkpoint_7b.py:339: KeyError
+_ test_backdated_row_after_a_failed_attempt_is_still_recorded_and_never_retried_away _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_backdated_row_after_a_fai0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001294032BB30>
+
+    def test_backdated_row_after_a_failed_attempt_is_still_recorded_and_never_retried_away(tmp_path, monkeypatch):
+        """Task 7b (controller rulings), concern 2: the successful capture records the violation; it is final."""
+        st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+        lg = st_["ledger"]
+        _locked(monkeypatch)
+        ck.run_final_snapshot(tmp_path, lg.path, now=lambda: st_["snapshot_at"])
+        monkeypatch.undo()
+        rid = lg.trade("S0", "BUY", 1, 100, "2026-10-26T19:00:00+00:00")
+>       rep = ck.run_final_snapshot(tmp_path, lg.path, now=lambda: st_["snapshot_at"] + timedelta(hours=1))
+
+s1_tests\test_s1_checkpoint_7b.py:360: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_backdated_row_after_a_fai0')
+live_db = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_backdated_row_after_a_fai0/s1_ledger.sqlite3')
+now = <function test_backdated_row_after_a_failed_attempt_is_still_recorded_and_never_retried_away.<locals>.<lambda> at 0x000001294050BE20>
+
+    def run_final_snapshot(root, live_db, now=c.now_utc) -> dict:
+        """ONE acquisition-time capture after the stop into s1_out/final_snapshot/ (exclusive), fence-checked against
+        EVERY seal (§6). Never seals; no prices or PnL. Result recorded in s1_out/final_snapshot/report.json."""
+        out = Path(root) / "s1_out"
+        if not (out / "prereg.json").exists():
+            raise SystemExit("final snapshot refused: no prereg (the trial never started)")
+        t = now()
+        status, stop_close = _trial_state(out, _load(out / "prereg.json"), t)
+        d = out / "final_snapshot"
+        if d.exists():
+>           raise SystemExit("final snapshot already taken: refusing")
+E           SystemExit: final snapshot already taken: refusing
+
+s1_checkpoint.py:304: SystemExit
+_ test_opening_receipt_is_written_before_the_seal_and_attest_start_needs_both _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_opening_receipt_is_writte0')
+ledger = <conftest.Ledger object at 0x00000129567440B0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000129567452B0>
+
+    def test_opening_receipt_is_written_before_the_seal_and_attest_start_needs_both(tmp_path, ledger, monkeypatch):
+        """Task 7b (controller rulings), concern 3: a crash after the receipt write leaves a receipt without a seal;
+        attest_start refuses ("opening seal"); the next opening run seals and keeps the matching receipt."""
+        opening_ready(tmp_path, ledger)
+        out = tmp_path / "s1_out"
+        _crash_in_seal_write(monkeypatch)
+        with pytest.raises(RuntimeError):
+            opening(tmp_path, ledger, minutes=45)
+        monkeypatch.undo()
+>       assert read(out / "opening_receipt.json") == S1_RECEIPT and not (out / "seals" / f"{OPEN_DAY}.json").exists()
+
+s1_tests\test_s1_checkpoint_7b.py:384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_checkpoint_7b.py:25: in read
+    return json.loads(p.read_text(encoding="utf-8"))
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_opening_receipt_is_writte0/s1_out/opening_receipt.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-10783\\test_opening_receipt_is_writte0\\s1_out\\opening_receipt.json'
+
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+___ test_opening_run_refuses_when_a_stored_receipt_differs_from_its_receipt ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10783/test_opening_run_refuses_when_0')
+ledger = <conftest.Ledger object at 0x000001293F502600>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001293F502330>
+
+    def test_opening_run_refuses_when_a_stored_receipt_differs_from_its_receipt(tmp_path, ledger, monkeypatch):
+        """Task 7b (controller rulings), concern 3: a leftover receipt is kept only if it matches; otherwise refuse."""
+        opening_ready(tmp_path, ledger)
+        out = tmp_path / "s1_out"
+        other = dict(S1_RECEIPT, head="other")
+        _crash_in_seal_write(monkeypatch)
+        with pytest.raises(RuntimeError):
+            opening(tmp_path, ledger, minutes=45, receipt=other)
+        monkeypatch.undo()
+>       with pytest.raises(SystemExit, match="opening_receipt"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_checkpoint_7b.py:406: Failed
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_writes_once_after_the_stop_and_never_seals
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_score_ack_binds_the_final_snapshot_report_and_an_edit_after_the_ack_is_refused
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_score_ack_final_snapshot_is_absent_when_none_exists
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_failed_final_capture_is_preserved_and_a_later_run_succeeds
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_backdated_row_after_a_failed_attempt_is_still_recorded_and_never_retried_away
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_receipt_is_written_before_the_seal_and_attest_start_needs_both
+FAILED s1_tests/test_s1_checkpoint_7b.py::test_opening_run_refuses_when_a_stored_receipt_differs_from_its_receipt
+8 failed, 20 passed in 29.96s

@@ -1,0 +1,37 @@
+== s1_tests/test_s1_checkpoint_7b.py
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-8.3.3, pluggy-1.6.0 -- C:\Users\gl450\.coordination\trading_app\testenv\Scripts\python.exe
+hypothesis profile 'default' -> database=DirectoryBasedExampleDatabase(WindowsPath('C:/Users/gl450/trading_app-s1/research/s1/.hypothesis/examples'))
+rootdir: C:\Users\gl450\trading_app-s1\research\s1
+plugins: anyio-4.15.1, hypothesis-6.112.1
+collecting ... collected 22 items
+
+s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_seals_the_opening_close_from_plan_and_audit_without_prereg PASSED [  4%]
+s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot[scheduled0] PASSED [  9%]
+s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot[scheduled1] PASSED [ 13%]
+s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot[scheduled2] PASSED [ 18%]
+s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_an_incomplete_audit[outcome] PASSED [ 22%]
+s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_an_incomplete_audit[calendar_hash] PASSED [ 27%]
+s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_an_incomplete_audit[no_manifest] PASSED [ 31%]
+s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_wrong_opening_close PASSED [ 36%]
+s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_second_run_once_the_opening_seal_exists PASSED [ 40%]
+s1_tests/test_s1_checkpoint_7b.py::test_opening_inconsistent_capture_does_not_seal_rerun_refused_retry_slot_seals PASSED [ 45%]
+s1_tests/test_s1_checkpoint_7b.py::test_opening_late_capture_does_not_seal PASSED [ 50%]
+s1_tests/test_s1_checkpoint_7b.py::test_attest_start_binds_the_opening_receipt_and_refuses_a_different_one PASSED [ 54%]
+s1_tests/test_s1_checkpoint_7b.py::test_attest_start_refuses_when_the_opening_receipt_differs_from_the_seal PASSED [ 59%]
+s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_refuses_without_prereg_and_while_running PASSED [ 63%]
+s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_after_a_recorded_abort_is_taken PASSED [ 68%]
+s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_writes_once_after_the_stop_and_never_seals PASSED [ 72%]
+s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_records_a_backdated_row_and_score_is_aborted_invalid PASSED [ 77%]
+s1_tests/test_s1_checkpoint_7b.py::test_score_refuses_with_no_output_when_the_final_snapshot_is_missing PASSED [ 81%]
+s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid PASSED [ 86%]
+s1_tests/test_s1_checkpoint_7b.py::test_full_synthetic_lifecycle_uses_the_real_opening_seal_and_final_snapshot PASSED [ 90%]
+s1_tests/test_s1_checkpoint_7b.py::test_no_valid_seal_trial_can_take_its_final_snapshot PASSED [ 95%]
+s1_tests/test_s1_checkpoint_7b.py::test_cli_takes_exactly_one_mode PASSED [100%]
+
+============================= 22 passed in 19.71s =============================
+
+== full suite: s1_tests
+........................................................................ [ 83%]
+...........................................                              [100%]
+259 passed in 165.97s (0:02:45)
