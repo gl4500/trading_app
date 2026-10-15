@@ -1,0 +1,244 @@
+..........FFFFFFFFF..FF                                                  [100%]
+================================== FAILURES ===================================
+______________ test_oversell_past_position_is_anomaly_not_raise _______________
+
+    def test_oversell_past_position_is_anomaly_not_raise():
+        """Retrospective (Task 2 review fix round 1): I-1. Economic book accepts the SELL; operational book reports it."""
+        t = [tr(1, "A", "BUY", 10, 50, 5), tr(2, "A", "SELL", 9.9995, 55, 6), tr(3, "A", "SELL", 0.0005, 55, 7)]
+        lots = b.economic_lots(t, b.rows(t)[-1]["ts"])
+        assert float(next(l for l in lots if l["id"] == 1)["rem_qty"]) == 0.0
+>       op = b.operational_replay(t)
+
+s1_tests\test_s1_books.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+trades = [{'action': 'BUY', 'id': 1, 'price': 50, 'reasoning_sha256': '00000000000000000000000000000000000000000000000000000000...L', 'id': 3, 'price': 55, 'reasoning_sha256': '0000000000000000000000000000000000000000000000000000000000000000', ...}]
+
+    def operational_replay(trades) -> dict:
+        qty, writeoffs = {}, []
+        for r in rows(trades):
+            s = r["symbol"]
+            if r["action"] == "BUY":
+                qty[s] = qty.get(s, 0.0) + float(r["shares"])
+            elif r["action"] == "SELL":
+                q = qty.get(s, 0.0) - float(r["shares"])
+                if q < -1e-6:
+>                   raise BookError(f"operational oversell at trade {r['id']} ({s}): {q}")
+E                   s1_books.BookError: operational oversell at trade 3 (A): -0.0005
+
+s1_books.py:26: BookError
+___________ test_operational_anomaly_key_always_present_when_clean ____________
+
+    def test_operational_anomaly_key_always_present_when_clean():
+        """Retrospective (Task 2 review fix round 1): I-1. The anomalies key exists even with no anomalies."""
+        t = [tr(1, "A", "BUY", 10, 50, 5)]
+>       assert b.operational_replay(t)["anomalies"] == []
+E       KeyError: 'anomalies'
+
+s1_tests\test_s1_books.py:110: KeyError
+_________ test_invalid_row_raises_in_every_book_function[nan-shares] __________
+
+bad = {'action': 'BUY', 'id': 1, 'price': 50, 'reasoning_sha256': '0000000000000000000000000000000000000000000000000000000000000000', ...}
+
+    @pytest.mark.parametrize("bad", [
+        tr(1, "A", "BUY", float("nan"), 50, 5),
+        tr(1, "A", "BUY", -1, 50, 5),
+        tr(1, "A", "BUY", 1, 0, 5),
+        tr(1, "A", "HOLD", 1, 50, 5),
+    ], ids=["nan-shares", "negative-shares", "zero-price", "unknown-action"])
+    def test_invalid_row_raises_in_every_book_function(bad):
+        """Retrospective (Task 2 review fix round 1): I-2. Row validation in rows() covers all four entry points."""
+>       with pytest.raises(b.BookError, match="1"):
+E       Failed: DID NOT RAISE <class 's1_books.BookError'>
+
+s1_tests\test_s1_books.py:122: Failed
+_______ test_invalid_row_raises_in_every_book_function[negative-shares] _______
+
+bad = {'action': 'BUY', 'id': 1, 'price': 50, 'reasoning_sha256': '0000000000000000000000000000000000000000000000000000000000000000', ...}
+
+    @pytest.mark.parametrize("bad", [
+        tr(1, "A", "BUY", float("nan"), 50, 5),
+        tr(1, "A", "BUY", -1, 50, 5),
+        tr(1, "A", "BUY", 1, 0, 5),
+        tr(1, "A", "HOLD", 1, 50, 5),
+    ], ids=["nan-shares", "negative-shares", "zero-price", "unknown-action"])
+    def test_invalid_row_raises_in_every_book_function(bad):
+        """Retrospective (Task 2 review fix round 1): I-2. Row validation in rows() covers all four entry points."""
+>       with pytest.raises(b.BookError, match="1"):
+E       Failed: DID NOT RAISE <class 's1_books.BookError'>
+
+s1_tests\test_s1_books.py:122: Failed
+_________ test_invalid_row_raises_in_every_book_function[zero-price] __________
+
+bad = {'action': 'BUY', 'id': 1, 'price': 0, 'reasoning_sha256': '0000000000000000000000000000000000000000000000000000000000000000', ...}
+
+    @pytest.mark.parametrize("bad", [
+        tr(1, "A", "BUY", float("nan"), 50, 5),
+        tr(1, "A", "BUY", -1, 50, 5),
+        tr(1, "A", "BUY", 1, 0, 5),
+        tr(1, "A", "HOLD", 1, 50, 5),
+    ], ids=["nan-shares", "negative-shares", "zero-price", "unknown-action"])
+    def test_invalid_row_raises_in_every_book_function(bad):
+        """Retrospective (Task 2 review fix round 1): I-2. Row validation in rows() covers all four entry points."""
+>       with pytest.raises(b.BookError, match="1"):
+E       Failed: DID NOT RAISE <class 's1_books.BookError'>
+
+s1_tests\test_s1_books.py:122: Failed
+_______ test_invalid_row_raises_in_every_book_function[unknown-action] ________
+
+bad = {'action': 'HOLD', 'id': 1, 'price': 50, 'reasoning_sha256': '0000000000000000000000000000000000000000000000000000000000000000', ...}
+
+    @pytest.mark.parametrize("bad", [
+        tr(1, "A", "BUY", float("nan"), 50, 5),
+        tr(1, "A", "BUY", -1, 50, 5),
+        tr(1, "A", "BUY", 1, 0, 5),
+        tr(1, "A", "HOLD", 1, 50, 5),
+    ], ids=["nan-shares", "negative-shares", "zero-price", "unknown-action"])
+    def test_invalid_row_raises_in_every_book_function(bad):
+        """Retrospective (Task 2 review fix round 1): I-2. Row validation in rows() covers all four entry points."""
+        with pytest.raises(b.BookError, match="1"):
+            b.operational_replay([bad])
+        with pytest.raises(b.BookError, match="1"):
+            b.consistency([bad], {})
+        with pytest.raises(b.BookError, match="1"):
+            b.economic_lots([bad], ENDPOINT)
+>       with pytest.raises(b.BookError, match="1"):
+E       Failed: DID NOT RAISE <class 's1_books.BookError'>
+
+s1_tests\test_s1_books.py:128: Failed
+________________ test_in_tolerance_oversell_is_not_a_writeoff _________________
+
+    def test_in_tolerance_oversell_is_not_a_writeoff():
+        """Retrospective (Task 2 review fix round 1): M-1. A within-tolerance oversell zeroes the position, no entry."""
+        t = [tr(1, "A", "BUY", 10, 50, 5), tr(2, "A", "SELL", 10.0000005, 55, 6)]
+        op = b.operational_replay(t)
+>       assert op["writeoffs"] == [] and op["anomalies"] == [] and op["qty"] == {}
+E       AssertionError: assert ([{'id': 2, 'q...symbol': 'A'}] == []
+E         
+E         Left contains one more item: {'id': 2, 'qty': -5.000000005139782e-07, 'symbol': 'A'}
+E         Use -v to get more diff)
+
+s1_tests\test_s1_books.py:136: AssertionError
+_________ test_oversell_at_tolerance_boundary_accepted_by_both_books __________
+
+    def test_oversell_at_tolerance_boundary_accepted_by_both_books():
+        """Retrospective (Task 2 review fix round 1): I-3. SELL exactly 1e-6 over the position is accepted."""
+        t = [tr(1, "A", "BUY", 10, 50, 5), tr(2, "A", "SELL", 10 + 1e-6, 55, 6)]
+>       assert b.operational_replay(t)["anomalies"] == []
+E       KeyError: 'anomalies'
+
+s1_tests\test_s1_books.py:142: KeyError
+________ test_oversell_past_tolerance_boundary_rejected_by_both_books _________
+
+    def test_oversell_past_tolerance_boundary_rejected_by_both_books():
+        """Retrospective (Task 2 review fix round 1): I-3. SELL 2e-6 over the position: operational anomaly, economic raise."""
+        t = [tr(1, "A", "BUY", 10, 50, 5), tr(2, "A", "SELL", 10 + 2e-6, 55, 6)]
+>       assert len(b.operational_replay(t)["anomalies"]) == 1
+
+s1_tests\test_s1_books.py:152: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+trades = [{'action': 'BUY', 'id': 1, 'price': 50, 'reasoning_sha256': '00000000000000000000000000000000000000000000000000000000...L', 'id': 2, 'price': 55, 'reasoning_sha256': '0000000000000000000000000000000000000000000000000000000000000000', ...}]
+
+    def operational_replay(trades) -> dict:
+        qty, writeoffs = {}, []
+        for r in rows(trades):
+            s = r["symbol"]
+            if r["action"] == "BUY":
+                qty[s] = qty.get(s, 0.0) + float(r["shares"])
+            elif r["action"] == "SELL":
+                q = qty.get(s, 0.0) - float(r["shares"])
+                if q < -1e-6:
+>                   raise BookError(f"operational oversell at trade {r['id']} ({s}): {q}")
+E                   s1_books.BookError: operational oversell at trade 2 (A): -2.000000000279556e-06
+
+s1_books.py:26: BookError
+_______ test_sold_events_wraps_engine_errors_as_book_error[orphan-sell] _______
+
+trades = [{'action': 'SELL', 'id': 1, 'price': 55, 'reasoning_sha256': '0000000000000000000000000000000000000000000000000000000000000000', ...}]
+
+    @pytest.mark.parametrize("trades", [
+        [tr(1, "A", "SELL", 0.0000005, 55, 6)],
+        [tr(1, "A", "BUY", 1, 50, 5), tr(2, "A", "SELL", 1.01, 55, 6)],
+    ], ids=["orphan-sell", "engine-oversell"])
+    def test_sold_events_wraps_engine_errors_as_book_error(trades):
+        """Retrospective (Task 2 review fix round 1): M-2. sold_events raises BookError like economic_lots."""
+>       with pytest.raises(b.BookError):
+E       Failed: DID NOT RAISE <class 's1_books.BookError'>
+
+s1_tests\test_s1_books.py:174: Failed
+_____ test_sold_events_wraps_engine_errors_as_book_error[engine-oversell] _____
+
+trades = [{'action': 'BUY', 'id': 1, 'price': 50, 'reasoning_sha256': '00000000000000000000000000000000000000000000000000000000...L', 'id': 2, 'price': 55, 'reasoning_sha256': '0000000000000000000000000000000000000000000000000000000000000000', ...}]
+
+    @pytest.mark.parametrize("trades", [
+        [tr(1, "A", "SELL", 0.0000005, 55, 6)],
+        [tr(1, "A", "BUY", 1, 50, 5), tr(2, "A", "SELL", 1.01, 55, 6)],
+    ], ids=["orphan-sell", "engine-oversell"])
+    def test_sold_events_wraps_engine_errors_as_book_error(trades):
+        """Retrospective (Task 2 review fix round 1): M-2. sold_events raises BookError like economic_lots."""
+        with pytest.raises(b.BookError):
+>           b.sold_events(trades)
+
+s1_tests\test_s1_books.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_books.py:64: in sold_events
+    lots = sim.baseline_lots(rs[: i + 1], endpoint=r["ts"], splits=[])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+rows = [{'action': 'BUY', 'id': 1, 'price': 50, 'shares': 1, ...}, {'action': 'SELL', 'id': 2, 'price': 55, 'shares': 1.01, ...}]
+endpoint = datetime.datetime(2026, 10, 16, 14, 30, tzinfo=datetime.timezone.utc)
+splits = [], orphans = None
+
+    def baseline_lots(rows, endpoint, splits, orphans=None):
+        """FIFO over ONE symbol-agnostic row list (agent's rows), reading only rows with ts <= endpoint, in
+        (timestamp, id) order. Each lot records its actual SELL allocations as fills [(qty, px)] in the then-current
+        (split-adjusted) units and its remaining quantity at the endpoint. Splits: applied to open lots when the
+        first row dated on/after the effective date is processed, and finally for effective dates <= the endpoint's
+        NY date. Oversell up to QTY_TOL is accepted (excess attributed to the last lot consumed); a remainder of at
+        most FLOAT_SNAP_SHARES closes the lot (dust written off). A SELL within QTY_TOL with NO open lot is P1's
+        unattributed proceeds: attributed to no lot, appended to `orphans` when given (reconciliation adds them)."""
+        from collections import defaultdict
+        rows = sorted((r for r in rows if r["ts"] <= endpoint), key=lambda r: (r["ts"], r["id"]))
+        lots, open_lots, applied = [], defaultdict(list), set()
+    
+        def apply_splits(upto: str):
+            for ev in splits:
+                key = (ev["symbol"], ev["date"])
+                if key in applied or ev["date"] > upto:
+                    continue
+                applied.add(key)
+                for lot in open_lots.get(ev["symbol"], []):
+                    lot["rem_qty"] *= x(ev["ratio"])
+    
+        for r in rows:
+            apply_splits(ny_date(r["ts"]))
+            qf, pf, sym = float(r["shares"]), float(r["price"]), r["symbol"]
+            if not (qf > 0 and pf > 0) or qf != qf or pf != pf or qf == float("inf") or pf == float("inf"):
+                raise ValueError(f"INVALID row {r['id']}")
+            qty, px = x(qf), x(pf)                              # exact replay (E1 numeric convention)
+            if r["action"] == "BUY":
+                lot = {"id": r["id"], "symbol": sym, "entry_ts": r["ts"], "entry_px": px, "qty": qty,
+                       "entry_notional": qty * px, "rem_qty": qty, "fills": []}
+                lots.append(lot)
+                open_lots[sym].append(lot)
+            elif r["action"] == "SELL":
+                held = sum((l["rem_qty"] for l in open_lots[sym]), Fraction(0))
+                if qty > held + x(QTY_TOL):
+>                   raise ValueError(f"INVALID oversell {r['id']}")
+E                   ValueError: INVALID oversell 2
+
+e1_sim.py:217: ValueError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_books.py::test_oversell_past_position_is_anomaly_not_raise
+FAILED s1_tests/test_s1_books.py::test_operational_anomaly_key_always_present_when_clean
+FAILED s1_tests/test_s1_books.py::test_invalid_row_raises_in_every_book_function[nan-shares]
+FAILED s1_tests/test_s1_books.py::test_invalid_row_raises_in_every_book_function[negative-shares]
+FAILED s1_tests/test_s1_books.py::test_invalid_row_raises_in_every_book_function[zero-price]
+FAILED s1_tests/test_s1_books.py::test_invalid_row_raises_in_every_book_function[unknown-action]
+FAILED s1_tests/test_s1_books.py::test_in_tolerance_oversell_is_not_a_writeoff
+FAILED s1_tests/test_s1_books.py::test_oversell_at_tolerance_boundary_accepted_by_both_books
+FAILED s1_tests/test_s1_books.py::test_oversell_past_tolerance_boundary_rejected_by_both_books
+FAILED s1_tests/test_s1_books.py::test_sold_events_wraps_engine_errors_as_book_error[orphan-sell]
+FAILED s1_tests/test_s1_books.py::test_sold_events_wraps_engine_errors_as_book_error[engine-oversell]
+11 failed, 12 passed in 1.15s
