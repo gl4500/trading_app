@@ -1,0 +1,39 @@
+.............FF                                                          [100%]
+================================== FAILURES ===================================
+________________________ test_class_style_config_keys _________________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10724/test_class_style_config_keys0')
+
+    def test_class_style_config_keys(tmp_path):
+        """Retrospective (Task 4 review fix round 2)."""
+        root = _cfg_repo(tmp_path, "import config\nx = config.config.USED\nfrom config import config as cfg\ny = cfg.USED\n",
+                         CLASS_CFG)
+        env = tmp_path / ".env"
+        env.write_text("MR_CLS_USED=1\nMR_CLS_UNUSED=1\nX_API_KEY=sekrit77\n")
+        a = r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"])
+>       assert set(a["config"]) == {"MR_CLS_USED"} and "sekrit77" not in str(a)
+E       AssertionError: assert (set() == {'MR_CLS_USED'}
+E         
+E         Extra items in the right set:
+E         'MR_CLS_USED'
+E         Use -v to get more diff)
+
+s1_tests\test_s1_receipt.py:214: AssertionError
+_____________ test_real_backend_mr_keys_include_max_position_size _____________
+
+    def test_real_backend_mr_keys_include_max_position_size():
+        """Retrospective (Task 4 review fix round 2). Read-only; key names only, no .env read, no values."""
+        be = Path("C:/Users/gl450/trading_app-s1/backend")
+        if not (be / "config.py").exists():
+            pytest.skip("real backend worktree not present (trading_app-s1/backend)")
+        rels = r.closure(be, r.MR_ROOTS)
+>       assert "MAX_POSITION_SIZE" in r._mr_config_keys(be, rels)
+E       AssertionError: assert 'MAX_POSITION_SIZE' in ['LOCALAPPDATA', 'OLLAMA_ONLY_MODE', 'PATH', 'USERPROFILE', 'W3_BATCH_SIZE', 'W3_DEVICE', ...]
+E        +  where ['LOCALAPPDATA', 'OLLAMA_ONLY_MODE', 'PATH', 'USERPROFILE', 'W3_BATCH_SIZE', 'W3_DEVICE', ...] = <function _mr_config_keys at 0x0000029019F71080>(WindowsPath('C:/Users/gl450/trading_app-s1/backend'), ['agents/__init__.py', 'agents/agent_utils.py', 'agents/base_agent.py', 'agents/claude_agent.py', 'agents/cloud_agent.py', 'agents/ensemble_agent.py', ...])
+E        +    where <function _mr_config_keys at 0x0000029019F71080> = r._mr_config_keys
+
+s1_tests\test_s1_receipt.py:227: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_receipt.py::test_class_style_config_keys - AssertionE...
+FAILED s1_tests/test_s1_receipt.py::test_real_backend_mr_keys_include_max_position_size
+2 failed, 13 passed in 5.24s

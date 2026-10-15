@@ -1,0 +1,163 @@
+....FFFFFFFFF                                                            [100%]
+================================== FAILURES ===================================
+_____________________ test_closure_includes_package_init ______________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10720/test_closure_includes_package_0')
+
+    def test_closure_includes_package_init(tmp_path):
+        """Retrospective (Task 4 review fix round 1)."""
+        root = repo(tmp_path)
+        be = root / "backend"
+        (be / "agents" / "__init__.py").write_text("from agents import helper\n")
+        (be / "agents" / "helper.py").write_text("H = 1\n")
+        (be / "trading" / "__init__.py").write_text("")
+        got = r.closure(be, ["agents/mean_reversion_agent.py"])
+>       assert "agents/__init__.py" in got and "trading/__init__.py" in got and "agents/helper.py" in got
+E       AssertionError: assert ('agents/__init__.py' in ['agents/base_agent.py', 'agents/mean_reversion_agent.py', 'config.py', 'trading/portfolio.py'])
+
+s1_tests\test_s1_receipt.py:77: AssertionError
+_______________________ test_from_package_import_module _______________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10720/test_from_package_import_modul0')
+
+    def test_from_package_import_module(tmp_path):
+        """Retrospective (Task 4 review fix round 1)."""
+        root = repo(tmp_path)
+        be = root / "backend"
+        (be / "data").mkdir()
+        (be / "data" / "technicals.py").write_text("T = 1\n")
+        (be / "agents" / "mean_reversion_agent.py").write_text("from data import technicals\n")
+>       assert "data/technicals.py" in r.closure(be, ["agents/mean_reversion_agent.py"])
+E       AssertionError: assert 'data/technicals.py' in ['agents/mean_reversion_agent.py']
+E        +  where ['agents/mean_reversion_agent.py'] = <function closure at 0x000001D112109120>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10720/test_from_package_import_modul0/backend'), ['agents/mean_reversion_agent.py'])
+E        +    where <function closure at 0x000001D112109120> = r.closure
+
+s1_tests\test_s1_receipt.py:90: AssertionError
+_______________ test_relative_import_followed_and_escape_raises _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10720/test_relative_import_followed_0')
+
+    def test_relative_import_followed_and_escape_raises(tmp_path):
+        """Retrospective (Task 4 review fix round 1)."""
+        root = repo(tmp_path)
+        be = root / "backend"
+        (be / "agents" / "mean_reversion_agent.py").write_text("from . import base_agent\nfrom .base_agent import B\n")
+        got = r.closure(be, ["agents/mean_reversion_agent.py"])
+>       assert "agents/base_agent.py" in got and "trading/portfolio.py" in got
+E       AssertionError: assert ('agents/base_agent.py' in ['agents/mean_reversion_agent.py'])
+
+s1_tests\test_s1_receipt.py:99: AssertionError
+__________________________ test_missing_root_raises ___________________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10720/test_missing_root_raises0')
+
+    def test_missing_root_raises(tmp_path):
+        """Retrospective (Task 4 review fix round 1)."""
+        root = repo(tmp_path)
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+s1_tests\test_s1_receipt.py:111: Failed
+_______________ test_config_only_mr_used_names_and_unset_marker _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10720/test_config_only_mr_used_names0')
+
+    def test_config_only_mr_used_names_and_unset_marker(tmp_path):
+        """Retrospective (Task 4 review fix round 1)."""
+        root = _cfg_repo(tmp_path, "import config\nx = config.USED\ny = config.SEC\nimport os\n"
+                         "z = os.environ.get('MR_DIRECT')\nfrom config import SUB\n", CFG)
+        env = tmp_path / ".env"
+        env.write_text("MR_USED=3\nMR_UNUSED=9\nSOME_API_KEY=topsecret1\nMR_SUB=s\n")
+        a = r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"])
+>       assert set(a["config"]) == {"MR_USED", "MR_SUB", "MR_DIRECT"}
+E       AssertionError: assert {'MR_UNUSED', 'MR_USED'} == {'MR_DIRECT',...B', 'MR_USED'}
+E         
+E         Extra items in the left set:
+E         'MR_UNUSED'
+E         Extra items in the right set:
+E         'MR_SUB'
+E         'MR_DIRECT'
+E         Use -v to get more diff
+
+s1_tests\test_s1_receipt.py:134: AssertionError
+_________________ test_dirty_lists_any_extension_and_renames __________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10720/test_dirty_lists_any_extension0')
+
+    def test_dirty_lists_any_extension_and_renames(tmp_path):
+        """Retrospective (Task 4 review fix round 1)."""
+        root = repo(tmp_path)
+        be = root / "backend"
+        (be / "data").mkdir()
+        (be / "data" / "x.json").write_text("{}")
+        _git_commit(root)
+        (be / "data" / "x.json").write_text('{"a":1}')
+        subprocess.run(["git", "-C", str(root), "mv", "backend/trading/portfolio.py", "backend/trading/pf2.py"],
+                       check=True)
+        (tmp_path / "outside.txt").write_text("o")
+        d = r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"])["dirty"]
+>       assert "backend/data/x.json" in d and "backend/trading/pf2.py" in d and "backend/trading/portfolio.py" in d
+E       AssertionError: assert ('backend/data/x.json' in ['backend/trading/portfolio.py -> backend/trading/pf2.py'])
+
+s1_tests\test_s1_receipt.py:155: AssertionError
+____________________ test_versions_skipped_when_no_runtime ____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10720/test_versions_skipped_when_no_0')
+
+    def test_versions_skipped_when_no_runtime(tmp_path):
+        """Retrospective (Task 4 review fix round 1)."""
+        root = repo(tmp_path)
+>       assert r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"])["versions"] == {
+            "skipped": True}
+E       AssertionError: assert {} == {'skipped': True}
+E         
+E         Right contains 1 more item:
+E         {'skipped': True}
+E         Use -v to get more diff
+
+s1_tests\test_s1_receipt.py:162: AssertionError
+__________________ test_process_identity_errors_never_empty ___________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001D112A39F70>
+
+    def test_process_identity_errors_never_empty(monkeypatch):
+        """Retrospective (Task 4 review fix round 1)."""
+        class P:
+            def __init__(self, rc, out):
+                self.returncode, self.stdout = rc, out
+    
+        monkeypatch.setattr(r.subprocess, "run", lambda *a, **k: P(1, ""))
+>       assert r.process_identity() == {"error": "exit 1"}
+E       AssertionError: assert {} == {'error': 'exit 1'}
+E         
+E         Right contains 1 more item:
+E         {'error': 'exit 1'}
+E         Use -v to get more diff
+
+s1_tests\test_s1_receipt.py:173: AssertionError
+_______________________ test_crash_log_rewrite_detected _______________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10720/test_crash_log_rewrite_detecte0')
+
+    def test_crash_log_rewrite_detected(tmp_path):
+        """Retrospective (Task 4 review fix round 1)."""
+        log = tmp_path / "crash.log"
+        log.write_text("2026-10-12 23:17:37 [PROCESS START] pid=1\n")
+        o1 = {"pid": 1, "process_start": "s", "record": r.restart_record(log)}
+        size = o1["record"]["size"]
+        log.write_text("2026-10-12 23:17:37 [PROCESS START] pid=7\n")           # same size, different bytes
+>       o2 = {"pid": 1, "process_start": "s", "record": r.restart_record(log, prev_size=size)}
+E       TypeError: restart_record() got an unexpected keyword argument 'prev_size'
+
+s1_tests\test_s1_receipt.py:191: TypeError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_receipt.py::test_closure_includes_package_init - Asse...
+FAILED s1_tests/test_s1_receipt.py::test_from_package_import_module - Asserti...
+FAILED s1_tests/test_s1_receipt.py::test_relative_import_followed_and_escape_raises
+FAILED s1_tests/test_s1_receipt.py::test_missing_root_raises - Failed: DID NO...
+FAILED s1_tests/test_s1_receipt.py::test_config_only_mr_used_names_and_unset_marker
+FAILED s1_tests/test_s1_receipt.py::test_dirty_lists_any_extension_and_renames
+FAILED s1_tests/test_s1_receipt.py::test_versions_skipped_when_no_runtime - A...
+FAILED s1_tests/test_s1_receipt.py::test_process_identity_errors_never_empty
+FAILED s1_tests/test_s1_receipt.py::test_crash_log_rewrite_detected - TypeErr...
+9 failed, 4 passed in 2.83s
