@@ -1,0 +1,490 @@
+...............FFFFFFF.FFFFFFFFFFFFFF                                    [100%]
+================================== FAILURES ===================================
+___ test_write_plan_requires_aware_start_a_week_ahead_and_records_deadline ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_write_plan_requires_aware0')
+
+    def test_write_plan_requires_aware_start_a_week_ahead_and_records_deadline(tmp_path):
+        """Retrospective (Task 6 review fix round 1): I-5."""
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+s1_tests\test_s1_collect.py:307: Failed
+______________ test_audit_aborts_on_bad_calendar[<lambda>-empty] ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_aborts_on_bad_calen0')
+mutate = <function <lambda> at 0x000001AB061C39C0>, why = 'empty'
+
+    @pytest.mark.parametrize("mutate,why", [
+        (lambda cal: [], "empty"),
+        (lambda cal: [x for x in cal if x["date"] != "2026-11-02"], "START not a session"),
+        (lambda cal: [dict(x, open="10:30") if x["date"] == "2026-11-02" else x for x in cal], "START not the open"),
+        (lambda cal: [x for x in cal if not ("2026-10-21" <= x["date"] <= "2026-10-27")], "fewer than 5 sessions"),
+        (lambda cal: [x for x in cal if x["date"] <= "2027-04-30"], "short of deadline + 3 sessions"),
+        (lambda cal: {"not": "a list"}, "wrong shape"),
+    ])
+    def test_audit_aborts_on_bad_calendar(tmp_path, mutate, why):
+        """Retrospective (Task 6 review fix round 1): I-5 + I-1 (ABORTED manifest, pages kept)."""
+        cl = audit_with_calendar(tmp_path, mutate(full_calendar()))
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:328: Failed
+_______ test_audit_aborts_on_bad_calendar[<lambda>-START not a session] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_aborts_on_bad_calen1')
+mutate = <function <lambda> at 0x000001AB061C3A60>, why = 'START not a session'
+
+    @pytest.mark.parametrize("mutate,why", [
+        (lambda cal: [], "empty"),
+        (lambda cal: [x for x in cal if x["date"] != "2026-11-02"], "START not a session"),
+        (lambda cal: [dict(x, open="10:30") if x["date"] == "2026-11-02" else x for x in cal], "START not the open"),
+        (lambda cal: [x for x in cal if not ("2026-10-21" <= x["date"] <= "2026-10-27")], "fewer than 5 sessions"),
+        (lambda cal: [x for x in cal if x["date"] <= "2027-04-30"], "short of deadline + 3 sessions"),
+        (lambda cal: {"not": "a list"}, "wrong shape"),
+    ])
+    def test_audit_aborts_on_bad_calendar(tmp_path, mutate, why):
+        """Retrospective (Task 6 review fix round 1): I-5 + I-1 (ABORTED manifest, pages kept)."""
+        cl = audit_with_calendar(tmp_path, mutate(full_calendar()))
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:328: Failed
+_______ test_audit_aborts_on_bad_calendar[<lambda>-START not the open] ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_aborts_on_bad_calen2')
+mutate = <function <lambda> at 0x000001AB061C3B00>, why = 'START not the open'
+
+    @pytest.mark.parametrize("mutate,why", [
+        (lambda cal: [], "empty"),
+        (lambda cal: [x for x in cal if x["date"] != "2026-11-02"], "START not a session"),
+        (lambda cal: [dict(x, open="10:30") if x["date"] == "2026-11-02" else x for x in cal], "START not the open"),
+        (lambda cal: [x for x in cal if not ("2026-10-21" <= x["date"] <= "2026-10-27")], "fewer than 5 sessions"),
+        (lambda cal: [x for x in cal if x["date"] <= "2027-04-30"], "short of deadline + 3 sessions"),
+        (lambda cal: {"not": "a list"}, "wrong shape"),
+    ])
+    def test_audit_aborts_on_bad_calendar(tmp_path, mutate, why):
+        """Retrospective (Task 6 review fix round 1): I-5 + I-1 (ABORTED manifest, pages kept)."""
+        cl = audit_with_calendar(tmp_path, mutate(full_calendar()))
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:328: Failed
+______ test_audit_aborts_on_bad_calendar[<lambda>-fewer than 5 sessions] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_aborts_on_bad_calen3')
+mutate = <function <lambda> at 0x000001AB061C3BA0>
+why = 'fewer than 5 sessions'
+
+    @pytest.mark.parametrize("mutate,why", [
+        (lambda cal: [], "empty"),
+        (lambda cal: [x for x in cal if x["date"] != "2026-11-02"], "START not a session"),
+        (lambda cal: [dict(x, open="10:30") if x["date"] == "2026-11-02" else x for x in cal], "START not the open"),
+        (lambda cal: [x for x in cal if not ("2026-10-21" <= x["date"] <= "2026-10-27")], "fewer than 5 sessions"),
+        (lambda cal: [x for x in cal if x["date"] <= "2027-04-30"], "short of deadline + 3 sessions"),
+        (lambda cal: {"not": "a list"}, "wrong shape"),
+    ])
+    def test_audit_aborts_on_bad_calendar(tmp_path, mutate, why):
+        """Retrospective (Task 6 review fix round 1): I-5 + I-1 (ABORTED manifest, pages kept)."""
+        cl = audit_with_calendar(tmp_path, mutate(full_calendar()))
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:328: Failed
+_ test_audit_aborts_on_bad_calendar[<lambda>-short of deadline + 3 sessions] __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_aborts_on_bad_calen4')
+mutate = <function <lambda> at 0x000001AB061C3C40>
+why = 'short of deadline + 3 sessions'
+
+    @pytest.mark.parametrize("mutate,why", [
+        (lambda cal: [], "empty"),
+        (lambda cal: [x for x in cal if x["date"] != "2026-11-02"], "START not a session"),
+        (lambda cal: [dict(x, open="10:30") if x["date"] == "2026-11-02" else x for x in cal], "START not the open"),
+        (lambda cal: [x for x in cal if not ("2026-10-21" <= x["date"] <= "2026-10-27")], "fewer than 5 sessions"),
+        (lambda cal: [x for x in cal if x["date"] <= "2027-04-30"], "short of deadline + 3 sessions"),
+        (lambda cal: {"not": "a list"}, "wrong shape"),
+    ])
+    def test_audit_aborts_on_bad_calendar(tmp_path, mutate, why):
+        """Retrospective (Task 6 review fix round 1): I-5 + I-1 (ABORTED manifest, pages kept)."""
+        cl = audit_with_calendar(tmp_path, mutate(full_calendar()))
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:328: Failed
+___________ test_audit_aborts_on_bad_calendar[<lambda>-wrong shape] ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_aborts_on_bad_calen5')
+mutate = <function <lambda> at 0x000001AB061C3CE0>, why = 'wrong shape'
+
+    @pytest.mark.parametrize("mutate,why", [
+        (lambda cal: [], "empty"),
+        (lambda cal: [x for x in cal if x["date"] != "2026-11-02"], "START not a session"),
+        (lambda cal: [dict(x, open="10:30") if x["date"] == "2026-11-02" else x for x in cal], "START not the open"),
+        (lambda cal: [x for x in cal if not ("2026-10-21" <= x["date"] <= "2026-10-27")], "fewer than 5 sessions"),
+        (lambda cal: [x for x in cal if x["date"] <= "2027-04-30"], "short of deadline + 3 sessions"),
+        (lambda cal: {"not": "a list"}, "wrong shape"),
+    ])
+    def test_audit_aborts_on_bad_calendar(tmp_path, mutate, why):
+        """Retrospective (Task 6 review fix round 1): I-5 + I-1 (ABORTED manifest, pages kept)."""
+        cl = audit_with_calendar(tmp_path, mutate(full_calendar()))
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:328: Failed
+___________ test_audit_midrun_http_failure_writes_aborted_manifest ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_midrun_http_failure0')
+
+    def test_audit_midrun_http_failure_writes_aborted_manifest(tmp_path):
+        """Retrospective (Task 6 review fix round 1): I-1."""
+        planned(tmp_path)
+    
+        def handler(req):
+            if "calendar" in str(req.url):
+                return httpx.Response(200, json=full_calendar())
+            return httpx.Response(429, text="slow down " + KEYS[1])
+        with pytest.raises(SystemExit):
+>           k.do_audit(tmp_path, "a1", httpx.Client(transport=httpx.MockTransport(handler)), KEYS)
+
+s1_tests\test_s1_collect.py:354: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_collect.py:172: in do_audit
+    actions, problems = _corporate_actions(client, keys, plan["ca_symbols"], plan["ca_range"][0],
+s1_collect.py:154: in _corporate_actions
+    for page in _paged(client, CA_URL, base, _headers(keys), pages_dir / f"ca_{i // 50:03d}",
+s1_collect.py:110: in _paged
+    data = _get(client, url, params, headers, prefix.with_name(f"{prefix.name}_page{n:03d}.json"), created)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+client = <httpx.Client object at 0x000001AB0623F5C0>
+url = 'https://data.alpaca.markets/v1/corporate-actions'
+params = {'end': '2026-11-02', 'limit': 1000, 'start': '2026-03-17', 'symbols': 'A'}
+headers = {'APCA-API-KEY-ID': 'KEYID-dummy-123', 'APCA-API-SECRET-KEY': 'SECRET-dummy-456'}
+page_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_midrun_http_failure0/s1_out/audit/pages/ca_000_page000.json')
+created = [WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_midrun_http_failure0/s1_out/au...pData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_midrun_http_failure0/s1_out/audit/pages/ca_000_page000.json')]
+
+    def _get(client, url, params, headers, page_path: Path, created):
+        try:
+            resp = client.get(url, params=params, headers=headers)
+        except Exception as e:                                                # transport failure: no secrets in text
+            raise Structural(f"{page_path.name}: transport error {type(e).__name__}")
+        _write_page(page_path, resp.content, created)
+        if resp.status_code != 200:
+>           raise Structural(f"{page_path.name}: HTTP {resp.status_code}")
+E           s1_collect.Structural: ca_000_page000.json: HTTP 429
+
+s1_collect.py:99: Structural
+________________ test_foreign_exception_records_type_name_only ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_foreign_exception_records0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AB062D2B70>
+
+    def test_foreign_exception_records_type_name_only(tmp_path, monkeypatch):
+        """Retrospective (Task 6 review fix round 1): I-1 - non-Structural error text is never recorded."""
+        planned(tmp_path)
+    
+        def boom(*a, **kw):
+            raise RuntimeError(KEYS[1])
+        monkeypatch.setattr(k, "_corporate_actions", boom)
+        with pytest.raises(SystemExit) as e:
+>           k.do_audit(tmp_path, "a1", client([]), KEYS)
+
+s1_tests\test_s1_collect.py:373: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_collect.py:172: in do_audit
+    actions, problems = _corporate_actions(client, keys, plan["ca_symbols"], plan["ca_range"][0],
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = (<httpx.Client object at 0x000001AB062D2600>, ('KEYID-dummy-123', 'SECRET-dummy-456'), ['A'], '2026-03-17', '2026-11-0.../Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_foreign_exception_records0/s1_out/audit/pages'), ...)
+kw = {}
+
+    def boom(*a, **kw):
+>       raise RuntimeError(KEYS[1])
+E       RuntimeError: SECRET-dummy-456
+
+s1_tests\test_s1_collect.py:370: RuntimeError
+______________ test_e1_structural_from_ca_validation_is_recorded ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_e1_structural_from_ca_val0')
+
+    def test_e1_structural_from_ca_validation_is_recorded(tmp_path):
+        """Retrospective (Task 6 review fix round 1): I-1/M-2 - the pinned collector's Structural is caught too."""
+        planned(tmp_path)
+    
+        def handler(req):
+            if "calendar" in str(req.url):
+                return httpx.Response(200, json=full_calendar())
+            return httpx.Response(200, json={"corporate_actions": []})
+        with pytest.raises(SystemExit):
+>           k.do_audit(tmp_path, "a1", httpx.Client(transport=httpx.MockTransport(handler)), KEYS)
+
+s1_tests\test_s1_collect.py:389: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_collect.py:172: in do_audit
+    actions, problems = _corporate_actions(client, keys, plan["ca_symbols"], plan["ca_range"][0],
+s1_collect.py:154: in _corporate_actions
+    for page in _paged(client, CA_URL, base, _headers(keys), pages_dir / f"ca_{i // 50:03d}",
+s1_collect.py:112: in _paged
+    validate(data, f"{prefix.name}_page{n:03d}")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = {'corporate_actions': []}, where = 'ca_000_page000'
+
+    def validate_ca_page(data, where) -> None:
+        if not isinstance(data, dict) or "corporate_actions" not in data or "next_page_token" not in data:
+>           raise Structural(f"{where}: corporate-actions root malformed")
+E           e1_fetch_pinned.Structural: ca_000_page000: corporate-actions root malformed
+
+e1_fetch.py:330: Structural
+_________ test_audit_manifest_hashes_pages_coverage_limits_and_params _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_audit_manifest_hashes_pag0')
+
+    def test_audit_manifest_hashes_pages_coverage_limits_and_params(tmp_path):
+        """Retrospective (Task 6 review fix round 1): I-4, I-7."""
+        planned(tmp_path)
+        reqs = []
+    
+        def handler(req):
+            reqs.append(req)
+            if "calendar" in str(req.url):
+                return httpx.Response(200, json=full_calendar())
+            return httpx.Response(200, json={"corporate_actions": {}, "next_page_token": None})
+        m = k.do_audit(tmp_path, "a1", httpx.Client(transport=httpx.MockTransport(handler)), KEYS)
+        out = tmp_path / "s1_out"
+>       assert set(m["pages"]) == {"audit/pages/calendar.json", "audit/pages/ca_000_page000.json"}
+E       AssertionError: assert {'C:\\Users\\...alendar.json'} == {'audit/pages...alendar.json'}
+E         
+E         Extra items in the left set:
+E         'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-10741\\test_audit_manifest_hashes_pag0\\s1_out\\audit\\pages\\ca_000_page000.json'
+E         'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-10741\\test_audit_manifest_hashes_pag0\\s1_out\\audit\\pages\\calendar.json'
+E         Extra items in the right set:
+E         'audit/pages/ca_000_page000.json'
+E         'audit/pages/calendar.json'
+E         Use -v to get more diff
+
+s1_tests\test_s1_collect.py:406: AssertionError
+___________________ test_final_lag_refused_before_reserving ___________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_final_lag_refused_before_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AB062BCB90>
+
+    def test_final_lag_refused_before_reserving(tmp_path, monkeypatch):
+        """Retrospective (Task 6 review fix round 1): I-2 - 3rd session after the stop closes 2026-10-30 20:00Z."""
+        final_setup(tmp_path, monkeypatch, now=datetime(2026, 10, 30, 19, 59, tzinfo=UTC))
+        calls = []
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:422: Failed
+_______ test_final_lag_refused_when_calendar_lacks_three_later_sessions _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_final_lag_refused_when_ca0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AB062BC260>
+
+    def test_final_lag_refused_when_calendar_lacks_three_later_sessions(tmp_path, monkeypatch):
+        """Retrospective (Task 6 review fix round 1): I-2."""
+        final_setup(tmp_path, monkeypatch)
+        pr = tmp_path / "s1_out" / "prereg.json"
+        pr.write_text(json.dumps({"start": "2026-10-26T13:30:00+00:00", "calendar": weekdays("2026-10-26", "2026-10-29")}))
+        mailbox(tmp_path, "f9", k.ACQUIRE_ACK.format(collector=k.collector_sha(),
+                                                     plan=s1_common.sha256_file(tmp_path / "s1_out" / "final_plan.json"),
+                                                     prereg=s1_common.sha256_file(pr)))
+        calls = []
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:440: Failed
+_______________ test_final_request_params_windows_and_manifest ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_final_request_params_wind0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AB062BCC20>
+
+    def test_final_request_params_windows_and_manifest(tmp_path, monkeypatch):
+        """Retrospective (Task 6 review fix round 1): I-3, I-4, I-7, I-8."""
+        calls, cl = run_final(tmp_path, monkeypatch, bars_handler)
+        m = k.do_final(tmp_path, "f1", cl, KEYS)
+        b = [r for r in calls if "/bars" in str(r.url)][0].url.params
+>       assert b["start"] == "2026-10-26T04:00:00Z"                               # NY midnight of START's session (EDT)
+E       AssertionError: assert '2026-10-26T13:30:00+00:00' == '2026-10-26T04:00:00Z'
+E         
+E         - 2026-10-26T04:00:00Z
+E         ?             -      -
+E         + 2026-10-26T13:30:00+00:00
+E         ?            ++++  +++
+
+s1_tests\test_s1_collect.py:450: AssertionError
+_________________________ test_final_ack_binds_prereg _________________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_final_ack_binds_prereg0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AB062BFD10>
+
+    def test_final_ack_binds_prereg(tmp_path, monkeypatch):
+        """Retrospective (Task 6 review fix round 1): I-8 - a prereg changed after the ACK is refused, no request."""
+        final_setup(tmp_path, monkeypatch)
+        pr = tmp_path / "s1_out" / "prereg.json"
+        pr.write_text(pr.read_text() + " ")
+        calls = []
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:473: Failed
+_________ test_final_aborts_on_structurally_bad_bars_page[<lambda>0] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_final_aborts_on_structura0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AB062BDF70>
+mutate = <function <lambda> at 0x000001AB061F0400>
+
+    @pytest.mark.parametrize("mutate", [
+        lambda page: {"bars": page["bars"]},                                          # next_page_token missing
+        lambda page: dict(page, next_page_token=""),                                  # malformed token
+        lambda page: {"bars": None, "next_page_token": None},
+        lambda page: {"bars": {"A": [{"o": 1, "h": 1, "l": 1, "c": 1}]}, "next_page_token": None},      # no t
+        lambda page: {"bars": {"A": [dict(good_bars()[0], c=True)]}, "next_page_token": None},          # bool price
+    ])
+    def test_final_aborts_on_structurally_bad_bars_page(tmp_path, monkeypatch, mutate):
+        """Retrospective (Task 6 review fix round 1): I-6 + I-1."""
+        calls, cl = run_final(tmp_path, monkeypatch, lambda calls: bars_handler(calls, mutate))
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:488: Failed
+_________ test_final_aborts_on_structurally_bad_bars_page[<lambda>1] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_final_aborts_on_structura1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AB0622F800>
+mutate = <function <lambda> at 0x000001AB061F04A0>
+
+    @pytest.mark.parametrize("mutate", [
+        lambda page: {"bars": page["bars"]},                                          # next_page_token missing
+        lambda page: dict(page, next_page_token=""),                                  # malformed token
+        lambda page: {"bars": None, "next_page_token": None},
+        lambda page: {"bars": {"A": [{"o": 1, "h": 1, "l": 1, "c": 1}]}, "next_page_token": None},      # no t
+        lambda page: {"bars": {"A": [dict(good_bars()[0], c=True)]}, "next_page_token": None},          # bool price
+    ])
+    def test_final_aborts_on_structurally_bad_bars_page(tmp_path, monkeypatch, mutate):
+        """Retrospective (Task 6 review fix round 1): I-6 + I-1."""
+        calls, cl = run_final(tmp_path, monkeypatch, lambda calls: bars_handler(calls, mutate))
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:488: Failed
+_________ test_final_aborts_on_structurally_bad_bars_page[<lambda>2] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_final_aborts_on_structura2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AB062085F0>
+mutate = <function <lambda> at 0x000001AB061F0540>
+
+    @pytest.mark.parametrize("mutate", [
+        lambda page: {"bars": page["bars"]},                                          # next_page_token missing
+        lambda page: dict(page, next_page_token=""),                                  # malformed token
+        lambda page: {"bars": None, "next_page_token": None},
+        lambda page: {"bars": {"A": [{"o": 1, "h": 1, "l": 1, "c": 1}]}, "next_page_token": None},      # no t
+        lambda page: {"bars": {"A": [dict(good_bars()[0], c=True)]}, "next_page_token": None},          # bool price
+    ])
+    def test_final_aborts_on_structurally_bad_bars_page(tmp_path, monkeypatch, mutate):
+        """Retrospective (Task 6 review fix round 1): I-6 + I-1."""
+        calls, cl = run_final(tmp_path, monkeypatch, lambda calls: bars_handler(calls, mutate))
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:488: Failed
+_________ test_final_aborts_on_structurally_bad_bars_page[<lambda>3] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_final_aborts_on_structura3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AB0620BE00>
+mutate = <function <lambda> at 0x000001AB061F05E0>
+
+    @pytest.mark.parametrize("mutate", [
+        lambda page: {"bars": page["bars"]},                                          # next_page_token missing
+        lambda page: dict(page, next_page_token=""),                                  # malformed token
+        lambda page: {"bars": None, "next_page_token": None},
+        lambda page: {"bars": {"A": [{"o": 1, "h": 1, "l": 1, "c": 1}]}, "next_page_token": None},      # no t
+        lambda page: {"bars": {"A": [dict(good_bars()[0], c=True)]}, "next_page_token": None},          # bool price
+    ])
+    def test_final_aborts_on_structurally_bad_bars_page(tmp_path, monkeypatch, mutate):
+        """Retrospective (Task 6 review fix round 1): I-6 + I-1."""
+        calls, cl = run_final(tmp_path, monkeypatch, lambda calls: bars_handler(calls, mutate))
+        with pytest.raises(SystemExit):
+>           k.do_final(tmp_path, "f1", cl, KEYS)
+
+s1_tests\test_s1_collect.py:489: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_collect.py:206: in do_final
+    bars, bar_problems = _parse_bars(plan["bar_symbols"], bar_pages, sessions)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+symbols = ['A', 'B', 'NEW']
+pages = [{'bars': {'A': [{'c': 1, 'h': 1, 'l': 1, 'o': 1}]}, 'next_page_token': None}]
+sessions = ['2026-10-26', '2026-10-27']
+
+    def _parse_bars(symbols, pages, sessions):
+        """{symbol: {session_date: {date,o,h,l,c}}} + problems; finite positive OHLC with l <= min(o,c) <= max(o,c) <= h,
+        one bar per (symbol, session), only requested symbols and sessions; anything else is a problem record."""
+        want, sess = set(symbols), set(sessions)
+        out, problems = {s: {} for s in symbols}, []
+        for page in pages:
+            for sym, rows in (page.get("bars") or {}).items():
+                if sym not in want:
+                    problems.append({"symbol": sym, "session": None, "problem": "unrequested symbol"})
+                    continue
+                for bar in rows:
+>                   d = c.aware(bar["t"]).astimezone(c.NY).date().isoformat()
+E                   KeyError: 't'
+
+s1_collect.py:134: KeyError
+_________ test_final_aborts_on_structurally_bad_bars_page[<lambda>4] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-10741/test_final_aborts_on_structura4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AB0623FDA0>
+mutate = <function <lambda> at 0x000001AB061F0680>
+
+    @pytest.mark.parametrize("mutate", [
+        lambda page: {"bars": page["bars"]},                                          # next_page_token missing
+        lambda page: dict(page, next_page_token=""),                                  # malformed token
+        lambda page: {"bars": None, "next_page_token": None},
+        lambda page: {"bars": {"A": [{"o": 1, "h": 1, "l": 1, "c": 1}]}, "next_page_token": None},      # no t
+        lambda page: {"bars": {"A": [dict(good_bars()[0], c=True)]}, "next_page_token": None},          # bool price
+    ])
+    def test_final_aborts_on_structurally_bad_bars_page(tmp_path, monkeypatch, mutate):
+        """Retrospective (Task 6 review fix round 1): I-6 + I-1."""
+        calls, cl = run_final(tmp_path, monkeypatch, lambda calls: bars_handler(calls, mutate))
+>       with pytest.raises(SystemExit):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_collect.py:488: Failed
+_____________ test_parse_bars_flags_non_midnight_and_bool_prices ______________
+
+    def test_parse_bars_flags_non_midnight_and_bool_prices():
+        """Retrospective (Task 6 review fix round 1): I-6."""
+        rows = [bar("2026-10-26T13:30:00Z", 10, 11, 9, 10.5), good_bars()[1]]
+        out, pr = k._parse_bars(["A"], [{"bars": {"A": rows}}], SESS)
+>       assert any(p["session"] == "2026-10-26" for p in pr) and "2026-10-26" not in out["A"]
+E       assert (False)
+E        +  where False = any(<generator object test_parse_bars_flags_non_midnight_and_bool_prices.<locals>.<genexpr> at 0x000001AB064B2810>)
+
+s1_tests\test_s1_collect.py:497: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_collect.py::test_write_plan_requires_aware_start_a_week_ahead_and_records_deadline
+FAILED s1_tests/test_s1_collect.py::test_audit_aborts_on_bad_calendar[<lambda>-empty]
+FAILED s1_tests/test_s1_collect.py::test_audit_aborts_on_bad_calendar[<lambda>-START not a session]
+FAILED s1_tests/test_s1_collect.py::test_audit_aborts_on_bad_calendar[<lambda>-START not the open]
+FAILED s1_tests/test_s1_collect.py::test_audit_aborts_on_bad_calendar[<lambda>-fewer than 5 sessions]
+FAILED s1_tests/test_s1_collect.py::test_audit_aborts_on_bad_calendar[<lambda>-short of deadline + 3 sessions]
+FAILED s1_tests/test_s1_collect.py::test_audit_aborts_on_bad_calendar[<lambda>-wrong shape]
+FAILED s1_tests/test_s1_collect.py::test_audit_midrun_http_failure_writes_aborted_manifest
+FAILED s1_tests/test_s1_collect.py::test_foreign_exception_records_type_name_only
+FAILED s1_tests/test_s1_collect.py::test_e1_structural_from_ca_validation_is_recorded
+FAILED s1_tests/test_s1_collect.py::test_audit_manifest_hashes_pages_coverage_limits_and_params
+FAILED s1_tests/test_s1_collect.py::test_final_lag_refused_before_reserving
+FAILED s1_tests/test_s1_collect.py::test_final_lag_refused_when_calendar_lacks_three_later_sessions
+FAILED s1_tests/test_s1_collect.py::test_final_request_params_windows_and_manifest
+FAILED s1_tests/test_s1_collect.py::test_final_ack_binds_prereg - Failed: DID...
+FAILED s1_tests/test_s1_collect.py::test_final_aborts_on_structurally_bad_bars_page[<lambda>0]
+FAILED s1_tests/test_s1_collect.py::test_final_aborts_on_structurally_bad_bars_page[<lambda>1]
+FAILED s1_tests/test_s1_collect.py::test_final_aborts_on_structurally_bad_bars_page[<lambda>2]
+FAILED s1_tests/test_s1_collect.py::test_final_aborts_on_structurally_bad_bars_page[<lambda>3]
+FAILED s1_tests/test_s1_collect.py::test_final_aborts_on_structurally_bad_bars_page[<lambda>4]
+FAILED s1_tests/test_s1_collect.py::test_parse_bars_flags_non_midnight_and_bool_prices
+21 failed, 16 passed in 1.43s
