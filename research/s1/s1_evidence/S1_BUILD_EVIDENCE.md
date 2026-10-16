@@ -1,7 +1,7 @@
 # S1 build evidence (Task 10 review package)
 
-Branch `research/s1-shadow-trial`, worktree `C:\Users\gl450\trading_app-s1`, code at HEAD `4698b21` (Task 9) plus the
-Task 10 files listed in section 10. Plan `docs/s1_plan.md` (sha e4d86127), spec `docs/s1_spec.md`, design
+Branch `research/s1-shadow-trial`, worktree `C:\Users\gl450\trading_app-s1`, code at `4698b21` (Task 9); Task 10
+commit `47f590b` changed line endings only (no content change, section 9) and added the Task 10 evidence files. Plan `docs/s1_plan.md` (sha e4d86127), spec `docs/s1_spec.md`, design
 `docs/s1_design_v5.md`. Ledger = `C:\Users\gl450\.coordination\trading_app\.sdd_s1\progress.md` (cited as
 `progress:L<line>`). Reports and reviews = `.sdd_s1/reports/task-*-{report,review,rereview*}.md`.
 
@@ -246,21 +246,55 @@ Rulings that changed behaviour vs the plan code (each tested):
   checkpoint, final snapshot and score check it. Commit 5340b5b.
 
 ## 9. Hash integrity and line endings (Task 10)
-- `research/s1/.gitattributes` now has `* -text` (existing e1 lines kept). `git check-attr text` gives `unset` for
-  s1 files.
-- Reconciliation of all 313 hash lines in `s1_evidence/*hashes*.txt` and `cr_s1/cr_untracked_manifest.txt`:
-  `s1_evidence/hash_reconciliation.txt`. Results: MATCH_HEAD 59; EOL_ONLY_HEAD 53; MATCH_COMMIT (file changed by a later
-  task) 13; EOL_ONLY_COMMIT 10; NOT_IN_GIT_HISTORY 22 (intermediate pre-fix-round versions of t2-t7, never committed,
-  cannot be verified from git); untracked (CR sessions, cr_linemap.json) 156, all matching the working copy. No
-  recorded hash matched neither a committed version (raw or line-ending-normalised) nor the working copy, other than
-  the 22 intermediates.
-- Finding that contradicts the known-issue note in the Task 10 brief: the hashes were NOT recorded on LF working
-  copies. They were recorded on CRLF (or mixed) working copies; git (autocrlf) stored LF blobs. `git ls-files --eol`
-  shows 82 tracked files under research/s1 with LF in the index and CRLF/mixed in the working tree (including
-  s1_run.py, s1_checkpoint.py, s1_receipt.py, conftest.py, test_s1_run.py, test_s1_checkpoint.py, most evidence files).
-  The sources bound in `cr_setup.json` and t9_hashes.txt are those CRLF bytes, so a fresh LF checkout does not
-  reproduce them (cr_recheck_s1.py's source-hash assertion would fail on it).
-- e1_sim.py (CRLF blob) and e1_fetch.py (LF blob) match their pins at HEAD and in the working copy.
+
+What was found (round 1, against 4698b21): every evidence hash had been recorded over the working-copy bytes, and
+many working copies were CRLF or mixed, while git (core.autocrlf=true, no attribute) had stored LF-normalised blobs.
+`git ls-files --eol` showed 82 tracked research/s1 files with i/lf and w/crlf or w/mixed, including s1_run.py,
+s1_checkpoint.py, s1_receipt.py, conftest.py, test_s1_run.py, test_s1_checkpoint.py and most evidence files. Round 1
+counts: MATCH_HEAD 59, EOL_ONLY_HEAD 53. A fresh checkout would therefore not have reproduced the recorded hashes,
+including the source hashes that `cr_setup.json` binds and `cr_recheck_s1.py` asserts. This contradicts the brief's
+note that the hashes were recorded on LF copies.
+
+What was done, and why:
+- `research/s1/.gitattributes` got `* -text`, with the existing e1 lines kept. `git check-attr text` gives `unset`,
+  so git stops converting line endings anywhere in research/s1.
+- Controller commit `47f590b` then renormalised the tree. It committed the exact tested working bytes, changed 82
+  files in line endings only, and made no content change: `git diff 4698b21 47f590b --ignore-cr-at-eol` shows only
+  the new Task 10 files. Index and worktree now agree (`git ls-files --eol`: 61 crlf/crlf, 41 lf/lf, 23
+  mixed/mixed, no i/w disagreement).
+- Why the blobs had to change: the bytes that were tested, mutation-tested and hashed are the CRLF/mixed bytes. Only
+  committing those bytes lets a reviewer verify the recorded hashes from git with `git show <commit>:<path>`.
+
+Reconciliation against HEAD 47f590b (round 2), in `s1_evidence/hash_reconciliation.txt`. It covers all 313 hash
+lines in `s1_evidence/*hashes*.txt` and `cr_s1/cr_untracked_manifest.txt`.
+
+| Status | Count | Meaning |
+|---|---|---|
+| MATCH_HEAD | 112 | Was 59. All 53 round-1 EOL_ONLY_HEAD rows are now exact matches. |
+| MATCH_COMMIT | 13 | Exact match at the commit where that version was committed. A later task changed the file. |
+| EOL_ONLY_COMMIT | 10 | Older versions of s1_checkpoint.py, s1_receipt.py, s1_run.py, test_s1_books.py and test_s1_connected.py. |
+| NOT_IN_GIT_HISTORY | 22 | Intermediate pre-fix-round versions from t2–t7. They were never committed, so git cannot verify them. This is not a line-ending issue. |
+| UNTRACKED MATCH | 156 | The git-ignored CR sessions and cr_linemap.json. All match their working copies. |
+
+About the 10 EOL_ONLY_COMMIT rows: each matches the line-ending-normalised blob at its own task commit, and all of
+those commits predate 47f590b. Those historic blobs cannot change. Each of the 5 files was changed again by a later
+task, and its final recorded hash is a MATCH_HEAD row.
+
+No recorded hash fails to match a committed version (raw or normalised) or the working copy, apart from the 22
+intermediates.
+
+`cr_setup.json` against the HEAD 47f590b blobs:
+- The source hashes all equal the committed blobs: s1_books 63af4276, s1_seal 626ebf19, s1_checkpoint 403d9395,
+  s1_run 031ec4d3, plus s1_common, s1_collect, s1_receipt, s1_snapshot and e1_sim/e1_fetch. Each of these files is
+  unchanged in content since the CR setup. At 4698b21, s1_checkpoint and s1_run had hashed differently (7bc33554,
+  9ebe13ad: LF blobs).
+- The test files test_s1_books, test_s1_seal, test_s1_checkpoint, test_s1_checkpoint_7b and test_s1_run differ.
+  This is expected: Task 9 added retrospective tests to them after the CR setup. The recheck outputs record the
+  test hashes they used. conftest and the other test files match.
+
+e1 pins, from `git show HEAD:` at 47f590b: e1_sim.py = 68f21ab19d74be27fc855f826a78b667990c2a37b5d75dd12e1a7be1f5a740fb
+and e1_fetch.py = 401f17deb3551b0a585be64eb49294f50bc0396272ecd48c9f9049acc86984d6. Both are unchanged from
+4698b21.
 
 ## 10. Deferred minors still open (from the ledger; status not re-verified in Task 10)
 - T0 (progress:L26): fixture agents.strategy nullable vs NOT NULL; portfolios lacks last_price/entry_confidence;
@@ -297,8 +331,8 @@ Rulings that changed behaviour vs the plan code (each tested):
   httpx strips only `Authorization` on cross-origin redirects, so APCA key headers would be forwarded.
 - Task 9 recheck reductions (line-map test selection and skipping byte-identical focused files) and the s1_run CR
   scope reduction (cr_scope.txt).
-- Line endings (section 9): the committed blobs are LF while the recorded hashes are over CRLF bytes; decide which
-  bytes are the reviewed ones before sending hashes.
+- Line endings (section 9): resolved by commit 47f590b; the committed blobs are now the exact tested bytes, so the
+  hashes sent for review can be taken from `git show 47f590b:<path>` (or later).
 
 ## 12. Evidence-file duplicates and contradictions (reported, not fixed)
 - `t9_hashes.txt` repeats all 78 entries of `cr_s1/cr_untracked_manifest.txt` (identical hashes; consistent).
