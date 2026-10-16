@@ -180,3 +180,78 @@ def test_score_with_a_bridge_hash_differing_from_the_final_ledger_is_aborted_inv
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
     rep = r.score(tmp_path, "score-ack")
     assert rep["verdict"] == "ABORTED-INVALID" and any("bridge" in x for x in rep["reasons"]), rep["reasons"]
+
+
+# ------------------------------------------------------------------ Task 9 test-hardening (from the Task 8b review)
+def test_bridge_row_edited_then_scored_is_aborted_invalid(tmp_path, monkeypatch):
+    """Task 9 hardening (a), retrospective (written after the code exists): the bridge-row edit of
+    test_bridge_row_edited_after_first_post_start_seal_is_a_checkpoint_violation, carried on through the final
+    snapshot and the score -> the score is ABORTED-INVALID, its reasons naming the checkpoint abort."""
+    st_, lg, rows, rid = _example19(tmp_path)
+    assert _checkpoint(tmp_path, lg, datetime(2026, 10, 27, 20, 0, tzinfo=UTC))["seal"]["written"]
+    newt = next(t for t in rows if t["symbol"] == "NEWT")
+    con = sqlite3.connect(lg.path)
+    con.execute("UPDATE trades SET shares=16 WHERE id=?", (newt["id"],))
+    con.commit()
+    con.close()
+    s1_sync_portfolio(lg, [dict(t, shares=16.0) if t["id"] == newt["id"] else t for t in rows])
+    rep = _checkpoint(tmp_path, lg, datetime(2026, 10, 28, 20, 0, tzinfo=UTC))
+    assert rep["stop"]["status"] == "ABORTED-INVALID", rep["stop"]
+    snap_at = datetime(2026, 10, 29, 12, 0, tzinfo=UTC)
+    ck.run_final_snapshot(tmp_path, lg.path, now=lambda: snap_at)
+    now = snap_at + timedelta(hours=2)
+    monkeypatch.setattr(c, "now_utc", lambda: now)
+    s1_mailbox(tmp_path, "score-ack-a", r.score_token(tmp_path), now - timedelta(hours=1))
+    sc = r.score(tmp_path, "score-ack-a")
+    assert sc["verdict"] == "ABORTED-INVALID" and sc["nomination"] is False, sc
+    assert any("ABORTED-INVALID" in x and "bridge" in x for x in sc["reasons"]), sc["reasons"]
+
+
+def test_pre_start_row_first_observed_after_first_post_start_seal_is_backdating_and_bridge(tmp_path):
+    """Task 9 hardening (b), retrospective: a row whose stored time is before START (after the opening close) that
+    first appears after the first post-START seal -> the next checkpoint records violations naming BOTH backdating
+    and the bridge, writes no seal and records ABORTED-INVALID with both reasons."""
+    st_, lg, rows, rid = _example19(tmp_path)
+    assert _checkpoint(tmp_path, lg, datetime(2026, 10, 27, 20, 0, tzinfo=UTC))["seal"]["written"]
+    ts = "2026-10-27T01:00:00Z"                                          # 21:00 ET the evening before START
+    late = lg.trade("LATE", "BUY", 5, 20.0, ts)
+    s1_sync_portfolio(lg, rows + [{"id": late, "symbol": "LATE", "action": "BUY", "shares": 5.0, "price": 20.0,
+                                   "timestamp": ts, "ts": ts}])
+    rep = _checkpoint(tmp_path, lg, datetime(2026, 10, 28, 20, 0, tzinfo=UTC))
+    v = rep["fence_violations"]
+    assert any("backdated" in x and str(late) in x for x in v), v
+    assert any("bridge" in x for x in v), v
+    assert rep["seal"]["written"] is False and rep["stop"]["status"] == "ABORTED-INVALID"
+    out = tmp_path / "s1_out"
+    assert not (out / "seals" / "2026-10-28.json").exists()
+    reason = read(out / "aborted.json")["reason"]
+    assert any("backdated" in x for x in reason) and any("bridge" in x for x in reason), reason
+
+
+def test_opening_close_error_is_a_recorded_refusal_not_a_crash(tmp_path):
+    """Task 9 hardening (c), product fix (test written first, behavioural RED in s1_evidence/t9_hardening_red.txt):
+    when the bridge's opening close cannot be placed (prereg calendar has no session before START), run_checkpoint
+    records the refusal in the capture report, writes no seal and returns; it does not crash before the report."""
+    st_, lg, rows, rid = _example19(tmp_path)
+    out = tmp_path / "s1_out"
+    pp = out / "prereg.json"
+    pr = read(pp)
+    pr["calendar"] = [d for d in pr["calendar"] if d["date"] >= "2026-10-27"]
+    pp.write_text(json.dumps(pr), encoding="utf-8")
+    rep = _checkpoint(tmp_path, lg, datetime(2026, 10, 27, 20, 0, tzinfo=UTC))
+    assert "no calendar session before START" in str(rep.get("refused")), rep
+    assert rep["seal"]["written"] is False
+    assert not (out / "seals" / "2026-10-27.json").exists()
+    reports = list((out / "captures" / "2026-10-27").glob("*.report.json"))
+    assert len(reports) == 1 and "no calendar session before START" in str(read(reports[0]).get("refused"))
+
+
+def test_score_with_a_bridge_record_not_matching_its_rows_is_aborted_invalid(tmp_path, monkeypatch):
+    """Retrospective (Task 9 mutant survivor "score skips _bridge_problems"): a post-START seal whose bridge record
+    lists the wrong rows (hash left intact, so the hash comparisons all agree) -> ABORTED-INVALID naming it."""
+    st_ = s1_state(tmp_path, START, score_ready=True, bridge=BRIDGE)
+    _edit_first_seal(tmp_path, lambda s: s["bridge"].update(bridge_row_ids=s["bridge"]["bridge_row_ids"][1:]))
+    monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
+    rep = r.score(tmp_path, "score-ack")
+    assert rep["verdict"] == "ABORTED-INVALID", rep["reasons"]
+    assert any("bridge record does not match its rows" in x for x in rep["reasons"]), rep["reasons"]

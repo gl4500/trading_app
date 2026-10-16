@@ -1,0 +1,90 @@
+S1 Task 9 round 2 - focused Cosmic Ray (cosmic-ray 8.3.15), controller ruling: all operators; per-mutant test set = the
+module's own test files only; every survivor re-checked against the FULL suite (cr_recheck_s1.py) before triage.
+
+Sources (cr_setup.json, asserted by every recheck): s1_books 63af4276, s1_seal 626ebf19, s1_checkpoint 403d9395, s1_run 031ec4d3, e1_sim 68f21ab1
+Per-mutant timeout 300 s; 10 disjoint shards (e1_evidence/cr_shard.py); at most 4 concurrent processes (cr_run.sh).
+Green baselines (focused sets, sequential): books 2 s, seal 20 s, checkpoint 58 s, run 132 s (sessions/<module>/baseline.*).
+
+Declared scope reduction (s1_run only; the 6 h estimate was exceeded): see cr_scope.txt (140 of 2344 jobs excluded, 9
+report/plumbing helpers). Executed jobs: books 194, seal 454, checkpoint 855, run 2204 = 3707.
+Wall clock: CR shards 2026-10-15T13:05Z .. 2026-10-16T00:01Z (~11 h); full-suite recheck ~5 h; new-test rechecks ~4 h.
+
+Focused-run outcome per shard (KILLED(non-utf8 output) = the test command exited 1 but cosmic-ray could not decode the
+cp1252 output and stored INCOMPETENT; the stored traceback shows 'returned non-zero exit status 1' = killed):
+s1_books_s0 KILLED 137
+s1_books_s0 KILLED(non-utf8 output) 24
+s1_books_s0 SURVIVED 33
+s1_books_s0 total 194
+s1_checkpoint_s0 KILLED 259
+s1_checkpoint_s0 KILLED(non-utf8 output) 100
+s1_checkpoint_s0 SURVIVED 69
+s1_checkpoint_s0 total 428
+s1_checkpoint_s1 KILLED 239
+s1_checkpoint_s1 KILLED(non-utf8 output) 118
+s1_checkpoint_s1 SURVIVED 70
+s1_checkpoint_s1 total 427
+s1_run_s0 KILLED 137
+s1_run_s0 KILLED(non-utf8 output) 187
+s1_run_s0 SURVIVED 44
+s1_run_s0 total 368
+s1_run_s1 KILLED 141
+s1_run_s1 KILLED(non-utf8 output) 167
+s1_run_s1 SURVIVED 60
+s1_run_s1 total 368
+s1_run_s2 KILLED 141
+s1_run_s2 KILLED(non-utf8 output) 172
+s1_run_s2 SURVIVED 54
+s1_run_s2 total 367
+s1_run_s3 INCOMPETENT(other) 1
+s1_run_s3 KILLED 129
+s1_run_s3 KILLED(non-utf8 output) 170
+s1_run_s3 SURVIVED 67
+s1_run_s3 total 367
+s1_run_s4 INCOMPETENT(other) 1
+s1_run_s4 KILLED 131
+s1_run_s4 KILLED(non-utf8 output) 172
+s1_run_s4 SURVIVED 63
+s1_run_s4 total 367
+s1_run_s5 KILLED 156
+s1_run_s5 KILLED(non-utf8 output) 154
+s1_run_s5 SURVIVED 57
+s1_run_s5 total 367
+s1_seal_s0 KILLED 379
+s1_seal_s0 KILLED(non-utf8 output) 19
+s1_seal_s0 SURVIVED 56
+s1_seal_s0 total 454
+575 not killed
+
+Timeout kills (fix round 1, review I-1/M-3): cosmic-ray scored 15 jobs KILLED only because the 300 s per-mutant
+timeout expired (output 'timeout'): 14 in s1_run, 1 in s1_seal. They are NOT counted as focused-run kills below.
+Measured loaded runtime of the s1_run focused set (final test files, 4 concurrent copies next to the live app):
+369 / 370 / 373 / 376 s (186 passed). Re-run timeout = 800 s (>= 2 x 376 s): cr_recheck_timeouts_focused.tsv.
+Result: 1 killed by an existing test (s1_run:527 AndWithOr), 9 killed by Task 9 retrospective tests, 1 genuine hang
+(s1_seal:60 hours=1 -> 0, infinite loop: KILLED-by-timeout again at 800 s), 4 survived -> full suite (final tests,
+timeout 2400 s): cr_recheck_timeouts_full.tsv: 3 killed by fix-round-1 tests, 1 survived (s1_run:213 Eq_GtE occ9,
+EQUIVALENT). Any future CR run of the s1_run focused set needs a per-mutant timeout of >= 800 s under this load.
+
+Focused-run kills excluding timeouts: 3132 - 15 = 3117 (the 3132 above includes the 15 timeout jobs).
+
+Triage of the 590 jobs not killed by the focused run (575 + the 15 timeout jobs) - cr_triage.tsv, reproducible:
+cr_triage_s1.py sessions cr_recheck_full.tsv OUT cr_recheck_newtests_*.tsv cr_recheck_newtests2_s1_{checkpoint,run}.tsv
+(rules keyed by module:row:operator:occurrence; changes vs round 2 in cr_triage_fr1_changes.tsv):
+s1_books.py EQUIVALENT 7
+s1_books.py KILLED-by-full-suite 3
+s1_books.py KILLED-by-new-test 22
+s1_books.py NOT-MEANINGFUL 1
+s1_checkpoint.py EQUIVALENT 9
+s1_checkpoint.py KILLED-by-full-suite 4
+s1_checkpoint.py KILLED-by-new-test 110
+s1_checkpoint.py NOT-MEANINGFUL 16
+s1_run.py EQUIVALENT 34
+s1_run.py KILLED-by-focused-rerun 1
+s1_run.py KILLED-by-full-suite 52
+s1_run.py KILLED-by-new-test 269
+s1_run.py NOT-MEANINGFUL 5
+s1_seal.py EQUIVALENT 9
+s1_seal.py KILLED-by-full-suite 4
+s1_seal.py KILLED-by-new-test 43
+s1_seal.py KILLED-by-timeout 1
+total not killed by the focused run: 590
+OPEN: 0

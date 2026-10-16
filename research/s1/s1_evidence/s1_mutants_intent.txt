@@ -1,0 +1,12 @@
+sources: s1_books.py 63af4276fa70, s1_checkpoint.py 403d9395062e, s1_collect.py c1f18f6ff8aa, s1_common.py 3fdf1d4946be, s1_receipt.py f18cb4889cff, s1_run.py 031ec4d3938b, s1_seal.py 626ebf197ad9, s1_snapshot.py 10a4879ab333, e1_sim.py 68f21ab19d74, e1_fetch.py 401f17deb355
+tests: conftest.py afc71c8d8d76, test_s1_books.py 9f934c7914c3, test_s1_bridge_8b.py 4197b2c80631, test_s1_checkpoint.py b44bb810e237, test_s1_checkpoint_7b.py 9d6b5e235c9b, test_s1_collect.py 793f08cf74f5, test_s1_common.py fbb4f57cd160, test_s1_connected.py 4c6afb20bdcc, test_s1_receipt.py c90260c50943, test_s1_run.py 9bb179abc3fa, test_s1_seal.py 813e7aac3ded, test_s1_snapshot.py ffac3f120fcd
+KILLED  consistency on as-of rows instead of the full set  s1_tests/test_s1_checkpoint.py::test_consistency_uses_the_full_capture_while_counts_use_as_of_rows
+KILLED  unsealed close allowed to stop (latest seal's rows used)  s1_tests/test_s1_seal.py::test_unsealed_qualifying_close_is_not_the_stop
+KILLED  stop close not required for endpoint-day entries  s1_tests/test_s1_run.py::test_endpoint_day_entry_missing_stop_close_excluded
+KILLED  duplicate score allowed  s1_tests/test_s1_run.py::test_second_score_refused_and_nothing_overwritten
+4/4 killed
+sources: s1_books.py 63af4276fa70, s1_checkpoint.py 403d9395062e, s1_collect.py c1f18f6ff8aa, s1_common.py 3fdf1d4946be, s1_receipt.py f18cb4889cff, s1_run.py 031ec4d3938b, s1_seal.py 626ebf197ad9, s1_snapshot.py 10a4879ab333, e1_sim.py 68f21ab19d74, e1_fetch.py 401f17deb355
+tests: conftest.py afc71c8d8d76, test_s1_books.py 9f934c7914c3, test_s1_bridge_8b.py 4197b2c80631, test_s1_checkpoint.py b44bb810e237, test_s1_checkpoint_7b.py 9d6b5e235c9b, test_s1_collect.py 793f08cf74f5, test_s1_common.py fbb4f57cd160, test_s1_connected.py 4c6afb20bdcc, test_s1_receipt.py c90260c50943, test_s1_run.py 9bb179abc3fa, test_s1_seal.py 813e7aac3ded, test_s1_snapshot.py ffac3f120fcd
+KILLED  deadline = START + 180 days  s1_tests/test_s1_seal.py::test_deadline_calendar_months_with_month_end[start0-want0]
+1/1 killed
+IDONE

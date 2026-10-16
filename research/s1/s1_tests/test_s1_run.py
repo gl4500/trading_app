@@ -793,3 +793,811 @@ def test_pinned_core_hash_mismatch_is_refused_before_reservation(tmp_path, monke
     with pytest.raises(SystemExit, match="hash differs"):
         r.score(tmp_path, "score-ack")
     assert not (tmp_path / "s1_out" / "score").exists()
+
+
+# ---------------------------------------------------------------- Task 9 mutant survivors (retrospective tests)
+def test_exclusion_window_runs_to_the_stop_not_to_the_lots_actual_exit(tmp_path, monkeypatch):
+    """Retrospective (Task 9 mutant survivor "exclusion window shortened to the actual exit"): X bought day 0 and
+    sold day 1, a split on X on day 2, stop on day 3 -> the X lot is excluded (paired window = entry date exclusive
+    .. stop session inclusive for both arms, never the lot's own exit)."""
+    lots = ([{"symbol": "X", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, 80.0)}]
+            + [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (3, 80.0)} for i in range(99)])
+    st_, rep, _ = scored(tmp_path, monkeypatch, lots=lots, final_actions=[split("X", "2026-10-28", i="spx")])
+    assert st_["stop"]["stop_close"] == "2026-10-29T20:00:00+00:00"
+    x_id = next(t["id"] for t in st_["rows"] if t["symbol"] == "X" and t["action"] == "BUY")
+    assert rep["k"] == 1 and set(rep["excluded"]) == {str(x_id)}, rep.get("excluded")
+    assert any("forward_splits spx on 2026-10-28" in w for w in rep["excluded"][str(x_id)])
+
+
+# ---------------------------------------------------------------- Task 9 round 2: Cosmic Ray survivors (retrospective)
+import s1_books                                                                  # noqa: E402
+from conftest import _default_lots                                               # noqa: E402
+
+
+def _fresh(s):
+    """An equal but distinct str object (len >= 2): rules must compare by value, never by identity."""
+    return (s + "#")[:-1]
+
+
+def _row(i, sym, act, sh, ts, px=10.0):
+    return {"id": i, "symbol": sym, "action": act, "shares": sh, "price": px, "timestamp": ts, "ts": ts,
+            "reasoning_sha256": "0" * 64}
+
+
+def test_cr_blocks_compares_kinds_and_symbols_by_value():
+    """Retrospective (Task 9 CR survivors s1_run:66-76, blocks): kinds and symbols are compared by equality (not
+    identity or ordering); only the literal False makes a cash dividend ordinary; affected_symbols add to the named
+    set."""
+    assert r.blocks({"type": _fresh("cash_dividends"), "symbol": "XY", "special": False}, "XY") is False
+    assert r.blocks({"type": _fresh("name_changes"), "old_symbol": "OLD", "new_symbol": "XY"}, "XY") is False
+    for kind, field in (("cash_dividends", "symbol"), ("spin_offs", "source_symbol"),
+                        ("stock_mergers", "acquiree_symbol"), ("name_changes", "old_symbol")):
+        a = {"type": kind, field: "MM", "special": True}
+        assert r.blocks(a, _fresh("MM")) is True, kind
+        assert r.blocks(a, "AA") is False and r.blocks(a, "ZZ") is False, kind
+    assert r.blocks({"type": "cash_dividends", "symbol": "XY", "special": 0}, "XY") is True
+    assert r.blocks({"type": "mystery", "symbol": "XY", "affected_symbols": ["XY"]}, "XY") is True
+    assert r.blocks({"type": "mystery", "affected_symbols": ["QQ"]}, "QQ") is True
+
+
+def test_cr_open_lots_before_is_strictly_before_the_day_and_keeps_fractional_lots():
+    """Retrospective (Task 9 CR survivors s1_run:99/103): rows of the day itself are not "before" it; a lot of
+    0.5 shares is open."""
+    rows = [_row(1, "AA", "BUY", 0.5, "2026-10-26T15:00:00+00:00"), _row(2, "BB", "BUY", 1.0, "2026-10-27T15:00:00+00:00")]
+    assert [l["id"] for l in r.open_lots_before(rows, "2026-10-27")] == [1]
+
+
+def test_cr_fifo_untrusted_window_inclusive_and_every_action_scanned():
+    """Retrospective (Task 9 CR survivors s1_run:113/114): the window is START session .. stop session, both
+    inclusive; an earlier action is ignored; an undated action never ends the scan."""
+    rows = [_row(1, "AA", "BUY", 10.0, "2026-10-20T15:00:00+00:00")]
+
+    def sp(d, i):
+        return {"type": "forward_splits", "id": i, "symbol": "AA", "ex_date": d}
+    assert r.fifo_untrusted(rows, [sp("2026-10-26", "a")], "2026-10-26", "2026-10-30") != {}
+    assert r.fifo_untrusted(rows, [sp("2026-10-30", "b")], "2026-10-26", "2026-10-30") != {}
+    assert r.fifo_untrusted(rows, [sp("2026-10-23", "c")], "2026-10-26", "2026-10-30") == {}
+    assert r.fifo_untrusted(rows, [{"type": "forward_splits", "id": "u", "symbol": "AA"}, sp("2026-10-28", "d")],
+                            "2026-10-26", "2026-10-30") == {"AA": ["FIFO attribution untrusted after d on 2026-10-28"]}
+
+
+def test_cr_exclusions_scan_every_action():
+    """Retrospective (Task 9 CR survivor s1_run:139): a non-blocking action before a blocking one does not end the
+    scan."""
+    acts = [{"type": "forward_splits", "id": "o", "symbol": "OTHER", "ex_date": "2026-10-27"},
+            split("A", "2026-10-28", i="s")]
+    bars = {"A": {d: bar(d) for d in SESS}}
+    assert r.exclusions([lot(1, "A", "2026-10-26")], acts, [], "2026-10-30", SESS, bars, []) == \
+        {1: ["forward_splits s on 2026-10-28"]}
+
+
+def test_cr_disposition_single_lot_fully_excluded_is_inconclusive():
+    """Retrospective (Task 9 CR survivor s1_run:156): N = 0 is the only special case; N = 1, K = 1 is
+    INCONCLUSIVE (cap) before the minimum."""
+    assert r.disposition(1, 1) == "INCONCLUSIVE" and r.disposition(0, 0) == "INSUFFICIENT"
+
+
+def test_cr_carry_in_reasons_fractional_every_symbol_every_action_start_day_rule():
+    """Retrospective (Task 9 CR survivors s1_run:175/176/182/187/197): a fractional holding counts; a zero holding
+    or a non-blocking action never ends the scan; an action dated exactly on start_day consults open_across; phase
+    is compared by value."""
+    def sp(s, d, i):
+        return {"type": "forward_splits", "id": i, "symbol": s, "ex_date": d}
+    acts = [{"type": "cash_dividends", "id": "x", "symbol": "QQ", "special": True}, sp("BB", "2026-10-20", "s")]
+    assert r.carry_in_reasons({"AA": 0.0, "BB": 0.5}, acts, {"BB": "2026-10-01"}) == \
+        ["carry-in BB: forward_splits s on 2026-10-20 (held since 2026-10-01)"]
+    assert r.carry_in_reasons({"BB": 1.0}, [sp("BB", "2026-10-26", "t")], {"BB": "2026-10-01"},
+                              start_day="2026-10-26", open_across=lambda s, d: False) == []
+    assert r.carry_in_status({"BB": 1.0}, acts, {"BB": "2026-10-01"}, _fresh("audit")) == "BLOCKED"
+
+
+def test_cr_candidate_cost_kind_is_terminal_only_at_the_endpoint():
+    """Retrospective (Task 9 CR survivors s1_run:205): an endpoint mark pays the terminal cost, a stop exit the exit
+    cost."""
+    out = r.candidate_economics(lot(1, "A", "2026-10-26"), [bar("2026-10-27"), bar("2026-10-28")], "2026-10-28",
+                                bp=10)
+    assert out["reason"] == "endpoint" and out["terminal_cost"] > 0 and out["exit_cost"] == 0
+    out = r.candidate_economics(lot(1, "A", "2026-10-26"), [bar("2026-10-27", 100, 100, 90, 91)], "2026-10-27",
+                                bp=10)
+    assert out["reason"] == "hard" and out["exit_cost"] > 0 and out["terminal_cost"] == 0
+
+
+def _attempt_dir(tmp_path, outcome="COMPLETE", files=None, make=("x.json",)):
+    d = tmp_path / "att"
+    d.mkdir()
+    for n in make:
+        (d / n).write_text("[]", encoding="utf-8")
+    real = {n: s1_common.sha256_file(d / n) for n in make}
+    (d / "manifest.json").write_text(json.dumps({"outcome": outcome, "files": real if files is None else files}),
+                                     encoding="utf-8")
+    return d
+
+
+@pytest.mark.parametrize("outcome,files,names", [
+    ("ABORTED", None, ["x.json"]), ("RUNNING", None, ["x.json"]), ("COMPLETE", {}, ["x.json"]),
+    ("COMPLETE", {"x.json": "0" * 64}, ["x.json"]), ("COMPLETE", {"x.json": "f" * 64}, ["x.json"]),
+    ("COMPLETE", {"x.json": None, "y.json": "a" * 64}, ["y.json"]),
+])
+def test_cr_attempt_rejects_every_manifest_defect(tmp_path, outcome, files, names):
+    """Retrospective (Task 9 CR survivors s1_run:263/268, _attempt): outcome must equal COMPLETE; every named file
+    must be listed, exist and hash-equal (either sort direction)."""
+    d = _attempt_dir(tmp_path, outcome, files)
+    with pytest.raises(r.Invalid):
+        r._attempt(d, names)
+    d2 = tmp_path / "ok"
+    d2.mkdir()
+    (d2 / "x.json").write_text("[]", encoding="utf-8")
+    (d2 / "manifest.json").write_text(json.dumps({"outcome": "COMPLETE",
+                                                  "files": {"x.json": s1_common.sha256_file(d2 / "x.json")}}))
+    assert r._attempt(d2, ["x.json"])[1] == {"x.json": []}
+
+
+def test_cr_opening_seal_checks(tmp_path):
+    """Retrospective (Task 9 CR survivors s1_run:286/290/292, _opening_seal): a later opening_close is refused; a
+    missing seal names the opening session; a seal whose close is off the session close either way is refused."""
+    s1_state(tmp_path, START)
+    out = tmp_path / "s1_out"
+    plan = read(out / "plan.json")
+    cal = r._calendar(read(out / "audit" / "calendar.json"))
+    assert r._opening_seal(out, plan, cal)[1]["close"]
+    with pytest.raises(r.Invalid, match="opening_close"):
+        r._opening_seal(out, dict(plan, opening_close="2026-10-24"), cal)
+    p = out / "seals" / "2026-10-23.json"
+    good = p.read_text(encoding="utf-8")
+    for shift in (-1, 1):
+        s = json.loads(good)
+        s["close"] = (s1_common.aware(s["close"]) + timedelta(hours=shift)).isoformat()
+        p.write_text(json.dumps(s), encoding="utf-8")
+        with pytest.raises(r.Invalid, match="opening seal close"):
+            r._opening_seal(out, plan, cal)
+    p.unlink()
+    with pytest.raises(r.Invalid, match="opening seal 2026-10-23 missing"):
+        r._opening_seal(out, plan, cal)
+
+
+def test_cr_carry_in_holdings_and_oldest_open_lot_dates():
+    """Retrospective (Task 9 CR survivors s1_run:302-311, _carry_in): held = the exact open economic quantity; held
+    since = the date of the oldest OPEN lot (not the symbol's first row, not a closed lot's date)."""
+    rows = [_row(1, "AA", "BUY", 10.0, "2026-10-01T15:00:00+00:00"), _row(2, "AA", "SELL", 10.0, "2026-10-02T15:00:00+00:00"),
+            _row(3, "AA", "BUY", 5.0, "2026-10-05T15:00:00+00:00"), _row(4, "BB", "BUY", 0.5, "2026-10-02T15:00:00+00:00"),
+            _row(5, "BB", "SELL", 0.5, "2026-10-03T15:00:00+00:00"), _row(6, "BB", "BUY", 0.5, "2026-10-04T15:00:00+00:00")]
+    held, since = r._carry_in(rows, START_DT)
+    assert held == {"AA": 5.0, "BB": 0.5} and since == {"AA": "2026-10-05", "BB": "2026-10-04"}
+
+
+def test_cr_coverage_reasons_both_kinds():
+    """Retrospective (Task 9 CR survivors s1_run:320/323)."""
+    assert r._coverage_reasons({"AA": 1.0, "BB": 1.0}, {"AA": "2026-10-01", "BB": "2026-10-10"}, {"BB"},
+                               "2026-10-05") == ["carry-in AA: not covered by the corporate-action request"]
+    assert r._coverage_reasons({"BB": 1.0}, {"BB": "2026-10-01"}, {"BB"}, "2026-10-05") == \
+        ["carry-in BB: request starts 2026-10-05, after its oldest open lot (2026-10-01)"]
+
+
+def test_cr_attest_start_statement_receipt_and_clock(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivors s1_run:342/352/356): the statement must equal START_STATEMENT by value
+    (shorter/longer refused, an equal copy accepted); an opening seal receipt hash sorting below the receipt's is
+    still a mismatch; any time after planned START is refused."""
+    s1_state(tmp_path, START)
+    out = tmp_path / "s1_out"
+    (out / "attest_start.json").unlink()
+    at(monkeypatch, START_DT - timedelta(days=1))
+    for bad in ("", "~" * 5):
+        with pytest.raises(SystemExit, match="statement"):
+            r.attest_start(tmp_path, bad, S1_RECEIPT)
+    at(monkeypatch, START_DT + timedelta(hours=1))
+    with pytest.raises(SystemExit, match="planned START has passed"):
+        r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+    at(monkeypatch, START_DT - timedelta(days=1))
+    p = out / "seals" / "2026-10-23.json"
+    good = p.read_text(encoding="utf-8")
+    p.write_text(json.dumps(dict(json.loads(good), receipt_sha256="0" * 64)), encoding="utf-8")
+    with pytest.raises(SystemExit, match="does not match the opening seal"):
+        r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+    p.write_text(good, encoding="utf-8")
+    assert r.attest_start(tmp_path, _fresh(r.START_STATEMENT), S1_RECEIPT)["trial_id"] == "S1"
+
+
+def test_cr_start_attestation_problem_whichever_way_a_hash_differs(tmp_path):
+    """Retrospective (Task 9 CR survivor s1_run:382)."""
+    s1_state(tmp_path, START)
+    out = tmp_path / "s1_out"
+    plan, seal_p = read(out / "plan.json"), out / "seals" / "2026-10-23.json"
+    att = read(out / "attest_start.json")
+    assert r._start_attestation_problems(out, att, plan, seal_p, S1_RECEIPT) == []
+    for v in ("0" * 64, "f" * 64):
+        assert r._start_attestation_problems(out, dict(att, plan_sha256=v), plan, seal_p, S1_RECEIPT) == \
+            ["START attestation plan_sha256 does not match"]
+
+
+def test_cr_prereg_refusal_paths(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivors s1_run:405/412/420): an incomplete audit and an unreadable opening ledger
+    are refusals (SystemExit), and a second BLOCKED attempt is refused again (the record is written once)."""
+    s1_state(tmp_path, START)
+    out = tmp_path / "s1_out"
+    at(monkeypatch, START_DT - timedelta(hours=2))
+    mp = out / "audit" / "manifest.json"
+    good = mp.read_text(encoding="utf-8")
+    mp.write_text(json.dumps(dict(json.loads(good), outcome="ABORTED")), encoding="utf-8")
+    with pytest.raises(SystemExit, match="prereg refused: audit not COMPLETE"):
+        r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    mp.write_text(good, encoding="utf-8")
+
+    def unreadable(*a, **kw):
+        raise s1_books.BookError("corrupt row")
+    monkeypatch.setattr(r, "_carry_in", unreadable)
+    with pytest.raises(SystemExit, match="opening ledger unreadable"):
+        r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    assert not (out / "prereg.json").exists()
+
+
+def test_cr_second_blocked_prereg_is_refused_again(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_run:420)."""
+    s1_state(tmp_path, START, audit_actions=[split("CI", "2026-10-05")])
+    at(monkeypatch, START_DT - timedelta(hours=2))
+    for _ in range(2):
+        with pytest.raises(SystemExit, match="BLOCKED"):
+            r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+
+
+def test_cr_attest_stop_statement_and_bad_seal(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivors s1_run:441/454): the stop statement must equal STOP_STATEMENT (the
+    refusal names the statement); two seals for one close are a refusal, not a crash."""
+    for bad in ("", "~" * 5):
+        with pytest.raises(SystemExit, match="statement"):
+            r.attest_stop(tmp_path, bad)
+    s1_state(tmp_path, START)
+    at(monkeypatch, START_DT - timedelta(hours=2))
+    r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    seals = tmp_path / "s1_out" / "seals"
+    (seals / "zz.json").write_bytes((seals / "2026-10-23.json").read_bytes())
+    at(monkeypatch, START_DT + timedelta(days=3))
+    with pytest.raises(SystemExit, match="bad seal record"):
+        r.attest_stop(tmp_path, r.STOP_STATEMENT)
+
+
+def test_cr_no_valid_seal_end_when_the_deadline_is_not_a_session(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_run:527): START 2026-11-02 -> deadline 2027-05-02 (a Sunday); the
+    NO-VALID-SEAL end is still the last eligible session's window end, so an ACK before it is refused."""
+    start = "2026-11-02T14:30:00+00:00"
+    st_ = s1_state(tmp_path, start, score_ready=True, lots=[], seal_days=[])
+    assert s1_common.sim().ny_date(s1_common.aware(start)) and str(r.z.deadline(s1_common.aware(start))) == "2027-05-02"
+    s1_mailbox(tmp_path, "before-end", r.score_token(tmp_path), st_["now"] - timedelta(days=5))
+    at(monkeypatch, st_["now"])
+    with pytest.raises(SystemExit, match="SCORE-ACK"):
+        r.score(tmp_path, "before-end")
+
+
+def test_cr_malformed_seal_without_final_manifest_is_still_scored_invalid(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_run:530): when the trial end cannot be placed, no final manifest is
+    demanded; the attempt records ABORTED-INVALID."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    shutil.rmtree(out / "final")
+    p = out / "seals" / "2026-10-26.json"
+    seal = read(p)
+    del seal["close"]
+    p.write_text(json.dumps(seal), encoding="utf-8")
+    s1_mailbox(tmp_path, "ack-nf", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    at(monkeypatch, st_["now"])
+    try:
+        r.score(tmp_path, "ack-nf")
+    except SystemExit:
+        pass
+    assert read(out / "score" / "s1.json")["verdict"] == "ABORTED-INVALID"
+
+
+def test_cr_runner_ok_attempts_counts_only_a_literal_true(tmp_path):
+    """Retrospective (Task 9 CR survivors s1_run:555/557)."""
+    metas = {"attempt-01": '{"ok": 1}', "attempt-02": '{"ok": 2}', "attempt-03": None, "attempt-04": "{oops",
+             "attempt-05": "[]", "attempt-06": '{"ok": true}', "attempt-07": '{"ok": 0}'}
+    for name, text in metas.items():
+        (tmp_path / name).mkdir()
+        if text is not None:
+            (tmp_path / name / "meta.json").write_text(text, encoding="utf-8")
+    assert r._ok_attempts(tmp_path) == ["attempt-06"]
+
+
+def _fs(tmp_path):
+    """A clean scored-ready state; returns (out, seals, report path, its text)."""
+    s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    rp = out / "final_snapshot" / "report.json"
+    return out, r._seals(out), rp, rp.read_text(encoding="utf-8")
+
+
+def test_cr_final_snapshot_problems_every_defect(tmp_path):
+    """Retrospective (Task 9 CR survivors s1_run:573-591, _final_snapshot_problems)."""
+    out, seals, rp, good = _fs(tmp_path)
+    rep = json.loads(good)
+    assert r._final_snapshot_problems(out, seals) == []
+
+    def probs(**kw):
+        rp.write_text(json.dumps(dict(rep, **kw)), encoding="utf-8")
+        return r._final_snapshot_problems(out, seals)
+    for ok, fc in ((False, True), (True, False), (1, True), (True, 1)):
+        assert probs(capture_ok=ok, fence_checked=fc) == ["final snapshot capture failed: None"], (ok, fc)
+    assert probs(fence_violations=["v1"]) == ["final snapshot: v1"]
+    d = out / "final_snapshot"
+    (d / "attempt-01").rename(d / "kept-01")                       # no ok attempt besides the (bogus) reported one
+    assert probs(fence_violations=["v1"], attempt="bogus") == \
+        ["final snapshot: v1", "final snapshot: report names no valid attempt ('bogus')"]
+    (d / "kept-01").rename(d / "attempt-01")
+    assert probs(projection_sha256="f" * 64) == ["final snapshot: projection differs from its recorded hash"]
+    shutil.copytree(d / "attempt-01", d / "attempt-02")
+    assert probs(attempt="attempt-02") == ["final snapshot: successful attempt(s) other than the reported "
+                                           "'attempt-02': attempt-01"]
+    shutil.rmtree(d / "attempt-02")
+    rp.unlink()
+    assert "attempt-01" in r._final_snapshot_problems(out, seals)[0]
+    rp.write_text(good, encoding="utf-8")
+    for edit, kind in ((lambda s: s.pop("fence"), "KeyError"), (lambda s: s.update(fence={"x": "h"}), "ValueError"),
+                       (lambda s: s.update(max_id="a"), "TypeError")):
+        bad = [(p, json.loads(json.dumps(s))) for p, s in seals]
+        edit(bad[-1][1])
+        assert r._final_snapshot_problems(out, bad)[0].startswith(f"final snapshot: bad seal record: {kind}")
+
+
+def test_cr_seal_chain_problems_every_defect(tmp_path):
+    """Retrospective (Task 9 CR survivors s1_run:603-615, _seal_chain_problems)."""
+    out, seals, _, _ = _fs(tmp_path)
+    pr = read(out / "prereg.json")
+    rsha = r._receipt_sha(pr["receipt"])
+    assert r._seal_chain_problems(out, seals, rsha) == []
+
+    def with_last(edit):
+        cp = [(p, json.loads(json.dumps(s))) for p, s in seals]
+        edit(cp[-1][1])
+        return r._seal_chain_problems(out, cp, rsha)
+    p_last = seals[-1][0].stem
+    for shift in (-1, 1):
+        assert any("is not that session" in x for x in with_last(
+            lambda s: s.update(close=(s1_common.aware(s["close"]) + timedelta(days=shift)).isoformat())))
+    assert f"seal {p_last}: fence does not match its rows" in with_last(lambda s: s["fence"].update({"1": "x"}))
+    for kw in ({"receipt_match": False}, {"receipt_match": 1}, {"receipt_sha256": "0" * 64}):
+        assert with_last(lambda s: s.update(kw)) == [f"seal {p_last}: semantic receipt differs from prereg"], kw
+    assert with_last(lambda s: s["capture"].update(projection_sha256="0" * 64)) == \
+        [f"seal {p_last}: rows differ from the preserved capture projection"]
+
+    def price_edit(s):
+        s["trades"][-1]["price"] = 1.0
+        s["fence"] = {str(i): h for i, h in r.z.fence({"trades": s["trades"]}).items()}
+    assert any("rows differ from the preserved capture projection" in x for x in with_last(price_edit))
+
+    def drop_first_row(s):
+        s["trades"] = s["trades"][1:]
+        s["fence"] = {str(i): h for i, h in r.z.fence({"trades": s["trades"]}).items()}
+    assert any("sealed row 1 deleted" in x for x in with_last(drop_first_row))
+
+
+def test_cr_bridge_problems_branches(tmp_path):
+    """Retrospective (Task 9 CR survivors s1_run:631-638, _bridge_problems)."""
+    out, seals, _, _ = _fs(tmp_path)
+    pr = read(out / "prereg.json")
+    start, cal = s1_common.aware(pr["start"]), pr["calendar"]
+    ss = [s for _, s in seals]
+    post = r.z.post_start_seals(ss, start)
+    assert len(post) >= 2
+    rep = {}
+    asof = post[-1]["trades"]
+    assert r._bridge_problems(rep, ss, asof, start, cal) == []
+    assert rep["bridge_provenance"]["first_post_start_seal"] == post[0]["close"]
+    changed = [dict(t, shares=t["shares"] + 1) if c_ == 0 else t for c_, t in enumerate(asof)]
+    assert any("bridge (pre-START rows) changed" in x for x in r._bridge_problems({}, ss, changed, start, cal))
+    cp = json.loads(json.dumps(ss))
+    last = [s for s in cp if s["close"] == post[-1]["close"]][0]
+    last["trades"] = [dict(t, shares=t["shares"] + 1) if c_ == 0 else t for c_, t in enumerate(last["trades"])]
+    assert r._bridge_problems({}, cp, None, start, cal) == \
+        [f"post-START seal {post[-1]['close']}: bridge record does not match its rows"]
+    assert r._bridge_problems({}, ss, asof, start, [d for d in cal if d["date"] >= "2026-10-26"])[0].startswith(
+        "bridge check failed: ValueError")
+    for edit, kind in ((lambda s: s.pop("trades"), "KeyError"), (lambda s: s.update(trades=None), "TypeError")):
+        cp = json.loads(json.dumps(ss))
+        edit([s for s in cp if s["close"] == post[0]["close"]][0])
+        assert r._bridge_problems({}, cp, asof, start, cal)[0].startswith(f"bridge check failed: {kind}")
+
+
+def test_cr_stop_attestation_every_check(tmp_path):
+    """Retrospective (Task 9 CR survivors s1_run:646-668, _stop_attestation): absent -> present False; each binding
+    differing in either direction, a missing stop, and the recorded-time boundaries are problems."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    pr, stop = read(out / "prereg.json"), st_["stop"]
+    stop_p = out / "seals" / f"{s1_common.aware(stop['stop_close']).astimezone(s1_common.NY).date()}.json"
+    ap = out / "attest_stop.json"
+    good = read(ap)
+
+    def check(stop_=stop, reserved=None, **kw):
+        ap.write_text(json.dumps(dict(good, **kw)), encoding="utf-8")
+        return r._stop_attestation(out, pr, stop_, stop_p, reserved)
+    assert check() == {"ok": True, "present": True, "problems": []}
+    cases = [({"statement": ""}, "statement differs"), ({"statement": "~"}, "statement differs"),
+             ({"attest_start_sha256": "0" * 64}, "START attestation hash differs"),
+             ({"attest_start_sha256": "f" * 64}, "START attestation hash differs"),
+             ({"start": "2026-10-26T13:29:00+00:00"}, "START differs"),
+             ({"start": "2026-10-26T13:31:00+00:00"}, "START differs"),
+             ({"sealed_final_ledger_sha256": "0" * 64}, "sealed final ledger hash differs"),
+             ({"stop_close": (s1_common.aware(stop["stop_close"]) - timedelta(days=1)).isoformat()}, "stop close differs"),
+             ({"stop_close": (s1_common.aware(stop["stop_close"]) + timedelta(days=1)).isoformat()}, "stop close differs"),
+             ({"recorded_utc": stop["stop_close"]}, "recorded before the stop"),
+             ({"recorded_utc": (s1_common.aware(stop["stop_close"]) - timedelta(hours=1)).isoformat()},
+              "recorded before the stop")]
+    for kw, want in cases:
+        assert want in check(**kw)["problems"], kw
+    assert "stop close differs" in check(stop_=None)["problems"]
+    assert "stop close differs" in check(stop_={"stop_close": None})["problems"]
+    t = s1_common.aware(good["recorded_utc"])
+    for reserved in (t, t - timedelta(hours=1)):
+        assert "recorded after the final acquisition began" in check(reserved=reserved)["problems"]
+    ap.unlink()
+    assert r._stop_attestation(out, pr, stop, stop_p, None)["present"] is False
+
+
+@pytest.mark.parametrize("attest,lots_kw,note", [(False, {}, True), (True, {}, False), (False, {"sell_px": 120.0}, False)])
+def test_cr_unverified_numeric_pass_note_only_on_a_pass(tmp_path, monkeypatch, attest, lots_kw, note):
+    """Retrospective (Task 9 CR survivors s1_run:697): the "flagged exploratory" note appears exactly for a SHADOW
+    PASS without verified provenance."""
+    lots = None
+    if lots_kw:
+        lots = [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, lots_kw["sell_px"])}
+                for i in range(100)]
+    _, rep, _ = scored(tmp_path, monkeypatch, stop_attest=attest, lots=lots)
+    assert ("note" in rep) is note, rep["verdict"]
+
+
+def test_cr_runner_hash_differing_upward_is_invalid(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_run:704)."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    monkeypatch.setattr(r, "runner_sha", lambda: "f" * 64)
+    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    at(monkeypatch, st_["now"])
+    assert "runner changed since prereg" in r.score(tmp_path, "score-ack-2")["reasons"]
+
+
+@pytest.mark.parametrize("field,value", [(f, v) for f in ("plan_sha256", "audit_manifest_sha256", "attest_start_sha256")
+                                         for v in ("0" * 64, "f" * 64)])
+def test_cr_each_prereg_binding_alone_is_checked(tmp_path, monkeypatch, field, value):
+    """Retrospective (Task 9 CR survivors s1_run:709-711): any ONE changed binding, in either sort direction."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    p = tmp_path / "s1_out" / "prereg.json"
+    p.write_text(json.dumps(dict(read(p), **{field: value})), encoding="utf-8")
+    at(monkeypatch, st_["now"])
+    rep = r.score(tmp_path, "score-ack")
+    assert "prereg bindings (plan / audit manifest / START attestation) changed" in rep["reasons"]
+
+
+@pytest.mark.parametrize("edit", [
+    lambda pr: pr.update(start="2026-10-26T13:29:00+00:00"), lambda pr: pr.update(start="2026-10-26T13:31:00+00:00"),
+    lambda pr: pr.update(calendar=pr["calendar"][:-1]),
+    lambda pr: pr.update(calendar=pr["calendar"] + [{"date": "2099-01-02", "open": "09:30", "close": "16:00"}]),
+])
+def test_cr_prereg_start_or_calendar_alone_is_checked(tmp_path, monkeypatch, edit):
+    """Retrospective (Task 9 CR survivors s1_run:713): START or calendar differing alone, either direction."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    p = tmp_path / "s1_out" / "prereg.json"
+    pr = read(p)
+    edit(pr)
+    p.write_text(json.dumps(pr), encoding="utf-8")
+    at(monkeypatch, st_["now"])
+    try:
+        rep = r.score(tmp_path, "score-ack")
+    except SystemExit:
+        rep = read(tmp_path / "s1_out" / "score" / "s1.json")
+    assert "prereg START or calendar differs from the plan/audit" in rep["reasons"], rep["reasons"]
+
+
+def test_cr_incomplete_audit_is_a_recorded_reason_not_a_score_error(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_run:717 Invalid): an incomplete audit is recorded as its own reason
+    inside the ABORTED-INVALID score, not as a generic score error."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    mp = out / "audit" / "manifest.json"
+    mp.write_text(json.dumps(dict(read(mp), outcome="ABORTED")), encoding="utf-8")
+    at(monkeypatch, st_["now"])
+    try:
+        rep = r.score(tmp_path, "score-ack")
+    except SystemExit:
+        rep = read(out / "score" / "s1.json")
+    assert any(x.startswith("Invalid: audit attempt outcome is 'ABORTED'") for x in rep["reasons"]), rep["reasons"]
+    assert not any(x.startswith("score error") for x in rep["reasons"])
+
+
+def test_cr_plan_key_error_is_a_recorded_reason(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_run:717 KeyError)."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    pp = tmp_path / "s1_out" / "plan.json"
+    plan = read(pp)
+    del plan["planned_start"]
+    pp.write_text(json.dumps(plan), encoding="utf-8")
+    at(monkeypatch, st_["now"])
+    rep = r.score(tmp_path, "score-ack")
+    assert "KeyError: 'planned_start'" in rep["reasons"], rep["reasons"]
+
+
+def test_cr_duplicate_seal_is_a_bad_seal_record_reason(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivors s1_run:725/730)."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    (out / "seals" / "zz.json").write_bytes((out / "seals" / "2026-10-26.json").read_bytes())
+    at(monkeypatch, st_["now"])
+    try:
+        rep = r.score(tmp_path, "score-ack")
+    except SystemExit:
+        rep = read(out / "score" / "s1.json")
+    assert any(x.startswith("bad seal record: ValueError") for x in rep["reasons"]), rep["reasons"]
+
+
+@pytest.mark.parametrize("what", ["prereg0", "preregf", "plan-1", "plan+1", "outcome", "noplan"])
+def test_cr_final_acquisition_binding_checks(tmp_path, monkeypatch, what):
+    """Retrospective (Task 9 CR survivors s1_run:743/745/747): the final manifest must bind this prereg (either
+    sort direction), the final plan's stop must equal the stop (either side), and an incomplete attempt or a
+    missing final plan is "final acquisition unusable"."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    mp, fp = out / "final" / "manifest.json", out / "final_plan.json"
+    want = {"prereg0": "final acquisition is not bound to this prereg", "preregf": "final acquisition is not bound",
+            "plan-1": "final plan stop", "plan+1": "final plan stop", "outcome": "final acquisition unusable",
+            "noplan": "final acquisition unusable"}[what]
+    if what.startswith("prereg"):
+        mp.write_text(json.dumps(dict(read(mp), prereg_sha256=("0" if what == "prereg0" else "f") * 64)))
+    elif what.startswith("plan"):
+        fplan = read(fp)
+        d = timedelta(days=-1 if what == "plan-1" else 1)
+        fp.write_text(json.dumps(dict(fplan, stop_close=(s1_common.aware(fplan["stop_close"]) + d).isoformat())))
+    elif what == "outcome":
+        mp.write_text(json.dumps(dict(read(mp), outcome="ABORTED")))
+    else:
+        fp.unlink()
+    s1_mailbox(tmp_path, "ack-f", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    at(monkeypatch, st_["now"])
+    rep = r.score(tmp_path, "ack-f")
+    assert any(want in x for x in rep["reasons"]), rep["reasons"]
+
+
+def test_cr_ledger_errors_name_which_ledger(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivors s1_run:754/765): a BookError reading the opening / the final ledger is
+    recorded as "opening ledger unreadable" / "final ledger unreadable"."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    real, calls = r._carry_in, []
+
+    def flaky(rows, start):
+        calls.append(1)
+        if len(calls) == 2:
+            raise s1_books.BookError("final corrupt")
+        return real(rows, start)
+    monkeypatch.setattr(r, "_carry_in", flaky)
+    at(monkeypatch, st_["now"])
+    rep = r.score(tmp_path, "score-ack")
+    assert "final ledger unreadable: final corrupt" in rep["reasons"], rep["reasons"]
+
+
+def test_cr_opening_ledger_error_is_named(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_run:754)."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+
+    def bad(rows, start):
+        raise s1_books.BookError("opening corrupt")
+    monkeypatch.setattr(r, "_carry_in", bad)
+    at(monkeypatch, st_["now"])
+    rep = r.score(tmp_path, "score-ack")
+    assert "opening ledger unreadable: opening corrupt" in rep["reasons"], rep["reasons"]
+
+
+def test_cr_scored_report_counts_concentration_and_ages(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivors s1_run:760/789/804/828-841): a BUY stored exactly at the stop close is in
+    the frozen ledger and the cohort; a carry-in row stored exactly at the opening close is not a post-opening
+    bridge row; a cohort lot of a carry-in symbol (in both CA lists) is covered; sessions_to_stop is 0 for an
+    endpoint-day entry and 1 otherwise; lots_per_symbol and top_symbol_share are exact."""
+    lots = _default_lots() + [{"symbol": "CI", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, 80.0)},
+                              {"symbol": "EP", "qty": 10, "px": 100.0, "buy_day": 1, "sell": None}]
+    st_, rep, _ = scored(tmp_path, monkeypatch, lots=lots,
+                         carry_in=(("CI", 10, 50.0, "2026-10-01T15:00:00+00:00"),
+                                   ("OC", 5, 20.0, "2026-10-23T20:00:00+00:00")),
+                         bridge=(("ZZ", "BUY", 1, 10.0, "2026-10-27T20:00:00+00:00"),))
+    assert st_["stop"]["stop_close"] == "2026-10-27T20:00:00+00:00"
+    assert rep["n"] == 103 and rep["k"] == 0, (rep["n"], rep.get("excluded"))
+    assert rep["carry_in"]["bridge_rows"] == []
+    ages = {l["symbol"]: l["sessions_to_stop"] for l in rep["lots"]}
+    assert ages["EP"] == 0 and ages["ZZ"] == 0 and ages["CI"] == 1 and ages["S0"] == 1
+    assert rep["concentration"]["lots_per_symbol"] == {"S0": 20, "S1": 20, "S2": 20, "S3": 20, "S4": 20, "CI": 1,
+                                                       "EP": 1, "ZZ": 1}
+    assert rep["concentration"]["top_symbol_share"] == pytest.approx(20 / 103)
+
+
+def test_cr_empty_cohort_reports_zero_excluded_notional_share(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_run:814)."""
+    _, rep, _ = scored(tmp_path, monkeypatch, lots=[], seal_days=[0])
+    assert rep["n"] == 0 and rep["excluded_notional_share"] == 0.0 and rep["verdict"] == "INSUFFICIENT"
+
+
+def test_cr_carry_in_open_across_uses_only_that_symbols_pre_start_lots(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivors s1_run:793, open_across): carry-in BB is fully sold on the START session,
+    then BB is split; other carry-ins (AA, CC) stay open and BB cohort lots (one bought exactly at START) are open
+    across the split -> no carry-in INCONCLUSIVE (the BB lots are per-lot exclusions)."""
+    lots = [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (3, 80.0)} for i in range(100)]
+    lots.append({"symbol": "BB", "qty": 5, "px": 100.0, "buy_day": 1, "sell": None})
+    _, rep, _ = scored(tmp_path, monkeypatch, lots=lots,
+                       carry_in=(("AA", 10, 50.0, "2026-10-01T15:00:00+00:00"),
+                                 ("BB", 10, 50.0, "2026-10-01T15:00:00+00:00"),
+                                 ("CC", 10, 50.0, "2026-10-01T15:00:00+00:00")),
+                       bridge=(("BB", "BUY", 1, 100.0, START), ("BB", "SELL", 10, 55.0, "2026-10-26T16:00:00+00:00")),
+                       final_actions=[split("BB", "2026-10-28", i="bb-split")])
+    assert rep["verdict"] != "INCONCLUSIVE" and not any("carry-in" in x for x in rep["reasons"]), rep["reasons"]
+    assert len(rep["excluded"]) == 2
+
+
+def test_cr_prereg_refuses_when_the_opening_seal_is_missing(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_run:405): an Invalid opening seal is a refusal (SystemExit), not a
+    crash."""
+    s1_state(tmp_path, START)
+    (tmp_path / "s1_out" / "seals" / "2026-10-23.json").unlink()
+    at(monkeypatch, START_DT - timedelta(hours=2))
+    with pytest.raises(SystemExit, match="prereg refused: opening seal 2026-10-23 missing"):
+        r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+
+
+def test_cr_stop_attestation_ledger_hash_above_the_real_one_differs(tmp_path):
+    """Retrospective (Task 9 CR survivor s1_run:658): a recorded sealed-ledger hash sorting ABOVE the real one is a
+    mismatch too."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    stop = st_["stop"]
+    stop_p = out / "seals" / f"{s1_common.aware(stop['stop_close']).astimezone(s1_common.NY).date()}.json"
+    ap = out / "attest_stop.json"
+    ap.write_text(json.dumps(dict(read(ap), sealed_final_ledger_sha256="f" * 64)), encoding="utf-8")
+    assert "sealed final ledger hash differs" in r._stop_attestation(out, read(out / "prereg.json"), stop, stop_p,
+                                                                     None)["problems"]
+
+
+# ---------------------------------------------------------------- Task 9 fix round 1 (review I-1, I-2, M-1, M-2, M-5)
+def test_fr1_attest_stop_accepts_an_equal_but_distinct_statement(tmp_path, monkeypatch):
+    """Retrospective (Task 9 fix round 1, review I-1: CR timeout survivor s1_run:441 NotEq_IsNot): the operator's
+    statement is compared by value; an equal str that is a different object (as typed or read from a file) is
+    accepted."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    (out / "attest_stop.json").unlink()
+    shutil.rmtree(out / "final")
+    at(monkeypatch, st_["now"])
+    stmt = "".join(list(r.STOP_STATEMENT))
+    assert stmt is not r.STOP_STATEMENT
+    assert r.attest_stop(tmp_path, stmt)["statement"] == r.STOP_STATEMENT
+
+
+def test_fr1_gate_constants_compared_by_value(tmp_path):
+    """Retrospective (Task 9 fix round 1, review I-1 "same pattern for the attestation gates"): the START
+    attestation's statement / trial id and a numeric SHADOW PASS are matched by value, not identity."""
+    s1_state(tmp_path, START)
+    out = tmp_path / "s1_out"
+    plan, seal_p = read(out / "plan.json"), out / "seals" / "2026-10-23.json"
+    att = dict(read(out / "attest_start.json"), statement="".join(list(r.START_STATEMENT)),
+               trial_id="".join(list(r.TRIAL_ID)))
+    assert r._start_attestation_problems(out, att, plan, seal_p, S1_RECEIPT) == []
+    assert r.final_verdict("".join(list("SHADOW PASS")), {"ok": True})["nomination"] is True
+
+
+def test_fr1_score_as_of_rows_exclude_a_row_stored_after_the_stop_close(tmp_path, monkeypatch):
+    """Retrospective (Task 9 fix round 1, review I-1: CR timeout survivors s1_run:760; design example 2 at score
+    level): a BUY stored 10 minutes after the stop close is in the stop seal's rows but not in the frozen as-of
+    ledger: not in the cohort and not in the quantity bridge."""
+    st_, rep, _ = scored(tmp_path, monkeypatch, bridge=(("ZZ", "BUY", 1, 10.0, "2026-10-27T20:10:00+00:00"),))
+    assert st_["stop"]["stop_close"] == "2026-10-27T20:00:00+00:00"
+    seal = read(tmp_path / "s1_out" / "seals" / "2026-10-27.json")
+    assert any(t["symbol"] == "ZZ" for t in seal["trades"])
+    assert rep["n"] == 100 and "ZZ" not in rep["quantity_bridge"], rep["quantity_bridge"]
+
+
+def test_fr1_younger_carry_in_lot_open_across_a_trial_split_is_inconclusive(tmp_path, monkeypatch):
+    """Retrospective (Task 9 fix round 1, review I-2: CR survivor s1_run:793 Eq_Is, re-triaged): two carry-in lots
+    of one symbol (separate BUY rows, read back from the seal JSON as distinct str objects); the older is sold after
+    START, the younger is still open across a post-START split -> INCONCLUSIVE."""
+    lots = [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (3, 80.0)} for i in range(100)]
+    _, rep, _ = scored(tmp_path, monkeypatch, lots=lots,
+                       carry_in=(("AAPL", 10, 100.0, "2026-10-01T15:00:00+00:00"),
+                                 ("AAPL", 5, 101.0, "2026-10-05T15:00:00+00:00")),
+                       bridge=(("AAPL", "SELL", 10, 102.0, "2026-10-26T16:00:00+00:00"),),
+                       final_actions=[split("AAPL", "2026-10-28", i="aapl-split")])
+    assert rep["verdict"] == "INCONCLUSIVE" and any("aapl-split" in x for x in rep["reasons"]), rep["reasons"]
+
+
+def test_fr1_candidate_endpoint_reason_compared_by_value(monkeypatch):
+    """Retrospective (Task 9 fix round 1, review M-1: s1_run:205 Eq_Is): an "endpoint" reason that is an equal but
+    distinct str still marks the terminal cost."""
+    sim = s1_common.sim()
+    real = sim.simulate_lot
+
+    def fresh_reason(**kw):
+        out = real(**kw)
+        return dict(out, reason="".join(list(out["reason"])))
+    monkeypatch.setattr(sim, "simulate_lot", fresh_reason)
+    out = r.candidate_economics(lot(1, "A", "2026-10-26"), [bar("2026-10-27"), bar("2026-10-28")], "2026-10-28",
+                                bp=10)
+    assert out["reason"] == "endpoint" and out["terminal_cost"] > 0 and out["exit_cost"] == 0
+
+
+def test_fr1_running_status_compared_by_value_at_the_score_gate(tmp_path, monkeypatch):
+    """Retrospective (Task 9 fix round 1, review M-1: s1_run:522 Eq_Is): a RUNNING status that is an equal but
+    distinct str still refuses the score with nothing written."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    monkeypatch.setattr(r.z, "stop_decision", lambda *a, **kw: {"status": "".join(list("RUNNING")),
+                                                                "stop_close": None, "missed": []})
+    at(monkeypatch, st_["now"])
+    with pytest.raises(SystemExit, match="still RUNNING"):
+        r.score(tmp_path, "score-ack")
+    assert not (tmp_path / "s1_out" / "score").exists()
+
+
+def test_fr1_ok_disposition_compared_by_value(tmp_path, monkeypatch):
+    """Retrospective (Task 9 fix round 1, review M-1: s1_run:816 NotEq_IsNot): an "OK" disposition that is an equal
+    but distinct str proceeds to the paired economics."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    monkeypatch.setattr(r, "disposition", lambda n, k_: "".join(list("OK")))
+    at(monkeypatch, st_["now"])
+    assert r.score(tmp_path, "score-ack")["verdict"] == "SHADOW PASS"
+
+
+def test_fr1_unreadable_seal_rows_are_a_bad_seal_record_reason(tmp_path, monkeypatch):
+    """Retrospective (Task 9 fix round 1, review M-2: the _score handler at s1_run:725-726): a seal row the books
+    cannot read (BookError inside stop_decision) is recorded as "bad seal record: BookError ..." in the attempt."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    p = tmp_path / "s1_out" / "seals" / "2026-10-26.json"
+    seal = read(p)
+    seal["trades"][-1]["action"] = "HOLD"
+    p.write_text(json.dumps(seal), encoding="utf-8")
+    at(monkeypatch, st_["now"])
+    try:
+        rep = r.score(tmp_path, "score-ack")
+    except SystemExit:
+        rep = read(tmp_path / "s1_out" / "score" / "s1.json")
+    assert rep["outcome"] == "SCORED" and rep["verdict"] == "ABORTED-INVALID"
+    assert any(x.startswith("bad seal record: BookError") for x in rep["reasons"]), rep["reasons"]
+
+
+def test_fr1_write_once_refuses_with_the_recorded_message(tmp_path):
+    """Retrospective (Task 9 fix round 1, review M-5: s1_run:331 _write_once, excluded scope): a second write is the
+    "<what> already recorded: refusing" refusal (SystemExit), never a raw FileExistsError; the first is kept."""
+    p = tmp_path / "x.json"
+    r._write_once(p, {"a": 1}, "thing")
+    with pytest.raises(SystemExit, match="thing already recorded: refusing"):
+        r._write_once(p, {"a": 2}, "thing")
+    assert read(p) == {"a": 1}
+
+
+def test_fr1_restarts_report_new_starts_and_every_observation_gap(tmp_path):
+    """Retrospective (Task 9 fix round 1, review M-5: s1_run:675 _restarts, excluded scope)."""
+    d = tmp_path / "captures" / "2026-10-27"
+    d.mkdir(parents=True)
+    (d / "20261027T204500Z.report.json").write_text(json.dumps(
+        {"scheduled": "2026-10-27T20:45:00+00:00", "restart_gaps": ["g1", "g2"]}), encoding="utf-8")
+    opening = {"restart_record": {"starts": [{"ts": "a", "pid": 1}]}}
+    stop = {"restart_record": {"starts": [{"ts": "a", "pid": 1}, {"ts": "b", "pid": 2}]}}
+    assert r._restarts(opening, stop, tmp_path) == {
+        "observed_in_crash_log_minimum": [{"ts": "b", "pid": 2}],
+        "observation_gaps": [{"scheduled": "2026-10-27T20:45:00+00:00", "gap": "g1"},
+                             {"scheduled": "2026-10-27T20:45:00+00:00", "gap": "g2"}]}
+
+
+def test_fr1_sell_stored_after_the_stop_close_writes_nothing_off_in_the_bridge(tmp_path, monkeypatch):
+    """Retrospective (Task 9 fix round 1, review I-1: CR timeout survivor s1_run:760 LtE_IsNot): a SELL stored after
+    the stop close (in the stop seal) is outside the frozen as-of ledger, so its operational write-off does not
+    reach the quantity bridge; the stop-day ZZ lot keeps its full residual."""
+    _, rep, _ = scored(tmp_path, monkeypatch, bridge=(("ZZ", "BUY", 1, 10.0, "2026-10-27T15:00:00+00:00"),
+                                                      ("ZZ", "SELL", 0.9995, 10.0, "2026-10-27T20:10:00+00:00")))
+    assert rep["quantity_bridge"]["ZZ"] == {"writeoff": 0.0, "economic_residual": 1.0}, rep["quantity_bridge"]
+
+
+def test_fr1_opening_seal_refuses_an_earlier_opening_close_and_unreadable_stop_time(tmp_path):
+    """Retrospective (Task 9 fix round 1, review I-1: CR timeout survivors s1_run:286 NotEq_Lt and s1_run:666
+    ExceptionReplacer): an opening_close EARLIER than the session before START is refused; a stop attestation whose
+    recorded_utc cannot be read is the problem "recorded_utc unreadable", not a crash."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    plan = read(out / "plan.json")
+    cal = r._calendar(read(out / "audit" / "calendar.json"))
+    with pytest.raises(r.Invalid, match="opening_close"):
+        r._opening_seal(out, dict(plan, opening_close="2026-10-22"), cal)
+    stop = st_["stop"]
+    stop_p = out / "seals" / f"{s1_common.aware(stop['stop_close']).astimezone(s1_common.NY).date()}.json"
+    ap = out / "attest_stop.json"
+    ap.write_text(json.dumps(dict(read(ap), recorded_utc="not a time")), encoding="utf-8")
+    assert "recorded_utc unreadable" in r._stop_attestation(out, read(out / "prereg.json"), stop, stop_p,
+                                                            None)["problems"]

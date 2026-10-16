@@ -1,0 +1,72 @@
+Focused Cosmic Ray (cosmic-ray 8.3.15): job counts per module, init on the final Task 9 sources/tests.
+Baseline = focused test set on unmutated code (4 baselines run in parallel; wall seconds incl. startup).
+
+s1_books.py: 194 jobs; ReplaceBinaryOperator_Div_* 0 (almost all on pathlib `/`); other 194; baseline SURVIVED (27 passed in 120.38s (0:02:00)), ~125 s
+   NumberReplacer 38
+   AddNot 10
+   ZeroIterationForLoop 6
+   ReplaceComparisonOperator_Gt_Eq 5
+   ReplaceComparisonOperator_Gt_NotEq 5
+   ReplaceComparisonOperator_Gt_Lt 5
+   ReplaceComparisonOperator_Gt_LtE 5
+   ReplaceComparisonOperator_Gt_GtE 5
+   ReplaceAndWithOr 4
+   ReplaceComparisonOperator_Lt_Eq 3
+   ReplaceComparisonOperator_Lt_NotEq 3
+   ReplaceComparisonOperator_Lt_LtE 3
+   ReplaceComparisonOperator_Lt_Gt 3
+   ReplaceComparisonOperator_Lt_GtE 3
+   ReplaceComparisonOperator_Lt_Is 3
+
+s1_seal.py: 454 jobs; ReplaceBinaryOperator_Div_* 0 (almost all on pathlib `/`); other 454; baseline SURVIVED (42 passed in 142.94s (0:02:22)), ~145 s
+   NumberReplacer 66
+   AddNot 24
+   ReplaceAndWithOr 9
+   ZeroIterationForLoop 9
+   ReplaceComparisonOperator_LtE_Eq 8
+   ReplaceComparisonOperator_LtE_NotEq 8
+   ReplaceComparisonOperator_LtE_Lt 8
+   ReplaceComparisonOperator_LtE_Gt 8
+   ReplaceComparisonOperator_LtE_GtE 8
+   ReplaceComparisonOperator_LtE_Is 8
+   ReplaceComparisonOperator_LtE_IsNot 8
+   ReplaceBinaryOperator_Add_Sub 6
+   ReplaceBinaryOperator_Add_Mul 6
+   ReplaceBinaryOperator_Add_Div 6
+   ReplaceBinaryOperator_Add_FloorDiv 6
+
+s1_checkpoint.py: 855 jobs; ReplaceBinaryOperator_Div_* 506 (almost all on pathlib `/`); other 349; baseline SURVIVED (72 passed in 186.19s (0:03:06)), ~188 s
+   AddNot 50
+   ReplaceBinaryOperator_Div_Add 46
+   ReplaceBinaryOperator_Div_Sub 46
+   ReplaceBinaryOperator_Div_Mul 46
+   ReplaceBinaryOperator_Div_FloorDiv 46
+   ReplaceBinaryOperator_Div_Mod 46
+   ReplaceBinaryOperator_Div_Pow 46
+   ReplaceBinaryOperator_Div_RShift 46
+   ReplaceBinaryOperator_Div_LShift 46
+   ReplaceBinaryOperator_Div_BitOr 46
+   ReplaceBinaryOperator_Div_BitAnd 46
+   ReplaceBinaryOperator_Div_BitXor 46
+   NumberReplacer 28
+   ExceptionReplacer 21
+   ReplaceComparisonOperator_IsNot_Is 14
+
+s1_run.py: 2344 jobs; ReplaceBinaryOperator_Div_* 1045 (almost all on pathlib `/`); other 1299; baseline SURVIVED (120 passed in 256.29s (0:04:16)), ~258 s
+   AddNot 111
+   ReplaceBinaryOperator_Div_Add 95
+   ReplaceBinaryOperator_Div_Sub 95
+   ReplaceBinaryOperator_Div_Mul 95
+   ReplaceBinaryOperator_Div_FloorDiv 95
+   ReplaceBinaryOperator_Div_Mod 95
+   ReplaceBinaryOperator_Div_Pow 95
+   ReplaceBinaryOperator_Div_RShift 95
+   ReplaceBinaryOperator_Div_LShift 95
+   ReplaceBinaryOperator_Div_BitOr 95
+   ReplaceBinaryOperator_Div_BitAnd 95
+   ReplaceBinaryOperator_Div_BitXor 95
+   NumberReplacer 90
+   ExceptionReplacer 41
+   ReplaceComparisonOperator_NotEq_Eq 31
+
+TOTAL 3847 jobs

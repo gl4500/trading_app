@@ -1,0 +1,576 @@
+# sources s1_books.py=63af4276fa708fb5c6febcbccd3e9f24ac0d9bad8ad76f0e4643ef40e9c62394 s1_checkpoint.py=403d9395062ebcd011ca5a6d667da943f108786543549b007a8ab1e33e492d61 s1_collect.py=c1f18f6ff8aaa0e2354cd23284672c55a939680231a75ac0f4fcb8191af53eac s1_common.py=3fdf1d4946bebb77df9405da713ae909ce4ad9d18cfcfecf7e89ae1adab7cb24 s1_receipt.py=f18cb4889cff24ca9dbe9976227bc077f3c216b3cee55f4d19b82129e43a4caf s1_run.py=031ec4d3938bb96077b5b70b67c35fdd585d4f295a05e0734179f5add16daa03 s1_seal.py=626ebf197ad976de1da64eaf995cd2fd00e79a5520f867acd8aa9fe4a3e0429b s1_snapshot.py=10a4879ab3339a3214b63ddbd5dbccecbaf9e179cd0d61b0dde3ee0da560a300 e1_sim.py=68f21ab19d74be27fc855f826a78b667990c2a37b5d75dd12e1a7be1f5a740fb e1_fetch.py=401f17deb3551b0a585be64eb49294f50bc0396272ecd48c9f9049acc86984d6
+# tests conftest.py=afc71c8d8d767300a2fdeaa201f9d9871d34d7bdb17c2c7fccbdfaf31c3c932d test_s1_books.py=363113c487ee542ae87723a2e1af276e9fb8799c450bdde69c12481df2d20888 test_s1_bridge_8b.py=4197b2c806318af4fb66501e58b7d4eda6985173b9007606efbf31e52bd9ab22 test_s1_checkpoint.py=abab823b578d4a3e6b73d2b050611c9726edbdd4fb1c44b0817ea87564f41bee test_s1_checkpoint_7b.py=7f6c34f0b3aa0a7bbbf6e30a9639636921bbb2eb0ab786e6f4fad93bfaa4f863 test_s1_collect.py=793f08cf74f52235b7bdbec9b32200ba45e31048622d550de7215d0e8a5f71b1 test_s1_common.py=fbb4f57cd16095be97fa68267893aba4652920683f8636ab98d192955bebca24 test_s1_connected.py=4c6afb20bdcc7da8ae0904d65f6ded2bf25b4429bcb8427a41c09934a4426ec9 test_s1_receipt.py=c90260c5094390dc272206ba025cd62c6064e79dac493f69ad1279418f271624 test_s1_run.py=6c049cea30f1ccc87926ea3c3bd9a67623bd3c271e347825af5a94fff37d4e0f test_s1_seal.py=402b780f9c2da09d99c72dd4f372ccaa49b4733799b8c0c5c47a8369f6ae33aa test_s1_snapshot.py=ffac3f120fcd4d2b71d889b15c0d6efb73b7c725c51014aa96928d8ceeca7c9a linemap=864224d06defe25f98e3aeeb8bb5c6ec18f491ccab671acdb1ab4348a9d553d2 CR_TESTS=-
+# job_id	module	row	operator	occurrence	result
+0d2ea754ad8447c990d585ab6bd9495a	s1_books.py	19	core/ExceptionReplacer	0	SURVIVED (not executed by any other test)
+1260a23ea07e4989b48ff458e9608dea	s1_books.py	49	core/NumberReplacer	7	SURVIVED [63 other tests executing the line]
+81707f513b4f495ba27629dd7b341b40	s1_books.py	64	core/NumberReplacer	19	SURVIVED [113 other tests executing the line]
+f91681667b754857902ea30be21897fb	s1_books.py	99	core/ReplaceComparisonOperator_Gt_IsNot	1	SURVIVED [65 other tests executing the line]
+38e613c85ae8423cb0ba37a8518e3d40	s1_books.py	99	core/ReplaceComparisonOperator_Gt_NotEq	3	SURVIVED [65 other tests executing the line]
+38770a40fc9f454bafe557f5075091b5	s1_books.py	113	core/NumberReplacer	37	SURVIVED [40 other tests executing the line]
+6e4a115b086345299836a145047a5d13	s1_books.py	91	core/ReplaceComparisonOperator_NotEq_Lt	1	SURVIVED [83 other tests executing the line]
+d9abd794421b48c0affb7430ed34ec03	s1_books.py	66	core/NumberReplacer	20	SURVIVED [111 other tests executing the line]
+1e77caa023764783828d6cc1de03896e	s1_books.py	112	core/NumberReplacer	33	SURVIVED [41 other tests executing the line]
+1ad208451a184fe9ba53b0318e6bc1c6	s1_books.py	52	core/NumberReplacer	8	SURVIVED (not executed by any other test)
+5569b278b2db44199c27f03fcd7e02e3	s1_books.py	113	core/NumberReplacer	34	SURVIVED [40 other tests executing the line]
+7cbb0878521640b9b2811dbebede2d27	s1_books.py	113	core/NumberReplacer	35	SURVIVED [40 other tests executing the line]
+433f95f1d5f749558c7770091bd4cc1a	s1_books.py	112	core/ReplaceComparisonOperator_Gt_NotEq	4	SURVIVED [41 other tests executing the line]
+83976d5877a54f848400cf92a653eb6b	s1_books.py	54	core/ReplaceComparisonOperator_Gt_GtE	1	SURVIVED [58 other tests executing the line]
+d80bc2ee7edd44698cd40391604e6f7a	s1_books.py	91	core/ReplaceComparisonOperator_NotEq_IsNot	0	KILLED s1_tests/test_s1_checkpoint.py::test_economics_and_price_fetch_unreachable_with_sells [83 other tests executing the line]
+57f5da74e5484246b544991394b7bd32	s1_books.py	46	core/ReplaceComparisonOperator_Eq_Is	0	KILLED s1_tests/test_s1_bridge_8b.py::test_bridge_row_edited_after_first_post_start_seal_is_a_checkpoint_violation [111 other tests executing the line]
+475159ab9a2f48e0a6ed84214b82fa50	s1_books.py	65	core/ReplaceBinaryOperator_BitOr_BitXor	0	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [113 other tests executing the line]
+4a5e4e4e283d46b181eead6b670fceae	s1_books.py	112	core/ReplaceComparisonOperator_Gt_GtE	4	SURVIVED [41 other tests executing the line]
+8eb42d7b0e8245cb8b1f49fe5d1f1464	s1_books.py	19	core/ExceptionReplacer	1	SURVIVED (not executed by any other test)
+78caa1fd1556434f8fd41da9fb515326	s1_books.py	52	core/NumberReplacer	9	SURVIVED (not executed by any other test)
+e8fb7ac5f15f42e29a4f6fade35bd963	s1_books.py	64	core/NumberReplacer	17	SURVIVED [113 other tests executing the line]
+0750993abac84c2d86a3ad457f99ad36	s1_books.py	113	core/NumberReplacer	36	SURVIVED [40 other tests executing the line]
+171dbc5eb2964e3397adb9f73624c37f	s1_books.py	64	core/NumberReplacer	16	SURVIVED [113 other tests executing the line]
+3526f12f466a44d98ac3b0e76cd6b2dc	s1_books.py	64	core/NumberReplacer	18	SURVIVED [113 other tests executing the line]
+a4b6285e246a4c3b9106e4777452a7b0	s1_books.py	66	core/NumberReplacer	21	SURVIVED [111 other tests executing the line]
+2e8123af19374a73afc372afb99db7e0	s1_books.py	49	core/NumberReplacer	6	SURVIVED [63 other tests executing the line]
+79735bbc8e97479bad43ac226d7102a6	s1_books.py	66	core/NumberReplacer	22	SURVIVED [111 other tests executing the line]
+d2f7a62d9d4b4c4ca14e4b10c7fdf849	s1_books.py	66	core/NumberReplacer	23	SURVIVED [111 other tests executing the line]
+8efc3da8bc7d40689eb0f8bef6163e52	s1_books.py	66	core/ReplaceComparisonOperator_Gt_GtE	2	SURVIVED [111 other tests executing the line]
+72e1a6f5bd744a09a93bd3695749a7a1	s1_books.py	58	core/ReplaceComparisonOperator_NotEq_Gt	0	SURVIVED [113 other tests executing the line]
+921e34e218dc4be4b30e60d0a33dd8d4	s1_checkpoint.py	436	core/ReplaceComparisonOperator_Eq_IsNot	2	SURVIVED (not executed by any other test)
+caa659cf98ee44ef97ae649862f1436a	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_FloorDiv	42	SURVIVED (not executed by any other test)
+1b5b9c4581d841e6aae2298380cca4be	s1_checkpoint.py	131	core/AddNot	12	SURVIVED (not executed by any other test)
+cc8646d77fb24888af579bac23d8ef7c	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_BitAnd	6	SURVIVED (not executed by any other test)
+f4ddb67149434e5a99e6e7b4c3bb6c8f	s1_books.py	46	core/ReplaceComparisonOperator_Eq_LtE	0	SURVIVED [111 other tests executing the line]
+a94b86ca263e452e96fa47a414f8e53b	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_RShift	45	SURVIVED (not executed by any other test)
+b136cb224aa148b3a6cbcc439152a23d	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitOr	44	SURVIVED (not executed by any other test)
+3ec356fbad3647599689be8ec40b5c77	s1_checkpoint.py	402	core/ExceptionReplacer	18	SURVIVED (not executed by any other test)
+57095a81a6e34d229b3deb54a6333ebd	s1_checkpoint.py	52	core/ReplaceFalseWithTrue	0	SURVIVED (not executed by any other test)
+54cbda9921f9479ca943817d2f6e7b87	s1_books.py	94	core/NumberReplacer	24	SURVIVED [65 other tests executing the line]
+3687e4feca3a4276804b5d44ad75e2b6	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitAnd	44	SURVIVED (not executed by any other test)
+b8e89df8418343a6a24b7de184075bc7	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Add	42	SURVIVED (not executed by any other test)
+624346cceacd4743bcc2dd6e9f02eebc	s1_checkpoint.py	406	core/NumberReplacer	23	SURVIVED [42 other tests executing the line]
+fb71b3d706b54e17b52bc178d58339cb	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_LShift	6	SURVIVED (not executed by any other test)
+808f850b5566485087696b42d1afa4b3	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_BitOr	6	SURVIVED (not executed by any other test)
+d13b3fa6e3be4f07bc0ac719f192b678	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitXor	43	SURVIVED (not executed by any other test)
+ceb54ea781644259bbd88fd65fa37337	s1_checkpoint.py	380	core/ReplaceOrWithAnd	9	SURVIVED (not executed by any other test)
+97634f67ac144948ae1fbf25bdc5307c	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_Pow	6	SURVIVED (not executed by any other test)
+c60ec3a22f5c4874a0f4824ca32935fc	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_LShift	44	SURVIVED (not executed by any other test)
+0f7d124153e84e22b069debf46f67a05	s1_checkpoint.py	360	core/ExceptionReplacer	14	SURVIVED (not executed by any other test)
+51dad11500374604b82abf5433717809	s1_checkpoint.py	360	core/ExceptionReplacer	13	SURVIVED (not executed by any other test)
+cf003f6b0eb94dfeabf11f0ae4e9906f	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitAnd	45	SURVIVED (not executed by any other test)
+8d04533d54274ea49aa755a03cc70a4f	s1_checkpoint.py	438	core/ReplaceComparisonOperator_Eq_Lt	3	SURVIVED (not executed by any other test)
+9bb94122f4684021a47102048f77b6c5	s1_checkpoint.py	438	core/ReplaceComparisonOperator_Eq_Is	3	SURVIVED (not executed by any other test)
+b57059fa9c504690a198821a93f313dd	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_Sub	6	SURVIVED (not executed by any other test)
+63afa682952a4ae6b26b2af7a6a9d98a	s1_checkpoint.py	89	core/ReplaceFalseWithTrue	1	SURVIVED [55 other tests executing the line]
+67acf81bdbe144a691c1bebe366ab7c5	s1_checkpoint.py	436	core/AddNot	48	SURVIVED (not executed by any other test)
+80591b35ec41481e9fcb4d3149713e3c	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitXor	44	SURVIVED (not executed by any other test)
+a3b2c4b60d6f45c8ac0448b10c88cfa8	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Pow	45	SURVIVED (not executed by any other test)
+1e82524a3d6140848106e81191a1991e	s1_checkpoint.py	131	core/ReplaceComparisonOperator_IsNot_Is	4	SURVIVED (not executed by any other test)
+a4faaef36b01413b98e8aa2c88fce4e1	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Add	44	SURVIVED (not executed by any other test)
+0bfc597baa6b49219e8f41e8894f55ad	s1_checkpoint.py	207	core/AddNot	23	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [2 other tests executing the line]
+ac943f365b4f489ba2c163745766866e	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Sub	45	SURVIVED (not executed by any other test)
+79c643dce4e54449ac0fd71013966665	s1_checkpoint.py	442	core/NumberReplacer	26	SURVIVED (not executed by any other test)
+6c62709f39144112951f0c1f44b00dd6	s1_checkpoint.py	436	core/ReplaceComparisonOperator_Eq_LtE	2	SURVIVED (not executed by any other test)
+425de64edb5a43f2817459e5ddc6c4ea	s1_checkpoint.py	402	core/ExceptionReplacer	17	SURVIVED (not executed by any other test)
+fab8bfbbbf8e4388b8158c6ee9e602aa	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_Add	6	SURVIVED (not executed by any other test)
+b00629b93d584a79943674443ae4ad61	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Mul	43	SURVIVED (not executed by any other test)
+6827cae36d124585907573c797e5624d	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Mul	44	SURVIVED (not executed by any other test)
+78dc1d7e77af43db921a0fad3ce0908f	s1_checkpoint.py	67	core/ExceptionReplacer	1	SURVIVED (not executed by any other test)
+dbd45b702a044f9c8d36f85b2a9b19d7	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_RShift	44	SURVIVED (not executed by any other test)
+8624fb1d9350438aae7e36292e1a5974	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_RShift	43	SURVIVED (not executed by any other test)
+7395c8d4a351492882b18304f75d8f92	s1_checkpoint.py	32	core/ReplaceContinueWithBreak	0	SURVIVED (not executed by any other test)
+5a9dfba1898243489ec52c3b8817366f	s1_checkpoint.py	436	core/ReplaceComparisonOperator_Eq_Gt	2	SURVIVED (not executed by any other test)
+86d0e54620bf4d0b9aaf20da3ae0ef2f	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_FloorDiv	43	SURVIVED (not executed by any other test)
+afa4dd210bbb4d558579fd7fef6a9c2e	s1_checkpoint.py	438	core/ReplaceComparisonOperator_Eq_GtE	3	SURVIVED (not executed by any other test)
+b9b2f0644df844f6a66dcdcd7d325764	s1_books.py	91	core/ReplaceComparisonOperator_NotEq_Gt	1	SURVIVED [83 other tests executing the line]
+66c47b802f884790b0b8e9d285cee013	s1_checkpoint.py	209	core/AddNot	24	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [2 other tests executing the line]
+37a78df5672944739dfca2d1083e4b09	s1_checkpoint.py	445	core/ReplaceComparisonOperator_Eq_Is	4	SURVIVED [import-time line: full suite minus focused]
+f1be9d4fc2164e9ba79b2ac1a003ed3e	s1_checkpoint.py	445	core/ReplaceComparisonOperator_Eq_LtE	4	SURVIVED [import-time line: full suite minus focused]
+0a51cfe0bf6843d2ad82507b3de517ce	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Mul	45	SURVIVED (not executed by any other test)
+761bdcf1dfbe469cbd68bdae72101d62	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitOr	42	SURVIVED (not executed by any other test)
+9624e2dd3cd84684adc90d13af13e51c	s1_checkpoint.py	268	core/ExceptionReplacer	7	SURVIVED (not executed by any other test)
+3f0b77dc33094fb4aac2cee9b8f90cbd	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Pow	44	SURVIVED (not executed by any other test)
+7df11f383041436195a76ba3909cf06e	s1_checkpoint.py	232	core/ReplaceBinaryOperator_BitOr_BitAnd	0	SURVIVED [55 other tests executing the line]
+0ff3cbd5a2b74bb9a9ff47fcae380129	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Mul	42	SURVIVED (not executed by any other test)
+203d096a93f646ee939dff753a1b74e5	s1_checkpoint.py	148	core/ReplaceFalseWithTrue	5	SURVIVED [2 other tests executing the line]
+24a04743dd24462aa74dac7a8b0cc51f	s1_checkpoint.py	341	core/ReplaceComparisonOperator_Eq_Is	1	SURVIVED [42 other tests executing the line]
+f6de40d737734dafa5f12f940fb1fe4e	s1_checkpoint.py	411	core/ExceptionReplacer	20	SURVIVED (not executed by any other test)
+71ba844b065f4431bc3e3a7b6fe591c6	s1_checkpoint.py	436	core/ReplaceComparisonOperator_Eq_NotEq	2	SURVIVED (not executed by any other test)
+bf58e63c64c8476c869d1c38aa2c8a90	s1_checkpoint.py	277	core/NumberReplacer	16	SURVIVED [55 other tests executing the line]
+f3a04c60e25440b886730ef4ff2c8591	s1_checkpoint.py	202	core/ReplaceComparisonOperator_GtE_IsNot	0	SURVIVED [2 other tests executing the line]
+0cf447c5c918405396f5b42f8ae4f6a3	s1_checkpoint.py	268	core/ExceptionReplacer	6	SURVIVED (not executed by any other test)
+b21c17a0323344a68c456d72ced75c05	s1_checkpoint.py	339	core/ExceptionReplacer	12	SURVIVED (not executed by any other test)
+22e6cccd368b45bc8dbebddfa8d56c6e	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_Mul	6	SURVIVED (not executed by any other test)
+ea4ae80bda6b48f883f05c826de47743	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitXor	45	SURVIVED (not executed by any other test)
+c00f2af6b3254bfaa17eaf836e5389cf	s1_checkpoint.py	255	core/ExceptionReplacer	5	SURVIVED (not executed by any other test)
+a06f20e8ceb440ae81835a048babc20a	s1_checkpoint.py	387	core/ExceptionReplacer	16	SURVIVED (not executed by any other test)
+71208a5439a14702b7d15690efc12792	s1_checkpoint.py	88	core/ReplaceComparisonOperator_Gt_GtE	0	SURVIVED [55 other tests executing the line]
+13d7a2633f45498aa0c5ecf92aa89479	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Mod	43	SURVIVED (not executed by any other test)
+89716d6fd8b74e42a91daf60c027cf57	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitXor	42	SURVIVED (not executed by any other test)
+a4d381f4f24e471883f6b6ade7704b58	s1_checkpoint.py	410	core/NumberReplacer	24	SURVIVED [42 other tests executing the line]
+3a618ecf3c6e477b9c263d432da01fe2	s1_checkpoint.py	436	core/ReplaceComparisonOperator_Eq_Lt	2	SURVIVED (not executed by any other test)
+962748d58ce0427b8999177fa95d7b43	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_RShift	42	SURVIVED (not executed by any other test)
+736b6d8670e948589be555dc3258f3b8	s1_checkpoint.py	339	core/ExceptionReplacer	11	SURVIVED (not executed by any other test)
+b10ed20f0d854a9392504162c8eebc5c	s1_checkpoint.py	339	core/ExceptionReplacer	10	SURVIVED (not executed by any other test)
+7a84feee00c7454aab0d1e97fc732264	s1_checkpoint.py	436	core/ReplaceComparisonOperator_Eq_Is	2	SURVIVED (not executed by any other test)
+d2cd274e2c624abea6e403fd0ad4c608	s1_checkpoint.py	311	core/ReplaceComparisonOperator_IsNot_Is	11	SURVIVED [55 other tests executing the line]
+e7367581df994764915ac16417bc54be	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitAnd	43	SURVIVED (not executed by any other test)
+6fe8fc3e5df342daa1bd86cc50d4cedb	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Mod	42	SURVIVED (not executed by any other test)
+ddcfb4274ed44f09ac864d3abf1369e0	s1_checkpoint.py	234	core/ReplaceOrWithAnd	5	SURVIVED [55 other tests executing the line]
+27de9e04e03844638bc7a3e40789712a	s1_checkpoint.py	209	core/ReplaceComparisonOperator_Is_IsNot	4	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [2 other tests executing the line]
+1742dcf613f84e65bb526d2b88ac4d8b	s1_checkpoint.py	314	core/ReplaceFalseWithTrue	6	SURVIVED (not executed by any other test)
+786b0022dc464fbebeb7e60f36ffdc04	s1_checkpoint.py	31	core/ExceptionReplacer	0	SURVIVED (not executed by any other test)
+d31504bc5a824b42bde9ddebbadd1baf	s1_checkpoint.py	436	core/ReplaceComparisonOperator_Eq_GtE	2	SURVIVED (not executed by any other test)
+e21c0e7a6c444d1dbf520c7a6a293039	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Mod	44	SURVIVED (not executed by any other test)
+6c52c738c7eb460e9af7efa66624e58e	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Add	43	SURVIVED (not executed by any other test)
+e6ca7aae18be4aabb6a7b8aab03c2edd	s1_checkpoint.py	249	core/ReplaceComparisonOperator_NotEq_Gt	2	SURVIVED [55 other tests executing the line]
+71e1105b3a7d4c7b88bbeeff25960725	s1_checkpoint.py	324	core/ReplaceFalseWithTrue	7	SURVIVED (not executed by any other test)
+03fa5a4245d743b6bcb70450469f457b	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Add	45	SURVIVED (not executed by any other test)
+2cf6ba7727454c56a25bd1653c8fb712	s1_checkpoint.py	360	core/ExceptionReplacer	15	SURVIVED (not executed by any other test)
+c3491acbf03e427b8bfa15e5a69d69c2	s1_checkpoint.py	202	core/ReplaceComparisonOperator_GtE_Gt	0	SURVIVED [2 other tests executing the line]
+2b8501db8a7e4f54b845b24a26ff4d87	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Sub	44	SURVIVED (not executed by any other test)
+1df2e91cb1674f4f816650a3e88d08e5	s1_checkpoint.py	358	core/ReplaceComparisonOperator_Is_GtE	0	SURVIVED (not executed by any other test)
+c656d82f5eee4d1fa0bd514fcada5108	s1_checkpoint.py	53	core/NumberReplacer	0	SURVIVED (not executed by any other test)
+68b1065b3d934c828f03f736e3f4d812	s1_checkpoint.py	160	core/ReplaceTrueWithFalse	6	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [55 other tests executing the line]
+93cd3dcf68e444aeae71c3dfc26195da	s1_checkpoint.py	90	core/NumberReplacer	4	SURVIVED [55 other tests executing the line]
+f1c0e6f6b64644c8a2d63f7f6c25cb5d	s1_checkpoint.py	229	core/ReplaceComparisonOperator_NotEq_Lt	0	SURVIVED [55 other tests executing the line]
+8085727a111d44caa9a1513430e31110	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Sub	43	SURVIVED (not executed by any other test)
+5a680cabd6564de6baaaaa1ea9f7f379	s1_checkpoint.py	438	core/ReplaceComparisonOperator_Eq_IsNot	3	SURVIVED (not executed by any other test)
+4d2d73e62bb948feb1c993c1ae2c4897	s1_checkpoint.py	234	core/ReplaceComparisonOperator_NotEq_Lt	1	SURVIVED [55 other tests executing the line]
+5225639b39f14313a4bfe84e724d0818	s1_checkpoint.py	438	core/ReplaceComparisonOperator_Eq_LtE	3	SURVIVED (not executed by any other test)
+a93ad97961ad4cfc80777a3e8afd68a7	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_FloorDiv	6	SURVIVED (not executed by any other test)
+15ffc66c30314c869e232f80a48fb332	s1_checkpoint.py	438	core/ReplaceComparisonOperator_Eq_Gt	3	SURVIVED (not executed by any other test)
+623333dfa96f42ba99135e67d25e4c8a	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_LShift	42	SURVIVED (not executed by any other test)
+f9170df6dbd847868a83a492301896b2	s1_checkpoint.py	313	core/ReplaceComparisonOperator_NotEq_Is	4	SURVIVED [55 other tests executing the line]
+f06ce4a90fe54cd58b77eee59a4e54fb	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitOr	45	SURVIVED (not executed by any other test)
+9af447d26de146e29999bb87a9614f00	s1_checkpoint.py	202	core/ReplaceComparisonOperator_GtE_NotEq	0	SURVIVED [2 other tests executing the line]
+d04024efcdcd49378a753464de746caf	s1_checkpoint.py	358	core/ReplaceComparisonOperator_Is_Eq	0	SURVIVED (not executed by any other test)
+86f79664be8346109606f0dca5e46738	s1_checkpoint.py	406	core/NumberReplacer	22	SURVIVED [42 other tests executing the line]
+7cf82f8d7b564ef989681c09ddec134e	s1_checkpoint.py	442	core/NumberReplacer	27	SURVIVED (not executed by any other test)
+ab12b606db4444bf9e1ebe3bbc1c5846	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Pow	43	SURVIVED (not executed by any other test)
+55bf93b98d8c4e6999ad63d6dbf40bb8	s1_checkpoint.py	277	core/NumberReplacer	17	SURVIVED [55 other tests executing the line]
+98eebc5f3c834e05ba961d410f5123aa	s1_checkpoint.py	410	core/NumberReplacer	25	SURVIVED [42 other tests executing the line]
+9f1287edf9b44857ac2d8bb02ac61b99	s1_checkpoint.py	66	core/NumberReplacer	2	SURVIVED (not executed by any other test)
+9c06f565d0c24d66996411ff7acbc125	s1_checkpoint.py	164	core/NumberReplacer	10	SURVIVED [55 other tests executing the line]
+e2db56e18c0d45ce9eda2cb14be8dfcc	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_Mod	6	SURVIVED (not executed by any other test)
+3f8b5e37410c43b3810388aba11a2bf9	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_LShift	45	SURVIVED (not executed by any other test)
+8db63f53a70c4fceb841d7906c7698a8	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_FloorDiv	45	SURVIVED (not executed by any other test)
+fe88ee80222647a48110a9aa17816bd5	s1_checkpoint.py	53	core/NumberReplacer	1	SURVIVED (not executed by any other test)
+7b5d2196504f4dcb9d91a62526ea9004	s1_checkpoint.py	438	core/ReplaceComparisonOperator_Eq_NotEq	3	SURVIVED (not executed by any other test)
+16d9bb66436149248b7cd18e8b9bdcbb	s1_checkpoint.py	402	core/ExceptionReplacer	19	SURVIVED (not executed by any other test)
+8fd0fdb09b194826876a5f38750b3149	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_RShift	6	SURVIVED (not executed by any other test)
+93f1dcc5c97d4e448547da9fab71e4e9	s1_checkpoint.py	68	core/ReplaceBinaryOperator_Div_BitXor	6	SURVIVED (not executed by any other test)
+8d7b25f5bc434fe09d3187dd9f2de155	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Mod	45	SURVIVED (not executed by any other test)
+237b4fa6ec8a44548deec08b7142c8cd	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Pow	42	SURVIVED (not executed by any other test)
+3668022279694e59bd1a42c2b98c1164	s1_checkpoint.py	90	core/NumberReplacer	5	SURVIVED [55 other tests executing the line]
+513531afe7364372a0801722a5eb1e2e	s1_checkpoint.py	277	core/ReplaceTrueWithFalse	7	SURVIVED [55 other tests executing the line]
+0047223f7b664b6ba6c1a7321467b926	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_Sub	42	SURVIVED (not executed by any other test)
+6a3def014b9d46fababc72740e0a17bd	s1_checkpoint.py	151	core/ReplaceTrueWithFalse	2	SURVIVED [55 other tests executing the line]
+f2e17a672eb8438d90b4bf91b2be5919	s1_checkpoint.py	311	core/AddNot	34	SURVIVED [55 other tests executing the line]
+52a8103b1f824c3bb4beb972821dd8cb	s1_checkpoint.py	164	core/NumberReplacer	11	SURVIVED [55 other tests executing the line]
+7f48e53ea89b4477a9d0e0f6cee7ef3e	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_LShift	43	SURVIVED (not executed by any other test)
+1ccd00cb05474d8dbf97877eb50aae2b	s1_checkpoint.py	212	core/ExceptionReplacer	4	SURVIVED (not executed by any other test)
+50988c37139f4f5db398f5e80554b1fe	s1_checkpoint.py	445	core/ReplaceComparisonOperator_Eq_Lt	4	SURVIVED [import-time line: full suite minus focused]
+c2ec0c11805b428990c71ec8bddb32cc	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitAnd	42	SURVIVED (not executed by any other test)
+697342c25c9a43f0a23a71c1d32b0771	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_FloorDiv	44	SURVIVED (not executed by any other test)
+015903d8442f43898f410bb64aae04cf	s1_checkpoint.py	435	core/ReplaceBinaryOperator_Div_BitOr	43	SURVIVED (not executed by any other test)
+714cee5ab3ab4d20af1a6431eb8cd422	s1_checkpoint.py	66	core/NumberReplacer	3	SURVIVED (not executed by any other test)
+23e8b951fe3d402084876d564042ec62	s1_checkpoint.py	395	core/ReplaceFalseWithTrue	8	SURVIVED [42 other tests executing the line]
+b72243520d804293acdeb6980ca97f4e	s1_checkpoint.py	381	core/ReplaceTrueWithFalse	10	SURVIVED [42 other tests executing the line]
+5337bca4cfe44de1b7454a5e95b444e3	s1_checkpoint.py	307	core/ReplaceTrueWithFalse	8	SURVIVED [55 other tests executing the line]
+c339c8df42aa4205b022145667fca524	s1_run.py	113	core/ReplaceComparisonOperator_LtE_IsNot	1	SURVIVED [2 other tests executing the line]
+b5352f359ace41b4a554415445d5033b	s1_run.py	342	core/ReplaceComparisonOperator_NotEq_Is	4	KILLED s1_tests/test_s1_checkpoint_7b.py::test_attest_start_refuses_when_the_opening_receipt_differs_from_the_seal [21 other tests executing the line]
+3837994090e149599ce906a1d685b83f	s1_run.py	730	core/AddNot	95	SURVIVED [9 other tests executing the line]
+93729f3eb0cd4b9fb1488934b0cc8931	s1_run.py	441	core/ReplaceComparisonOperator_NotEq_Lt	8	SURVIVED [15 other tests executing the line]
+192f6f7db4564596b5cfe72aef56bec7	s1_run.py	793	core/ReplaceComparisonOperator_Eq_LtE	15	SURVIVED (not executed by any other test)
+533ed6ea9bac4e84932a3c3b5f1cc896	s1_run.py	578	core/ReplaceComparisonOperator_IsNot_Gt	1	SURVIVED [6 other tests executing the line]
+c61ae90efc874324a6740d154be598cb	s1_run.py	785	core/NumberReplacer	70	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+3efaa33bc70f4a18a7b98eeb00f287b8	s1_run.py	754	core/ExceptionReplacer	39	SURVIVED (not executed by any other test)
+346c97c294d94473bbe76cb7727fc5f7	s1_run.py	789	core/ReplaceComparisonOperator_Gt_LtE	6	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+3dcf5835dd2c44d582f12098a81ca459	s1_run.py	205	core/ReplaceComparisonOperator_Eq_IsNot	7	SURVIVED [3 other tests executing the line]
+90eb7f0d12644f808156f5a97f7834a5	s1_run.py	67	core/ReplaceComparisonOperator_Eq_Is	1	SURVIVED (not executed by any other test)
+8645cc320d1948d1845e160b1cd4696f	s1_run.py	828	core/ReplaceBinaryOperator_Sub_BitAnd	4	SURVIVED [3 other tests executing the line]
+d941b600bd584e3f81e433fb1beb25ef	s1_run.py	582	core/ReplaceBinaryOperator_Add_LShift	4	SURVIVED (not executed by any other test)
+76c8c2c78a5d4931b49d93f15ae86aed	s1_run.py	582	core/ReplaceBinaryOperator_Add_Mod	4	SURVIVED (not executed by any other test)
+cbbfdf6d0f00400b95f243602481b9bc	s1_run.py	555	core/ReplaceComparisonOperator_Is_Gt	0	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_another_attempt_is_ok_too [9 other tests executing the line]
+963d75478eea4adebe6b876eb0caffe3	s1_run.py	290	core/NumberReplacer	27	SURVIVED [2 other tests executing the line]
+94126a0af4d145628fa014efbb5b92af	s1_run.py	697	core/ReplaceComparisonOperator_Eq_Is	11	SURVIVED [9 other tests executing the line]
+c73786710c084f82a5450bb2de7a9cea	s1_run.py	103	core/ReplaceComparisonOperator_Gt_NotEq	0	SURVIVED [2 other tests executing the line]
+e2fb89aeea694b7c83cd61592a134f6e	s1_run.py	816	core/ReplaceComparisonOperator_NotEq_IsNot	30	SURVIVED [3 other tests executing the line]
+7ea121d5be234326ac2c251ee5679582	s1_run.py	638	core/ExceptionReplacer	27	SURVIVED (not executed by any other test)
+c297aba9778a4a78aea1e3d01de2fbf3	s1_run.py	785	core/NumberReplacer	71	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+9e640efa55b04fa9ae5fee7db2680a86	s1_run.py	717	core/ExceptionReplacer	32	SURVIVED (not executed by any other test)
+ca96e0b6e3b443179a2b6c5fcd6d6f20	s1_run.py	205	core/ReplaceComparisonOperator_Eq_Gt	8	SURVIVED [3 other tests executing the line]
+6ec26b6b93d34be192a187213277750e	s1_run.py	311	core/NumberReplacer	35	SURVIVED [18 other tests executing the line]
+b254fa2074cc431d8f122673450fb100	s1_run.py	713	core/ReplaceComparisonOperator_NotEq_Lt	26	SURVIVED [9 other tests executing the line]
+2a44448c73a748c1b9237f760d390981	s1_run.py	612	core/ReplaceComparisonOperator_NotEq_Lt	14	SURVIVED [9 other tests executing the line]
+ea9bed4f0b32411284005906bbdce2c9	s1_run.py	103	core/NumberReplacer	14	SURVIVED [2 other tests executing the line]
+81b6223499664f3fa3a631d4feecf6b9	s1_run.py	717	core/ExceptionReplacer	33	SURVIVED (not executed by any other test)
+b8b68dc92eb3489682a83b723d79b661	s1_run.py	840	core/NumberReplacer	88	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+bfb869c7af734924be7d3ea01b41542a	s1_run.py	69	core/ReplaceComparisonOperator_Eq_Is	2	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [2 other tests executing the line]
+bd12ab0bc2754fcf9163a4571cae6e1b	s1_run.py	713	core/ReplaceComparisonOperator_NotEq_Is	27	SURVIVED [9 other tests executing the line]
+cd053632b76e4d899de3165de2932e8e	s1_run.py	662	core/ReplaceComparisonOperator_LtE_Eq	8	SURVIVED [8 other tests executing the line]
+a57db22306fe4cc28177d5ff5429e841	s1_run.py	840	core/ReplaceComparisonOperator_Eq_NotEq	17	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+91721c52ac154a7184982e5fc9358223	s1_run.py	571	core/ExceptionReplacer	23	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_the_report_is_gone_but_an_ok_attempt_exists[missing] [2 other tests executing the line]
+94e00be6534847a9a0cfcac879f065b5	s1_run.py	591	core/ExceptionReplacer	25	SURVIVED (not executed by any other test)
+f399ce0b0d584f8ba519b2958fd6aad7	s1_run.py	303	core/ReplaceComparisonOperator_Gt_GtE	3	SURVIVED [18 other tests executing the line]
+bc71805388aa45ecaf6a88c6d63859ec	s1_run.py	840	core/NumberReplacer	89	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+bbd633ac70a247bfb24eed3d51c328cf	s1_run.py	711	core/ReplaceComparisonOperator_NotEq_Lt	25	SURVIVED [9 other tests executing the line]
+e19cac5c046040dab3734e2d6b79c641	s1_run.py	649	core/ReplaceComparisonOperator_NotEq_Lt	17	SURVIVED [8 other tests executing the line]
+afbdcf0783b5458b8b6e9c60c49a4223	s1_run.py	585	core/ReplaceBinaryOperator_Add_FloorDiv	5	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [1 other tests executing the line]
+83c15046f77e422cb5325d8d4c8ce7e7	s1_run.py	603	core/ReplaceComparisonOperator_NotEq_Is	11	SURVIVED [9 other tests executing the line]
+8defc59358ff41dfa189f40a2a89a47d	s1_run.py	123	core/ReplaceBinaryOperator_Mul_Div	0	SURVIVED [import-time line: full suite minus focused]
+cf669ed2e44e4001988508697db2f97d	s1_run.py	197	core/ReplaceComparisonOperator_Eq_Is	6	SURVIVED (not executed by any other test)
+a12464c758854120bcd08a492d7bfd6d	s1_run.py	352	core/ReplaceComparisonOperator_NotEq_Lt	5	SURVIVED [21 other tests executing the line]
+7796a63d62cb40bc96fb250253f75233	s1_run.py	113	core/ReplaceComparisonOperator_LtE_Lt	1	SURVIVED [2 other tests executing the line]
+5b7606d0a83c4dbe9e402db9821f09d2	s1_run.py	836	core/ReplaceBinaryOperator_Add_BitOr	13	SURVIVED [3 other tests executing the line]
+e2fd9399454d4719a781436113861a22	s1_run.py	651	core/ReplaceComparisonOperator_NotEq_Gt	18	SURVIVED [8 other tests executing the line]
+f67fb38e4d984aa0bd69fc1c355f0790	s1_run.py	745	core/ReplaceComparisonOperator_NotEq_Is	29	SURVIVED [8 other tests executing the line]
+9f16662a9a98493f97e9260a42ac3392	s1_run.py	836	core/ReplaceBinaryOperator_Add_BitXor	13	SURVIVED [3 other tests executing the line]
+ebf0c5642e1e4ae2890701d02ec7b3c9	s1_run.py	697	core/ReplaceComparisonOperator_Eq_NotEq	12	SURVIVED [9 other tests executing the line]
+a5957e6414a2487bb7171702abfc6481	s1_run.py	840	core/ReplaceComparisonOperator_Eq_GtE	17	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+8e062b5cf06240a686c3c6f452511f42	s1_run.py	176	core/ReplaceContinueWithBreak	2	SURVIVED (not executed by any other test)
+5a24a4326c9e4e0ab35b249bd25d7442	s1_run.py	305	core/NumberReplacer	32	SURVIVED [18 other tests executing the line]
+03c3a32d3db945e9b546ce34c004abef	s1_run.py	713	core/ReplaceComparisonOperator_NotEq_Is	26	SURVIVED [9 other tests executing the line]
+316fb7b0f70947938e00eaab58c9282d	s1_run.py	555	core/ReplaceComparisonOperator_Is_Lt	0	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_another_attempt_is_ok_too [9 other tests executing the line]
+f2c054f6baf9461f826e570cffde2d83	s1_run.py	263	core/ReplaceComparisonOperator_NotEq_Lt	0	SURVIVED [21 other tests executing the line]
+606522ca672c4619b245a0c2dd584701	s1_run.py	656	core/ReplaceComparisonOperator_NotEq_Is	20	SURVIVED [8 other tests executing the line]
+94f04b67a19c4938a31bcf732384a17a	s1_run.py	310	core/ZeroIterationForLoop	10	SURVIVED [18 other tests executing the line]
+84fdfef5d7d24a1a9cec0b6fd3273605	s1_run.py	664	core/ReplaceComparisonOperator_IsNot_Is	10	SURVIVED [8 other tests executing the line]
+11f1a8eb9c0a4fbd953de22486f61c06	s1_run.py	405	core/ExceptionReplacer	5	SURVIVED (not executed by any other test)
+bfba3a7c5ba04a92a3b0201eb1af32c4	s1_run.py	555	core/ReplaceComparisonOperator_Is_IsNot	6	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_another_attempt_is_ok_too [9 other tests executing the line]
+aa4703f89e374b38a74d83aefedb6237	s1_run.py	303	core/AddNot	35	SURVIVED [18 other tests executing the line]
+acf42a6f428c49e999d81d8aa657a57a	s1_run.py	664	core/ReplaceComparisonOperator_GtE_Is	5	SURVIVED [8 other tests executing the line]
+aea2cd97b405419eaaa33fe42e5c6adc	s1_run.py	308	core/ZeroIterationForLoop	9	SURVIVED [18 other tests executing the line]
+349f65f81f80451892b0303b4aa09a3a	s1_run.py	638	core/ExceptionReplacer	30	SURVIVED (not executed by any other test)
+44813e8358f2466d9b8d87a0c6f660ba	s1_run.py	268	core/ReplaceOrWithAnd	7	SURVIVED [21 other tests executing the line]
+471a45c8f6914aaa898d830666ec1d09	s1_run.py	578	core/ReplaceComparisonOperator_IsNot_Lt	2	SURVIVED [6 other tests executing the line]
+645e4cdf24f544048218d4ae370d9b55	s1_run.py	113	core/ReplaceComparisonOperator_LtE_NotEq	1	SURVIVED [2 other tests executing the line]
+1a7fdef99a7547d99e0b15f958400eee	s1_run.py	829	core/ReplaceComparisonOperator_Eq_GtE	16	SURVIVED [3 other tests executing the line]
+4120e5c9fa60471ebcdc84c20760c1cf	s1_run.py	356	core/ReplaceComparisonOperator_GtE_Eq	2	SURVIVED [21 other tests executing the line]
+02a4f15e32434716992219b88c035829	s1_run.py	697	core/AddNot	89	SURVIVED [9 other tests executing the line]
+ce603450413b4ce3aa50a5237739811c	s1_run.py	303	core/NumberReplacer	30	SURVIVED [18 other tests executing the line]
+62b1e15ffb1c4809a3038fba2b9c9a9a	s1_run.py	631	core/ReplaceComparisonOperator_IsNot_Is	8	SURVIVED [8 other tests executing the line]
+a18433a7177f47bfbb34dac7cce4c5bf	s1_run.py	711	core/ReplaceComparisonOperator_NotEq_Gt	25	SURVIVED [9 other tests executing the line]
+9b9d1a51072c4b708747eb407c32612a	s1_run.py	544	core/ReplaceAndWithOr	16	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_the_report_is_gone_but_an_ok_attempt_exists[missing] [10 other tests executing the line]
+c455697d57c147d4aedc86d105d6c992	s1_run.py	829	core/ReplaceComparisonOperator_Eq_LtE	16	SURVIVED [3 other tests executing the line]
+184ba565887e4d2d8e6dee48d016f7b4	s1_run.py	710	core/ReplaceComparisonOperator_NotEq_Is	24	SURVIVED [9 other tests executing the line]
+c4daf1ed8d9548d8b49c16cad46ddf42	s1_run.py	840	core/ReplaceComparisonOperator_Eq_Lt	17	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+0014440a93494e60a0114b338dfabeb7	s1_run.py	205	core/ReplaceComparisonOperator_Eq_Lt	8	SURVIVED [3 other tests executing the line]
+dc1ad2e707f840628e494a67d65fb72f	s1_run.py	530	core/ReplaceFalseWithTrue	7	SURVIVED (not executed by any other test)
+36f24b73726940dea99e9c857e4c3e3e	s1_run.py	366	core/ReplaceComparisonOperator_NotEq_Is	6	KILLED s1_tests/test_s1_checkpoint_7b.py::test_attest_start_binds_the_opening_receipt_and_refuses_a_different_one [20 other tests executing the line]
+6cb0940b1ad64cef9486c96b5bc48b51	s1_run.py	836	core/NumberReplacer	83	SURVIVED [3 other tests executing the line]
+bd13c0592b5b4faa821c95f2fa264972	s1_run.py	263	core/ReplaceComparisonOperator_NotEq_Gt	0	SURVIVED [21 other tests executing the line]
+9ad6cbdcd1c74e0db9e2195019efcd45	s1_run.py	605	core/ReplaceComparisonOperator_NotEq_Is	12	SURVIVED [9 other tests executing the line]
+45097d3a82064b068a91f3fc63316508	s1_run.py	213	core/ReplaceComparisonOperator_Eq_GtE	10	SURVIVED [9 other tests executing the line]
+4ccd3fecd3ab4d1dba227f567fdda6ae	s1_run.py	789	core/ReplaceComparisonOperator_Gt_GtE	6	SURVIVED [3 other tests executing the line]
+56829a4e92c5462ba668f80679ddb3e4	s1_run.py	292	core/ReplaceComparisonOperator_NotEq_Gt	3	SURVIVED [21 other tests executing the line]
+6c6d680ec20e4f738da09760c8ded5ca	s1_run.py	76	core/ReplaceBinaryOperator_BitOr_BitXor	0	SURVIVED (not executed by any other test)
+20a73e12c91c40dea1172f211d6d66b0	s1_run.py	582	core/ReplaceBinaryOperator_Add_Pow	4	SURVIVED (not executed by any other test)
+e9601baadef64c439f4c65804f872000	s1_run.py	557	core/ExceptionReplacer	19	SURVIVED (not executed by any other test)
+39d34c115203434081c7ebb991583b04	s1_run.py	584	core/ReplaceOrWithAnd	14	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [6 other tests executing the line]
+79982ec42e514a2ba8977e963cd64b4b	s1_run.py	813	core/ReplaceBinaryOperator_Sub_BitXor	3	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+0db3fcdd8afd41dbb40842cce8e14961	s1_run.py	527	core/ReplaceComparisonOperator_GtE_NotEq	4	SURVIVED [1 other tests executing the line]
+b334dc90775b4c6a9c82ed69366ea1cf	s1_run.py	728	core/AddNot	94	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [9 other tests executing the line]
+55b4fec4c5a14164899e5aa545d68c23	s1_run.py	303	core/ReplaceComparisonOperator_Gt_NotEq	3	SURVIVED [18 other tests executing the line]
+6ee08c66f4d54567aaad7dd3b7d2ea80	s1_run.py	829	core/ReplaceComparisonOperator_Eq_Is	15	SURVIVED [3 other tests executing the line]
+8fb8fd279d664a2c87b98b00df5af1e6	s1_run.py	836	core/ReplaceBinaryOperator_Add_RShift	13	SURVIVED [3 other tests executing the line]
+9762037667e144caac522882e1250a3e	s1_run.py	638	core/ExceptionReplacer	28	SURVIVED (not executed by any other test)
+187ff5a5729e416fbab74eb691ebfc62	s1_run.py	713	core/ReplaceComparisonOperator_NotEq_Gt	26	SURVIVED [9 other tests executing the line]
+d08ccaa92c58434eb57423e624d88877	s1_run.py	710	core/ReplaceComparisonOperator_NotEq_Gt	24	SURVIVED [9 other tests executing the line]
+8c315d1c59da47828adcbad854678857	s1_run.py	303	core/NumberReplacer	31	SURVIVED [18 other tests executing the line]
+6a1f44b9bd984036bf0a5d3cf73d3fbd	s1_run.py	836	core/ReplaceBinaryOperator_Add_Mod	13	SURVIVED [3 other tests executing the line]
+215561042021470caf6db0927a9416e7	s1_run.py	840	core/ReplaceComparisonOperator_Eq_Gt	17	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+577a7169a76545459baa4142763b3124	s1_run.py	555	core/AddNot	66	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_another_attempt_is_ok_too [9 other tests executing the line]
+185248a42f41464ca505e4b8f8b22e83	s1_run.py	710	core/ReplaceOrWithAnd	26	SURVIVED [9 other tests executing the line]
+a7f1a8409ad947cdbe8efbc6b111c9bc	s1_run.py	303	core/ReplaceComparisonOperator_Gt_Lt	3	SURVIVED [18 other tests executing the line]
+edeb955ced544e3ea53997dfbca93f19	s1_run.py	412	core/ExceptionReplacer	6	SURVIVED (not executed by any other test)
+b95452c70f0748d5af90baffb25f2fc0	s1_run.py	311	core/ReplaceComparisonOperator_Gt_LtE	4	SURVIVED [18 other tests executing the line]
+b139f8c0bcf443b9a80f730db1201558	s1_run.py	323	core/ReplaceComparisonOperator_Gt_Is	1	SURVIVED [18 other tests executing the line]
+a49f223f4ae94b7bbce6c1405003a1b6	s1_run.py	793	core/ReplaceComparisonOperator_Eq_GtE	15	SURVIVED (not executed by any other test)
+9f4cd9c1f8b6434ebeaa726a40f8aee2	s1_run.py	156	core/NumberReplacer	17	SURVIVED [3 other tests executing the line]
+b72ba5c1a5f8491889d49df95d6b697c	s1_run.py	382	core/ReplaceComparisonOperator_NotEq_Gt	7	SURVIVED [18 other tests executing the line]
+0aa9378b9506444c9cc2996aa00bebed	s1_run.py	828	core/ReplaceBinaryOperator_Sub_Pow	4	SURVIVED [3 other tests executing the line]
+22b8a199775e4ea184746c41ae939932	s1_run.py	717	core/ExceptionReplacer	34	SURVIVED (not executed by any other test)
+f317c2c136584e6189cce9296cea7661	s1_run.py	697	core/ReplaceComparisonOperator_Eq_IsNot	11	SURVIVED [9 other tests executing the line]
+524b644a28704a378072c0af1674fa5b	s1_run.py	745	core/ReplaceComparisonOperator_NotEq_Gt	29	SURVIVED [8 other tests executing the line]
+4cd69ed5cf944bdb8527280f7c61ee59	s1_run.py	584	core/ReplaceComparisonOperator_NotEq_Gt	10	SURVIVED [6 other tests executing the line]
+078b723ecb1948faaa2b4b86e4180089	s1_run.py	205	core/ReplaceComparisonOperator_Eq_Is	7	SURVIVED [3 other tests executing the line]
+fd2ec1471b6f41b991dfa5e51f28e024	s1_run.py	292	core/ReplaceComparisonOperator_NotEq_Is	3	SURVIVED [21 other tests executing the line]
+79a1ee3d95ee4fd0b2db2c82dc45a906	s1_run.py	608	core/ReplaceComparisonOperator_NotEq_Gt	13	SURVIVED [9 other tests executing the line]
+4605a5b65c6a49a4bc0140abe1e4c9de	s1_run.py	743	core/ReplaceComparisonOperator_NotEq_Lt	28	SURVIVED [8 other tests executing the line]
+39e21d03a6ac4e13ad616a941ab912f5	s1_run.py	67	core/ReplaceComparisonOperator_Eq_GtE	1	SURVIVED (not executed by any other test)
+6c724399192d497999486126f24d437a	s1_run.py	662	core/ReplaceComparisonOperator_LtE_Lt	8	SURVIVED [8 other tests executing the line]
+0024c3243f5c43d09972b248e47c127a	s1_run.py	668	core/ReplaceTrueWithFalse	7	SURVIVED [8 other tests executing the line]
+1988bffc05c045d9b5dae5f306b83355	s1_run.py	631	core/NumberReplacer	49	SURVIVED [8 other tests executing the line]
+b02e081556a6464db67fd3b0dc35873c	s1_run.py	725	core/ExceptionReplacer	35	SURVIVED (not executed by any other test)
+1426ee890f2248cd9fbecf4d6b45ab6d	s1_run.py	713	core/ReplaceComparisonOperator_NotEq_Gt	27	SURVIVED [9 other tests executing the line]
+c2ed45c9d32943c0836e6762b6344728	s1_run.py	311	core/ReplaceComparisonOperator_Gt_Eq	4	SURVIVED [18 other tests executing the line]
+f0a0b3877ed540319a5e58dc5a81b73e	s1_run.py	836	core/NumberReplacer	82	SURVIVED [3 other tests executing the line]
+bc8ce65586d745fcb9079bfcf99de0b9	s1_run.py	840	core/ReplaceComparisonOperator_Eq_LtE	17	SURVIVED [3 other tests executing the line]
+ab5e756e72f04fff8787a6b79442f53e	s1_run.py	653	core/ReplaceComparisonOperator_NotEq_Lt	19	SURVIVED [8 other tests executing the line]
+0fd94fef43414f77b957fe0d07afbda3	s1_run.py	653	core/ReplaceComparisonOperator_NotEq_Is	19	SURVIVED [8 other tests executing the line]
+29595046fe6c4fcd99213458580ac840	s1_run.py	575	core/ReplaceComparisonOperator_NotEq_Is	9	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_another_attempt_is_ok_too [7 other tests executing the line]
+5ea8ca1403e543edb3206336d2bb1356	s1_run.py	114	core/ReplaceContinueWithBreak	0	SURVIVED (not executed by any other test)
+60810f7f5d864eeb9132e755435dc3fd	s1_run.py	268	core/ReplaceComparisonOperator_NotEq_Gt	1	SURVIVED [21 other tests executing the line]
+616c6e48fc514b12b6245d007e35896c	s1_run.py	813	core/ReplaceBinaryOperator_Sub_BitOr	3	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+1e9a6488feff4f58a8c9faf6a2acabc0	s1_run.py	292	core/ReplaceComparisonOperator_NotEq_Lt	3	SURVIVED [21 other tests executing the line]
+d727c2966a514613bbf6ec4260c45c65	s1_run.py	544	core/ReplaceUnaryOperator_Delete_Not	19	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_the_report_is_gone_but_an_ok_attempt_exists[missing] [10 other tests executing the line]
+bc45c69fe4844e1bae893d293f405e6d	s1_run.py	828	core/ReplaceBinaryOperator_Sub_BitXor	4	SURVIVED [3 other tests executing the line]
+7afba04564d34935849934a45df24cc0	s1_run.py	69	core/ReplaceComparisonOperator_Eq_LtE	2	SURVIVED [2 other tests executing the line]
+0976ce28f79c45f99df21b8b11c155b1	s1_run.py	73	core/ReplaceComparisonOperator_Eq_LtE	5	SURVIVED (not executed by any other test)
+cb35ec36c8f04b23b8ff95bf3d28e070	s1_run.py	651	core/ReplaceComparisonOperator_NotEq_Lt	18	SURVIVED [8 other tests executing the line]
+774202dd11ee4d46982be7fbf92b08aa	s1_run.py	813	core/ReplaceBinaryOperator_Sub_LShift	3	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+8a6ab907809a4a18a76944ee1f6d53ab	s1_run.py	582	core/ReplaceBinaryOperator_Add_Div	4	SURVIVED (not executed by any other test)
+6d8c79b5062340139b8acbd206b2cf2e	s1_run.py	829	core/ReplaceComparisonOperator_Eq_Gt	16	SURVIVED [3 other tests executing the line]
+3e411e159abf4398af4fa4a9b8306e88	s1_run.py	638	core/ExceptionReplacer	29	SURVIVED (not executed by any other test)
+8277896a2bfa44f290b1e10bd1ed8b1d	s1_run.py	743	core/ReplaceComparisonOperator_NotEq_Gt	28	SURVIVED [8 other tests executing the line]
+5af324b19c41409d8ccb2c03e09bb017	s1_run.py	286	core/ReplaceComparisonOperator_NotEq_Is	2	SURVIVED [21 other tests executing the line]
+6ccdcbd04fff43c8a554eac128fa9f54	s1_run.py	789	core/ReplaceComparisonOperator_Gt_IsNot	2	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+4157c1880f8f4354adb1ac6c7dcb9f97	s1_run.py	575	core/ReplaceComparisonOperator_NotEq_Gt	9	SURVIVED [7 other tests executing the line]
+e088ff4cb6234d61a7956661a0ab09ad	s1_run.py	73	core/ReplaceComparisonOperator_Eq_Is	5	SURVIVED (not executed by any other test)
+536fdbe1d0f84d72b5747b6e8e43fc4d	s1_run.py	555	core/ReplaceTrueWithFalse	3	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_another_attempt_is_ok_too [9 other tests executing the line]
+8d07e2eea730436cb13a0c3454c6e4cf	s1_run.py	760	core/ReplaceComparisonOperator_LtE_Lt	9	SURVIVED [8 other tests executing the line]
+c74394bb08b24fb8b9e81f3e255cd6af	s1_run.py	454	core/ExceptionReplacer	8	SURVIVED (not executed by any other test)
+8b2723fb6571433f9327c4e54212a25c	s1_run.py	67	core/ReplaceComparisonOperator_IsNot_NotEq	0	SURVIVED (not executed by any other test)
+1b00db6f60db45e3b7de6d6020df6e45	s1_run.py	793	core/ReplaceComparisonOperator_Lt_NotEq	5	SURVIVED (not executed by any other test)
+1a833306ad8c4e7eb3f59db71a7b0e1d	s1_run.py	662	core/ReplaceComparisonOperator_LtE_Is	8	SURVIVED [8 other tests executing the line]
+5a3ccf88040c400597dcfc1fdce8d3db	s1_run.py	836	core/ReplaceBinaryOperator_Add_LShift	13	SURVIVED [3 other tests executing the line]
+32f80b18bd374570b14174bc7484c3fc	s1_run.py	263	core/ReplaceComparisonOperator_NotEq_Is	0	SURVIVED [21 other tests executing the line]
+cfa15884286d4c088dc82a0dc63e8dd2	s1_run.py	828	core/ReplaceBinaryOperator_Sub_Add	4	SURVIVED [3 other tests executing the line]
+b7e931ee4bba40c2b399ad0b23d0a2b6	s1_run.py	841	core/ReplaceBinaryOperator_Div_Add	94	SURVIVED [3 other tests executing the line]
+4fe19ac3134140048fdc147d3712ad23	s1_run.py	205	core/ReplaceComparisonOperator_Eq_NotEq	8	SURVIVED [3 other tests executing the line]
+ad37c80ba03d456e99dd7eb86e014866	s1_run.py	711	core/ReplaceComparisonOperator_NotEq_Is	25	SURVIVED [9 other tests executing the line]
+ccd40c78dc1c4d2d9bf94ffb444d047c	s1_run.py	305	core/NumberReplacer	33	SURVIVED [18 other tests executing the line]
+2a95a14a69af4eafb85e13f02bd7cad0	s1_run.py	709	core/ReplaceOrWithAnd	25	SURVIVED [9 other tests executing the line]
+cc37ac39a9804adb8c3073ea5f79a03d	s1_run.py	779	core/ReplaceComparisonOperator_Eq_LtE	14	SURVIVED [4 other tests executing the line]
+2485075527644601818418ebbaa68a79	s1_run.py	290	core/ReplaceUnaryOperator_USub_Invert	2	SURVIVED [2 other tests executing the line]
+ea4c50509d7646a8937334e5f7164149	s1_run.py	175	core/NumberReplacer	20	SURVIVED [18 other tests executing the line]
+e168f2cae2fe4d8c8f372cb096b6ee5a	s1_run.py	557	core/ExceptionReplacer	21	SURVIVED (not executed by any other test)
+624a7c0e56314a45b5cd95a074015439	s1_run.py	555	core/ReplaceComparisonOperator_Is_GtE	0	SURVIVED [9 other tests executing the line]
+e641cf7e00f746b29878e375ae42bb6d	s1_run.py	571	core/ExceptionReplacer	22	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_the_report_is_gone_but_an_ok_attempt_exists[missing] [2 other tests executing the line]
+2ffcf40177c446309f8ab482dbf74950	s1_run.py	591	core/ExceptionReplacer	26	SURVIVED (not executed by any other test)
+145a09734ffd436ba3fd394572bc4521	s1_run.py	582	core/ReplaceBinaryOperator_Add_BitAnd	4	SURVIVED (not executed by any other test)
+0e1137bcaa7146fe8fdfa642b9c4eb37	s1_run.py	156	core/ReplaceComparisonOperator_Eq_LtE	6	SURVIVED [3 other tests executing the line]
+e83de09c753d4408a6e42f6c129d3547	s1_run.py	615	core/ZeroIterationForLoop	14	SURVIVED [9 other tests executing the line]
+ced61dbe97e14b02b7a2462641ce223b	s1_run.py	311	core/ReplaceComparisonOperator_Gt_Lt	4	SURVIVED [18 other tests executing the line]
+8ca6c8196ac04eeb994ed94cef1adf95	s1_run.py	637	core/NumberReplacer	50	SURVIVED [8 other tests executing the line]
+5a61443813514aea8aeb9c6e108dfc18	s1_run.py	793	core/ReplaceComparisonOperator_Eq_Is	14	SURVIVED (not executed by any other test)
+1dd810ba968d4950a68430dae1c0d3c2	s1_run.py	268	core/ReplaceComparisonOperator_NotEq_Is	1	SURVIVED [21 other tests executing the line]
+dd39804caec347bbab0f8082fcc90d0b	s1_run.py	655	core/ReplaceOrWithAnd	19	SURVIVED [8 other tests executing the line]
+298998e924c94b69b597b224e30cf30a	s1_run.py	555	core/ReplaceComparisonOperator_Is_Eq	0	SURVIVED [9 other tests executing the line]
+3ed57d9071a44cec93c524074b374781	s1_run.py	290	core/ReplaceUnaryOperator_USub_UAdd	2	SURVIVED [2 other tests executing the line]
+f959218f214b4f4e9625119129dab064	s1_run.py	828	core/ReplaceBinaryOperator_Sub_LShift	4	SURVIVED [3 other tests executing the line]
+a669aba12a9c403aa508bafe2e820a30	s1_run.py	213	core/ReplaceComparisonOperator_Eq_Is	9	SURVIVED [9 other tests executing the line]
+f0fd406a9dce4bf99cfaa602ddbd7f00	s1_run.py	710	core/ReplaceComparisonOperator_NotEq_Lt	24	SURVIVED [9 other tests executing the line]
+fc1b3b9d4cfe4d3aba78cb58fcbae02f	s1_run.py	664	core/ReplaceComparisonOperator_GtE_Gt	5	SURVIVED [8 other tests executing the line]
+1c4dc5ca38c34d71a3eef43db2864726	s1_run.py	649	core/ReplaceComparisonOperator_NotEq_Gt	17	SURVIVED [8 other tests executing the line]
+76428bcd14ac4a648348494e327ef905	s1_run.py	311	core/AddNot	36	SURVIVED [18 other tests executing the line]
+df6e749a024b4e9db1676ec2da12e488	s1_run.py	793	core/ReplaceAndWithOr	25	SURVIVED (not executed by any other test)
+e700d8b21a8f471aa4048f89d6881324	s1_run.py	697	core/ReplaceComparisonOperator_Eq_LtE	12	SURVIVED [9 other tests executing the line]
+28bfb13b6a3341ffbde1b7cc7e84a036	s1_run.py	420	core/ExceptionReplacer	7	SURVIVED (not executed by any other test)
+71f8a9b3619548f28caa74e4410ebd98	s1_run.py	555	core/ReplaceComparisonOperator_Is_NotEq	0	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_another_attempt_is_ok_too [9 other tests executing the line]
+8437b9a4825649f9ac79fb91f36bd416	s1_run.py	814	core/NumberReplacer	76	SURVIVED [3 other tests executing the line]
+a0034b8997c94172a907e640ae2f7f75	s1_run.py	342	core/ReplaceComparisonOperator_NotEq_Gt	4	SURVIVED [21 other tests executing the line]
+e9ba8726e1a245b8bbaaa5956fca868b	s1_run.py	709	core/ReplaceComparisonOperator_NotEq_Lt	23	SURVIVED [9 other tests executing the line]
+d5f559fcb997410593b9653c891a4a0c	s1_run.py	527	core/ReplaceComparisonOperator_GtE_IsNot	4	SURVIVED [1 other tests executing the line]
+40a47b06bd5446e891ec485353697f4a	s1_run.py	709	core/ReplaceComparisonOperator_NotEq_Is	23	SURVIVED [9 other tests executing the line]
+b0ae542656bb4414b5ccc067af712971	s1_run.py	573	core/ReplaceOrWithAnd	11	SURVIVED [2 other tests executing the line]
+8e175e270b3e4a5da009bffa13c9d922	s1_run.py	578	core/ReplaceComparisonOperator_IsNot_NotEq	2	SURVIVED [6 other tests executing the line]
+2bf2c2a45f46414db087d3356bb23210	s1_run.py	578	core/ReplaceComparisonOperator_IsNot_NotEq	1	SURVIVED [6 other tests executing the line]
+8c56c0422f15429a94ca6a934c52da03	s1_run.py	311	core/ReplaceComparisonOperator_Gt_GtE	4	SURVIVED [18 other tests executing the line]
+243ff8ae809c436dbce9e7876e613e41	s1_run.py	841	core/ReplaceBinaryOperator_Div_LShift	94	SURVIVED [3 other tests executing the line]
+d91ba30398dd4bb4aa2ba37c3b8908cc	s1_run.py	603	core/ReplaceComparisonOperator_NotEq_Gt	11	SURVIVED [9 other tests executing the line]
+fa9568c4b2b84b4c8c43056863d23c67	s1_run.py	352	core/ReplaceComparisonOperator_NotEq_IsNot	5	SURVIVED [21 other tests executing the line]
+e55da09e813a459cb970b4e871166472	s1_run.py	582	core/ReplaceBinaryOperator_Add_BitXor	4	SURVIVED (not executed by any other test)
+ddb726a4b2fc415a9d9e81617bc59f50	s1_run.py	829	core/ReplaceComparisonOperator_Eq_IsNot	15	SURVIVED [3 other tests executing the line]
+c225b17a7d05422f8f6484d9637af403	s1_run.py	828	core/ReplaceBinaryOperator_Sub_Mul	4	SURVIVED [3 other tests executing the line]
+2e1ecfae6ad047d3b01e6e156ebcdd63	s1_run.py	836	core/NumberReplacer	85	SURVIVED [3 other tests executing the line]
+1102674742684c13a2cef69b6a3c3a98	s1_run.py	841	core/ReplaceBinaryOperator_Div_BitXor	94	SURVIVED [3 other tests executing the line]
+c6d8af72e8704b209901c5816913c044	s1_run.py	745	core/ReplaceComparisonOperator_NotEq_Lt	29	SURVIVED [8 other tests executing the line]
+8ff695cb16d74d709d800dff7ca9b5e6	s1_run.py	841	core/ReplaceBinaryOperator_Div_BitAnd	94	SURVIVED [3 other tests executing the line]
+bbf69caf7f1940d8827cbb0ae86260d2	s1_run.py	649	core/ReplaceComparisonOperator_NotEq_Is	17	SURVIVED [8 other tests executing the line]
+146fdf2dd6074fcabc1abbe292544826	s1_run.py	342	core/ReplaceComparisonOperator_NotEq_Lt	4	KILLED s1_tests/test_s1_checkpoint_7b.py::test_attest_start_refuses_when_the_opening_receipt_differs_from_the_seal [21 other tests executing the line]
+e479b514253c436c95cb864555141c90	s1_run.py	311	core/NumberReplacer	34	SURVIVED [18 other tests executing the line]
+e092f185f080418cbbbe6222ad25ea85	s1_run.py	268	core/ReplaceComparisonOperator_NotEq_Lt	1	SURVIVED [21 other tests executing the line]
+d72a55695bbf4bfcafeea060678eef0d	s1_run.py	836	core/ReplaceBinaryOperator_Add_BitAnd	13	SURVIVED [3 other tests executing the line]
+0d33cde37bb644a59fd72bf20b75b8d9	s1_run.py	441	core/ReplaceComparisonOperator_NotEq_Gt	8	SURVIVED [15 other tests executing the line]
+48a2e4d21d5b46cf90cc81cbf5910bbd	s1_run.py	613	core/ReplaceComparisonOperator_NotEq_Is	15	SURVIVED [9 other tests executing the line]
+4c70770c7f9541d5a6fc2f17ff7847e0	s1_run.py	187	core/ReplaceComparisonOperator_GtE_Gt	1	SURVIVED (not executed by any other test)
+185efb0df69c40839cce6b1e8734745f	s1_run.py	697	core/ReplaceUnaryOperator_Delete_Not	28	SURVIVED [9 other tests executing the line]
+c385ad6d51b24a1eaad7aef4ae34092f	s1_run.py	585	core/ReplaceBinaryOperator_Add_Div	5	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [1 other tests executing the line]
+377ffbbb32ed41c1b3f08d9485345b22	s1_run.py	828	core/ReplaceBinaryOperator_Sub_BitOr	4	SURVIVED [3 other tests executing the line]
+7fc1117fe5ed40b7aa6a3ee652704b0c	s1_run.py	585	core/ReplaceBinaryOperator_Add_Mul	5	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [1 other tests executing the line]
+f5d2ac264e5c4c859bb61e719ab47739	s1_run.py	664	core/ReplaceComparisonOperator_GtE_Eq	5	SURVIVED [8 other tests executing the line]
+22bd47ef859b4b8d958db042898f7d95	s1_run.py	268	core/ReplaceOrWithAnd	8	SURVIVED [21 other tests executing the line]
+dca590c5b4ca4a60bdbeb0c888220241	s1_run.py	582	core/ReplaceBinaryOperator_Add_RShift	4	SURVIVED (not executed by any other test)
+6cfa57a4fe454175aacde059d4706412	s1_run.py	653	core/ReplaceComparisonOperator_NotEq_Gt	19	SURVIVED [8 other tests executing the line]
+c226422ff1904025827f46d7e721c52d	s1_run.py	828	core/ReplaceBinaryOperator_Sub_RShift	4	SURVIVED [3 other tests executing the line]
+2c2fda9537f544e9958a0b1d36ebd1f3	s1_run.py	311	core/ReplaceComparisonOperator_Gt_NotEq	4	SURVIVED [18 other tests executing the line]
+1a3fca8f3be24804930f625b029ab7f2	s1_run.py	99	core/ReplaceComparisonOperator_Lt_LtE	1	SURVIVED [2 other tests executing the line]
+5058ccc7054e4c53b05e33d1462ed2dd	s1_run.py	156	core/NumberReplacer	16	SURVIVED [3 other tests executing the line]
+d7bafa6bd97246e981f33356c933c947	s1_run.py	747	core/ExceptionReplacer	37	SURVIVED (not executed by any other test)
+db1cd89814cb40e7bfa479479d2abe5e	s1_run.py	829	core/AddNot	109	SURVIVED [3 other tests executing the line]
+6436bfa8b5d147fb83d0a1521295aa20	s1_run.py	656	core/ReplaceComparisonOperator_NotEq_Gt	20	SURVIVED [8 other tests executing the line]
+7e54b0e89b5e41478fdca081d3f2b333	s1_run.py	793	core/ReplaceComparisonOperator_Lt_LtE	5	SURVIVED (not executed by any other test)
+9b1b05fce3d54d538a30359fd683c198	s1_run.py	813	core/ReplaceBinaryOperator_Sub_RShift	3	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+c8d5b02d034e4b829a5913a27c5a7245	s1_run.py	697	core/ReplaceComparisonOperator_Eq_GtE	12	SURVIVED [9 other tests executing the line]
+608fe02e1c2246bda4c2e84980f0fb5a	s1_run.py	713	core/ReplaceOrWithAnd	27	SURVIVED [9 other tests executing the line]
+18676b20d1b54eb4b5867a79c88d3153	s1_run.py	806	core/ReplaceBinaryOperator_Sub_BitXor	2	SURVIVED [3 other tests executing the line]
+13d08fd99f2a4c1990d9413ff6d9bdef	s1_run.py	73	core/ReplaceComparisonOperator_Eq_GtE	5	SURVIVED (not executed by any other test)
+5320d3f297324cfcab31704adbabb6c4	s1_run.py	76	core/ReplaceBinaryOperator_BitOr_Sub	0	SURVIVED (not executed by any other test)
+bcbeadaf1bd547d9aaafad90d6bc1244	s1_run.py	608	core/ReplaceComparisonOperator_IsNot_NotEq	3	SURVIVED [9 other tests executing the line]
+b2e5ad3c751d45ebbde3a17a629b7e90	s1_run.py	789	core/ReplaceComparisonOperator_Gt_NotEq	6	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+b99c9439ae7c44c3b16287c30e75bf1d	s1_run.py	789	core/ReplaceComparisonOperator_Gt_Eq	6	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+da74728b69dd4d349e86d90774a2b814	s1_run.py	578	core/ReplaceComparisonOperator_IsNot_Gt	2	SURVIVED [6 other tests executing the line]
+611fbe9352974160b28d5a61b12ef29f	s1_run.py	582	core/ReplaceBinaryOperator_Add_FloorDiv	4	SURVIVED (not executed by any other test)
+797548f480514ee2bdf30fee6c0b589e	s1_run.py	813	core/ReplaceBinaryOperator_Sub_Add	3	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+bd778d25850f4982af07a7dc577d70d3	s1_run.py	557	core/ExceptionReplacer	20	SURVIVED (not executed by any other test)
+569a6c0089fd4d3aaa375cdd0c6bfe78	s1_run.py	527	core/ReplaceComparisonOperator_GtE_Gt	4	SURVIVED [1 other tests executing the line]
+ae90d2a2c810431faa88b69e53763700	s1_run.py	113	core/ReplaceComparisonOperator_LtE_Lt	2	SURVIVED [2 other tests executing the line]
+c5470a2a6e524540b6bc1b6ffe011335	s1_run.py	658	core/ReplaceComparisonOperator_NotEq_Lt	21	SURVIVED [8 other tests executing the line]
+c71c70835cba463c8838175ee1ac9453	s1_run.py	765	core/ExceptionReplacer	40	SURVIVED (not executed by any other test)
+8b8bc1c6eb584c7c8c0aa83f360d6190	s1_run.py	580	core/ReplaceOrWithAnd	13	SURVIVED [6 other tests executing the line]
+8461b78aca2947e7b85cbad5a49f36c5	s1_run.py	584	core/ReplaceComparisonOperator_NotEq_Lt	10	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [6 other tests executing the line]
+2df0a31eb3dd4e1088662d05ae70d769	s1_run.py	743	core/ReplaceComparisonOperator_NotEq_Is	28	SURVIVED [8 other tests executing the line]
+168d17e233244b78be74d957e32f9b51	s1_run.py	829	core/NumberReplacer	81	SURVIVED [3 other tests executing the line]
+b0afa55a8c304918ab63a7dfdedc2652	s1_run.py	836	core/ReplaceBinaryOperator_Add_Div	13	SURVIVED [3 other tests executing the line]
+0ebb580e3ad84c1c815931e850d59eb8	s1_run.py	664	core/AddNot	86	SURVIVED [8 other tests executing the line]
+cd54bebf83fd4c008dbe98a6f8262412	s1_run.py	829	core/ReplaceComparisonOperator_Eq_Lt	16	SURVIVED [3 other tests executing the line]
+2ecb6c6961f1472e97402cb0909b38db	s1_run.py	816	core/ReplaceComparisonOperator_NotEq_Lt	30	SURVIVED [3 other tests executing the line]
+6a0e9ddefcb94d2ca93fae23e0997efc	s1_run.py	637	core/NumberReplacer	51	SURVIVED [8 other tests executing the line]
+8de12d14df53488698b61e8bd8560c24	s1_run.py	323	core/ReplaceComparisonOperator_IsNot_Is	3	SURVIVED [18 other tests executing the line]
+b476947bda1647598b3d78b29f354f0b	s1_run.py	67	core/ReplaceComparisonOperator_Eq_LtE	1	SURVIVED (not executed by any other test)
+a506a1ba1a4647c1b681718498f38ff8	s1_run.py	656	core/ReplaceComparisonOperator_NotEq_Lt	20	SURVIVED [8 other tests executing the line]
+1f6b53ff91da44baa1b6102de0ece1f8	s1_run.py	804	core/ReplaceBinaryOperator_BitOr_BitXor	1	SURVIVED [3 other tests executing the line]
+4bfc3721f94b4b9eac3295638c1ad1f7	s1_run.py	522	core/ReplaceComparisonOperator_Eq_Is	10	SURVIVED [10 other tests executing the line]
+d65d69a4035e463691e041cec963ce15	s1_run.py	582	core/ReplaceBinaryOperator_Add_Sub	4	SURVIVED (not executed by any other test)
+684719fda5914158bed272eb5a54b762	s1_run.py	651	core/ReplaceComparisonOperator_NotEq_Is	18	SURVIVED [8 other tests executing the line]
+73354b48b3d542dd90a0712533c5a351	s1_run.py	789	core/ReplaceComparisonOperator_Gt_Lt	6	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+bbfdbbcadd2d4816bc349f4cdd7e0270	s1_run.py	603	core/ReplaceComparisonOperator_NotEq_Lt	11	SURVIVED [9 other tests executing the line]
+358b0a96a2334b40bbee428c8f26e1ba	s1_run.py	836	core/ReplaceBinaryOperator_Add_Sub	13	SURVIVED [3 other tests executing the line]
+aab9dbf415b34b1fa9f0e96db11ffcf3	s1_run.py	730	core/ReplaceComparisonOperator_Eq_Is	12	SURVIVED [9 other tests executing the line]
+d9d326238748465ab89640040ff7c708	s1_run.py	829	core/NumberReplacer	80	SURVIVED [3 other tests executing the line]
+20e14f006217427788aa9cdb027f26f4	s1_run.py	728	core/ReplaceComparisonOperator_IsNot_Is	11	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [9 other tests executing the line]
+3db2fc6c6a744360a2abdc5c5c07af61	s1_run.py	713	core/ReplaceComparisonOperator_NotEq_Lt	27	SURVIVED [9 other tests executing the line]
+00d20de3b71b4f52b6e972e10073e5ae	s1_run.py	71	core/ReplaceComparisonOperator_Eq_Is	3	SURVIVED (not executed by any other test)
+900d5aa22a1f42b8ac44d98c957c3413	s1_run.py	631	core/AddNot	77	SURVIVED [8 other tests executing the line]
+cb14e9729f194aa78bbbae57a4c002af	s1_run.py	585	core/ReplaceBinaryOperator_Add_Sub	5	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [1 other tests executing the line]
+ec2c2d0d94ec484c92ffca646b9cdffb	s1_run.py	836	core/ReplaceBinaryOperator_Add_Mul	13	SURVIVED [3 other tests executing the line]
+dbcae4154d3c4d349f9c200b2c780bb6	s1_run.py	697	core/ReplaceComparisonOperator_Eq_Gt	12	SURVIVED [9 other tests executing the line]
+3cfb7328b3dc43d4b8f3d5fcec2cfbf6	s1_run.py	704	core/ReplaceComparisonOperator_NotEq_Gt	22	SURVIVED [9 other tests executing the line]
+518fa7b35cea4bdf869f63b9a0daa7db	s1_run.py	71	core/ReplaceComparisonOperator_Eq_LtE	3	SURVIVED (not executed by any other test)
+02787a7c2940438595156668c4864cd8	s1_run.py	352	core/ReplaceComparisonOperator_NotEq_Gt	5	SURVIVED [21 other tests executing the line]
+7bb93801a2d64feaa40f8da5582b48eb	s1_run.py	582	core/ReplaceBinaryOperator_Add_BitOr	4	SURVIVED (not executed by any other test)
+6ebe40f9f3f5437e9411d5eff52534bf	s1_run.py	730	core/ReplaceComparisonOperator_IsNot_Is	13	SURVIVED [9 other tests executing the line]
+11b68e4d1373493d8991155e12b8d893	s1_run.py	311	core/ReplaceAndWithOr	10	SURVIVED [18 other tests executing the line]
+f104c228aced4938b4ef770cc44b34fa	s1_run.py	789	core/ReplaceComparisonOperator_Gt_Is	2	KILLED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL] [3 other tests executing the line]
+e908867e0f1447429e1dc441d4999914	s1_run.py	655	core/ReplaceOrWithAnd	20	SURVIVED [8 other tests executing the line]
+4301e9bab0104fcda86cb5dc5067ff66	s1_run.py	290	core/ReplaceUnaryOperator_USub_Not	2	SURVIVED [2 other tests executing the line]
+054bac90ac4c402bb799270850ca603e	s1_run.py	578	core/ReplaceComparisonOperator_IsNot_Lt	1	SURVIVED [6 other tests executing the line]
+7980d72fb1624f9f947c47c9b4c0b8de	s1_run.py	286	core/ReplaceComparisonOperator_NotEq_Gt	2	SURVIVED [21 other tests executing the line]
+e672d78de99046a596cf0d823eccaa15	s1_run.py	555	core/ReplaceComparisonOperator_Is_LtE	0	SURVIVED [9 other tests executing the line]
+21232474e1a641b78d6aa71b08b38831	s1_run.py	81	core/ReplaceComparisonOperator_LtE_Lt	0	SURVIVED [3 other tests executing the line]
+90153964ece1410990ee33994dbadd4e	s1_run.py	544	core/ReplaceUnaryOperator_Delete_Not	18	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_refuses_with_no_output_when_the_final_snapshot_is_missing [10 other tests executing the line]
+2844dc9bfddb4b83b5a52af0e8f23eab	s1_run.py	575	core/ReplaceComparisonOperator_NotEq_Lt	9	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_another_attempt_is_ok_too [7 other tests executing the line]
+7187ad814fbd43a790eb3f278f6a908e	s1_run.py	182	core/ReplaceContinueWithBreak	3	SURVIVED [2 other tests executing the line]
+1ce4875914b5495dada105f85102dc57	s1_run.py	841	core/ReplaceBinaryOperator_Div_BitOr	94	SURVIVED [3 other tests executing the line]
+344979241ce7428183ab132e2ead290f	s1_run.py	841	core/ReplaceBinaryOperator_Div_Pow	94	SURVIVED [3 other tests executing the line]
+1576d63e96f3453cb89cee6f331a4578	s1_run.py	841	core/ReplaceBinaryOperator_Div_Mul	94	SURVIVED [3 other tests executing the line]
+ba62032647f94bc2bec8ff0812fee748	s1_run.py	793	core/ReplaceComparisonOperator_Lt_IsNot	5	SURVIVED (not executed by any other test)
+232bda002e11488db7096eea42c56057	s1_run.py	544	core/AddNot	65	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_refuses_with_no_output_when_the_final_snapshot_is_missing [10 other tests executing the line]
+52d25a82b37f450cad803d2c38fcbda8	s1_run.py	303	core/ReplaceComparisonOperator_Gt_Eq	3	SURVIVED [18 other tests executing the line]
+324b524260714c248d1ea788ef005f45	s1_run.py	197	core/ReplaceComparisonOperator_Eq_LtE	7	SURVIVED (not executed by any other test)
+fc9dc90671ee4948bc8624c190a2ae66	s1_run.py	205	core/ReplaceComparisonOperator_Eq_LtE	8	SURVIVED [3 other tests executing the line]
+72c113f965ca45cc9f585235c831a097	s1_run.py	836	core/ReplaceBinaryOperator_Add_Pow	13	SURVIVED [3 other tests executing the line]
+c49aec60649c48c095102465845e969d	s1_run.py	578	core/ReplaceOrWithAnd	12	SURVIVED [6 other tests executing the line]
+3c1a5708d7ef4300ac1139221441e920	s1_run.py	139	core/ReplaceContinueWithBreak	1	SURVIVED [2 other tests executing the line]
+723ca4fa0e764b87959c01a77dcbdf38	s1_run.py	527	core/ReplaceComparisonOperator_LtE_Eq	6	SURVIVED [1 other tests executing the line]
+043a4fef342d470e8eb8605f8a51ec20	s1_run.py	829	core/ReplaceComparisonOperator_Eq_NotEq	16	SURVIVED [3 other tests executing the line]
+c26c5f35f39d4e738a1da319f35e21bc	s1_run.py	814	core/NumberReplacer	77	SURVIVED [3 other tests executing the line]
+98fb8b266cac4480b69b4bb06081751d	s1_run.py	585	core/ReplaceBinaryOperator_Add_RShift	5	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [1 other tests executing the line]
+2aa7c12f60264df581c3096ca970a0b2	s1_run.py	585	core/ReplaceBinaryOperator_Add_Mod	5	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [1 other tests executing the line]
+f2e248139c9d4240b164f6c6135f2d7e	s1_run.py	697	core/ReplaceComparisonOperator_Eq_Lt	12	SURVIVED [9 other tests executing the line]
+3fc19eb083e448f68af739eeaefb3e5e	s1_run.py	585	core/ReplaceBinaryOperator_Add_BitOr	5	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [1 other tests executing the line]
+8a7653e16bb64b9695f9982d5278c77b	s1_run.py	584	core/ReplaceComparisonOperator_NotEq_Is	10	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [6 other tests executing the line]
+9836be3949a24230b8970ae599a8c452	s1_run.py	582	core/ReplaceBinaryOperator_Add_Mul	4	SURVIVED (not executed by any other test)
+1f8c495a71c941a495f8bfea9f811e6c	s1_run.py	205	core/ReplaceComparisonOperator_Eq_GtE	8	SURVIVED [3 other tests executing the line]
+f3818d60b677458eb1ed0447a1b6db23	s1_run.py	286	core/ReplaceOrWithAnd	9	SURVIVED [21 other tests executing the line]
+77812f776c8a4f77942afda2d6fccdfa	s1_run.py	290	core/ReplaceUnaryOperator_Delete_USub	2	SURVIVED [2 other tests executing the line]
+c3c65fef7b4041cdbb136b3ab68d5058	s1_run.py	608	core/ReplaceComparisonOperator_IsNot_Lt	3	SURVIVED [9 other tests executing the line]
+5ff1f76856e64143a76ab02e2769f669	s1_run.py	836	core/NumberReplacer	84	SURVIVED [3 other tests executing the line]
+6dbf73c8ad784d14a36bb62396b6a7f4	s1_run.py	156	core/ReplaceComparisonOperator_Eq_Lt	6	SURVIVED [3 other tests executing the line]
+3f3746d8d8a643069285b3eb6a6ac0b5	s1_run.py	585	core/ReplaceBinaryOperator_Add_LShift	5	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [1 other tests executing the line]
+2a39385d5ca24a1e9ddeed3a6567dcad	s1_run.py	175	core/ReplaceComparisonOperator_Gt_NotEq	2	SURVIVED [18 other tests executing the line]
+faa53415c7a9457b99ab9f75d3ff23bf	s1_run.py	72	core/ReplaceComparisonOperator_Eq_Is	4	SURVIVED (not executed by any other test)
+e5cd28a05e20452fba33c5d5415735fb	s1_run.py	829	core/NumberReplacer	79	SURVIVED [3 other tests executing the line]
+426c5c7f9247466099c7ebc3a14fb488	s1_run.py	709	core/ReplaceComparisonOperator_NotEq_Gt	23	SURVIVED [9 other tests executing the line]
+107ae42fdbc04dfdb2c07b27183cc222	s1_run.py	290	core/NumberReplacer	26	SURVIVED [2 other tests executing the line]
+6a10e8a3552b424bb02560d8979b3b95	s1_run.py	646	core/ReplaceFalseWithTrue	9	SURVIVED [1 other tests executing the line]
+1c774ceb4e3844f28d56c72d1e8c2181	s1_run.py	585	core/ReplaceBinaryOperator_Add_Pow	5	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid [1 other tests executing the line]
+b3ca377a17394c46960a53659490bb96	s1_run.py	591	core/ExceptionReplacer	24	SURVIVED (not executed by any other test)
+203bed8db2b74176a8b8159bd63d30e1	s1_run.py	553	core/ZeroIterationForLoop	12	KILLED s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_another_attempt_is_ok_too [10 other tests executing the line]
+a16a6e358beb46b1b572ccb6d9393465	s1_run.py	303	core/ReplaceComparisonOperator_Gt_LtE	3	SURVIVED [18 other tests executing the line]
+06579f1c8ec2417faa98220dfd9ef23d	s1_run.py	697	core/ReplaceAndWithOr	21	SURVIVED [9 other tests executing the line]
+5ab859cf1eb2407da5d8468620471fa4	s1_run.py	302	core/ZeroIterationForLoop	8	SURVIVED [18 other tests executing the line]
+d104e63531954e3089d0f0857fd8bebf	s1_run.py	66	core/ReplaceComparisonOperator_Eq_Is	0	SURVIVED [2 other tests executing the line]
+e99e9ee6067c4a76b2b54c8049a740c0	s1_run.py	841	core/ReplaceBinaryOperator_Div_Mod	94	SURVIVED [3 other tests executing the line]
+13424f5f2fd34d27a96e3bf270947661	s1_run.py	829	core/NumberReplacer	78	SURVIVED [3 other tests executing the line]
+59dd4c3a237f4e1786514eb089a848b7	s1_run.py	165	core/ReplaceBinaryOperator_Mul_Div	2	SURVIVED [import-time line: full suite minus focused]
+6e59ba2bdf0745a0ba4c708064fc2fdf	s1_run.py	320	core/ZeroIterationForLoop	11	SURVIVED [18 other tests executing the line]
+8c62e60b49884fc681f2e535569d4374	s1_run.py	804	core/ReplaceBinaryOperator_BitOr_Sub	1	SURVIVED [3 other tests executing the line]
+92e3265395084ae6bd13ec928529cb39	s1_run.py	608	core/ReplaceComparisonOperator_IsNot_Gt	3	SURVIVED [9 other tests executing the line]
+886845ab995145969e8fb761a43f6c5e	s1_run.py	662	core/AddNot	85	SURVIVED [8 other tests executing the line]
+2cff5bec2f124392836013b0d8973220	s1_run.py	841	core/ReplaceBinaryOperator_Div_FloorDiv	94	SURVIVED [3 other tests executing the line]
+5c76ecaafc6e473fa400fe479ffeb46f	s1_run.py	841	core/ReplaceBinaryOperator_Div_RShift	94	SURVIVED [3 other tests executing the line]
+d80f1e2017464431b26e164b8a0ef5c0	s1_seal.py	11	core/NumberReplacer	13	SURVIVED [import-time line: full suite minus focused]
+44c45254a85d402190e997dd880fd54f	s1_seal.py	126	core/ReplaceComparisonOperator_Gt_Lt	1	SURVIVED [70 other tests executing the line]
+85853dfe356a4edbbe76e15b549dc581	s1_seal.py	170	core/ReplaceComparisonOperator_LtE_Lt	4	SURVIVED [70 other tests executing the line]
+4998fefee742423a889b97d7c15fbd01	s1_seal.py	126	core/ReplaceComparisonOperator_Gt_IsNot	1	SURVIVED [70 other tests executing the line]
+275764af93654cf28a03b5d092606d7d	s1_seal.py	30	core/ReplaceComparisonOperator_Eq_GtE	0	SURVIVED [104 other tests executing the line]
+d868df7e72fe4c0799a056e443714fa0	s1_seal.py	56	core/NumberReplacer	20	SURVIVED [107 other tests executing the line]
+c5629d914e0a45bb8ba7204378352f4e	s1_seal.py	56	core/NumberReplacer	21	SURVIVED [107 other tests executing the line]
+26496b51b7f54bf3a11a7c79414e4e15	s1_seal.py	85	core/NumberReplacer	32	SURVIVED [103 other tests executing the line]
+2017182cd0c942bdb20330eb6cf2df9d	s1_seal.py	11	core/NumberReplacer	12	KILLED s1_tests/test_s1_checkpoint.py::test_late_capture_flagged [import-time line: full suite minus focused]
+fe953f996aac46b89bd9875ac4067f46	s1_seal.py	126	core/ReplaceComparisonOperator_Gt_GtE	1	SURVIVED [70 other tests executing the line]
+a03bc4912c914d968c9508fbd12718fe	s1_seal.py	68	core/ReplaceComparisonOperator_LtE_IsNot	1	SURVIVED [100 other tests executing the line]
+8b184cf0fd4c4cebab4a4a67af6f1985	s1_seal.py	37	core/ReplaceComparisonOperator_Eq_Is	1	SURVIVED [107 other tests executing the line]
+52dc9917ab9442b6ada9e4fcfc76de60	s1_seal.py	100	core/ReplaceComparisonOperator_Lt_LtE	0	SURVIVED [101 other tests executing the line]
+53ac68d1271b4b40a79ace4c1dbd0ef8	s1_seal.py	212	core/NumberReplacer	64	SURVIVED [32 other tests executing the line]
+05e846dee62a4b20ac16c433c7879ce8	s1_seal.py	174	core/ReplaceComparisonOperator_LtE_Lt	6	SURVIVED [72 other tests executing the line]
+1f87230598f64d1798742f07a93e95e7	s1_seal.py	158	core/NumberReplacer	41	SURVIVED [60 other tests executing the line]
+f387efc363d64a428921ba8c98832806	s1_seal.py	12	core/NumberReplacer	15	SURVIVED [import-time line: full suite minus focused]
+495b343c54de4ff1812be951f761dd36	s1_seal.py	162	core/NumberReplacer	44	SURVIVED (not executed by any other test)
+dfa50458bf074089bd8b55cd1106a4cd	s1_seal.py	170	core/ReplaceComparisonOperator_LtE_NotEq	5	KILLED s1_tests/test_s1_checkpoint.py::test_consistency_uses_the_full_capture_while_counts_use_as_of_rows [70 other tests executing the line]
+877689f8c58547638492128bff2d1bb8	s1_seal.py	203	core/ReplaceComparisonOperator_Gt_Is	3	SURVIVED [79 other tests executing the line]
+78c91474d90745648cb575f1a2e20036	s1_seal.py	186	core/ReplaceBinaryOperator_Mul_Div	0	SURVIVED [import-time line: full suite minus focused]
+de77c1d63b374c15a98c46c61f6a9de7	s1_seal.py	142	core/ReplaceComparisonOperator_GtE_Gt	1	SURVIVED [76 other tests executing the line]
+28ee9f56b0864677960b9177dff5adf2	s1_seal.py	126	core/ReplaceComparisonOperator_Gt_Is	1	SURVIVED [70 other tests executing the line]
+67cd2ede9eb74ebcaed3bbbceeba2046	s1_seal.py	213	core/ReplaceComparisonOperator_GtE_Gt	4	SURVIVED [32 other tests executing the line]
+7ec6528a74ef4e378f38d9435e7fb56c	s1_seal.py	203	core/ReplaceComparisonOperator_Gt_GtE	3	SURVIVED [79 other tests executing the line]
+5eb603347f894d8eabfe2827bacbd718	s1_seal.py	170	core/ReplaceComparisonOperator_LtE_IsNot	5	KILLED s1_tests/test_s1_checkpoint.py::test_consistency_uses_the_full_capture_while_counts_use_as_of_rows [70 other tests executing the line]
+8d2038e554bc4909a2b98a3792200f20	s1_seal.py	194	core/ReplaceComparisonOperator_Gt_GtE	2	SURVIVED [77 other tests executing the line]
+345592549ac745c8842f0c5fe24f1643	s1_seal.py	170	core/ReplaceComparisonOperator_LtE_Lt	5	SURVIVED [70 other tests executing the line]
+6ad85a0915e841bc867e54779f673033	s1_seal.py	212	core/ReplaceUnaryOperator_USub_Invert	2	SURVIVED [32 other tests executing the line]
+966c61a597b44d42923d0babf2983ac6	s1_seal.py	157	core/NumberReplacer	38	SURVIVED [60 other tests executing the line]
+aa3425313a994f31ae1d3a111de23eeb	s1_seal.py	170	core/ReplaceComparisonOperator_Eq_LtE	2	SURVIVED [70 other tests executing the line]
+a7b7fab796844778af8b422007366684	s1_seal.py	204	core/ReplaceBreakWithContinue	0	SURVIVED [32 other tests executing the line]
+0342c513f26d411a8815ee15d90a475d	s1_seal.py	91	core/ReplaceComparisonOperator_NotEq_Gt	0	SURVIVED [63 other tests executing the line]
+c95dc9fbac8948e2aa484928a88651d1	s1_seal.py	162	core/NumberReplacer	47	SURVIVED (not executed by any other test)
+599d5b7f4c354b5699933fe3f775d10a	s1_seal.py	56	core/ReplaceUnaryOperator_Delete_USub	0	SURVIVED [107 other tests executing the line]
+27d3c7e7cd8240c5b55305fce88c2735	s1_seal.py	37	core/ReplaceComparisonOperator_Eq_GtE	1	SURVIVED [107 other tests executing the line]
+af9caccdb52d4bf2a2fa01b42f67fdbc	s1_seal.py	85	core/NumberReplacer	33	SURVIVED [103 other tests executing the line]
+e5f09c2e1d8b43239eb7ec82a6614e80	s1_seal.py	126	core/ReplaceComparisonOperator_Gt_NotEq	1	SURVIVED [70 other tests executing the line]
+21fef8209a6b4fe6b20e6449d60714fb	s1_seal.py	203	core/ReplaceComparisonOperator_Gt_Eq	3	SURVIVED [79 other tests executing the line]
+17a9eba0730c46daa50e6cee71290864	s1_seal.py	126	core/ReplaceComparisonOperator_Gt_Eq	1	SURVIVED [70 other tests executing the line]
+c9f824dd2ec345f9a715fe3f633d947e	s1_seal.py	162	core/NumberReplacer	46	SURVIVED (not executed by any other test)
+fa6a50f7a37946ecbce1ddf57fcaa1ec	s1_seal.py	68	core/ReplaceComparisonOperator_LtE_Lt	2	SURVIVED [100 other tests executing the line]
+c450dfa30098477a85b2a52aad214c47	s1_seal.py	56	core/ReplaceUnaryOperator_USub_Invert	0	SURVIVED [107 other tests executing the line]
+4ace15bf8979482ab9a5ec18f18ab907	s1_seal.py	158	core/ReplaceComparisonOperator_NotEq_Lt	1	SURVIVED [60 other tests executing the line]
+a3d6f6a1c4314f4a9c2bae062722ff61	s1_seal.py	56	core/ReplaceUnaryOperator_USub_Not	0	SURVIVED [107 other tests executing the line]
+c0e085916f4e47d2a9f825b5e39b6600	s1_seal.py	162	core/NumberReplacer	45	SURVIVED (not executed by any other test)
+6f3b7a583c914fb590dbfc81f0b8231a	s1_seal.py	176	core/NumberReplacer	48	KILLED s1_tests/test_s1_checkpoint.py::test_economics_and_price_fetch_unreachable_with_sells [72 other tests executing the line]
+b2760005a85142c392a9ea05b4e0dd14	s1_seal.py	97	core/ReplaceComparisonOperator_LtE_Lt	3	SURVIVED [63 other tests executing the line]
+36c752028ed64e1eb71d5a70875c4654	s1_seal.py	56	core/ReplaceUnaryOperator_USub_UAdd	0	SURVIVED [107 other tests executing the line]
+53e87a72968145cb9eb5d3228f5dad61	s1_seal.py	126	core/ReplaceComparisonOperator_Gt_LtE	1	SURVIVED [70 other tests executing the line]
+e6c6eb2651ad4089a7661d6c9c217aa0	s1_seal.py	199	core/ReplaceComparisonOperator_LtE_Lt	7	SURVIVED [79 other tests executing the line]
+88969ccf656a4e30a7665e56e87923aa	s1_seal.py	153	core/ReplaceOrWithAnd	0	SURVIVED [60 other tests executing the line]
+2ec23fcc5d6f489b9b741b3b4a6b3657	s1_seal.py	161	core/NumberReplacer	43	SURVIVED (not executed by any other test)
+666a5d2b852443c2ab9f1333f393fa9d	s1_seal.py	207	core/ReplaceComparisonOperator_Lt_LtE	3	SURVIVED [32 other tests executing the line]
+4c178554cd984216b7ff96fb74f1f929	s1_seal.py	157	core/NumberReplacer	39	SURVIVED [60 other tests executing the line]
+d1e566ea9ed84ec3bbeaf6894d5a5846	s1_seal.py	160	core/ReplaceComparisonOperator_NotEq_Lt	2	SURVIVED [60 other tests executing the line]

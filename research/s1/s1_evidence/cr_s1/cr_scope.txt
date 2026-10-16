@@ -1,0 +1,10 @@
+s1_run.py declared scope reduction: 2344 jobs initialised, 140 excluded, 2204 kept
+  excluded _median: 92 jobs - descriptive holding-age statistic in the report (after the verdict is fixed)
+  excluded _restarts: 14 jobs - report-only restart summary (observed minimum + gaps), no outcome reads it
+  excluded _clean: 6 jobs - JSON serialisation of the finished report
+  excluded _serialise: 3 jobs - JSON serialisation of the finished report
+  excluded _out: 11 jobs - path helper (s1_out)
+  excluded _seals: 11 jobs - file listing helper
+  excluded _sha_or_absent: 1 jobs - hash-or-placeholder helper (its callers run_token/score_token stay in scope)
+  excluded _ack: 1 jobs - thin wrapper turning sqlite3.Error into a refusal (the ACK rules live in s1_collect._ack)
+  excluded _write_once: 1 jobs - thin wrapper over s1_collect._write_once

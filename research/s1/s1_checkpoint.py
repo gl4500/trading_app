@@ -198,10 +198,14 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
             already = _write_abort(out, reason, rep, rep["snapshot"], receipt_sha)
     if (already is None and proj is not None and rep["consistent"] and rep["receipt_match"]
             and not rep["fence_violations"]):
-        bridge = (z.bridge_record(proj["trades"], start, z.opening_close_of(start, cal)) if close >= start
-                  else None)
-        if _try_seal(out, day, cal, close, rep, meta, cap_dir, proj, rec, proc, receipt_sha, bridge=bridge):
-            seals = _seals(out)
+        try:
+            bridge = (z.bridge_record(proj["trades"], start, z.opening_close_of(start, cal)) if close >= start
+                      else None)
+        except ValueError as e:                            # Task 9 (c): a recorded refusal, never a crash
+            rep["refused"] = f"bridge record unavailable: {e}"
+        else:
+            if _try_seal(out, day, cal, close, rep, meta, cap_dir, proj, rec, proc, receipt_sha, bridge=bridge):
+                seals = _seals(out)
     if already is None:
         try:
             rep["stop"] = z.stop_decision(seals, start, cal, today=actual)

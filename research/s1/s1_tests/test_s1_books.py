@@ -180,3 +180,75 @@ def test_sold_events_wraps_engine_errors_as_book_error(trades):
     """Retrospective (Task 2 review fix round 1): M-2. sold_events raises BookError like economic_lots."""
     with pytest.raises(b.BookError):
         b.sold_events(trades)
+
+
+# ---------------------------------------------------------------- Task 9 mutant survivors (retrospective tests)
+def test_operational_writeoff_threshold_exactly_0_001_kept_below_written_off():
+    """Retrospective (Task 9 mutant survivor "write-off: strict < 0.001 -> <="): a SELL leaving exactly 0.001
+    shares keeps the position (no write-off); 0.000999 is written off at that SELL."""
+    keep = b.operational_replay([tr(1, "A", "BUY", 10, 50, 5), tr(2, "A", "SELL", 9.999, 55, 6)])
+    assert keep["writeoffs"] == [] and keep["qty"] == {"A": pytest.approx(0.001)}
+    off = b.operational_replay([tr(1, "A", "BUY", 10, 50, 5), tr(2, "A", "SELL", 9.999001, 55, 6)])
+    assert off["qty"] == {} and off["writeoffs"] == [{"id": 2, "symbol": "A", "qty": pytest.approx(0.000999)}]
+
+
+def test_dust_lot_without_an_allocation_from_the_sell_is_never_sold():
+    """Retrospective (Task 9 mutant survivor "sold event without requiring a SELL allocation"): a tiny lot below
+    0.001 that no SELL allocated to (FIFO fills the older lot; another symbol's SELL) is not a sold event."""
+    t = [tr(1, "A", "BUY", 10, 50, 5), tr(2, "A", "BUY", 0.0005, 50, 5, 1), tr(3, "A", "SELL", 5, 55, 6),
+         tr(4, "B", "BUY", 0.0005, 50, 6, 1), tr(5, "A", "SELL", 1, 55, 7)]
+    assert b.sold_events(t) == {}
+
+
+# ---------------------------------------------------------------- Task 9 round 2: Cosmic Ray survivors (retrospective)
+def test_cr_non_numeric_shares_or_price_is_a_book_error():
+    """Retrospective (Task 9 CR survivors s1_books:19 ExceptionReplacer): both a ValueError ("abc") and a TypeError
+    (None) from float() become BookError naming the field."""
+    for bad in ("abc", None):
+        with pytest.raises(b.BookError, match="shares is not a number"):
+            b.rows([tr(1, "A", "BUY", bad, 50, 5)])
+        with pytest.raises(b.BookError, match="price is not a number"):
+            b.rows([tr(1, "A", "BUY", 1, bad, 5)])
+
+
+def test_cr_oversell_anomaly_quantity_and_position_reset():
+    """Retrospective (Task 9 CR survivors s1_books:49/52/54): a SELL of a never-held symbol records the exact
+    negative quantity; after an oversell anomaly the position is exactly flat (no 1-share residue); a SELL that
+    closes a position exactly writes nothing off."""
+    op = b.operational_replay([tr(1, "B", "SELL", 0.5, 50, 5)])
+    assert op["anomalies"] == [{"id": 1, "symbol": "B", "qty": -0.5}] and op["qty"] == {}
+    op = b.operational_replay([tr(1, "A", "BUY", 5, 50, 5), tr(2, "A", "SELL", 10, 50, 6)])
+    assert op["anomalies"] == [{"id": 2, "symbol": "A", "qty": -5.0}] and op["qty"] == {}
+    op = b.operational_replay([tr(1, "A", "BUY", 5, 50, 5), tr(2, "A", "SELL", 10, 50, 6), tr(3, "A", "BUY", 2, 50, 7)])
+    assert op["qty"] == {"A": 2.0}
+    op = b.operational_replay([tr(1, "A", "BUY", 10, 50, 5), tr(2, "A", "SELL", 10, 50, 6)])
+    assert op["writeoffs"] == [] and op["qty"] == {} and op["anomalies"] == []
+
+
+def test_cr_consistency_diffs_and_missing_symbols_both_ways():
+    """Retrospective (Task 9 CR survivors s1_books:64/66): a symbol missing from either side counts as 0 shares (not
+    +/-1), the diff rows carry the exact replay/portfolio values, and a difference of exactly CONSIST_TOL is still
+    consistent (strict >)."""
+    buy_a1 = [tr(1, "A", "BUY", 1, 50, 5)]
+    r = b.consistency(buy_a1, {})
+    assert not r["consistent"] and r["diffs"] == [{"symbol": "A", "replay": 1.0, "portfolio": 0.0}]
+    for v in (1.0, -1.0):
+        r = b.consistency([], {"B": v})
+        assert not r["consistent"] and r["diffs"] == [{"symbol": "B", "replay": 0.0, "portfolio": v}]
+    assert b.consistency([], {"B": 1e-9})["consistent"] is True
+    assert b.consistency([], {"B": 2e-9})["consistent"] is False
+
+
+def test_cr_bridge_exact_output_for_open_and_closed_lots():
+    """Retrospective (Task 9 CR survivors s1_books:112/113): a closed lot adds no bridge row; an open lot adds its
+    residual with writeoff exactly 0.0."""
+    assert b.bridge([tr(1, "A", "BUY", 10, 50, 5), tr(2, "A", "SELL", 10, 55, 6)], b.rows([tr(2, "A", "SELL", 10, 55, 6)])[0]["ts"]) == {}
+    t = [tr(1, "A", "BUY", 10, 50, 5)]
+    assert b.bridge(t, b.rows(t)[0]["ts"]) == {"A": {"writeoff": 0.0, "economic_residual": 10.0}}
+
+
+def test_cr_sold_event_is_dated_at_the_sell_that_finishes_the_lot():
+    """Retrospective (Task 9 CR survivor s1_books:94): the prefix replay stops at THIS sell; a lot finished by the
+    next SELL (here stored at the same instant) is sold at that next SELL, not one row early."""
+    t = [tr(1, "A", "BUY", 10, 50, 5), tr(2, "A", "SELL", 5, 55, 6), tr(3, "A", "SELL", 5, 56, 6)]
+    assert b.sold_events(t) == {1: {"sold_at": b.rows(t)[2]["ts"].isoformat(), "sell_id": 3}}

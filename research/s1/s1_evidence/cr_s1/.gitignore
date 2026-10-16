@@ -1,0 +1,4 @@
+# Cosmic Ray session databases and the coverage line map are kept out of git (binary/large).
+# Their sha256 are in cr_untracked_manifest.txt; a durable copy is in .coordination/trading_app/s1_cr_archive.
+sessions/
+cr_linemap.json

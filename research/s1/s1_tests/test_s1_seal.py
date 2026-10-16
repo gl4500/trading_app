@@ -239,3 +239,168 @@ def test_calendar_without_next_session_raises():
     """Retrospective (Task 3 review fix round 1)."""
     with pytest.raises(ValueError, match="calendar ends"):
         z.window_end(CAL[-1], CAL)
+
+
+# ---------------------------------------------------------------- Task 9 mutant survivors (retrospective tests)
+def test_capture_at_a_non_registered_instant_cannot_seal():
+    """Retrospective (Task 9 mutant survivor "choose_seal skips slot membership"): a consistent, on-time capture
+    whose scheduled instant (close + 46 min) is not a registered slot never seals."""
+    assert z.choose_seal(DAY, CAL, [cap(46)]) is None
+    assert z.choose_seal(DAY, CAL, [cap(46), cap(47)])["scheduled"] == cap(47)["scheduled"]
+
+
+def test_check_bridge_compares_every_post_start_seal_with_the_first():
+    """Retrospective (Task 9 mutant survivor "bridge hash not compared across seals"): a later post-START seal whose
+    bridge hash differs from the first one is a violation even when the recomputed bridge equals the first."""
+    start = datetime(2026, 10, 14, 13, 30, tzinfo=UTC)
+    trades = [tr(1, "A", "BUY", 10, 50, 3), tr(2, "A", "BUY", 5, 51, 5)]
+    h = z.bridge_record(trades, start, None)["bridge_sha256"]
+    seals = [{"close": "2026-10-14T20:00:00+00:00", "bridge": {"bridge_sha256": h}},
+             {"close": "2026-10-15T20:00:00+00:00", "bridge": {"bridge_sha256": "0" * 64}}]
+    assert z.check_bridge(seals[:1], trades, start) == []
+    v = z.check_bridge(seals, trades, start)
+    assert len(v) == 1 and "2026-10-15T20:00:00+00:00" in v[0] and "differs from the first post-START seal" in v[0]
+
+
+# ---------------------------------------------------------------- Task 9 round 2: Cosmic Ray survivors (retrospective)
+START_T9 = datetime(2026, 10, 14, 13, 30, tzinfo=UTC)
+C15 = datetime(2026, 10, 15, 20, 0, tzinfo=UTC)
+
+
+def _sold_lots(n, buy_ts="2026-10-14T15:00:00+00:00", sell_ts="2026-10-15T15:00:00+00:00"):
+    t = []
+    for i in range(n):
+        t += [{**tr(2 * i + 1, f"S{i}", "BUY", 1, 10), "ts": buy_ts},
+              {**tr(2 * i + 2, f"S{i}", "SELL", 1, 11), "ts": sell_ts}]
+    return t
+
+
+def test_cr_slack_boundary_and_capture_before_its_slot():
+    """Retrospective (Task 9 CR survivors s1_seal:11/68): a capture exactly SCHEDULE_SLACK (10 min) after its slot
+    seals; one taken before its slot never does."""
+    assert z.choose_seal(DAY, CAL, [cap(45, late=10)])["scheduled"] == cap(45)["scheduled"]
+    assert z.choose_seal(DAY, CAL, [cap(45, late=-1)]) is None
+
+
+def test_cr_stop_threshold_is_exactly_100_sold():
+    """Retrospective (Task 9 CR survivor s1_seal:12 STOP_N): 99 sold lots keep running, 100 stop."""
+    for n, want in ((99, "RUNNING"), (100, "STOPPED")):
+        d = z.stop_decision([_seal("2026-10-15", _sold_lots(n))], START_T9, CAL,
+                            today=datetime(2026, 10, 16, 0, tzinfo=UTC))
+        assert d["status"] == want, (n, d)
+
+
+def test_cr_close_of_and_duplicate_check_do_not_depend_on_order_or_string_identity():
+    """Retrospective (Task 9 CR survivors s1_seal:30/37): close_of finds the exact date in an unsorted calendar; a
+    duplicate date is detected by value even when the two strings are distinct objects."""
+    assert z.close_of("2026-10-15", list(reversed(CAL))) == C15
+    a = {"date": "".join(["2026-10-", "15"]), "open": "09:30", "close": "16:00"}
+    b = {"date": "".join(["2026-10", "-15"]), "open": "09:30", "close": "16:00"}
+    assert a["date"] is not b["date"]
+    with pytest.raises(ValueError, match="duplicate"):
+        z.window_end(DAY, [a, b] + [d for d in CAL if d["date"] != "2026-10-15"])
+
+
+def test_cr_hourly_slots_start_after_the_last_offset_for_any_close_minute():
+    """Retrospective (Task 9 CR survivors s1_seal:56): the first hourly slot is the first full hour after the LAST
+    fixed offset (close + 55 min), also for a close that is not on the hour."""
+    day = {"date": "2026-10-15", "open": "09:30", "close": "16:06"}
+    cal = [day if d["date"] == "2026-10-15" else d for d in CAL]
+    s = z.schedule(day, cal)
+    assert all(b > a for a, b in zip(s, s[1:]))
+    assert s[6] == datetime(2026, 10, 15, 22, 0, tzinfo=UTC)                 # last offset 21:01Z + 1 h -> 22:00Z
+
+
+def test_cr_changed_row_detected_whichever_way_its_hash_moves():
+    """Retrospective (Task 9 CR survivor s1_seal:91): a changed row is flagged whether its new hash sorts above or
+    below the sealed one."""
+    row = tr(1, "A", "BUY", 10, 50, 5)
+    seal = {"close": "2026-10-15T20:00:00+00:00", "fence": z.fence({"trades": [row]}), "max_id": 1}
+    h = seal["fence"][1]
+    lower = next({**row, "shares": 10 + k} for k in range(1, 200) if z._row_hash({**row, "shares": 10 + k}) < h)
+    higher = next({**row, "shares": 10 + k} for k in range(1, 200) if z._row_hash({**row, "shares": 10 + k}) > h)
+    for changed in (lower, higher):
+        assert z.check_fences([seal], {"trades": [changed]}) == ["sealed row 1 changed"]
+
+
+def test_cr_row_stored_exactly_at_a_sealed_close_but_unfenced_is_backdated():
+    """Retrospective (Task 9 CR survivor s1_seal:97): stored time == the sealed close is "by this close"."""
+    r1 = tr(1, "A", "BUY", 10, 50, 5)
+    seal = {"close": "2026-10-15T20:00:00+00:00", "fence": z.fence({"trades": [r1]}), "max_id": 1}
+    r2 = {**tr(2, "A", "BUY", 1, 50, 5), "ts": "2026-10-15T20:00:00+00:00"}
+    assert any("row 2 backdated" in v for v in z.check_fences([seal], {"trades": [r1, r2]}))
+
+
+def test_cr_post_opening_rows_are_strictly_after_the_opening_close():
+    """Retrospective (Task 9 CR survivors s1_seal:126): post_opening_row_ids = bridge rows stored strictly after the
+    opening close (before, at, after)."""
+    oc = datetime(2026, 10, 13, 20, 0, tzinfo=UTC)
+    rows = [{**tr(1, "A", "BUY", 1, 50), "ts": "2026-10-13T19:00:00+00:00"},
+            {**tr(2, "A", "BUY", 1, 50), "ts": "2026-10-13T20:00:00+00:00"},
+            {**tr(3, "A", "BUY", 1, 50), "ts": "2026-10-13T21:00:00+00:00"}]
+    assert z.bridge_record(rows, START_T9, oc)["post_opening_row_ids"] == [3]
+
+
+def test_cr_seal_of_a_close_exactly_at_start_is_post_start():
+    """Retrospective (Task 9 CR survivor s1_seal:142)."""
+    s = {"close": START_T9.isoformat()}
+    assert z.post_start_seals([s], START_T9) == [s]
+
+
+def test_cr_check_bridge_messages_and_hash_direction():
+    """Retrospective (Task 9 CR survivors s1_seal:153/157/158/160-162): a post-START bridge without a hash is "no
+    bridge record"; differing hashes are flagged in either sort direction and named against the FIRST seal; the
+    recomputed-bridge message carries both 12-char prefixes."""
+    trades = [tr(1, "A", "BUY", 10, 50, 3), tr(2, "A", "BUY", 5, 51, 5)]
+    h = z.bridge_record(trades, START_T9, None)["bridge_sha256"]
+    first = {"close": "2026-10-14T20:00:00+00:00", "bridge": {"bridge_sha256": h}}
+    assert z.check_bridge([first, {"close": "2026-10-15T20:00:00+00:00", "bridge": {}}], trades, START_T9) == \
+        ["post-START seal 2026-10-15T20:00:00+00:00: no bridge record"]
+    for other in ("0" * 64, "f" * 64):
+        seals = [first, {"close": "2026-10-15T20:00:00+00:00", "bridge": {"bridge_sha256": h}},
+                 {"close": "2026-10-16T20:00:00+00:00", "bridge": {"bridge_sha256": other}}]
+        assert z.check_bridge(seals, trades, START_T9) == [
+            "post-START seal 2026-10-16T20:00:00+00:00: bridge hash differs from the first post-START seal "
+            "2026-10-14T20:00:00+00:00"]
+    for want in ("0" * 64, "f" * 64):
+        seals = [{"close": "2026-10-14T20:00:00+00:00", "bridge": {"bridge_sha256": want}},
+                 {"close": "2026-10-15T20:00:00+00:00", "bridge": {"bridge_sha256": want}}]
+        assert z.check_bridge(seals, trades, START_T9) == [
+            f"bridge (pre-START rows) changed since the first post-START seal 2026-10-14T20:00:00+00:00: "
+            f"{h[:12]} != {want[:12]}"]
+
+
+def test_cr_cohort_and_sold_counts_include_rows_exactly_at_start_and_close():
+    """Retrospective (Task 9 CR survivors s1_seal:170/174): a BUY stored exactly at START and one exactly at the
+    close are cohort entries; a SELL stored exactly at the close counts as sold by that close."""
+    t = [{**tr(1, "A", "BUY", 1, 50), "ts": START_T9.isoformat()},
+         {**tr(2, "B", "BUY", 1, 50), "ts": C15.isoformat()},
+         {**tr(3, "A", "SELL", 1, 51), "ts": C15.isoformat()}]
+    assert [x["id"] for x in z.cohort(t, START_T9, C15)] == [1, 2]
+    assert z.count_sold(t, START_T9, C15) == 1
+
+
+def test_cr_stop_decision_today_boundaries():
+    """Retrospective (Task 9 CR survivors s1_seal:194/203/207/212/213): a seal whose close == today is allowed and
+    evaluated; a window ending exactly at today is not yet missed; the trial is RUNNING until the LAST eligible
+    session's window has passed (inclusive), not the second-to-last."""
+    t = _sold_lots(100)
+    d = z.stop_decision([_seal("2026-10-15", t)], START_T9, CAL, today=C15)
+    assert d["status"] == "STOPPED" and d["stop_close"] == C15.isoformat()
+    we14 = z.window_end(next(x for x in CAL if x["date"] == "2026-10-14"), CAL)
+    assert z.stop_decision([], START_T9, CAL, today=we14)["missed"] == []
+    dl = z.deadline(START_T9).isoformat()
+    elig = [x for x in CAL if z.open_instant(x) >= START_T9 and x["date"] <= dl]
+    last_end, prev_end = z.window_end(elig[-1], CAL), z.window_end(elig[-2], CAL)
+    assert z.stop_decision([], START_T9, CAL, today=prev_end + timedelta(minutes=1))["status"] == "RUNNING"
+    assert z.stop_decision([], START_T9, CAL, today=last_end)["status"] == "RUNNING"
+    assert z.stop_decision([], START_T9, CAL, today=last_end + timedelta(minutes=1))["status"] == "NO-VALID-SEAL"
+
+
+def test_cr_deadline_session_itself_is_eligible():
+    """Retrospective (Task 9 CR survivor s1_seal:199): the deadline day's close can be the stop."""
+    dl = z.deadline(START_T9).isoformat()
+    assert any(x["date"] == dl for x in CAL)
+    t = _sold_lots(100, buy_ts="2027-04-13T15:00:00+00:00", sell_ts="2027-04-14T15:00:00+00:00")
+    d = z.stop_decision([_seal(dl, t)], START_T9, CAL, today=datetime(2027, 4, 20, tzinfo=UTC))
+    assert d["status"] == "STOPPED" and d["stop_close"] == z.close_of(dl, CAL).isoformat()

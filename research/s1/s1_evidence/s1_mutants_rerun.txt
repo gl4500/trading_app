@@ -1,0 +1,45 @@
+sources: s1_books.py 63af4276fa70, s1_checkpoint.py 403d9395062e, s1_collect.py c1f18f6ff8aa, s1_common.py 3fdf1d4946be, s1_receipt.py f18cb4889cff, s1_run.py 031ec4d3938b, s1_seal.py 626ebf197ad9, s1_snapshot.py 10a4879ab333, e1_sim.py 68f21ab19d74, e1_fetch.py 401f17deb355
+tests: conftest.py afc71c8d8d76, test_s1_books.py 9f934c7914c3, test_s1_bridge_8b.py 4197b2c80631, test_s1_checkpoint.py d79352cd7866, test_s1_checkpoint_7b.py 9d6b5e235c9b, test_s1_collect.py 793f08cf74f5, test_s1_common.py fbb4f57cd160, test_s1_connected.py 4c6afb20bdcc, test_s1_receipt.py c90260c50943, test_s1_run.py cb03ff53a3c5, test_s1_seal.py 813e7aac3ded, test_s1_snapshot.py ffac3f120fcd
+KILLED  sold: strict < 0.001 -> <=  s1_tests/test_s1_books.py::test_threshold_exactly_0_001_vs_below[0.001-False]
+KILLED  write-off: strict < 0.001 -> <=  s1_tests/test_s1_books.py::test_operational_writeoff_threshold_exactly_0_001_kept_below_written_off
+KILLED  sold event without requiring a SELL allocation  s1_tests/test_s1_books.py::test_dust_lot_without_an_allocation_from_the_sell_is_never_sold
+KILLED  sold event not absorbing (a later SELL re-dates it)  s1_tests/test_s1_books.py::test_sold_event_is_absorbing_and_attribution_unchanged
+KILLED  operational write-off at the end instead of at each SELL  s1_tests/test_s1_books.py::test_dusty_closure_then_reentry_books_and_bridge
+KILLED  oversell beyond OP_OVERSELL_TOL raises instead of recording an anomaly  s1_tests/test_s1_books.py::test_operational_oversell_beyond_tolerance_is_an_anomaly
+KILLED  consistency on as-of rows instead of the full set  s1_tests/test_s1_checkpoint.py::test_consistency_uses_the_full_capture_while_counts_use_as_of_rows
+KILLED  seal from a non-registered slot (slack 10 min -> 600 min)  s1_tests/test_s1_checkpoint.py::test_late_capture_flagged
+KILLED  seal from a non-registered slot (choose_seal skips slot membership)  s1_tests/test_s1_seal.py::test_capture_at_a_non_registered_instant_cannot_seal
+KILLED  seal from an inconsistent capture (choose_seal ignores consistent)  s1_tests/test_s1_seal.py::test_capture_between_trade_and_portfolio_commit_is_inconsistent_and_retried
+KILLED  seal from an inconsistent capture (scheduled checkpoint gate)  s1_tests/test_s1_checkpoint.py::test_inconsistent_capture_does_not_seal_and_is_preserved
+KILLED  seal from an inconsistent capture (opening checkpoint gate)  s1_tests/test_s1_checkpoint_7b.py::test_opening_inconsistent_capture_does_not_seal_rerun_refused_retry_slot_seals
+KILLED  unsealed close allowed to stop (latest seal's rows used)  s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL]
+KILLED  stop_decision without the today check (seal after today accepted)  s1_tests/test_s1_seal.py::test_seal_after_today_raises_and_open_window_is_not_missed
+KILLED  backdated row ignored  s1_tests/test_s1_bridge_8b.py::test_pre_start_row_first_observed_after_first_post_start_seal_is_backdating_and_bridge
+KILLED  deleted sealed row ignored  s1_tests/test_s1_checkpoint.py::test_abort_after_fence_violation_survives_clean_and_failed_runs
+KILLED  bridge rows in the cohort  s1_tests/test_s1_bridge_8b.py::test_example19_first_post_start_seal_records_the_bridge
+KILLED  bridge row classified with <= START  s1_tests/test_s1_bridge_8b.py::test_bridge_record_classifies_at_the_start_boundary
+KILLED  bridge hash not compared across seals  s1_tests/test_s1_seal.py::test_check_bridge_compares_every_post_start_seal_with_the_first
+KILLED  deadline = START + 180 days  s1_tests/test_s1_collect.py::test_write_plan_requires_aware_start_a_week_ahead_and_records_deadline
+KILLED  deadline without the month-end clamp (overflow into the next month)  s1_tests/test_s1_seal.py::test_deadline_calendar_months_with_month_end[start0-want0]
+KILLED  receipt includes secret keys  s1_tests/test_s1_receipt.py::test_config_only_mr_used_names_and_unset_marker
+KILLED  PID-change gap ignored  s1_tests/test_s1_checkpoint.py::test_pid_change_without_start_line_reported_and_prefix_checked
+KILLED  checkpoint emitting a price field  s1_tests/test_s1_checkpoint.py::test_counts_only_report_and_seal
+KILLED  opening checkpoint accepts a non-opening slot  s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot[scheduled0]
+KILLED  opening checkpoint accepts a non-opening close  s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_wrong_opening_close
+KILLED  opening_receipt written after the seal  s1_tests/test_s1_checkpoint_7b.py::test_opening_receipt_is_written_before_the_seal_and_attest_start_needs_both
+KILLED  final snapshot retried after an ok attempt  s1_tests/test_s1_checkpoint_7b.py::test_deleted_report_after_a_successful_attempt_refuses_a_new_attempt
+KILLED  exclusion window shortened to the actual exit  s1_tests/test_s1_run.py::test_exclusion_window_runs_to_the_stop_not_to_the_lots_actual_exit
+KILLED  undated action ignored (per-lot exclusions)  s1_tests/test_s1_run.py::test_undated_action_excludes_all_lots_of_symbol
+KILLED  acquirer side blocking  s1_tests/test_s1_run.py::test_blocks_by_side_and_kind[action0-A-False]
+KILLED  stop close not required for endpoint-day entries  s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL]
+KILLED  cap 10K > N -> >=  s1_tests/test_s1_run.py::test_cap_boundary[40-4-OK]
+KILLED  INSUFFICIENT at N-K = 30  s1_tests/test_s1_run.py::test_minimum_retained_boundary[30-0-OK]
+KILLED  UNVERIFIED-PROVENANCE pass nominated  s1_tests/test_s1_run.py::test_missing_attestation_is_unverified_and_not_a_nomination
+KILLED  NO-VALID-SEAL reported as FAIL  s1_tests/test_s1_checkpoint_7b.py::test_no_valid_seal_trial_can_take_its_final_snapshot
+KILLED  prereg after START allowed  s1_tests/test_s1_run.py::test_prereg_after_start_refused_even_with_valid_ack_and_receipt
+KILLED  duplicate score allowed  s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL]
+KILLED  reservation after computing  s1_tests/test_s1_run.py::test_score_reserves_before_any_priced_computation
+KILLED  score ignores a missing final-snapshot report while an ok attempt exists  s1_tests/test_s1_checkpoint_7b.py::test_score_is_aborted_invalid_when_the_report_is_gone_but_an_ok_attempt_exists[missing]
+KILLED  SCORE_ACK not binding final_snapshot_sha256  s1_tests/test_s1_checkpoint_7b.py::test_score_ack_binds_the_final_snapshot_report_and_an_edit_after_the_ack_is_refused
+KILLED  score skips _bridge_problems  s1_tests/test_s1_bridge_8b.py::test_score_with_a_bridge_record_not_matching_its_rows_is_aborted_invalid
+42/42 killed

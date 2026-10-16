@@ -270,3 +270,152 @@ def test_first_run_pidless_reports_not_observed_gap(tmp_path, ledger):
     _good(tmp_path, ledger)
     rep = run(tmp_path, ledger, minutes=45, proc={})
     assert any("process not observed (nothing listening)" in g for g in rep["restart_gaps"])
+
+
+def test_consistency_uses_the_full_capture_while_counts_use_as_of_rows(tmp_path, ledger):
+    """Retrospective (Task 9 mutant "consistency on as-of rows instead of the full set", killed before only by the
+    connected test): a BUY stored after the close but before the capture is in the portfolio, so consistency is
+    judged on the FULL captured row set (consistent, sealed) while the counts use the as-of rows only."""
+    make_prereg(tmp_path)
+    ledger.trade("A", "BUY", 10, 50, "2026-10-14T15:00:00+00:00")
+    ledger.trade("A", "BUY", 5, 51, "2026-10-15T20:30:00+00:00")                        # after the 16:00 EDT close
+    ledger.set_portfolio("A", 15)
+    rep = run(tmp_path, ledger)
+    assert rep["consistent"] is True and rep["entries"] == 1, rep
+    assert (tmp_path / "s1_out" / "seals" / "2026-10-15.json").exists()
+
+
+from datetime import timedelta                                                    # noqa: E402
+
+
+# ---------------------------------------------------------------- Task 9 round 2: Cosmic Ray survivors (retrospective)
+def test_cr_close_for_scans_an_unsorted_calendar_and_refuses_a_non_slot():
+    """Retrospective (Task 9 CR survivors s1_checkpoint:31-32): the calendar day without a next session (no window)
+    is skipped, never fatal and never the end of the scan, whatever the calendar order."""
+    sch = datetime(2026, 10, 15, 20, 45, tzinfo=UTC)
+    assert k._close_for(sch, list(reversed(CAL)))["date"] == "2026-10-15"
+    with pytest.raises(SystemExit, match="not a registered seal slot"):
+        k._close_for(sch + timedelta(minutes=1), CAL)
+
+
+def test_cr_first_abort_wins_and_a_second_returns_it(tmp_path):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:66-68): a second _write_abort (a concurrent run) keeps and
+    returns the first record."""
+    rep = {"close": "c", "scheduled": "s", "actual": "a"}
+    first = k._write_abort(tmp_path, "first", rep, "p1", "r1")
+    second = k._write_abort(tmp_path, ["second"], rep, "p2", "r2")
+    assert second == first and json.loads((tmp_path / "aborted.json").read_text())["reason"] == "first"
+
+
+def test_cr_capture_exactly_at_the_slack_is_on_time_and_seals(tmp_path, ledger):
+    """Retrospective (Task 9 CR survivor s1_checkpoint:88): actual == scheduled + SCHEDULE_SLACK is not late."""
+    _good(tmp_path, ledger)
+    rep = run(tmp_path, ledger, minutes=45, delay=600)
+    assert rep["late"] is False and rep["seal"]["written"] is True
+
+
+def test_cr_failed_or_corrupt_capture_reports_no_consistency_and_no_counts(tmp_path, ledger, monkeypatch):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:89/131): a failed capture is reported not consistent; a
+    corrupt row in scheduled mode leaves the counts None (not the opening-mode marker)."""
+    import sqlite3
+    import s1_snapshot
+    _good(tmp_path, ledger)
+    real = s1_snapshot._backup
+
+    def locked(*a, **kw):
+        raise sqlite3.OperationalError("database is locked")
+    monkeypatch.setattr(s1_snapshot, "_backup", locked)
+    rep = run(tmp_path, ledger, minutes=45)
+    assert rep["capture_ok"] is False and rep["consistent"] is False and rep["seal"]["written"] is False
+    monkeypatch.setattr(s1_snapshot, "_backup", real)
+    ledger.trade("A", "HOLD", 1, 50, "2026-10-14T16:00:00+00:00")
+    rep = run(tmp_path, ledger, minutes=47)
+    assert rep["capture_ok"] is False and rep["entries"] is None and rep["sold"] is None
+
+
+def test_cr_start_exactly_at_a_close_seals_that_close_with_a_bridge(tmp_path, ledger):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:202): a close at exactly START is post-START, so its seal
+    carries the bridge record."""
+    start = datetime(2026, 10, 15, 20, 0, tzinfo=UTC)
+    (tmp_path / "s1_out").mkdir(parents=True)
+    (tmp_path / "s1_out" / "prereg.json").write_text(json.dumps({"start": start.isoformat(), "calendar": CAL,
+                                                                 "receipt": REC}), encoding="utf-8")
+    ledger.trade("A", "BUY", 10, 50, "2026-10-14T15:00:00+00:00"); ledger.set_portfolio("A", 10)
+    rep = run(tmp_path, ledger)
+    assert rep["seal"]["written"] is True
+    assert json.loads(SEAL(tmp_path).read_text())["bridge"]["bridge_row_ids"] == [1]
+
+
+def test_cr_bad_seal_record_is_recorded_as_an_abort_not_a_crash(tmp_path, ledger):
+    """Retrospective (Task 9 CR survivor s1_checkpoint:212): two seals for one close (stop_decision ValueError)
+    -> ABORTED-INVALID "bad seal record", the report is written."""
+    _good(tmp_path, ledger)
+    assert run(tmp_path, ledger, minutes=45)["seal"]["written"]
+    (tmp_path / "s1_out" / "seals" / "2026-10-15-copy.json").write_bytes(SEAL(tmp_path).read_bytes())
+    rep = run(tmp_path, ledger, minutes=47)
+    assert rep["stop"]["status"] == "ABORTED-INVALID" and "bad seal record" in rep["stop"]["reason"]
+    assert "two seals" in json.loads(ABORT(tmp_path).read_text())["reason"]
+
+
+def test_cr_main_dispatches_each_mode_with_the_live_paths(monkeypatch, capsys):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:435-442, main): each mode calls its runner with the
+    registered live paths, and the receipt is built from the live checkout's .env and runtime python (receipt
+    builder stubbed: nothing live is read)."""
+    seen = []
+    monkeypatch.setattr(k.r, "semantic_receipt", lambda repo, env, py: seen.append((repo, env, py)) or {"ok": 1})
+    monkeypatch.setattr(k, "run_final_snapshot", lambda root, db: {"mode": "final", "root": str(root), "db": str(db)})
+
+    def fake(mode):
+        def f(root, db, sch, receipt, proc, log):
+            assert receipt() == {"ok": 1} and proc is k.r.process_identity and log == k.CRASH_LOG
+            return {"mode": mode, "root": str(root), "db": str(db), "sch": sch.isoformat()}
+        return f
+    monkeypatch.setattr(k, "run_opening_checkpoint", fake("opening"))
+    monkeypatch.setattr(k, "run_checkpoint", fake("scheduled"))
+    t = "2026-10-23T20:45:00+00:00"
+    for argv, mode in ((["--final-snapshot"], "final"), (["--opening", "--scheduled", t], "opening"),
+                       (["--scheduled", t], "scheduled")):
+        k.main(argv)
+        out = json.loads(capsys.readouterr().out)
+        assert out["mode"] == mode and out["root"] == str(k.c.HERE) and out["db"] == str(k.LIVE_DB)
+    repo = k.REPO
+    assert seen == [(repo, repo / ".env", repo / "runtime" / "python" / "python.exe")] * 2
+    assert capsys.readouterr().out == ""
+
+
+def test_cr_script_entry_point_runs_main():
+    """Retrospective (Task 9 CR survivors s1_checkpoint:445, `if __name__ == "__main__"`): running the file as a
+    script reaches argparse (--help prints usage and exits 0; nothing else runs)."""
+    import subprocess
+    import sys
+    res = subprocess.run([sys.executable, str(Path(k.__file__)), "--help"], capture_output=True, text=True,
+                         timeout=120)
+    assert res.returncode == 0 and "--final-snapshot" in res.stdout
+
+
+def test_cr_corrupt_row_marks_the_capture_meta_failed(tmp_path, ledger):
+    """Retrospective (Task 9 CR survivor s1_checkpoint:52, _fail_capture): the capture's meta.json is re-marked
+    ok=False (with the BookError) so the capture can never be chosen as a seal later."""
+    _good(tmp_path, ledger)
+    ledger.trade("A", "HOLD", 1, 50, "2026-10-14T16:00:00+00:00")
+    run(tmp_path, ledger)
+    meta = json.loads(next((tmp_path / "s1_out" / "captures" / "2026-10-15").glob("*/meta.json")).read_text())
+    assert meta["ok"] is False and meta["error"].startswith("BookError")
+
+
+def test_fr1_main_and_trial_state_compare_modes_and_status_by_value(tmp_path, monkeypatch, capsys):
+    """Retrospective (Task 9 fix round 1, review M-1: s1_checkpoint:341/436/438 Eq_Is): a mode or a RUNNING status
+    that is an equal but distinct str is still recognised."""
+    monkeypatch.setattr(k, "run_final_snapshot", lambda root, db: {"mode": "final-snapshot"})
+    monkeypatch.setattr(k, "run_opening_checkpoint", lambda *a: {"mode": "opening"})
+    monkeypatch.setattr(k, "run_checkpoint", lambda *a: {"mode": "scheduled"})
+    for mode in ("final-snapshot", "opening", "scheduled"):
+        monkeypatch.setattr(k, "parse_mode", lambda argv=None, m=mode: ("".join(list(m)), None))
+        k.main([])
+        assert json.loads(capsys.readouterr().out)["mode"] == mode
+    (tmp_path / "s1_out").mkdir()
+    monkeypatch.setattr(k.z, "stop_decision", lambda *a, **kw: {"status": "".join(list("RUNNING")),
+                                                                "stop_close": None})
+    with pytest.raises(SystemExit, match="RUNNING"):
+        k._trial_state(tmp_path / "s1_out", {"start": START.isoformat(), "calendar": CAL},
+                       datetime(2026, 10, 20, tzinfo=UTC))

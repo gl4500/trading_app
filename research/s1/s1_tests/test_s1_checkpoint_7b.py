@@ -532,3 +532,189 @@ def test_receipt_stored_concurrently_after_the_early_check_is_reported(tmp_path,
     rep = read(rp)
     assert "(concurrent)" in rep["refused"] and rep["seal"]["written"] is False and rep["consistent"] is True
     assert not (out / "seals" / f"{OPEN_DAY}.json").exists()
+
+
+# ---------------------------------------------------------------- Task 9 round 2: Cosmic Ray survivors (retrospective)
+def _rewrite_audit(tmp_path, edit):
+    """Rewrite the audit manifest through `edit(manifest)`."""
+    mp = tmp_path / "s1_out" / "audit" / "manifest.json"
+    m = read(mp)
+    edit(m)
+    mp.write_text(json.dumps(m), encoding="utf-8")
+
+
+@pytest.mark.parametrize("edit", [
+    lambda m: m.update(outcome="RUNNING"),                          # sorts after "COMPLETE"
+    lambda m: m["files"].pop("calendar.json"),                      # calendar not covered by the manifest
+    lambda m: m["files"].update({"calendar.json": "0" * 64}),       # recorded hash sorts below the real one
+    lambda m: m["files"].update({"corporate_actions.json": "0" * 64}),   # a non-calendar file differs
+])
+def test_cr_opening_refuses_every_audit_manifest_defect(tmp_path, ledger, edit):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:229/232/234): outcome must equal COMPLETE; every listed
+    file AND calendar.json must be listed and hash-equal."""
+    opening_ready(tmp_path, ledger)
+    _rewrite_audit(tmp_path, edit)
+    with pytest.raises(SystemExit, match="audit"):
+        opening(tmp_path, ledger)
+    assert no_capture(tmp_path)
+
+
+def test_cr_opening_refuses_a_later_opening_close(tmp_path, ledger):
+    """Retrospective (Task 9 CR survivor s1_checkpoint:249): a plan opening_close AFTER the session before START is
+    refused too (the existing test covers an earlier one)."""
+    opening_ready(tmp_path, ledger)
+    p = tmp_path / "s1_out" / "plan.json"
+    p.write_text(json.dumps(dict(read(p), opening_close="2026-10-24")), encoding="utf-8")
+    with pytest.raises(SystemExit, match="opening_close"):
+        opening(tmp_path, ledger)
+    assert no_capture(tmp_path)
+
+
+def test_cr_opening_refuses_when_the_audit_calendar_ends_at_the_opening_day(tmp_path, ledger):
+    """Retrospective (Task 9 CR survivor s1_checkpoint:255): no next session -> no seal window -> a refusal
+    (SystemExit), not a ValueError crash."""
+    opening_ready(tmp_path, ledger)
+    audit = tmp_path / "s1_out" / "audit"
+    cal = [d for d in read(audit / "calendar.json") if d["date"] <= OPEN_DAY]
+    (audit / "calendar.json").write_text(json.dumps(cal), encoding="utf-8")
+    _rewrite_audit(tmp_path, lambda m: m["files"].update({"calendar.json": c.sha256_file(audit / "calendar.json")}))
+    with pytest.raises(SystemExit, match="opening refused: calendar ends"):
+        opening(tmp_path, ledger)
+
+
+@pytest.mark.parametrize("kind", ["garbage", "directory"])
+def test_cr_unreadable_stored_opening_receipt_is_a_conflict_not_a_crash(tmp_path, ledger, kind):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:268): an unreadable leftover opening_receipt.json (bad JSON:
+    ValueError; a directory: OSError) is treated as a differing receipt -> refusal, no seal."""
+    opening_ready(tmp_path, ledger)
+    rp = tmp_path / "s1_out" / "opening_receipt.json"
+    if kind == "garbage":
+        rp.write_text("{not json", encoding="utf-8")
+    else:
+        rp.mkdir()
+    with pytest.raises(SystemExit, match="opening_receipt"):
+        opening(tmp_path, ledger)
+    assert not (tmp_path / "s1_out" / "seals" / f"{OPEN_DAY}.json").exists()
+
+
+def test_cr_opening_report_receipt_match_on_every_path(tmp_path, ledger, monkeypatch):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:307/313/314): a leftover differing receipt is refused by the
+    EARLY check (reason "receipt conflict: stored ...", not the concurrent path) with receipt_match False; a clean
+    opening reports receipt_match True."""
+    opening_ready(tmp_path, ledger)
+    out = tmp_path / "s1_out"
+    _crash_in_seal_write(monkeypatch)
+    with pytest.raises(RuntimeError):
+        opening(tmp_path, ledger, minutes=45, receipt=dict(S1_RECEIPT, head="other"))
+    monkeypatch.undo()
+    with pytest.raises(SystemExit, match="opening_receipt"):
+        opening(tmp_path, ledger, minutes=47, receipt=S1_RECEIPT)
+    rep = read(out / "captures" / OPEN_DAY / "20261023T204700Z.report.json")
+    assert rep["refused"].startswith("receipt conflict: stored") and rep["receipt_match"] is False
+    (out / "opening_receipt.json").unlink()
+    rep = opening(tmp_path, ledger, minutes=49)
+    assert rep["seal"]["written"] is True and rep["receipt_match"] is True
+
+
+def test_cr_concurrent_receipt_conflict_reports_receipt_match_false(tmp_path, ledger, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_checkpoint:324): the concurrent-path refusal reports receipt_match
+    False."""
+    opening_ready(tmp_path, ledger)
+    real = ck._store_opening_receipt
+
+    def racing(p, receipt):
+        p.write_text(json.dumps(dict(S1_RECEIPT, head="other")), encoding="utf-8")
+        return real(p, receipt)
+    monkeypatch.setattr(ck, "_store_opening_receipt", racing)
+    with pytest.raises(ck._ReceiptConflict):
+        opening(tmp_path, ledger, minutes=45)
+    rep = read(tmp_path / "s1_out" / "captures" / OPEN_DAY / "20261023T204500Z.report.json")
+    assert "(concurrent)" in rep["refused"] and rep["receipt_match"] is False
+
+
+def test_cr_opening_failed_capture_is_reported_not_a_crash(tmp_path, ledger, monkeypatch):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:311): a failed opening capture (locked DB) skips the fence
+    check, writes its report and no seal."""
+    opening_ready(tmp_path, ledger)
+    _locked(monkeypatch)
+    rep = opening(tmp_path, ledger)
+    assert rep["capture_ok"] is False and rep["fence_violations"] == [] and rep["seal"]["written"] is False
+    assert (tmp_path / "s1_out" / "captures" / OPEN_DAY / "20261023T204500Z.report.json").exists()
+
+
+@pytest.mark.parametrize("bad", ["{}", "[]", "dup"])
+def test_cr_final_snapshot_refuses_on_a_bad_seal_record(tmp_path, bad):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:339): a seal the stop decision cannot read (KeyError,
+    TypeError) or two seals for one close (ValueError) -> SystemExit "bad seal record", no attempt."""
+    st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+    seals = tmp_path / "s1_out" / "seals"
+    last = sorted(seals.glob("*.json"))[-1]
+    (seals / "zz.json").write_text(last.read_text() if bad == "dup" else bad, encoding="utf-8")
+    with pytest.raises(SystemExit, match="bad seal record"):
+        ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+    assert not (tmp_path / "s1_out" / "final_snapshot").exists()
+
+
+def test_cr_ok_attempts_counts_only_a_literal_true(tmp_path):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:358/360): ok must be the JSON literal true; attempts with no
+    meta (OSError), unreadable meta (ValueError) or a non-object meta (AttributeError) are skipped."""
+    metas = {"attempt-01": '{"ok": 1}', "attempt-02": '{"ok": 2}', "attempt-03": None, "attempt-04": "{oops",
+             "attempt-05": "[]", "attempt-06": '{"ok": true}'}
+    for name, text in metas.items():
+        (tmp_path / name).mkdir()
+        if text is not None:
+            (tmp_path / name / "meta.json").write_text(text, encoding="utf-8")
+    assert ck.ok_attempts(tmp_path) == ["attempt-06"]
+
+
+def test_cr_final_snapshot_attempt_dir_taken_concurrently_is_refused(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_checkpoint:387): if the next attempt directory already exists (a
+    concurrent run), the run refuses (SystemExit), never overwrites."""
+    st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+    d = tmp_path / "s1_out" / "final_snapshot"
+    (d / "attempt-01").mkdir(parents=True)
+    monkeypatch.setattr(ck, "_next_attempt", lambda d_: "attempt-01")
+    with pytest.raises(SystemExit, match="concurrent run"):
+        ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+
+
+def test_cr_failed_final_attempt_is_not_fence_checked(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_checkpoint:395): a failed capture reports fence_checked False."""
+    st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+    _locked(monkeypatch)
+    rep = ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+    assert rep["capture_ok"] is False and rep["fence_checked"] is False
+
+
+@pytest.mark.parametrize("edit,kind", [
+    (lambda s: s.pop("fence"), "KeyError"),
+    (lambda s: s.update(fence={"x": "h"}), "ValueError"),
+    (lambda s: s.update(max_id="a"), "TypeError"),
+])
+def test_cr_final_snapshot_records_a_malformed_seal_fence_as_a_violation(tmp_path, edit, kind):
+    """Retrospective (Task 9 CR survivors s1_checkpoint:402): a seal whose fence/max_id cannot be checked (but whose
+    close/rows the stop decision reads) is recorded as "bad seal record: <error>", fence_checked True."""
+    st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+    p = sorted((tmp_path / "s1_out" / "seals").glob("*.json"))[-1]
+    s = read(p)
+    edit(s)
+    p.write_text(json.dumps(s), encoding="utf-8")
+    rep = ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+    assert rep["fence_checked"] is True and rep["fence_violations"][0].startswith(f"bad seal record: {kind}")
+
+
+def test_cr_final_report_written_concurrently_is_refused(tmp_path, monkeypatch):
+    """Retrospective (Task 9 CR survivor s1_checkpoint:411): a final_snapshot/report.json created by a concurrent
+    run between the check and the write -> SystemExit; the other run's report is kept."""
+    st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+    d = tmp_path / "s1_out" / "final_snapshot"
+    real = s1_snapshot.take_snapshot
+
+    def racing(db, out_dir):
+        meta = real(db, out_dir)
+        (d / "report.json").write_text('{"other": 1}', encoding="utf-8")
+        return meta
+    monkeypatch.setattr(s1_snapshot, "take_snapshot", racing)
+    with pytest.raises(SystemExit, match="concurrent run succeeded first"):
+        ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+    assert read(d / "report.json") == {"other": 1}
