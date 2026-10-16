@@ -1,3 +1,5 @@
 # Hash-pinned frozen E1 files: keep bytes exact (no line-ending conversion)
 e1_sim.py -text
 e1_fetch.py -text
+# All S1 files: evidence hashes are over exact bytes, so no line-ending conversion anywhere in research/s1
+* -text
