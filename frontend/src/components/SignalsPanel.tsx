@@ -422,8 +422,12 @@ export default function SignalsPanel() {
   )
 
   if (error) return (
-    <div className="flex items-center justify-center h-48 text-red-400">
-      Failed to load signals: {error}
+    <div className="flex flex-col items-center justify-center gap-3 h-48 text-red-400">
+      <div>Failed to load signals: {error}</div>
+      <button
+        onClick={fetchSignals}
+        className="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
+      >↻ Retry</button>
     </div>
   )
 

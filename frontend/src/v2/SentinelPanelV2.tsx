@@ -245,6 +245,7 @@ export default function SentinelPanelV2() {
   const [sentinel, setSentinel]   = useState<SentinelData | null>(null)
   const [impact, setImpact]       = useState<ImpactData | null>(null)
   const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState<string | null>(null)
   const [lastUpdated, setLU]      = useState<string | null>(null)
   const [activeView, setView]     = useState<'feed' | 'impact'>('feed')
   const [symFilter, setSymFilter] = useState<string>('')
@@ -255,10 +256,14 @@ export default function SentinelPanelV2() {
         fetch(`${API_BASE}/api/sentinel`),
         fetch(`${API_BASE}/api/news-impact`),
       ])
-      if (sRes.ok) setSentinel(await sRes.json())
+      if (!sRes.ok) throw new Error(`HTTP ${sRes.status}`)
+      setSentinel(await sRes.json())
       if (iRes.ok) setImpact(await iRes.json())
       setLU(new Date().toLocaleTimeString(undefined, { timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
-    } catch (_) {}
+      setError(null)
+    } catch (e: any) {
+      setError(e?.message ?? String(e))
+    }
     finally { setLoading(false) }
   }
 
@@ -363,6 +368,19 @@ export default function SentinelPanelV2() {
           </span>
         ))}
       </div>
+
+      {error && (
+        <div style={{
+          ...PANEL,
+          borderColor: 'var(--accent-red)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+          color: 'var(--accent-red)',
+          marginBottom: 10,
+        }}>
+          FAILED TO LOAD SENTINEL — {error}
+        </div>
+      )}
 
       {loading ? (
         <div style={{
