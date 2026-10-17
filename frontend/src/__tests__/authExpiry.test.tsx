@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { installAuthExpiryFetch, onAuthExpired } from '../authExpiry'
+import { installAuthExpiryFetch, onAuthExpired, isSessionExpiry, markAuthenticated } from '../authExpiry'
 
 // The dashboard is replaced by a stand-in "panel" that issues one /api request
 // on mount, so these tests exercise App's auth flow without the real panels.
@@ -163,5 +163,151 @@ describe('installAuthExpiryFetch', () => {
     await expect(window.fetch('/api/anything')).rejects.toThrow('Failed to fetch')
     expect(listener).not.toHaveBeenCalled()
     unsubscribe()
+  })
+})
+
+// ── Codex review PR #114 ────────────────────────────────────────────────────
+
+interface Deferred { resolve: (r: Response) => void; url: string }
+
+function respond(status: number, body: unknown = {}): Response {
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+}
+
+describe('App: a stale 401 from the previous session after re-login', () => {
+  beforeEach(() => { vi.stubGlobal('WebSocket', FakeWebSocket) })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('keeps the dashboard for an old-session 401, but logs out on a new-session 401', async () => {
+    const pendingTrades: Deferred[] = []
+    let signalsCalls = 0
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      if (url.includes('/api/auth/check')) return Promise.resolve(respond(200, { authenticated: true }))
+      if (url.includes('/api/login')) return Promise.resolve(respond(200, { ok: true }))
+      if (url.includes('/api/trades')) {
+        return new Promise<Response>(resolve => { pendingTrades.push({ resolve, url }) })
+      }
+      if (url.includes('/api/signals')) {
+        signalsCalls += 1
+        return Promise.resolve(signalsCalls === 1 ? respond(401) : respond(200, { signals: {} }))
+      }
+      return Promise.resolve(respond(200))
+    }))
+
+    render(<App />)
+
+    // Old session: /api/trades (A) is still in flight when /api/signals gets 401.
+    const password = await screen.findByLabelText('Password')
+    expect(pendingTrades).toHaveLength(1)
+
+    fireEvent.change(password, { target: { value: 'hunter2' } })
+    fireEvent.click(screen.getByRole('button', { name: /Sign In/ }))
+    await screen.findByText(/FAKE DASHBOARD · 200/)
+    await waitFor(() => expect(pendingTrades).toHaveLength(2))   // B started under the new session
+
+    // A (started before the re-login) now answers 401 — must be ignored.
+    pendingTrades[0].resolve(respond(401))
+    await new Promise(r => setTimeout(r, 20))
+    expect(screen.getByText(/FAKE DASHBOARD · 200/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument()
+
+    // B (started under the new session) answers 401 — that session is gone too.
+    pendingTrades[1].resolve(respond(401))
+    expect(await screen.findByLabelText('Password')).toBeInTheDocument()
+  })
+})
+
+describe('authExpiry generations', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  function deferredFetch() {
+    const pending: Deferred[] = []
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((input: string) => {
+      if (input.startsWith('/api/login')) return Promise.resolve(respond(200))
+      return new Promise<Response>(resolve => { pending.push({ resolve, url: input }) })
+    }))
+    installAuthExpiryFetch()
+    return pending
+  }
+
+  it('ignores a 401 from a request started before markAuthenticated()', async () => {
+    const pending = deferredFetch()
+    const listener = vi.fn()
+    const unsubscribe = onAuthExpired(listener)
+
+    const old = window.fetch('/api/signals')
+    markAuthenticated()
+    const fresh = window.fetch('/api/trades')
+
+    pending[0].resolve(respond(401))
+    await old
+    expect(listener).not.toHaveBeenCalled()
+
+    pending[1].resolve(respond(401))
+    await fresh
+    expect(listener).toHaveBeenCalledTimes(1)
+    unsubscribe()
+  })
+
+  it('a successful /api/login through fetch also starts a new generation', async () => {
+    const pending = deferredFetch()
+    const listener = vi.fn()
+    const unsubscribe = onAuthExpired(listener)
+
+    const old = window.fetch('/api/signals')
+    await window.fetch('/api/login', { method: 'POST' })
+    pending[0].resolve(respond(401))
+    await old
+    expect(listener).not.toHaveBeenCalled()
+    unsubscribe()
+  })
+})
+
+describe('isSessionExpiry origin and path scope', () => {
+  const here = () => window.location.origin
+
+  it.each([
+    ['relative path', () => '/api/signals'],
+    ['same-origin absolute string', () => `${here()}/api/signals`],
+    ['same-origin URL object', () => new URL('/api/signals', window.location.href)],
+    ['same-origin Request object', () => new Request(`${here()}/api/signals`)],
+  ])('counts a 401 from a %s', (_label, input) => {
+    expect(isSessionExpiry(input(), 401)).toBe(true)
+  })
+
+  it.each([
+    ['foreign-origin string', () => 'https://other.example/api/resource'],
+    ['foreign-origin URL object', () => new URL('https://other.example/api/resource')],
+    ['foreign-origin Request object', () => new Request('https://other.example/api/resource')],
+    ['protocol-relative URL', () => '//other.example/api/x'],
+    ['auth check with query', () => '/api/auth/check?x=1'],
+    ['login with query', () => '/api/login?next=/'],
+    ['logout', () => '/api/logout'],
+    ['non-api path', () => '/static/app.js'],
+  ])('does not count a 401 from a %s', (_label, input) => {
+    expect(isSessionExpiry(input(), 401)).toBe(false)
+  })
+
+  it.each([400, 403, 404, 500, 200])('never counts status %i', status => {
+    expect(isSessionExpiry('/api/signals', status)).toBe(false)
+  })
+
+  it('does not notify for a foreign-origin 401 through the wrapper', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respond(401)))
+    installAuthExpiryFetch()
+    const listener = vi.fn()
+    const unsubscribe = onAuthExpired(listener)
+    await window.fetch('https://other.example/api/resource')
+    await window.fetch('//other.example/api/x')
+    expect(listener).not.toHaveBeenCalled()
+    unsubscribe()
+    vi.unstubAllGlobals()
   })
 })

@@ -5,7 +5,7 @@ import { TimezoneProvider } from './context/TimezoneContext'
 import TimezoneSelector from './components/TimezoneSelector'
 import AppShellV2 from './v2/AppShellV2'
 import { isV2Enabled } from './v2/switch'
-import { installAuthExpiryFetch, onAuthExpired } from './authExpiry'
+import { installAuthExpiryFetch, markAuthenticated, onAuthExpired } from './authExpiry'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -160,7 +160,7 @@ export default function App() {
 
   useEffect(() => {
     fetch('/api/auth/check')
-      .then(r => { if (r.ok) setIsAuthenticated(true) })
+      .then(r => { if (r.ok) { markAuthenticated(); setIsAuthenticated(true) } })
       .catch(() => {/* server unreachable — stay on login */})
       .finally(() => setAuthChecked(true))
   }, [])
@@ -175,7 +175,7 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />
+    return <LoginPage onLogin={() => { markAuthenticated(); setIsAuthenticated(true) }} />
   }
 
   // ── Main App ────────────────────────────────────────────────────────────────
