@@ -192,6 +192,7 @@ export default function SentinelPanel() {
   const [sentinel, setSentinel]   = useState<SentinelData | null>(null)
   const [impact, setImpact]       = useState<ImpactData | null>(null)
   const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState<string | null>(null)
   const [lastUpdated, setLU]      = useState<string | null>(null)
   const [activeView, setView]     = useState<'feed' | 'impact'>('feed')
   const [symFilter, setSymFilter] = useState<string>('')
@@ -202,10 +203,14 @@ export default function SentinelPanel() {
         fetch(`${API_BASE}/api/sentinel`),
         fetch(`${API_BASE}/api/news-impact`),
       ])
-      if (sRes.ok) setSentinel(await sRes.json())
+      if (!sRes.ok) throw new Error(`HTTP ${sRes.status}`)
+      setSentinel(await sRes.json())
       if (iRes.ok) setImpact(await iRes.json())
       setLU(new Date().toLocaleTimeString(undefined, { timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
-    } catch (_) {}
+      setError(null)
+    } catch (e: any) {
+      setError(e?.message ?? String(e))
+    }
     finally { setLoading(false) }
   }
 
@@ -250,6 +255,12 @@ export default function SentinelPanel() {
           <button onClick={fetchAll} className="text-xs px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg">↻ Refresh</button>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-900/30 border border-red-800 rounded-xl p-4 text-red-400 text-sm">
+          Failed to load sentinel: {error}
+        </div>
+      )}
 
       {/* ── Status bar ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
