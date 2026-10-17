@@ -2,6 +2,10 @@
 # These block NEW vulns, not these known ones; entries expire to force periodic re-review.
 version: v1.25.0
 ignore:
+  SNYK-PYTHON-TRANSFORMERS-19500670:
+    - '*':
+        reason: "Temporary acceptance: no upstream fix reported on 2026-10-17. The app uses only the constant ProsusAI/finbert text-classification pipeline, not load_custom_generate or caller-selected generative repositories. The installed package remains affected; this is not a package fix. Claude/Codex review due 2026-11-09; see docs/SECURITY.md for scope and exit criteria."
+        expires: 2026-11-16T00:00:00.000Z
   SNYK-PYTHON-STARLETTE-13733964:
     - '*':
         reason: "Deferred: fixed only in starlette >=1.x, which needs a FastAPI 0.115->0.141 major upgrade (separate tested change). Low practical risk on a localhost single-user, non-internet-exposed API (DoS/SSRF/ReDoS)."

@@ -3,6 +3,84 @@
 This document describes the security controls in place for the AI Trading App,
 covering the pre-commit gate, static analysis, runtime hardening, and test coverage.
 
+## Temporary Transformers exception: SNYK-PYTHON-TRANSFORMERS-19500670
+
+**Requirement:** REQ-TRANSFORMERS-19500670. Recorded 2026-10-17. Implementer:
+Codex; reviewer: Claude. Follow-up owners: **Claude/Codex**, review due
+**2026-11-09**. The exception expires **2026-11-16 at 00:00 UTC**; renewal
+requires a new advisory/reachability assessment and peer review.
+
+This is a time-limited risk acceptance, **not a dependency upgrade or a fix to
+Transformers**. There is no dependency, pin, runtime or application-behavior
+change. The live runtime's **5.6.2 is affected and remains installed**. This
+policy/document change requires **no package installation or backend restart**.
+
+### Advisory evidence and decision
+
+- [Snyk advisory](https://security.snyk.io/vuln/SNYK-PYTHON-TRANSFORMERS-19500670),
+  checked 2026-10-17: affected versions **>=4.49.0**, with **no fixed version**
+  reported. Thus both live 5.6.2 and the reported CI resolution 5.20.1 are in
+  Snyk's affected range.
+- [CERT/CC VU#456290](https://kb.cert.org/vuls/id/456290), revised 2026-09-22:
+  discusses versions 4.49.0 through 5.8.1 and reports no vendor patch. That
+  narrower documented range does not establish that later versions are fixed;
+  the Snyk range governs this Snyk exception.
+- The vulnerable custom-generation loader caches remote Python before checking
+  consent. Declining remote-code trust is therefore not, by itself, a remedy
+  for the unauthorized file write. Cached code execution still requires an
+  execution path; this exception does not assert that the library is safe for
+  arbitrary repositories or other applications sharing its cache.
+
+The sole production Transformers import is
+`backend/data/finbert_scorer.py`. Its pipeline is `text-classification`, with
+the constant model name `ProsusAI/finbert`, CPU inference and no caller-supplied
+repository. `backend/data/signal_aggregator.py` uses its headline scores and
+falls back to keyword scoring when unavailable. The reviewed application does
+not invoke `load_custom_generate` or request a custom-generation repository.
+This is the bounded basis for accepting this advisory temporarily, not proof
+against every transitive or future library path.
+
+FinBERT loads **third-party pretrained weights**; it is not one of the app's
+locally trained XGB/W3 models. Older Transformers exceptions in `backend/.snyk`
+contain a broader locally-trained-model rationale. Their correction and
+individual reassessment are a **Claude/Codex follow-up**, not silently covered
+by this new exception. Their existing entries and expiry dates are unchanged.
+
+Downgrading below 4.49.0 would avoid this advisory's listed range but is not a
+validated compatible or generally secure upgrade. Removing Transformers would
+change live headline signals to their fallback. Neither is part of this
+behavior-preserving policy change. Reassess the decision when a supported
+fixed version becomes available, when the model/repository/task changes, or
+when evidence changes about reachability. Review cached-module hygiene with
+the operator if needed; this change does not inspect or clear the live cache.
+
+### Scope and acceptance examples
+
+CI invokes `snyk test` from `backend/`, which reads `backend/.snyk`. Only the
+new advisory ID receives an exception. The existing high-severity threshold,
+other advisory entries/expiries, Bandit gate and frontend scan remain intact.
+`backend/requirements.txt` and the offline wheel cache `backend/packages/`
+are unchanged; no replacement wheels are needed for this policy change.
+
+- Given the current backend dependency graph, when Snyk scans it before expiry,
+  this advisory is accepted under the documented policy; other unaccepted high
+  findings still fail the scan.
+- Given the expiry has passed, when Snyk evaluates this policy, this exception
+  no longer suppresses the finding. A green scan now is not a permanent waiver.
+- Given the policy before this change, when comparing it with this change,
+  exactly one advisory is added and every prior entry and expiry is identical.
+- Given the existing scoring and mocked HTTP workflows, when the targeted
+  FinBERT, signal-aggregator and backend security tests run in isolation,
+  their behavior remains unchanged. Passing tests do not prove the upstream
+  vulnerability fixed or make all model-loading paths safe.
+
+Validation records accompany the PR: policy/YAML consistency, targeted test
+output, CI-equivalent Bandit output, environment/source hashes and the PR's
+own Snyk outcome. No new Python behavior is introduced, so behavioral
+RED/GREEN, Hypothesis and Cosmic Ray are not applicable to this policy/document
+edit. No source code, live database, runtime packages or live configuration
+is modified during validation; model inference and external services are mocked.
+
 ---
 
 ## Pre-commit Security Gate
