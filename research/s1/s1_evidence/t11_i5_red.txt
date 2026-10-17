@@ -1,0 +1,10 @@
+Task 11 RED, item i5 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: missing-interface (MAILBOX constant, mailbox= parameter)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:490: assert (0 == 1)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:522: TypeError: _ack() got an unexpected keyword argument 'mailbox'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:546: TypeError: do_prereg() got an unexpected keyword argument 'mailbox'
+FAILED s1_tests/test_s1_task11.py::test_i5_mailbox_constant_is_the_coordination_mailbox
+FAILED s1_tests/test_s1_task11.py::test_i5_ack_reads_the_given_mailbox_read_only_never_the_output_root
+FAILED s1_tests/test_s1_task11.py::test_i5_lifecycle_gates_take_an_explicit_mailbox

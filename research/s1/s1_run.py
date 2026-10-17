@@ -13,7 +13,7 @@ import s1_common as c
 import s1_seal as z
 
 RUN_ACK = ("S1-RUN-ACK runner_sha256={runner} plan_sha256={plan} audit_manifest_sha256={audit} "
-           "attest_start_sha256={attest} start={start}")
+           "attest_start_sha256={attest} toolchain_sha256={toolchain} start={start}")   # Task 11 I-1: toolchain
 SCORE_ACK = ("S1-SCORE-ACK runner_sha256={runner} final_manifest_sha256={final} stop_attest_sha256={attest} "
              "final_snapshot_sha256={snap}")
 START_STATEMENT = "I confirm the trading_app backend runs from the recorded checkout, started after the S1 receipt."
@@ -164,11 +164,13 @@ def disposition(n: int, k_: int) -> str:
 
 def carry_in_reasons(held_at_start: dict, actions, held_since: dict, *, problems=(), until=None, start_day=None,
                      open_across=None) -> list:
-    """Why carry-in units are untrusted: a blocking action (or an undated one) on a symbol held at START, dated on/
+    """Why carry-in units are untrusted: a unit/identity action (or an undated one) on a symbol held at START, dated on/
     after the date its oldest open lot was bought (and, when `until` is given, no later than it), or a problem
     record blocking that symbol. Ruling I-3: when `open_across(sym, day)` is given, an action dated on/after
     `start_day` counts only if a carry-in lot of the symbol was still open across that date (a lot held at START
-    and bought before a pre-START action date was necessarily held across it)."""
+    and bought before a pre-START action date was necessarily held across it). Task 11 (controller-added), I-6
+    (design §11): only unit/identity actions (unit_identity) count; a special cash dividend or a spin-off/rights
+    source does not untrust carry-in units (cohort per-lot exclusions still use blocks())."""
     bad_syms = {s for p in problems for s in p.get("blocks_symbols", [])}
     out = []
     for sym in sorted(held_at_start):
@@ -178,7 +180,7 @@ def carry_in_reasons(held_at_start: dict, actions, held_since: dict, *, problems
             out.append(f"carry-in {sym}: corporate-action problem record")
         since = held_since.get(sym)
         for a in actions:
-            if not blocks(a, sym):
+            if not unit_identity(a, sym):
                 continue
             d = _date(a)
             if d is None:
@@ -230,11 +232,11 @@ def _receipt_sha(receipt) -> str:
     return c.sha256_bytes(c.canonical(receipt))
 
 
-def _ack(root, ack_id: str, token: str) -> dict:
-    """s1_collect._ack (codex->claude experiments-prereg, standalone exact line, not in the future); an unreadable
-    mailbox is a refusal too."""
+def _ack(ack_id: str, token: str, mailbox=None) -> dict:
+    """s1_collect._ack (codex->claude experiments-prereg, standalone exact line, not in the future; Task 11 I-5: from
+    `mailbox`, default s1_common.MAILBOX); an unreadable mailbox is a refusal too."""
     try:
-        return k._ack(root, ack_id, token)
+        return k._ack(ack_id, token, mailbox)
     except sqlite3.Error as e:
         raise SystemExit(f"mailbox unreadable ({type(e).__name__}): refusing") from None
 
@@ -244,7 +246,8 @@ def run_token(root) -> str:
     plan = _load(out / "plan.json")
     return RUN_ACK.format(runner=runner_sha(), plan=c.sha256_file(out / "plan.json"),
                           audit=c.sha256_file(out / "audit" / "manifest.json"),
-                          attest=_sha_or_absent(out / "attest_start.json"), start=plan["planned_start"])
+                          attest=_sha_or_absent(out / "attest_start.json"), toolchain=c.toolchain_sha256(),
+                          start=plan["planned_start"])
 
 
 def score_token(root) -> str:
@@ -382,7 +385,7 @@ def _start_attestation_problems(out: Path, att: dict, plan: dict, seal_p: Path, 
     return [f"START attestation {key} does not match" for key, v in want.items() if att.get(key) != v]
 
 
-def do_prereg(root, ack_id: str, receipt) -> dict:
+def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
     """Prereg (§4/§15): strictly before planned START, after a COMPLETE audit and the START attestation, never with
     a BLOCKED carry-in, under the exact RUN-ACK. Writes s1_out/prereg.json once (start, calendar, receipt + bindings)."""
     out = _out(root)
@@ -420,11 +423,12 @@ def do_prereg(root, ack_id: str, receipt) -> dict:
         except FileExistsError:
             pass
         raise SystemExit(f"S1 BLOCKED (pre-START units): {reasons}; re-register")
-    ack = _ack(root, ack_id, run_token(root))
+    ack = _ack(ack_id, run_token(root), mailbox)
     if c.aware(ack["created_utc"]) <= c.aware(_load(ap)["recorded_utc"]):         # §12 causal order (ruling I-2)
         raise SystemExit("prereg refused: the RUN-ACK is not strictly after the START attestation")
     pr = {"trial_id": TRIAL_ID, "start": plan["planned_start"], "calendar": cal, "receipt": receipt,
-          "runner_sha256": runner_sha(), "plan_sha256": c.sha256_file(out / "plan.json"),
+          "runner_sha256": runner_sha(), "toolchain_sha256": c.toolchain_sha256(),      # Task 11 (I-1)
+          "plan_sha256": c.sha256_file(out / "plan.json"),
           "audit_manifest_sha256": c.sha256_file(out / "audit" / "manifest.json"),
           "attest_start_sha256": c.sha256_file(ap), "ack": ack, "recorded_utc": c.now_utc().isoformat()}
     _write_once(out / "prereg.json", pr, "prereg")
@@ -478,11 +482,11 @@ def _clean(obj):
     return obj
 
 
-def score(root, ack_id: str) -> dict:
+def score(root, ack_id: str, *, mailbox=None) -> dict:
     """One exclusive score (§15): exact SCORE-ACK, then the reservation (exclusive), then computation; the report
     s1_out/score/s1.json is written once. A refused ACK or a second attempt writes nothing."""
     out = _out(root)
-    ack = _ack(root, ack_id, score_token(root))
+    ack = _ack(ack_id, score_token(root), mailbox)
     if not (out / "prereg.json").exists():
         raise SystemExit("no prereg: the trial never started; nothing to score")
     _pre_reserve_gate(out, ack)
@@ -559,9 +563,12 @@ def _ok_attempts(d: Path) -> list:
     return found
 
 
-def _final_snapshot_problems(out: Path, seals) -> list:
+def _final_snapshot_problems(out: Path, seals, stop=None) -> list:
     """Task 7b (§6): the acquisition-time snapshot must have been captured, still hash to its recorded projection,
-    and hold every sealed slice's fence (the recorded check AND an offline re-check against the current seals)."""
+    and hold every sealed slice's fence (the recorded check AND an offline re-check against the current seals).
+    Task 11 (controller-added), C-1: with a stop (STOPPED/TIMEOUT), only the seals of closes <= the stop close."""
+    if stop is not None and stop.get("status") in ("STOPPED", "TIMEOUT"):
+        seals = [(p, s) for p, s in seals if c.aware(s["close"]) <= c.aware(stop["stop_close"])]
     d = out / "final_snapshot"
     oks = _ok_attempts(d)
     try:
@@ -593,9 +600,10 @@ def _final_snapshot_problems(out: Path, seals) -> list:
     return bad + [f"final snapshot: {v}" for v in again if f"final snapshot: {v}" not in bad]
 
 
-def _seal_chain_problems(out: Path, seals, receipt_sha: str) -> list:
+def _seal_chain_problems(out: Path, seals, receipt_sha: str, toolchain: str) -> list:
     """Re-verify every seal offline: file date = its close's session; its fence = its own rows; receipt identical;
-    rows = the preserved capture projection; and the row fences of every earlier seal hold (§6)."""
+    rows = the preserved capture projection; and the row fences of every earlier seal hold (§6). Task 11 (controller-
+    added), I-1: every seal's toolchain equals prereg's `toolchain`."""
     bad = []
     ordered = sorted(seals, key=lambda ps: c.aware(ps[1]["close"]))
     for p, s in ordered:
@@ -607,6 +615,8 @@ def _seal_chain_problems(out: Path, seals, receipt_sha: str) -> list:
             bad.append(f"seal {name}: fence does not match its rows")
         if s.get("receipt_match") is not True or s.get("receipt_sha256") != receipt_sha:
             bad.append(f"seal {name}: semantic receipt differs from prereg")
+        if s.get("toolchain_sha256") != toolchain:
+            bad.append(f"seal {name}: toolchain differs from prereg")
         cap = s.get("capture") or {}
         proj = out / "captures" / name / re.split(r"[\\/]", str(cap.get("dir", "")))[-1] / "projection.json"
         if not proj.is_file() or c.sha256_file(proj) != cap.get("projection_sha256") or \
@@ -614,6 +624,27 @@ def _seal_chain_problems(out: Path, seals, receipt_sha: str) -> list:
             bad.append(f"seal {name}: rows differ from the preserved capture projection")
     for i, (p, s) in enumerate(ordered):
         bad += [f"seal {p.stem}: {v}" for v in z.check_fences([x for _, x in ordered[:i]], {"trades": s["trades"]})]
+    return bad
+
+
+def _capture_seal_problems(out: Path) -> list:
+    """Task 11 (controller-added), m-2: every capture report that records seal.written=true must name an existing
+    seal file (seals/<close session>.json) with that sha256: a deleted or replaced seal (stop shopping) is INVALID."""
+    bad = []
+    for p in sorted((out / "captures").glob("*/*.report.json")):
+        where = f"{p.parent.name}/{p.name}"
+        try:
+            rep = _load(p)
+            seal = rep.get("seal") or {}
+            if seal.get("written") is not True:
+                continue
+            sp = out / "seals" / f"{_ny_day(c.aware(rep['close']))}.json"
+        except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+            bad.append(f"capture report {where} unreadable ({type(e).__name__})")
+            continue
+        if not sp.is_file() or c.sha256_file(sp) != seal.get("sha256"):
+            bad.append(f"seal missing: capture report {where} records seal {sp.name} "
+                       f"{str(seal.get('sha256'))[:12]}, no seal file with that hash")
     return bad
 
 
@@ -678,6 +709,22 @@ def _restarts(opening: dict, stop_seal: dict, out: Path) -> dict:
     return {"observed_in_crash_log_minimum": starts, "observation_gaps": gaps}
 
 
+def _report_restarts_and_bridge(rep: dict, opening, stop_seal, seals, out: Path) -> None:
+    """Task 11 (controller-added), m-7: every report kind carries the observed restarts and the quantity bridge
+    (design §14 Report). Restarts run from the opening seal to the stop seal (no stop: the latest seal); the bridge is
+    the frozen final ledger's (None, with a note, when there is no readable stop-seal ledger)."""
+    end = stop_seal
+    if end is None and seals:
+        try:
+            end = max(seals, key=lambda ps: c.aware(ps[1]["close"]))[1]
+        except (ValueError, KeyError, TypeError):
+            end = None
+    rep["restarts"] = _restarts(opening or {}, end or {}, out)   # malformed records still fail the attempt, as before
+    if "quantity_bridge" not in rep:
+        rep["quantity_bridge"] = None
+        rep["quantity_bridge_note"] = "not available: no readable frozen final ledger (stop seal)"
+
+
 def _median(xs):
     s = sorted(xs)
     return None if not s else (s[len(s) // 2] if len(s) % 2 else (s[len(s) // 2 - 1] + s[len(s) // 2]) / 2)
@@ -703,6 +750,8 @@ def _score(out: Path) -> dict:
         invalid.append(f"checkpoint recorded ABORTED-INVALID: {_load(out / 'aborted.json').get('reason')}")
     if pr.get("runner_sha256") != runner_sha():          # controller ruling (Task 7): invalid, not a note
         invalid.append("runner changed since prereg")
+    if pr.get("toolchain_sha256") != c.toolchain_sha256():                     # Task 11 (controller-added), I-1
+        invalid.append("toolchain changed since prereg")
     audit, opening_p, opening = {}, None, None
     try:
         _, audit = _attempt(out / "audit", AUDIT_FILES)
@@ -717,13 +766,16 @@ def _score(out: Path) -> dict:
     except (Invalid, FileNotFoundError, KeyError) as e:
         invalid.append(f"{type(e).__name__}: {e}")
     seals = _seals(out)
-    invalid += _seal_chain_problems(out, seals, _receipt_sha(pr["receipt"]))
-    invalid += _final_snapshot_problems(out, seals)
-    stop = None
+    invalid += _seal_chain_problems(out, seals, _receipt_sha(pr["receipt"]), pr.get("toolchain_sha256"))
+    invalid += _capture_seal_problems(out)                                   # Task 11 (controller-added), m-2
+    stop, stop_err = None, None
     try:
         stop = z.stop_decision([s for _, s in seals], start, cal, today=c.now_utc())
     except (ValueError, b.BookError) as e:
-        invalid.append(f"bad seal record: {type(e).__name__}: {e}")
+        stop_err = f"bad seal record: {type(e).__name__}: {e}"
+    invalid += _final_snapshot_problems(out, seals, stop)                     # Task 11 C-1: slices <= the stop
+    if stop_err is not None:
+        invalid.append(stop_err)
     rep["stop"] = stop
     rep["missed_seals"] = stop["missed"] if stop is not None else None
     stopped = stop is not None and stop["status"] in ("STOPPED", "TIMEOUT")
@@ -744,6 +796,8 @@ def _score(out: Path) -> dict:
                 invalid.append("final acquisition is not bound to this prereg")
             if c.aware(fplan["stop_close"]) != stop_dt:
                 invalid.append(f"final plan stop {fplan['stop_close']} is not the stop {stop['stop_close']}")
+            if fm.get("final_plan_sha256") != c.sha256_file(out / "final_plan.json"):     # Task 11 (controller-
+                invalid.append("final plan differs from the one the final acquisition used")  # added), m-1
         except (Invalid, FileNotFoundError) as e:
             invalid.append(f"final acquisition unusable: {e}")
     attest = _stop_attestation(out, pr, stop, stop_p, final_reserved)
@@ -765,6 +819,7 @@ def _score(out: Path) -> dict:
         except b.BookError as e:
             invalid.append(f"final ledger unreadable: {e}")
     invalid += _bridge_problems(rep, [s for _, s in seals], asof, start, cal)
+    _report_restarts_and_bridge(rep, opening, stop_seal, seals, out)        # Task 11 (controller-added), m-7
     if invalid:
         return done("ABORTED-INVALID", attest)
 
@@ -792,7 +847,6 @@ def _score(out: Path) -> dict:
                                     start_day=_ny_day(start), open_across=lambda sym, d: any(
                                         l["symbol"] == sym and l["entry_ts"] < start
                                         for l in open_lots_before(asof, d))))
-    rep["restarts"] = _restarts(opening, stop_seal, out)
     if untrusted:
         rep["reasons"] += untrusted
         return done("INCONCLUSIVE", attest)

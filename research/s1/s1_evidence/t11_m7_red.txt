@@ -1,0 +1,10 @@
+Task 11 RED, item m7 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: behavioural (KeyError 'restarts' on ABORTED/BLOCKED/NO-VALID-SEAL reports)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:704: KeyError: 'restarts'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:704: KeyError: 'restarts'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:704: KeyError: 'restarts'
+FAILED s1_tests/test_s1_task11.py::test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge[aborted]
+FAILED s1_tests/test_s1_task11.py::test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge[blocked]
+FAILED s1_tests/test_s1_task11.py::test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge[no-valid-seal]

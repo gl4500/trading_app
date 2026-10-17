@@ -61,6 +61,22 @@ def ledger(tmp_path):
     return Ledger(tmp_path / "trading.db")
 
 
+@pytest.fixture(autouse=True)
+def s1_tmp_mailbox(tmp_path):
+    """Task 11 (controller-added), I-5: product code reads ACKs from s1_common.MAILBOX (the coordination mailbox).
+    Every test gets it redirected to <tmp_path>/mailbox.sqlite3 (where s1_mailbox writes for root = tmp_path), so
+    no test can open the real one. Set and restored by hand (not via `monkeypatch`), so a test's
+    monkeypatch.undo() never re-exposes the real path."""
+    import s1_common
+    had, old = hasattr(s1_common, "MAILBOX"), getattr(s1_common, "MAILBOX", None)
+    s1_common.MAILBOX = tmp_path / "mailbox.sqlite3"
+    yield s1_common.MAILBOX
+    if had:
+        s1_common.MAILBOX = old
+    else:
+        del s1_common.MAILBOX
+
+
 # ---------------------------------------------------------------- Task 7: synthetic s1_out/ lifecycle (test-only)
 S1_RECEIPT = {"head": "h", "dirty": [], "files": {"agents/mean_reversion_agent.py": "1"}, "config": {},
               "versions": {}}
@@ -129,7 +145,8 @@ def _write_seal(out: Path, day: str, close_dt, trades, receipt, *, start=None, o
             "max_id": max((t["id"] for t in trades), default=0), "trades": trades, "capture": cap,
             "restart_record": {"starts": [], "size": 0, "sha256": None, "prefix_sha256": None},
             "process": {"pid": 1, "process_start": "2026-10-01T09:00:00"},
-            "receipt_sha256": c.sha256_bytes(c.canonical(receipt)), "receipt_match": True}
+            "receipt_sha256": c.sha256_bytes(c.canonical(receipt)), "receipt_match": True,
+            "toolchain_sha256": c.toolchain_sha256()}                       # Task 11 (I-1): as the checkpoint
     if start is not None and close_dt >= start:
         seal["bridge"] = z.bridge_record(trades, start, opening_close)
     (out / "seals").mkdir(parents=True, exist_ok=True)
@@ -304,8 +321,11 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     if stop["status"] in ("STOPPED", "TIMEOUT"):
         stop_day = c.aware(stop["stop_close"]).astimezone(c.NY).date().isoformat()
         cohort_syms = sorted({L["symbol"] for L in lots})
-        with _Clock(t + timedelta(hours=1)):
-            k.write_final_plan(root, stop["stop_close"], cohort_syms, held_syms, first_day)
+        with _Clock(t + timedelta(hours=1)):         # Task 11 (I-4): derived from the stop seal, after attest_stop
+            if stop_attest:
+                k.write_final_plan(root)
+            else:                                     # (test-only: an unattested acquisition, for the score's paths)
+                k._write_once(out / "final_plan.json", k.final_plan_record(root))
         fin = out / "final"
         bar_fn = bar_fn or (lambda sym, d: s1_bar(d))
         win = [d for d in sessions if d <= stop_day]
@@ -323,6 +343,9 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
         _dump(fin / "ca_problems.json", list(final_problems))
         _dump(fin / "manifest.json", {"outcome": "COMPLETE", "ack": {}, "pages": {}, "coverage": {},
                                       "prereg_sha256": c.sha256_file(out / "prereg.json"),
+                                      "final_plan_sha256": c.sha256_file(out / "final_plan.json"),   # Task 11
+                                      "attest_stop_sha256": (c.sha256_file(out / "attest_stop.json")
+                                                             if (out / "attest_stop.json").exists() else "absent"),
                                       "files": {n: c.sha256_file(fin / n) for n in
                                                 ("attempt.json", "bars.json", "bar_problems.json",
                                                  "corporate_actions.json", "ca_problems.json")}})

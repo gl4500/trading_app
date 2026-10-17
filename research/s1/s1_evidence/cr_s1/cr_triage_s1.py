@@ -75,7 +75,8 @@ RULES = {
     ("s1_run.py", 205, "Eq_LtE"): (EQ, "every other exit reason (hard/trail/target/time) sorts after 'endpoint'"),
     ("s1_run.py", 205, "Eq_Is"): (EQ, "'endpoint' is an interned identifier-like literal in both modules"),
     ("s1_run.py", 213, "Eq_GtE"): (EQ, "prov is one of two literals; 'UNVERIFIED-PROVENANCE' < 'VERIFIED'"),
-    ("s1_run.py", 213, "Eq_GtE:9"): (EQ, "numeric is SHADOW PASS or FAIL only; 'FAIL' >= 'SHADOW PASS' is False "
+    ("s1_run.py", 213, "Eq_GtE:9"): (EQ, "every verdict done() passes (FAIL, ABORTED-INVALID, BLOCKED, NO-VALID-SEAL, "
+                                         "INCONCLUSIVE, INSUFFICIENT) sorts below 'SHADOW PASS' "
                                          "(fix round 1: the timeout job, re-run)"),
     ("s1_run.py", 213, "Eq_Is"): (EQ, "prov is the literal assigned in the same function (same constant object)"),
     ("s1_run.py", 303, "Gt_NotEq"): (EQ, "economic rem_qty is never negative"),
@@ -97,9 +98,11 @@ RULES = {
                                                     "attest_start.json, which _stop_attestation hashes later outside "
                                                     "any handler: the attempt records 'score error: "
                                                     "FileNotFoundError' either way"),
-    ("s1_run.py", 730, "Eq_Is"): (EQ, "unreachable: the pre-reservation gate refuses RUNNING with the same clock; "
-                                      "the literal is interned anyway"),
-    ("s1_run.py", 730, "IsNot_Is"): (EQ, "unreachable: RUNNING never reaches _score (pre-reservation gate)"),
+    ("s1_run.py", 730, "Eq_Is"): (EQ, "reachable, verdict unaffected: reached when aborted.json exists (_trial_end "
+                                      "returns before its RUNNING check), where the verdict is already "
+                                      "ABORTED-INVALID; only the extra reason text could change (Task 11, T9 m-1)"),
+    ("s1_run.py", 730, "IsNot_Is"): (EQ, "reachable, verdict unaffected: reached only with aborted.json present "
+                                         "(ABORTED-INVALID either way) (Task 11, T9 m-1)"),
     ("s1_run.py", 779, "Eq_LtE"): (EQ, "statuses here are STOPPED/TIMEOUT/NO-VALID-SEAL; only NO-VALID-SEAL "
                                        "<= 'NO-VALID-SEAL'"),
     ("s1_run.py", 793, "Eq_Is"): (EQ, "both operands are the same str objects: held keys and lot symbols both come "

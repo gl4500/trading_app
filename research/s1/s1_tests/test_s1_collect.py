@@ -20,12 +20,14 @@ def fixed_clock(monkeypatch):
     monkeypatch.setattr(s1_common, "now_utc", lambda: FIXED_NOW)
 
 
-def mailbox(root, mid, body):
+def mailbox(root, mid, body, created=None):
+    """(Task 11: `created` added; default unchanged.)"""
     con = sqlite3.connect(root / "mailbox.sqlite3")
     con.execute("CREATE TABLE IF NOT EXISTS messages (id TEXT, sender TEXT, recipient TEXT, request_key TEXT, "
                 "body TEXT, created REAL, acknowledged REAL)")
+    created = datetime(2026, 10, 20, tzinfo=UTC) if created is None else created
     con.execute("INSERT INTO messages VALUES (?,?,?,?,?,?,NULL)", (mid, "codex", "claude", "experiments-prereg",
-                                                                  body, datetime(2026, 10, 20, tzinfo=UTC).timestamp()))
+                                                                  body, created.timestamp()))
     con.commit(); con.close()
 
 
@@ -85,9 +87,10 @@ def test_audit_once_metadata_only(tmp_path):
     assert "secret" not in json.dumps(m)
 
 
-def test_final_plan_covers_carry_in_and_bridge_symbols(tmp_path):
-    p = k.write_final_plan(tmp_path, "2027-01-20T21:00:00+00:00", ["A"], ["B", "NEW"], "2026-03-17")
-    plan = json.loads(p.read_text(encoding="utf-8"))
+def test_final_plan_covers_carry_in_and_bridge_symbols(tmp_path, monkeypatch):
+    """Task 11 (I-4) interface update: the plan is derived from the stop seal (stopped_trial below), not typed."""
+    stopped_trial(tmp_path, monkeypatch)
+    plan = json.loads(k.write_final_plan(tmp_path).read_text(encoding="utf-8"))
     assert plan["bar_symbols"] == ["A", "B", "NEW"] and plan["ca_symbols_full_history"] == ["B", "NEW"]
 
 
@@ -120,14 +123,15 @@ def test_ack_future_missing_or_embedded_token_is_refused(tmp_path, monkeypatch):
     mailbox(tmp_path, "m5", k.audit_token(tmp_path))
     monkeypatch.setattr(s1_common, "now_utc", lambda: datetime(2026, 10, 19, tzinfo=UTC))
     with pytest.raises(SystemExit):
-        k._ack(tmp_path, "m5", k.audit_token(tmp_path))
+        k._ack(mailbox=tmp_path / "mailbox.sqlite3", ack_id="m5", token=k.audit_token(tmp_path))
     monkeypatch.setattr(s1_common, "now_utc", lambda: FIXED_NOW)
-    assert k._ack(tmp_path, "m5", k.audit_token(tmp_path))["ack_id"] == "m5"
+    assert k._ack(mailbox=tmp_path / "mailbox.sqlite3", ack_id="m5",
+                  token=k.audit_token(tmp_path))["ack_id"] == "m5"
     with pytest.raises(SystemExit):
-        k._ack(tmp_path, "nope", k.audit_token(tmp_path))
+        k._ack(mailbox=tmp_path / "mailbox.sqlite3", ack_id="nope", token=k.audit_token(tmp_path))
     mailbox(tmp_path, "m6", "please " + k.audit_token(tmp_path) + " ok")
     with pytest.raises(SystemExit):
-        k._ack(tmp_path, "m6", k.audit_token(tmp_path))
+        k._ack(mailbox=tmp_path / "mailbox.sqlite3", ack_id="m6", token=k.audit_token(tmp_path))
 
 
 def test_audit_token_binds_start(tmp_path):
@@ -212,19 +216,41 @@ def test_ca_pages_classified_and_problems_recorded(tmp_path):
 ACQ_NOW = datetime(2026, 10, 31, 12, tzinfo=UTC)       # after the close of the 3rd session after the stop (10-30)
 
 
-def final_setup(tmp_path, monkeypatch, mid="f1", now=ACQ_NOW):
-    """Input changes vs the brief draft: prereg calendar carries the close (I-2 lag), the ACK binds prereg (I-8),
-    and the clock is moved past the registered acquisition lag."""
+def _row(i, sym, act, sh, ts):
+    return {"id": i, "symbol": sym, "action": act, "shares": float(sh), "price": 10.0, "timestamp": ts, "ts": ts,
+            "reasoning_sha256": "r"}
+
+
+def stopped_trial(tmp_path, monkeypatch, now=ACQ_NOW):
+    """Task 11 (controller-added), I-4 input: a STOPPED trial the final plan can be derived from - prereg (START
+    2026-10-26), carry-in B (bought 2026-03-17) and NEW (bought 2026-10-20) held at START, 100 cohort lots of A
+    bought 10-26 and sold 10-27 (stop at the 10-27 close), seals of both sessions, and the stop attestation."""
+    from conftest import S1_RECEIPT, _write_seal
     monkeypatch.setattr(s1_common, "now_utc", lambda: now)
     out = tmp_path / "s1_out"
     out.mkdir(parents=True, exist_ok=True)
+    start = datetime(2026, 10, 26, 13, 30, tzinfo=UTC)
     (out / "prereg.json").write_text(json.dumps({
-        "start": "2026-10-26T13:30:00+00:00",
-        "calendar": weekdays("2026-10-26", "2026-11-06")}), encoding="utf-8")
-    k.write_final_plan(tmp_path, "2026-10-27T20:00:00+00:00", ["A"], ["B", "NEW"], "2026-03-17")
-    mailbox(tmp_path, mid, k.ACQUIRE_ACK.format(collector=k.collector_sha(),
-                                                plan=s1_common.sha256_file(out / "final_plan.json"),
-                                                prereg=s1_common.sha256_file(out / "prereg.json")))
+        "start": start.isoformat(), "calendar": weekdays("2026-10-26", "2026-11-06")}), encoding="utf-8")
+    rows = [_row(1, "B", "BUY", 5, "2026-03-17T15:00:00+00:00"), _row(2, "NEW", "BUY", 3, "2026-10-20T15:00:00+00:00")]
+    rows += [_row(3 + i, "A", "BUY", 1, "2026-10-26T15:00:00+00:00") for i in range(100)]
+    rows += [_row(103 + i, "A", "SELL", 1, "2026-10-27T18:00:00+00:00") for i in range(100)]
+    for day in ("2026-10-26", "2026-10-27"):
+        close = datetime.fromisoformat(f"{day}T20:00:00+00:00")
+        _write_seal(out, day, close, [t for t in rows if t["ts"] <= close.isoformat()], S1_RECEIPT, start=start,
+                    opening_close=datetime(2026, 10, 23, 20, tzinfo=UTC))
+    (out / "attest_stop.json").write_text(json.dumps({
+        "stop_close": "2026-10-27T20:00:00+00:00", "recorded_utc": "2026-10-28T12:00:00+00:00",
+        "sealed_final_ledger_sha256": s1_common.sha256_file(out / "seals" / "2026-10-27.json")}), encoding="utf-8")
+
+
+def final_setup(tmp_path, monkeypatch, mid="f1", now=ACQ_NOW):
+    """Input changes vs the brief draft: prereg calendar carries the close (I-2 lag), the ACK binds prereg (I-8),
+    and the clock is moved past the registered acquisition lag. Task 11 (I-4): a real stopped, attested trial
+    (stopped_trial), the derived final plan, and an ACK (acquire_token, binding attest_stop) after the attestation."""
+    stopped_trial(tmp_path, monkeypatch, now)
+    k.write_final_plan(tmp_path)
+    mailbox(tmp_path, mid, k.acquire_token(tmp_path), created=datetime(2026, 10, 28, 13, tzinfo=UTC))
 
 
 def test_final_requests_every_symbol_bars_and_full_history(tmp_path, monkeypatch):
@@ -433,9 +459,7 @@ def test_final_lag_refused_when_calendar_lacks_three_later_sessions(tmp_path, mo
     final_setup(tmp_path, monkeypatch)
     pr = tmp_path / "s1_out" / "prereg.json"
     pr.write_text(json.dumps({"start": "2026-10-26T13:30:00+00:00", "calendar": weekdays("2026-10-26", "2026-10-29")}))
-    mailbox(tmp_path, "f9", k.ACQUIRE_ACK.format(collector=k.collector_sha(),
-                                                 plan=s1_common.sha256_file(tmp_path / "s1_out" / "final_plan.json"),
-                                                 prereg=s1_common.sha256_file(pr)))
+    mailbox(tmp_path, "f9", k.acquire_token(tmp_path), created=datetime(2026, 10, 28, 13, tzinfo=UTC))
     calls = []
     with pytest.raises(SystemExit):
         k.do_final(tmp_path, "f9", client(calls), KEYS)

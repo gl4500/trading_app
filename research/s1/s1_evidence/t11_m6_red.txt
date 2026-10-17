@@ -1,0 +1,3 @@
+Task 11 item m-6 (R-EST static guard): NO RED. The test pins properties the code already has; it passed before the fix:
+red run summary line: 38 failed, 4 passed in 175.86s (0:02:55)
+test_m6_r_est_no_app_import_network_library_or_live_write_path is not in the FAILED list of t11_red_full_task11.txt.

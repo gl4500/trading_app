@@ -1,0 +1,20 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_____ test_connected_lifecycle_matches_independent_oracle[chop-FAIL-buy] ______
+s1_tests\test_s1_connected.py:467: in test_connected_lifecycle_matches_independent_oracle
+    assert pc.get("post_stop") is True and pc["seal"]["written"] is False, pc
+E   AssertionError: {'actual': '2026-12-08T21:45:30+00:00', 'capture_ok': True, 'close': '2026-12-08T21:00:00+00:00', 'consistent': True, ...}
+E   assert (None is True)
+E    +  where None = <built-in method get of dict object at 0x0000017FCC29B300>('post_stop')
+E    +    where <built-in method get of dict object at 0x0000017FCC29B300> = {'actual': '2026-12-08T21:45:30+00:00', 'capture_ok': True, 'close': '2026-12-08T21:00:00+00:00', 'consistent': True, ...}.get
+___ test_connected_lifecycle_matches_independent_oracle[chop-FAIL-receipt] ____
+s1_tests\test_s1_connected.py:467: in test_connected_lifecycle_matches_independent_oracle
+    assert pc.get("post_stop") is True and pc["seal"]["written"] is False, pc
+E   AssertionError: {'actual': '2026-12-08T21:45:30+00:00', 'capture_ok': True, 'close': '2026-12-08T21:00:00+00:00', 'consistent': True, ...}
+E   assert (None is True)
+E    +  where None = <built-in method get of dict object at 0x0000017FCC2D2140>('post_stop')
+E    +    where <built-in method get of dict object at 0x0000017FCC2D2140> = {'actual': '2026-12-08T21:45:30+00:00', 'capture_ok': True, 'close': '2026-12-08T21:00:00+00:00', 'consistent': True, ...}.get
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL-buy]
+FAILED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL-receipt]
+2 failed, 2 deselected in 157.92s (0:02:37)

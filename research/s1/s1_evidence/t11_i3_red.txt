@@ -1,0 +1,6 @@
+Task 11 RED, item i3 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: behavioural (timing: 45 s > 5 s for 2000 rows); the Hypothesis equality test PASSES pre-fix by construction (reference == current code) and is the equivalence guard for the fix
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:351: assert ((125257.7804527 - 125212.6808395) < 5.0)
+FAILED s1_tests/test_s1_task11.py::test_i3_sold_events_on_2000_rows_completes_in_under_5_seconds

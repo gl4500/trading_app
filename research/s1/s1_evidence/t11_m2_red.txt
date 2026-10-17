@@ -1,0 +1,8 @@
+Task 11 RED, item m2 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: behavioural (seal named by a capture report missing/different, still scored)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:607: AssertionError: []
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:607: AssertionError: []
+FAILED s1_tests/test_s1_task11.py::test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid[missing]
+FAILED s1_tests/test_s1_task11.py::test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid[different]

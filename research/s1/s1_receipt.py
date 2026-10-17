@@ -164,16 +164,22 @@ def _env(env_file: Path) -> dict:
     return out
 
 
+GIT = ("git", "--no-optional-locks")      # Task 11 (controller-added), m-3: never take index.lock / refresh the index
+
+
 def _dirty_backend(repo: Path) -> list:
-    out = subprocess.run(["git", "-C", str(repo), "status", "--porcelain=v1", "-z", "--no-renames", "-uall"],
+    """Tracked modifications of any type under backend/, plus UNTRACKED .py files there. Task 11 (controller-added),
+    I-2: untracked non-.py files (SQLite -journal/-wal/-shm sidecars, logs, caches the app writes while running) are
+    not semantic: closure .py files and config values are bound separately, and any new untracked .py still counts."""
+    out = subprocess.run([*GIT, "-C", str(repo), "status", "--porcelain=v1", "-z", "--no-renames", "-uall"],
                          capture_output=True, text=True, check=True).stdout
-    paths = (e[3:] for e in out.split("\0") if len(e) > 3)
-    return sorted(p for p in paths if p.startswith("backend/"))
+    entries = ((e[:2], e[3:]) for e in out.split("\0") if len(e) > 3)
+    return sorted(p for code, p in entries if p.startswith("backend/") and (code != "??" or p.endswith(".py")))
 
 
 def semantic_receipt(repo: Path, env_file: Path, runtime_python, roots=None) -> dict:
     backend = Path(repo) / "backend"
-    head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True,
+    head = subprocess.run([*GIT, "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True,
                           check=True).stdout.strip()
     rels = closure(backend, roots or MR_ROOTS)
     files = {p: c.sha256_file(backend / p) for p in rels}

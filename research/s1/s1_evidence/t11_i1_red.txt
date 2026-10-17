@@ -1,0 +1,16 @@
+Task 11 RED, item i1 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: mostly missing-interface (toolchain_sha256 absent); test_i1_score_requires_every_seal... behavioural (score accepted a seal with a foreign toolchain)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:146: AttributeError: module 's1_common' has no attribute 'toolchain_sha256'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:171: AttributeError: module 's1_common' has no attribute 'toolchain_sha256'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:195: KeyError: 'toolchain_sha256'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:206: AttributeError: <module 's1_common' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_common.py'> has no attribute 'toolchain_sha256'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:221: AssertionError: []
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:227: AttributeError: <module 's1_common' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_common.py'> has no attribute 'toolchain_sha256'
+FAILED s1_tests/test_s1_task11.py::test_i1_toolchain_sha_is_every_s1_module_plus_the_e1_pins
+FAILED s1_tests/test_s1_task11.py::test_i1_prereg_and_run_ack_bind_the_toolchain
+FAILED s1_tests/test_s1_task11.py::test_i1_every_seal_records_the_checkpoint_toolchain
+FAILED s1_tests/test_s1_task11.py::test_i1_checkpoint_with_a_different_toolchain_refuses_to_seal_without_abort
+FAILED s1_tests/test_s1_task11.py::test_i1_score_requires_every_seal_and_itself_to_match_the_prereg_toolchain
+FAILED s1_tests/test_s1_task11.py::test_i1_score_by_a_different_toolchain_is_aborted_invalid

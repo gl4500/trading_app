@@ -1,0 +1,6 @@
+Task 11 RED, item i2 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: behavioural (untracked trading.db-journal changed the receipt)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:258: AssertionError: assert {'config': {}...0e5483d', ...} == {'config': {}...0e5483d', ...}
+FAILED s1_tests/test_s1_task11.py::test_i2_untracked_non_py_runtime_files_do_not_change_the_receipt

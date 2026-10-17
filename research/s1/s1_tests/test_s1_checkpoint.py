@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 import s1_checkpoint as k
+import s1_common
 from test_s1_seal import CAL
 
 UTC = timezone.utc
@@ -15,7 +16,9 @@ REC = {"head": "h", "dirty": [], "files": {"a.py": "1"}, "config": {}, "versions
 def make_prereg(root, receipt=REC):
     (root / "s1_out").mkdir(parents=True, exist_ok=True)
     (root / "s1_out" / "prereg.json").write_text(json.dumps({"start": START.isoformat(), "calendar": CAL,
-                                                             "receipt": receipt}), encoding="utf-8")
+                                                             "receipt": receipt,   # Task 11 (I-1) input:
+                                                             "toolchain_sha256": s1_common.toolchain_sha256()}),
+                                      encoding="utf-8")
 
 
 def run(root, ledger, minutes=45, receipt=REC, pid=1, log=None, proc=None, delay=30):
@@ -339,7 +342,9 @@ def test_cr_start_exactly_at_a_close_seals_that_close_with_a_bridge(tmp_path, le
     start = datetime(2026, 10, 15, 20, 0, tzinfo=UTC)
     (tmp_path / "s1_out").mkdir(parents=True)
     (tmp_path / "s1_out" / "prereg.json").write_text(json.dumps({"start": start.isoformat(), "calendar": CAL,
-                                                                 "receipt": REC}), encoding="utf-8")
+                                                                 "receipt": REC,     # Task 11 (I-1) input
+                                                                 "toolchain_sha256": s1_common.toolchain_sha256()}),
+        encoding="utf-8")
     ledger.trade("A", "BUY", 10, 50, "2026-10-14T15:00:00+00:00"); ledger.set_portfolio("A", 10)
     rep = run(tmp_path, ledger)
     assert rep["seal"]["written"] is True

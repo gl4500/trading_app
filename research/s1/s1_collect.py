@@ -7,6 +7,7 @@ import sqlite3
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
+import s1_books
 import s1_common as c
 import s1_seal
 
@@ -14,7 +15,9 @@ CAL_URL = "https://paper-api.alpaca.markets/v2/calendar"
 BARS_URL = "https://data.alpaca.markets/v2/stocks/bars"
 CA_URL = "https://data.alpaca.markets/v1/corporate-actions"
 AUDIT_ACK = "S1-AUDIT-ACK collector_sha256={collector} plan_sha256={plan} start={start}"
-ACQUIRE_ACK = "S1-ACQUIRE-ACK collector_sha256={collector} final_plan_sha256={plan} prereg_sha256={prereg}"
+ACQUIRE_ACK = ("S1-ACQUIRE-ACK collector_sha256={collector} final_plan_sha256={plan} prereg_sha256={prereg} "
+               "attest_stop_sha256={attest}")                    # Task 11 (controller-added), I-4: binds attest_stop
+ABSENT = "absent"
 CA_FIXED = {"region": "us", "data_quality": "all", "sort": "asc", "limit": 1000}          # E1 CA_PARAMS
 LIMITS = ("Vendor coverage and publication lags are not guaranteed complete; corporate actions processed after "
           "the acquisition date are not known.")
@@ -72,8 +75,12 @@ def audit_token(root) -> str:
     return AUDIT_ACK.format(collector=collector_sha(), plan=c.sha256_file(plan), start=p["planned_start"])
 
 
-def _ack(root, ack_id: str, token: str) -> dict:
-    con = sqlite3.connect(f"file:{(Path(root) / 'mailbox.sqlite3').as_posix()}?mode=ro", uri=True)
+def _ack(ack_id: str, token: str, mailbox=None) -> dict:
+    """The codex->claude experiments-prereg message `ack_id` must carry `token` as a standalone line and not be in the
+    future. Task 11 (controller-added), I-5: read from `mailbox` (default s1_common.MAILBOX, the coordination
+    mailbox), opened read-only (mode=ro URI: never created or written), never from the output root."""
+    path = Path(c.MAILBOX if mailbox is None else mailbox)
+    con = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
     try:
         row = con.execute("SELECT sender, recipient, request_key, body, created FROM messages WHERE id=?",
                           (ack_id,)).fetchone()
@@ -87,6 +94,13 @@ def _ack(root, ack_id: str, token: str) -> dict:
     if t > c.now_utc():
         raise SystemExit("ack is in the future")
     return {"ack_id": ack_id, "created_utc": t.isoformat()}
+
+
+def _require_no_redirects(client) -> None:
+    """Task 11 (controller-added), m-4: the injected client must not follow redirects (a redirect could send the key
+    headers to another host); anything but follow_redirects is False is refused before any ACK or request."""
+    if getattr(client, "follow_redirects", None) is not False:
+        raise SystemExit("client refused: follow_redirects must be False")
 
 
 def _reserve(dirpath: Path, ack: dict) -> None:
@@ -250,6 +264,10 @@ def _validate_calendar(cal, plan) -> list:
             _ny_instant(x["date"], x["close"])
         except ValueError:
             raise Structural("calendar entry has an unparseable date/time") from None
+        if _ny_instant(x["date"], x["open"]) >= _ny_instant(x["date"], x["close"]):   # Task 11 (T6 deferred)
+            raise Structural(f"calendar entry {x['date']}: open is not before close")
+    if len({d_ for d_, _ in sessions}) != len(sessions):                              # Task 11 (T6 deferred)
+        raise Structural("calendar has a duplicate date")
     start, created = c.aware(plan["planned_start"]), c.aware(plan["created_utc"])
     if dict(sessions).get(_ny_date(start)) != start:
         raise Structural("planned START is not the regular open of a listed session")
@@ -260,10 +278,11 @@ def _validate_calendar(cal, plan) -> list:
     return sessions
 
 
-def do_audit(root, ack_id: str, client, keys) -> dict:
+def do_audit(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
+    _require_no_redirects(client)
     out = _out(root)
     plan = json.loads((out / "plan.json").read_text(encoding="utf-8"))
-    ack = _ack(root, ack_id, audit_token(root))
+    ack = _ack(ack_id, audit_token(root), mailbox)
     if c.aware(plan["planned_start"]) <= c.now_utc():
         raise SystemExit("planned START has passed: re-register")
     d = out / "audit"
@@ -286,13 +305,81 @@ def do_audit(root, ack_id: str, client, keys) -> dict:
 
 
 # ------------------------------------------------------------------ final
-def write_final_plan(root, stop_close: str, symbols, carry_in_symbols, first_trade_date: str) -> Path:
-    stop_day = _ny_date(c.aware(stop_close))
-    return _write_once(_out(root) / "final_plan.json", {
-        "stop_close": stop_close, "bar_symbols": sorted(set(symbols) | set(carry_in_symbols)),
-        "ca_symbols_window": sorted(set(symbols)), "ca_symbols_full_history": sorted(set(carry_in_symbols)),
-        "full_history_start": first_trade_date, "stop_date": stop_day, "collector_sha256": collector_sha(),
-        "fetch_core_sha256": c.E1_FETCH_SHA})
+def _load(p: Path):
+    return json.loads(Path(p).read_text(encoding="utf-8"))
+
+
+def _stop_state(out: Path, now: datetime) -> tuple:
+    """Task 11 (controller-added), I-4: (prereg, stop decision, stop seal path, stop seal) of a trial that has
+    STOPPED or TIMED OUT, from the seals (the same stop_decision the score uses). Refuses with no prereg, once
+    aborted.json exists (nothing to acquire), on bad seal records, and while RUNNING / NO-VALID-SEAL."""
+    if not (out / "prereg.json").exists():
+        raise SystemExit("final plan refused: no prereg (the trial never started)")
+    if (out / "aborted.json").exists():
+        raise SystemExit("final plan refused: the trial is ABORTED-INVALID (nothing to acquire)")
+    pr = _load(out / "prereg.json")
+    try:
+        seals = [_load(p) for p in sorted((out / "seals").glob("*.json"))]
+        st = s1_seal.stop_decision(seals, c.aware(pr["start"]), pr["calendar"], today=now)
+    except (ValueError, KeyError, TypeError) as e:
+        raise SystemExit(f"final plan refused: bad seal record ({type(e).__name__}: {e})") from None
+    if st["status"] not in ("STOPPED", "TIMEOUT"):
+        raise SystemExit(f"final plan refused: the trial is {st['status']} (RUNNING = no stop yet)")
+    stop_p = out / "seals" / f"{_ny_date(c.aware(st['stop_close']))}.json"
+    return pr, st, stop_p, _load(stop_p)
+
+
+def final_plan_record(root, now: datetime = None) -> dict:
+    """Task 11 (controller-added), I-4: the final plan DERIVED from the stop seal - no hand-typed stop or symbols.
+    Cohort symbols = BUYs with START <= stored time <= stop close; carry-in symbols = held at START by the pre-START
+    rows (opening rows and bridge rows, bridge-introduced tickers included); MR history starts at its first row."""
+    out = _out(root)
+    pr, st, stop_p, seal = _stop_state(out, c.now_utc() if now is None else now)
+    start, stop = c.aware(pr["start"]), c.aware(st["stop_close"])
+    try:
+        asof = [t for t in seal["trades"] if c.aware(t["ts"]) <= stop]
+        cohort = sorted({t["symbol"] for t in s1_seal.cohort(asof, start, stop)})
+        carry = sorted(s1_books.held_symbols(s1_seal.split_bridge(asof, start)[0], start))
+    except (s1_books.BookError, KeyError, ValueError, TypeError) as e:
+        raise SystemExit(f"final plan refused: stop seal ledger unreadable ({type(e).__name__}: {e})") from None
+    return {"stop_close": st["stop_close"], "stop_status": st["status"], "stop_date": _ny_date(stop),
+            "stop_seal_sha256": c.sha256_file(stop_p), "bar_symbols": sorted(set(cohort) | set(carry)),
+            "ca_symbols_window": cohort, "ca_symbols_full_history": carry,
+            "full_history_start": min((_ny_date(c.aware(t["ts"])) for t in asof), default=_ny_date(start)),
+            "collector_sha256": collector_sha(), "fetch_core_sha256": c.E1_FETCH_SHA}
+
+
+def _stop_attestation(out: Path, plan: dict) -> dict:
+    """Task 11 (controller-added), I-4: the stop attestation must exist and bind this stop and its stop seal."""
+    p = out / "attest_stop.json"
+    if not p.exists():
+        raise SystemExit("final refused: no stop attestation recorded (s1_run.attest_stop comes first)")
+    a = _load(p)
+    try:
+        same = (c.aware(a["stop_close"]) == c.aware(plan["stop_close"])
+                and a.get("sealed_final_ledger_sha256") == plan["stop_seal_sha256"])
+        c.aware(a["recorded_utc"])
+    except (KeyError, ValueError, TypeError):
+        same = False
+    if not same:
+        raise SystemExit("final refused: the stop attestation does not bind this stop and stop seal")
+    return a
+
+
+def write_final_plan(root) -> Path:
+    """Task 11 (controller-added), I-4: write-once final plan, derived (final_plan_record), only after the stop
+    attestation."""
+    rec = final_plan_record(root)
+    _stop_attestation(_out(root), rec)
+    return _write_once(_out(root) / "final_plan.json", rec)
+
+
+def acquire_token(root) -> str:
+    out = _out(root)
+    attest = out / "attest_stop.json"
+    return ACQUIRE_ACK.format(collector=collector_sha(), plan=c.sha256_file(out / "final_plan.json"),
+                              prereg=c.sha256_file(out / "prereg.json"),
+                              attest=c.sha256_file(attest) if attest.exists() else ABSENT)
 
 
 def _earliest_acquire(calendar, stop_day: str) -> datetime:
@@ -309,12 +396,21 @@ def _utc_z(t: datetime, micro: bool = False) -> str:
     return t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ" if micro else "%Y-%m-%dT%H:%M:%SZ")
 
 
-def do_final(root, ack_id: str, client, keys) -> dict:
+def do_final(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
+    """One final acquisition under the exact ACQUIRE-ACK. Task 11 (controller-added), I-4: before reserving it
+    re-derives the final plan from the stop seal (STOPPED/TIMEOUT, no aborted.json) and requires the stored plan to
+    equal it, the stop attestation to bind that stop, and the ACK to be strictly after the stop attestation."""
+    _require_no_redirects(client)
     out = _out(root)
     fp, prp = out / "final_plan.json", out / "prereg.json"
     plan = json.loads(fp.read_text(encoding="utf-8"))
-    ack = _ack(root, ack_id, ACQUIRE_ACK.format(collector=collector_sha(), plan=c.sha256_file(fp),
-                                                prereg=c.sha256_file(prp)))
+    ack = _ack(ack_id, acquire_token(root), mailbox)
+    rec = final_plan_record(root)
+    if plan != rec:
+        raise SystemExit("final refused: final_plan.json is not the plan derived from the stop seal")
+    att = _stop_attestation(out, rec)
+    if c.aware(ack["created_utc"]) <= c.aware(att["recorded_utc"]):
+        raise SystemExit("final refused: the ACQUIRE-ACK is not strictly after the stop attestation")
     pr = json.loads(prp.read_text(encoding="utf-8"))
     earliest = _earliest_acquire(pr["calendar"], plan["stop_date"])
     if c.now_utc() < earliest:
@@ -347,4 +443,5 @@ def do_final(root, ack_id: str, client, keys) -> dict:
                 "ca_problems": len(p1) + len(p2)}
     return _run_attempt(d, out, ack, created, body, {
         "publication_cutoff": cutoff, "prereg_sha256": c.sha256_file(prp), "earliest_acquire_utc": earliest.isoformat(),
+        "final_plan_sha256": c.sha256_file(fp), "attest_stop_sha256": c.sha256_file(out / "attest_stop.json"),
         "bars_window": [_utc_z(bars_start), _utc_z(bars_end, micro=True)]})

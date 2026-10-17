@@ -1,0 +1,22 @@
+Task 11 RED, item c1 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py and the C-1 variants of s1_tests/test_s1_connected.py)
+RED kind: behavioural (post-stop capture sealed / aborted; final snapshot fenced against a post-stop seal)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:81: KeyError: 'post_stop'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:81: KeyError: 'post_stop'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:100: KeyError: 'post_stop'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:113: KeyError: 'post_stop'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:130: AssertionError: assert (['sealed row 10000 deleted'] == []
+FAILED s1_tests/test_s1_task11.py::test_c1_post_stop_checkpoint_never_seals_or_aborts_and_the_score_is_unchanged[buy]
+FAILED s1_tests/test_s1_task11.py::test_c1_post_stop_checkpoint_never_seals_or_aborts_and_the_score_is_unchanged[receipt]
+FAILED s1_tests/test_s1_task11.py::test_c1_post_stop_fence_difference_is_reported_only
+FAILED s1_tests/test_s1_task11.py::test_c1_checkpoint_after_an_abort_is_post_stop_and_never_seals
+FAILED s1_tests/test_s1_task11.py::test_c1_final_snapshot_and_score_check_fences_only_against_seals_up_to_the_stop
+    assert pc.get("post_stop") is True and pc["seal"]["written"] is False, pc
+E   AssertionError: {'actual': '2026-12-08T21:45:30+00:00', 'capture_ok': True, 'close': '2026-12-08T21:00:00+00:00', 'consistent': True, ...}
+E   assert (None is True)
+    assert pc.get("post_stop") is True and pc["seal"]["written"] is False, pc
+E   AssertionError: {'actual': '2026-12-08T21:45:30+00:00', 'capture_ok': True, 'close': '2026-12-08T21:00:00+00:00', 'consistent': True, ...}
+E   assert (None is True)
+FAILED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL-buy]
+FAILED s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL-receipt]

@@ -1,0 +1,8 @@
+Task 11 RED, item i6 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: behavioural (special dividend gave a carry-in reason; prereg BLOCKED)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:559: AssertionError: {'ex_date': '2026-10-27', 'id': 'd', 'special': True, 'symbol': 'CI', ...}
+C:\Users\gl450\trading_app-s1\research\s1\s1_run.py:422: SystemExit: S1 BLOCKED (pre-START units): ['carry-in CI: cash_dividends sd0 on 2026-10-05 (held since 2026-10-01)']; re-register
+FAILED s1_tests/test_s1_task11.py::test_i6_carry_in_reasons_use_unit_identity_actions_only
+FAILED s1_tests/test_s1_task11.py::test_i6_special_dividend_on_a_held_carry_in_symbol_is_scored_not_inconclusive

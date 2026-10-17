@@ -137,10 +137,11 @@ def _read_capture(cap_dir: Path, meta: dict, rep: dict, counts) -> dict:
 
 
 def _try_seal(out: Path, day, cal, close: datetime, rep: dict, meta: dict, cap_dir: Path, proj: dict, rec: dict,
-              proc: dict, receipt_sha: str, before_seal=None, bridge=None) -> bool:
+              proc: dict, receipt_sha: str, before_seal=None, bridge=None, toolchain=None) -> bool:
     """Write the close's seal (exclusive) if this capture is the schedule's seal; updates rep["seal"].
     `before_seal()`, if given, runs once the capture is chosen and before the seal is built or written.
-    `bridge` (Task 8b): the post-START seal's bridge record (s1_seal.bridge_record); None for the opening seal."""
+    `bridge` (Task 8b): the post-START seal's bridge record (s1_seal.bridge_record); None for the opening seal.
+    Task 11 (controller-added), I-1: every seal records the toolchain hash of the checkpoint that wrote it."""
     cap = {"scheduled": rep["scheduled"], "actual": rep["actual"], "ok": True,
            "consistent": True, "projection_sha256": meta["projection_sha256"], "dir": str(cap_dir)}
     seal_path = out / "seals" / f"{day['date']}.json"
@@ -151,7 +152,8 @@ def _try_seal(out: Path, day, cal, close: datetime, rep: dict, meta: dict, cap_d
     seal_path.parent.mkdir(parents=True, exist_ok=True)
     seal = {"close": close.isoformat(), "fence": z.fence(proj), "max_id": meta["max_trade_id"],
             "trades": proj["trades"], "capture": cap, "restart_record": rec, "process": proc,
-            "receipt_sha256": receipt_sha, "receipt_match": True}
+            "receipt_sha256": receipt_sha, "receipt_match": True,
+            "toolchain_sha256": c.toolchain_sha256() if toolchain is None else toolchain}
     if bridge is not None:
         seal["bridge"] = bridge
     with seal_path.open("x", encoding="utf-8") as f:
@@ -188,33 +190,61 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
     if proj is not None:
         rep["fence_violations"] = z.check_fences(seals, proj)
         rep["fence_violations"] += z.check_bridge(seals, proj["trades"], start)   # Task 8b (§6/§11)
+    state = _state_before(seals, start, cal, actual) if already is None else None
+    if already is not None or (state is not None and state["status"] in ENDED):
+        # Task 11 (controller-added), C-1: the attested window is START..stop. After the stop (or an abort) a capture
+        # is still taken and recorded, but it never seals and never aborts: receipt and fence differences after the
+        # stop are reported only (the final snapshot and the score check the fences of the seals <= the stop).
+        rep["post_stop"] = True
+        rep["stop"] = _abort_stop(already) if already is not None else state
+        _write_report(cap_dir, rep)
+        return rep
     reason = None
-    if already is None:
-        if not rep["receipt_match"]:
-            reason = "semantic receipt changed"
-        elif rep["fence_violations"]:
-            reason = rep["fence_violations"]
-        if reason is not None:
-            already = _write_abort(out, reason, rep, rep["snapshot"], receipt_sha)
-    if (already is None and proj is not None and rep["consistent"] and rep["receipt_match"]
-            and not rep["fence_violations"]):
-        try:
-            bridge = (z.bridge_record(proj["trades"], start, z.opening_close_of(start, cal)) if close >= start
-                      else None)
-        except ValueError as e:                            # Task 9 (c): a recorded refusal, never a crash
-            rep["refused"] = f"bridge record unavailable: {e}"
+    if not rep["receipt_match"]:
+        reason = "semantic receipt changed"
+    elif rep["fence_violations"]:
+        reason = rep["fence_violations"]
+    if reason is not None:
+        already = _write_abort(out, reason, rep, rep["snapshot"], receipt_sha)
+    toolchain = c.toolchain_sha256()
+    sealed = False
+    if already is None and proj is not None and rep["consistent"] and not rep["fence_violations"]:
+        if toolchain != pr.get("toolchain_sha256"):        # Task 11 (controller-added), I-1: recorded, no abort
+            rep["refused"] = (f"toolchain {toolchain[:12]} differs from prereg's "
+                              f"{str(pr.get('toolchain_sha256'))[:12]}: not sealed")
         else:
-            if _try_seal(out, day, cal, close, rep, meta, cap_dir, proj, rec, proc, receipt_sha, bridge=bridge):
-                seals = _seals(out)
+            try:
+                bridge = (z.bridge_record(proj["trades"], start, z.opening_close_of(start, cal)) if close >= start
+                          else None)
+            except ValueError as e:                        # Task 9 (c): a recorded refusal, never a crash
+                rep["refused"] = f"bridge record unavailable: {e}"
+            else:
+                sealed = _try_seal(out, day, cal, close, rep, meta, cap_dir, proj, rec, proc, receipt_sha,
+                                   bridge=bridge, toolchain=toolchain)
     if already is None:
-        try:
-            rep["stop"] = z.stop_decision(seals, start, cal, today=actual)
-        except ValueError as e:                            # a bad seal record is protocol corruption
-            already = _write_abort(out, f"bad seal record: {e}", rep, rep["snapshot"], receipt_sha)
+        if sealed or state is None:                        # unchanged seals: the state computed above stands
+            try:
+                rep["stop"] = z.stop_decision(_seals(out) if sealed else seals, start, cal, today=actual)
+            except ValueError as e:                        # a bad seal record is protocol corruption
+                already = _write_abort(out, f"bad seal record: {e}", rep, rep["snapshot"], receipt_sha)
+        else:
+            rep["stop"] = state
     if already is not None:
         rep["stop"] = _abort_stop(already)
     _write_report(cap_dir, rep)
     return rep
+
+
+ENDED = ("STOPPED", "TIMEOUT", "NO-VALID-SEAL")
+
+
+def _state_before(seals, start, cal, today):
+    """Task 11 (controller-added), C-1: the trial state from the seals already written (the same stop_decision the
+    score uses, today = this capture's time), or None when the seal records are bad (handled as before: abort)."""
+    try:
+        return z.stop_decision(seals, start, cal, today=today)
+    except ValueError:
+        return None
 
 
 # ------------------------------------------------------------------ opening mode (Task 7b)
@@ -363,8 +393,8 @@ def ok_attempts(d: Path) -> list:
 
 
 def run_final_snapshot(root, live_db, now=c.now_utc) -> dict:
-    """The acquisition-time capture after the stop, fence-checked against EVERY seal (§6). Never seals; no prices or
-    PnL. Controller ruling 2: each run is one attempt preserved under s1_out/final_snapshot/attempt-NN/ (meta.json +
+    """The acquisition-time capture after the stop, fence-checked against EVERY seal of a close <= the stop (§6;
+    Task 11 C-1: a seal after the stop is not a trial slice). Never seals; no prices or PnL. Controller ruling 2: each run is one attempt preserved under s1_out/final_snapshot/attempt-NN/ (meta.json +
     its own report.json). The first SUCCESSFUL capture (ok=True) also writes s1_out/final_snapshot/report.json and is
     final: any later run refuses, so a fence violation it records can never be retried away. A failed attempt (e.g. a
     locked DB) leaves no report.json, so a later run may try again. Fix round 1 (I-1): the refusal is decided by the
@@ -382,6 +412,9 @@ def run_final_snapshot(root, live_db, now=c.now_utc) -> dict:
     attempt = _next_attempt(d)
     files = _seal_files(out)
     seals = [_load(p) for p in files]
+    if stop_close is not None:          # Task 11 (controller-added), C-1: the trial's slices = closes <= the stop
+        kept = [(p, x) for p, x in zip(files, seals) if c.aware(x["close"]) <= c.aware(stop_close)]
+        files, seals = [p for p, _ in kept], [x for _, x in kept]
     try:
         meta = s.take_snapshot(live_db, d / attempt)
     except FileExistsError:

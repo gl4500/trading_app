@@ -1141,13 +1141,13 @@ def test_cr_seal_chain_problems_every_defect(tmp_path):
     """Retrospective (Task 9 CR survivors s1_run:603-615, _seal_chain_problems)."""
     out, seals, _, _ = _fs(tmp_path)
     pr = read(out / "prereg.json")
-    rsha = r._receipt_sha(pr["receipt"])
-    assert r._seal_chain_problems(out, seals, rsha) == []
+    rsha, tc = r._receipt_sha(pr["receipt"]), pr["toolchain_sha256"]           # Task 11 (I-1) interface: tc
+    assert r._seal_chain_problems(out, seals, rsha, tc) == []
 
     def with_last(edit):
         cp = [(p, json.loads(json.dumps(s))) for p, s in seals]
         edit(cp[-1][1])
-        return r._seal_chain_problems(out, cp, rsha)
+        return r._seal_chain_problems(out, cp, rsha, tc)
     p_last = seals[-1][0].stem
     for shift in (-1, 1):
         assert any("is not that session" in x for x in with_last(

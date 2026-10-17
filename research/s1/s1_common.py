@@ -14,6 +14,8 @@ SOLD_LT = 0.001                 # app close rule: backend/trading/portfolio.py `
 CONSIST_TOL = 1e-9
 E1_SIM_SHA = "68f21ab19d74be27fc855f826a78b667990c2a37b5d75dd12e1a7be1f5a740fb"
 E1_FETCH_SHA = "401f17deb3551b0a585be64eb49294f50bc0396272ecd48c9f9049acc86984d6"
+# Task 11 (controller-added), I-5: the coordination mailbox every ACK is read from (read-only), never <root>.
+MAILBOX = Path("C:/Users/gl450/.coordination/trading_app/mailbox.sqlite3")
 _CACHE = {}
 
 
@@ -39,6 +41,17 @@ def aware(ts: str) -> datetime:
         raise ValueError(f"not a timestamp: {ts!r}")
     t = datetime.fromisoformat(ts.replace("Z", "+00:00"))
     return (t if t.tzinfo else t.replace(tzinfo=timezone.utc)).astimezone(timezone.utc)
+
+
+def toolchain_files() -> list:
+    """Task 11 (controller-added), I-1: the registered protocol code = every research/s1 s1_*.py plus the pinned
+    e1_sim.py and e1_fetch.py."""
+    return sorted(HERE.glob("s1_*.py")) + [HERE / "e1_sim.py", HERE / "e1_fetch.py"]
+
+
+def toolchain_sha256() -> str:
+    """Task 11 (controller-added), I-1: sha256 over the sorted (name, sha256) pairs of toolchain_files()."""
+    return sha256_bytes(canonical(sorted([p.name, sha256_file(p)] for p in toolchain_files())))
 
 
 def load_pinned(name: str, path, sha: str):

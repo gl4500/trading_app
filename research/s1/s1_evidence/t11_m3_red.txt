@@ -1,0 +1,6 @@
+Task 11 RED, item m3 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: behavioural (git called without --no-optional-locks)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:278: AssertionError: [['git', '-C', 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15319\\test_m3_every_git_call_uses_no0...\\Local\\Temp\\pytest-of-gl450\\pytest-15319\\test_m3_every_git_call_uses_no0', 'status', '--porcelain=v1', '-z', ...]]
+FAILED s1_tests/test_s1_task11.py::test_m3_every_git_call_uses_no_optional_locks

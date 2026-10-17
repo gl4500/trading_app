@@ -84,14 +84,19 @@ def economic_lots(trades, endpoint) -> list:
 
 def sold_events(trades) -> dict:
     """Prefix replay of the economic FIFO: at each SELL, a lot that received an allocation from THIS SELL and is
-    left with < SOLD_LT is fully sold (first time only). Engine errors and orphan SELLs raise BookError."""
-    rs, events, prev_fills = rows(trades), {}, {}
+    left with < SOLD_LT is fully sold (first time only). Engine errors and orphan SELLs raise BookError.
+    Task 11 (controller-added), I-3: FIFO is per symbol (splits=[]), so each SELL replays only the prefix rows of ITS
+    OWN symbol - the same lots, fills and errors as the whole prefix (Hypothesis-checked against the old whole-prefix
+    replay in s1_tests/test_s1_task11.py), about #symbols times less work."""
+    rs, events, prev_fills, by_symbol = rows(trades), {}, {}, {}
     limit = c.sim().x(c.SOLD_LT)
-    for i, r in enumerate(rs):
+    for r in rs:
+        prefix = by_symbol.setdefault(r["symbol"], [])
+        prefix.append(r)
         if r["action"] != "SELL":
             continue
         orphans = []
-        lots = _economic(rs[: i + 1], r["ts"], orphans)
+        lots = _economic(prefix, r["ts"], orphans)
         if orphans:
             raise BookError(f"orphan SELL(s) with no open lot: {[o['id'] for o in orphans]}")
         for l in lots:
@@ -100,6 +105,13 @@ def sold_events(trades) -> dict:
                 events[l["id"]] = {"sold_at": r["ts"].isoformat(), "sell_id": r["id"]}
             prev_fills[l["id"]] = n
     return events
+
+
+def held_symbols(rows_before_start, start) -> set:
+    """Task 11 (controller-added), I-4: symbols held at START by the pre-START rows - an open economic-FIFO lot (dust
+    residuals included) or an operational holding (the key set of s1_run._carry_in's opening inventory)."""
+    held = {l["symbol"] for l in economic_lots(rows_before_start, start) if l["rem_qty"] > 0}
+    return held | {s for s, q in operational_replay(rows_before_start)["qty"].items() if q > 0}
 
 
 def bridge(trades, endpoint) -> dict:

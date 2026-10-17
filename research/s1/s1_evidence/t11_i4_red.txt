@@ -1,0 +1,26 @@
+Task 11 RED, item i4 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: missing-interface (new write_final_plan signature, acquire_token, stop_status); T6 calendar fold-in behavioural (DID NOT RAISE)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:364: KeyError: 'stop_status'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:383: TypeError: write_final_plan() missing 4 required positional arguments: 'stop_close', 'symbols', 'carry_in_symbols', and 'first_trade_date'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:395: TypeError: write_final_plan() missing 4 required positional arguments: 'stop_close', 'symbols', 'carry_in_symbols', and 'first_trade_date'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:406: TypeError: write_final_plan() missing 4 required positional arguments: 'stop_close', 'symbols', 'carry_in_symbols', and 'first_trade_date'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:433: AttributeError: module 's1_collect' has no attribute 'acquire_token'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:458: AttributeError: module 's1_collect' has no attribute 'acquire_token'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:458: AttributeError: module 's1_collect' has no attribute 'acquire_token'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:458: AttributeError: module 's1_collect' has no attribute 'acquire_token'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:480: Failed: DID NOT RAISE <class 's1_collect.Structural'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:480: Failed: DID NOT RAISE <class 's1_collect.Structural'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:480: Failed: DID NOT RAISE <class 's1_collect.Structural'>
+FAILED s1_tests/test_s1_task11.py::test_i4_final_plan_is_derived_from_the_stop_seal
+FAILED s1_tests/test_s1_task11.py::test_i4_final_plan_refused_while_running_aborted_or_unattested
+FAILED s1_tests/test_s1_task11.py::test_i4_final_plan_refused_after_an_abort
+FAILED s1_tests/test_s1_task11.py::test_i4_final_plan_refused_without_the_stop_attestation
+FAILED s1_tests/test_s1_task11.py::test_i4_acquire_ack_binds_the_stop_attestation_and_do_final_records_the_plan
+FAILED s1_tests/test_s1_task11.py::test_i4_do_final_rechecks_the_stop_before_reserving[aborted]
+FAILED s1_tests/test_s1_task11.py::test_i4_do_final_rechecks_the_stop_before_reserving[hand-typed plan]
+FAILED s1_tests/test_s1_task11.py::test_i4_do_final_rechecks_the_stop_before_reserving[ack before attestation]
+FAILED s1_tests/test_s1_task11.py::test_i4_t6_calendar_duplicates_or_open_not_before_close_are_structural[<lambda>-duplicate date]
+FAILED s1_tests/test_s1_task11.py::test_i4_t6_calendar_duplicates_or_open_not_before_close_are_structural[<lambda>-open == close]
+FAILED s1_tests/test_s1_task11.py::test_i4_t6_calendar_duplicates_or_open_not_before_close_are_structural[<lambda>-open > close]

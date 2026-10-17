@@ -1,0 +1,6 @@
+Task 11 RED, item m1 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: behavioural (edited final plan scored)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:585: AssertionError: []
+FAILED s1_tests/test_s1_task11.py::test_m1_final_plan_edited_after_the_acquisition_is_aborted_invalid

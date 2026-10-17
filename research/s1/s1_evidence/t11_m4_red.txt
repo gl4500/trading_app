@@ -1,0 +1,8 @@
+Task 11 RED, item m4 (recorded before the fix, HEAD 21a12b6 product code; tests s1_tests/test_s1_task11.py)
+RED kind: behavioural (redirect-following client not refused; audit went on to read plan.json)
+Full logs: s1_evidence/t11_red_full_task11.txt, s1_evidence/t11_red_full_connected.txt
+
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15319\\test_m4_collectors_refuse_a_cl0\\s1_out\\plan.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15319\\test_m4_collectors_refuse_a_cl1\\s1_out\\plan.json'
+FAILED s1_tests/test_s1_task11.py::test_m4_collectors_refuse_a_client_that_may_follow_redirects[<lambda>0]
+FAILED s1_tests/test_s1_task11.py::test_m4_collectors_refuse_a_client_that_may_follow_redirects[<lambda>1]

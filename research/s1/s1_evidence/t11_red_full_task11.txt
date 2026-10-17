@@ -1,0 +1,80 @@
+.FFFFFFFFFFFFF.FFFFFFFFFFFFF.FFFFFFFFF.FFF                               [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:81: KeyError: 'post_stop'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:81: KeyError: 'post_stop'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:100: KeyError: 'post_stop'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:113: KeyError: 'post_stop'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:130: AssertionError: assert (['sealed row 10000 deleted'] == []
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:146: AttributeError: module 's1_common' has no attribute 'toolchain_sha256'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:171: AttributeError: module 's1_common' has no attribute 'toolchain_sha256'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:195: KeyError: 'toolchain_sha256'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:206: AttributeError: <module 's1_common' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_common.py'> has no attribute 'toolchain_sha256'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:221: AssertionError: []
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:227: AttributeError: <module 's1_common' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_common.py'> has no attribute 'toolchain_sha256'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:258: AssertionError: assert {'config': {}...0e5483d', ...} == {'config': {}...0e5483d', ...}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:278: AssertionError: [['git', '-C', 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15319\\test_m3_every_git_call_uses_no0...\\Local\\Temp\\pytest-of-gl450\\pytest-15319\\test_m3_every_git_call_uses_no0', 'status', '--porcelain=v1', '-z', ...]]
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:351: assert ((125257.7804527 - 125212.6808395) < 5.0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:364: KeyError: 'stop_status'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:383: TypeError: write_final_plan() missing 4 required positional arguments: 'stop_close', 'symbols', 'carry_in_symbols', and 'first_trade_date'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:395: TypeError: write_final_plan() missing 4 required positional arguments: 'stop_close', 'symbols', 'carry_in_symbols', and 'first_trade_date'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:406: TypeError: write_final_plan() missing 4 required positional arguments: 'stop_close', 'symbols', 'carry_in_symbols', and 'first_trade_date'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:433: AttributeError: module 's1_collect' has no attribute 'acquire_token'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:458: AttributeError: module 's1_collect' has no attribute 'acquire_token'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:458: AttributeError: module 's1_collect' has no attribute 'acquire_token'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:458: AttributeError: module 's1_collect' has no attribute 'acquire_token'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:480: Failed: DID NOT RAISE <class 's1_collect.Structural'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:480: Failed: DID NOT RAISE <class 's1_collect.Structural'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:480: Failed: DID NOT RAISE <class 's1_collect.Structural'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:490: assert (0 == 1)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:522: TypeError: _ack() got an unexpected keyword argument 'mailbox'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:546: TypeError: do_prereg() got an unexpected keyword argument 'mailbox'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:559: AssertionError: {'ex_date': '2026-10-27', 'id': 'd', 'special': True, 'symbol': 'CI', ...}
+C:\Users\gl450\trading_app-s1\research\s1\s1_run.py:422: SystemExit: S1 BLOCKED (pre-START units): ['carry-in CI: cash_dividends sd0 on 2026-10-05 (held since 2026-10-01)']; re-register
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:585: AssertionError: []
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:607: AssertionError: []
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:607: AssertionError: []
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15319\\test_m4_collectors_refuse_a_cl0\\s1_out\\plan.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15319\\test_m4_collectors_refuse_a_cl1\\s1_out\\plan.json'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:704: KeyError: 'restarts'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:704: KeyError: 'restarts'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_task11.py:704: KeyError: 'restarts'
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_task11.py::test_c1_post_stop_checkpoint_never_seals_or_aborts_and_the_score_is_unchanged[buy]
+FAILED s1_tests/test_s1_task11.py::test_c1_post_stop_checkpoint_never_seals_or_aborts_and_the_score_is_unchanged[receipt]
+FAILED s1_tests/test_s1_task11.py::test_c1_post_stop_fence_difference_is_reported_only
+FAILED s1_tests/test_s1_task11.py::test_c1_checkpoint_after_an_abort_is_post_stop_and_never_seals
+FAILED s1_tests/test_s1_task11.py::test_c1_final_snapshot_and_score_check_fences_only_against_seals_up_to_the_stop
+FAILED s1_tests/test_s1_task11.py::test_i1_toolchain_sha_is_every_s1_module_plus_the_e1_pins
+FAILED s1_tests/test_s1_task11.py::test_i1_prereg_and_run_ack_bind_the_toolchain
+FAILED s1_tests/test_s1_task11.py::test_i1_every_seal_records_the_checkpoint_toolchain
+FAILED s1_tests/test_s1_task11.py::test_i1_checkpoint_with_a_different_toolchain_refuses_to_seal_without_abort
+FAILED s1_tests/test_s1_task11.py::test_i1_score_requires_every_seal_and_itself_to_match_the_prereg_toolchain
+FAILED s1_tests/test_s1_task11.py::test_i1_score_by_a_different_toolchain_is_aborted_invalid
+FAILED s1_tests/test_s1_task11.py::test_i2_untracked_non_py_runtime_files_do_not_change_the_receipt
+FAILED s1_tests/test_s1_task11.py::test_m3_every_git_call_uses_no_optional_locks
+FAILED s1_tests/test_s1_task11.py::test_i3_sold_events_on_2000_rows_completes_in_under_5_seconds
+FAILED s1_tests/test_s1_task11.py::test_i4_final_plan_is_derived_from_the_stop_seal
+FAILED s1_tests/test_s1_task11.py::test_i4_final_plan_refused_while_running_aborted_or_unattested
+FAILED s1_tests/test_s1_task11.py::test_i4_final_plan_refused_after_an_abort
+FAILED s1_tests/test_s1_task11.py::test_i4_final_plan_refused_without_the_stop_attestation
+FAILED s1_tests/test_s1_task11.py::test_i4_acquire_ack_binds_the_stop_attestation_and_do_final_records_the_plan
+FAILED s1_tests/test_s1_task11.py::test_i4_do_final_rechecks_the_stop_before_reserving[aborted]
+FAILED s1_tests/test_s1_task11.py::test_i4_do_final_rechecks_the_stop_before_reserving[hand-typed plan]
+FAILED s1_tests/test_s1_task11.py::test_i4_do_final_rechecks_the_stop_before_reserving[ack before attestation]
+FAILED s1_tests/test_s1_task11.py::test_i4_t6_calendar_duplicates_or_open_not_before_close_are_structural[<lambda>-duplicate date]
+FAILED s1_tests/test_s1_task11.py::test_i4_t6_calendar_duplicates_or_open_not_before_close_are_structural[<lambda>-open == close]
+FAILED s1_tests/test_s1_task11.py::test_i4_t6_calendar_duplicates_or_open_not_before_close_are_structural[<lambda>-open > close]
+FAILED s1_tests/test_s1_task11.py::test_i5_mailbox_constant_is_the_coordination_mailbox
+FAILED s1_tests/test_s1_task11.py::test_i5_ack_reads_the_given_mailbox_read_only_never_the_output_root
+FAILED s1_tests/test_s1_task11.py::test_i5_lifecycle_gates_take_an_explicit_mailbox
+FAILED s1_tests/test_s1_task11.py::test_i6_carry_in_reasons_use_unit_identity_actions_only
+FAILED s1_tests/test_s1_task11.py::test_i6_special_dividend_on_a_held_carry_in_symbol_is_scored_not_inconclusive
+FAILED s1_tests/test_s1_task11.py::test_m1_final_plan_edited_after_the_acquisition_is_aborted_invalid
+FAILED s1_tests/test_s1_task11.py::test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid[missing]
+FAILED s1_tests/test_s1_task11.py::test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid[different]
+FAILED s1_tests/test_s1_task11.py::test_m4_collectors_refuse_a_client_that_may_follow_redirects[<lambda>0]
+FAILED s1_tests/test_s1_task11.py::test_m4_collectors_refuse_a_client_that_may_follow_redirects[<lambda>1]
+FAILED s1_tests/test_s1_task11.py::test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge[aborted]
+FAILED s1_tests/test_s1_task11.py::test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge[blocked]
+FAILED s1_tests/test_s1_task11.py::test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge[no-valid-seal]
+38 failed, 4 passed in 175.86s (0:02:55)

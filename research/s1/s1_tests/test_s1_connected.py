@@ -296,11 +296,16 @@ def tree_hashes(d: Path) -> dict:
 
 
 # ------------------------------------------------------------------ the connected scenario
-@pytest.mark.parametrize("regime,expected", [("chop", "FAIL"), ("trend", "SHADOW PASS")])
-def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, regime, expected):
+@pytest.mark.parametrize("regime,expected,post_stop", [("chop", "FAIL", None), ("trend", "SHADOW PASS", None),
+                                                       ("chop", "FAIL", "buy"), ("chop", "FAIL", "receipt")])
+def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, regime, expected, post_stop):
     """Task 8: plan -> audit -> opening seal -> bridge -> START attestation -> prereg -> scheduled checkpoints
     (inconsistent/retried, late, restart) -> stop -> stop attestation -> final plan -> final acquisition -> final
-    snapshot -> one score == the independent Fraction oracle; a second score refuses and overwrites nothing."""
+    snapshot -> one score == the independent Fraction oracle; a second score refuses and overwrites nothing.
+    Task 11 (controller-added), C-1 (the final review's probe): `post_stop` = "buy" - the scheduler keeps running
+    after the stop, a new MR BUY lands and the next close's scheduled checkpoint fires; "receipt" - the same with the
+    semantic receipt changed after the stop (e.g. a pull into the live checkout). Either capture is recorded as
+    post_stop and neither seals nor aborts; the score still equals the oracle (never ABORTED-INVALID)."""
     root, out = tmp_path, tmp_path / "s1_out"
     cal, sessions, tdays, bars, events = build_world(regime)
     clock = {"t": START - timedelta(days=14)}
@@ -315,7 +320,8 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     crash.write_text("2026-10-01 09:00:00,000 [PROCESS START] pid=1000\n" * 2, encoding="utf-8")
     ledger = Ledger(root / "trading.db")
     app = App(ledger)
-    receipt_fn, process_fn = (lambda: json.loads(json.dumps(RECEIPT))), (lambda: dict(proc))
+    receipt = json.loads(json.dumps(RECEIPT))                 # Task 11: a per-run copy (the "receipt" probe edits it)
+    receipt_fn, process_fn = (lambda: json.loads(json.dumps(receipt))), (lambda: dict(proc))
 
     def close_of(day: str) -> datetime:
         row = next(x for x in cal if x["date"] == day)
@@ -412,9 +418,10 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     assert att["stop_close"] == stop_close.isoformat()
     cohort_syms = sorted({e["sym"] for e in events if e["action"] == "BUY" and START <= e["t"] <= stop_close})
     at(stop_close + timedelta(hours=16))
-    fplan = json.loads(k.write_final_plan(root, att["stop_close"], cohort_syms, ["CI", "NEWT"],
-                                          FIRST_TRADE_DATE).read_text(encoding="utf-8"))
+    fplan = json.loads(k.write_final_plan(root).read_text(encoding="utf-8"))     # Task 11 (I-4): derived
     assert "NEWT" in fplan["bar_symbols"] and fplan["ca_symbols_full_history"] == ["CI", "NEWT"]
+    assert fplan["stop_close"] == att["stop_close"] and fplan["ca_symbols_window"] == cohort_syms
+    assert fplan["full_history_start"] == FIRST_TRADE_DATE
 
     # 9. the final acquisition: two bar pages (irregular cents), one spin-off inside one SPN lot's window
     spin_date = tdays[SPIN_DAY]
@@ -437,7 +444,8 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     acq_at = ny(sessions[N_DAYS + 3], "07:00")                 # after the close of the 3rd session after the stop
     s1_mailbox(root, "acq-ack", k.ACQUIRE_ACK.format(collector=k.collector_sha(),
                                                      plan=s1_common.sha256_file(out / "final_plan.json"),
-                                                     prereg=s1_common.sha256_file(out / "prereg.json")),
+                                                     prereg=s1_common.sha256_file(out / "prereg.json"),
+                                                     attest=s1_common.sha256_file(out / "attest_stop.json")),
                acq_at - timedelta(hours=1))
     at(acq_at)
     fm = k.do_final(root, "acq-ack", httpx.Client(transport=httpx.MockTransport(final_handler)), KEYS)
@@ -449,6 +457,19 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     snap_at = at(acq_at + timedelta(hours=1))
     snap = ck.run_final_snapshot(root, ledger.path, now=lambda: snap_at)
     assert snap["capture_ok"] and snap["fence_checked"] and snap["fence_violations"] == [], snap
+
+    # 10b. Task 11 (C-1): the scheduler keeps running after the stop (the final review's probe, both variants)
+    if post_stop is not None:
+        pd = sessions[N_DAYS + 3]
+        newt = ny(pd, "11:00")
+        app.trade(dict(sym="ZZZ", action="BUY", qty=1.0, px=10.0, t=newt, ts=newt.isoformat()))
+        if post_stop == "receipt":
+            receipt["head"] = "post-stop-commit"
+        pc = checkpoint(close_of(pd) + timedelta(minutes=45), close_of(pd) + timedelta(minutes=45, seconds=30))
+        assert pc.get("post_stop") is True and pc["seal"]["written"] is False, pc
+        assert pc["stop"]["status"] == "STOPPED" and pc["stop"]["stop_close"] == stop_close.isoformat(), pc["stop"]
+        assert pc["receipt_match"] is (post_stop != "receipt")              # reported only
+        assert not (out / "aborted.json").exists() and not (out / "seals" / f"{pd}.json").exists()
 
     # 11. SCORE-ACK and the one score
     s1_mailbox(root, "score-ack", r.score_token(root), acq_at + timedelta(days=1))
