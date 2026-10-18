@@ -6,24 +6,28 @@ from pathlib import Path
 import pytest
 import s1_checkpoint as k
 import s1_common
+from conftest import S1_BINDING, s1_receipt_with, s1_register
 from test_s1_seal import CAL
 
 UTC = timezone.utc
 START = datetime(2026, 10, 14, 13, 30, tzinfo=UTC)
-REC = {"head": "h", "dirty": [], "files": {"a.py": "1"}, "config": {}, "versions": {}}
+# Task 12 (A1) interface: a receipt is {"fingerprint": compared, "provenance": recorded only}.
+REC = {"fingerprint": {"closure": {"a.py": "1"}, "resources": {}, "config": {}, "runtime": {}},
+       "provenance": {"head": "h", "dirty": []}}
 
 
 def make_prereg(root, receipt=REC):
-    (root / "s1_out").mkdir(parents=True, exist_ok=True)
-    (root / "s1_out" / "prereg.json").write_text(json.dumps({"start": START.isoformat(), "calendar": CAL,
-                                                             "receipt": receipt,   # Task 11 (I-1) input:
-                                                             "toolchain_sha256": s1_common.toolchain_sha256()}),
-                                      encoding="utf-8")
+    """Task 12 (A8.2) interface: a hand-written prereg now refuses with zero live callbacks, so this builds the
+    GENUINE registration (conftest.s1_register: plan, AUDIT-ACK'd audit, opening seal, START attestation, RUN-ACK,
+    prereg) with the same START and calendar."""
+    s1_register(root, START.isoformat(), calendar=CAL, receipt=receipt)
 
 
 def run(root, ledger, minutes=45, receipt=REC, pid=1, log=None, proc=None, delay=30):
     sch = datetime(2026, 10, 15, 20, 0, tzinfo=UTC).timestamp() + minutes * 60
-    p = {"pid": pid, "process_start": "2026-10-12T23:17:25"} if proc is None else proc
+    # (fix round 2 migration, Addendum 2 B2: an observation carries the sanitized launcher binding; the registered
+    # reference is the opening's, conftest.S1_BINDING)
+    p = {"pid": pid, "process_start": "2026-10-12T23:17:25", "binding": dict(S1_BINDING)} if proc is None else proc
     return k.run_checkpoint(root, ledger.path, datetime.fromtimestamp(sch, UTC), lambda: receipt,
                             lambda: p, log or root / "crash.log",
                             now=lambda: datetime.fromtimestamp(sch + delay, UTC))
@@ -38,7 +42,11 @@ def test_counts_only_report_and_seal(tmp_path, ledger):
                         "receipt_match", "pid", "process_start", "restart_gaps", "entries", "sold", "stop",
                         "exclusions", "market_coverage",
                         # controller-ruled additions (Task 5 fix round 1, M3 / m2):
-                        "writeoffs", "process_starts", "snapshot", "seal", "late"}
+                        "writeoffs", "process_starts", "snapshot", "seal", "late",
+                        # Task 12 interface (A5.2 timing/eligibility, slot-order candidate, A1/A9.3 gaps):
+                        "capture_start", "capture_end", "eligible_until", "candidate", "observation_gaps",
+                        # fix round 2 (Addendum 2 B2 binding disposition, B1 slot resolution):
+                        "process_binding", "resolution"}
     assert (tmp_path / "s1_out" / "seals" / "2026-10-15.json").exists()
     assert "price" not in json.dumps(rep) and "pnl" not in json.dumps(rep).lower()
 
@@ -48,7 +56,7 @@ def test_restart_recorded_and_source_change_invalidates(tmp_path, ledger):      
     (tmp_path / "crash.log").write_text("2026-10-15 08:00:00 [PROCESS START] pid=2\n")
     rep = run(tmp_path, ledger, pid=2)
     assert rep["receipt_match"] and rep["restart_gaps"] == []
-    bad = dict(REC, files={"a.py": "2"})
+    bad = s1_receipt_with(REC, files={"a.py": "2"})                    # Task 12 (A1): a fingerprint change
     rep = run(tmp_path, ledger, minutes=47, receipt=bad, pid=2)
     assert rep["receipt_match"] is False and rep["stop"]["status"] == "ABORTED-INVALID"
 
@@ -108,7 +116,7 @@ def _good(tmp_path, ledger):
 def test_abort_survives_receipt_revert(tmp_path, ledger):
     """Retrospective (Task 5 review fix round 1), C1: change-then-revert of the receipt stays ABORTED."""
     _good(tmp_path, ledger)
-    rep = run(tmp_path, ledger, minutes=47, receipt=dict(REC, head="x"))
+    rep = run(tmp_path, ledger, minutes=47, receipt=s1_receipt_with(REC, files={"a.py": "x"}))   # Task 12 (A1)
     assert rep["stop"]["status"] == "ABORTED-INVALID" and ABORT(tmp_path).exists()
     first = json.loads(ABORT(tmp_path).read_text())
     assert {"reason", "close", "scheduled", "actual", "projection_sha256", "receipt_sha256"} <= set(first)
@@ -188,13 +196,13 @@ def test_real_restart_on_second_run_observed_and_unlogged_pid_change_is_gap(tmp_
 def test_receipt_mismatch_capture_does_not_seal_and_seal_carries_receipt(tmp_path, ledger):
     """Retrospective (Task 5 review fix round 1), C3/M1/M3."""
     _good(tmp_path, ledger)
-    rep = run(tmp_path, ledger, minutes=45, receipt=dict(REC, head="x"))
+    rep = run(tmp_path, ledger, minutes=45, receipt=s1_receipt_with(REC, files={"a.py": "x"}))   # Task 12 (A1)
     assert not SEAL(tmp_path).exists() and rep["seal"] == {"written": False, "sha256": None}
     ABORT(tmp_path).unlink()                                                  # fresh trial for the positive half
     rep = run(tmp_path, ledger, minutes=47)
     seal = json.loads(SEAL(tmp_path).read_text())
     import s1_common
-    assert seal["receipt_match"] is True and seal["receipt_sha256"] == s1_common.sha256_bytes(s1_common.canonical(REC))
+    assert seal["receipt_match"] is True and seal["receipt_sha256"] == s1_common.receipt_sha256(REC)   # A1
     assert rep["seal"]["written"] is True and rep["seal"]["sha256"] == s1_common.sha256_file(SEAL(tmp_path))
     assert rep["snapshot"] and len(rep["snapshot"]) == 64
 
@@ -340,12 +348,11 @@ def test_cr_start_exactly_at_a_close_seals_that_close_with_a_bridge(tmp_path, le
     """Retrospective (Task 9 CR survivors s1_checkpoint:202): a close at exactly START is post-START, so its seal
     carries the bridge record."""
     start = datetime(2026, 10, 15, 20, 0, tzinfo=UTC)
-    (tmp_path / "s1_out").mkdir(parents=True)
-    (tmp_path / "s1_out" / "prereg.json").write_text(json.dumps({"start": start.isoformat(), "calendar": CAL,
-                                                                 "receipt": REC,     # Task 11 (I-1) input
-                                                                 "toolchain_sha256": s1_common.toolchain_sha256()}),
-        encoding="utf-8")
     ledger.trade("A", "BUY", 10, 50, "2026-10-14T15:00:00+00:00"); ledger.set_portfolio("A", 10)
+    # Task 12 (A8.2) interface: the genuine registration; the row (before the 10-14 opening close) is in the opening
+    # seal, as the live ledger would have it
+    s1_register(tmp_path, start.isoformat(), calendar=CAL, receipt=REC, ledger=ledger, carry_in_syms=["A"],
+                first_day="2026-10-14")
     rep = run(tmp_path, ledger)
     assert rep["seal"]["written"] is True
     assert json.loads(SEAL(tmp_path).read_text())["bridge"]["bridge_row_ids"] == [1]

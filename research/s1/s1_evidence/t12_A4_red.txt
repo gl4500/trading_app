@@ -1,0 +1,305 @@
+FFFFF.F.FFFFF.F.F                                                        [100%]
+================================== FAILURES ===================================
+_______ test_a7_no_processing_or_publication_date_is_an_effective_date ________
+
+    def test_a7_no_processing_or_publication_date_is_an_effective_date():
+        """A7.3: only the registered effective field (ex_date / effective_date) dates an action; process_date never
+        does; missing or ambiguous (both present and different) or conflicting -> unknown (None)."""
+>       assert r.effective_date(split("A", "2026-10-27")) == "2026-10-27"
+E       AttributeError: module 's1_run' has no attribute 'effective_date'
+
+s1_tests\test_s1_t12_a4.py:47: AttributeError
+_ test_a7_an_undated_action_with_only_a_process_date_blocks_every_lot_of_its_symbol _
+
+    def test_a7_an_undated_action_with_only_a_process_date_blocks_every_lot_of_its_symbol():
+        """A7.3 + v5 §11: a record dated only by process_date has unknown effective timing: the conservative unknown-
+        action rule (every lot of the symbol excluded), never the date comparison."""
+        from test_s1_run import SESS, bar, lot
+        acts = [{"type": "spin_offs", "id": "so", "source_symbol": "A", "new_symbol": "B", "process_date": "2026-10-20"}]
+        bars = {"A": {d: bar(d) for d in SESS}}
+        ex = r.exclusions([lot(1, "A", "2026-10-26"), lot(2, "A", "2026-10-29")], acts, [], "2026-10-30", SESS, bars, [])
+>       assert set(ex) == {1, 2} and all("undated" in " ".join(v) for v in ex.values())
+E       assert (set() == {1, 2}
+E         
+E         Extra items in the right set:
+E         1
+E         2
+E         Use -v to get more diff)
+
+s1_tests\test_s1_t12_a4.py:65: AssertionError
+_______ test_a4_2b_a_post_event_sell_makes_the_whole_trial_inconclusive _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15350/test_a4_2b_a_post_event_sell_m0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B161D675C0>
+
+    def test_a4_2b_a_post_event_sell_makes_the_whole_trial_inconclusive(tmp_path, monkeypatch):
+        """A4.2b: a cohort lot of A open across A's split, and ANY SELL of A on/after the effective date and at or before
+        the stop close -> whole-trial INCONCLUSIVE ("unit event may affect stop/cohort attribution"), whatever the
+        unrepaired FIFO allocation shows; no SHADOW PASS/FAIL from the remaining symbols; no valuation."""
+        no_valuation(monkeypatch)
+>       rep = score(tmp_path, monkeypatch, lots=base_lots() + [dict(A_LOT, sell=(2, 55.0))],
+                    final_actions=[split("A", D[1])])
+
+s1_tests\test_s1_t12_a4.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a4.py:31: in score
+    return r.score(tmp_path, "score-ack")
+s1_run.py:536: in score
+    text = _serialise(_score(out, mailbox))           # ruling M-6: serialise before opening the output file
+s1_run.py:931: in _score
+    "base": {bp: sim.baseline_economics(l, close, bp) for bp in BPS},
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = ({'entry_notional': Fraction(1000, 1), 'entry_px': Fraction(100, 1), 'entry_ts': datetime.datetime(2026, 10, 26, 15, 0, tzinfo=datetime.timezone.utc), 'fills': [(Fraction(10, 1), Fraction(80, 1))], ...}, 100, 0)
+kw = {}
+
+>   monkeypatch.setattr(sim, name, lambda *a, **kw: pytest.fail(f"valuation helper {name} called"))
+E   Failed: valuation helper paired_bootstrap called
+
+s1_tests\test_s1_t12_a4.py:37: Failed
+_ test_a4_2b_a_sell_allocated_by_unrepaired_fifo_to_a_newer_lot_is_still_inconclusive _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15350/test_a4_2b_a_sell_allocated_by0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B161E855E0>
+
+    def test_a4_2b_a_sell_allocated_by_unrepaired_fifo_to_a_newer_lot_is_still_inconclusive(tmp_path, monkeypatch):
+        """A4.3 acceptance: lot A1 open across the split; post-event BUY A2; a SELL (allocated by the unrepaired FIFO
+        to A1, under the true post-split units it would leave A1 half open) -> 2b INCONCLUSIVE; the post-event BUY
+        whose SELL is consumed by the contaminated earlier lot does not rescue it."""
+        no_valuation(monkeypatch)
+        lots = base_lots() + [dict(A_LOT), {"symbol": "A", "qty": 10, "px": 52.0, "buy_day": 2, "sell": (3, 51.0)}]
+>       rep = score(tmp_path, monkeypatch, lots=lots, final_actions=[split("A", D[1])], seal_days=range(0, 4))
+
+s1_tests\test_s1_t12_a4.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a4.py:31: in score
+    return r.score(tmp_path, "score-ack")
+s1_run.py:536: in score
+    text = _serialise(_score(out, mailbox))           # ruling M-6: serialise before opening the output file
+s1_run.py:931: in _score
+    "base": {bp: sim.baseline_economics(l, close, bp) for bp in BPS},
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = ({'entry_notional': Fraction(1000, 1), 'entry_px': Fraction(100, 1), 'entry_ts': datetime.datetime(2026, 10, 26, 15, 0, tzinfo=datetime.timezone.utc), 'fills': [(Fraction(10, 1), Fraction(80, 1))], ...}, 100, 0)
+kw = {}
+
+>   monkeypatch.setattr(sim, name, lambda *a, **kw: pytest.fail(f"valuation helper {name} called"))
+E   Failed: valuation helper paired_bootstrap called
+
+s1_tests\test_s1_t12_a4.py:37: Failed
+__________ test_a4_2b_a_unit_event_changing_the_apparent_100th_sale ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15350/test_a4_2b_a_unit_event_changi0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B1621422D0>
+
+    def test_a4_2b_a_unit_event_changing_the_apparent_100th_sale(tmp_path, monkeypatch):
+        """A4.3 acceptance: 99 ordinary sales plus the A lot (open across A's split, sold after it) make the apparent
+        100th sale; the stop it creates cannot be trusted -> INCONCLUSIVE."""
+        no_valuation(monkeypatch)
+>       rep = score(tmp_path, monkeypatch, lots=base_lots(99) + [dict(A_LOT, sell=(1, 55.0))],
+                    final_actions=[split("A", D[1])])
+
+s1_tests\test_s1_t12_a4.py:95: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a4.py:31: in score
+    return r.score(tmp_path, "score-ack")
+s1_run.py:536: in score
+    text = _serialise(_score(out, mailbox))           # ruling M-6: serialise before opening the output file
+s1_run.py:931: in _score
+    "base": {bp: sim.baseline_economics(l, close, bp) for bp in BPS},
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = ({'entry_notional': Fraction(1000, 1), 'entry_px': Fraction(100, 1), 'entry_ts': datetime.datetime(2026, 10, 26, 15, 0, tzinfo=datetime.timezone.utc), 'fills': [(Fraction(10, 1), Fraction(80, 1))], ...}, 100, 0)
+kw = {}
+
+>   monkeypatch.setattr(sim, name, lambda *a, **kw: pytest.fail(f"valuation helper {name} called"))
+E   Failed: valuation helper paired_bootstrap called
+
+s1_tests\test_s1_t12_a4.py:37: Failed
+_ test_a4_2c_cohort_only_contamination_without_a_sell_excludes_every_cohort_lot_of_the_symbol _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15350/test_a4_2c_cohort_only_contami0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B162126CF0>
+
+    def test_a4_2c_cohort_only_contamination_without_a_sell_excludes_every_cohort_lot_of_the_symbol(tmp_path,
+                                                                                                    monkeypatch):
+        """A4.2c: cohort-only contamination with no SELL of A from the effective date through the stop: every cohort lot
+        of A is excluded in both arms from action metadata only, the original N and the > 10 % cap unchanged, the basis
+        recorded in the report."""
+        lots = base_lots() + [dict(A_LOT), {"symbol": "A", "qty": 5, "px": 51.0, "buy_day": 1}]
+        rep = score(tmp_path, monkeypatch, lots=lots, final_actions=[split("A", D[1])])
+        assert rep["n"] == 102 and rep["k"] == 2 and rep["retained"] == 100, (rep["n"], rep["k"], rep.get("reasons"))
+        assert len(rep["excluded"]) == 2
+>       assert all(any("contaminated" in w for w in why) for why in rep["excluded"].values()), rep["excluded"]
+E       AssertionError: {'102': ['FIFO attribution untrusted after sp on 2026-10-27', 'forward_splits sp on 2026-10-27'], '103': ['FIFO attribution untrusted after sp on 2026-10-27']}
+E       assert False
+E        +  where False = all(<generator object test_a4_2c_cohort_only_contamination_without_a_sell_excludes_every_cohort_lot_of_the_symbol.<locals>.<genexpr> at 0x000001B160F5BD80>)
+
+s1_tests\test_s1_t12_a4.py:118: AssertionError
+___________ test_a4_a_resolved_pre_entry_event_does_not_contaminate ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15350/test_a4_a_resolved_pre_entry_e0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B179396F90>
+
+    def test_a4_a_resolved_pre_entry_event_does_not_contaminate(tmp_path, monkeypatch):
+        """A4.2 / A4.3: a split effective on the A lot's entry day (no A lot open across it) is fully resolved: A is not
+        contaminated and the lot is scored (not excluded)."""
+        rep = score(tmp_path, monkeypatch, lots=base_lots() + [dict(A_LOT, sell=(2, 55.0))],
+                    final_actions=[split("A", D[0])])
+        assert rep["verdict"] in ("SHADOW PASS", "FAIL") and rep["k"] == 0, rep.get("reasons")
+>       assert rep.get("contamination") == {}
+E       AssertionError: assert None == {}
+E        +  where None = <built-in method get of dict object at 0x000001B1620F7AC0>('contamination')
+E        +    where <built-in method get of dict object at 0x000001B1620F7AC0> = {'bootstrap': {'10': {'bp': 10, 'interval': [0.1902857142857143, 0.1998], 'n_draws': 5000, 'n_finite': 5000, ...}, '5'...4ac3279ad227', 'carry_in': {'bridge_rows': [], 'held_at_start': {'CI': 10.0}, 'held_since': {'CI': '2026-10-01'}}, ...}.get
+
+s1_tests\test_s1_t12_a4.py:139: AssertionError
+_ test_a4_a_closed_and_reopened_symbol_is_not_contaminated_by_an_event_between _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15350/test_a4_a_closed_and_reopened_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B162143FB0>
+
+    def test_a4_a_closed_and_reopened_symbol_is_not_contaminated_by_an_event_between(tmp_path, monkeypatch):
+        """A4.3 acceptance: carry-in A fully sold before START (bridge SELL after the opening seal), a split while no lot
+        of A is open, then a cohort lot of A: A is neither carry-in-untrusted nor contaminated."""
+        rep = score(tmp_path, monkeypatch, carry_in=(("CI", 10, 50.0, "2026-10-01T15:00:00+00:00"),
+                                                     ("A", 10, 40.0, "2026-10-01T15:00:00+00:00")),
+                    bridge=(("A", "SELL", 10, 41.0, "2026-10-23T21:30:00+00:00"),),
+                    lots=base_lots() + [dict(A_LOT, sell=(2, 55.0))], final_actions=[split("A", "2026-10-25")])
+        assert rep["verdict"] in ("SHADOW PASS", "FAIL"), rep["reasons"]
+>       assert rep.get("contamination") == {} and rep["k"] == 0
+E       AssertionError: assert (None == {})
+E        +  where None = <built-in method get of dict object at 0x000001B161E6DF40>('contamination')
+E        +    where <built-in method get of dict object at 0x000001B161E6DF40> = {'bootstrap': {'10': {'bp': 10, 'interval': [0.1902857142857143, 0.1998], 'n_draws': 5000, 'n_finite': 5000, ...}, '5'...ac3279ad227', 'carry_in': {'bridge_rows': [3], 'held_at_start': {'CI': 10.0}, 'held_since': {'CI': '2026-10-01'}}, ...}.get
+
+s1_tests\test_s1_t12_a4.py:150: AssertionError
+_ test_a4_an_event_after_the_carry_in_was_fully_sold_is_not_a_carry_in_or_contamination_trigger _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15350/test_a4_an_event_after_the_car0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B161E9ADE0>
+
+    def test_a4_an_event_after_the_carry_in_was_fully_sold_is_not_a_carry_in_or_contamination_trigger(tmp_path,
+                                                                                                       monkeypatch):
+        """A4.3 acceptance: carry-in CI is fully sold on session 1 (a cohort-era SELL row); a CI split on session 2
+        finds no CI lot open across it: neither the carry-in rule nor contamination applies; the trial (stop on
+        session 3) is scored."""
+        rep = score(tmp_path, monkeypatch, lots=base_lots(sell_day=3),
+                    bridge=(("CI", "SELL", 10, 50.0, "2026-10-27T18:30:00+00:00"),), final_actions=[split("CI", D[2])])
+        assert rep["verdict"] in ("SHADOW PASS", "FAIL"), rep["reasons"]
+>       assert not any("carry-in CI" in x for x in rep["reasons"]) and rep.get("contamination") == {}
+E       AssertionError: assert (not False and None == {})
+E        +  where False = any(<generator object test_a4_an_event_after_the_carry_in_was_fully_sold_is_not_a_carry_in_or_contamination_trigger.<locals>.<genexpr> at 0x000001B161E8EC20>)
+E        +  and   None = <built-in method get of dict object at 0x000001B162196D80>('contamination')
+E        +    where <built-in method get of dict object at 0x000001B162196D80> = {'bootstrap': {'10': {'bp': 10, 'interval': [0.1998, 0.1998], 'n_draws': 5000, 'n_finite': 5000, ...}, '5': {'bp': 5, ...4ac3279ad227', 'carry_in': {'bridge_rows': [], 'held_at_start': {'CI': 10.0}, 'held_since': {'CI': '2026-10-01'}}, ...}.get
+
+s1_tests\test_s1_t12_a4.py:161: AssertionError
+_ test_a4_a_unit_action_with_missing_or_ambiguous_date_follows_the_conservative_rule[action0] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15350/test_a4_a_unit_action_with_mis0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B16214D970>
+action = {'id': 'nd', 'new_rate': 2, 'old_rate': 1, 'process_date': '2026-10-27', ...}
+
+    @pytest.mark.parametrize("action", [
+        {"type": "forward_splits", "id": "nd", "symbol": "A", "old_rate": 1, "new_rate": 2, "process_date": D[1]},
+        split("A", D[1], i="amb", effective_date=D[3]),
+    ])
+    def test_a4_a_unit_action_with_missing_or_ambiguous_date_follows_the_conservative_rule(tmp_path, monkeypatch, action):
+        """A4.2 / A4.3: a unit/identity action on A whose effective date is missing (only a process date) or ambiguous is
+        never treated as outside the date comparison: A (with a cohort lot) is contaminated; with an A SELL in the
+        window -> 2b INCONCLUSIVE."""
+        no_valuation(monkeypatch)
+>       rep = score(tmp_path, monkeypatch, lots=base_lots() + [dict(A_LOT, sell=(2, 55.0))], final_actions=[action])
+
+s1_tests\test_s1_t12_a4.py:173: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a4.py:31: in score
+    return r.score(tmp_path, "score-ack")
+s1_run.py:536: in score
+    text = _serialise(_score(out, mailbox))           # ruling M-6: serialise before opening the output file
+s1_run.py:931: in _score
+    "base": {bp: sim.baseline_economics(l, close, bp) for bp in BPS},
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = ({'entry_notional': Fraction(1000, 1), 'entry_px': Fraction(100, 1), 'entry_ts': datetime.datetime(2026, 10, 26, 15, 0, tzinfo=datetime.timezone.utc), 'fills': [(Fraction(10, 1), Fraction(80, 1))], ...}, 100, 0)
+kw = {}
+
+>   monkeypatch.setattr(sim, name, lambda *a, **kw: pytest.fail(f"valuation helper {name} called"))
+E   Failed: valuation helper paired_bootstrap called
+
+s1_tests\test_s1_t12_a4.py:37: Failed
+_ test_a4_a_unit_action_with_missing_or_ambiguous_date_follows_the_conservative_rule[action1] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15350/test_a4_a_unit_action_with_mis1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B161E879B0>
+action = {'effective_date': '2026-10-29', 'ex_date': '2026-10-27', 'id': 'amb', 'new_rate': 2, ...}
+
+    @pytest.mark.parametrize("action", [
+        {"type": "forward_splits", "id": "nd", "symbol": "A", "old_rate": 1, "new_rate": 2, "process_date": D[1]},
+        split("A", D[1], i="amb", effective_date=D[3]),
+    ])
+    def test_a4_a_unit_action_with_missing_or_ambiguous_date_follows_the_conservative_rule(tmp_path, monkeypatch, action):
+        """A4.2 / A4.3: a unit/identity action on A whose effective date is missing (only a process date) or ambiguous is
+        never treated as outside the date comparison: A (with a cohort lot) is contaminated; with an A SELL in the
+        window -> 2b INCONCLUSIVE."""
+        no_valuation(monkeypatch)
+>       rep = score(tmp_path, monkeypatch, lots=base_lots() + [dict(A_LOT, sell=(2, 55.0))], final_actions=[action])
+
+s1_tests\test_s1_t12_a4.py:173: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a4.py:31: in score
+    return r.score(tmp_path, "score-ack")
+s1_run.py:536: in score
+    text = _serialise(_score(out, mailbox))           # ruling M-6: serialise before opening the output file
+s1_run.py:931: in _score
+    "base": {bp: sim.baseline_economics(l, close, bp) for bp in BPS},
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = ({'entry_notional': Fraction(1000, 1), 'entry_px': Fraction(100, 1), 'entry_ts': datetime.datetime(2026, 10, 26, 15, 0, tzinfo=datetime.timezone.utc), 'fills': [(Fraction(10, 1), Fraction(80, 1))], ...}, 100, 0)
+kw = {}
+
+>   monkeypatch.setattr(sim, name, lambda *a, **kw: pytest.fail(f"valuation helper {name} called"))
+E   Failed: valuation helper paired_bootstrap called
+
+s1_tests\test_s1_t12_a4.py:37: Failed
+_ test_a4_a_special_dividend_on_a_carry_in_symbol_is_scored_with_lot_level_exclusion_only _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15350/test_a4_a_special_dividend_on_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B161DE82C0>
+
+    def test_a4_a_special_dividend_on_a_carry_in_symbol_is_scored_with_lot_level_exclusion_only(tmp_path, monkeypatch):
+        """A4.1 acceptance: a special cash dividend on a held carry-in symbol is not a carry-in or contamination
+        trigger (Q5): the trial is scored."""
+        rep = score(tmp_path, monkeypatch, lots=base_lots(),
+                    final_actions=[{"type": "cash_dividends", "id": "dv", "symbol": "CI", "special": True,
+                                    "ex_date": D[1], "process_date": D[1]}])
+>       assert rep["verdict"] in ("SHADOW PASS", "FAIL") and rep.get("contamination") == {}, rep["reasons"]
+E       AssertionError: []
+E       assert ('SHADOW PASS' in ('SHADOW PASS', 'FAIL') and None == {})
+E        +  where None = <built-in method get of dict object at 0x000001B16210ED80>('contamination')
+E        +    where <built-in method get of dict object at 0x000001B16210ED80> = {'bootstrap': {'10': {'bp': 10, 'interval': [0.1998, 0.1998], 'n_draws': 5000, 'n_finite': 5000, ...}, '5': {'bp': 5, ...4ac3279ad227', 'carry_in': {'bridge_rows': [], 'held_at_start': {'CI': 10.0}, 'held_since': {'CI': '2026-10-01'}}, ...}.get
+
+s1_tests\test_s1_t12_a4.py:192: AssertionError
+_____________ test_a4_the_task7_c2_fifo_untrust_rule_is_replaced ______________
+
+    def test_a4_the_task7_c2_fifo_untrust_rule_is_replaced():
+        """A4.2 replaces ruling C-2: the old symbol-exclusion-only function is gone; the contamination decision is the
+        registered contaminated_symbols()."""
+>       assert not hasattr(r, "fifo_untrusted") and callable(r.contaminated_symbols)
+E       AssertionError: assert (not True)
+E        +  where True = hasattr(r, 'fifo_untrusted')
+
+s1_tests\test_s1_t12_a4.py:209: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_a4.py::test_a7_no_processing_or_publication_date_is_an_effective_date
+FAILED s1_tests/test_s1_t12_a4.py::test_a7_an_undated_action_with_only_a_process_date_blocks_every_lot_of_its_symbol
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_2b_a_post_event_sell_makes_the_whole_trial_inconclusive
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_2b_a_sell_allocated_by_unrepaired_fifo_to_a_newer_lot_is_still_inconclusive
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_2b_a_unit_event_changing_the_apparent_100th_sale
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_2c_cohort_only_contamination_without_a_sell_excludes_every_cohort_lot_of_the_symbol
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_a_resolved_pre_entry_event_does_not_contaminate
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_a_closed_and_reopened_symbol_is_not_contaminated_by_an_event_between
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_an_event_after_the_carry_in_was_fully_sold_is_not_a_carry_in_or_contamination_trigger
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_a_unit_action_with_missing_or_ambiguous_date_follows_the_conservative_rule[action0]
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_a_unit_action_with_missing_or_ambiguous_date_follows_the_conservative_rule[action1]
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_a_special_dividend_on_a_carry_in_symbol_is_scored_with_lot_level_exclusion_only
+FAILED s1_tests/test_s1_t12_a4.py::test_a4_the_task7_c2_fifo_untrust_rule_is_replaced
+13 failed, 4 passed in 32.13s

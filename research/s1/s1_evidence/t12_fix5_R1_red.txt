@@ -1,0 +1,23 @@
+Task 12 fix round 5 - R1 behavioural RED, run against the round-4 sources (unchanged working tree before any fix-5 edit)
+sha256 of the sources at RED time:
+49bcc46f4218416b282115bc3f5da57367a3f72301c790a779342dfd06a4a115 *s1_common.py
+784f72bd39fa1cfff66408914dd79003745458496a60c309af94add763873b95 *s1_checkpoint.py
+a02fc47cf6538db4215b3e2b2c90ba838ee682efa74330dcf32f1854d2b4e8c3 *s1_tests/test_s1_t12_fix5.py
+command: python -m pytest s1_tests/test_s1_t12_fix5.py -k test_r1 -q -p no:cacheprovider -rf --tb=short
+F.....                                                                   [100%]
+================================== FAILURES ===================================
+_______ test_r1_probe_an_opening_whose_first_slot_never_ran_still_seals _______
+s1_tests\test_s1_t12_fix5.py:46: in test_r1_probe_an_opening_whose_first_slot_never_ran_still_seals
+    rep = _reopen(tmp_path, lg, oc, cal, 7)
+s1_tests\test_s1_t12_fix4.py:164: in _reopen
+    return ck.run_opening_checkpoint(tmp_path, lg.path, sch, spies.receipt if spies else (lambda: S1_RECEIPT),
+s1_checkpoint.py:782: in run_opening_checkpoint
+    c.verify_bundle_first(out, "opening checkpoint", mailbox=mailbox, now=now, need="audit")    # Task 12: A3.2
+s1_common.py:432: in verify_bundle_first
+    registration_gate(out, where, now, refuse=gate_refuses, mailbox=mailbox)       # B3.3
+s1_common.py:961: in registration_gate
+    raise SystemExit(f"{where} refused: registration artifact(s) missing or changed: {probs[:3]}: persistent "
+E   SystemExit: opening checkpoint refused: registration artifact(s) missing or changed: ['captures/2026-10-23/20261023T204500Z.resolution.json exists without its slot claim (an earlier opening attempt)']: persistent ABORTED-INVALID (reason registration artifact)
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix5.py::test_r1_probe_an_opening_whose_first_slot_never_ran_still_seals
+1 failed, 5 passed, 6 deselected in 1.06s

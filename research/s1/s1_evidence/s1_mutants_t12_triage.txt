@@ -1,0 +1,216 @@
+Task 12 targeted mutants - triage of non-kills (s1_mutants_t12.txt: KILLED=197, SURVIVED=1 of 198; no HARNESS, no
+BUNDLE-REFUSAL classification occurred, so every counted kill is an intended test failing on its assertion).
+
+SURVIVED  held_symbols ignores operational holdings  (s1_books.py::held_symbols, Task 11)  -> EQUIVALENT
+  Both books replay the same rows. The operational book only ever REDUCES a holding relative to the economic FIFO
+  (a remainder < 0.001 is written off to zero; an oversell within 1e-6 sets it to zero), while the economic FIFO keeps
+  every residual above its 1e-12 dust snap. So an operational quantity > 0 (necessarily >= 0.001, otherwise written
+  off) implies an economic open lot with remaining >= that quantity, and `held | operational` == `held` on every
+  readable ledger (an unreadable one raises BookError in both). The union is kept as a defensive mirror of
+  s1_run._carry_in; no test can distinguish them.
+
+First run (s1_mutants_t12_run1.txt, same sources): KILLED=177, KILLED-UNINTENDED=1, SURVIVED=20.
+- The KILLED-UNINTENDED entry was a harness parsing defect (failing test ids containing a space were not matched to
+  the intended test); the classifier regex was fixed before the final run.
+- The 20 survivors were each a check masked by an earlier overlapping check (defense in depth) or a boundary the
+  intended test did not reach; each got a RETROSPECTIVE isolating test in s1_tests/test_s1_t12_mutant_survivors.py
+  and is KILLED in the final run.
+
+==================================================================== Fix round 1 (m-2) re-run, 2026-10-17
+Harness change: -rf run with COLUMNS=2000 so every FAILED line keeps its message; each failing test id is printed
+with its failure kind ([assertion] or the escaping exception class). KILLED = an intended test failed on an
+assertion, or on an exception declared per mutant in s1_mutants_t12_accept.py (30 entries, each with its reason:
+the test reads the artifact/key it asserts, or the escaping exception IS the outcome under test). Any other
+exception kill is KILLED-BY-EXCEPTION and is NOT counted as an intended kill.
+Mutants: 198 from phase 1 + 9 new fix-round mutants = 207.
+Intermediate run (no accept list): s1_mutants_t12_fix1_classify_run.txt: KILLED=167, KILLED-BY-EXCEPTION=38,
+SURVIVED=2 (one was the new "run_checkpoint: a corrupt seal is not an abort", see below).
+Final run (s1_mutants_t12.txt): KILLED=198, KILLED-BY-EXCEPTION=8, SURVIVED=1.
+
+SURVIVED (1): held_symbols ignores operational holdings - unchanged from phase 1 (equivalent, triaged above).
+The intermediate survivor "run_checkpoint: a corrupt seal is not an abort" was killed in the final run by the m-4
+deletion test after it was strengthened (between RED and GREEN) to assert that no post-stop close is sealed.
+
+KILLED-BY-EXCEPTION (8), not counted: detected, but by an upstream refusal/exception rather than the intended
+assertion. Each is a test-precision gap, listed as such (no test was changed for them in this round):
+ 1. token_fields keeps only the first field - registration refuses "AUDIT-ACK carries no bundle" before the
+    RUN-ACK bundle-field assertion is reached.
+ 2. load_json reads nothing - KeyError 'planned_start' inside registration.
+ 3. _require_no_redirects accepts any client - the test then fails reading a file (FileNotFoundError) instead of
+    asserting the refusal.
+ 4. collect _load reads nothing - final plan refuses "bad seal record (KeyError: 'start')".
+ 5. _namespace_dir always true - a ReceiptError for a different missing member is raised.
+ 6. _out points elsewhere - "no AUDIT-ACK'd audit" refusal.
+ 7. attest_stop binds no stop.json - the final command refuses "stop attestation does not bind this stop".
+ 8. _receipt_sha over the whole receipt - the START attestation refuses (receipt does not match the opening seal).
+Phase-1 counts claimed "197 KILLED"; under the m-2 rule that figure overstated intended kills (38 were exception
+kills before the per-mutant declarations; 8 remain undeclared).
+
+
+==================================================================== Fix round 2 (Addendum 2 B1-B3, I-1 completion), 2026-10-17
+Harness: unchanged classifier (fix round 1, m-2) + s1_mutants_t12_fix2.py, which
+ (1) RETARGETS 13 fix-round-1 mutants whose source text the round-2 code replaced (same intent on the new code;
+     5 renamed: "_binding: a changed binding is accepted", "_binding: a gap is not reported", "finalize_close reads
+     no resolution records", "finalize_close: an unclaimed earlier slot with an open window ignored", "finalize_close
+     stops at the first unsuccessful slot"); "verified_registration ignores problems" now targets an ACK-timing
+     breakage (an edited plan is first the B3 gate's abort);
+ (2) TIGHTENS the 8 fix-round-1 KILLED-BY-EXCEPTION mutants with tests whose intended assertion fails on them
+     (s1_tests/test_s1_t12_fix2_mutants.py, retrospective);
+ (3) ADDS 40 targeted mutants for the round-2 behaviour (3 I-1, 10 B1, 13 B2, 14 B3).
+Mutants: 207 (fix round 1) + 40 = 247.
+
+Run 1 (s1_mutants_t12_fix2_run1.txt): KILLED=229, KILLED-BY-EXCEPTION=5, SURVIVED=13.
+ The 8 fix-round-1 exception-only kills: all KILLED by an assertion of their tightening test.
+ Non-kills, and what was done:
+ - run_ack_problems: prereg calendar not bound; _read_seals: a corrupt seal crashes; run_checkpoint: a corrupt seal
+   is not an abort; stop_was_persisted always false; attest_stop: registration not verified - SHADOWED by the new
+   B3 gate in the old intended tests (the gate observes the change first). Tightened with tests that reach the
+   check behind the gate (a prereg registered with the wrong calendar; a corrupt seal no report binds; stop.json
+   AND its registry record deleted; a RUN-ACK timing breakage at attest_stop).
+ - run_checkpoint / run_opening_checkpoint: a late capture may seal; run_checkpoint: a failed observation may seal -
+   the B1 resolution completeness check (_complete_success) now also refuses these, so "no seal" no longer
+   distinguishes them; tightened: such a capture is never a CANDIDATE.
+ - _complete_success accepts any candidate - the forged-evidence test failed earlier (missing keys); tightened with
+   evidence complete in form but LATE.
+ - run_ack_problems: prereg binding not checked - the next check (attestation hash) also names "process binding";
+   tightened to the exact message.
+ - KILLED-BY-EXCEPTION (5): _claim_slot allows a duplicate execution (FileExistsError from the now exclusive report
+   write), persist_stop overwrites (SystemExit from the registry), _finalize_others resolves no other close
+   (FileNotFoundError reading the resolution), attest_start binds no process binding / the opening registration
+   is not recorded (refusals later in the test setup) - each tightened with a test asserting the property directly.
+Run 2 (s1_mutants_t12.txt, final): KILLED=244, KILLED-BY-EXCEPTION=0, SURVIVED=3 (total 247); no HARNESS, no
+BUNDLE-REFUSAL, no KILLED-UNINTENDED.
+
+SURVIVED (3):
+ 1. held_symbols ignores operational holdings - unchanged from phase 1 (equivalent, triaged above).
+ 2. _stop_state ignores the persisted stop's integrity - EQUIVALENT under B3: the registration gate evaluates the
+    same s1_seal.stop_problems(recheck=False) earlier in the same command (write_final_plan -> final_plan_record ->
+    verify_bundle_first) whenever stop.json exists, so _stop_state's copy can never be the first to observe a
+    problem (it is kept as defence in depth).
+ 3. _trial_end: integrity failure still demands the final manifest - EQUIVALENT under B3: the score's record-only
+    gate runs the same stop_problems(recheck=False) before _pre_reserve_gate and persists aborted.json on any
+    problem, so _trial_end always takes its aborted branch first; the mutated branch is unreachable.
+Counting honestly: 244 of 247 killed by an intended assertion (or a declared intended exception, 30 declarations
+unchanged from fix round 1), 0 exception-only kills, 3 survivors (1 phase-1 equivalent, 2 equivalent because B3
+shadows the check - not test gaps).
+
+
+==================================================================== Fix round 3 (re-review 1: C-1, C-2, I-1, I-2, M-1..M-3), 2026-10-17
+Harness: unchanged classifier + s1_mutants_t12_fix3.py, which (1) RETARGETS 13 earlier mutants whose source text the
+round-3 code replaced (same intent: write_abort / persist_stop / _claim_slot overwrite, key recreate, _write_report,
+registration audit stage, report witness, changed/missing/post-stop checks, gate order, audit re-entry, prereg
+registration); (2) ADDS 21 targeted round-3 mutants (4 C-1, 9 C-2/I-2, 2 M-2, 1 I-1 pending, 2 I-1 finalize, 1 M-1,
+1 M-3, 1 M-2 lock). Mutants: 247 + 21 = 268.
+Run 1 (s1_mutants_t12_fix3_run1.txt): KILLED=260, KILLED-BY-EXCEPTION=1, SURVIVED=7.
+ - "run_checkpoint: a corrupt seal is not an abort", "the persisted stop is not registered": SHADOWED by the round-3
+   gate / report witnesses in their old tests; isolating RETROSPECTIVE tests added (an unreadable / a bad seal
+   record no report binds stops the checkpoint before its own seal; a stop no report recorded, deleted, is still
+   witnessed by its two records).
+ - "C-2 _registered: the RUN-ACK is no witness", "C-2 _reached: prereg reached only by its own files": the intended
+   tests kept a second witness; RETROSPECTIVE tests with the RUN-ACK alone / a post-START claim alone.
+ - KILLED-BY-EXCEPTION "C-2 register_stage writes only the registry copy": the system's own gate aborts the test
+   setup (the missing second record is detected); RETROSPECTIVE assertion tests (every stage / the opening recorded
+   twice).
+Run 2 (s1_mutants_t12_fix3_run2.txt): KILLED=263, KILLED-BY-EXCEPTION=1, SURVIVED=4 (the corrupt-seal mutant needed a
+ READABLE bad record: retrospective test added; the register_stage exception kill needed the opening-only test).
+Final (s1_mutants_t12_fix3_final.txt): KILLED=265, KILLED-BY-EXCEPTION=0, SURVIVED=3 (total 268); no HARNESS, no
+BUNDLE-REFUSAL, no KILLED-UNINTENDED.
+
+SURVIVED (3):
+ 1. held_symbols ignores operational holdings - phase-1 equivalent (unchanged argument above).
+ 2. _stop_state ignores the persisted stop's integrity, and
+ 3. _trial_end: integrity failure still demands the final manifest - RE-DERIVED under the round-3 witness rule
+    (re-review I-3): both callers run only with prereg.json present (they refuse first otherwise) and the mutated
+    check only matters for a stop.json that already existed. prereg.json + stop.json are two witnesses, so
+    _registered is True and the stop stage is reached (stop.json), and the registration gate - earlier in the same
+    command (verify_bundle_first; the score's record-only gate before _pre_reserve_gate) - evaluates the same
+    s1_seal.stop_problems(recheck=False) and persists the abort on any problem. The C-2 states the re-review used
+    to reach these copies (is_registered False with stop.json present) no longer exist: stop.json and both stop
+    records are themselves witnesses, and a lone stop.json without prereg cannot reach either command. EQUIVALENT
+    (defence in depth), not a test gap.
+Counting honestly: 265 of 268 killed by an intended assertion (or a declared intended exception, the fix-round-1
+declarations unchanged), 0 exception-only kills, 3 equivalent survivors.
+
+==================================================================== Fix round 4 (re-review 2: N-1, N-2, N-3, m-1)
+s1_mutants_t12_fix4.py: 3 retargets (source replaced; same intent: _registered x2, the stage-lock check now in
+_refuse_if_locked) + 18 new round-4 mutants = 286.
+Run 1 (s1_mutants_t12_fix4_run1.txt): KILLED=278, BUNDLE-REFUSAL=1, SURVIVED=7.
+- 3 survivors are the known equivalents (_stop_state, _trial_end, held_symbols; unchanged derivations above).
+- "C-2/I-2 _registered: a lone witness registers": masked by the N-3 opening-tie for the two fix-3 tests (a "{}" seal
+  is no valid seal; a lone registry record is not opening-tied) -> RETROSPECTIVE
+  fix4::test_n3_retro_a_lone_handmade_seal_of_the_opening_close_is_a_refusal (a well-formed lone opening seal).
+- "N-1 registration_gate: the lock is not re-checked after the scan": masked in the gate-first order by the final
+  lock check -> RETROSPECTIVE fix4::test_n1_retro_a_publication_released_during_the_gate_rescan_is_a_refusal (the
+  lock released during the second scan: only the re-check refuses).
+- "attest_start: not after the opening seal's capture": its test attests before the opening's first slot, which the
+  clock anchor now refuses first -> RETROSPECTIVE fix4::test_n3_retro_the_attestation_between_the_first_slot_and_
+  the_capture_end_refuses (the interval only this check covers).
+- "N-3 preregistration_problems: no clock anchor": masked by the forged prereg's unverifiable ACK id -> the intended
+  test strengthened (the prereg names the forged RUN-ACK carrying the disk bundle).
+- BUNDLE-REFUSAL "N-3 registration: a prereg is registered before the opening": the test's assertion message
+  carried the bundle refusal text -> assertion message reduced to the abort reason.
+Final (s1_mutants_t12_fix4_final.txt): KILLED=283, KILLED-BY-EXCEPTION=0, SURVIVED=3 (the known equivalents).
+
+==================================================================== Fix round 5 (re-review 3: R-1, R-2, R-3)
+s1_mutants_t12_fix5.py: 4 retargets (source replaced; same intent: opening_orphans claim check, the clock anchor in
+registration_problems / preregistration_problems / registration()) + 1 function rename (opening_anchor's
+first-slot mutant now lives in _first_slot_of) + 14 new round-5 mutants = 300.
+Run 1 (s1_mutants_t12_fix5_run1.txt): KILLED=294, KILLED-BY-EXCEPTION=2, SURVIVED=4.
+- 3 survivors are the known equivalents (_stop_state, _trial_end, held_symbols; unchanged derivations above).
+- "R-1 any claimless record is consistent": masked by the last_process.json rule (the FAILURE guard deletes the only
+  claim) -> RETROSPECTIVE fix5::test_r1_retro_a_failure_record_left_without_its_claim_and_capture_is_an_orphan.
+- KILLED-BY-EXCEPTION "R-1 a MISSED record is never consistent without its claim" (the refusal escaped as
+  SystemExit) and "R-3 the after-seal slot publishes no resolution" (FileNotFoundError reading the resolution):
+  both intended tests strengthened after GREEN (pytest.fail on the refusal; an exists() assertion first).
+Re-run of the 14 round-5 mutants after tightening: KILLED=14.
+Final (s1_mutants_t12_fix5_final.txt): KILLED=297, KILLED-BY-EXCEPTION=0, SURVIVED=3 (the known equivalents).
+
+==================================================================== Fix round 6 (re-review 4: F-1)
+s1_mutants_t12_fix6.py: 3 retargets (the round-5 R-2 mutants on the F-1 anchor) + 5 new F-1 mutants = 305.
+First subset run (R-2/F-1, 8 mutants): 5 SURVIVED. Each anchor source was masked: with the AUDIT-ACK readable it names
+the same opening close as an honest plan and as every other fallback source, and an empty fallback (no anchor) was
+already the strict outcome. Code: an empty fallback now keeps the plan-derived anchor (§19.3 outage-class residual).
+Tests: the edited-plan test strengthened (a forged earlier-close opening record) and 4 RETROSPECTIVE isolating tests
+(fix6::test_f1_retro_*: RUN-ACK only, opening records only, an unchanged plan authoritative with the AUDIT-ACK
+unreadable, a later fallback source never delays the anchor). Re-run of the 8: KILLED=8.
+Final (s1_mutants_t12_fix6_final.txt): KILLED=302, KILLED-BY-EXCEPTION=0, SURVIVED=3 (the known equivalents).
+
+==================================================================== Fix round 7 (re-review 5: G-1)
+s1_mutants_t12_fix7.py: 2 retargets ("R-2 the anchor ignores the registered evidence" on the new anchor; "F-1 the plan
+is never authoritative" renamed "F-1/G-1 the vouched plan is no source") + 3 new G-1 mutants = 308.
+First subset run (R-2/F-1/G-1): 3 SURVIVED ("F-1/G-1 the vouched plan is no source", "G-1 a broken AUDIT-ACK binding
+lets the manifest vouch", "G-1 an outage manifest is not checked against the opening records"). The plan source can
+only LOWER the anchor, so each shows only when an edited plan names a close earlier than every other source -> 3
+RETROSPECTIVE isolating tests (fix7::test_g1_retro_*); one edited after its first run so the fabricated claim is of
+the edited plan's close. Re-run: KILLED=3.
+Final (s1_mutants_t12_fix7_final.txt): KILLED=305, KILLED-BY-EXCEPTION=0, SURVIVED=3 (the known equivalents).
+
+==================================================================== Fix round 8 (structural rule; re-review 6: H-1, H-2)
+s1_mutants_t12_fix8.py: 6 retargets (audit-stage registration, I-2 stray seals, N-2 orphans, N-3 x3 on
+registration_state), 11 RETIRED (R-2/F-1/G-1 anchor-source mutants: _audit_bound, _fallback_opening_days, the
+plan-vouching branch and the local-hash RUN-ACK lookup were deleted) + 6 new H mutants = 303.
+First subset run: 2 SURVIVED ("H the opening close is named by plan.json", "H the external ACKs' bound hashes are not
+checked" - in a registered state other checks also catch them) and 1 HARNESS ("N-3 opening_anchor": its intended
+fix4 test was removed). Tightened: fix6::test_f1_an_edited_plan_* added as intended test, RETROSPECTIVE
+fix8::test_h_retro_only_the_external_acks_bind_a_coordinated_plan_edit, retarget to the probe-9 anchor assertion.
+Re-run: KILLED=4.
+Final (s1_mutants_t12_fix8_final.txt): KILLED=298, KILLED-BY-EXCEPTION=0, SURVIVED=5 (the 3 known equivalents + 2 structural equivalents under the fix-8 rule: the C-2 RUN-ACK witness and reach mutants, subsumed by rule 1a and the external-ACK binding check - triage).
+Final-run note: 2 further SURVIVORS, both EQUIVALENT by construction under the fix-8 rule (stated, not hidden):
+- "C-2 _registered: the RUN-ACK is no witness": registration_state registers on an external ACK directly (rule 1a,
+  `bool(later) or ...`), so the "RUN-ACK" term inside _registered can no longer change any outcome.
+- "C-2 _reached: the RUN-ACK does not reach the attestation": a RUN-ACK binding attest_start_sha256 is also enforced
+  by _ack_bound_problems (the attestation missing/changed is a problem either way), so the abort is unchanged.
+
+==================================================================== Fix round 9 (re-review 7: H-3; rule-3 correction)
+s1_mutants_t12_fix9.py: 2 retargets ("N-3 opening_anchor" on _earliest_first_slot; "H the opening close is named by
+plan.json" renamed "H the plan is used without the AUDIT-ACK's plan_sha256"), 1 RETIRED ("H opening evidence before
+any AUDIT-ACK is no problem": its rule was reversed by the controller; its inverse is the new "rule 3" mutant),
+intended test ids removed in round 9 replaced by their successors, + 4 new = 306.
+First subset run: 2 SURVIVED ("H the anchor cancels an external ACK": its test's clock now lay after the earlier
+calendar-free anchor -> clock = anchor - 10 min; "H the plan is used without the AUDIT-ACK's plan_sha256": an edit
+moving the date earlier also trips the orphan rule -> the fix5 R-2 later-date test added as intended). Re-run: KILLED.
+Final (s1_mutants_t12_fix9_final.txt): KILLED=301, KILLED-BY-EXCEPTION=0, SURVIVED=5 (the 3 known equivalents + the 2 structural equivalents declared in fix round 8: the C-2 RUN-ACK witness and reach mutants).
+
+==================================================================== Fix round 10 (re-review 8 m-1)
+s1_mutants_t12_fix10.py: 3 new mutants on the EARLIEST_CLOSE_NY calendar check = 309. Subset run: 2 KILLED, 1 KILLED-BY-EXCEPTION (the boundary guard let the refusal escape) -> guard strengthened (pytest.fail on the refusal); re-run KILLED.
+Final (s1_mutants_t12_fix10_final.txt): KILLED=304, KILLED-BY-EXCEPTION=0, SURVIVED=5 (the 3 known equivalents + the 2 structural equivalents declared in fix round 8).

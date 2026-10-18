@@ -32,7 +32,8 @@ def test_schedule_is_fixed_offsets_then_hourly_to_0800_next_session():
 def cap(minute_offset, ok=True, consistent=True, late=0):
     close = datetime(2026, 10, 15, 20, 0, tzinfo=UTC)
     sch = close + timedelta(minutes=minute_offset)
-    return {"scheduled": sch.isoformat(), "actual": (sch + timedelta(minutes=late)).isoformat(), "ok": ok,
+    t = (sch + timedelta(minutes=late)).isoformat()            # Task 12 (A5.2) interface: measured start/end
+    return {"scheduled": sch.isoformat(), "actual": t, "capture_start": t, "capture_end": t, "ok": ok,
             "consistent": consistent, "projection_sha256": "h", "dir": "d"}
 
 
@@ -122,7 +123,11 @@ def test_unsealed_qualifying_close_is_not_the_stop():                           
 @pytest.mark.parametrize("start,want", [(datetime(2026, 8, 31, 13, 30, tzinfo=UTC), date(2027, 2, 28)),
                                         (datetime(2026, 10, 14, 13, 30, tzinfo=UTC), date(2027, 4, 14))])
 def test_deadline_calendar_months_with_month_end(start, want):
-    assert z.deadline(start) == want
+    """Task 12 (A5.1/A10.1) REPLACEMENT (old: deadline() == a date): the deadline is an aware instant at START's
+    New York wall time; its New York date is still START + 6 calendar months (month-end clamp)."""
+    from s1_common import NY
+    got = z.deadline(start)
+    assert got.astimezone(NY).date() == want and got.astimezone(NY).strftime("%H:%M") == "09:30"
 
 
 def test_deadline_holiday_month_end_and_no_valid_seal():                                # example 15
@@ -148,11 +153,15 @@ from hypothesis import given, settings, strategies as st
 @settings(max_examples=300, deadline=None)
 @given(st.dates(min_value=date(2026, 1, 1), max_value=date(2030, 12, 31)))
 def test_prop_deadline_is_six_calendar_months_clamped(d):
-    got = z.deadline(datetime(d.year, d.month, d.day, 14, tzinfo=UTC))
-    m = d.month + 6
-    y, m = d.year + (m - 1) // 12, (m - 1) % 12 + 1
+    """Task 12 (A5.1/A10.1) REPLACEMENT (old: a date): the instant's New York date is START's New York date + 6
+    months, clamped."""
+    from s1_common import NY
+    s_ny = datetime(d.year, d.month, d.day, 14, tzinfo=UTC).astimezone(NY)
+    got = z.deadline(datetime(d.year, d.month, d.day, 14, tzinfo=UTC)).astimezone(NY).date()
+    m = s_ny.month + 6
+    y, m = s_ny.year + (m - 1) // 12, (m - 1) % 12 + 1
     import calendar as pycal
-    assert got == date(y, m, min(d.day, pycal.monthrange(y, m)[1]))
+    assert got == date(y, m, min(s_ny.day, pycal.monthrange(y, m)[1]))
 
 
 def test_schedule_across_est_and_early_close_retrospective():
@@ -389,8 +398,8 @@ def test_cr_stop_decision_today_boundaries():
     assert d["status"] == "STOPPED" and d["stop_close"] == C15.isoformat()
     we14 = z.window_end(next(x for x in CAL if x["date"] == "2026-10-14"), CAL)
     assert z.stop_decision([], START_T9, CAL, today=we14)["missed"] == []
-    dl = z.deadline(START_T9).isoformat()
-    elig = [x for x in CAL if z.open_instant(x) >= START_T9 and x["date"] <= dl]
+    dl = z.deadline(START_T9)                                  # Task 12 (A5.1) interface: close instants
+    elig = [x for x in CAL if z.open_instant(x) >= START_T9 and z.close_of(x["date"], CAL) <= dl]
     last_end, prev_end = z.window_end(elig[-1], CAL), z.window_end(elig[-2], CAL)
     assert z.stop_decision([], START_T9, CAL, today=prev_end + timedelta(minutes=1))["status"] == "RUNNING"
     assert z.stop_decision([], START_T9, CAL, today=last_end)["status"] == "RUNNING"
@@ -398,9 +407,16 @@ def test_cr_stop_decision_today_boundaries():
 
 
 def test_cr_deadline_session_itself_is_eligible():
-    """Retrospective (Task 9 CR survivor s1_seal:199): the deadline day's close can be the stop."""
-    dl = z.deadline(START_T9).isoformat()
-    assert any(x["date"] == dl for x in CAL)
-    t = _sold_lots(100, buy_ts="2027-04-13T15:00:00+00:00", sell_ts="2027-04-14T15:00:00+00:00")
-    d = z.stop_decision([_seal(dl, t)], START_T9, CAL, today=datetime(2027, 4, 20, tzinfo=UTC))
-    assert d["status"] == "STOPPED" and d["stop_close"] == z.close_of(dl, CAL).isoformat()
+    """Retrospective (Task 9 CR survivor s1_seal:199). Task 12 (A5.1/A10.1) REPLACEMENT - the old expectation
+    (the deadline DAY's 16:00 close can be the stop although the deadline instant is 09:30 that day) contradicts the
+    approved aware-deadline rule (Codex 0a58b934 point 4): that close is INELIGIBLE; the last eligible close is the
+    previous session's, which can be the stop."""
+    from s1_common import NY
+    dl_day = z.deadline(START_T9).astimezone(NY).date().isoformat()          # 2027-04-14, 09:30 deadline
+    assert any(x["date"] == dl_day for x in CAL)
+    t = _sold_lots(100, buy_ts="2027-04-12T15:00:00+00:00", sell_ts="2027-04-14T15:00:00+00:00")
+    d = z.stop_decision([_seal(dl_day, t)], START_T9, CAL, today=datetime(2027, 4, 20, tzinfo=UTC))
+    assert d["status"] != "STOPPED" and d["stop_close"] != z.close_of(dl_day, CAL).isoformat()
+    t = _sold_lots(100, buy_ts="2027-04-12T15:00:00+00:00", sell_ts="2027-04-13T15:00:00+00:00")
+    d = z.stop_decision([_seal("2027-04-13", t)], START_T9, CAL, today=datetime(2027, 4, 20, tzinfo=UTC))
+    assert d["status"] == "STOPPED" and d["stop_close"] == z.close_of("2027-04-13", CAL).isoformat()

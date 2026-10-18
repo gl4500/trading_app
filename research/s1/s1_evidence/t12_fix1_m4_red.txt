@@ -1,0 +1,60 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_ test_fix1_m4_a_deleted_persisted_stop_is_an_integrity_failure_not_a_recompute _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15998/test_fix1_m4_a_deleted_persist0')
+
+    def test_fix1_m4_a_deleted_persisted_stop_is_an_integrity_failure_not_a_recompute(tmp_path):
+        """m-4 (A2.1): stop.json deleted after it was persisted (its hash is recorded by the stop checkpoint's report)
+        is never silently recomputed: the next checkpoint records the persistent abort; stop.json stays absent."""
+        st_, lg, rows = _live_stop(tmp_path)
+        out = tmp_path / "s1_out"
+        (out / "stop.json").unlink()
+        rep = _cp(tmp_path, st_, MON + timedelta(days=2))
+>       assert rep["stop"]["status"] == "ABORTED-INVALID" and not (out / "stop.json").exists()
+E       AssertionError: assert ('STOPPED' == 'ABORTED-INVALID'
+E         
+E         - ABORTED-INVALID
+E         + STOPPED)
+
+s1_tests\test_s1_t12_fix1.py:122: AssertionError
+__ test_fix1_m4_a_changed_persisted_stop_before_the_attestation_is_detected ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15998/test_fix1_m4_a_changed_persist0')
+
+    def test_fix1_m4_a_changed_persisted_stop_before_the_attestation_is_detected(tmp_path):
+        """m-4: stop.json edited after persistence (before any attestation) differs from the hash the checkpoint
+        reports recorded -> stop_problems reports it."""
+        st_, lg, rows = _live_stop(tmp_path)
+        out = tmp_path / "s1_out"
+        p = out / "stop.json"
+        p.write_text(json.dumps(dict(read(p), decided_by="edited")), encoding="utf-8")
+        probs = z.stop_problems(out, START_DT, st_["calendar"], recheck=False)
+>       assert any("stop.json" in x and "changed" in x for x in probs), probs
+E       AssertionError: []
+E       assert False
+E        +  where False = any(<generator object test_fix1_m4_a_changed_persisted_stop_before_the_attestation_is_detected.<locals>.<genexpr> at 0x00000223DE4C86C0>)
+
+s1_tests\test_s1_t12_fix1.py:134: AssertionError
+_____________ test_fix1_m4_the_persisted_stops_bundle_is_checked ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15998/test_fix1_m4_the_persisted_sto0')
+
+    def test_fix1_m4_the_persisted_stops_bundle_is_checked(tmp_path):
+        """m-4 (A3.4): stop.json's bundle_sha256 must be the registered bundle."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        p = out / "stop.json"
+        p.write_text(json.dumps(dict(read(p), bundle_sha256="0" * 64)), encoding="utf-8")
+        probs = z.stop_problems(out, START_DT, st_["calendar"], recheck=False)
+>       assert any("bundle" in x for x in probs), probs
+E       AssertionError: []
+E       assert False
+E        +  where False = any(<generator object test_fix1_m4_the_persisted_stops_bundle_is_checked.<locals>.<genexpr> at 0x00000223DE43FB90>)
+
+s1_tests\test_s1_t12_fix1.py:144: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix1.py::test_fix1_m4_a_deleted_persisted_stop_is_an_integrity_failure_not_a_recompute
+FAILED s1_tests/test_s1_t12_fix1.py::test_fix1_m4_a_changed_persisted_stop_before_the_attestation_is_detected
+FAILED s1_tests/test_s1_t12_fix1.py::test_fix1_m4_the_persisted_stops_bundle_is_checked
+3 failed, 5 deselected in 5.74s

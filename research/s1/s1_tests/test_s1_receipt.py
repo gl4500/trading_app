@@ -3,6 +3,10 @@ from pathlib import Path
 
 import s1_receipt as r
 
+# Task 12 (A1) interface: these synthetic repos have no registered runtime (and some no .env): a reviewed alternate
+# evidence contract states that explicitly (the registered one fails on a missing required input).
+ALT = r.contract(env_required=False, runtime_required=False)
+
 
 def repo(tmp_path):
     be = tmp_path / "backend"
@@ -27,15 +31,19 @@ def test_closure_follows_in_repo_imports_only(tmp_path):
 
 
 def test_receipt_changes_with_code_or_mr_config_but_not_secrets(tmp_path):
+    """Task 12 (A1) interface: the compared part is the fingerprint. FRED_API_KEY is not MR-relevant here (config.API
+    is not used by the MR closure), so its value change leaves the fingerprint unchanged - unchanged expectation.
+    (An MR-relevant SECRET-named key is now bound by HMAC: test_s1_t12_a1.py.)"""
     root = repo(tmp_path)
     env = tmp_path / ".env"
     env.write_text("MR_SELL_ZSCORE=1.5\nFRED_API_KEY=abc12345\n")
-    a = r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"])
+    a = r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"], contract=ALT)
     env.write_text("MR_SELL_ZSCORE=1.5\nFRED_API_KEY=zzz99999\n")
-    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"]) == a
+    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"], contract=ALT) == a
     env.write_text("MR_SELL_ZSCORE=2.0\nFRED_API_KEY=zzz99999\n")
-    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"]) != a
-    assert "abc12345" not in str(a) and "FRED_API_KEY" not in a["config"]
+    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"],
+                              contract=ALT)["fingerprint"] != a["fingerprint"]
+    assert "abc12345" not in str(a) and "FRED_API_KEY" not in str(a["fingerprint"])
 
 
 def test_restart_record_parses_process_start_lines(tmp_path):
@@ -75,9 +83,10 @@ def test_closure_includes_package_init(tmp_path):
     (be / "trading" / "__init__.py").write_text("")
     got = r.closure(be, ["agents/mean_reversion_agent.py"])
     assert "agents/__init__.py" in got and "trading/__init__.py" in got and "agents/helper.py" in got
-    a = r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"])
+    a = r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"], contract=ALT)
     (be / "agents" / "__init__.py").write_text("from agents import helper\nCHANGED = 1\n")
-    assert r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"]) != a
+    assert r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"],
+                              contract=ALT)["fingerprint"] != a["fingerprint"]
 
 
 def test_from_package_import_module(tmp_path):
@@ -101,8 +110,12 @@ def test_relative_import_followed_and_escape_raises(tmp_path):
     with pytest.raises(ValueError):
         r.closure(be, ["agents/mean_reversion_agent.py"])
     (be / "agents" / "mean_reversion_agent.py").write_text("from ..x import y\n")
-    got = r.closure(be, ["agents/mean_reversion_agent.py"])  # one level up = backend/, allowed
-    assert got == ["agents/mean_reversion_agent.py"]
+    # Task 12 (A1.1/A10.1) REPLACEMENT (old: the unresolved backend/x member was silently skipped): one level up is
+    # backend/ (allowed), but the in-repo member backend/x is missing -> a receipt FAILURE, never a shorter list
+    with pytest.raises(r.ReceiptError, match="missing"):
+        r.closure(be, ["agents/mean_reversion_agent.py"])
+    (be / "x.py").write_text("y = 1\n")
+    assert r.closure(be, ["agents/mean_reversion_agent.py"]) == ["agents/mean_reversion_agent.py", "x.py"]
 
 
 def test_missing_root_raises(tmp_path):
@@ -130,14 +143,23 @@ def test_config_only_mr_used_names_and_unset_marker(tmp_path):
                      "z = os.environ.get('MR_DIRECT')\nfrom config import SUB\n", CFG)
     env = tmp_path / ".env"
     env.write_text("MR_USED=3\nMR_UNUSED=9\nSOME_API_KEY=topsecret1\nMR_SUB=s\n")
-    a = r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"])
-    assert set(a["config"]) == {"MR_USED", "MR_SUB", "MR_DIRECT"}
-    assert a["config"]["MR_DIRECT"] == r.c.sha256_bytes(b"<unset>")
+    a = r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"], contract=ALT)
+    cfg = a["fingerprint"]["config"]                                         # Task 12 (A1) interface
+    assert set(cfg["values"]) == {"MR_USED", "MR_SUB", "MR_DIRECT"} and set(cfg["secrets"]) == {"SOME_API_KEY"}
+    assert cfg["values"]["MR_DIRECT"] == r.UNSET_MARK
     assert "topsecret1" not in str(a)
+    # Task 12 (A1.1/A10.1) REPLACEMENT (old: a changed MR-relevant secret value left the receipt equal): the
+    # secret-named field is bound by name, presence and keyed HMAC - an unused key change still leaves it equal,
+    # a secret value change does not
+    env.write_text("MR_USED=3\nMR_UNUSED=10\nSOME_API_KEY=topsecret1\nMR_SUB=s\n")
+    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"],
+                              contract=ALT)["fingerprint"] == a["fingerprint"]
     env.write_text("MR_USED=3\nMR_UNUSED=10\nSOME_API_KEY=other\nMR_SUB=s\n")
-    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"]) == a
-    env.write_text("MR_USED=3\nMR_SUB=s\nMR_DIRECT=now\n")
-    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"]) != a
+    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"],
+                              contract=ALT)["fingerprint"] != a["fingerprint"]
+    env.write_text("MR_USED=3\nMR_SUB=s\nMR_DIRECT=now\nSOME_API_KEY=topsecret1\n")
+    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"],
+                              contract=ALT)["fingerprint"] != a["fingerprint"]
 
 
 def test_dirty_lists_any_extension_and_renames(tmp_path):
@@ -151,16 +173,25 @@ def test_dirty_lists_any_extension_and_renames(tmp_path):
     subprocess.run(["git", "-C", str(root), "mv", "backend/trading/portfolio.py", "backend/trading/pf2.py"],
                    check=True)
     (tmp_path / "outside.txt").write_text("o")
-    d = r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"])["dirty"]
+    # Task 12 interface: the rename removes a closure member, so the RECEIPT now fails (A1.1, missing member); the
+    # dirty list (provenance) is read directly
+    with pytest.raises(r.ReceiptError):
+        r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"], contract=ALT)
+    d = r._dirty_backend(root)
     assert "backend/data/x.json" in d and "backend/trading/pf2.py" in d and "backend/trading/portfolio.py" in d
     assert "outside.txt" not in d
 
 
 def test_versions_skipped_when_no_runtime(tmp_path):
-    """Retrospective (Task 4 review fix round 1)."""
+    """Retrospective (Task 4 review fix round 1). Task 12 (A1.1/A10.1) REPLACEMENT (old: no runtime -> versions
+    {"skipped": true}, a silent fallback): under the registered contract a missing runtime FAILS; only an explicit
+    reviewed alternate contract records it as "not registered"."""
     root = repo(tmp_path)
-    assert r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"])["versions"] == {
-        "skipped": True}
+    with pytest.raises(r.ReceiptError, match="runtime"):
+        r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"],
+                           contract=r.contract(env_required=False))
+    assert r.semantic_receipt(root, None, None, roots=["agents/mean_reversion_agent.py"],
+                              contract=ALT)["fingerprint"]["runtime"] == "not registered"
 
 
 def test_process_identity_errors_never_empty(monkeypatch):
@@ -175,10 +206,12 @@ def test_process_identity_errors_never_empty(monkeypatch):
         raise FileNotFoundError()
     monkeypatch.setattr(r.subprocess, "run", boom)
     assert r.process_identity() == {"error": "FileNotFoundError"}
+    # (fix round 2 migration, Addendum 2 B2.4: an unavailable binding is represented explicitly)
     monkeypatch.setattr(r.subprocess, "run", lambda *a, **k: P(0, "{}"))
-    assert r.process_identity() == {}
+    assert r.process_identity() == {"binding": {"unavailable": "nothing listening"}}
     monkeypatch.setattr(r.subprocess, "run", lambda *a, **k: P(0, '{"pid":5,"process_start":"t"}'))
-    assert r.process_identity() == {"pid": 5, "process_start": "t"}
+    assert r.process_identity() == {"pid": 5, "process_start": "t",
+                                    "binding": {"unavailable": "executable or command line not readable"}}
 
 
 def test_crash_log_rewrite_detected(tmp_path):
@@ -210,12 +243,16 @@ def test_class_style_config_keys(tmp_path):
                      CLASS_CFG)
     env = tmp_path / ".env"
     env.write_text("MR_CLS_USED=1\nMR_CLS_UNUSED=1\nX_API_KEY=sekrit77\n")
-    a = r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"])
-    assert set(a["config"]) == {"MR_CLS_USED"} and "sekrit77" not in str(a)
+    def fp():
+        return r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"],
+                                  contract=ALT)["fingerprint"]
+    a = fp()                                                                 # Task 12 (A1) interface
+    assert set(a["config"]["values"]) == {"MR_CLS_USED"} and a["config"]["secrets"] == {}
+    assert "sekrit77" not in str(a)
     env.write_text("MR_CLS_USED=2\nMR_CLS_UNUSED=1\n")
-    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"]) != a
+    assert fp() != a
     env.write_text("MR_CLS_USED=1\nMR_CLS_UNUSED=5\n")
-    assert r.semantic_receipt(root, env, None, roots=["agents/mean_reversion_agent.py"]) == a
+    assert fp() == a
 
 
 def test_real_backend_mr_keys_include_max_position_size():

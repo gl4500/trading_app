@@ -1,0 +1,7 @@
+Task 12 fix round 3 - C1 RED (written before the fix; run against the fix-round-2 code, 2026-10-17).
+Source run: s1_evidence/t12_fix3_all_red.txt (full tracebacks). All failures below are BEHAVIOURAL (the interface exists; the observed outcome is wrong).
+
+FAILED s1_tests/test_s1_t12_fix3.py::test_c1_a_concurrent_finalizer_and_a_reader_never_observe_a_partial_seal - AssertionError: a seal reader observed a partial seal: seal record unreadable (JSONDecodeError)
+FAILED s1_tests/test_s1_t12_fix3.py::test_c1_a_concurrent_stop_decision_never_observes_a_partial_stop_json - AssertionError: command B observed a partial stop.json: JSONDecodeError('Expecting property name enclosed in double quotes: line 1 column 2 (char 1)')
+FAILED s1_tests/test_s1_t12_fix3.py::test_c1_a_concurrent_abort_writer_never_loses_the_real_reason - AssertionError: writer B read a partial aborted.json: {'reason': 'aborted.json unreadable (corrupt): fails closed as ABORTED-INVALID', 'corrupt': True, 'actual': None, 'close': None, 'scheduled': None}
+FAILED s1_tests/test_s1_t12_fix3.py::test_c1_every_immutable_artifact_is_published_atomically - AssertionError: ['s1_checkpoint.py::_claim_slot line 136', 's1_checkpoint.py::finalize_close line 502', 's1_checkpoint.py::_write_repo...ceipt line 721', 's1_checkpoint.py::run_final_snapshot line 889', 's1_checkpoint.py::run_final_snapshot line 893', ...]

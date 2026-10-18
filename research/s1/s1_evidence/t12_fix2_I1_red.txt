@@ -1,0 +1,14 @@
+FFFFF                                                                    [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_i1.py:31: TypeError: semantic_receipt() got an unexpected keyword argument 'reference'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_i1.py:31: TypeError: semantic_receipt() got an unexpected keyword argument 'reference'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_i1.py:31: TypeError: semantic_receipt() got an unexpected keyword argument 'reference'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_i1.py:31: TypeError: semantic_receipt() got an unexpected keyword argument 'reference'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_i1.py:80: assert (None is not None)
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix2_i1.py::test_i1_an_unchanged_closure_against_the_bound_reference_gives_the_same_fingerprint
+FAILED s1_tests/test_s1_t12_fix2_i1.py::test_i1_a_changed_closure_member_is_terminal_before_any_parse[edited]
+FAILED s1_tests/test_s1_t12_fix2_i1.py::test_i1_a_changed_closure_member_is_terminal_before_any_parse[merge-conflict]
+FAILED s1_tests/test_s1_t12_fix2_i1.py::test_i1_a_changed_closure_member_is_terminal_before_any_parse[deleted]
+FAILED s1_tests/test_s1_t12_fix2_i1.py::test_i1_the_checkpoint_passes_the_bound_reference_and_a_valid_edit_aborts
+5 failed in 2.39s

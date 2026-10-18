@@ -1,0 +1,88 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+___________ test_a1b_command_line_is_sanitized_secret_values_masked ___________
+
+    def test_a1b_command_line_is_sanitized_secret_values_masked():
+        """A1.1: sanitized = every value of a secret-named option masked; everything else kept."""
+>       s = rc.sanitize_cmdline(CMD)
+E       AttributeError: module 's1_receipt' has no attribute 'sanitize_cmdline'
+
+s1_tests\test_s1_t12_a1b.py:23: AttributeError
+________________ test_a1b_process_identity_reports_the_binding ________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000221DB8DF530>
+
+    def test_a1b_process_identity_reports_the_binding(monkeypatch):
+        """A1.1: the process observation carries the binding: executable path and sanitized command line + its hash."""
+        class P:
+            returncode = 0
+            stdout = json.dumps({"pid": 7, "process_start": "2026-10-26T09:00:00", "exe": r"C:\app\python.exe",
+                                 "cmdline": CMD})
+        monkeypatch.setattr(rc.subprocess, "run", lambda *a, **kw: P())
+        got = rc.process_identity()
+>       assert got["pid"] == 7 and got["binding"]["exe"] == r"C:\app\python.exe"
+E       KeyError: 'binding'
+
+s1_tests\test_s1_t12_a1b.py:36: KeyError
+_ test_a1b_the_first_observed_binding_is_the_reference_and_a_change_is_aborted_invalid _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15357/test_a1b_the_first_observed_bi0')
+
+    def test_a1b_the_first_observed_binding_is_the_reference_and_a_change_is_aborted_invalid(tmp_path):
+        """A1.1/A1.3: the first observed binding (from the opening on) is persisted as the reference; an equal later
+        binding seals; a different one is an observed change before the stop -> persistent ABORTED-INVALID."""
+        st_ = _reg(tmp_path)
+        out = tmp_path / "s1_out"
+        rep = _cp(tmp_path, st_, _proc(r"C:\app\python.exe"))
+        assert rep["seal"]["written"] is True
+>       ref = json.loads((out / "process_binding.json").read_text(encoding="utf-8"))
+
+s1_tests\test_s1_t12_a1b.py:72: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15357/test_a1b_the_first_observed_bi0/s1_out/process_binding.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15357\\test_a1b_the_first_observed_bi0\\s1_out\\process_binding.json'
+
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+_______ test_a1b_an_unobserved_binding_is_a_reported_gap_never_a_change _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15357/test_a1b_an_unobserved_binding0')
+
+    def test_a1b_an_unobserved_binding_is_a_reported_gap_never_a_change(tmp_path):
+        """A9.3: a process observation without a binding (nothing listening, lookup failure) is a gap: reported, the
+        capture still seals, no abort."""
+        st_ = _reg(tmp_path)
+        _cp(tmp_path, st_, _proc(r"C:\app\python.exe"))
+        st_["ledger"].trade("A", "BUY", 1, 50.0, "2026-10-27T15:00:00+00:00")
+        st_["ledger"].set_portfolio("A", 11)
+        sch = datetime(2026, 10, 27, 20, 45, tzinfo=UTC)
+        with _Clock(sch + timedelta(seconds=30)):
+            rep = ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: _proc(None),
+                                    tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
+        assert rep["seal"]["written"] is True and not (tmp_path / "s1_out" / "aborted.json").exists()
+>       assert any("binding not observed" in g for g in rep["restart_gaps"]), rep["restart_gaps"]
+E       AssertionError: []
+E       assert False
+E        +  where False = any(<generator object test_a1b_an_unobserved_binding_is_a_reported_gap_never_a_change.<locals>.<genexpr> at 0x00000221DAFDCBA0>)
+
+s1_tests\test_s1_t12_a1b.py:97: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_a1b.py::test_a1b_command_line_is_sanitized_secret_values_masked
+FAILED s1_tests/test_s1_t12_a1b.py::test_a1b_process_identity_reports_the_binding
+FAILED s1_tests/test_s1_t12_a1b.py::test_a1b_the_first_observed_binding_is_the_reference_and_a_change_is_aborted_invalid
+FAILED s1_tests/test_s1_t12_a1b.py::test_a1b_an_unobserved_binding_is_a_reported_gap_never_a_change
+4 failed in 1.33s

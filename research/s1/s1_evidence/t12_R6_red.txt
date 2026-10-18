@@ -1,0 +1,28 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_in_the_score _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15382/test_r6_refused_captures_prove0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001EE38169370>
+
+    def test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_in_the_score(tmp_path, monkeypatch):
+        """R-6: captures refused (here a late clock refusal) are listed explicitly in the score report; A1.2: the
+        receipt PROVENANCE observed at each seal (HEAD changes) is reported; A9.3: process-observation gaps (here an
+        unobserved binding) are reported as observation gaps - never a verdict change."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        sch = datetime(2026, 10, 28, 20, 45, tzinfo=UTC)
+        with _Clock(sch + timedelta(minutes=30)):
+            ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                              tmp_path / "crash.log", now=lambda: sch + timedelta(minutes=30))
+        monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
+        s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
+        rep = r.score(tmp_path, "score-ack-2")
+        assert rep["verdict"] == "SHADOW PASS"
+>       assert any(x["scheduled"] == sch.isoformat() and "clock" in x["refused"] for x in rep["refused_captures"])
+E       KeyError: 'refused_captures'
+
+s1_tests\test_s1_t12_reporting.py:30: KeyError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_reporting.py::test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_in_the_score
+1 failed in 3.27s

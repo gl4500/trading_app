@@ -1,0 +1,23 @@
+Task 12 fix round 8 - behavioural RED (H-1 probe11, H-2 probe12, the exhaustive subset test), run against the round-7 sources (working tree before any fix-8 edit)
+1d6c1fe03725497df78ca0386b77bbd5d1e9e930561c58ba01ec92814ccd1a48 *s1_common.py
+8fa2eb2fc6b92da6a6df95b7c3ef8415ff916365ea6d84dbea217e863d0dc121 *s1_checkpoint.py
+f09f0c60175bf35c4174874402d0c50f497ccc88c910557566d49fa2a002a4f4 *s1_tests/test_s1_t12_fix8.py
+command: python -m pytest s1_tests/test_s1_t12_fix8.py -q -p no:cacheprovider -rf --tb=line
+FFFF.................................................................... [ 37%]
+........................................................................ [ 74%]
+...............................................FF                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:79: AssertionError: no persistent abort recorded
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:79: AssertionError: no persistent abort recorded
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:79: AssertionError: no persistent abort recorded
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:79: AssertionError: no persistent abort recorded
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix8.py:150: AssertionError: (('plan.json', 'audit/manifest.json', 'registry/opening.json', 'witnesses/opening.json', 'attest_start.json', 'prereg.json'), 'delete', None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix8.py:150: AssertionError: (('plan.json', 'audit/manifest.json', 'registry/opening.json', 'witnesses/opening.json', 'attest_start.json', 'prereg.json'), 'corrupt', None)
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix8.py::test_h1_probe_an_edited_plan_with_an_unreadable_manifest_aborts_and_restoring_does_not_resume[delete]
+FAILED s1_tests/test_s1_t12_fix8.py::test_h1_probe_an_edited_plan_with_an_unreadable_manifest_aborts_and_restoring_does_not_resume[corrupt]
+FAILED s1_tests/test_s1_t12_fix8.py::test_h1_probe_an_edited_plan_with_an_unreadable_manifest_aborts_and_restoring_does_not_resume[list]
+FAILED s1_tests/test_s1_t12_fix8.py::test_h2_probe_a_six_file_coordinated_edit_aborts_through_the_ack_found_by_its_bundle
+FAILED s1_tests/test_s1_t12_fix8.py::test_h_every_subset_of_the_editable_registration_files_tampered_is_the_persistent_abort[plan+manifest+registry+witnesses+attest+prereg-delete]
+FAILED s1_tests/test_s1_t12_fix8.py::test_h_every_subset_of_the_editable_registration_files_tampered_is_the_persistent_abort[plan+manifest+registry+witnesses+attest+prereg-corrupt]
+6 failed, 187 passed in 26.74s

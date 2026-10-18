@@ -1,0 +1,36 @@
+FFF.FFFFFFFFFFFFF                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:69: assert True is False
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:69: assert True is False
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:69: assert True is False
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:90: KeyError: 'process_binding'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:109: assert (True is False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:109: assert (True is False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:121: assert (False is True)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:135: assert (False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:150: assert (True is False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:160: AssertionError: assert (False is False and None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:172: KeyError: 'process_binding'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:181: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:194: Failed: baseline_economics
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:194: Failed: baseline_economics
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:194: Failed: baseline_economics
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b2.py:250: KeyError: 'seal_binding_gaps'
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_an_unobservable_opening_binding_writes_no_opening_seal[gap]
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_an_unobservable_opening_binding_writes_no_opening_seal[no-binding]
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_an_unobservable_opening_binding_writes_no_opening_seal[observation-error]
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_the_opening_binding_is_the_reference_bound_by_the_attestation_and_prereg
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_deleting_or_replacing_the_reference_sidecar_cannot_rebase[replaced]
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_deleting_or_replacing_the_reference_sidecar_cannot_rebase[deleted]
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_a_then_gap_then_b_is_a_persistent_invalidity
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_a_then_gap_then_a_preserves_the_gap_and_invents_no_change
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_an_observation_exception_mid_trial_is_preserved_and_never_seals
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_a_malformed_claimed_binding_is_not_equality
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_an_identical_binding_restart_is_provenance_not_a_semantic_change
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_a_corrupt_bound_reference_fails_closed
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_the_score_rechecks_every_seals_binding_and_invalid_makes_zero_valuation_calls[observed-B]
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_the_score_rechecks_every_seals_binding_and_invalid_makes_zero_valuation_calls[missing]
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_the_score_rechecks_every_seals_binding_and_invalid_makes_zero_valuation_calls[malformed]
+FAILED s1_tests/test_s1_t12_fix2_b2.py::test_b2_the_score_reports_a_gap_without_inventing_a_change
+16 failed, 1 passed in 13.39s

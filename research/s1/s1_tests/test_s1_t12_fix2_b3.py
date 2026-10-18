@@ -1,0 +1,312 @@
+"""Task 12 fix round 2: Addendum 2 B3 (registration starts at the opening seal and is identified independently of
+the artifact checked; a missing / changed / unparseable REQUIRED artifact after registration is a persistent
+first-wins "registration artifact" abort; a corrupt aborted.json fails closed). Every B3.5 acceptance example,
+written BEFORE the fix (RED: s1_evidence/t12_fix2_B3_red.txt). Synthetic only: tmp_path ledgers, mailbox, HMAC key;
+callbacks and pricing proven with spies."""
+import json
+import shutil
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import httpx
+import pytest
+
+import s1_checkpoint as ck
+import s1_collect as k
+import s1_common as c
+import s1_run as r
+import s1_seal as z
+import s1_snapshot
+from conftest import S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit, \
+    s1_state
+
+UTC = timezone.utc
+START = "2026-10-26T13:30:00+00:00"
+START_DT = datetime(2026, 10, 26, 13, 30, tzinfo=UTC)
+OPEN_CLOSE = datetime(2026, 10, 23, 20, 0, tzinfo=UTC)
+MON = datetime(2026, 10, 26, 20, 0, tzinfo=UTC)
+OPENING = "seals/2026-10-23.json"
+
+
+def read(p):
+    return json.loads(Path(p).read_text(encoding="utf-8"))
+
+
+class Spies:
+    """Every live callback of a checkpoint (snapshot, receipt, process) counted."""
+
+    def __init__(self, monkeypatch):
+        self.n = {"snapshot": 0, "receipt": 0, "process": 0}
+        real = s1_snapshot.take_snapshot
+
+        def snap(*a, **kw):
+            self.n["snapshot"] += 1
+            return real(*a, **kw)
+        monkeypatch.setattr(s1_snapshot, "take_snapshot", snap)
+
+    def receipt(self, *a, **kw):
+        self.n["receipt"] += 1
+        return S1_RECEIPT
+
+    def process(self):
+        self.n["process"] += 1
+        return dict(S1_PROCESS)
+
+    def zero(self):
+        return all(v == 0 for v in self.n.values())
+
+
+def _cp(tmp_path, ledger_path, spies=None, minutes=45, day=0):
+    sch = MON + timedelta(days=day, minutes=minutes)
+    act = sch + timedelta(seconds=30)
+    with _Clock(act):
+        return ck.run_checkpoint(tmp_path, ledger_path, sch, spies.receipt if spies else (lambda: S1_RECEIPT),
+                                 spies.process if spies else (lambda: dict(S1_PROCESS)), tmp_path / "crash.log",
+                                 now=lambda: act)
+
+
+def _registered(tmp_path):
+    st_ = s1_state(tmp_path, START)
+    with _Clock(START_DT - timedelta(days=1)):
+        r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
+    st_["ledger"].set_portfolio("A", 10)
+    return st_
+
+
+def _aborted(tmp_path):
+    p = tmp_path / "s1_out" / "aborted.json"
+    assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+    return read(p)
+
+
+def _refusals(tmp_path):
+    p = tmp_path / "s1_out" / "refusals.jsonl"
+    return [json.loads(x) for x in p.read_text(encoding="utf-8").splitlines()] if p.exists() else []
+
+
+# ====================================================================== B3.1 identified independently
+def test_b3_registration_is_recorded_independently_of_the_artifacts_it_binds(tmp_path):
+    """B3.1: from the opening seal on, a registry (s1_out/registry/) records the registered stage and the expected
+    hash of every artifact bound at that stage - the opening (plan, audit manifest, opening receipt, opening seal),
+    the START attestation (+ opening books) and prereg."""
+    _registered(tmp_path)
+    out = tmp_path / "s1_out"
+    assert all((out / "registry" / f"{s}.json").exists() for s in ("opening", "attest_start", "prereg"))
+    op = read(out / "registry" / "opening.json")
+    for rel in ("plan.json", "audit/manifest.json", "opening_receipt.json", OPENING):
+        assert op["artifacts"][rel] == c.sha256_file(out / rel), rel
+    assert read(out / "registry" / "attest_start.json")["artifacts"]["attest_start.json"] == \
+        c.sha256_file(out / "attest_start.json")
+    assert read(out / "registry" / "prereg.json")["artifacts"]["prereg.json"] == c.sha256_file(out / "prereg.json")
+
+
+# ====================================================================== B3.2 before the opening
+def test_b3_an_invalid_handmade_prereg_before_the_opening_is_a_preserved_refusal_with_no_callback(tmp_path,
+                                                                                                  monkeypatch):
+    """B3.2: no opening seal yet; a hand-made prereg cannot manufacture a registration: the checkpoint refuses, the
+    refusal is preserved (refusals.jsonl), no live callback, no slot claim, no abort."""
+    start, cal, oc, _ = s1_plan_audit(tmp_path, START)
+    out = tmp_path / "s1_out"
+    (out / "prereg.json").write_text(json.dumps({"start": START, "calendar": cal, "receipt": S1_RECEIPT,
+                                                 "bundle_sha256": c.bundle_sha256(),
+                                                 "ack": {"ack_id": "forged", "created_utc": START}}),
+                                     encoding="utf-8")
+    spies = Spies(monkeypatch)
+    with pytest.raises(SystemExit):
+        _cp(tmp_path, Ledger(tmp_path / "l.sqlite3").path, spies)
+    assert spies.zero() and not (out / "captures").exists() and not (out / "aborted.json").exists()
+    assert any(x["where"] == "checkpoint" for x in _refusals(tmp_path)), _refusals(tmp_path)
+
+
+# ====================================================================== B3.3 after the opening, before RUN-ACK
+def test_b3_the_opening_changed_after_the_opening_but_before_the_run_ack_is_a_persistent_abort(tmp_path):
+    """B3.3: registration exists from the opening seal: the opening seal changed before the START attestation /
+    RUN-ACK -> the attestation records the persistent "registration artifact" abort; restoring does not resume."""
+    start, cal, oc, _ = s1_plan_audit(tmp_path, START)
+    lg = Ledger(tmp_path / "l.sqlite3")
+    assert s1_opening_checkpoint(tmp_path, lg, oc, cal, S1_RECEIPT)["seal"]["written"]
+    p = tmp_path / "s1_out" / OPENING
+    good = p.read_bytes()
+    p.write_bytes(good + b" ")
+    at = OPEN_CLOSE + timedelta(hours=2)
+    with _Clock(at), pytest.raises(SystemExit):
+        r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+    p.write_bytes(good)
+    with _Clock(at), pytest.raises(SystemExit, match="ABORTED"):
+        r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+
+
+def test_b3_a_prereg_not_yet_due_is_not_corruption(tmp_path):
+    """B3.3: after the opening and the START attestation, a prereg that does not exist yet is a future-stage artifact:
+    a scheduled checkpoint refuses (no verified prereg) but records NO abort; prereg then still works."""
+    st_ = s1_state(tmp_path, START)
+    with pytest.raises(SystemExit, match="prereg"):
+        _cp(tmp_path, st_["ledger"].path)
+    assert not (tmp_path / "s1_out" / "aborted.json").exists()
+    with _Clock(START_DT - timedelta(days=1)):
+        r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    assert (tmp_path / "s1_out" / "prereg.json").exists()
+
+
+ARTIFACTS = ["plan.json", "audit/manifest.json", "audit/calendar.json", "attest_start.json", "opening_books.json",
+             "prereg.json", OPENING, "opening_receipt.json"]
+
+
+@pytest.mark.parametrize("mode", ["changed", "deleted"])
+@pytest.mark.parametrize("rel", ARTIFACTS)
+def test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid(tmp_path, rel, mode):
+    """B3.3/B3.5: after registration every bound artifact is REQUIRED: changed or deleted -> the next command records
+    first-wins aborted.json (reason "registration artifact"); restoring the bytes does not resume (no seal)."""
+    st_ = _registered(tmp_path)
+    p = tmp_path / "s1_out" / rel
+    good = p.read_bytes()
+    if mode == "changed":
+        p.write_bytes(good + b"\n")
+    else:
+        p.unlink()
+    with pytest.raises(SystemExit):
+        _cp(tmp_path, st_["ledger"].path)
+    ab = _aborted(tmp_path)
+    assert ab["reason"] == "registration artifact" and any(rel in x for x in ab["problems"]), ab
+    p.write_bytes(good)
+    rep = _cp(tmp_path, st_["ledger"].path, minutes=47)
+    assert rep["seal"]["written"] is False and rep["stop"]["status"] == "ABORTED-INVALID"
+
+
+@pytest.mark.parametrize("also_registry", [False, True])
+def test_b3_deleting_prereg_and_the_opening_together_cannot_erase_the_registration(tmp_path, also_registry):
+    """B3.1/B3.5: deleting prereg AND the opening seal (and even the registry record) does not move the trial back
+    to pre-registration: the opening capture report still witnesses the registration -> persistent abort."""
+    st_ = _registered(tmp_path)
+    out = tmp_path / "s1_out"
+    (out / "prereg.json").unlink()
+    (out / OPENING).unlink()
+    if also_registry:
+        shutil.rmtree(out / "registry")
+    with pytest.raises(SystemExit):
+        _cp(tmp_path, st_["ledger"].path)
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+
+
+# ====================================================================== B3.3 re-entry / post-stop cannot bypass
+def test_b3_audit_re_entry_cannot_bypass_persistence(tmp_path):
+    """B3.3: an audit re-run after registration with a changed plan records the persistent abort before any
+    request (the injected client is never called)."""
+    _registered(tmp_path)
+    calls = []
+    client = httpx.Client(transport=httpx.MockTransport(lambda req: calls.append(req) or httpx.Response(500)),
+                          follow_redirects=False)
+    p = tmp_path / "s1_out" / "plan.json"
+    p.write_bytes(p.read_bytes() + b"\n")
+    with _Clock(START_DT - timedelta(hours=3)), pytest.raises(SystemExit):
+        k.do_audit(tmp_path, "audit-ack", client, {"key": "k", "secret": "s"})
+    assert calls == [] and _aborted(tmp_path)["reason"] == "registration artifact"
+
+
+def test_b3_opening_re_entry_cannot_bypass_persistence(tmp_path):
+    """B3.3: an opening re-entry after registration observing a changed prereg records the persistent abort."""
+    st_ = _registered(tmp_path)
+    p = tmp_path / "s1_out" / "prereg.json"
+    p.write_bytes(p.read_bytes() + b"\n")
+    sch = OPEN_CLOSE + timedelta(minutes=47)
+    with _Clock(sch + timedelta(seconds=30)), pytest.raises(SystemExit):
+        ck.run_opening_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                                  tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+
+
+def test_b3_post_stop_integrity_of_frozen_artifacts_is_persistent(tmp_path):
+    """B3.3: after the persisted stop, a frozen slice that changed is observed by the next checkpoint -> persistent
+    "registration artifact" abort (not merely reported)."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    sl = out / "seals" / f"{st_['sessions'][0]}.json"
+    sl.write_bytes(sl.read_bytes() + b" ")
+    sch = z.close_of(st_["sessions"][5], st_["calendar"]) + timedelta(minutes=45)
+    with _Clock(sch + timedelta(seconds=30)), pytest.raises(SystemExit):
+        ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                          tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+
+
+# ====================================================================== B3.4 mailbox outage vs corruption
+def test_b3_a_mailbox_outage_is_a_refusal_not_proof_of_tampering(tmp_path, monkeypatch):
+    """B3.4: the mailbox unreadable with no artifact violation: a refusal (preserved), zero callbacks, NO abort."""
+    st_ = _registered(tmp_path)
+    (tmp_path / "mailbox.sqlite3").rename(tmp_path / "mailbox.away")
+    spies = Spies(monkeypatch)
+    with pytest.raises(SystemExit):
+        _cp(tmp_path, st_["ledger"].path, spies)
+    assert spies.zero() and not (tmp_path / "s1_out" / "aborted.json").exists()
+    assert _refusals(tmp_path)
+
+
+def test_b3_a_mailbox_outage_cannot_downgrade_an_established_violation(tmp_path, monkeypatch):
+    """B3.4: prereg deleted while the mailbox is unavailable: the violation is still recorded (persistent abort);
+    the outage never downgrades it, and no callback runs."""
+    st_ = _registered(tmp_path)
+    (tmp_path / "mailbox.sqlite3").rename(tmp_path / "mailbox.away")
+    (tmp_path / "s1_out" / "prereg.json").unlink()
+    spies = Spies(monkeypatch)
+    with pytest.raises(SystemExit):
+        _cp(tmp_path, st_["ledger"].path, spies)
+    assert spies.zero() and _aborted(tmp_path)["reason"] == "registration artifact"
+
+
+def test_b3_an_earlier_bundle_abort_stays_first(tmp_path, monkeypatch):
+    """B3.4: an earlier terminal reason (bundle) remains first-wins over a later registration-artifact violation."""
+    st_ = _registered(tmp_path)
+    c.write_abort(tmp_path / "s1_out", {"reason": "bundle", "actual": START})
+    (tmp_path / "s1_out" / "attest_start.json").unlink()
+    with pytest.raises(SystemExit):
+        _cp(tmp_path, st_["ledger"].path)
+    assert _aborted(tmp_path)["reason"] == "bundle"
+
+
+# ====================================================================== spies on the priced path
+VALUATION = ("simulate_lot", "lot_economics", "baseline_economics", "compare", "paired_bootstrap")
+
+
+def test_b3_a_registration_artifact_violation_at_the_score_is_persisted_and_prices_nothing(tmp_path, monkeypatch):
+    """B3.3/B3.5: the score observing a changed START attestation records the persistent abort and is the preserved
+    ABORTED-INVALID record (corrected after RED, before GREEN: the score - like the final snapshot - is a recording
+    command, A2.3: it does not refuse, it records). No valuation call (spies); restoring changes nothing."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    sim = c.sim()
+    called = []
+    for name in VALUATION:
+        monkeypatch.setattr(sim, name, lambda *a, _n=name, **kw: called.append(_n) or pytest.fail(_n))
+    p = tmp_path / "s1_out" / "attest_start.json"
+    good = p.read_bytes()
+    p.write_bytes(good + b"\n")
+    monkeypatch.setattr(c, "now_utc", lambda: st_["now"] + timedelta(days=1))
+    s1_mailbox(tmp_path, "score-ack-b3", r.score_token(tmp_path), st_["now"] + timedelta(hours=20))
+    rep = r.score(tmp_path, "score-ack-b3")
+    assert rep["verdict"] == "ABORTED-INVALID" and called == [] and "levels" not in rep
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+    assert any("registration artifact" in x for x in rep["reasons"]), rep["reasons"]
+    p.write_bytes(good)
+    assert c.load_abort(tmp_path / "s1_out")["reason"] == "registration artifact"     # restoring resumes nothing
+
+
+# ====================================================================== corrupt aborted.json fails closed
+def test_b3_a_corrupt_aborted_json_fails_closed(tmp_path, monkeypatch):
+    """B3.4: an unparseable aborted.json never means "no abort": the checkpoint writes its report and reports
+    ABORTED-INVALID (never seals, never crashes). (Fix round 3, M-5: docstring corrected - this test does not run
+    the score; the score's fail-closed reading of a corrupt aborted.json is s1_common.load_abort, used by _score.)"""
+    st_ = _registered(tmp_path)
+    (tmp_path / "s1_out" / "aborted.json").write_text("{corrupt", encoding="utf-8")
+    rep = _cp(tmp_path, st_["ledger"].path)
+    assert rep["seal"]["written"] is False and rep["stop"]["status"] == "ABORTED-INVALID"
+    assert list((tmp_path / "s1_out" / "captures" / "2026-10-26").glob("*.report.json"))
+
+
+def test_b3_a_corrupt_aborted_json_fails_closed_at_prereg(tmp_path):
+    """B3.4: prereg refuses with a corrupt aborted.json (it is an abort)."""
+    s1_state(tmp_path, START)
+    (tmp_path / "s1_out" / "aborted.json").write_text("{corrupt", encoding="utf-8")
+    with _Clock(START_DT - timedelta(days=1)), pytest.raises(SystemExit, match="ABORTED"):
+        r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    assert not (tmp_path / "s1_out" / "prereg.json").exists()

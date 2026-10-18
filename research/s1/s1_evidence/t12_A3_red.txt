@@ -1,0 +1,697 @@
+FFFFFFFFFFFFFFFFF                                                        [100%]
+================================== FAILURES ===================================
+___ test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes ___
+
+    def test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes():
+        """A3.1: the bundle = every research/s1 s1_*.py plus the pinned e1_sim.py/e1_fetch.py as an EXPLICIT expected
+        file list with sha256, plus the sha256 of the v5 design, the spec and this addendum (the addendum's own hash
+        included). Tests are not part of it."""
+>       assert tuple(sorted(c.BUNDLE_CODE)) == BUNDLE
+E       AttributeError: module 's1_common' has no attribute 'BUNDLE_CODE'
+
+s1_tests\test_s1_t12_a3_a8.py:92: AttributeError
+_ test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_any_changed_missing_or0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E144F6B0>
+
+    def test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle(tmp_path, monkeypatch):
+        """A3.1: one byte of any listed file or document changes the hash; an extra s1_*.py is an unexpected member (a
+        problem and a different hash); a missing member is a problem; a test file or other non-bundle file does not."""
+>       d = _copy_tree(tmp_path)
+
+s1_tests\test_s1_t12_a3_a8.py:119: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_any_changed_missing_or0')
+
+    def _copy_tree(tmp_path):
+        d = tmp_path / "copy"
+        (d / "docs").mkdir(parents=True)
+        for n in BUNDLE:
+            shutil.copy2(HERE / n, d / n)
+>       for n in c.DOC_PINS:
+E       AttributeError: module 's1_common' has no attribute 'DOC_PINS'
+
+s1_tests\test_s1_t12_a3_a8.py:110: AttributeError
+____ test_a3_pinned_core_cache_is_keyed_by_resolved_path_and_approved_hash ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_pinned_core_cache_is_k0')
+
+    def test_a3_pinned_core_cache_is_keyed_by_resolved_path_and_approved_hash(tmp_path):
+        """A3.1: caches are keyed by resolved path + approved hash: the same module name loaded from another approved
+        file is that file's module, never the first one loaded."""
+        a, b_ = tmp_path / "a.py", tmp_path / "b.py"
+        a.write_text("X = 1\n")
+        b_.write_text("X = 2\n")
+        ma = c.load_pinned("t12_same_name", a, c.sha256_file(a))
+        mb = c.load_pinned("t12_same_name", b_, c.sha256_file(b_))
+>       assert (ma.X, mb.X) == (1, 2)
+E       assert (1, 1) == (1, 2)
+E         
+E         At index 1 diff: 1 != 2
+E         Use -v to get more diff
+
+s1_tests\test_s1_t12_a3_a8.py:148: AssertionError
+___ test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_run_acquire_score_toke0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E14E4920>
+
+    def test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle(tmp_path, monkeypatch):
+        """A3.1: RUN-ACK, prereg, the opening and every trial seal, ACQUIRE-ACK, SCORE-ACK (and the final snapshot and
+        final manifest, A3.4) bind the bundle hash."""
+>       st_ = s1_state(tmp_path, START, score_ready=True)
+
+s1_tests\test_s1_t12_a3_a8.py:156: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_run_acquire_score_toke0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_checkpoint_bundle_mism0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E14E52E0>
+
+    def test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture(tmp_path, monkeypatch):
+        """A3.2/A3.3: the scheduled checkpoint compares the bundle FIRST (before protocol state, a stop helper or any
+        live capture); a mismatch against the valid registered bundle writes aborted.json reason "bundle"; restoring
+        the files does not resume the trial (the next checkpoint is post_stop, never seals)."""
+>       st_ = registered(tmp_path)
+
+s1_tests\test_s1_t12_a3_a8.py:173: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a3_a8.py:77: in registered
+    st_ = s1_state(tmp_path, START)
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_checkpoint_bundle_mism0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a3_opening_checkpoint_bundle_mismatch_refuses_with_zero_callbacks_and_no_abort _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_opening_checkpoint_bun0')
+ledger = <conftest.Ledger object at 0x00000149E144F5F0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E144F860>
+
+    def test_a3_opening_checkpoint_bundle_mismatch_refuses_with_zero_callbacks_and_no_abort(tmp_path, ledger,
+                                                                                            monkeypatch):
+        """A3.2 + A8.2: the opening mode's expected bundle is the externally approved one (the AUDIT-ACK's); before any
+        registration (no opening seal yet) a mismatch is a refusal with zero live callbacks, not an abort."""
+>       s1_plan_audit(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:197: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_opening_checkpoint_bun0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[attest_start] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_r1_attest_start_and_pr0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E0BA9C70>
+gate = 'attest_start'
+
+    @pytest.mark.parametrize("gate", ["attest_start", "do_prereg"])
+    def test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal(tmp_path, monkeypatch, gate):
+        """A3.3 / final-review R-1: from the opening seal on, a bundle that differs from the registered one (the opening
+        seal's = the AUDIT-ACK's) is a persistent "bundle" abort at the START attestation and at prereg."""
+>       st_ = s1_state(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_r1_attest_start_and_pr0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[do_prereg] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_r1_attest_start_and_pr1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E14E7350>
+gate = 'do_prereg'
+
+    @pytest.mark.parametrize("gate", ["attest_start", "do_prereg"])
+    def test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal(tmp_path, monkeypatch, gate):
+        """A3.3 / final-review R-1: from the opening seal on, a bundle that differs from the registered one (the opening
+        seal's = the AUDIT-ACK's) is a persistent "bundle" abort at the START attestation and at prereg."""
+>       st_ = s1_state(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_r1_attest_start_and_pr1')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a3_score_bundle_mismatch_aborts_reserves_nothing_and_restoration_scores_aborted_invalid _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_score_bundle_mismatch_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E14E4800>
+
+    def test_a3_score_bundle_mismatch_aborts_reserves_nothing_and_restoration_scores_aborted_invalid(tmp_path,
+                                                                                                     monkeypatch):
+        """A3.3/A3.4: a score under another bundle writes the persistent "bundle" abort and reserves no score; after the
+        files are restored, the one score is ABORTED-INVALID with that reason (no valid score, no re-clock)."""
+>       st_ = s1_state(tmp_path, START, score_ready=True)
+
+s1_tests\test_s1_t12_a3_a8.py:237: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_score_bundle_mismatch_0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_____ test_a3_score_checks_bundle_consistency_across_every_artifact[seal] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_score_checks_bundle_co0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E14E6960>
+where = 'seal'
+
+    @pytest.mark.parametrize("where", ["seal", "final_snapshot", "final_manifest", "prereg"])
+    def test_a3_score_checks_bundle_consistency_across_every_artifact(tmp_path, monkeypatch, where):
+        """A3.4: score checks bundle consistency across prereg, every seal, the final snapshot, the final manifest and
+        itself; current-hash equality alone is not sufficient."""
+>       st_ = s1_state(tmp_path, START, score_ready=True)
+
+s1_tests\test_s1_t12_a3_a8.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_score_checks_bundle_co0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a3_score_checks_bundle_consistency_across_every_artifact[final_snapshot] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_score_checks_bundle_co1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E15317F0>
+where = 'final_snapshot'
+
+    @pytest.mark.parametrize("where", ["seal", "final_snapshot", "final_manifest", "prereg"])
+    def test_a3_score_checks_bundle_consistency_across_every_artifact(tmp_path, monkeypatch, where):
+        """A3.4: score checks bundle consistency across prereg, every seal, the final snapshot, the final manifest and
+        itself; current-hash equality alone is not sufficient."""
+>       st_ = s1_state(tmp_path, START, score_ready=True)
+
+s1_tests\test_s1_t12_a3_a8.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_score_checks_bundle_co1')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a3_score_checks_bundle_consistency_across_every_artifact[final_manifest] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_score_checks_bundle_co2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E14E7170>
+where = 'final_manifest'
+
+    @pytest.mark.parametrize("where", ["seal", "final_snapshot", "final_manifest", "prereg"])
+    def test_a3_score_checks_bundle_consistency_across_every_artifact(tmp_path, monkeypatch, where):
+        """A3.4: score checks bundle consistency across prereg, every seal, the final snapshot, the final manifest and
+        itself; current-hash equality alone is not sufficient."""
+>       st_ = s1_state(tmp_path, START, score_ready=True)
+
+s1_tests\test_s1_t12_a3_a8.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_score_checks_bundle_co2')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+____ test_a3_score_checks_bundle_consistency_across_every_artifact[prereg] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_score_checks_bundle_co3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E14E5BB0>
+where = 'prereg'
+
+    @pytest.mark.parametrize("where", ["seal", "final_snapshot", "final_manifest", "prereg"])
+    def test_a3_score_checks_bundle_consistency_across_every_artifact(tmp_path, monkeypatch, where):
+        """A3.4: score checks bundle consistency across prereg, every seal, the final snapshot, the final manifest and
+        itself; current-hash equality alone is not sufficient."""
+>       st_ = s1_state(tmp_path, START, score_ready=True)
+
+s1_tests\test_s1_t12_a3_a8.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_score_checks_bundle_co3')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_______ test_a3_post_stop_commands_verify_the_bundle_first[attest_stop] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_post_stop_commands_ver0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E0BAA0C0>
+command = 'attest_stop'
+
+    @pytest.mark.parametrize("command", ["attest_stop", "write_final_plan", "final_snapshot"])
+    def test_a3_post_stop_commands_verify_the_bundle_first(tmp_path, monkeypatch, command):
+        """A3.2: every S1 command - including the post-stop ones - compares the bundle first; a mismatch is the
+        persistent "bundle" abort (Q2: post-stop changes to the S1 bundle cannot silently alter the protocol)."""
+>       st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final_snapshot=False)
+
+s1_tests\test_s1_t12_a3_a8.py:277: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_post_stop_commands_ver0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+____ test_a3_post_stop_commands_verify_the_bundle_first[write_final_plan] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_post_stop_commands_ver1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E15322D0>
+command = 'write_final_plan'
+
+    @pytest.mark.parametrize("command", ["attest_stop", "write_final_plan", "final_snapshot"])
+    def test_a3_post_stop_commands_verify_the_bundle_first(tmp_path, monkeypatch, command):
+        """A3.2: every S1 command - including the post-stop ones - compares the bundle first; a mismatch is the
+        persistent "bundle" abort (Q2: post-stop changes to the S1 bundle cannot silently alter the protocol)."""
+>       st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final_snapshot=False)
+
+s1_tests\test_s1_t12_a3_a8.py:277: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_post_stop_commands_ver1')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_____ test_a3_post_stop_commands_verify_the_bundle_first[final_snapshot] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_post_stop_commands_ver2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E1532060>
+command = 'final_snapshot'
+
+    @pytest.mark.parametrize("command", ["attest_stop", "write_final_plan", "final_snapshot"])
+    def test_a3_post_stop_commands_verify_the_bundle_first(tmp_path, monkeypatch, command):
+        """A3.2: every S1 command - including the post-stop ones - compares the bundle first; a mismatch is the
+        persistent "bundle" abort (Q2: post-stop changes to the S1 bundle cannot silently alter the protocol)."""
+>       st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final_snapshot=False)
+
+s1_tests\test_s1_t12_a3_a8.py:277: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_post_stop_commands_ver2')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+______ test_a3_final_acquisition_verifies_the_bundle_before_any_request _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_final_acquisition_veri0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000149E1530050>
+
+    def test_a3_final_acquisition_verifies_the_bundle_before_any_request(tmp_path, monkeypatch):
+        """A3.2/A7.1: do_final compares the bundle before reserving or requesting."""
+        import httpx
+>       st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
+
+s1_tests\test_s1_t12_a3_a8.py:298: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15330/test_a3_final_acquisition_veri0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_pinned_core_cache_is_keyed_by_resolved_path_and_approved_hash
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_opening_checkpoint_bundle_mismatch_refuses_with_zero_callbacks_and_no_abort
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[attest_start]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[do_prereg]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_score_bundle_mismatch_aborts_reserves_nothing_and_restoration_scores_aborted_invalid
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[seal]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[final_snapshot]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[final_manifest]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[prereg]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first[attest_stop]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first[write_final_plan]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first[final_snapshot]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a3_final_acquisition_verifies_the_bundle_before_any_request
+17 failed, 23 deselected in 0.93s

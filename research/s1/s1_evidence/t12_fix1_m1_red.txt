@@ -1,0 +1,96 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+_ test_fix1_m1_a_bundle_mismatch_is_persisted_even_on_a_prereg_refusal_path[prereg_missing] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15997/test_fix1_m1_a_bundle_mismatch0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027F77FF3260>
+how = 'prereg_missing'
+
+    @pytest.mark.parametrize("how", ["prereg_missing", "prereg_unreadable"])
+    def test_fix1_m1_a_bundle_mismatch_is_persisted_even_on_a_prereg_refusal_path(tmp_path, monkeypatch, how):
+        """m-1 (A3.2/A3.3): with an AUDIT-ACK'd audit and the opening seal on disk, the bundle is compared (and a mismatch
+        persisted) BEFORE a prereg-dependent refusal."""
+        st_ = _reg(tmp_path)
+        out = tmp_path / "s1_out"
+        p = out / "prereg.json"
+        if how == "prereg_missing":
+            p.rename(out / "prereg.moved")
+        else:
+            p.write_text("{garbage", encoding="utf-8")
+        monkeypatch.setattr(c, "bundle_sha256", lambda *a, **kw: "f" * 64)
+        with pytest.raises(SystemExit):
+            _cp(tmp_path, st_, MON)
+>       assert read(out / "aborted.json")["reason"] == "bundle"
+
+s1_tests\test_s1_t12_fix1.py:106: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_fix1.py:23: in read
+    return json.loads(Path(p).read_text(encoding="utf-8"))
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15997/test_fix1_m1_a_bundle_mismatch0/s1_out/aborted.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15997\\test_fix1_m1_a_bundle_mismatch0\\s1_out\\aborted.json'
+
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+_ test_fix1_m1_a_bundle_mismatch_is_persisted_even_on_a_prereg_refusal_path[prereg_unreadable] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15997/test_fix1_m1_a_bundle_mismatch1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027F7803E060>
+how = 'prereg_unreadable'
+
+    @pytest.mark.parametrize("how", ["prereg_missing", "prereg_unreadable"])
+    def test_fix1_m1_a_bundle_mismatch_is_persisted_even_on_a_prereg_refusal_path(tmp_path, monkeypatch, how):
+        """m-1 (A3.2/A3.3): with an AUDIT-ACK'd audit and the opening seal on disk, the bundle is compared (and a mismatch
+        persisted) BEFORE a prereg-dependent refusal."""
+        st_ = _reg(tmp_path)
+        out = tmp_path / "s1_out"
+        p = out / "prereg.json"
+        if how == "prereg_missing":
+            p.rename(out / "prereg.moved")
+        else:
+            p.write_text("{garbage", encoding="utf-8")
+        monkeypatch.setattr(c, "bundle_sha256", lambda *a, **kw: "f" * 64)
+        with pytest.raises(SystemExit):
+            _cp(tmp_path, st_, MON)
+>       assert read(out / "aborted.json")["reason"] == "bundle"
+
+s1_tests\test_s1_t12_fix1.py:106: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_fix1.py:23: in read
+    return json.loads(Path(p).read_text(encoding="utf-8"))
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15997/test_fix1_m1_a_bundle_mismatch1/s1_out/aborted.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15997\\test_fix1_m1_a_bundle_mismatch1\\s1_out\\aborted.json'
+
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix1.py::test_fix1_m1_a_bundle_mismatch_is_persisted_even_on_a_prereg_refusal_path[prereg_missing]
+FAILED s1_tests/test_s1_t12_fix1.py::test_fix1_m1_a_bundle_mismatch_is_persisted_even_on_a_prereg_refusal_path[prereg_unreadable]
+2 failed, 6 deselected in 0.71s

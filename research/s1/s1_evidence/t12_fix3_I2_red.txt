@@ -1,0 +1,6 @@
+Task 12 fix round 3 - I2 RED (written before the fix; run against the fix-round-2 code, 2026-10-17).
+Source run: s1_evidence/t12_fix3_all_red.txt (full tracebacks). All failures below are BEHAVIOURAL (the interface exists; the observed outcome is wrong).
+
+FAILED s1_tests/test_s1_t12_fix3.py::test_i2_a_stray_seal_before_the_opening_is_a_preserved_refusal_never_an_abort[2026-01-01.json] - AssertionError: {'actual': None, 'close': None, 'observed_utc': '2026-10-23T20:45:30+00:00', 'problems': ['registry/opening.json missing (the registration is witnessed by its seals/reports)'], ...}
+FAILED s1_tests/test_s1_t12_fix3.py::test_i2_a_stray_seal_before_the_opening_is_a_preserved_refusal_never_an_abort[2026-10-23.json] - AssertionError: {'actual': None, 'close': None, 'observed_utc': '2026-10-23T20:45:30+00:00', 'problems': ['registry/opening.json missing (the registration is witnessed by its seals/reports)'], ...}
+FAILED s1_tests/test_s1_t12_fix3.py::test_i2_a_lone_later_stage_registry_record_before_the_opening_is_a_refusal - AssertionError: assert {'actual': None, 'close': None, 'observed_utc': '2026-10-23T20:45:30+00:00', 'problems': ['registry/opening.json missing (the registration is witnessed by its seals/reports)'], ...} is None

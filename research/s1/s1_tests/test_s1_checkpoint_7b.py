@@ -11,14 +11,17 @@ import sqlite3
 
 import s1_seal
 import s1_snapshot
-from conftest import S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_state, s1_sync_portfolio
+from conftest import S1_BINDING, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_receipt_with, s1_state, s1_sync_portfolio
+
+OTHER = s1_receipt_with(S1_RECEIPT, files={"agents/mean_reversion_agent.py": "other"})   # Task 12 (A1): fingerprint
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"
 START_DT = datetime(2026, 10, 26, 13, 30, tzinfo=UTC)
 OPEN_DAY = "2026-10-23"                                          # the Friday session before the Monday START
 OPEN_CLOSE = datetime(2026, 10, 23, 20, 0, tzinfo=UTC)
-PROC = {"pid": 1, "process_start": "2026-10-01T09:00:00"}
+# (fix round 2 migration, Addendum 2 B2.1: the opening must observe the sanitized launcher binding)
+PROC = {"pid": 1, "process_start": "2026-10-01T09:00:00", "binding": dict(S1_BINDING)}
 
 
 def read(p):
@@ -55,7 +58,7 @@ def test_opening_mode_seals_the_opening_close_from_plan_and_audit_without_prereg
     assert rep["seal"] == {"written": True, "sha256": c.sha256_file(seal_p)}
     seal = read(seal_p)
     assert c.aware(seal["close"]) == OPEN_CLOSE and set(seal["fence"]) == {"1"} and seal["max_id"] == 1
-    assert seal["receipt_match"] is True and seal["receipt_sha256"] == c.sha256_bytes(c.canonical(S1_RECEIPT))
+    assert seal["receipt_match"] is True and seal["receipt_sha256"] == c.receipt_sha256(S1_RECEIPT)     # A1
     assert {"fence", "max_id", "trades", "capture", "restart_record", "process"} <= set(seal)
     proj = out / "captures" / OPEN_DAY / "20261023T204500Z" / "projection.json"
     assert c.sha256_file(proj) == seal["capture"]["projection_sha256"]
@@ -100,10 +103,10 @@ def test_opening_mode_refuses_an_incomplete_audit(tmp_path, ledger, breakage):
 
 
 def test_opening_mode_refuses_a_wrong_opening_close(tmp_path, ledger):
-    """Task 7b (controller-added): the plan's opening_close must be the session immediately before START."""
-    opening_ready(tmp_path, ledger)
-    p = tmp_path / "s1_out" / "plan.json"
-    p.write_text(json.dumps(dict(read(p), opening_close="2026-10-22")), encoding="utf-8")
+    """Task 7b (controller-added): the plan's opening_close must be the session immediately before START.
+    Task 12 (A8.1) input: the wrong opening close is in the plan from the start (a plan edited after its audit is
+    now refused first, for the plan binding)."""
+    s1_plan_audit(tmp_path, START, carry_in_syms=["A"], first_day="2026-10-20", opening_close="2026-10-22")
     with pytest.raises(SystemExit, match="opening_close"):
         opening(tmp_path, ledger)
     with pytest.raises(SystemExit, match="opening_close"):           # nor its slot, now that the plan names it
@@ -155,18 +158,15 @@ def test_attest_start_binds_the_opening_receipt_and_refuses_a_different_one(tmp_
         with pytest.raises(SystemExit, match="opening seal"):              # no opening checkpoint yet
             r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
     opening(tmp_path, ledger)
-    saved = rp.read_bytes()
-    rp.unlink()
-    with _Clock(START_DT - timedelta(days=2)):
-        with pytest.raises(SystemExit, match="no opening receipt"):         # seal present, receipt file gone
-            r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
-    rp.write_bytes(saved)
+    # (fix round 2, Addendum 2 B3.3: deleting opening_receipt.json after the opening seal is no longer a refusal but
+    # the persistent "registration artifact" abort - moved to test_s1_t12_fix2_b3.py::
+    # test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[opening_receipt.json-deleted])
     with _Clock(START_DT - timedelta(days=2)):
         with pytest.raises(SystemExit, match="opening receipt"):
-            r.attest_start(tmp_path, r.START_STATEMENT, dict(S1_RECEIPT, head="other"))
+            r.attest_start(tmp_path, r.START_STATEMENT, OTHER)                     # Task 12 (A1): fingerprint
         assert not (out / "attest_start.json").exists()
         a = r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
-    assert a["receipt_sha256"] == c.sha256_bytes(c.canonical(read(rp)))
+    assert a["receipt_sha256"] == c.receipt_sha256(read(rp))                                # Task 12 (A1)
     assert a["opening_seal_sha256"] == c.sha256_file(out / "seals" / f"{OPEN_DAY}.json")
 
 
@@ -174,7 +174,7 @@ def test_attest_start_refuses_when_the_opening_receipt_differs_from_the_seal(tmp
     """Task 7b (controller-added): an edited opening_receipt.json no longer matches the sealed receipt hash."""
     opening_ready(tmp_path, ledger)
     opening(tmp_path, ledger)
-    other = dict(S1_RECEIPT, head="other")
+    other = OTHER                                                                    # Task 12 (A1): fingerprint
     (tmp_path / "s1_out" / "opening_receipt.json").write_text(json.dumps(other), encoding="utf-8")
     with _Clock(START_DT - timedelta(days=2)):
         with pytest.raises(SystemExit, match="opening"):
@@ -387,11 +387,11 @@ def test_opening_receipt_is_written_before_the_seal_and_attest_start_needs_both(
         with pytest.raises(SystemExit, match="opening seal"):
             r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
     assert not (out / "attest_start.json").exists()
-    rep = opening(tmp_path, ledger, minutes=47)
+    rep = opening(tmp_path, ledger, minutes=120)  # Task 12 (A5.2) input: an hourly slot after every earlier window
     assert rep["seal"]["written"] is True and (out / "opening_receipt.json").read_bytes() == kept
     with _Clock(START_DT - timedelta(days=2)):
         assert r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)["receipt_sha256"] == \
-            c.sha256_bytes(c.canonical(S1_RECEIPT))
+            c.receipt_sha256(S1_RECEIPT)                                                 # Task 12 (A1)
 
 
 def test_opening_run_refuses_when_a_stored_receipt_differs_from_its_receipt(tmp_path, ledger, monkeypatch):
@@ -561,10 +561,8 @@ def test_cr_opening_refuses_every_audit_manifest_defect(tmp_path, ledger, edit):
 
 def test_cr_opening_refuses_a_later_opening_close(tmp_path, ledger):
     """Retrospective (Task 9 CR survivor s1_checkpoint:249): a plan opening_close AFTER the session before START is
-    refused too (the existing test covers an earlier one)."""
-    opening_ready(tmp_path, ledger)
-    p = tmp_path / "s1_out" / "plan.json"
-    p.write_text(json.dumps(dict(read(p), opening_close="2026-10-24")), encoding="utf-8")
+    refused too (the existing test covers an earlier one). Task 12 (A8.1) input: in the plan from the start."""
+    s1_plan_audit(tmp_path, START, carry_in_syms=["A"], first_day="2026-10-20", opening_close="2026-10-24")
     with pytest.raises(SystemExit, match="opening_close"):
         opening(tmp_path, ledger)
     assert no_capture(tmp_path)
@@ -572,13 +570,13 @@ def test_cr_opening_refuses_a_later_opening_close(tmp_path, ledger):
 
 def test_cr_opening_refuses_when_the_audit_calendar_ends_at_the_opening_day(tmp_path, ledger):
     """Retrospective (Task 9 CR survivor s1_checkpoint:255): no next session -> no seal window -> a refusal
-    (SystemExit), not a ValueError crash."""
-    opening_ready(tmp_path, ledger)
-    audit = tmp_path / "s1_out" / "audit"
-    cal = [d for d in read(audit / "calendar.json") if d["date"] <= OPEN_DAY]
-    (audit / "calendar.json").write_text(json.dumps(cal), encoding="utf-8")
-    _rewrite_audit(tmp_path, lambda m: m["files"].update({"calendar.json": c.sha256_file(audit / "calendar.json")}))
-    with pytest.raises(SystemExit, match="opening refused: calendar ends"):
+    (SystemExit), not a ValueError crash. Task 12 (A6) replacement: the short calendar is pinned as such (a
+    calendar.json differing from its pinned raw page is refused first, for the pin); the A6 completeness check now
+    refuses it before the schedule is built - still a refusal, never a crash."""
+    import test_s1_seal as ts
+    cal = [d for d in ts.cal() if "2026-10-01" <= d["date"] <= OPEN_DAY]
+    s1_plan_audit(tmp_path, START, carry_in_syms=["A"], first_day="2026-10-20", calendar=cal)
+    with pytest.raises(SystemExit, match="opening refused"):
         opening(tmp_path, ledger)
 
 
@@ -612,7 +610,7 @@ def test_cr_opening_report_receipt_match_on_every_path(tmp_path, ledger, monkeyp
     rep = read(out / "captures" / OPEN_DAY / "20261023T204700Z.report.json")
     assert rep["refused"].startswith("receipt conflict: stored") and rep["receipt_match"] is False
     (out / "opening_receipt.json").unlink()
-    rep = opening(tmp_path, ledger, minutes=49)
+    rep = opening(tmp_path, ledger, minutes=120)  # Task 12 (A5.2) input: an hourly slot after every earlier window
     assert rep["seal"]["written"] is True and rep["receipt_match"] is True
 
 
@@ -650,6 +648,13 @@ def test_cr_final_snapshot_refuses_on_a_bad_seal_record(tmp_path, bad):
     seals = tmp_path / "s1_out" / "seals"
     last = sorted(seals.glob("*.json"))[-1]
     (seals / "zz.json").write_text(last.read_text() if bad == "dup" else bad, encoding="utf-8")
+    if bad == "dup":
+        # Task 12 (A2.1/A2.3, A10.1) REPLACEMENT for the duplicate: the stop is the PERSISTED one (never recomputed,
+        # so no "two seals" ValueError); the extra seal is a frozen-slice integrity failure RECORDED by the
+        # successful capture (the score is then ABORTED-INVALID), not a refusal that leaves no outcome
+        rep = ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+        assert any("zz.json" in v and "frozen slices" in v for v in rep["fence_violations"]), rep
+        return
     with pytest.raises(SystemExit, match="bad seal record"):
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
     assert not (tmp_path / "s1_out" / "final_snapshot").exists()
@@ -710,8 +715,8 @@ def test_cr_final_report_written_concurrently_is_refused(tmp_path, monkeypatch):
     d = tmp_path / "s1_out" / "final_snapshot"
     real = s1_snapshot.take_snapshot
 
-    def racing(db, out_dir):
-        meta = real(db, out_dir)
+    def racing(db, out_dir, **kw):                            # Task 12 (A5.2) interface: take_snapshot(now=)
+        meta = real(db, out_dir, **kw)
         (d / "report.json").write_text('{"other": 1}', encoding="utf-8")
         return meta
     monkeypatch.setattr(s1_snapshot, "take_snapshot", racing)

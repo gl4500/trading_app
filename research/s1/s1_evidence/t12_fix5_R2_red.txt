@@ -1,0 +1,40 @@
+Task 12 fix round 5 - R2 behavioural RED, run against the round-4 sources (unchanged working tree before any fix-5 edit)
+sha256 of the sources at RED time:
+49bcc46f4218416b282115bc3f5da57367a3f72301c790a779342dfd06a4a115 *s1_common.py
+784f72bd39fa1cfff66408914dd79003745458496a60c309af94add763873b95 *s1_checkpoint.py
+a02fc47cf6538db4215b3e2b2c90ba838ee682efa74330dcf32f1854d2b4e8c3 *s1_tests/test_s1_t12_fix5.py
+command: python -m pytest s1_tests/test_s1_t12_fix5.py -k test_r2 -q -p no:cacheprovider -rf --tb=short
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+_ test_r2_probe_moving_the_plans_opening_close_after_registration_aborts_and_restoring_does_not_resume _
+s1_tests\test_s1_t12_fix5.py:129: in test_r2_probe_moving_the_plans_opening_close_after_registration_aborts_and_restoring_does_not_resume
+    ab = _aborted(tmp_path)
+s1_tests\test_s1_t12_fix2_b3.py:79: in _aborted
+    assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E   AssertionError: no persistent abort recorded
+E   assert False
+E    +  where False = exists()
+E    +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-18454/test_r2_probe_moving_the_plans0/s1_out/aborted.json').exists
+_ test_r2_moving_the_plans_opening_close_after_the_opening_seal_before_any_run_ack_aborts _
+s1_tests\test_s1_t12_fix5.py:148: in test_r2_moving_the_plans_opening_close_after_the_opening_seal_before_any_run_ack_aborts
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+s1_tests\test_s1_t12_fix2_b3.py:79: in _aborted
+    assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E   AssertionError: no persistent abort recorded
+E   assert False
+E    +  where False = exists()
+E    +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-18454/test_r2_moving_the_plans_openi0/s1_out/aborted.json').exists
+________________ test_r2_the_run_ack_alone_anchors_the_opening ________________
+s1_tests\test_s1_t12_fix5.py:168: in test_r2_the_run_ack_alone_anchors_the_opening
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+s1_tests\test_s1_t12_fix2_b3.py:79: in _aborted
+    assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E   AssertionError: no persistent abort recorded
+E   assert False
+E    +  where False = exists()
+E    +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-18454/test_r2_the_run_ack_alone_anch0/s1_out/aborted.json').exists
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix5.py::test_r2_probe_moving_the_plans_opening_close_after_registration_aborts_and_restoring_does_not_resume
+FAILED s1_tests/test_s1_t12_fix5.py::test_r2_moving_the_plans_opening_close_after_the_opening_seal_before_any_run_ack_aborts
+FAILED s1_tests/test_s1_t12_fix5.py::test_r2_the_run_ack_alone_anchors_the_opening
+3 failed, 9 deselected in 1.20s

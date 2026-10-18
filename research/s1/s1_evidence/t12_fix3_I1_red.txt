@@ -1,0 +1,7 @@
+Task 12 fix round 3 - I1 RED (written before the fix; run against the fix-round-2 code, 2026-10-17).
+Source run: s1_evidence/t12_fix3_all_red.txt (full tracebacks). All failures below are BEHAVIOURAL (the interface exists; the observed outcome is wrong).
+
+FAILED s1_tests/test_s1_t12_fix3.py::test_i1_probe_a_success_without_its_seal_is_pending_so_no_stop_is_frozen - AssertionError: assert '2027-04-23' in set()
+FAILED s1_tests/test_s1_t12_fix3.py::test_i1_the_stop_attestation_finalizes_before_it_freezes_the_stop - SystemExit: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+FAILED s1_tests/test_s1_t12_fix3.py::test_i1_the_final_plan_finalizes_before_it_freezes_the_stop - SystemExit: final plan refused: the trial is NO-VALID-SEAL (RUNNING = no stop yet)
+FAILED s1_tests/test_s1_t12_fix3.py::test_i1_the_score_refuses_while_a_success_lacks_its_seal - AssertionError: Regex pattern did not match.

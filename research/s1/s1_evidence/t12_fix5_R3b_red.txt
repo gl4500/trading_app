@@ -1,0 +1,14 @@
+Task 12 fix round 5 - R-3 (claim binding) behavioural RED: test written after the first R-3 GREEN (after-seal report), BEFORE the claim-binding code; run against the sources below
+bd8747b0ed8fde94399c6679e2f3454de47a995aff67cc22f33f2c1e9408b1aa *s1_common.py
+dff4eb26efe7dedce89392914cd53206e68134c9bc4a30e4382dc45de248dd16 *s1_checkpoint.py
+6e6effbd7193e982b1cbe1322a67fb80afb72ef995cb82ce488e6ea17987164c *s1_tests/test_s1_t12_fix5.py
+command: python -m pytest s1_tests/test_s1_t12_fix5.py -k after_seal_claim_alone -q -p no:cacheprovider -rf --tb=short
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________ test_r3_the_after_seal_claim_alone_still_binds_the_seal ___________
+s1_tests\test_s1_t12_fix5.py:225: in test_r3_the_after_seal_claim_alone_still_binds_the_seal
+    with pytest.raises(SystemExit):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix5.py::test_r3_the_after_seal_claim_alone_still_binds_the_seal
+1 failed, 12 deselected in 0.76s

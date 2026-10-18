@@ -1,0 +1,219 @@
+FFFFFFF.....F..                                                          [100%]
+================================== FAILURES ===================================
+_ test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals[receipt] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15352/test_a9_receipt_or_process_exc0')
+where = 'receipt'
+
+    @pytest.mark.parametrize("where", ["receipt", "process"])
+    def test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals(tmp_path, where):
+        """A9.1 / Codex probe g: an exception from the receipt or the process observation is preserved in the capture
+        report (exception class + sanitized reason, never secret-bearing text) and the attempt never seals."""
+        st_ = _reg(tmp_path)
+        exc = RuntimeError(f"git failed; token={SECRET}")
+>       rep = _cp(tmp_path, st_, **{f"{where}_fn": boom(exc)})
+
+s1_tests\test_s1_t12_a9.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a9.py:42: in _cp
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, receipt_fn or (lambda: S1_RECEIPT),
+s1_checkpoint.py:192: in run_checkpoint
+    receipt = receipt_fn()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def f():
+>       raise exc
+E       RuntimeError: git failed; token=AKIA-SECRET-VALUE-42
+
+s1_tests\test_s1_t12_a9.py:48: RuntimeError
+_ test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals[process] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15352/test_a9_receipt_or_process_exc1')
+where = 'process'
+
+    @pytest.mark.parametrize("where", ["receipt", "process"])
+    def test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals(tmp_path, where):
+        """A9.1 / Codex probe g: an exception from the receipt or the process observation is preserved in the capture
+        report (exception class + sanitized reason, never secret-bearing text) and the attempt never seals."""
+        st_ = _reg(tmp_path)
+        exc = RuntimeError(f"git failed; token={SECRET}")
+>       rep = _cp(tmp_path, st_, **{f"{where}_fn": boom(exc)})
+
+s1_tests\test_s1_t12_a9.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a9.py:42: in _cp
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, receipt_fn or (lambda: S1_RECEIPT),
+s1_checkpoint.py:191: in run_checkpoint
+    proc, rec = _observe_process(out, rep, process_fn, crash_log)
+s1_checkpoint.py:105: in _observe_process
+    proc = process_fn()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def f():
+>       raise exc
+E       RuntimeError: git failed; token=AKIA-SECRET-VALUE-42
+
+s1_tests\test_s1_t12_a9.py:48: RuntimeError
+__________ test_a9_a_capture_exception_is_preserved_and_never_seals ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15352/test_a9_a_capture_exception_is0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002CFD3660DD0>
+
+    def test_a9_a_capture_exception_is_preserved_and_never_seals(tmp_path, monkeypatch):
+        """A9.1: an unexpected exception inside the capture is preserved (class + sanitized reason), never a crash
+        without a report, never a seal."""
+        st_ = _reg(tmp_path)
+    
+        def bad(*a, **kw):
+            raise ValueError(f"weird {SECRET}")
+        monkeypatch.setattr(s1_snapshot, "take_snapshot", bad)
+>       rep = _cp(tmp_path, st_)
+
+s1_tests\test_s1_t12_a9.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a9.py:42: in _cp
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, receipt_fn or (lambda: S1_RECEIPT),
+s1_checkpoint.py:188: in run_checkpoint
+    meta = s.take_snapshot(live_db, cap_dir)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15352/test_a9_a_capture_exception_is0/s1_ledger.../Local/Temp/pytest-of-gl450/pytest-15352/test_a9_a_capture_exception_is0/s1_out/captures/2026-10-26/20261026T204500Z'))
+kw = {}
+
+    def bad(*a, **kw):
+>       raise ValueError(f"weird {SECRET}")
+E       ValueError: weird AKIA-SECRET-VALUE-42
+
+s1_tests\test_s1_t12_a9.py:77: ValueError
+______ test_a9_an_opening_receipt_exception_is_preserved_and_never_seals ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15352/test_a9_an_opening_receipt_exc0')
+ledger = <conftest.Ledger object at 0x000002CFD3700110>
+
+    def test_a9_an_opening_receipt_exception_is_preserved_and_never_seals(tmp_path, ledger):
+        """A9.1 in the opening mode."""
+        s1_plan_audit(tmp_path, START)
+        sch = OPEN_CLOSE + timedelta(minutes=45)
+        act = sch + timedelta(seconds=30)
+        with _Clock(act):
+>           rep = ck.run_opening_checkpoint(tmp_path, ledger.path, sch, boom(OSError(f"denied {SECRET}")),
+                                            lambda: dict(S1_PROCESS), tmp_path / "crash.log", now=lambda: act)
+
+s1_tests\test_s1_t12_a9.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_checkpoint.py:333: in run_opening_checkpoint
+    receipt = receipt_fn()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def f():
+>       raise exc
+E       OSError: denied AKIA-SECRET-VALUE-42
+
+s1_tests\test_s1_t12_a9.py:48: OSError
+_ test_a9_a_transient_unavailable_receipt_is_a_failed_attempt_and_a_later_slot_seals _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15352/test_a9_a_transient_unavailabl0')
+
+    def test_a9_a_transient_unavailable_receipt_is_a_failed_attempt_and_a_later_slot_seals(tmp_path):
+        """A9.2: an unavailable observation with no established violation is a failed attempt under the frozen retry
+        schedule: no abort; the next registered slot can seal."""
+        st_ = _reg(tmp_path)
+>       rep = _cp(tmp_path, st_, receipt_fn=boom(rc.ReceiptError("git unavailable (TimeoutExpired)", terminal=False)))
+E       AttributeError: module 's1_receipt' has no attribute 'ReceiptError'
+
+s1_tests\test_s1_t12_a9.py:101: AttributeError
+_ test_a9_an_established_receipt_violation_is_terminal_and_survives_restoration _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15352/test_a9_an_established_receipt0')
+
+    def test_a9_an_established_receipt_violation_is_terminal_and_survives_restoration(tmp_path):
+        """A9.2: an observed semantic violation (here: a registered closure member is gone) is terminal: aborted.json;
+        a later good receipt never resumes the trial."""
+        st_ = _reg(tmp_path)
+>       rep = _cp(tmp_path, st_, receipt_fn=boom(rc.ReceiptError("closure member trading/risk.py missing",
+                                                                 terminal=True)))
+E       AttributeError: module 's1_receipt' has no attribute 'ReceiptError'
+
+s1_tests\test_s1_t12_a9.py:111: AttributeError
+______ test_a9_missing_required_evidence_never_becomes_a_plausible_match ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15352/test_a9_missing_required_evide0')
+
+    def test_a9_missing_required_evidence_never_becomes_a_plausible_match(tmp_path):
+        """A9.2: a receipt that lacks its fingerprint is not a match (and not a mismatch either: nothing is compared);
+        no seal."""
+        st_ = _reg(tmp_path)
+>       rep = _cp(tmp_path, st_, receipt_fn=lambda: {"provenance": {"head": "h"}})
+
+s1_tests\test_s1_t12_a9.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a9.py:42: in _cp
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, receipt_fn or (lambda: S1_RECEIPT),
+s1_checkpoint.py:194: in run_checkpoint
+    receipt_sha = c.receipt_sha256(receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+receipt = {'provenance': {'head': 'h'}}
+
+    def receipt_sha256(receipt) -> str:
+        """A1: the receipt's VALIDITY hash = sha256 of its fingerprint only (provenance is recorded, never compared). A
+        receipt without a fingerprint is missing required evidence."""
+        if not isinstance(receipt, dict) or not isinstance(receipt.get("fingerprint"), dict):
+>           raise ValueError("receipt has no fingerprint (missing required evidence)")
+E           ValueError: receipt has no fingerprint (missing required evidence)
+
+s1_common.py:222: ValueError
+_ test_a9_every_non_numeric_disposition_makes_no_valuation_call[INCONCLUSIVE-contamination] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15352/test_a9_every_non_numeric_disp4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002CFD3786AE0>
+kind = 'INCONCLUSIVE-contamination'
+
+    @pytest.mark.parametrize("kind", sorted(DISPOSITIONS))
+    def test_a9_every_non_numeric_disposition_makes_no_valuation_call(tmp_path, monkeypatch, kind):
+        """A9.3: ABORTED-INVALID, BLOCKED, NO-VALID-SEAL, INCONCLUSIVE (carry-in, contamination 2b, > 10 % cap) and
+        INSUFFICIENT are each reached with spies on every valuation helper - none may be called (proof by spies, not by
+        omitted output fields)."""
+        kw = dict(DISPOSITIONS[kind])
+        abort, blocked = kw.pop("_abort", False), kw.pop("_prereg_blocked", False)
+        if blocked:                                       # as test_s1_run: bypass prereg's BLOCKED gate, score re-checks
+            with monkeypatch.context() as m:
+                m.setattr(r, "carry_in_reasons", lambda *a, **k_: [])
+                st_ = s1_state(tmp_path, START, score_ready=True, **kw)
+        else:
+            st_ = s1_state(tmp_path, START, score_ready=True, **kw)
+        if abort:
+            c.write_abort(tmp_path / "s1_out", {"reason": "semantic receipt changed",
+                                                 "actual": (START_DT + timedelta(hours=30)).isoformat()})
+        called = _spy(monkeypatch)
+        monkeypatch.setattr(c, "now_utc", lambda: st_["now"] + timedelta(days=1))
+        from conftest import s1_mailbox
+        s1_mailbox(tmp_path, "score-ack-n", r.score_token(tmp_path), st_["now"] + timedelta(hours=20))
+>       rep = r.score(tmp_path, "score-ack-n")
+
+s1_tests\test_s1_t12_a9.py:192: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_run.py:536: in score
+    text = _serialise(_score(out, mailbox))           # ruling M-6: serialise before opening the output file
+s1_run.py:931: in _score
+    "base": {bp: sim.baseline_economics(l, close, bp) for bp in BPS},
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+_n = 'baseline_economics'
+a = ({'entry_notional': Fraction(1000, 1), 'entry_px': Fraction(100, 1), 'entry_ts': datetime.datetime(2026, 10, 26, 15, 0, tzinfo=datetime.timezone.utc), 'fills': [(Fraction(10, 1), Fraction(80, 1))], ...}, 100, 0)
+kw = {}
+
+>   monkeypatch.setattr(sim, name, lambda *a, _n=name, **kw: called.append(_n) or pytest.fail(_n))
+E   Failed: baseline_economics
+
+s1_tests\test_s1_t12_a9.py:144: Failed
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals[receipt]
+FAILED s1_tests/test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals[process]
+FAILED s1_tests/test_s1_t12_a9.py::test_a9_a_capture_exception_is_preserved_and_never_seals
+FAILED s1_tests/test_s1_t12_a9.py::test_a9_an_opening_receipt_exception_is_preserved_and_never_seals
+FAILED s1_tests/test_s1_t12_a9.py::test_a9_a_transient_unavailable_receipt_is_a_failed_attempt_and_a_later_slot_seals
+FAILED s1_tests/test_s1_t12_a9.py::test_a9_an_established_receipt_violation_is_terminal_and_survives_restoration
+FAILED s1_tests/test_s1_t12_a9.py::test_a9_missing_required_evidence_never_becomes_a_plausible_match
+FAILED s1_tests/test_s1_t12_a9.py::test_a9_every_non_numeric_disposition_makes_no_valuation_call[INCONCLUSIVE-contamination]
+8 failed, 7 passed in 12.75s

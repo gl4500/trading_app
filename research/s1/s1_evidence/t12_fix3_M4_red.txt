@@ -1,0 +1,38 @@
+Task 12 fix round 3 (re-review M-4): BEHAVIOURAL REDs for the Addendum 2 acceptance examples whose fix-round-2 RED
+
+[BEHAVIOURAL RED] B1.6 just-before/at-D: no resolution deadline (a report at/after D still publishes SUCCESS)
+  reverted guard: s1_checkpoint.py::_publish   test: test_s1_t12_fix2_b1.py::test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_times_out
+  failing: s1_tests/test_s1_t12_fix2_b1.py::test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_times_out[offset1-False] :: [assertion] AssertionError: assert 'SUCCESS' == 'RESOLUTION-TIMEOUT'
+  failing: s1_tests/test_s1_t12_fix2_b1.py::test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_times_out[offset2-False] :: [assertion] AssertionError: assert 'SUCCESS' == 'RESOLUTION-TIMEOUT'
+  pytest rc=1: 2 failed, 1 passed in 2.57s
+
+[BEHAVIOURAL RED] B1.6 expiration-vs-late: the resolution is not exclusive (the last writer wins)
+  reverted guard: s1_checkpoint.py::_resolve   test: test_s1_t12_fix2_b1.py::test_b1_expiration_racing_a_late_completion_cannot_change_the_winner
+  failing: s1_tests/test_s1_t12_fix2_b1.py::test_b1_expiration_racing_a_late_completion_cannot_change_the_winner[expiration_first] :: [assertion] assert (datetime.datetime(2026, 10, 26, 20, 45, tzinfo=datetime.timezone.utc) == datetime.datetime(2026, 10, 26, 20, 47, tzinfo=datetime.timezone.utc))
+  failing: s1_tests/test_s1_t12_fix2_b1.py::test_b1_expiration_racing_a_late_completion_cannot_change_the_winner[barrier] :: [assertion] AssertionError: assert '2026-10-26T20:47:00+00:00' == '2026-10-26T20:45:00+00:00'
+  pytest rc=1: 2 failed, 1 passed in 2.57s
+
+[BEHAVIOURAL RED] B1.6 killed-vs-slow: a claimed slot without a report is MISSED after E (the pre-Addendum-2 rule)
+  reverted guard: s1_checkpoint.py::finalize_close   test: test_s1_t12_fix2_b1.py::test_b1_killed_and_merely_slow_workers_get_the_same_timeout_disposition
+  failing: s1_tests/test_s1_t12_fix2_b1.py::test_b1_killed_and_merely_slow_workers_get_the_same_timeout_disposition[killed] :: [assertion] AssertionError: assert ('MISSED' == 'RESOLUTION-TIMEOUT'
+  failing: s1_tests/test_s1_t12_fix2_b1.py::test_b1_killed_and_merely_slow_workers_get_the_same_timeout_disposition[slow] :: [assertion] AssertionError: assert 'MISSED' == 'RESOLUTION-TIMEOUT'
+  pytest rc=1: 2 failed in 2.27s
+
+[BEHAVIOURAL RED] B2.5 identical restart: PID / start time compared as binding (a restart is a change)
+  reverted guard: s1_checkpoint.py::_binding   test: test_s1_t12_fix2_b2.py::test_b2_an_identical_binding_restart_is_provenance_not_a_semantic_change
+  failing: s1_tests/test_s1_t12_fix2_b2.py::test_b2_an_identical_binding_restart_is_provenance_not_a_semantic_change :: [assertion] assert False is True
+  pytest rc=1: 1 failed in 0.71s
+
+[BEHAVIOURAL RED] B3.1 registry: no registration record is written
+  reverted guard: s1_common.py::register_stage   test: test_s1_t12_fix2_mutants.py::test_mt_the_opening_is_registered_with_its_seal_hash
+  failing: s1_tests/test_s1_t12_fix2_mutants.py::test_mt_the_opening_is_registered_with_its_seal_hash :: [assertion] AssertionError: the opening was not registered
+  pytest rc=1: 1 failed in 0.70s
+
+SUMMARY KILLED=5
+
+Not reverted (stated per example, re-review M-4):
+- "no capture beyond E" / "the 08:00 slot takes no capture after W": ALREADY SATISFIED before Addendum 2 (the A5.2
+  clock refusal outside [s, E] predates B1; D never touched capture eligibility) - no RED claimed.
+- "concurrent finalizers + restart replay": its behavioural RED is the deterministic C-1 race,
+  s1_evidence/t12_fix3_C1_red.txt (test_c1_a_concurrent_finalizer_and_a_reader_never_observe_a_partial_seal fails on
+  the fix-round-2 code: a reader and a second finalizer observe the partial seal).

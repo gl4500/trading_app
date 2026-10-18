@@ -1,0 +1,42 @@
+Task 12 fix round 6 - F-1 behavioural RED, run against the round-5 sources (working tree before any fix-6 edit)
+0744d4d4f5a40501466e7edbd2b91333db79efcc19d66cb9134c33f4c0a1c887 *s1_common.py
+8fa2eb2fc6b92da6a6df95b7c3ef8415ff916365ea6d84dbea217e863d0dc121 *s1_checkpoint.py
+a6b2d8255e2340d7312b30c96bd7fae1cfc7f07337defc24c52414556a1de7d6 *s1_tests/test_s1_t12_fix6.py
+command: python -m pytest s1_tests/test_s1_t12_fix6.py -q -p no:cacheprovider -rf --tb=short
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+_ test_f1_probe_fabricated_earlier_close_evidence_before_the_opening_is_a_refusal[earlier-claim+opening-claim+prereg] _
+s1_tests\test_s1_t12_fix6.py:63: in test_f1_probe_fabricated_earlier_close_evidence_before_the_opening_is_a_refusal
+    assert c.load_abort(out) is None, c.load_abort(out)
+E   AssertionError: {'actual': None, 'close': None, 'observed_utc': '2026-10-20T15:00:00+00:00', 'problems': ['opening_receipt.json missin...est_start.json missing (required at attest_start)', 'opening_books.json missing (required at attest_start)', ...], ...}
+E   assert {'actual': None, 'close': None, 'observed_utc': '2026-10-20T15:00:00+00:00', 'problems': ['opening_receipt.json missin...est_start.json missing (required at attest_start)', 'opening_books.json missing (required at attest_start)', ...], ...} is None
+E    +  where {'actual': None, 'close': None, 'observed_utc': '2026-10-20T15:00:00+00:00', 'problems': ['opening_receipt.json missin...est_start.json missing (required at attest_start)', 'opening_books.json missing (required at attest_start)', ...], ...} = <function load_abort at 0x00000234931A56C0>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-19085/test_f1_probe_fabricated_earli0/s1_out'))
+E    +    where <function load_abort at 0x00000234931A56C0> = c.load_abort
+_ test_f1_probe_fabricated_earlier_close_evidence_before_the_opening_is_a_refusal[two-claims] _
+s1_tests\test_s1_t12_fix6.py:64: in test_f1_probe_fabricated_earlier_close_evidence_before_the_opening_is_a_refusal
+    assert spies.zero() and _refusals(tmp_path), (spies.n, _refusals(tmp_path))
+E   AssertionError: ({'process': 0, 'receipt': 0, 'snapshot': 0}, [])
+E   assert (True and [])
+E    +  where True = zero()
+E    +    where zero = <test_s1_t12_fix2_b3.Spies object at 0x00000234936B3230>.zero
+E    +  and   [] = _refusals(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-19085/test_f1_probe_fabricated_earli1'))
+_ test_f1_probe_fabricated_earlier_close_evidence_before_the_opening_is_a_refusal[earlier-seal+opening-claim+attest_start] _
+s1_tests\test_s1_t12_fix6.py:63: in test_f1_probe_fabricated_earlier_close_evidence_before_the_opening_is_a_refusal
+    assert c.load_abort(out) is None, c.load_abort(out)
+E   AssertionError: {'actual': None, 'close': None, 'observed_utc': '2026-10-20T15:00:00+00:00', 'problems': ['opening_receipt.json missin...issing (required at attest_start)', 'registry/attest_start.json missing (stage attest_start is registered)', ...], ...}
+E   assert {'actual': None, 'close': None, 'observed_utc': '2026-10-20T15:00:00+00:00', 'problems': ['opening_receipt.json missin...issing (required at attest_start)', 'registry/attest_start.json missing (stage attest_start is registered)', ...], ...} is None
+E    +  where {'actual': None, 'close': None, 'observed_utc': '2026-10-20T15:00:00+00:00', 'problems': ['opening_receipt.json missin...issing (required at attest_start)', 'registry/attest_start.json missing (stage attest_start is registered)', ...], ...} = <function load_abort at 0x00000234931A56C0>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-19085/test_f1_probe_fabricated_earli2/s1_out'))
+E    +    where <function load_abort at 0x00000234931A56C0> = c.load_abort
+__ test_f1_an_edited_plan_never_lets_earlier_close_evidence_anchor_the_clock __
+s1_tests\test_s1_t12_fix6.py:82: in test_f1_an_edited_plan_never_lets_earlier_close_evidence_anchor_the_clock
+    assert c.load_abort(out) is None, c.load_abort(out)
+E   AssertionError: {'actual': None, 'close': None, 'observed_utc': '2026-10-20T15:00:00+00:00', 'problems': ['opening_receipt.json missin...est_start.json missing (required at attest_start)', 'opening_books.json missing (required at attest_start)', ...], ...}
+E   assert {'actual': None, 'close': None, 'observed_utc': '2026-10-20T15:00:00+00:00', 'problems': ['opening_receipt.json missin...est_start.json missing (required at attest_start)', 'opening_books.json missing (required at attest_start)', ...], ...} is None
+E    +  where {'actual': None, 'close': None, 'observed_utc': '2026-10-20T15:00:00+00:00', 'problems': ['opening_receipt.json missin...est_start.json missing (required at attest_start)', 'opening_books.json missing (required at attest_start)', ...], ...} = <function load_abort at 0x00000234931A56C0>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-19085/test_f1_an_edited_plan_never_l0/s1_out'))
+E    +    where <function load_abort at 0x00000234931A56C0> = c.load_abort
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix6.py::test_f1_probe_fabricated_earlier_close_evidence_before_the_opening_is_a_refusal[earlier-claim+opening-claim+prereg]
+FAILED s1_tests/test_s1_t12_fix6.py::test_f1_probe_fabricated_earlier_close_evidence_before_the_opening_is_a_refusal[two-claims]
+FAILED s1_tests/test_s1_t12_fix6.py::test_f1_probe_fabricated_earlier_close_evidence_before_the_opening_is_a_refusal[earlier-seal+opening-claim+attest_start]
+FAILED s1_tests/test_s1_t12_fix6.py::test_f1_an_edited_plan_never_lets_earlier_close_evidence_anchor_the_clock
+4 failed in 0.83s

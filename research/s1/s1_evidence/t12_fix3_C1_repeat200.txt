@@ -1,0 +1,4 @@
+Task 12 fix round 3 (C-1): the B1.6 concurrent-finalizers test repeated 200 times in one session (fix-round-3 code; run 2026-10-17T19:07Z, concurrently with the mutant run as background load).
+................................................................................................................................................................................................ [ 96%]
+........                                                                                                                                                                                         [100%]
+200 passed in 214.53s (0:03:34)

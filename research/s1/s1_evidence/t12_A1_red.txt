@@ -1,0 +1,307 @@
+FFFFFFFFFFFFF..F                                                         [100%]
+================================== FAILURES ===================================
+_ test_a1_receipt_separates_the_compared_fingerprint_from_informational_provenance _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_receipt_separates_the_0')
+
+    def test_a1_receipt_separates_the_compared_fingerprint_from_informational_provenance(tmp_path):
+        """A1.1/A1.2: {"fingerprint": closure (membership + sha256), registered resources, effective-config evidence,
+        runtime, the evidence contract's hash and the HMAC key id} vs {"provenance": HEAD, dirty list, transient files,
+        transport-only settings}."""
+        root = repo(tmp_path)
+>       a = rec(root)
+
+s1_tests\test_s1_t12_a1.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a1.py:65: in rec
+    kw.setdefault("contract", contract())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kw = {}
+
+    def contract(**kw):
+        """A reviewed test contract: the registered runtime is not part of these synthetic repos."""
+>       return rc.contract(runtime_required=False, **kw)
+E       AttributeError: module 's1_receipt' has no attribute 'contract'
+
+s1_tests\test_s1_t12_a1.py:61: AttributeError
+_______ test_a1_the_evidence_contract_is_one_named_reviewable_structure _______
+
+    def test_a1_the_evidence_contract_is_one_named_reviewable_structure():
+        """A1.1: the registered resource list and evidence contract are explicit data in code (one named structure),
+        its hash bound in every fingerprint."""
+>       ec = rc.EVIDENCE_CONTRACT
+E       AttributeError: module 's1_receipt' has no attribute 'EVIDENCE_CONTRACT'
+
+s1_tests\test_s1_t12_a1.py:88: AttributeError
+___ test_a1_an_unrelated_commit_or_checkout_does_not_change_the_fingerprint ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_an_unrelated_commit_or0')
+
+    def test_a1_an_unrelated_commit_or_checkout_does_not_change_the_fingerprint(tmp_path):
+        """A1.3 / Q0: an unrelated commit (frontend) or a branch checkout changes HEAD (provenance), never validity."""
+        root = repo(tmp_path)
+>       a = rec(root)
+
+s1_tests\test_s1_t12_a1.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a1.py:65: in rec
+    kw.setdefault("contract", contract())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kw = {}
+
+    def contract(**kw):
+        """A reviewed test contract: the registered runtime is not part of these synthetic repos."""
+>       return rc.contract(runtime_required=False, **kw)
+E       AttributeError: module 's1_receipt' has no attribute 'contract'
+
+s1_tests\test_s1_t12_a1.py:61: AttributeError
+_ test_a1_sqlite_sidecars_logs_and_caches_appearing_or_disappearing_are_provenance_only _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_sqlite_sidecars_logs_a0')
+
+    def test_a1_sqlite_sidecars_logs_and_caches_appearing_or_disappearing_are_provenance_only(tmp_path):
+        """A1.2 / Q3: SQLite -journal/-wal/-shm, logs and runtime caches are transient: recorded, never compared."""
+        root = repo(tmp_path)
+>       a = rec(root)
+
+s1_tests\test_s1_t12_a1.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a1.py:65: in rec
+    kw.setdefault("contract", contract())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kw = {}
+
+    def contract(**kw):
+        """A reviewed test contract: the registered runtime is not part of these synthetic repos."""
+>       return rc.contract(runtime_required=False, **kw)
+E       AttributeError: module 's1_receipt' has no attribute 'contract'
+
+s1_tests\test_s1_t12_a1.py:61: AttributeError
+_ test_a1_a_relevant_non_python_resource_is_bound_by_presence_and_hash_independent_of_git _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_a_relevant_non_python_0')
+
+    def test_a1_a_relevant_non_python_resource_is_bound_by_presence_and_hash_independent_of_git(tmp_path):
+        """A1.1 / Q3: a registered MR-relevant resource of any file type (here the launcher) is bound by
+        presence/absence and sha256, tracked or not; a change, removal or (re)appearance changes the fingerprint."""
+        root = repo(tmp_path)
+>       a = rec(root)
+
+s1_tests\test_s1_t12_a1.py:129: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a1.py:65: in rec
+    kw.setdefault("contract", contract())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kw = {}
+
+    def contract(**kw):
+        """A reviewed test contract: the registered runtime is not part of these synthetic repos."""
+>       return rc.contract(runtime_required=False, **kw)
+E       AttributeError: module 's1_receipt' has no attribute 'contract'
+
+s1_tests\test_s1_t12_a1.py:61: AttributeError
+___ test_a1_a_registered_required_resource_that_is_missing_fails_explicitly ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_a_registered_required_0')
+
+    def test_a1_a_registered_required_resource_that_is_missing_fails_explicitly(tmp_path):
+        """A1.1: a resource the contract marks REQUIRED that is missing fails explicitly (never a silent fallback)."""
+        root = repo(tmp_path)
+>       ct = contract(resources=[{"path": "start_backend.ps1", "role": "launcher", "required": True}])
+
+s1_tests\test_s1_t12_a1.py:144: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kw = {'resources': [{'path': 'start_backend.ps1', 'required': True, 'role': 'launcher'}]}
+
+    def contract(**kw):
+        """A reviewed test contract: the registered runtime is not part of these synthetic repos."""
+>       return rc.contract(runtime_required=False, **kw)
+E       AttributeError: module 's1_receipt' has no attribute 'contract'
+
+s1_tests\test_s1_t12_a1.py:61: AttributeError
+_ test_a1_a_new_closure_member_changes_the_fingerprint_and_a_missing_member_fails _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_a_new_closure_member_c0')
+
+    def test_a1_a_new_closure_member_changes_the_fingerprint_and_a_missing_member_fails(tmp_path):
+        """A1.1: the complete closure - membership AND sha256; a new member is a different fingerprint (a mismatch),
+        a missing in-repo member or root is a receipt FAILURE, never a silently shorter list."""
+        root = repo(tmp_path)
+>       a = rec(root)
+
+s1_tests\test_s1_t12_a1.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a1.py:65: in rec
+    kw.setdefault("contract", contract())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kw = {}
+
+    def contract(**kw):
+        """A reviewed test contract: the registered runtime is not part of these synthetic repos."""
+>       return rc.contract(runtime_required=False, **kw)
+E       AttributeError: module 's1_receipt' has no attribute 'contract'
+
+s1_tests\test_s1_t12_a1.py:61: AttributeError
+_ test_a1_secret_named_fields_are_bound_by_name_presence_and_keyed_hmac_never_raw _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_secret_named_fields_ar0')
+
+    def test_a1_secret_named_fields_are_bound_by_name_presence_and_keyed_hmac_never_raw(tmp_path):
+        """A1.1: an MR-relevant secret-named field is bound by field name, presence and an HMAC-SHA256 under the key
+        file stored outside s1_out and the repo; a changed secret value changes the fingerprint; the raw value never
+        appears; a non-MR secret (FRED_API_KEY) is not bound at all."""
+        root = repo(tmp_path)
+>       a = rec(root)
+
+s1_tests\test_s1_t12_a1.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a1.py:65: in rec
+    kw.setdefault("contract", contract())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kw = {}
+
+    def contract(**kw):
+        """A reviewed test contract: the registered runtime is not part of these synthetic repos."""
+>       return rc.contract(runtime_required=False, **kw)
+E       AttributeError: module 's1_receipt' has no attribute 'contract'
+
+s1_tests\test_s1_t12_a1.py:61: AttributeError
+_ test_a1_the_hmac_key_is_created_once_outside_s1_out_and_its_identity_is_bound _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_the_hmac_key_is_create0')
+
+    def test_a1_the_hmac_key_is_created_once_outside_s1_out_and_its_identity_is_bound(tmp_path):
+        """A1.1: the key file is created once (os.urandom) when absent; its identity (key-id hash) is in the
+        fingerprint, so key loss or rotation shows as a change, never as unchanged values. The registered location
+        is the coordination folder, outside s1_out and the repo."""
+        key = rc.HMAC_KEY                                                  # conftest: <tmp_path>/s1_receipt_hmac.key
+        assert not key.exists()
+        root = repo(tmp_path)
+>       a = rec(root)
+
+s1_tests\test_s1_t12_a1.py:193: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a1.py:65: in rec
+    kw.setdefault("contract", contract())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kw = {}
+
+    def contract(**kw):
+        """A reviewed test contract: the registered runtime is not part of these synthetic repos."""
+>       return rc.contract(runtime_required=False, **kw)
+E       AttributeError: module 's1_receipt' has no attribute 'contract'
+
+s1_tests\test_s1_t12_a1.py:61: AttributeError
+_ test_a1_a_missing_required_env_fails_explicitly_and_an_optional_one_is_recorded_absent _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_a_missing_required_env0')
+
+    def test_a1_a_missing_required_env_fails_explicitly_and_an_optional_one_is_recorded_absent(tmp_path):
+        """A1.1 / mapping probe j: the registered contract marks .env REQUIRED, so a missing .env fails explicitly - no
+        silent fallback to an empty value set. A reviewed alternate arrangement (env not required) records it as
+        absent; values then come from the code defaults (config.py, a closure member)."""
+        root = repo(tmp_path)
+        (root / ".env").unlink()
+>       with pytest.raises(rc.ReceiptError, match=r"\.env"):
+E       AttributeError: module 's1_receipt' has no attribute 'ReceiptError'
+
+s1_tests\test_s1_t12_a1.py:215: AttributeError
+_____________ test_a1_a_missing_required_runtime_fails_explicitly _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_a_missing_required_run0')
+
+    def test_a1_a_missing_required_runtime_fails_explicitly(tmp_path):
+        """A1.1: the backend's registered runtime is REQUIRED by the registered contract: no runtime -> failure, never
+        {"skipped": true}."""
+        root = repo(tmp_path)
+>       with pytest.raises(rc.ReceiptError, match="runtime"):
+E       AttributeError: module 's1_receipt' has no attribute 'ReceiptError'
+
+s1_tests\test_s1_t12_a1.py:226: AttributeError
+_______ test_a1_the_runtime_binds_python_and_the_backends_site_packages _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_the_runtime_binds_pyth0')
+
+    def test_a1_the_runtime_binds_python_and_the_backends_site_packages(tmp_path):
+        """A1.1: the registered runtime = Python version and the installed package versions OF THE BACKEND RUNTIME,
+        including the launcher's PYTHONPATH site-packages (the backend's effective packages)."""
+        root = repo(tmp_path)
+        sp = root / "site-packages" / "fakepkg-1.2.3.dist-info"
+        sp.mkdir(parents=True)
+        (sp / "METADATA").write_text("Metadata-Version: 2.1\nName: fakepkg\nVersion: 1.2.3\n")
+>       a = rc.semantic_receipt(root, root / ".env", Path(sys.executable), roots=ROOTS, contract=rc.contract())
+E       AttributeError: module 's1_receipt' has no attribute 'contract'
+
+s1_tests\test_s1_t12_a1.py:239: AttributeError
+_________________ test_a1_receipt_errors_carry_no_secret_text _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_receipt_errors_carry_n0')
+
+    def test_a1_receipt_errors_carry_no_secret_text(tmp_path):
+        """A1.1/A9.1: a receipt failure names the missing input, never a secret value."""
+        root = repo(tmp_path)
+        (root / "start_backend.ps1").unlink()
+>       ct = contract(resources=[{"path": "start_backend.ps1", "role": "launcher", "required": True}])
+
+s1_tests\test_s1_t12_a1.py:251: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kw = {'resources': [{'path': 'start_backend.ps1', 'required': True, 'role': 'launcher'}]}
+
+    def contract(**kw):
+        """A reviewed test contract: the registered runtime is not part of these synthetic repos."""
+>       return rc.contract(runtime_required=False, **kw)
+E       AttributeError: module 's1_receipt' has no attribute 'contract'
+
+s1_tests\test_s1_t12_a1.py:61: AttributeError
+____________ test_a1_a_receipt_without_a_fingerprint_never_matches ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15349/test_a1_a_receipt_without_a_fi0')
+
+    def test_a1_a_receipt_without_a_fingerprint_never_matches(tmp_path):
+        """A1.1 / A9.2: missing required evidence never becomes a plausible match (no fingerprint -> no seal)."""
+        st_ = _reg(tmp_path)
+>       rep = _cp(tmp_path, st_, {"provenance": {"head": "h"}})
+
+s1_tests\test_s1_t12_a1.py:299: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a1.py:271: in _cp
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+s1_checkpoint.py:194: in run_checkpoint
+    receipt_sha = c.receipt_sha256(receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+receipt = {'provenance': {'head': 'h'}}
+
+    def receipt_sha256(receipt) -> str:
+        """A1: the receipt's VALIDITY hash = sha256 of its fingerprint only (provenance is recorded, never compared). A
+        receipt without a fingerprint is missing required evidence."""
+        if not isinstance(receipt, dict) or not isinstance(receipt.get("fingerprint"), dict):
+>           raise ValueError("receipt has no fingerprint (missing required evidence)")
+E           ValueError: receipt has no fingerprint (missing required evidence)
+
+s1_common.py:222: ValueError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_receipt_separates_the_compared_fingerprint_from_informational_provenance
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_the_evidence_contract_is_one_named_reviewable_structure
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_an_unrelated_commit_or_checkout_does_not_change_the_fingerprint
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_sqlite_sidecars_logs_and_caches_appearing_or_disappearing_are_provenance_only
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_a_relevant_non_python_resource_is_bound_by_presence_and_hash_independent_of_git
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_a_registered_required_resource_that_is_missing_fails_explicitly
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_a_new_closure_member_changes_the_fingerprint_and_a_missing_member_fails
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_secret_named_fields_are_bound_by_name_presence_and_keyed_hmac_never_raw
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_the_hmac_key_is_created_once_outside_s1_out_and_its_identity_is_bound
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_a_missing_required_env_fails_explicitly_and_an_optional_one_is_recorded_absent
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_a_missing_required_runtime_fails_explicitly
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_the_runtime_binds_python_and_the_backends_site_packages
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_receipt_errors_carry_no_secret_text
+FAILED s1_tests/test_s1_t12_a1.py::test_a1_a_receipt_without_a_fingerprint_never_matches
+14 failed, 2 passed in 3.56s

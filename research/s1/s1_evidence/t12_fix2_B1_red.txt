@@ -1,0 +1,36 @@
+FF.FFFFFFFFFFFFFF                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b1.py:95: AttributeError: module 's1_seal' has no attribute 'RESOLUTION_TIMEOUT'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b1.py:124: assert (True is True and True is False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b1.py:158: assert (True is False)
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_a_success_published_st0\\s1_out\\captures\\2026-10-26\\20261026T204500Z.resolution.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_a_success_published_st1\\s1_out\\captures\\2026-10-26\\20261026T204500Z.resolution.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_a_success_published_st2\\s1_out\\captures\\2026-10-26\\20261026T204500Z.resolution.json'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b1.py:236: AttributeError: module 's1_checkpoint' has no attribute 'finalize_close'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b1.py:238: AttributeError: module 's1_checkpoint' has no attribute 'finalize_close'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b1.py:223: AttributeError: module 's1_common' has no attribute 'publish_exclusive'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_killed_and_merely_slow0\\s1_out\\captures\\2026-10-26\\20261026T204500Z.resolution.json'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b1.py:281: KeyError: 'resolution'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_D_never_extends_captur0\\s1_out\\captures\\2026-10-26\\20261026T204500Z.resolution.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_D_never_extends_captur1\\s1_out\\captures\\2026-10-26\\20261026T204500Z.resolution.json'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b1.py:307: AttributeError: module 's1_seal' has no attribute 'resolution_deadline'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b1.py:320: AttributeError: module 's1_checkpoint' has no attribute 'finalize_close'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b1.py:370: AssertionError: {'missed': ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-11-02', ...], 'persisted': True, 'status': 'NO-VALID-SEAL', 'stop_close': None}
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_resolution_timeout_is_thirty_minutes_and_single_sourced
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_the_reviews_overlap_race_selects_the_earlier_slot_in_both_completion_orders[later_slot_finalizes_first]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_a_claim_without_a_report_stays_pending_after_E_and_times_out_at_D
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_times_out[offset0-True]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_times_out[offset1-False]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_times_out[offset2-False]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_expiration_racing_a_late_completion_cannot_change_the_winner[publication_first]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_expiration_racing_a_late_completion_cannot_change_the_winner[expiration_first]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_expiration_racing_a_late_completion_cannot_change_the_winner[barrier]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_killed_and_merely_slow_workers_get_the_same_timeout_disposition[killed]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_killed_and_merely_slow_workers_get_the_same_timeout_disposition[slow]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_D_never_extends_capture_eligibility[at0]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_D_never_extends_capture_eligibility[at1]
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_the_0800_slot_takes_no_capture_after_W
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_concurrent_finalizers_and_restart_replay_give_one_deterministic_seal
+FAILED s1_tests/test_s1_t12_fix2_b1.py::test_b1_a_pending_resolution_cannot_cause_an_early_terminal_stop_followed_by_rescue
+16 failed, 1 passed in 9.43s

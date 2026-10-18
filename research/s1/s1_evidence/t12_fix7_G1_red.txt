@@ -1,0 +1,49 @@
+Task 12 fix round 7 - G-1 behavioural RED, run against the round-6 sources (working tree before any fix-7 edit)
+9794e69562680fbe3515ace52d31c3f73aae1973d984d40218d87399a377c224 *s1_common.py
+8fa2eb2fc6b92da6a6df95b7c3ef8415ff916365ea6d84dbea217e863d0dc121 *s1_checkpoint.py
+80ecde00e3c0cd3b6348c39a3cc302f3cae991c9e938fc7a57f577468dcc3c9d *s1_tests/test_s1_t12_fix7.py
+command: python -m pytest s1_tests/test_s1_t12_fix7.py -q -p no:cacheprovider -rf --tb=short
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+_ test_g1_probe_editing_plan_and_manifest_together_aborts_and_restoring_does_not_resume[bogus] _
+s1_tests\test_s1_t12_fix7.py:54: in test_g1_probe_editing_plan_and_manifest_together_aborts_and_restoring_does_not_resume
+    ab = _aborted(tmp_path)
+s1_tests\test_s1_t12_fix2_b3.py:79: in _aborted
+    assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E   AssertionError: no persistent abort recorded
+E   assert False
+E    +  where False = exists()
+E    +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-19580/test_g1_probe_editing_plan_and0/s1_out/aborted.json').exists
+_ test_g1_probe_editing_plan_and_manifest_together_aborts_and_restoring_does_not_resume[None] _
+s1_tests\test_s1_t12_fix7.py:54: in test_g1_probe_editing_plan_and_manifest_together_aborts_and_restoring_does_not_resume
+    ab = _aborted(tmp_path)
+s1_tests\test_s1_t12_fix2_b3.py:79: in _aborted
+    assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E   AssertionError: no persistent abort recorded
+E   assert False
+E    +  where False = exists()
+E    +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-19580/test_g1_probe_editing_plan_and1/s1_out/aborted.json').exists
+___ test_g1_the_run_ack_alone_anchors_when_the_audit_ack_binding_is_broken ____
+s1_tests\test_s1_t12_fix7.py:75: in test_g1_the_run_ack_alone_anchors_when_the_audit_ack_binding_is_broken
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+s1_tests\test_s1_t12_fix2_b3.py:79: in _aborted
+    assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E   AssertionError: no persistent abort recorded
+E   assert False
+E    +  where False = exists()
+E    +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-19580/test_g1_the_run_ack_alone_anch0/s1_out/aborted.json').exists
+_ test_g1_a_mailbox_outage_never_lets_a_manifest_differing_from_the_opening_records_vouch_for_the_plan _
+s1_tests\test_s1_t12_fix7.py:88: in test_g1_a_mailbox_outage_never_lets_a_manifest_differing_from_the_opening_records_vouch_for_the_plan
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+s1_tests\test_s1_t12_fix2_b3.py:79: in _aborted
+    assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E   AssertionError: no persistent abort recorded
+E   assert False
+E    +  where False = exists()
+E    +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-19580/test_g1_a_mailbox_outage_never0/s1_out/aborted.json').exists
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix7.py::test_g1_probe_editing_plan_and_manifest_together_aborts_and_restoring_does_not_resume[bogus]
+FAILED s1_tests/test_s1_t12_fix7.py::test_g1_probe_editing_plan_and_manifest_together_aborts_and_restoring_does_not_resume[None]
+FAILED s1_tests/test_s1_t12_fix7.py::test_g1_the_run_ack_alone_anchors_when_the_audit_ack_binding_is_broken
+FAILED s1_tests/test_s1_t12_fix7.py::test_g1_a_mailbox_outage_never_lets_a_manifest_differing_from_the_opening_records_vouch_for_the_plan
+4 failed in 1.60s

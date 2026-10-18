@@ -1,0 +1,4 @@
+Task 12 fix round 3 - M1 RED (written before the fix; run against the fix-round-2 code, 2026-10-17).
+Source run: s1_evidence/t12_fix3_all_red.txt (full tracebacks). All failures below are BEHAVIOURAL (the interface exists; the observed outcome is wrong).
+
+FAILED s1_tests/test_s1_t12_fix3.py::test_m1_a_publication_whose_link_lands_at_or_after_D_records_the_overrun - AssertionError: the publication overrun was not recorded

@@ -1,0 +1,627 @@
+FFFFFFF.FFFFFFFFFF.FFFFFFFFF.                                            [100%]
+================================== FAILURES ===================================
+______ test_a5_deadline_is_an_aware_instant_at_starts_new_york_wall_time ______
+
+    def test_a5_deadline_is_an_aware_instant_at_starts_new_york_wall_time():
+        """A5.1: START + 6 calendar months at START's New York wall time (month-end clamp), an aware instant; DST
+        changes keep the wall time (09:30 EDT -> 09:30 EST)."""
+        dl = z.deadline(datetime(2026, 10, 15, 13, 30, tzinfo=UTC))            # 09:30 EDT
+>       assert isinstance(dl, datetime) and dl.tzinfo is not None
+E       assert (False)
+E        +  where False = isinstance(datetime.date(2027, 4, 15), datetime)
+
+s1_tests\test_s1_t12_a5_a6.py:54: AssertionError
+________ test_a5_prop_deadline_keeps_the_new_york_wall_time_and_clamps ________
+
+    @settings(max_examples=200, deadline=None)
+>   @given(st.dates(min_value=date(2026, 1, 1), max_value=date(2030, 12, 31)), st.integers(0, 23), st.integers(0, 59))
+
+s1_tests\test_s1_t12_a5_a6.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+d = datetime.date(2026, 1, 1), h = 0, m = 0
+
+    @settings(max_examples=200, deadline=None)
+    @given(st.dates(min_value=date(2026, 1, 1), max_value=date(2030, 12, 31)), st.integers(0, 23), st.integers(0, 59))
+    def test_a5_prop_deadline_keeps_the_new_york_wall_time_and_clamps(d, h, m):
+        """A5.1 property: the deadline's New York wall time equals START's (except where that wall time does not exist
+        on the target day, a DST gap); its date is START's date + 6 months with the month-end clamp."""
+        import calendar as pycal
+        start = datetime(d.year, d.month, d.day, h, m, tzinfo=NY).astimezone(UTC)
+        s_ny = start.astimezone(NY)
+>       dl = z.deadline(start).astimezone(NY)
+E       AttributeError: 'datetime.date' object has no attribute 'astimezone'
+E       Falsifying example: test_a5_prop_deadline_keeps_the_new_york_wall_time_and_clamps(
+E           # The test always failed when commented parts were varied together.
+E           d=datetime.date(2026, 1, 1),  # or any other generated value
+E           h=0,  # or any other generated value
+E           m=0,  # or any other generated value
+E       )
+
+s1_tests\test_s1_t12_a5_a6.py:69: AttributeError
+_ test_a5_codex_probe_a_the_deadline_days_close_after_a_0930_deadline_is_ineligible _
+
+    def test_a5_codex_probe_a_the_deadline_days_close_after_a_0930_deadline_is_ineligible():
+        """A5.1 / Codex 0a58b934 probe a: START 2026-10-15 09:30 NY -> deadline 2027-04-15 09:30; with seals for the
+        Apr-14 and Apr-15 closes and today Apr-16, the TIMEOUT close is Apr-14 16:00 (the last sealed close whose close
+        INSTANT is <= the deadline), never Apr-15 16:00."""
+        start = datetime(2026, 10, 15, 13, 30, tzinfo=UTC)
+        seals = [_seal(ny("2027-04-14", "16:00"), []), _seal(ny("2027-04-15", "16:00"), [])]
+        st_ = z.stop_decision(seals, start, CAL_APR, today=ny("2027-04-16", "12:00"))
+>       assert st_["status"] == "TIMEOUT" and st_["stop_close"] == ny("2027-04-14", "16:00").isoformat(), st_
+E       AssertionError: {'missed': ['2026-10-15', '2026-10-16', '2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', ...], 'status': 'TIMEOUT', 'stop_close': '2027-04-15T20:00:00+00:00'}
+E       assert ('TIMEOUT' == 'TIMEOUT'
+E         
+E           TIMEOUT and '2027-04-15T20:00:00+00:00' == '2027-04-14T20:00:00+00:00'
+E         
+E         - 2027-04-14T20:00:00+00:00
+E         ?          ^
+E         + 2027-04-15T20:00:00+00:00
+E         ?          ^)
+
+s1_tests\test_s1_t12_a5_a6.py:92: AssertionError
+_______ test_a5_an_ineligible_post_deadline_close_can_never_be_the_stop _______
+
+v = '2027-04-14T15:00:00+00:00', field = 'price', tid = 1
+
+    def _positive(v, field: str, tid) -> float:
+        try:
+>           f = float(v)
+E           ValueError: could not convert string to float: '2027-04-14T15:00:00+00:00'
+
+s1_books.py:18: ValueError
+
+During handling of the above exception, another exception occurred:
+
+    def test_a5_an_ineligible_post_deadline_close_can_never_be_the_stop():
+        """A5.1: a close after the deadline instant does not qualify as STOPPED even with >= 100 fully sold."""
+        start = datetime(2026, 10, 15, 13, 30, tzinfo=UTC)
+        rows = [tr(i, "A", "BUY", 1, "2027-04-14T15:00:00+00:00") for i in range(1, 101)]
+        rows += [tr(100 + i, "A", "SELL", 1, "2027-04-15T15:00:00+00:00") for i in range(1, 101)]
+        seals = [_seal(ny("2027-04-14", "16:00"), rows[:100]), _seal(ny("2027-04-15", "16:00"), rows)]
+>       st_ = z.stop_decision(seals, start, CAL_APR, today=ny("2027-04-16", "12:00"))
+
+s1_tests\test_s1_t12_a5_a6.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_seal.py:252: in stop_decision
+    if count_sold(s["trades"], start, close) >= STOP_N:
+s1_seal.py:218: in count_sold
+    return sum(1 for lid in b.sold_events(asof) if lid in ids)
+s1_books.py:91: in sold_events
+    rs, events, prev_fills, by_symbol = rows(trades), {}, {}, {}
+s1_books.py:34: in rows
+    "price": _positive(t["price"], "price", tid), "ts": c.aware(t["ts"])})
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+v = '2027-04-14T15:00:00+00:00', field = 'price', tid = 1
+
+    def _positive(v, field: str, tid) -> float:
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+>           raise BookError(f"trade {tid}: {field} is not a number: {v!r}")
+E           s1_books.BookError: trade 1: price is not a number: '2027-04-14T15:00:00+00:00'
+
+s1_books.py:20: BookError
+________ test_a5_the_timeout_waits_for_the_last_eligible_closes_window ________
+
+    def test_a5_the_timeout_waits_for_the_last_eligible_closes_window():
+        """A5.1 with v5 §9: while the last eligible close's (Apr-14) seal schedule runs (until 08:00 Apr-15) the trial
+        is RUNNING; the Apr-15 window is irrelevant (that close is ineligible)."""
+        start = datetime(2026, 10, 15, 13, 30, tzinfo=UTC)
+        seals = [_seal(ny("2027-04-13", "16:00"), [])]
+        assert z.stop_decision(seals, start, CAL_APR, today=ny("2027-04-15", "07:59"))["status"] == "RUNNING"
+        st_ = z.stop_decision(seals, start, CAL_APR, today=ny("2027-04-15", "08:01"))
+>       assert st_["status"] == "TIMEOUT" and st_["stop_close"] == ny("2027-04-13", "16:00").isoformat()
+E       AssertionError: assert ('RUNNING' == 'TIMEOUT'
+E         
+E         - TIMEOUT
+E         + RUNNING)
+
+s1_tests\test_s1_t12_a5_a6.py:112: AssertionError
+___ test_a5_plan_records_the_deadline_instant_and_a_derived_calendar_range ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_plan_records_the_deadl0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019F5FB89AF0>
+
+    def test_a5_plan_records_the_deadline_instant_and_a_derived_calendar_range(tmp_path, monkeypatch):
+        """A5.1 / mapping 4.5: plan.json records the deadline as an aware instant and the calendar request range runs
+        from the plan date through the deadline date + the registered tail (covering the final lag), not a generic
+        +200 days."""
+        monkeypatch.setattr(c, "now_utc", lambda: datetime(2026, 10, 21, 12, tzinfo=UTC))
+        start = datetime(2026, 11, 2, 14, 30, tzinfo=UTC)
+        p = read(k.write_plan(tmp_path, start, "2026-10-30", ["A"], "2026-03-17"))
+>       assert c.aware(p["deadline"]) == ny("2027-05-02", "09:30")
+E       AssertionError: assert datetime.datetime(2027, 5, 2, 0, 0, tzinfo=datetime.timezone.utc) == datetime.datetime(2027, 5, 2, 13, 30, tzinfo=datetime.timezone.utc)
+E        +  where datetime.datetime(2027, 5, 2, 0, 0, tzinfo=datetime.timezone.utc) = <function aware at 0x0000019F5C16F2E0>('2027-05-02')
+E        +    where <function aware at 0x0000019F5C16F2E0> = c.aware
+E        +  and   datetime.datetime(2027, 5, 2, 13, 30, tzinfo=datetime.timezone.utc) = ny('2027-05-02', '09:30')
+
+s1_tests\test_s1_t12_a5_a6.py:123: AssertionError
+___ test_a5_no_valid_seal_trial_end_is_the_last_eligible_closes_window_end ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_no_valid_seal_trial_en0')
+
+    def test_a5_no_valid_seal_trial_end_is_the_last_eligible_closes_window_end(tmp_path):
+        """A5.1: the NO-VALID-SEAL end instant (score timing) is the window end of the last close whose close instant
+        is <= the deadline instant."""
+        st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[], final_snapshot=False)
+        out = tmp_path / "s1_out"
+        end, need_final = r._trial_end(out, read(out / "prereg.json"))
+        dl = z.deadline(START_DT)
+>       last = [d for d in st_["calendar"] if z.open_instant(d) >= START_DT and z.close_of(d["date"], st_["calendar"]) <= dl][-1]
+E       TypeError: can't compare datetime.datetime to datetime.date
+
+s1_tests\test_s1_t12_a5_a6.py:135: TypeError
+_____ test_a5_eligible_until_is_min_of_slot_plus_slack_and_the_window_end _____
+
+    def test_a5_eligible_until_is_min_of_slot_plus_slack_and_the_window_end():
+        """A5.2: E = min(s + SCHEDULE_SLACK, W), W = 08:00 America/New_York on the next session day (never recomputed
+        from invocation time)."""
+        slots = z.schedule(DAY, CAL)
+        s45 = slots[0]
+>       assert z.eligible_until(s45, DAY, CAL) == s45 + timedelta(minutes=10)
+E       AttributeError: module 's1_seal' has no attribute 'eligible_until'
+
+s1_tests\test_s1_t12_a5_a6.py:165: AttributeError
+__________ test_a5_capture_eligibility_predicate_examples[0-0-True] ___________
+
+start_off = 0, end_off = 0, ok = True
+
+    @pytest.mark.parametrize("start_off,end_off,ok", [
+        (0, 0, True),                    # instantaneous capture at s
+        (30, 60, True),                  # inside
+        (30, 600, True),                 # completion exactly at E (exact boundary) is allowed
+        (30, 601, False),                # just late: end = E + 1 s
+        (-1, 30, False),                 # a capture starting before s
+        (601, 602, False),               # starts after E
+        (60, 30, False),                 # end before start: not a capture interval
+    ])
+    def test_a5_capture_eligibility_predicate_examples(start_off, end_off, ok):
+        """A5.2/A5.5: s <= capture_start <= capture_end <= E, all aware instants."""
+        s = z.schedule(DAY, CAL)[0]
+>       got = z.capture_eligible(s, DAY, CAL, s + timedelta(seconds=start_off), s + timedelta(seconds=end_off))
+E       AttributeError: module 's1_seal' has no attribute 'capture_eligible'
+
+s1_tests\test_s1_t12_a5_a6.py:184: AttributeError
+_________ test_a5_capture_eligibility_predicate_examples[30-60-True] __________
+
+start_off = 30, end_off = 60, ok = True
+
+    @pytest.mark.parametrize("start_off,end_off,ok", [
+        (0, 0, True),                    # instantaneous capture at s
+        (30, 60, True),                  # inside
+        (30, 600, True),                 # completion exactly at E (exact boundary) is allowed
+        (30, 601, False),                # just late: end = E + 1 s
+        (-1, 30, False),                 # a capture starting before s
+        (601, 602, False),               # starts after E
+        (60, 30, False),                 # end before start: not a capture interval
+    ])
+    def test_a5_capture_eligibility_predicate_examples(start_off, end_off, ok):
+        """A5.2/A5.5: s <= capture_start <= capture_end <= E, all aware instants."""
+        s = z.schedule(DAY, CAL)[0]
+>       got = z.capture_eligible(s, DAY, CAL, s + timedelta(seconds=start_off), s + timedelta(seconds=end_off))
+E       AttributeError: module 's1_seal' has no attribute 'capture_eligible'
+
+s1_tests\test_s1_t12_a5_a6.py:184: AttributeError
+_________ test_a5_capture_eligibility_predicate_examples[30-600-True] _________
+
+start_off = 30, end_off = 600, ok = True
+
+    @pytest.mark.parametrize("start_off,end_off,ok", [
+        (0, 0, True),                    # instantaneous capture at s
+        (30, 60, True),                  # inside
+        (30, 600, True),                 # completion exactly at E (exact boundary) is allowed
+        (30, 601, False),                # just late: end = E + 1 s
+        (-1, 30, False),                 # a capture starting before s
+        (601, 602, False),               # starts after E
+        (60, 30, False),                 # end before start: not a capture interval
+    ])
+    def test_a5_capture_eligibility_predicate_examples(start_off, end_off, ok):
+        """A5.2/A5.5: s <= capture_start <= capture_end <= E, all aware instants."""
+        s = z.schedule(DAY, CAL)[0]
+>       got = z.capture_eligible(s, DAY, CAL, s + timedelta(seconds=start_off), s + timedelta(seconds=end_off))
+E       AttributeError: module 's1_seal' has no attribute 'capture_eligible'
+
+s1_tests\test_s1_t12_a5_a6.py:184: AttributeError
+________ test_a5_capture_eligibility_predicate_examples[30-601-False] _________
+
+start_off = 30, end_off = 601, ok = False
+
+    @pytest.mark.parametrize("start_off,end_off,ok", [
+        (0, 0, True),                    # instantaneous capture at s
+        (30, 60, True),                  # inside
+        (30, 600, True),                 # completion exactly at E (exact boundary) is allowed
+        (30, 601, False),                # just late: end = E + 1 s
+        (-1, 30, False),                 # a capture starting before s
+        (601, 602, False),               # starts after E
+        (60, 30, False),                 # end before start: not a capture interval
+    ])
+    def test_a5_capture_eligibility_predicate_examples(start_off, end_off, ok):
+        """A5.2/A5.5: s <= capture_start <= capture_end <= E, all aware instants."""
+        s = z.schedule(DAY, CAL)[0]
+>       got = z.capture_eligible(s, DAY, CAL, s + timedelta(seconds=start_off), s + timedelta(seconds=end_off))
+E       AttributeError: module 's1_seal' has no attribute 'capture_eligible'
+
+s1_tests\test_s1_t12_a5_a6.py:184: AttributeError
+_________ test_a5_capture_eligibility_predicate_examples[-1-30-False] _________
+
+start_off = -1, end_off = 30, ok = False
+
+    @pytest.mark.parametrize("start_off,end_off,ok", [
+        (0, 0, True),                    # instantaneous capture at s
+        (30, 60, True),                  # inside
+        (30, 600, True),                 # completion exactly at E (exact boundary) is allowed
+        (30, 601, False),                # just late: end = E + 1 s
+        (-1, 30, False),                 # a capture starting before s
+        (601, 602, False),               # starts after E
+        (60, 30, False),                 # end before start: not a capture interval
+    ])
+    def test_a5_capture_eligibility_predicate_examples(start_off, end_off, ok):
+        """A5.2/A5.5: s <= capture_start <= capture_end <= E, all aware instants."""
+        s = z.schedule(DAY, CAL)[0]
+>       got = z.capture_eligible(s, DAY, CAL, s + timedelta(seconds=start_off), s + timedelta(seconds=end_off))
+E       AttributeError: module 's1_seal' has no attribute 'capture_eligible'
+
+s1_tests\test_s1_t12_a5_a6.py:184: AttributeError
+________ test_a5_capture_eligibility_predicate_examples[601-602-False] ________
+
+start_off = 601, end_off = 602, ok = False
+
+    @pytest.mark.parametrize("start_off,end_off,ok", [
+        (0, 0, True),                    # instantaneous capture at s
+        (30, 60, True),                  # inside
+        (30, 600, True),                 # completion exactly at E (exact boundary) is allowed
+        (30, 601, False),                # just late: end = E + 1 s
+        (-1, 30, False),                 # a capture starting before s
+        (601, 602, False),               # starts after E
+        (60, 30, False),                 # end before start: not a capture interval
+    ])
+    def test_a5_capture_eligibility_predicate_examples(start_off, end_off, ok):
+        """A5.2/A5.5: s <= capture_start <= capture_end <= E, all aware instants."""
+        s = z.schedule(DAY, CAL)[0]
+>       got = z.capture_eligible(s, DAY, CAL, s + timedelta(seconds=start_off), s + timedelta(seconds=end_off))
+E       AttributeError: module 's1_seal' has no attribute 'capture_eligible'
+
+s1_tests\test_s1_t12_a5_a6.py:184: AttributeError
+_________ test_a5_capture_eligibility_predicate_examples[60-30-False] _________
+
+start_off = 60, end_off = 30, ok = False
+
+    @pytest.mark.parametrize("start_off,end_off,ok", [
+        (0, 0, True),                    # instantaneous capture at s
+        (30, 60, True),                  # inside
+        (30, 600, True),                 # completion exactly at E (exact boundary) is allowed
+        (30, 601, False),                # just late: end = E + 1 s
+        (-1, 30, False),                 # a capture starting before s
+        (601, 602, False),               # starts after E
+        (60, 30, False),                 # end before start: not a capture interval
+    ])
+    def test_a5_capture_eligibility_predicate_examples(start_off, end_off, ok):
+        """A5.2/A5.5: s <= capture_start <= capture_end <= E, all aware instants."""
+        s = z.schedule(DAY, CAL)[0]
+>       got = z.capture_eligible(s, DAY, CAL, s + timedelta(seconds=start_off), s + timedelta(seconds=end_off))
+E       AttributeError: module 's1_seal' has no attribute 'capture_eligible'
+
+s1_tests\test_s1_t12_a5_a6.py:184: AttributeError
+____ test_a5_the_0800_slot_has_no_positive_duration_window_and_is_not_slid ____
+
+    def test_a5_the_0800_slot_has_no_positive_duration_window_and_is_not_slid():
+        """A5.3: the 08:00 slot is kept in the schedule (not slid to 08:10, not replaced by 07:50); E = W = s, so any
+        capture of positive duration (or starting after 08:00) is ineligible."""
+        slots = z.schedule(DAY, CAL)
+        s8 = slots[-1]
+        assert s8.astimezone(NY).strftime("%H:%M") == "08:00" and slots[-2].astimezone(NY).strftime("%H:%M") == "07:00"
+>       assert z.eligible_until(s8, DAY, CAL) == s8
+E       AttributeError: module 's1_seal' has no attribute 'eligible_until'
+
+s1_tests\test_s1_t12_a5_a6.py:194: AttributeError
+________________ test_a5_overnight_weekend_and_holiday_windows ________________
+
+    def test_a5_overnight_weekend_and_holiday_windows():
+        """A5.5: Friday's window runs to Monday 08:00 ET with hourly slots over the weekend; the session before a holiday
+        runs to 08:00 of the next SESSION day (Thanksgiving skipped); each hourly slot is eligible for 10 minutes."""
+        fri = z.schedule(FRI, CAL)
+        assert z.window_end(FRI, CAL) == ny("2026-10-19", "08:00") and fri[-1] == ny("2026-10-19", "08:00")
+        sat_noon = datetime(2026, 10, 17, 16, 0, tzinfo=UTC)
+>       assert sat_noon in fri and z.eligible_until(sat_noon, FRI, CAL) == sat_noon + timedelta(minutes=10)
+E       AttributeError: module 's1_seal' has no attribute 'eligible_until'
+
+s1_tests\test_s1_t12_a5_a6.py:206: AttributeError
+_ test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at0] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_the_clock_is_checked_b0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019F5FB89AC0>
+at = datetime.datetime(2026, 10, 26, 20, 44, 59, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize("at", [S45 - timedelta(seconds=1), S45 + timedelta(minutes=10, seconds=1),
+                                    S45 + timedelta(hours=3)])
+    def test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved(tmp_path, monkeypatch, at):
+        """A5.2: the actual clock must be within [s, E] BEFORE any capture; an early or late invocation takes no
+        capture (zero snapshot calls) but its attempt and original scheduled time are preserved (a refused report with
+        the same predicate's verdict); the slot is then consumed (a rerun of it is a duplicate)."""
+        st_ = _registered(tmp_path)
+        spy = Snap(monkeypatch)
+>       rep = _run(tmp_path, st_, S45, at)
+
+s1_tests\test_s1_t12_a5_a6.py:275: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a5_a6.py:258: in _run
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, slot, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+s1_checkpoint.py:188: in run_checkpoint
+    meta = s.take_snapshot(live_db, cap_dir)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+live_db = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_the_clock_is_checked_b0/s1_ledger.sqlite3')
+out_dir = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_the_clock_is_checked_b0/s1_out/captures/2026-10-26/20261026T204500Z')
+now = <function now_utc at 0x0000019F5C16DDA0>
+
+    def snap(live_db, out_dir, now=c.now_utc):
+        self.calls += 1
+>       meta = real(live_db, out_dir, now=now)
+E       TypeError: take_snapshot() got an unexpected keyword argument 'now'
+
+s1_tests\test_s1_t12_a5_a6.py:239: TypeError
+_ test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at1] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_the_clock_is_checked_b1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019F5FB56060>
+at = datetime.datetime(2026, 10, 26, 20, 55, 1, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize("at", [S45 - timedelta(seconds=1), S45 + timedelta(minutes=10, seconds=1),
+                                    S45 + timedelta(hours=3)])
+    def test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved(tmp_path, monkeypatch, at):
+        """A5.2: the actual clock must be within [s, E] BEFORE any capture; an early or late invocation takes no
+        capture (zero snapshot calls) but its attempt and original scheduled time are preserved (a refused report with
+        the same predicate's verdict); the slot is then consumed (a rerun of it is a duplicate)."""
+        st_ = _registered(tmp_path)
+        spy = Snap(monkeypatch)
+>       rep = _run(tmp_path, st_, S45, at)
+
+s1_tests\test_s1_t12_a5_a6.py:275: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a5_a6.py:258: in _run
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, slot, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+s1_checkpoint.py:188: in run_checkpoint
+    meta = s.take_snapshot(live_db, cap_dir)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+live_db = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_the_clock_is_checked_b1/s1_ledger.sqlite3')
+out_dir = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_the_clock_is_checked_b1/s1_out/captures/2026-10-26/20261026T204500Z')
+now = <function now_utc at 0x0000019F5C16DDA0>
+
+    def snap(live_db, out_dir, now=c.now_utc):
+        self.calls += 1
+>       meta = real(live_db, out_dir, now=now)
+E       TypeError: take_snapshot() got an unexpected keyword argument 'now'
+
+s1_tests\test_s1_t12_a5_a6.py:239: TypeError
+_ test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at2] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_the_clock_is_checked_b2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019F5FB541D0>
+at = datetime.datetime(2026, 10, 26, 23, 45, tzinfo=datetime.timezone.utc)
+
+    @pytest.mark.parametrize("at", [S45 - timedelta(seconds=1), S45 + timedelta(minutes=10, seconds=1),
+                                    S45 + timedelta(hours=3)])
+    def test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved(tmp_path, monkeypatch, at):
+        """A5.2: the actual clock must be within [s, E] BEFORE any capture; an early or late invocation takes no
+        capture (zero snapshot calls) but its attempt and original scheduled time are preserved (a refused report with
+        the same predicate's verdict); the slot is then consumed (a rerun of it is a duplicate)."""
+        st_ = _registered(tmp_path)
+        spy = Snap(monkeypatch)
+>       rep = _run(tmp_path, st_, S45, at)
+
+s1_tests\test_s1_t12_a5_a6.py:275: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a5_a6.py:258: in _run
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, slot, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+s1_checkpoint.py:188: in run_checkpoint
+    meta = s.take_snapshot(live_db, cap_dir)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+live_db = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_the_clock_is_checked_b2/s1_ledger.sqlite3')
+out_dir = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_the_clock_is_checked_b2/s1_out/captures/2026-10-26/20261026T204500Z')
+now = <function now_utc at 0x0000019F5C16DDA0>
+
+    def snap(live_db, out_dir, now=c.now_utc):
+        self.calls += 1
+>       meta = real(live_db, out_dir, now=now)
+E       TypeError: take_snapshot() got an unexpected keyword argument 'now'
+
+s1_tests\test_s1_t12_a5_a6.py:239: TypeError
+_ test_a5_a_capture_finishing_after_E_never_seals_one_ending_exactly_at_E_does _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_capture_finishing_af0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019F5FCB32F0>
+
+    def test_a5_a_capture_finishing_after_E_never_seals_one_ending_exactly_at_E_does(tmp_path, monkeypatch):
+        """A5.2/A5.5: the measured capture start/end are re-validated AFTER the capture and BEFORE any seal: started at
+        s + 9 min and lasting 61 s ends at E + 1 s -> preserved, not sealed, late; a capture ending exactly at E
+        (next slot) seals."""
+        st_ = _registered(tmp_path)
+        Snap(monkeypatch, dur=timedelta(seconds=61))
+>       rep = _run(tmp_path, st_, S45, S45 + timedelta(minutes=9))
+
+s1_tests\test_s1_t12_a5_a6.py:291: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a5_a6.py:258: in _run
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, slot, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+s1_checkpoint.py:188: in run_checkpoint
+    meta = s.take_snapshot(live_db, cap_dir)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+live_db = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_capture_finishing_af0/s1_ledger.sqlite3')
+out_dir = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_capture_finishing_af0/s1_out/captures/2026-10-26/20261026T204500Z')
+now = <function now_utc at 0x0000019F5C16DDA0>
+
+    def snap(live_db, out_dir, now=c.now_utc):
+        self.calls += 1
+>       meta = real(live_db, out_dir, now=now)
+E       TypeError: take_snapshot() got an unexpected keyword argument 'now'
+
+s1_tests\test_s1_t12_a5_a6.py:239: TypeError
+______ test_a5_codex_probe_b_the_0800_slot_finishing_at_0805_never_seals ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_codex_probe_b_the_08000')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019F5FBE42C0>
+
+    def test_a5_codex_probe_b_the_0800_slot_finishing_at_0805_never_seals(tmp_path, monkeypatch):
+        """A5.3 / Codex probe b: the final 08:00 slot run at 08:00:30 (or finishing at 08:05) never seals."""
+        st_ = _registered(tmp_path)
+        s8 = z.schedule(next(d for d in st_["calendar"] if d["date"] == "2026-10-26"), st_["calendar"])[-1]
+        spy = Snap(monkeypatch, dur=timedelta(minutes=5))
+>       rep = _run(tmp_path, st_, s8, s8 + timedelta(seconds=30))
+
+s1_tests\test_s1_t12_a5_a6.py:305: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a5_a6.py:258: in _run
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, slot, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+s1_checkpoint.py:188: in run_checkpoint
+    meta = s.take_snapshot(live_db, cap_dir)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+live_db = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_codex_probe_b_the_08000/s1_ledger.sqlite3')
+out_dir = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_codex_probe_b_the_08000/s1_out/captures/2026-10-26/20261027T120000Z')
+now = <function now_utc at 0x0000019F5C16DDA0>
+
+    def snap(live_db, out_dir, now=c.now_utc):
+        self.calls += 1
+>       meta = real(live_db, out_dir, now=now)
+E       TypeError: take_snapshot() got an unexpected keyword argument 'now'
+
+s1_tests\test_s1_t12_a5_a6.py:239: TypeError
+_ test_a5_a_later_slot_capture_waits_for_an_unresolved_earlier_slot_then_the_earlier_one_seals _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_later_slot_capture_w0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019F5FB57AD0>
+
+    def test_a5_a_later_slot_capture_waits_for_an_unresolved_earlier_slot_then_the_earlier_one_seals(tmp_path,
+                                                                                                    monkeypatch):
+        """A5.2: arrival order never selects the seal. Slot 47 captures (consistent) at 20:47:30 while slot 45 has no
+        completed attempt and its window (to 20:55) is open: no seal yet. Slot 45 then runs (queued) at 20:50 and its
+        consistent capture is THE seal (first eligible in slot order)."""
+        st_ = _registered(tmp_path)
+        Snap(monkeypatch)
+>       rep47 = _run(tmp_path, st_, S47, S47 + timedelta(seconds=30))
+
+s1_tests\test_s1_t12_a5_a6.py:317: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a5_a6.py:258: in _run
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, slot, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+s1_checkpoint.py:188: in run_checkpoint
+    meta = s.take_snapshot(live_db, cap_dir)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+live_db = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_later_slot_capture_w0/s1_ledger.sqlite3')
+out_dir = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_later_slot_capture_w0/s1_out/captures/2026-10-26/20261026T204700Z')
+now = <function now_utc at 0x0000019F5C16DDA0>
+
+    def snap(live_db, out_dir, now=c.now_utc):
+        self.calls += 1
+>       meta = real(live_db, out_dir, now=now)
+E       TypeError: take_snapshot() got an unexpected keyword argument 'now'
+
+s1_tests\test_s1_t12_a5_a6.py:239: TypeError
+__ test_a5_a_deferred_capture_seals_once_the_earlier_slots_window_has_passed __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_deferred_capture_sea0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019F5FB49940>
+
+    def test_a5_a_deferred_capture_seals_once_the_earlier_slots_window_has_passed(tmp_path, monkeypatch):
+        """A5.2: slot 45 never runs; the deferred slot-47 capture becomes the seal at the first invocation after E45
+        (here slot 55 at 20:55:30), never the later slot-55 capture itself."""
+        st_ = _registered(tmp_path)
+        Snap(monkeypatch)
+>       _run(tmp_path, st_, S47, S47 + timedelta(seconds=30))
+
+s1_tests\test_s1_t12_a5_a6.py:330: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a5_a6.py:258: in _run
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, slot, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+s1_checkpoint.py:188: in run_checkpoint
+    meta = s.take_snapshot(live_db, cap_dir)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+live_db = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_deferred_capture_sea0/s1_ledger.sqlite3')
+out_dir = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_deferred_capture_sea0/s1_out/captures/2026-10-26/20261026T204700Z')
+now = <function now_utc at 0x0000019F5C16DDA0>
+
+    def snap(live_db, out_dir, now=c.now_utc):
+        self.calls += 1
+>       meta = real(live_db, out_dir, now=now)
+E       TypeError: take_snapshot() got an unexpected keyword argument 'now'
+
+s1_tests\test_s1_t12_a5_a6.py:239: TypeError
+___________ test_a5_a_delayed_invocation_cannot_claim_a_later_slot ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_delayed_invocation_c0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019F5FB4B800>
+
+    def test_a5_a_delayed_invocation_cannot_claim_a_later_slot(tmp_path, monkeypatch):
+        """A5.2: a slot-45 invocation queued until 20:56 is refused for slot 45 (late); it never becomes a slot-47
+        capture (the slot is its --scheduled argument, never recomputed from the invocation time)."""
+        st_ = _registered(tmp_path)
+        spy = Snap(monkeypatch)
+>       rep = _run(tmp_path, st_, S45, S45 + timedelta(minutes=11))
+
+s1_tests\test_s1_t12_a5_a6.py:342: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a5_a6.py:258: in _run
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, slot, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+s1_checkpoint.py:188: in run_checkpoint
+    meta = s.take_snapshot(live_db, cap_dir)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+live_db = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_delayed_invocation_c0/s1_ledger.sqlite3')
+out_dir = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_a_delayed_invocation_c0/s1_out/captures/2026-10-26/20261026T204500Z')
+now = <function now_utc at 0x0000019F5C16DDA0>
+
+    def snap(live_db, out_dir, now=c.now_utc):
+        self.calls += 1
+>       meta = real(live_db, out_dir, now=now)
+E       TypeError: take_snapshot() got an unexpected keyword argument 'now'
+
+s1_tests\test_s1_t12_a5_a6.py:239: TypeError
+_____ test_a5_five_sessions_are_counted_from_the_audit_acks_recorded_time _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15346/test_a5_five_sessions_are_coun0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019F5FC48890>
+
+    def test_a5_five_sessions_are_counted_from_the_audit_acks_recorded_time(tmp_path, monkeypatch):
+        """A5.4: the >= 5 NYSE sessions before START count from the S1-AUDIT-ACK's recorded time, not from the plan's
+        creation: a plan 12 days ahead whose ACK arrives 3 sessions before START aborts the audit."""
+        cal = cal_rows("2026-10-21", "2027-05-31")
+        _plan_and_ack(tmp_path, monkeypatch, datetime(2026, 10, 21, 12, tzinfo=UTC), datetime(2026, 10, 28, 12, tzinfo=UTC))
+>       with pytest.raises(SystemExit, match="ABORTED"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_t12_a5_a6.py:369: Failed
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_deadline_is_an_aware_instant_at_starts_new_york_wall_time
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_prop_deadline_keeps_the_new_york_wall_time_and_clamps
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_codex_probe_a_the_deadline_days_close_after_a_0930_deadline_is_ineligible
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_an_ineligible_post_deadline_close_can_never_be_the_stop
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_the_timeout_waits_for_the_last_eligible_closes_window
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_plan_records_the_deadline_instant_and_a_derived_calendar_range
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_no_valid_seal_trial_end_is_the_last_eligible_closes_window_end
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_eligible_until_is_min_of_slot_plus_slack_and_the_window_end
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples[0-0-True]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples[30-60-True]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples[30-600-True]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples[30-601-False]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples[-1-30-False]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples[601-602-False]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples[60-30-False]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_the_0800_slot_has_no_positive_duration_window_and_is_not_slid
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_overnight_weekend_and_holiday_windows
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at0]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at1]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at2]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_a_capture_finishing_after_E_never_seals_one_ending_exactly_at_E_does
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_codex_probe_b_the_0800_slot_finishing_at_0805_never_seals
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_a_later_slot_capture_waits_for_an_unresolved_earlier_slot_then_the_earlier_one_seals
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_a_deferred_capture_seals_once_the_earlier_slots_window_has_passed
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_a_delayed_invocation_cannot_claim_a_later_slot
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a5_five_sessions_are_counted_from_the_audit_acks_recorded_time
+26 failed, 3 passed, 9 deselected in 14.85s

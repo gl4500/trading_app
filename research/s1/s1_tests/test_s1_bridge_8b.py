@@ -3,6 +3,8 @@
 clocks; no live DB, network or .env."""
 import json
 import sqlite3
+
+import pytest
 from datetime import datetime, timedelta, timezone
 
 import s1_checkpoint as ck
@@ -71,7 +73,7 @@ def _example19(tmp_path):
     """Opening seal 16:45, then a BUY of a NEW ticker + a SELL of an audited carry-in lot stored at 20:00, START
     09:30 next day; prereg; one cohort BUY on the START session."""
     st_ = s1_state(tmp_path, START, bridge=BRIDGE)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(st_["prereg_at"]):           # Task 12 (A8.2) input: prereg after the RUN-ACK (Tuesday START)
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     lg = st_["ledger"]
     ts = "2026-10-27T15:00:00+00:00"
@@ -231,19 +233,21 @@ def test_pre_start_row_first_observed_after_first_post_start_seal_is_backdating_
 def test_opening_close_error_is_a_recorded_refusal_not_a_crash(tmp_path):
     """Task 9 hardening (c), product fix (test written first, behavioural RED in s1_evidence/t9_hardening_red.txt):
     when the bridge's opening close cannot be placed (prereg calendar has no session before START), run_checkpoint
-    records the refusal in the capture report, writes no seal and returns; it does not crash before the report."""
+    records the refusal in the capture report, writes no seal and returns; it does not crash before the report.
+    Task 12 (A8.2) REPLACEMENT (old evidence t9_hardening_red/green.txt preserved): prereg's calendar is bound to
+    the verified audit calendar, so an edited prereg calendar is refused at the authorization step - before any
+    capture (zero live callbacks), never a crash and never a seal."""
     st_, lg, rows, rid = _example19(tmp_path)
     out = tmp_path / "s1_out"
     pp = out / "prereg.json"
     pr = read(pp)
     pr["calendar"] = [d for d in pr["calendar"] if d["date"] >= "2026-10-27"]
     pp.write_text(json.dumps(pr), encoding="utf-8")
-    rep = _checkpoint(tmp_path, lg, datetime(2026, 10, 27, 20, 0, tzinfo=UTC))
-    assert "no calendar session before START" in str(rep.get("refused")), rep
-    assert rep["seal"]["written"] is False
+    # (fix round 2, B3.3: an edited registered prereg is first the persistent "registration artifact" abort)
+    with pytest.raises(SystemExit, match="registration artifact"):
+        _checkpoint(tmp_path, lg, datetime(2026, 10, 27, 20, 0, tzinfo=UTC))
     assert not (out / "seals" / "2026-10-27.json").exists()
-    reports = list((out / "captures" / "2026-10-27").glob("*.report.json"))
-    assert len(reports) == 1 and "no calendar session before START" in str(read(reports[0]).get("refused"))
+    assert not (out / "captures" / "2026-10-27").exists()
 
 
 def test_score_with_a_bridge_record_not_matching_its_rows_is_aborted_invalid(tmp_path, monkeypatch):

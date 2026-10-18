@@ -1,0 +1,4 @@
+Task 12 fix round 3 - M2 RED (written before the fix; run against the fix-round-2 code, 2026-10-17).
+Source run: s1_evidence/t12_fix3_all_red.txt (full tracebacks). All failures below are BEHAVIOURAL (the interface exists; the observed outcome is wrong).
+
+FAILED s1_tests/test_s1_t12_fix3.py::test_m2_the_attestation_and_prereg_are_registered_before_their_artifacts_are_published - AssertionError: ('attest_start', ['2026-10-23/20261023T204500Z.resolution.json', 'registry/opening.json', 'registry/attest_start.json', 'registry/prereg.json'])

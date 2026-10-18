@@ -3,19 +3,19 @@ economics from the pinned E1 core, verdict and report. Never touches the live ap
 import json
 import re
 import sqlite3
-from datetime import date
+from datetime import date, datetime
 from fractions import Fraction
 from pathlib import Path
 
 import s1_books as b
 import s1_collect as k
 import s1_common as c
+import s1_gates as g
+import s1_receipt as rc
 import s1_seal as z
 
-RUN_ACK = ("S1-RUN-ACK runner_sha256={runner} plan_sha256={plan} audit_manifest_sha256={audit} "
-           "attest_start_sha256={attest} toolchain_sha256={toolchain} start={start}")   # Task 11 I-1: toolchain
-SCORE_ACK = ("S1-SCORE-ACK runner_sha256={runner} final_manifest_sha256={final} stop_attest_sha256={attest} "
-             "final_snapshot_sha256={snap}")
+RUN_ACK = c.RUN_ACK                   # Task 12 (A3/A8): token texts single-sourced in s1_common
+SCORE_ACK = c.SCORE_ACK
 START_STATEMENT = "I confirm the trading_app backend runs from the recorded checkout, started after the S1 receipt."
 STOP_STATEMENT = ("I confirm that between START and the stop no MeanReversion code, config or package changed "
                   "(including changed and reverted) and no MeanReversion trade was placed or edited by hand.")
@@ -23,19 +23,24 @@ BPS = (0, 1, 5, 10)
 GATE_BPS = (5, 10)
 MIN_RETAINED = 30                     # §14 (= e1_sim.MIN_LOTS)
 TRIAL_ID = "S1"
-ABSENT = "absent"                     # SCORE_ACK placeholder for an artifact that does not exist
+ABSENT = c.ABSENT                     # SCORE_ACK placeholder for an artifact that does not exist
 BLOCKING_TYPES = {"forward_splits", "reverse_splits", "unit_splits", "spin_offs", "rights_distributions",
                   "cash_mergers", "stock_mergers", "stock_and_cash_mergers", "stock_dividends", "redemptions",
                   "worthless_removals", "name_changes"}
 SYMBOL_FIELDS = ("symbol", "old_symbol", "new_symbol", "alternate_symbol", "acquiree_symbol", "source_symbol")
-DATE_FIELDS = ("ex_date", "effective_date", "process_date")
-AUDIT_FILES = ("calendar.json", "corporate_actions.json", "ca_problems.json")
+DATE_FIELDS = ("ex_date", "effective_date")         # Task 12 (A7.3): process_date is never an effective date
+# A7.3: the registered effective-date field per provider action type (the E1 CA_SCHEMA field names). No field - in
+# particular process_date, a processing/publication date - is treated as an effective date without a pinned provider
+# field contract; types without such a field (redemptions, name changes, worthless removals) have UNKNOWN timing.
+EX_DATE_TYPES = {"forward_splits", "reverse_splits", "stock_dividends", "cash_dividends", "spin_offs",
+                 "rights_distributions"}
+EFFECTIVE_DATE_TYPES = {"unit_splits", "cash_mergers", "stock_mergers", "stock_and_cash_mergers"}
+AUDIT_FILES = g.AUDIT_FILES          # Task 12 (A6): + calendar_source.json (the pinned calendar's source)
 FINAL_FILES = ("bars.json", "bar_problems.json", "corporate_actions.json", "ca_problems.json")
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
-class Invalid(Exception):
-    """A protocol/integrity failure: a refusal at a gate, ABORTED-INVALID at the score."""
+Invalid = g.Invalid                   # a protocol/integrity failure: a refusal at a gate, ABORTED-INVALID at score
 
 
 def runner_sha() -> str:
@@ -53,9 +58,26 @@ def _valid_date(v) -> bool:
     return True
 
 
+def effective_date(a):
+    """Task 12 (A7.3, A4.2): the action's effective date from its type's registered field (ex_date or
+    effective_date), or None = unknown timing: an unregistered type or a type with no such field, a missing or
+    invalid value, an ambiguous record (both fields valid and different), a record the provider identity
+    reconciliation found conflicting (effective_conflict), or an incomplete/unclassifiable classification (whose
+    E1-derived effective_date may be a process date). Unknown timing is handled conservatively, never as outside
+    the date comparison."""
+    if a.get("effective_conflict") or a.get("classification") in ("incomplete", "unclassifiable"):
+        return None
+    t = a.get("type")
+    field = "ex_date" if t in EX_DATE_TYPES else "effective_date" if t in EFFECTIVE_DATE_TYPES else None
+    if field is None or not _valid_date(a.get(field)):
+        return None
+    vals = {a[f] for f in DATE_FIELDS if _valid_date(a.get(f))}
+    return a[field] if len(vals) == 1 else None
+
+
 def _date(a):
-    """Effective date of an action: the first VALID date among ex/effective/process date; None = undated."""
-    return next((a[f] for f in DATE_FIELDS if _valid_date(a.get(f))), None)
+    """Effective date of an action (Task 12: effective_date(); the Task 7 ex/effective/process fallback is gone)."""
+    return effective_date(a)
 
 
 def blocks(a, sym) -> bool:
@@ -103,28 +125,53 @@ def open_lots_before(rows, day: str) -> list:
     return [l for l in b.economic_lots(before, end) if l["rem_qty"] > 0]
 
 
-def fifo_untrusted(rows, actions, start_day: str, stop_date: str) -> dict:
-    """Controller ruling (Task 7, C-2 / M-1): for every unit/identity action dated inside the trial window (START
-    session .. stop session, inclusive) on a symbol with ANY economic-FIFO lot (cohort or carry-in, dust residual
-    included) open across that date, FIFO attribution of that symbol's SELLs is untrusted: {symbol: [reasons]}."""
+def contaminated_symbols(rows, actions, start, stop_close, held_syms=()) -> dict:
+    """Task 12 (A4.2; replaces the Task-7 C-2 fifo_untrusted ruling): the pre-registered contaminated-symbol rule.
+    A unit/identity action on symbol S with any lot of S (cohort or carry-in; economic FIFO over the as-of rows, dust
+    residuals included) open across its effective date contaminates S. An action with unknown effective timing
+    (effective_date() is None) is never outside the date comparison: it contaminates S when S has any cohort lot
+    (BUY with START <= stored time <= stop close) or is held at START (`held_syms`). Actions effective after the stop
+    session are outside the trial. Returns {S: {"actions": [ids], "effective_dates": [...], "sells": [SELL ids of S
+    stored on/after the effective date (unknown: any) and at or before the stop close]}}; a fully resolved event
+    with no lot of S open across it does not contaminate S."""
+    stop_day = _ny_day(stop_close)
+    in_trial = [t for t in rows if c.aware(t["ts"]) <= stop_close]
+    cohort_syms = {t["symbol"] for t in z.cohort(in_trial, start, stop_close)}
+    named = cohort_syms | set(held_syms) | {t["symbol"] for t in in_trial}
     out = {}
     for a in actions:
-        d = _date(a)
-        if d is None or not (start_day <= d <= stop_date):
+        syms = sorted(sym for sym in named if unit_identity(a, sym))
+        if not syms:
             continue
-        for l in open_lots_before(rows, d):
-            if unit_identity(a, l["symbol"]):
-                why = f"FIFO attribution untrusted after {a.get('id')} on {d}"
-                if why not in out.setdefault(l["symbol"], []):
-                    out[l["symbol"]].append(why)
+        d = effective_date(a)
+        if d is None:
+            hit = [s for s in syms if s in cohort_syms or s in set(held_syms)]
+            since = None
+        elif d <= stop_day:
+            open_syms = {l["symbol"] for l in open_lots_before(in_trial, d)}
+            hit = [s for s in syms if s in open_syms]
+            since = datetime.combine(date.fromisoformat(d), datetime.min.time(), tzinfo=c.NY)
+        else:
+            continue
+        for s in hit:
+            info = out.setdefault(s, {"actions": [], "effective_dates": [], "sells": []})
+            if a.get("id") not in info["actions"]:
+                info["actions"].append(a.get("id"))
+                info["effective_dates"].append(d)
+            for t in in_trial:
+                if t["symbol"] == s and t["action"] == "SELL" and (since is None or c.aware(t["ts"]) >= since) \
+                        and t["id"] not in info["sells"]:
+                    info["sells"].append(t["id"])
+    for info in out.values():
+        info["sells"].sort()
     return out
 
 
 def exclusions(lots, actions, problems, stop_date, sessions, bars, bar_problems, *, untrusted=None) -> dict:
     """§11 paired exclusion window per lot: entry NY date EXCLUSIVE .. stop session INCLUSIVE (both arms); undated
     or problem records block every lot of the symbol; every required bar (post-entry sessions + the stop close)
-    must exist and be unflagged. `untrusted` ({symbol: [reasons]}, from fifo_untrusted) excludes every lot of the
-    symbol."""
+    must exist and be unflagged. `untrusted` ({symbol: [reasons]}; Task 12: the A4.2c contaminated symbols)
+    excludes every lot of the symbol."""
     sim = c.sim()
     blocked = {s for p in problems for s in p.get("blocks_symbols", [])}
     flagged = {(p.get("symbol"), p.get("session")) for p in bar_problems}
@@ -229,7 +276,8 @@ def _sha_or_absent(p: Path) -> str:
 
 
 def _receipt_sha(receipt) -> str:
-    return c.sha256_bytes(c.canonical(receipt))
+    """Task 12 (A1): the validity hash = the receipt FINGERPRINT's (provenance is informational)."""
+    return c.receipt_sha256(receipt)
 
 
 def _ack(ack_id: str, token: str, mailbox=None) -> dict:
@@ -242,40 +290,23 @@ def _ack(ack_id: str, token: str, mailbox=None) -> dict:
 
 
 def run_token(root) -> str:
-    out = _out(root)
-    plan = _load(out / "plan.json")
-    return RUN_ACK.format(runner=runner_sha(), plan=c.sha256_file(out / "plan.json"),
-                          audit=c.sha256_file(out / "audit" / "manifest.json"),
-                          attest=_sha_or_absent(out / "attest_start.json"), toolchain=c.toolchain_sha256(),
-                          start=plan["planned_start"])
+    """Task 12 (A8.1): binds the opening seal, the frozen opening books, the audit, the attestation and the bundle
+    (s1_common.run_token)."""
+    return c.run_token(_out(root))
 
 
 def score_token(root) -> str:
-    out = _out(root)
-    return SCORE_ACK.format(runner=runner_sha(), final=_sha_or_absent(out / "final" / "manifest.json"),
-                            attest=_sha_or_absent(out / "attest_stop.json"),
-                            snap=_sha_or_absent(out / "final_snapshot" / "report.json"))   # Task 7b ruling 1
+    """Task 12 (A2/A3): also binds the persisted stop (stop.json) and the bundle (s1_common.score_token)."""
+    return c.score_token(_out(root))
 
 
 def _attempt(d: Path, names) -> tuple:
-    """A COMPLETE collector attempt whose named files match the manifest's hashes -> (manifest, {name: content})."""
-    mp = d / "manifest.json"
-    if not mp.exists():
-        raise Invalid(f"{d.name}: no manifest")
-    m = _load(mp)
-    if m.get("outcome") != "COMPLETE":
-        raise Invalid(f"{d.name} attempt outcome is {m.get('outcome')!r}, not COMPLETE")
-    files, got = m.get("files") or {}, {}
-    for n in names:
-        p = d / n
-        if n not in files or not p.exists() or c.sha256_file(p) != files[n]:
-            raise Invalid(f"{d.name}/{n} missing or differs from its manifest hash")
-        got[n] = _load(p)
-    return m, got
+    """A COMPLETE collector attempt: named derived files AND raw pages re-verified (s1_gates.attempt, A7.4)."""
+    return g.attempt(d, names, Path(d).parent)
 
 
 def _calendar(raw) -> list:
-    return [{"date": x["date"], "open": x["open"], "close": x["close"]} for x in raw]
+    return z.calendar_rows(raw)
 
 
 def _ny_day(t) -> str:
@@ -348,32 +379,90 @@ def _opening_receipt(out: Path, opening_seal: dict) -> dict:
     return rec
 
 
+def _binding_sha(binding) -> str:
+    return c.sha256_bytes(c.canonical(binding))
+
+
+def _opening_binding(seal: dict, where: str) -> dict:
+    """Addendum 2 B2.1: the registered process-binding reference = the opening seal's observed binding (REFERENCE);
+    an opening seal without a usable one fails closed."""
+    pb = seal.get("process_binding") if isinstance(seal, dict) else None
+    b_ = pb.get("binding") if isinstance(pb, dict) and pb.get("status") == "REFERENCE" else None
+    if rc.binding_problem(b_) or (seal.get("process") or {}).get("binding") != b_:
+        raise SystemExit(f"{where} refused: the opening seal carries no usable process-binding reference (B2.1)")
+    return b_
+
+
 # ------------------------------------------------------------------ gates (§12, §15)
-def attest_start(root, statement: str, receipt) -> dict:
+def _books_record(seal_p: Path, seal: dict) -> dict:
+    """Task 12 (A8.1, mapping 1.2): the frozen opening books = economic-FIFO open lots (exact quantities as text) and
+    the operational replay over the opening seal's rows (quantities only), bound to the opening seal's hash."""
+    rows = seal["trades"]
+    end = c.aware(seal["close"])
+    lots = [{"id": l["id"], "symbol": l["symbol"], "entry_ts": l["entry_ts"].isoformat(), "qty": str(l["qty"]),
+             "rem_qty": str(l["rem_qty"])} for l in b.economic_lots(rows, end) if l["rem_qty"] > 0]
+    return {"opening_seal_sha256": c.sha256_file(seal_p), "opening_close": seal["close"], "economic_lots": lots,
+            "operational": b.operational_replay(rows)}
+
+
+def _opening_books(out: Path, seal_p: Path, seal: dict) -> Path:
+    """Write s1_out/opening_books.json once (or verify an existing one equals the recomputation)."""
+    p = out / "opening_books.json"
+    rec = _books_record(seal_p, seal)
+    if p.exists():
+        if _load(p) != json.loads(json.dumps(rec, sort_keys=True)):
+            raise SystemExit("START attestation refused: opening_books.json differs from the opening seal's books")
+        return p
+    k._write_once(p, rec)
+    return p
+
+
+def attest_start(root, statement: str, receipt, *, mailbox=None) -> dict:
     """START attestation (§12): before RUN-ACK/prereg and strictly before planned START; binds trial ID, planned
-    START, the semantic receipt, the plan, the COMPLETE audit and the opening seal."""
+    START, the semantic receipt, the plan, the COMPLETE audit and the opening seal. Task 12: the bundle is verified
+    FIRST (A3.2; from the opening seal on a mismatch is the persistent "bundle" abort, R-1); the audit is the
+    verified one (A8.2); the attestation follows the opening seal's capture (A8.1); it writes and binds the frozen
+    opening books (A8.1) and binds the bundle."""
     if statement != START_STATEMENT:
         raise SystemExit("START attestation refused: the statement must be exactly START_STATEMENT")
     out = _out(root)
+    c.verify_bundle_first(out, "START attestation", mailbox=mailbox, need="audit")
+    if c.load_abort(out) is not None:                                 # Task 12 (A3.3): persistent, never resumed
+        raise SystemExit("START attestation refused: the registration is ABORTED-INVALID (aborted.json)")
     plan = _load(out / "plan.json")
     if c.now_utc() >= c.aware(plan["planned_start"]):
         raise SystemExit("planned START has passed: re-register")
     if (out / "attest_start.json").exists():
         raise SystemExit("START attestation already recorded: refusing")
     try:
-        _, files = _attempt(out / "audit", AUDIT_FILES)
-        seal_p, seal = _opening_seal(out, plan, _calendar(files["calendar.json"]))
+        aud = g.verified_audit(out, mailbox)
+        seal_p, seal = _opening_seal(out, plan, aud["calendar"])
     except Invalid as e:
         raise SystemExit(f"START attestation refused: {e}") from None
+    if seal.get("bundle_sha256") != c.bundle_sha256():
+        raise SystemExit("START attestation refused: the opening seal was not written by the registered bundle")
+    cap = seal.get("capture") or {}
+    if c.now_utc() <= c.aware(cap.get("capture_end") or cap.get("actual")):
+        raise SystemExit("START attestation refused: it must follow the opening seal's capture")
+    binding = _opening_binding(seal, "START attestation")           # fix round 2 (B2.1): the bound reference
     opening_receipt = _opening_receipt(out, seal)                     # Task 7b: the receipt the opening sealed with
-    if receipt != opening_receipt:
+    if c.receipt_sha256(receipt) != _receipt_sha(opening_receipt):    # Task 12 (A1): fingerprints compared
         raise SystemExit("START attestation refused: the receipt differs from the opening receipt "
                          "(s1_out/opening_receipt.json)")
+    try:
+        books_p = _opening_books(out, seal_p, seal)
+    except b.BookError as e:
+        raise SystemExit(f"START attestation refused: opening ledger unreadable ({e})") from None
     rec = {"statement": statement, "trial_id": TRIAL_ID, "planned_start": plan["planned_start"],
            "receipt_sha256": _receipt_sha(opening_receipt), "plan_sha256": c.sha256_file(out / "plan.json"),
            "audit_manifest_sha256": c.sha256_file(out / "audit" / "manifest.json"),
-           "opening_seal_sha256": c.sha256_file(seal_p), "recorded_utc": c.now_utc().isoformat()}
-    _write_once(out / "attest_start.json", rec, "START attestation")
+           "opening_seal_sha256": c.sha256_file(seal_p), "opening_books_sha256": c.sha256_file(books_p),
+           "process_binding_sha256": _binding_sha(binding),                         # fix round 2 (B2.1)
+           "bundle_sha256": c.bundle_sha256(), "recorded_utc": c.now_utc().isoformat()}
+    with c.stage_publication(out, "attest_start"):   # fix rounds 3/4 (M-2/C-2/m-1): records BEFORE the artifact, locked
+        c.register_stage(out, "attest_start", {"attest_start.json": k.json_sha256(rec),                   # B3.1
+                                               "opening_books.json": c.sha256_file(books_p)})
+        _write_once(out / "attest_start.json", rec, "START attestation")
     return rec
 
 
@@ -381,14 +470,27 @@ def _start_attestation_problems(out: Path, att: dict, plan: dict, seal_p: Path, 
     want = {"statement": START_STATEMENT, "trial_id": TRIAL_ID, "planned_start": plan["planned_start"],
             "plan_sha256": c.sha256_file(out / "plan.json"),
             "audit_manifest_sha256": c.sha256_file(out / "audit" / "manifest.json"),
-            "opening_seal_sha256": c.sha256_file(seal_p), "receipt_sha256": _receipt_sha(receipt)}
-    return [f"START attestation {key} does not match" for key, v in want.items() if att.get(key) != v]
+            "opening_seal_sha256": c.sha256_file(seal_p), "receipt_sha256": _receipt_sha(receipt),
+            "opening_books_sha256": c.sha_or_absent(out / "opening_books.json"),
+            "bundle_sha256": c.bundle_sha256()}
+    bad = [f"START attestation {key} does not match" for key, v in want.items() if att.get(key) != v]
+    try:                                                                         # fix round 2 (B2.1)
+        if att.get("process_binding_sha256") != _binding_sha(_opening_binding(_load(seal_p), "attestation check")):
+            bad.append("START attestation process_binding_sha256 does not match")
+    except (SystemExit, OSError, ValueError) as e:
+        bad.append(f"START attestation process binding unverifiable ({e})")
+    return bad
 
 
 def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
     """Prereg (§4/§15): strictly before planned START, after a COMPLETE audit and the START attestation, never with
-    a BLOCKED carry-in, under the exact RUN-ACK. Writes s1_out/prereg.json once (start, calendar, receipt + bindings)."""
+    a BLOCKED carry-in, under the exact RUN-ACK. Writes s1_out/prereg.json once (start, calendar, receipt + bindings).
+    Task 12: the bundle first (A3.2/A3.3, R-1); the verified audit (A8.2); the carry-in audit bounded to actions
+    effective before START (A4.1); prereg records the bundle, opening seal and opening books (A8.1)."""
     out = _out(root)
+    c.verify_bundle_first(out, "prereg", mailbox=mailbox, need="audit")
+    if c.load_abort(out) is not None:                                 # Task 12 (A3.3): persistent, never resumed
+        raise SystemExit("prereg refused: the registration is ABORTED-INVALID (aborted.json)")
     plan = _load(out / "plan.json")
     start = c.aware(plan["planned_start"])
     if c.now_utc() >= start:
@@ -396,13 +498,14 @@ def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
     if (out / "prereg.json").exists():
         raise SystemExit("prereg already recorded: refusing")
     try:
-        _, files = _attempt(out / "audit", AUDIT_FILES)
+        aud = g.verified_audit(out, mailbox)
     except Invalid as e:
         raise SystemExit(f"prereg refused: audit not COMPLETE ({e})") from None
+    files = aud["files"]
     ap = out / "attest_start.json"
     if not ap.exists():
         raise SystemExit("prereg refused: no START attestation recorded")
-    cal = _calendar(files["calendar.json"])
+    cal = aud["calendar"]
     try:
         seal_p, seal = _opening_seal(out, plan, cal)
     except Invalid as e:
@@ -414,8 +517,7 @@ def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
         held, since = _carry_in(z.split_bridge(seal["trades"], start)[0], start)
     except b.BookError as e:
         raise SystemExit(f"prereg refused: opening ledger unreadable ({e})") from None
-    reasons = (_coverage_reasons(held, since, set(plan["ca_symbols"]), plan["ca_range"][0])
-               + carry_in_reasons(held, files["corporate_actions.json"], since, problems=files["ca_problems.json"]))
+    reasons = _blocked_reasons(plan, held, since, files["corporate_actions.json"], files["ca_problems.json"], start)
     if reasons:
         try:
             k._write_once(out / "blocked.json", {"status": "BLOCKED", "reasons": reasons,
@@ -427,43 +529,70 @@ def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
     if c.aware(ack["created_utc"]) <= c.aware(_load(ap)["recorded_utc"]):         # §12 causal order (ruling I-2)
         raise SystemExit("prereg refused: the RUN-ACK is not strictly after the START attestation")
     pr = {"trial_id": TRIAL_ID, "start": plan["planned_start"], "calendar": cal, "receipt": receipt,
-          "runner_sha256": runner_sha(), "toolchain_sha256": c.toolchain_sha256(),      # Task 11 (I-1)
+          "runner_sha256": runner_sha(), "bundle_sha256": c.bundle_sha256(),           # Task 12 (A3.1)
           "plan_sha256": c.sha256_file(out / "plan.json"),
           "audit_manifest_sha256": c.sha256_file(out / "audit" / "manifest.json"),
-          "attest_start_sha256": c.sha256_file(ap), "ack": ack, "recorded_utc": c.now_utc().isoformat()}
-    _write_once(out / "prereg.json", pr, "prereg")
+          "attest_start_sha256": c.sha256_file(ap), "opening_seal_sha256": c.sha256_file(seal_p),   # A8.1
+          "opening_books_sha256": c.sha_or_absent(out / "opening_books.json"),
+          "process_binding": _opening_binding(seal, "prereg"),                     # fix round 2 (B2.1)
+          "ack": ack, "recorded_utc": c.now_utc().isoformat()}
+    with c.stage_publication(out, "prereg"):   # fix rounds 3/4 (M-2/C-2/m-1): records BEFORE the artifact, locked
+        c.register_stage(out, "prereg", {"prereg.json": k.json_sha256(pr)})                          # B3.1
+        _write_once(out / "prereg.json", pr, "prereg")
     return pr
+
+
+def _blocked_reasons(plan: dict, held: dict, since: dict, actions, problems, start) -> list:
+    """§11/A4.1: the opening audit's BLOCKED reasons (prereg and the score's re-check): coverage, and unit/identity
+    actions on symbols held at START, effective before START (the explicit pre-START bound)."""
+    return (_coverage_reasons(held, since, set(plan["ca_symbols"]), plan["ca_range"][0])
+            + carry_in_reasons(held, actions, since, problems=problems, until=_pre_start_day(start)))
+
+
+def _pre_start_day(start) -> str:
+    """Task 12 (A4.1): the explicit pre-START effective-date bound of the opening audit = the day before START's
+    New York date."""
+    from datetime import timedelta
+    return (start.astimezone(c.NY).date() - timedelta(days=1)).isoformat()
 
 
 def _seals(out: Path) -> list:
     return [(p, _load(p)) for p in sorted((out / "seals").glob("*.json"))]
 
 
-def attest_stop(root, statement: str) -> dict:
+def attest_stop(root, statement: str, *, mailbox=None) -> dict:
     """Stop attestations (§12): after a recorded stop (STOPPED/TIMEOUT from the seals), before the final acquisition
     and any score; binds the START attestation, the actual START and stop and the sealed final ledger (stop seal)."""
     if statement != STOP_STATEMENT:
         raise SystemExit("stop attestation refused: the statement must be exactly STOP_STATEMENT")
     out = _out(root)
+    c.verify_bundle_first(out, "stop attestation", mailbox=mailbox)    # fix round 2 (B3): gate first
     if not (out / "prereg.json").exists():
         raise SystemExit("stop attestation refused: no prereg (the trial never started)")
-    if (out / "aborted.json").exists():
+    g.verified_registration(out, "stop attestation", mailbox)          # Task 12: A3.2 bundle first, then A8.2
+    if c.load_abort(out) is not None:
         raise SystemExit("stop attestation refused: the trial is ABORTED-INVALID")
     if (out / "final").exists() or (out / "score").exists():
         raise SystemExit("stop attestation refused: it must precede the final acquisition and the score")
     pr = _load(out / "prereg.json")
-    try:
-        stop = z.stop_decision([s for _, s in _seals(out)], c.aware(pr["start"]), pr["calendar"],
-                               today=c.now_utc())
-    except ValueError as e:
+    try:                                                   # Task 12 (A2.1): the persisted stop (stop.json)
+        import s1_checkpoint                               # fix round 3 (I-1): finalize BEFORE freezing the stop
+        s1_checkpoint.finalize_pending(out, pr["calendar"], c.aware(pr["start"]), c.now_utc())
+        stop = z.current_stop(out, c.aware(pr["start"]), pr["calendar"], c.now_utc(), "stop attestation")
+    except (ValueError, KeyError, TypeError) as e:
         raise SystemExit(f"stop attestation refused: bad seal record ({e})") from None
     if stop["status"] not in ("STOPPED", "TIMEOUT"):
         raise SystemExit(f"stop attestation refused: no stop recorded (status {stop['status']})")
-    stop_p = out / "seals" / f"{_ny_day(c.aware(stop['stop_close']))}.json"
+    probs = z.stop_problems(out, c.aware(pr["start"]), pr["calendar"], recheck=False)
+    if probs:
+        raise SystemExit(f"stop attestation refused: the persisted stop does not verify ({probs})")
+    stop_p = out / z.load_stop(out)["stop_seal"]
     rec = {"statement": statement, "trial_id": TRIAL_ID,
            "attest_start_sha256": c.sha256_file(out / "attest_start.json"), "start": pr["start"],
            "stop_close": stop["stop_close"], "stop_status": stop["status"],
-           "sealed_final_ledger_sha256": c.sha256_file(stop_p), "recorded_utc": c.now_utc().isoformat()}
+           "sealed_final_ledger_sha256": c.sha256_file(stop_p),
+           "stop_sha256": c.sha256_file(out / "stop.json"),                       # Task 12 (A2.1/A7.1)
+           "recorded_utc": c.now_utc().isoformat()}
     _write_once(out / "attest_stop.json", rec, "stop attestation")
     return rec
 
@@ -486,13 +615,16 @@ def score(root, ack_id: str, *, mailbox=None) -> dict:
     """One exclusive score (§15): exact SCORE-ACK, then the reservation (exclusive), then computation; the report
     s1_out/score/s1.json is written once. A refused ACK or a second attempt writes nothing."""
     out = _out(root)
-    ack = _ack(ack_id, score_token(root), mailbox)
-    if not (out / "prereg.json").exists():
+    c.verify_bundle_first(out, "score", mailbox=mailbox, gate_refuses=False)   # fix round 2 (B3): gate first;
+    if not (out / "prereg.json").exists():                                     # the score records (A2.3)
         raise SystemExit("no prereg: the trial never started; nothing to score")
+    c.verify_bundle_first(out, "score", mailbox=mailbox, need="prereg",           # Task 12: A3.2 bundle first
+                          gate_refuses=False)
+    ack = _ack(ack_id, score_token(root), mailbox)
     _pre_reserve_gate(out, ack)
     k._reserve(out / "score", ack)
     try:
-        text = _serialise(_score(out))                    # ruling M-6: serialise before opening the output file
+        text = _serialise(_score(out, mailbox))           # ruling M-6: serialise before opening the output file
     except (Exception, SystemExit) as e:                  # one attempt: the failure itself is the preserved record
         rep = {"trial_id": TRIAL_ID, "outcome": "ABORTED", "verdict": "ABORTED-INVALID", "provenance": None,
                "nomination": False, "reasons": [f"score error: {type(e).__name__}: {e}"]}
@@ -507,28 +639,29 @@ def _serialise(rep) -> str:
 
 
 def _write_text_once(path: Path, text: str) -> None:
-    with path.open("x", encoding="utf-8") as f:
-        f.write(text)
+    c.publish_text_exclusive(path, text)                  # fix round 3 (C-1): atomic, exclusive
 
 
 def _trial_end(out: Path, pr: dict):
     """(end instant, final manifest required): the instant the trial ended, or None when it cannot be placed
     (malformed records: the attempt then records ABORTED-INVALID, ruling m-1); STOPPED/TIMEOUT require the final
     manifest (ruling R-1). Raises SystemExit while RUNNING (ruling I-1)."""
-    if (out / "aborted.json").exists():
-        try:
-            return c.aware(_load(out / "aborted.json")["actual"]), False   # the aborting capture's recorded time
-        except (ValueError, KeyError, TypeError):
+    ab = c.load_abort(out)                                 # fix round 2 (B3.4): a corrupt one fails closed
+    if ab is not None:
+        try:                                               # the aborting capture's recorded time (a registration-
+            return c.aware(ab["actual"]), False             # artifact abort has none: no end constraint, fix round 3
+        except (ValueError, KeyError, TypeError):           # M-3 - its verdict is ABORTED-INVALID at any ACK time)
             return None, False
     start, cal = c.aware(pr["start"]), pr["calendar"]
     try:
-        st_ = z.stop_decision([s for _, s in _seals(out)], start, cal, today=c.now_utc())
+        st_ = z.current_stop(out, start, cal, c.now_utc(), "score")          # Task 12 (A2.1): the persisted stop
+        if st_.get("persisted") and z.stop_problems(out, start, cal, recheck=False):
+            return (c.aware(st_["stop_close"]) if st_["stop_close"] else None), False    # A2.3: recorded INVALID
         if st_["status"] == "RUNNING":
             raise SystemExit("score refused: the trial is still RUNNING (no stop yet); nothing written")
         if st_["status"] in ("STOPPED", "TIMEOUT"):
             return c.aware(st_["stop_close"]), True
-        dl = z.deadline(start).isoformat()                                   # NO-VALID-SEAL
-        last = [d for d in z._sorted_calendar(cal) if z.open_instant(d) >= start and d["date"] <= dl][-1]
+        last = z.eligible_sessions(start, cal)[-1]           # NO-VALID-SEAL (Task 12 A5.1: close instants)
         return z.window_end(last, cal), False
     except (ValueError, b.BookError, KeyError, TypeError, IndexError):
         return None, False
@@ -538,6 +671,7 @@ def _pre_reserve_gate(out: Path, ack: dict) -> None:
     """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
     for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
     instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+    c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
     end, need_final = _trial_end(out, _load(out / "prereg.json"))
     if end is not None and c.aware(ack["created_utc"]) <= end:
         raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
@@ -545,6 +679,8 @@ def _pre_reserve_gate(out: Path, ack: dict) -> None:
     if need_final and not (out / "final" / "manifest.json").exists():
         raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
     d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+    if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+        return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
     if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
         raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
                          "stop); nothing written")
@@ -563,7 +699,7 @@ def _ok_attempts(d: Path) -> list:
     return found
 
 
-def _final_snapshot_problems(out: Path, seals, stop=None) -> list:
+def _final_snapshot_problems(out: Path, seals, stop=None, bundle=None) -> list:
     """Task 7b (§6): the acquisition-time snapshot must have been captured, still hash to its recorded projection,
     and hold every sealed slice's fence (the recorded check AND an offline re-check against the current seals).
     Task 11 (controller-added), C-1: with a stop (STOPPED/TIMEOUT), only the seals of closes <= the stop close."""
@@ -585,6 +721,8 @@ def _final_snapshot_problems(out: Path, seals, stop=None) -> list:
     if rep.get("capture_ok") is not True or rep.get("fence_checked") is not True:
         return [f"final snapshot capture failed: {rep.get('capture_error')}"]
     bad = [f"final snapshot: {v}" for v in rep.get("fence_violations") or []]
+    if bundle is not None and rep.get("bundle_sha256") != bundle:                    # Task 12 (A3.4)
+        bad.append("final snapshot: bundle differs from prereg")
     if not re.fullmatch(r"attempt-\d{2,}", attempt):
         return bad + [f"final snapshot: report names no valid attempt ({attempt!r})"]
     proj_p = d / attempt / "projection.json"
@@ -600,10 +738,10 @@ def _final_snapshot_problems(out: Path, seals, stop=None) -> list:
     return bad + [f"final snapshot: {v}" for v in again if f"final snapshot: {v}" not in bad]
 
 
-def _seal_chain_problems(out: Path, seals, receipt_sha: str, toolchain: str) -> list:
+def _seal_chain_problems(out: Path, seals, receipt_sha: str, bundle: str) -> list:
     """Re-verify every seal offline: file date = its close's session; its fence = its own rows; receipt identical;
-    rows = the preserved capture projection; and the row fences of every earlier seal hold (§6). Task 11 (controller-
-    added), I-1: every seal's toolchain equals prereg's `toolchain`."""
+    rows = the preserved capture projection; and the row fences of every earlier seal hold (§6). Task 12 (A3.4):
+    every seal's bundle equals prereg's `bundle`."""
     bad = []
     ordered = sorted(seals, key=lambda ps: c.aware(ps[1]["close"]))
     for p, s in ordered:
@@ -615,8 +753,8 @@ def _seal_chain_problems(out: Path, seals, receipt_sha: str, toolchain: str) -> 
             bad.append(f"seal {name}: fence does not match its rows")
         if s.get("receipt_match") is not True or s.get("receipt_sha256") != receipt_sha:
             bad.append(f"seal {name}: semantic receipt differs from prereg")
-        if s.get("toolchain_sha256") != toolchain:
-            bad.append(f"seal {name}: toolchain differs from prereg")
+        if s.get("bundle_sha256") != bundle:
+            bad.append(f"seal {name}: bundle differs from prereg")
         cap = s.get("capture") or {}
         proj = out / "captures" / name / re.split(r"[\\/]", str(cap.get("dir", "")))[-1] / "projection.json"
         if not proj.is_file() or c.sha256_file(proj) != cap.get("projection_sha256") or \
@@ -671,6 +809,40 @@ def _bridge_problems(rep: dict, seals, asof, start, cal) -> list:
     return bad
 
 
+def _seal_binding_problems(rep: dict, seals, pr: dict, opening_p, stop) -> list:
+    """Addendum 2 B2.3/B2.4: the score independently rechecks the process binding of every seal from the opening
+    through the frozen stop (all seals while there is no stop close) against the registered reference (prereg's,
+    which must be the opening seal's REFERENCE): MATCH with that binding, or an explicit GAP (reported in
+    rep["seal_binding_gaps"], never equality, never a change by itself). A missing or malformed disposition, or an
+    observed different binding, is INVALID."""
+    rep["seal_binding_gaps"] = []
+    ref = pr.get("process_binding")
+    if rc.binding_problem(ref):
+        return [f"process binding: prereg's registered reference missing or malformed ({rc.binding_problem(ref)})"]
+    bad = []
+    sc = c.aware(stop["stop_close"]) if stop is not None and stop.get("stop_close") else None
+    for p, s in sorted(seals, key=lambda ps: str(ps[0])):
+        try:
+            if sc is not None and c.aware(s["close"]) > sc:
+                continue
+            pb = s.get("process_binding")
+            if opening_p is not None and Path(p) == Path(opening_p):
+                if pb != {"status": "REFERENCE", "binding": ref} or (s.get("process") or {}).get("binding") != ref:
+                    bad.append(f"seal {Path(p).stem}: process binding is not the registered opening reference")
+                continue
+            if isinstance(pb, dict) and pb.get("status") == "MATCH" and pb.get("binding") == ref:
+                continue
+            if isinstance(pb, dict) and pb.get("status") == "GAP" and pb.get("binding") is None \
+                    and isinstance(pb.get("reason"), str):
+                rep["seal_binding_gaps"].append({"seal": Path(p).stem, "gap": pb["reason"]})
+                continue
+            bad.append(f"seal {Path(p).stem}: process binding missing, malformed or different from the opening "
+                       f"reference")
+        except (ValueError, KeyError, TypeError, AttributeError) as e:
+            bad.append(f"seal {Path(p).stem}: process binding unverifiable ({type(e).__name__})")
+    return bad
+
+
 def _stop_attestation(out: Path, pr: dict, stop, stop_p, final_reserved) -> dict:
     p = out / "attest_stop.json"
     if not p.exists():
@@ -688,6 +860,8 @@ def _stop_attestation(out: Path, pr: dict, stop, stop_p, final_reserved) -> dict
         probs.append("stop close differs")
     if stop_p is None or a.get("sealed_final_ledger_sha256") != c.sha256_file(stop_p):
         probs.append("sealed final ledger hash differs")
+    if a.get("stop_sha256") != c.sha_or_absent(out / "stop.json"):                # Task 12 (A2.1)
+        probs.append("persisted stop (stop.json) hash differs")
     try:
         t = c.aware(a.get("recorded_utc"))
         if stop and stop.get("stop_close") and t <= c.aware(stop["stop_close"]):
@@ -709,6 +883,27 @@ def _restarts(opening: dict, stop_seal: dict, out: Path) -> dict:
     return {"observed_in_crash_log_minimum": starts, "observation_gaps": gaps}
 
 
+def _capture_notes(out: Path, seals) -> dict:
+    """Task 12 (final-review R-6, A1.2): report-only - every refused capture attempt (clock, bridge, seal refusal)
+    and the receipt PROVENANCE observed at the seals (HEAD values, dirty/transient lists): changes are reported, never
+    compared."""
+    refused, binding = [], []
+    for p in sorted((out / "captures").glob("*/*.report.json")):
+        try:
+            rep = _load(p)
+        except (OSError, ValueError):
+            continue
+        if rep.get("refused"):
+            refused.append({"scheduled": rep.get("scheduled"), "refused": rep["refused"]})
+        binding += [{"scheduled": rep.get("scheduled"), "gap": g}            # A9.3: process-binding gaps, reported
+                    for g in rep.get("observation_gaps", [])]
+    prov = [s.get("receipt_provenance") or {} for _, s in seals]
+    return {"refused_captures": refused, "binding_gaps": binding,
+            "receipt_provenance": {"heads": sorted({str(x.get("head")) for x in prov if x.get("head") is not None}),
+                                   "dirty": sorted({d for x in prov for d in (x.get("dirty") or [])}),
+                                   "transient": sorted({d for x in prov for d in (x.get("transient") or [])})}}
+
+
 def _report_restarts_and_bridge(rep: dict, opening, stop_seal, seals, out: Path) -> None:
     """Task 11 (controller-added), m-7: every report kind carries the observed restarts and the quantity bridge
     (design §14 Report). Restarts run from the opening seal to the stop seal (no stop: the latest seal); the bridge is
@@ -720,6 +915,7 @@ def _report_restarts_and_bridge(rep: dict, opening, stop_seal, seals, out: Path)
         except (ValueError, KeyError, TypeError):
             end = None
     rep["restarts"] = _restarts(opening or {}, end or {}, out)   # malformed records still fail the attempt, as before
+    rep.update(_capture_notes(out, seals))                       # Task 12 (R-6, A1.2): report-only
     if "quantity_bridge" not in rep:
         rep["quantity_bridge"] = None
         rep["quantity_bridge_note"] = "not available: no readable frozen final ledger (stop seal)"
@@ -730,12 +926,13 @@ def _median(xs):
     return None if not s else (s[len(s) // 2] if len(s) % 2 else (s[len(s) // 2 - 1] + s[len(s) // 2]) / 2)
 
 
-def _score(out: Path) -> dict:
+def _score(out: Path, mailbox=None) -> dict:
     sim = c.sim()
     pr, plan = _load(out / "prereg.json"), _load(out / "plan.json")
     start, cal = c.aware(pr["start"]), pr["calendar"]
     rep = {"trial_id": TRIAL_ID, "outcome": "SCORED", "runner_sha256": runner_sha(), "start": pr["start"],
-           "reasons": [], "protocol_notes": [], "scored_utc": c.now_utc().isoformat()}
+           "bundle_sha256": c.bundle_sha256(), "reasons": [], "protocol_notes": [],
+           "scored_utc": c.now_utc().isoformat()}
     invalid = rep["reasons"]
 
     def done(verdict: str, attest) -> dict:
@@ -746,12 +943,14 @@ def _score(out: Path) -> dict:
         return rep
 
     # 1. ABORTED-INVALID: recorded abort, broken bindings, seal/receipt/fence failures, bad stop record
-    if (out / "aborted.json").exists():
-        invalid.append(f"checkpoint recorded ABORTED-INVALID: {_load(out / 'aborted.json').get('reason')}")
+    ab = c.load_abort(out)                                 # fix round 2 (B3.4): a corrupt one fails closed
+    if ab is not None:
+        invalid.append(f"checkpoint recorded ABORTED-INVALID: {ab.get('reason')}")
     if pr.get("runner_sha256") != runner_sha():          # controller ruling (Task 7): invalid, not a note
         invalid.append("runner changed since prereg")
-    if pr.get("toolchain_sha256") != c.toolchain_sha256():                     # Task 11 (controller-added), I-1
-        invalid.append("toolchain changed since prereg")
+    if pr.get("bundle_sha256") != c.bundle_sha256():                           # Task 12 (A3.4)
+        invalid.append("bundle changed since prereg")
+    invalid += [f"registration not verified: {x}" for x in g.run_ack_problems(out, pr, mailbox)]   # A8.2
     audit, opening_p, opening = {}, None, None
     try:
         _, audit = _attempt(out / "audit", AUDIT_FILES)
@@ -765,15 +964,34 @@ def _score(out: Path) -> dict:
         invalid += _start_attestation_problems(out, _load(out / "attest_start.json"), plan, opening_p, pr["receipt"])
     except (Invalid, FileNotFoundError, KeyError) as e:
         invalid.append(f"{type(e).__name__}: {e}")
-    seals = _seals(out)
-    invalid += _seal_chain_problems(out, seals, _receipt_sha(pr["receipt"]), pr.get("toolchain_sha256"))
+    try:
+        seals = _seals(out)
+    except (OSError, ValueError) as e:                     # fix round 1 (I-4b): corrupt sealed evidence
+        invalid.append(f"bad seal record: seal file unreadable ({type(e).__name__})")
+        seals = []
+    invalid += _seal_chain_problems(out, seals, _receipt_sha(pr["receipt"]), pr.get("bundle_sha256"))
     invalid += _capture_seal_problems(out)                                   # Task 11 (controller-added), m-2
     stop, stop_err = None, None
-    try:
-        stop = z.stop_decision([s for _, s in seals], start, cal, today=c.now_utc())
-    except (ValueError, b.BookError) as e:
+    try:                                                   # Task 12 (A2.1): the persisted stop, never recomputed
+        if ab is not None and z.load_stop(out) is None:    # terminal: nothing is persisted now
+            stop = dict(z.stop_decision([s for _, s in seals], start, cal, today=c.now_utc()), persisted=False)
+        else:
+            stop = z.current_stop(out, start, cal, c.now_utc(), "score")
+        if stop.get("persisted"):
+            invalid += z.stop_problems(out, start, cal)    # A2.3: integrity through the persisted stop
+            sj = c.sha256_file(out / "stop.json")
+            if (out / "attest_stop.json").exists() and _load(out / "attest_stop.json").get("stop_sha256") != sj:
+                invalid.append("persisted stop (stop.json) changed after the stop attestation")
+            fmp = out / "final" / "manifest.json"
+            if fmp.exists() and _load(fmp).get("stop_sha256") not in (None, sj):
+                invalid.append("persisted stop (stop.json) differs from the one the final acquisition bound")
+            fsp = out / "final_snapshot" / "report.json"
+            if fsp.exists() and _load(fsp).get("stop_sha256") not in (None, sj):
+                invalid.append("persisted stop (stop.json) differs from the one the final snapshot bound")
+        stop = {k_: stop[k_] for k_ in ("status", "stop_close", "missed")}
+    except (ValueError, b.BookError, KeyError, TypeError) as e:
         stop_err = f"bad seal record: {type(e).__name__}: {e}"
-    invalid += _final_snapshot_problems(out, seals, stop)                     # Task 11 C-1: slices <= the stop
+    invalid += _final_snapshot_problems(out, seals, stop, pr.get("bundle_sha256"))   # C-1; A3.4 bundle
     if stop_err is not None:
         invalid.append(stop_err)
     rep["stop"] = stop
@@ -798,6 +1016,8 @@ def _score(out: Path) -> dict:
                 invalid.append(f"final plan stop {fplan['stop_close']} is not the stop {stop['stop_close']}")
             if fm.get("final_plan_sha256") != c.sha256_file(out / "final_plan.json"):     # Task 11 (controller-
                 invalid.append("final plan differs from the one the final acquisition used")  # added), m-1
+            if fm.get("bundle_sha256") != pr.get("bundle_sha256"):                        # Task 12 (A3.4)
+                invalid.append("final acquisition manifest bundle differs from prereg")
         except (Invalid, FileNotFoundError) as e:
             invalid.append(f"final acquisition unusable: {e}")
     attest = _stop_attestation(out, pr, stop, stop_p, final_reserved)
@@ -819,13 +1039,14 @@ def _score(out: Path) -> dict:
         except b.BookError as e:
             invalid.append(f"final ledger unreadable: {e}")
     invalid += _bridge_problems(rep, [s for _, s in seals], asof, start, cal)
+    invalid += _seal_binding_problems(rep, seals, pr, opening_p, stop)      # fix round 2 (B2.3)
     _report_restarts_and_bridge(rep, opening, stop_seal, seals, out)        # Task 11 (controller-added), m-7
     if invalid:
         return done("ABORTED-INVALID", attest)
 
     # 2. BLOCKED: pre-START units known to the audit (re-checked; prereg should have refused)
-    blocked = (_coverage_reasons(held0, since0, set(plan["ca_symbols"]), plan["ca_range"][0])
-               + carry_in_reasons(held0, audit["corporate_actions.json"], since0, problems=audit["ca_problems.json"]))
+    blocked = _blocked_reasons(plan, held0, since0, audit["corporate_actions.json"], audit["ca_problems.json"],
+                               start)
     if blocked:
         rep["reasons"] += blocked
         return done("BLOCKED", attest)
@@ -838,8 +1059,9 @@ def _score(out: Path) -> dict:
     stop_dt = c.aware(stop["stop_close"])
     stop_date = _ny_day(stop_dt)
     bridge_rows = z.split_bridge(asof, start)[0]
-    actions = audit["corporate_actions.json"] + final["corporate_actions.json"]
-    problems = audit["ca_problems.json"] + final["ca_problems.json"]
+    actions, conflicts = k.reconcile_actions(audit["corporate_actions.json"], final["corporate_actions.json"])
+    problems = audit["ca_problems.json"] + final["ca_problems.json"] + conflicts     # A7.2: global, by identity
+    rep["ca_conflicts"] = conflicts
     rep["carry_in"] = {"held_at_start": held, "held_since": since,
                        "bridge_rows": [t["id"] for t in bridge_rows if c.aware(t["ts"]) > c.aware(opening["close"])]}
     untrusted = (_coverage_reasons(held, since, set(fplan["ca_symbols_full_history"]), fplan["full_history_start"])
@@ -851,6 +1073,18 @@ def _score(out: Path) -> dict:
         rep["reasons"] += untrusted
         return done("INCONCLUSIVE", attest)
 
+    # 4b. Task 12 (A4.2): contaminated symbols. 2a (carry-in) was decided above; 2b: any SELL of a contaminated
+    # symbol on/after the action's effective date through the stop -> whole-trial INCONCLUSIVE; 2c: otherwise every
+    # cohort lot of the symbol is excluded in both arms (below), from action metadata only.
+    contam = contaminated_symbols(asof, actions, start, stop_dt, held_syms=set(held))
+    rep["contamination"] = {s: dict(info, rule="2b" if info["sells"] else "2c") for s, info in sorted(contam.items())}
+    twob = {s: info for s, info in contam.items() if info["sells"]}
+    if twob:
+        rep["reasons"] += [f"unit event may affect stop/cohort attribution: {s} (actions {info['actions']}, "
+                           f"effective {info['effective_dates']}; SELL(s) {info['sells']} on/after it, at or before "
+                           f"the stop close)" for s, info in sorted(twob.items())]
+        return done("INCONCLUSIVE", attest)
+
     # 5. cohort, paired exclusions, cap / minimum (no prices used yet)
     ids = {t["id"] for t in z.cohort(asof, start, stop_dt)}
     cohort = [l for l in lots if l["id"] in ids]
@@ -858,7 +1092,8 @@ def _score(out: Path) -> dict:
     covered = set(fplan["ca_symbols_window"]) | set(fplan["ca_symbols_full_history"])
     problems = problems + [{"problem": "symbol not covered by the final corporate-action request",
                             "blocks_symbols": [s]} for s in sorted({l["symbol"] for l in cohort} - covered)]
-    untrusted = fifo_untrusted(asof, actions, _ny_day(start), stop_date)
+    untrusted = {s: [f"contaminated symbol {s}: unit/identity action(s) {info['actions']} with a lot open across "
+                     f"(A4.2c, action metadata only)"] for s, info in contam.items()}
     ex = exclusions(cohort, actions, problems, stop_date, sessions, final["bars.json"], final["bar_problems.json"],
                     untrusted=untrusted)
     n, kk = len(cohort), len(ex)

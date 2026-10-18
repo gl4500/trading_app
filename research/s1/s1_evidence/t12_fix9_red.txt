@@ -1,0 +1,43 @@
+Task 12 fix round 9 - behavioural RED (H-3 probe13 + anchor/plan tests, rule-3 correction), run against the round-8 sources (working tree before any fix-9 edit)
+665cbc1525d00fe1f7f4ce615b2c7beed35ce88324b1149409a7a99770aeb6c2 *s1_common.py
+95ad4764e8aa195da4d58833454ee2db039db9c1bf81fb82e69d177cf60fa537 *s1_tests/test_s1_t12_fix9.py
+command: python -m pytest s1_tests/test_s1_t12_fix9.py -q -p no:cacheprovider -rf --tb=short
+FFF..F                                                                   [100%]
+================================== FAILURES ===================================
+_ test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts[2026-10-24] _
+s1_tests\test_s1_t12_fix9.py:50: in test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+s1_tests\test_s1_t12_fix2_b3.py:79: in _aborted
+    assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E   AssertionError: no persistent abort recorded
+E   assert False
+E    +  where False = exists()
+E    +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20254/test_h3_probe_a_session_insert0/s1_out/aborted.json').exists
+_ test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts[2026-10-25] _
+s1_tests\test_s1_t12_fix9.py:50: in test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts
+    assert _aborted(tmp_path)["reason"] == "registration artifact"
+s1_tests\test_s1_t12_fix2_b3.py:79: in _aborted
+    assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E   AssertionError: no persistent abort recorded
+E   assert False
+E    +  where False = exists()
+E    +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20254/test_h3_probe_a_session_insert1/s1_out/aborted.json').exists
+_ test_h3_the_anchor_is_the_earliest_possible_first_slot_of_the_audit_bound_opening_date _
+s1_tests\test_s1_t12_fix9.py:66: in test_h3_the_anchor_is_the_earliest_possible_first_slot_of_the_audit_bound_opening_date
+    assert c.opening_anchor(out) == want
+E   AssertionError: assert datetime.datetime(2026, 10, 23, 20, 45, tzinfo=datetime.timezone.utc) == datetime.datetime(2026, 10, 23, 17, 45, tzinfo=datetime.timezone.utc)
+E    +  where datetime.datetime(2026, 10, 23, 20, 45, tzinfo=datetime.timezone.utc) = <function opening_anchor at 0x0000022D6FCCB240>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20254/test_h3_the_anchor_is_the_earl0/s1_out'))
+E    +    where <function opening_anchor at 0x0000022D6FCCB240> = c.opening_anchor
+_ test_rule3_no_audit_ack_for_the_bundle_is_always_a_refusal_even_with_opening_evidence _
+s1_tests\test_s1_t12_fix9.py:118: in test_rule3_no_audit_ack_for_the_bundle_is_always_a_refusal_even_with_opening_evidence
+    assert c.load_abort(out) is None, c.load_abort(out)
+E   AssertionError: {'actual': None, 'close': None, 'observed_utc': '2026-10-26T20:45:00+00:00', 'problems': ['seals/2026-10-23.json exist...500Z.report.json exists but no AUDIT-ACK carries the registered bundle (opening evidence before any audit)', ...], ...}
+E   assert {'actual': None, 'close': None, 'observed_utc': '2026-10-26T20:45:00+00:00', 'problems': ['seals/2026-10-23.json exist...500Z.report.json exists but no AUDIT-ACK carries the registered bundle (opening evidence before any audit)', ...], ...} is None
+E    +  where {'actual': None, 'close': None, 'observed_utc': '2026-10-26T20:45:00+00:00', 'problems': ['seals/2026-10-23.json exist...500Z.report.json exists but no AUDIT-ACK carries the registered bundle (opening evidence before any audit)', ...], ...} = <function load_abort at 0x0000022D6FCC9760>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20254/test_rule3_no_audit_ack_for_th0/s1_out'))
+E    +    where <function load_abort at 0x0000022D6FCC9760> = c.load_abort
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix9.py::test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts[2026-10-24]
+FAILED s1_tests/test_s1_t12_fix9.py::test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts[2026-10-25]
+FAILED s1_tests/test_s1_t12_fix9.py::test_h3_the_anchor_is_the_earliest_possible_first_slot_of_the_audit_bound_opening_date
+FAILED s1_tests/test_s1_t12_fix9.py::test_rule3_no_audit_ack_for_the_bundle_is_always_a_refusal_even_with_opening_evidence
+4 failed, 2 passed in 1.23s

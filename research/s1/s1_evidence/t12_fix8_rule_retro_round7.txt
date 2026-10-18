@@ -1,0 +1,11 @@
+Task 12 fix round 8 - the 3 RETROSPECTIVE rule-edge tests (written after the restructure) run against the ROUND-7 s1_common.py in a scratch copy (all other sources and tests = the round-8 working tree); shows round-7 behaviour, not test-first evidence
+1d6c1fe03725497df78ca0386b77bbd5d1e9e930561c58ba01ec92814ccd1a48 *s1_common.py
+b894a987887d3ccf225a5f96b5009163fc7d3f2b81b0988d99c9967bd961adbe *s1_tests/test_s1_t12_fix8.py
+FF.                                                                      [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\r7copy\s1_tests\test_s1_t12_fix2_b3.py:79: AssertionError: no persistent abort recorded
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\r7copy\s1_tests\test_s1_t12_fix8.py:200: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix8.py::test_h_a_run_ack_carrying_the_bundle_is_a_registration_even_before_the_opening
+FAILED s1_tests/test_s1_t12_fix8.py::test_h_opening_evidence_without_any_audit_ack_for_the_bundle_is_the_abort
+2 failed, 1 passed, 193 deselected in 0.97s

@@ -24,7 +24,7 @@ import s1_common as c
 import s1_receipt as rc
 import s1_run as r
 import s1_seal as z
-from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_state
+from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_receipt_with, s1_state
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"                        # Mon; opening close Fri 2026-10-23 (EDT)
@@ -76,7 +76,9 @@ def test_c1_post_stop_checkpoint_never_seals_or_aborts_and_the_score_is_unchange
     if variant != "control":
         st_["ledger"].trade("ZZZ", "BUY", 1, 10.0, "2026-10-30T15:00:00+00:00")
         st_["ledger"].set_portfolio("ZZZ", 1)
-        bad = dict(S1_RECEIPT, head="post-stop-commit") if variant == "receipt" else None
+        # Task 12 (A1) input: a FINGERPRINT change (a HEAD change alone is provenance, never a mismatch)
+        bad = (s1_receipt_with(S1_RECEIPT, files={"agents/mean_reversion_agent.py": "post-stop"})
+               if variant == "receipt" else None)
         rep = checkpoint(tmp_path, st_, "2026-10-30", receipt=bad)
         assert rep["post_stop"] is True and rep["seal"]["written"] is False, rep
         assert rep["stop"]["status"] == "STOPPED" and rep["stop"]["stop_close"] == STOP_CLOSE, rep["stop"]
@@ -134,48 +136,57 @@ def test_c1_final_snapshot_and_score_check_fences_only_against_seals_up_to_the_s
 
 
 # ====================================================================== I-1 toolchain binding
-def _independent_toolchain(d: Path) -> str:
-    files = sorted(d.glob("s1_*.py")) + [d / "e1_sim.py", d / "e1_fetch.py"]
-    pairs = sorted([p.name, c.sha256_bytes(p.read_bytes())] for p in files)
-    return c.sha256_bytes(json.dumps(pairs, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+# Task 12 (A3) REPLACEMENTS: Addendum 1 A3 replaces Task 11's toolchain (every s1_*.py + e1 pins, mismatch = "recorded,
+# no abort") by the registered BUNDLE (explicit file list + e1 pins + the three document hashes; verified FIRST; a
+# mismatch once registered = persistent aborted.json reason "bundle"). Old expectations -> new, test by test, in
+# reports/task-12-report.md; the old evidence (t11_i1_red.txt, t11_green.txt) is preserved unchanged.
+def _independent_bundle(d: Path) -> str:
+    code = {n: c.sha256_bytes((d / n).read_bytes()) for n in c.BUNDLE_CODE}
+    extra = {p.name: c.sha256_bytes(p.read_bytes()) for p in sorted(d.glob("s1_*.py")) if p.name not in c.BUNDLE_CODE}
+    docs = {k_: c.sha256_bytes((d / k_).read_bytes()) for k_ in c.DOC_PINS}
+    return c.sha256_bytes(json.dumps({"code": code, "unexpected": extra, "docs": docs}, sort_keys=True,
+                                     separators=(",", ":")).encode("utf-8"))
 
 
 def test_i1_toolchain_sha_is_every_s1_module_plus_the_e1_pins(tmp_path, monkeypatch):
-    """Task 11 (controller-added), I-1: sha256 over the sorted (name, sha256) of every research/s1 s1_*.py plus
-    e1_sim.py and e1_fetch.py. Any one byte of any of them changes it; an unrelated file does not."""
-    assert c.toolchain_sha256() == _independent_toolchain(HERE)
+    """Task 11 (controller-added), I-1. Task 12 (A3.1) REPLACEMENT: the bundle hash covers every listed s1_*.py, the
+    e1 pins and the three pinned documents; any one byte of any of them changes it, an extra s1_*.py too; an
+    unrelated file does not."""
+    assert c.bundle_sha256() == _independent_bundle(HERE)
     d = tmp_path / "copy"
-    d.mkdir()
-    for p in list(HERE.glob("s1_*.py")) + [HERE / "e1_sim.py", HERE / "e1_fetch.py"]:
-        shutil.copy2(p, d / p.name)
+    (d / "docs").mkdir(parents=True)
+    for n in c.BUNDLE_CODE:
+        shutil.copy2(HERE / n, d / n)
+    for n in c.DOC_PINS:
+        shutil.copy2(HERE / n, d / n)
     monkeypatch.setattr(c, "HERE", d)
-    base = c.toolchain_sha256()
-    assert base == _independent_toolchain(HERE)
+    base = c.bundle_sha256()
+    assert base == _independent_bundle(HERE)
     (d / "notes.py").write_text("x = 1\n")
-    assert c.toolchain_sha256() == base
-    for name in ("s1_seal.py", "s1_books.py", "e1_sim.py"):
+    assert c.bundle_sha256() == base
+    for name in ("s1_seal.py", "s1_books.py", "e1_sim.py", "docs/s1_spec.md"):
         p = d / name
         old = p.read_bytes()
         p.write_bytes(old + b"\n")
-        assert c.toolchain_sha256() != base, name
+        assert c.bundle_sha256() != base, name
         p.write_bytes(old)
     (d / "s1_extra.py").write_text("x = 1\n")
-    assert c.toolchain_sha256() != base
+    assert c.bundle_sha256() != base
 
 
 def test_i1_prereg_and_run_ack_bind_the_toolchain(tmp_path):
-    """Task 11 (controller-added), I-1: RUN-ACK's token carries toolchain_sha256 and prereg records it; an ACK
-    without the toolchain field (the old token) is refused."""
+    """Task 11 (controller-added), I-1. Task 12 (A3.1) REPLACEMENT: RUN-ACK's token carries bundle_sha256 and
+    prereg records it; an ACK without the bundle field is refused."""
     s1_state(tmp_path, START)
     tok = r.run_token(tmp_path)
-    assert f" toolchain_sha256={c.toolchain_sha256()} " in tok
-    old = " ".join(x for x in tok.split(" ") if not x.startswith("toolchain_sha256="))
+    assert f" bundle_sha256={c.bundle_sha256()} " in tok
+    old = " ".join(x for x in tok.split(" ") if not x.startswith("bundle_sha256="))
     s1_mailbox(tmp_path, "old-ack", old, START_DT - timedelta(days=1, hours=1))
     with _Clock(START_DT - timedelta(days=1)):
         with pytest.raises(SystemExit):
             r.do_prereg(tmp_path, "old-ack", S1_RECEIPT)
         pr = r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
-    assert pr["toolchain_sha256"] == c.toolchain_sha256()
+    assert pr["bundle_sha256"] == c.bundle_sha256() and "toolchain_sha256" not in pr
 
 
 def _prereg_state(tmp_path):
@@ -188,45 +199,51 @@ def _prereg_state(tmp_path):
 
 
 def test_i1_every_seal_records_the_checkpoint_toolchain(tmp_path):
-    """Task 11 (controller-added), I-1: the opening seal and every scheduled seal record the toolchain hash of the
-    checkpoint that wrote them."""
+    """Task 11 (controller-added), I-1. Task 12 (A3.1) REPLACEMENT: the opening seal and every scheduled seal
+    record the bundle hash."""
     st_ = _prereg_state(tmp_path)
     out = tmp_path / "s1_out"
-    assert read(out / "seals" / "2026-10-23.json")["toolchain_sha256"] == c.toolchain_sha256()
+    assert read(out / "seals" / "2026-10-23.json")["bundle_sha256"] == c.bundle_sha256()
     rep = checkpoint(tmp_path, st_, "2026-10-26")
     assert rep["seal"]["written"] is True
-    assert read(out / "seals" / "2026-10-26.json")["toolchain_sha256"] == c.toolchain_sha256()
+    assert read(out / "seals" / "2026-10-26.json")["bundle_sha256"] == c.bundle_sha256()
 
 
 def test_i1_checkpoint_with_a_different_toolchain_refuses_to_seal_without_abort(tmp_path, monkeypatch):
-    """Task 11 (controller-added), I-1: a checkpoint whose toolchain differs from prereg's records the refusal, writes
-    no seal and no aborted.json."""
+    """Task 11 (controller-added), I-1. Task 12 (A3.2/A3.3) REPLACEMENT - the old expectation ("refuses to seal,
+    no abort") is rejected by Codex Q2: a checkpoint whose bundle differs from the registered one stops BEFORE any
+    capture and writes the persistent aborted.json reason "bundle"."""
     st_ = _prereg_state(tmp_path)
     out = tmp_path / "s1_out"
-    monkeypatch.setattr(c, "toolchain_sha256", lambda: "f" * 64)
-    rep = checkpoint(tmp_path, st_, "2026-10-26")
-    assert rep["seal"]["written"] is False and "toolchain" in str(rep.get("refused")), rep
-    assert not (out / "seals" / "2026-10-26.json").exists() and not (out / "aborted.json").exists()
+    monkeypatch.setattr(c, "bundle_sha256", lambda: "f" * 64)
+    with pytest.raises(SystemExit, match="bundle"):
+        checkpoint(tmp_path, st_, "2026-10-26")
+    assert not (out / "seals" / "2026-10-26.json").exists() and read(out / "aborted.json")["reason"] == "bundle"
+    assert not (out / "captures" / "2026-10-26").exists()
 
 
 def test_i1_score_requires_every_seal_and_itself_to_match_the_prereg_toolchain(tmp_path, monkeypatch):
-    """Task 11 (controller-added), I-1: a seal recording another toolchain, or a score run by another toolchain, is
-    ABORTED-INVALID ("toolchain")."""
+    """Task 11 (controller-added), I-1. Task 12 (A3.4) REPLACEMENT: a seal recording another bundle is
+    ABORTED-INVALID ("bundle")."""
     st_ = s1_state(tmp_path, START, score_ready=True)
     p = tmp_path / "s1_out" / "seals" / "2026-10-26.json"
     s = read(p)
-    s["toolchain_sha256"] = "0" * 64
+    s["bundle_sha256"] = "0" * 64
     p.write_text(json.dumps(s), encoding="utf-8")
     rep = score(tmp_path, monkeypatch, st_)
-    assert rep["verdict"] == "ABORTED-INVALID" and any("toolchain" in x for x in rep["reasons"]), rep["reasons"]
+    assert rep["verdict"] == "ABORTED-INVALID" and any("bundle" in x for x in rep["reasons"]), rep["reasons"]
 
 
 def test_i1_score_by_a_different_toolchain_is_aborted_invalid(tmp_path, monkeypatch):
-    """Task 11 (controller-added), I-1."""
+    """Task 11 (controller-added), I-1. Task 12 (A3.2/A3.3) REPLACEMENT: a score run by another bundle refuses before
+    any reservation and leaves the persistent "bundle" abort (the restored-file score is then ABORTED-INVALID:
+    test_s1_t12_a3_a8::test_a3_score_bundle_mismatch_...)."""
     st_ = s1_state(tmp_path, START, score_ready=True)
-    monkeypatch.setattr(c, "toolchain_sha256", lambda: "e" * 64)
-    rep = score(tmp_path, monkeypatch, st_)
-    assert rep["verdict"] == "ABORTED-INVALID" and any("toolchain" in x for x in rep["reasons"]), rep["reasons"]
+    monkeypatch.setattr(c, "bundle_sha256", lambda: "e" * 64)
+    with pytest.raises(SystemExit, match="bundle"):
+        score(tmp_path, monkeypatch, st_)
+    assert not (tmp_path / "s1_out" / "score").exists()
+    assert read(tmp_path / "s1_out" / "aborted.json")["reason"] == "bundle"
 
 
 # ====================================================================== I-2 / m-3 receipt dirty list, git locks
@@ -243,7 +260,11 @@ def _git_repo(tmp_path):
 
 
 def _receipt(root):
-    return rc.semantic_receipt(root, root / ".env", None, roots=["agents/mean_reversion_agent.py"])
+    """Task 12 (A1) interface: a reviewed alternate contract (no .env/runtime in this repo). The compared object is
+    the fingerprint plus the dirty list (provenance; transient files excluded as before)."""
+    got = rc.semantic_receipt(root, root / ".env", None, roots=["agents/mean_reversion_agent.py"],
+                              contract=rc.contract(env_required=False, runtime_required=False))
+    return {"fingerprint": got["fingerprint"], "dirty": got["provenance"]["dirty"]}
 
 
 def test_i2_untracked_non_py_runtime_files_do_not_change_the_receipt(tmp_path):
@@ -474,11 +495,13 @@ def test_i4_t6_calendar_duplicates_or_open_not_before_close_are_structural(mutat
     """Task 11 (controller-added), I-4 fold-in of the T6 deferred calendar items."""
     from conftest import _weekdays
     cal = _weekdays("2026-10-01", "2027-06-30")
+    # Task 12 interface (A5.1 instant deadline, A6 opening-close coverage, A5.4 the AUDIT-ACK time)
     plan = {"planned_start": "2026-11-02T14:30:00+00:00", "created_utc": "2026-10-19T12:00:00+00:00",
-            "deadline": "2027-05-02"}
-    k._validate_calendar(cal, plan)                                              # control: accepted
+            "deadline": "2027-05-02T13:30:00+00:00", "opening_close": "2026-10-30"}
+    ack = {"created_utc": "2026-10-19T13:00:00+00:00"}
+    k._validate_calendar(cal, plan, ack)                                         # control: accepted
     with pytest.raises(k.Structural):
-        k._validate_calendar(mutate(cal), plan)
+        k._validate_calendar(mutate(cal), plan, ack)
 
 
 # ====================================================================== I-5 mailbox location
@@ -650,7 +673,8 @@ def test_m6_r_est_no_app_import_network_library_or_live_write_path():
     """Task 11 (controller-added), m-6 - a static guard for R-EST (spec §2: offline, no live change, app import,
     broker API or restart). It pins properties the code already has, so it passed before the fix round too (no RED).
     - no product module imports the app (backend/agents/trading/...) or a network/async library;
-    - sqlite3.connect appears only in s1_snapshot (the online backup) and s1_collect._ack (the mailbox, mode=ro);
+    - sqlite3.connect appears only in s1_snapshot (the online backup) and the mailbox reader, mode=ro (Task 12:
+      single-sourced as s1_common.mailbox_message, which s1_collect._ack now calls);
     - only s1_checkpoint names the live DB path, and it never connects (it hands the path to s1_snapshot);
     - requests are issued only by s1_collect, only through the injected `client`;
     - subprocess only in s1_receipt (git / process table / runtime versions), no kill/restart command anywhere."""
@@ -661,7 +685,7 @@ def test_m6_r_est_no_app_import_network_library_or_live_write_path():
         assert not _imports(t) & FORBIDDEN_TOP, (p.name, _imports(t) & FORBIDDEN_TOP)
         connects = [n for n in _calls(t, "connect") if isinstance(n.func.value, ast.Name) and n.func.value.id ==
                     "sqlite3"]
-        if p.name == "s1_collect.py":
+        if p.name == "s1_common.py":
             assert len(connects) == 1 and "mode=ro" in ast.unparse(connects[0].args[0]) and \
                 any(kw.arg == "uri" and kw.value.value is True for kw in connects[0].keywords)
         elif p.name != "s1_snapshot.py":

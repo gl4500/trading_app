@@ -55,14 +55,17 @@ def project(db: Path) -> dict:
         con.close()
 
 
-def take_snapshot(live_db: Path, out_dir: Path) -> dict:
+def take_snapshot(live_db: Path, out_dir: Path, now=None) -> dict:
+    """Task 12 (A5.2): the measured capture start and end come from `now` (default s1_common.now_utc) and are
+    re-validated against the slot predicate before any seal."""
+    now = now or c.now_utc
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=False)            # FileExistsError: never overwrite a capture
-    meta = {"capture_start": c.now_utc().isoformat(), "ok": False, "error": None}
+    meta = {"capture_start": now().isoformat(), "ok": False, "error": None}
     backup = out_dir / "backup.sqlite3"
     try:
         _backup(live_db, backup)
-        meta["capture_end"] = c.now_utc().isoformat()
+        meta["capture_end"] = now().isoformat()
         proj = project(backup)
         blob = c.canonical(proj)
         (out_dir / "projection.json").write_bytes(blob)
@@ -70,7 +73,7 @@ def take_snapshot(live_db: Path, out_dir: Path) -> dict:
                     schema=proj["schema"], max_trade_id=max((t["id"] for t in proj["trades"]), default=0),
                     n_trades=len(proj["trades"]), n_portfolio_rows=len(proj["portfolios"]))
     except (sqlite3.Error, SnapshotError, OSError) as e:
-        meta.setdefault("capture_end", c.now_utc().isoformat())
+        meta.setdefault("capture_end", now().isoformat())
         meta["error"] = f"{type(e).__name__}: {e}"
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=1, default=str), encoding="utf-8")
     return meta

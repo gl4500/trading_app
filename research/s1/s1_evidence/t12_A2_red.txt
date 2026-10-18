@@ -1,0 +1,260 @@
+FFFFFFFF..                                                               [100%]
+================================== FAILURES ===================================
+______ test_a2_the_stop_is_persisted_once_at_the_seal_with_its_identity _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_the_stop_is_persisted_0')
+
+    def test_a2_the_stop_is_persisted_once_at_the_seal_with_its_identity(tmp_path):
+        """A2.1: when the stop is determined at a seal, its identity - stop close, authoritative stop seal file and
+        sha256, cohort row ids, decision time - is persisted once in s1_out/stop.json (exclusive)."""
+        st_, lg, rows = _live_stop(tmp_path)
+        out = tmp_path / "s1_out"
+>       s = read(out / "stop.json")
+
+s1_tests\test_s1_t12_a2.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a2.py:24: in read
+    return json.loads(Path(p).read_text(encoding="utf-8"))
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_the_stop_is_persisted_0/s1_out/stop.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15348\\test_a2_the_stop_is_persisted_0\\s1_out\\stop.json'
+
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+_ test_a2_the_persisted_stop_is_never_recomputed_from_later_rows_or_changed_helpers _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_the_persisted_stop_is_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000181164850D0>
+
+    def test_a2_the_persisted_stop_is_never_recomputed_from_later_rows_or_changed_helpers(tmp_path, monkeypatch):
+        """A2.1: after stop.json exists, the stop attestation, the final plan and the score use it: a changed helper
+        (here count_sold returning 0 - same bundle files, a runtime stub) or later rows cannot move the stop."""
+        st_, lg, rows = _live_stop(tmp_path)
+        out = tmp_path / "s1_out"
+        monkeypatch.setattr(z, "count_sold", lambda *a, **kw: 0)
+        t = STOP_CLOSE + timedelta(days=1)
+        with _Clock(t):
+>           att = r.attest_stop(tmp_path, r.STOP_STATEMENT)
+
+s1_tests\test_s1_t12_a2.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_the_persisted_stop_is_0')
+statement = 'I confirm that between START and the stop no MeanReversion code, config or package changed (including changed and reverted) and no MeanReversion trade was placed or edited by hand.'
+
+    def attest_stop(root, statement: str, *, mailbox=None) -> dict:
+        """Stop attestations (§12): after a recorded stop (STOPPED/TIMEOUT from the seals), before the final acquisition
+        and any score; binds the START attestation, the actual START and stop and the sealed final ledger (stop seal)."""
+        if statement != STOP_STATEMENT:
+            raise SystemExit("stop attestation refused: the statement must be exactly STOP_STATEMENT")
+        out = _out(root)
+        if not (out / "prereg.json").exists():
+            raise SystemExit("stop attestation refused: no prereg (the trial never started)")
+        g.verified_registration(out, "stop attestation", mailbox)          # Task 12: A3.2 bundle first, then A8.2
+        if (out / "aborted.json").exists():
+            raise SystemExit("stop attestation refused: the trial is ABORTED-INVALID")
+        if (out / "final").exists() or (out / "score").exists():
+            raise SystemExit("stop attestation refused: it must precede the final acquisition and the score")
+        pr = _load(out / "prereg.json")
+        try:
+            stop = z.stop_decision([s for _, s in _seals(out)], c.aware(pr["start"]), pr["calendar"],
+                                   today=c.now_utc())
+        except ValueError as e:
+            raise SystemExit(f"stop attestation refused: bad seal record ({e})") from None
+        if stop["status"] not in ("STOPPED", "TIMEOUT"):
+>           raise SystemExit(f"stop attestation refused: no stop recorded (status {stop['status']})")
+E           SystemExit: stop attestation refused: no stop recorded (status RUNNING)
+
+s1_run.py:501: SystemExit
+________________ test_a2_attest_stop_binds_the_persisted_stop _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_attest_stop_binds_the_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018116555100>
+
+    def test_a2_attest_stop_binds_the_persisted_stop(tmp_path, monkeypatch):
+        """A2.1/A7.1: the stop attestation binds stop.json's sha256; an edited stop.json makes it unverified at score
+        and the score ABORTED-INVALID (integrity of the frozen experiment)."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+>       assert read(out / "attest_stop.json")["stop_sha256"] == c.sha256_file(out / "stop.json")
+E       KeyError: 'stop_sha256'
+
+s1_tests\test_s1_t12_a2.py:98: KeyError
+_ test_a2_no_valid_seal_is_terminal_persisted_and_never_rescued_by_a_late_seal _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_no_valid_seal_is_termi0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000181165553A0>
+
+    def test_a2_no_valid_seal_is_terminal_persisted_and_never_rescued_by_a_late_seal(tmp_path, monkeypatch):
+        """A2.1: NO-VALID-SEAL is persisted the same way; a seal file appearing afterwards (a 'rescue' seal for an
+        eligible close) never produces a trial result: the score is not a PASS/FAIL and stop.json is unchanged."""
+        st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
+        out = tmp_path / "s1_out"
+>       s = read(out / "stop.json")
+
+s1_tests\test_s1_t12_a2.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a2.py:24: in read
+    return json.loads(Path(p).read_text(encoding="utf-8"))
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_no_valid_seal_is_termi0/s1_out/stop.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15348\\test_a2_no_valid_seal_is_termi0\\s1_out\\stop.json'
+
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+___________ test_a2_post_stop_checkpoints_follow_the_persisted_stop ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_post_stop_checkpoints_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018116477FB0>
+
+    def test_a2_post_stop_checkpoints_follow_the_persisted_stop(tmp_path, monkeypatch):
+        """A2.2: after the persisted stop a scheduled checkpoint records a post_stop capture only (no seal), even when
+        a (stubbed) stop helper would now call the trial RUNNING."""
+        st_, lg, rows = _live_stop(tmp_path)
+        out = tmp_path / "s1_out"
+        monkeypatch.setattr(z, "stop_decision", lambda *a, **kw: {"status": "RUNNING", "stop_close": None,
+                                                                     "missed": []})
+        rep = _cp(tmp_path, lg, datetime(2026, 10, 28, 20, 0, tzinfo=UTC))
+>       assert rep["post_stop"] is True and rep["seal"]["written"] is False
+E       KeyError: 'post_stop'
+
+s1_tests\test_s1_t12_a2.py:134: KeyError
+_____ test_a2_a_persisted_invalidity_is_never_converted_into_a_valid_stop _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_a_persisted_invalidity0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000181157C6000>
+
+    def test_a2_a_persisted_invalidity_is_never_converted_into_a_valid_stop(tmp_path, monkeypatch):
+        """A2.2: aborted.json after stop.json (e.g. a post-stop bundle mismatch) keeps the trial terminal-invalid: no
+        stop attestation, no final plan, score ABORTED-INVALID."""
+        st_, lg, rows = _live_stop(tmp_path)
+        out = tmp_path / "s1_out"
+        c.write_abort(out, {"reason": "bundle", "actual": (STOP_CLOSE + timedelta(hours=2)).isoformat()})
+        with _Clock(STOP_CLOSE + timedelta(days=1)):
+            with pytest.raises(SystemExit, match="ABORTED"):
+                r.attest_stop(tmp_path, r.STOP_STATEMENT)
+            with pytest.raises(SystemExit, match="ABORTED"):
+                k.final_plan_record(tmp_path)
+>       assert read(out / "stop.json")["status"] == "STOPPED"
+
+s1_tests\test_s1_t12_a2.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a2.py:24: in read
+    return json.loads(Path(p).read_text(encoding="utf-8"))
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_a_persisted_invalidity0/s1_out/stop.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-15348\\test_a2_a_persisted_invalidity0\\s1_out\\stop.json'
+
+..\..\..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+_ test_a2_integrity_of_the_frozen_slices_is_enforced_at_score[stop_seal_edited] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_integrity_of_the_froze0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018116476FF0>
+tamper = 'stop_seal_edited'
+
+    @pytest.mark.parametrize("tamper", ["stop_seal_edited", "slice_seal_deleted", "extra_slice_seal"])
+    def test_a2_integrity_of_the_frozen_slices_is_enforced_at_score(tmp_path, monkeypatch, tamper):
+        """A2.3: a changed or missing opening/bridge/trial seal (through the persisted stop) or an extra seal among the
+        frozen slices is a preserved integrity failure: ABORTED-INVALID at score."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        if tamper == "stop_seal_edited":
+            p = out / "seals" / "2026-10-27.json"
+            p.write_text(json.dumps(dict(read(p), note="x")), encoding="utf-8")
+        elif tamper == "slice_seal_deleted":
+            (out / "seals" / "2026-10-26.json").unlink()
+        else:
+            _write_seal(out, "2026-10-22", datetime(2026, 10, 22, 20, 0, tzinfo=UTC), [], S1_RECEIPT)
+        monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
+        s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
+        rep = r.score(tmp_path, "score-ack-2")
+>       assert rep["verdict"] == "ABORTED-INVALID" and any("stop" in x or "seal" in x for x in rep["reasons"]), \
+            rep["reasons"]
+E       AssertionError: []
+E       assert ('SHADOW PASS' == 'ABORTED-INVALID'
+E         
+E         - ABORTED-INVALID
+E         + SHADOW PASS)
+
+s1_tests\test_s1_t12_a2.py:170: AssertionError
+_ test_a2_integrity_of_the_frozen_slices_is_enforced_at_score[slice_seal_deleted] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15348/test_a2_integrity_of_the_froze1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018116731700>
+tamper = 'slice_seal_deleted'
+
+    @pytest.mark.parametrize("tamper", ["stop_seal_edited", "slice_seal_deleted", "extra_slice_seal"])
+    def test_a2_integrity_of_the_frozen_slices_is_enforced_at_score(tmp_path, monkeypatch, tamper):
+        """A2.3: a changed or missing opening/bridge/trial seal (through the persisted stop) or an extra seal among the
+        frozen slices is a preserved integrity failure: ABORTED-INVALID at score."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        if tamper == "stop_seal_edited":
+            p = out / "seals" / "2026-10-27.json"
+            p.write_text(json.dumps(dict(read(p), note="x")), encoding="utf-8")
+        elif tamper == "slice_seal_deleted":
+            (out / "seals" / "2026-10-26.json").unlink()
+        else:
+            _write_seal(out, "2026-10-22", datetime(2026, 10, 22, 20, 0, tzinfo=UTC), [], S1_RECEIPT)
+        monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
+        s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
+        rep = r.score(tmp_path, "score-ack-2")
+>       assert rep["verdict"] == "ABORTED-INVALID" and any("stop" in x or "seal" in x for x in rep["reasons"]), \
+            rep["reasons"]
+E       AssertionError: []
+E       assert ('SHADOW PASS' == 'ABORTED-INVALID'
+E         
+E         - ABORTED-INVALID
+E         + SHADOW PASS)
+
+s1_tests\test_s1_t12_a2.py:170: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_a2.py::test_a2_the_stop_is_persisted_once_at_the_seal_with_its_identity
+FAILED s1_tests/test_s1_t12_a2.py::test_a2_the_persisted_stop_is_never_recomputed_from_later_rows_or_changed_helpers
+FAILED s1_tests/test_s1_t12_a2.py::test_a2_attest_stop_binds_the_persisted_stop
+FAILED s1_tests/test_s1_t12_a2.py::test_a2_no_valid_seal_is_terminal_persisted_and_never_rescued_by_a_late_seal
+FAILED s1_tests/test_s1_t12_a2.py::test_a2_post_stop_checkpoints_follow_the_persisted_stop
+FAILED s1_tests/test_s1_t12_a2.py::test_a2_a_persisted_invalidity_is_never_converted_into_a_valid_stop
+FAILED s1_tests/test_s1_t12_a2.py::test_a2_integrity_of_the_frozen_slices_is_enforced_at_score[stop_seal_edited]
+FAILED s1_tests/test_s1_t12_a2.py::test_a2_integrity_of_the_frozen_slices_is_enforced_at_score[slice_seal_deleted]
+8 failed, 2 passed in 17.60s

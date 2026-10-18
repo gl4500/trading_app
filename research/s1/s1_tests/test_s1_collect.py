@@ -21,14 +21,25 @@ def fixed_clock(monkeypatch):
 
 
 def mailbox(root, mid, body, created=None):
-    """(Task 11: `created` added; default unchanged.)"""
+    """(Task 11: `created` added. Task 12 (A8.2) input: the default is 30 min before FIXED_NOW, after the plans that
+    _plan writes 1 h before it - an ACK must follow the plan it binds.)"""
     con = sqlite3.connect(root / "mailbox.sqlite3")
     con.execute("CREATE TABLE IF NOT EXISTS messages (id TEXT, sender TEXT, recipient TEXT, request_key TEXT, "
                 "body TEXT, created REAL, acknowledged REAL)")
-    created = datetime(2026, 10, 20, tzinfo=UTC) if created is None else created
+    created = FIXED_NOW - timedelta(minutes=30) if created is None else created
     con.execute("INSERT INTO messages VALUES (?,?,?,?,?,?,NULL)", (mid, "codex", "claude", "experiments-prereg",
                                                                   body, created.timestamp()))
     con.commit(); con.close()
+
+
+def _plan(root, start, *a):
+    """Task 12 (A8.2) input: write the plan 1 h before FIXED_NOW, so the AUDIT-ACK can follow it."""
+    old = s1_common.now_utc
+    s1_common.now_utc = lambda: FIXED_NOW - timedelta(hours=1)
+    try:
+        return k.write_plan(root, start, *a)
+    finally:
+        s1_common.now_utc = old
 
 
 def weekdays(first, last):
@@ -68,7 +79,7 @@ def test_plan_is_written_once(tmp_path):
 
 
 def test_audit_refuses_without_exact_ack_and_makes_no_request(tmp_path):
-    k.write_plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
+    _plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
     mailbox(tmp_path, "m1", "approve, roughly")
     calls = []
     with pytest.raises(SystemExit):
@@ -77,7 +88,7 @@ def test_audit_refuses_without_exact_ack_and_makes_no_request(tmp_path):
 
 
 def test_audit_once_metadata_only(tmp_path):
-    k.write_plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
+    _plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
     mailbox(tmp_path, "m2", k.audit_token(tmp_path))
     calls = []
     m = k.do_audit(tmp_path, "m2", client(calls), ("id", "secret"))
@@ -97,7 +108,7 @@ def test_final_plan_covers_carry_in_and_bridge_symbols(tmp_path, monkeypatch):
 # ---- additional tests required by the brief's Step 1 note and the controller rulings
 
 def test_keys_never_written_and_manifest_has_hashes(tmp_path):
-    k.write_plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
+    _plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
     mailbox(tmp_path, "m3", k.audit_token(tmp_path))
     m = k.do_audit(tmp_path, "m3", client([]), KEYS)
     assert set(m["files"]) >= {"calendar.json", "corporate_actions.json", "ca_problems.json"}
@@ -119,7 +130,7 @@ def test_audit_refuses_when_planned_start_has_passed(tmp_path, monkeypatch):
 
 
 def test_ack_future_missing_or_embedded_token_is_refused(tmp_path, monkeypatch):
-    k.write_plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
+    _plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
     mailbox(tmp_path, "m5", k.audit_token(tmp_path))
     monkeypatch.setattr(s1_common, "now_utc", lambda: datetime(2026, 10, 19, tzinfo=UTC))
     with pytest.raises(SystemExit):
@@ -196,7 +207,7 @@ def test_get_http_error_and_non_json(tmp_path):
 
 
 def test_ca_pages_classified_and_problems_recorded(tmp_path):
-    k.write_plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
+    _plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")                     # Task 12 (A8.2) input
     mailbox(tmp_path, "m7", k.audit_token(tmp_path))
     split = {"id": "s1", "symbol": "A", "cusip": "c", "new_rate": 2.0, "old_rate": 1.0,
              "process_date": "2026-05-01", "ex_date": "2026-05-02"}
@@ -224,33 +235,26 @@ def _row(i, sym, act, sh, ts):
 def stopped_trial(tmp_path, monkeypatch, now=ACQ_NOW):
     """Task 11 (controller-added), I-4 input: a STOPPED trial the final plan can be derived from - prereg (START
     2026-10-26), carry-in B (bought 2026-03-17) and NEW (bought 2026-10-20) held at START, 100 cohort lots of A
-    bought 10-26 and sold 10-27 (stop at the 10-27 close), seals of both sessions, and the stop attestation."""
-    from conftest import S1_RECEIPT, _write_seal
+    bought 10-26 and sold 10-27 (stop at the 10-27 close), seals of both sessions, and the stop attestation.
+    Task 12 (A8.2) input: the same trial through the GENUINE registration (conftest.s1_state: AUDIT-ACK'd audit,
+    real opening seal, START attestation, RUN-ACK, prereg, seals, stop attestation; no final acquisition) - a
+    hand-written prereg is refused before any request. Returns the stop attestation instant."""
+    from conftest import s1_state
+    st_ = s1_state(tmp_path, "2026-10-26T13:30:00+00:00", score_ready=True, final=False, final_snapshot=False,
+                   carry_in=(("B", 5, 10.0, "2026-03-17T15:00:00+00:00"), ("NEW", 3, 10.0, "2026-10-20T15:00:00+00:00")),
+                   lots=[{"symbol": "A", "qty": 1, "px": 10.0, "buy_day": 0, "sell": (1, 10.0)} for _ in range(100)])
     monkeypatch.setattr(s1_common, "now_utc", lambda: now)
-    out = tmp_path / "s1_out"
-    out.mkdir(parents=True, exist_ok=True)
-    start = datetime(2026, 10, 26, 13, 30, tzinfo=UTC)
-    (out / "prereg.json").write_text(json.dumps({
-        "start": start.isoformat(), "calendar": weekdays("2026-10-26", "2026-11-06")}), encoding="utf-8")
-    rows = [_row(1, "B", "BUY", 5, "2026-03-17T15:00:00+00:00"), _row(2, "NEW", "BUY", 3, "2026-10-20T15:00:00+00:00")]
-    rows += [_row(3 + i, "A", "BUY", 1, "2026-10-26T15:00:00+00:00") for i in range(100)]
-    rows += [_row(103 + i, "A", "SELL", 1, "2026-10-27T18:00:00+00:00") for i in range(100)]
-    for day in ("2026-10-26", "2026-10-27"):
-        close = datetime.fromisoformat(f"{day}T20:00:00+00:00")
-        _write_seal(out, day, close, [t for t in rows if t["ts"] <= close.isoformat()], S1_RECEIPT, start=start,
-                    opening_close=datetime(2026, 10, 23, 20, tzinfo=UTC))
-    (out / "attest_stop.json").write_text(json.dumps({
-        "stop_close": "2026-10-27T20:00:00+00:00", "recorded_utc": "2026-10-28T12:00:00+00:00",
-        "sealed_final_ledger_sha256": s1_common.sha256_file(out / "seals" / "2026-10-27.json")}), encoding="utf-8")
+    return st_["stop_attested_at"]
 
 
 def final_setup(tmp_path, monkeypatch, mid="f1", now=ACQ_NOW):
     """Input changes vs the brief draft: prereg calendar carries the close (I-2 lag), the ACK binds prereg (I-8),
     and the clock is moved past the registered acquisition lag. Task 11 (I-4): a real stopped, attested trial
-    (stopped_trial), the derived final plan, and an ACK (acquire_token, binding attest_stop) after the attestation."""
-    stopped_trial(tmp_path, monkeypatch, now)
+    (stopped_trial), the derived final plan, and an ACK (acquire_token, binding attest_stop) after the attestation.
+    Task 12 (A8.2) input: the ACK 1 h after the (genuine) stop attestation."""
+    attested = stopped_trial(tmp_path, monkeypatch, now)
     k.write_final_plan(tmp_path)
-    mailbox(tmp_path, mid, k.acquire_token(tmp_path), created=datetime(2026, 10, 28, 13, tzinfo=UTC))
+    mailbox(tmp_path, mid, k.acquire_token(tmp_path), created=attested + timedelta(hours=1))
 
 
 def test_final_requests_every_symbol_bars_and_full_history(tmp_path, monkeypatch):
@@ -314,7 +318,7 @@ def manifest_of(tmp_path, which):
 
 
 def planned(tmp_path, start=START):
-    k.write_plan(tmp_path, start, "2026-10-30", ["A"], "2026-03-17")
+    _plan(tmp_path, start, "2026-10-30", ["A"], "2026-03-17")
     mailbox(tmp_path, "a1", k.audit_token(tmp_path))
 
 
@@ -337,7 +341,8 @@ def test_write_plan_requires_aware_start_a_week_ahead_and_records_deadline(tmp_p
     assert not (tmp_path / "s1_out" / "plan.json").exists()
     p = json.loads(k.write_plan(tmp_path, FIXED_NOW + timedelta(days=7), "2026-10-30", ["A"],
                                 "2026-03-17").read_text())
-    assert p["created_utc"] == FIXED_NOW.isoformat() and p["deadline"] == "2027-04-28"
+    # Task 12 (A5.1/A10.1) REPLACEMENT (old: "2027-04-28", a date): the aware instant at START's NY wall time
+    assert p["created_utc"] == FIXED_NOW.isoformat() and p["deadline"] == "2027-04-28T12:00:00+00:00"
 
 
 @pytest.mark.parametrize("mutate,why", [
@@ -458,8 +463,10 @@ def test_final_lag_refused_when_calendar_lacks_three_later_sessions(tmp_path, mo
     """Retrospective (Task 6 review fix round 1): I-2."""
     final_setup(tmp_path, monkeypatch)
     pr = tmp_path / "s1_out" / "prereg.json"
-    pr.write_text(json.dumps({"start": "2026-10-26T13:30:00+00:00", "calendar": weekdays("2026-10-26", "2026-10-29")}))
-    mailbox(tmp_path, "f9", k.acquire_token(tmp_path), created=datetime(2026, 10, 28, 13, tzinfo=UTC))
+    pr.write_text(json.dumps(dict(json.loads(pr.read_text()), calendar=weekdays("2026-10-26", "2026-10-29"))))
+    # Task 12 (A8.2): a prereg calendar differing from the audit's is now refused at the registration check, before
+    # the lag computation; the expectation (refusal, no request, no reservation) is unchanged
+    mailbox(tmp_path, "f9", k.acquire_token(tmp_path), created=datetime(2026, 10, 29, 13, tzinfo=UTC))
     calls = []
     with pytest.raises(SystemExit):
         k.do_final(tmp_path, "f9", client(calls), KEYS)

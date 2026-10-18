@@ -1,0 +1,53 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_fix1_i4b_a_corrupt_trial_seal_is_a_preserved_terminal_integrity_failure _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15996/test_fix1_i4b_a_corrupt_trial_0')
+
+    def test_fix1_i4b_a_corrupt_trial_seal_is_a_preserved_terminal_integrity_failure(tmp_path):
+        """I-4b (A9.1/A9.2/A2.3), the reviewer's probe: a trial seal that is no longer readable JSON makes the next
+        checkpoint write its report and the persistent abort - never a crash with no record."""
+        st_ = _reg(tmp_path)
+        out = tmp_path / "s1_out"
+        assert _cp(tmp_path, st_, MON)["seal"]["written"]
+        (out / "seals" / "2026-10-26.json").write_text("{not json", encoding="utf-8")
+        st_["ledger"].trade("A", "BUY", 1, 50.0, "2026-10-27T15:00:00+00:00")
+        st_["ledger"].set_portfolio("A", 11)
+>       rep = _cp(tmp_path, st_, MON + timedelta(days=1))
+
+s1_tests\test_s1_t12_fix1.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_fix1.py:30: in _cp
+    return ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, receipt_fn or (lambda: S1_RECEIPT),
+s1_checkpoint.py:385: in run_checkpoint
+    seals = _seals(out)
+s1_checkpoint.py:51: in _seals
+    return [_load(p) for p in _seal_files(out)]
+s1_checkpoint.py:43: in _load
+    return json.loads(Path(p).read_text(encoding="utf-8"))
+..\..\..\trading_app\runtime\python\Lib\json\__init__.py:346: in loads
+    return _default_decoder.decode(s)
+..\..\..\trading_app\runtime\python\Lib\json\decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x000002B67E372EA0>, s = '{not json'
+idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+>           obj, end = self.scan_once(s, idx)
+E           json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+
+..\..\..\trading_app\runtime\python\Lib\json\decoder.py:354: JSONDecodeError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix1.py::test_fix1_i4b_a_corrupt_trial_seal_is_a_preserved_terminal_integrity_failure
+1 failed, 7 deselected in 0.80s

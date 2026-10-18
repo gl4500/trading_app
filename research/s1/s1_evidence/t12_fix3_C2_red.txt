@@ -1,0 +1,22 @@
+Task 12 fix round 3 - C2 RED (written before the fix; run against the fix-round-2 code, 2026-10-17).
+Source run: s1_evidence/t12_fix3_all_red.txt (full tracebacks). All failures below are BEHAVIOURAL (the interface exists; the observed outcome is wrong).
+
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_deleting_an_artifact_with_its_registry_record_is_a_persistent_abort[attest+registry] - AssertionError: no persistent abort recorded
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_deleting_an_artifact_with_its_registry_record_is_a_persistent_abort[attest+registry+books] - AssertionError: no persistent abort recorded
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_deleting_an_artifact_with_its_registry_record_is_a_persistent_abort[prereg+registry] - AssertionError: no persistent abort recorded
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_deleting_an_artifact_with_its_registry_record_is_a_persistent_abort[seals+registry+reports] - AssertionError: no persistent abort recorded
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_deleting_an_artifact_with_its_registry_record_is_a_persistent_abort[seals+registry+reports+resolutions] - AssertionError: no persistent abort recorded
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_deleting_an_artifact_with_its_registry_record_is_a_persistent_abort[seals+registry+witnesses+reports+resolutions] - AssertionError: no persistent abort recorded
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_probe_deleting_prereg_and_its_registry_record_then_restoring_never_resumes - AssertionError: no persistent abort recorded
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_probe_seals_registry_and_reports_deleted_with_prereg_present_is_an_abort - AssertionError: no persistent abort recorded
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_the_external_run_ack_witnesses_the_registration_when_every_other_local_witness_is_gone - AssertionError: no persistent abort recorded
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_residual_every_local_witness_gone_and_the_mailbox_unreadable_is_a_refusal - AssertionError: no persistent abort recorded
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_deleting_the_persisted_stop_and_its_registry_record_is_a_gate_abort - Failed: DID NOT RAISE <class 'SystemExit'>
+FAILED s1_tests/test_s1_t12_fix3.py::test_c2_a_registered_stage_whose_registry_record_alone_is_deleted_is_detected - Failed: DID NOT RAISE <class 'SystemExit'>
+PASSED s1_tests/test_s1_t12_fix3.py::test_c2_deleting_an_artifact_with_its_registry_record_is_a_persistent_abort[opening seal+registry]
+PASSED s1_tests/test_s1_t12_fix3.py::test_c2_deleting_an_artifact_with_its_registry_record_is_a_persistent_abort[plan+registry]
+PASSED s1_tests/test_s1_t12_fix3.py::test_c2_deleting_an_artifact_with_its_registry_record_is_a_persistent_abort[receipt+registry]
+
+Note: 3 of the 9 deletion combinations already passed on the fix-round-2 code (opening seal+registry, plan+registry,
+receipt+registry): the opening capture report recording a written seal witnessed the registration there. They are kept
+as regression tests (already satisfied, not RED evidence).

@@ -1,0 +1,1101 @@
+FFFFFFFFFFFFFFFFFFFFFFF                                                  [100%]
+================================== FAILURES ===================================
+__ test_a8_audit_manifest_binds_the_plan_and_the_audit_ack_binds_the_bundle ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_audit_manifest_binds_t0')
+
+    def test_a8_audit_manifest_binds_the_plan_and_the_audit_ack_binds_the_bundle(tmp_path):
+        """A8.1: the audit manifest binds plan_sha256 (no silent reuse of an audit after a plan change); the
+        AUDIT-ACK token carries the bundle (the opening mode's externally approved expected bundle)."""
+>       s1_plan_audit(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:316: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_audit_manifest_binds_t0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_run_ack_binds_opening_0')
+
+    def test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle(tmp_path):
+        """A8.1: RUN-ACK binds the opening seal, the frozen opening books (s1_out/opening_books.json, written by the
+        START attestation from the opening seal's rows and bound by it), the audit, the attestation and the bundle."""
+>       s1_state(tmp_path, START, carry_in=(("CI", 10, 50.0, "2026-10-01T15:00:00+00:00"),))
+
+s1_tests\test_s1_t12_a3_a8.py:327: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_run_ack_binds_opening_0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+________ test_a8_attest_start_refuses_before_the_opening_seal_capture _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_attest_start_refuses_b0')
+
+    def test_a8_attest_start_refuses_before_the_opening_seal_capture(tmp_path):
+        """A8.1 causal order: the START attestation comes after the opening capture and seal."""
+>       st_ = s1_state(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:349: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_attest_start_refuses_b0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+______________ test_a8_hand_made_prereg_reaches_no_live_callback ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_hand_made_prereg_reach0')
+ledger = <conftest.Ledger object at 0x00000204F3C15130>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F3C14920>
+
+    def test_a8_hand_made_prereg_reaches_no_live_callback(tmp_path, ledger, monkeypatch):
+        """A8.2 / Codex 0a58b934 probe e: a hand-made prereg (start/calendar/receipt/bundle, no verified RUN-ACK) refuses
+        with ZERO live callbacks (no snapshot, process or receipt call) and writes nothing."""
+        import test_s1_seal as ts
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        (out / "prereg.json").write_text(json.dumps({"start": "2026-10-14T13:30:00+00:00", "calendar": ts.CAL,
+>                                                    "receipt": S1_RECEIPT, "bundle_sha256": c.bundle_sha256(),
+                                                     "ack": {"ack_id": "nope", "created_utc": "2026-10-13T00:00:00+00:00"}}),
+                                         encoding="utf-8")
+E       AttributeError: module 's1_common' has no attribute 'bundle_sha256'
+
+s1_tests\test_s1_t12_a3_a8.py:366: AttributeError
+_ test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[plan_edited] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F48277D0>
+breakage = 'plan_edited'
+
+    @pytest.mark.parametrize("breakage", ["plan_edited", "attest_edited", "books_edited", "ack_deleted",
+                                          "ack_after_start", "ack_before_attestation", "prereg_binding"])
+    def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture(tmp_path, monkeypatch,
+                                                                                             breakage):
+        """A8.2: a normal checkpoint requires a verified prereg + RUN-ACK: identity (codex->claude experiments-prereg
+        message carrying the exact RUN token rebuilt from the current artifacts), artifact bindings and causal timing
+        (after the START attestation, before planned START); otherwise it refuses with zero live callbacks."""
+>       st_ = registered(tmp_path)
+
+s1_tests\test_s1_t12_a3_a8.py:385: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a3_a8.py:77: in registered
+    st_ = s1_state(tmp_path, START)
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[attest_edited] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F4845E80>
+breakage = 'attest_edited'
+
+    @pytest.mark.parametrize("breakage", ["plan_edited", "attest_edited", "books_edited", "ack_deleted",
+                                          "ack_after_start", "ack_before_attestation", "prereg_binding"])
+    def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture(tmp_path, monkeypatch,
+                                                                                             breakage):
+        """A8.2: a normal checkpoint requires a verified prereg + RUN-ACK: identity (codex->claude experiments-prereg
+        message carrying the exact RUN token rebuilt from the current artifacts), artifact bindings and causal timing
+        (after the START attestation, before planned START); otherwise it refuses with zero live callbacks."""
+>       st_ = registered(tmp_path)
+
+s1_tests\test_s1_t12_a3_a8.py:385: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a3_a8.py:77: in registered
+    st_ = s1_state(tmp_path, START)
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th1')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[books_edited] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F48465D0>
+breakage = 'books_edited'
+
+    @pytest.mark.parametrize("breakage", ["plan_edited", "attest_edited", "books_edited", "ack_deleted",
+                                          "ack_after_start", "ack_before_attestation", "prereg_binding"])
+    def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture(tmp_path, monkeypatch,
+                                                                                             breakage):
+        """A8.2: a normal checkpoint requires a verified prereg + RUN-ACK: identity (codex->claude experiments-prereg
+        message carrying the exact RUN token rebuilt from the current artifacts), artifact bindings and causal timing
+        (after the START attestation, before planned START); otherwise it refuses with zero live callbacks."""
+>       st_ = registered(tmp_path)
+
+s1_tests\test_s1_t12_a3_a8.py:385: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a3_a8.py:77: in registered
+    st_ = s1_state(tmp_path, START)
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th2')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_deleted] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F4847B30>
+breakage = 'ack_deleted'
+
+    @pytest.mark.parametrize("breakage", ["plan_edited", "attest_edited", "books_edited", "ack_deleted",
+                                          "ack_after_start", "ack_before_attestation", "prereg_binding"])
+    def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture(tmp_path, monkeypatch,
+                                                                                             breakage):
+        """A8.2: a normal checkpoint requires a verified prereg + RUN-ACK: identity (codex->claude experiments-prereg
+        message carrying the exact RUN token rebuilt from the current artifacts), artifact bindings and causal timing
+        (after the START attestation, before planned START); otherwise it refuses with zero live callbacks."""
+>       st_ = registered(tmp_path)
+
+s1_tests\test_s1_t12_a3_a8.py:385: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a3_a8.py:77: in registered
+    st_ = s1_state(tmp_path, START)
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th3')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_after_start] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F49238F0>
+breakage = 'ack_after_start'
+
+    @pytest.mark.parametrize("breakage", ["plan_edited", "attest_edited", "books_edited", "ack_deleted",
+                                          "ack_after_start", "ack_before_attestation", "prereg_binding"])
+    def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture(tmp_path, monkeypatch,
+                                                                                             breakage):
+        """A8.2: a normal checkpoint requires a verified prereg + RUN-ACK: identity (codex->claude experiments-prereg
+        message carrying the exact RUN token rebuilt from the current artifacts), artifact bindings and causal timing
+        (after the START attestation, before planned START); otherwise it refuses with zero live callbacks."""
+>       st_ = registered(tmp_path)
+
+s1_tests\test_s1_t12_a3_a8.py:385: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a3_a8.py:77: in registered
+    st_ = s1_state(tmp_path, START)
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th4')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_before_attestation] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F3C15130>
+breakage = 'ack_before_attestation'
+
+    @pytest.mark.parametrize("breakage", ["plan_edited", "attest_edited", "books_edited", "ack_deleted",
+                                          "ack_after_start", "ack_before_attestation", "prereg_binding"])
+    def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture(tmp_path, monkeypatch,
+                                                                                             breakage):
+        """A8.2: a normal checkpoint requires a verified prereg + RUN-ACK: identity (codex->claude experiments-prereg
+        message carrying the exact RUN token rebuilt from the current artifacts), artifact bindings and causal timing
+        (after the START attestation, before planned START); otherwise it refuses with zero live callbacks."""
+>       st_ = registered(tmp_path)
+
+s1_tests\test_s1_t12_a3_a8.py:385: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a3_a8.py:77: in registered
+    st_ = s1_state(tmp_path, START)
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th5')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[prereg_binding] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F1ED5A30>
+breakage = 'prereg_binding'
+
+    @pytest.mark.parametrize("breakage", ["plan_edited", "attest_edited", "books_edited", "ack_deleted",
+                                          "ack_after_start", "ack_before_attestation", "prereg_binding"])
+    def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture(tmp_path, monkeypatch,
+                                                                                             breakage):
+        """A8.2: a normal checkpoint requires a verified prereg + RUN-ACK: identity (codex->claude experiments-prereg
+        message carrying the exact RUN token rebuilt from the current artifacts), artifact bindings and causal timing
+        (after the START attestation, before planned START); otherwise it refuses with zero live callbacks."""
+>       st_ = registered(tmp_path)
+
+s1_tests\test_s1_t12_a3_a8.py:385: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a3_a8.py:77: in registered
+    st_ = s1_state(tmp_path, START)
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_checkpoint_verifies_th6')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_______________ test_a8_valid_registration_reaches_the_capture ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_valid_registration_rea0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F4845F10>
+
+    def test_a8_valid_registration_reaches_the_capture(tmp_path, monkeypatch):
+        """A8.2 control: the same checkpoint with the genuine registration captures and seals."""
+>       st_ = registered(tmp_path)
+
+s1_tests\test_s1_t12_a3_a8.py:420: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\test_s1_t12_a3_a8.py:77: in registered
+    st_ = s1_state(tmp_path, START)
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_valid_registration_rea0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[no_ack_recorded] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_0')
+ledger = <conftest.Ledger object at 0x00000204F4844D70>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F4844C50>
+breakage = 'no_ack_recorded'
+
+    @pytest.mark.parametrize("breakage", ["no_ack_recorded", "ack_missing_from_mailbox", "plan_edited_after_audit",
+                                          "ack_before_plan", "ack_after_reservation", "manifest_plan_sha",
+                                          "raw_page_tampered", "calendar_source_tampered"])
+    def test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture(
+            tmp_path, ledger, monkeypatch, breakage):
+        """A8.2: the opening mode verifies the AUDIT-ACK (identity, token from the current plan/collector/bundle, after
+        the plan and before the audit reservation), the audit manifest's plan_sha256, and the calendar and its pinned
+        source (A6/A7.4 raw page), with no prereg prerequisite; any failure refuses with zero live callbacks."""
+>       s1_plan_audit(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:434: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_missing_from_mailbox] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_1')
+ledger = <conftest.Ledger object at 0x00000204F4923D10>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F49215B0>
+breakage = 'ack_missing_from_mailbox'
+
+    @pytest.mark.parametrize("breakage", ["no_ack_recorded", "ack_missing_from_mailbox", "plan_edited_after_audit",
+                                          "ack_before_plan", "ack_after_reservation", "manifest_plan_sha",
+                                          "raw_page_tampered", "calendar_source_tampered"])
+    def test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture(
+            tmp_path, ledger, monkeypatch, breakage):
+        """A8.2: the opening mode verifies the AUDIT-ACK (identity, token from the current plan/collector/bundle, after
+        the plan and before the audit reservation), the audit manifest's plan_sha256, and the calendar and its pinned
+        source (A6/A7.4 raw page), with no prereg prerequisite; any failure refuses with zero live callbacks."""
+>       s1_plan_audit(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:434: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_1')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[plan_edited_after_audit] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_2')
+ledger = <conftest.Ledger object at 0x00000204F4923AD0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F4922150>
+breakage = 'plan_edited_after_audit'
+
+    @pytest.mark.parametrize("breakage", ["no_ack_recorded", "ack_missing_from_mailbox", "plan_edited_after_audit",
+                                          "ack_before_plan", "ack_after_reservation", "manifest_plan_sha",
+                                          "raw_page_tampered", "calendar_source_tampered"])
+    def test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture(
+            tmp_path, ledger, monkeypatch, breakage):
+        """A8.2: the opening mode verifies the AUDIT-ACK (identity, token from the current plan/collector/bundle, after
+        the plan and before the audit reservation), the audit manifest's plan_sha256, and the calendar and its pinned
+        source (A6/A7.4 raw page), with no prereg prerequisite; any failure refuses with zero live callbacks."""
+>       s1_plan_audit(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:434: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_2')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_before_plan] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_3')
+ledger = <conftest.Ledger object at 0x00000204F4920830>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F49219D0>
+breakage = 'ack_before_plan'
+
+    @pytest.mark.parametrize("breakage", ["no_ack_recorded", "ack_missing_from_mailbox", "plan_edited_after_audit",
+                                          "ack_before_plan", "ack_after_reservation", "manifest_plan_sha",
+                                          "raw_page_tampered", "calendar_source_tampered"])
+    def test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture(
+            tmp_path, ledger, monkeypatch, breakage):
+        """A8.2: the opening mode verifies the AUDIT-ACK (identity, token from the current plan/collector/bundle, after
+        the plan and before the audit reservation), the audit manifest's plan_sha256, and the calendar and its pinned
+        source (A6/A7.4 raw page), with no prereg prerequisite; any failure refuses with zero live callbacks."""
+>       s1_plan_audit(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:434: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_3')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_after_reservation] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_4')
+ledger = <conftest.Ledger object at 0x00000204F4845400>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F48453A0>
+breakage = 'ack_after_reservation'
+
+    @pytest.mark.parametrize("breakage", ["no_ack_recorded", "ack_missing_from_mailbox", "plan_edited_after_audit",
+                                          "ack_before_plan", "ack_after_reservation", "manifest_plan_sha",
+                                          "raw_page_tampered", "calendar_source_tampered"])
+    def test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture(
+            tmp_path, ledger, monkeypatch, breakage):
+        """A8.2: the opening mode verifies the AUDIT-ACK (identity, token from the current plan/collector/bundle, after
+        the plan and before the audit reservation), the audit manifest's plan_sha256, and the calendar and its pinned
+        source (A6/A7.4 raw page), with no prereg prerequisite; any failure refuses with zero live callbacks."""
+>       s1_plan_audit(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:434: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_4')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[manifest_plan_sha] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_5')
+ledger = <conftest.Ledger object at 0x00000204F4846CF0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F4847B90>
+breakage = 'manifest_plan_sha'
+
+    @pytest.mark.parametrize("breakage", ["no_ack_recorded", "ack_missing_from_mailbox", "plan_edited_after_audit",
+                                          "ack_before_plan", "ack_after_reservation", "manifest_plan_sha",
+                                          "raw_page_tampered", "calendar_source_tampered"])
+    def test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture(
+            tmp_path, ledger, monkeypatch, breakage):
+        """A8.2: the opening mode verifies the AUDIT-ACK (identity, token from the current plan/collector/bundle, after
+        the plan and before the audit reservation), the audit manifest's plan_sha256, and the calendar and its pinned
+        source (A6/A7.4 raw page), with no prereg prerequisite; any failure refuses with zero live callbacks."""
+>       s1_plan_audit(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:434: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_5')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[raw_page_tampered] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_6')
+ledger = <conftest.Ledger object at 0x00000204F49215B0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F49226F0>
+breakage = 'raw_page_tampered'
+
+    @pytest.mark.parametrize("breakage", ["no_ack_recorded", "ack_missing_from_mailbox", "plan_edited_after_audit",
+                                          "ack_before_plan", "ack_after_reservation", "manifest_plan_sha",
+                                          "raw_page_tampered", "calendar_source_tampered"])
+    def test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture(
+            tmp_path, ledger, monkeypatch, breakage):
+        """A8.2: the opening mode verifies the AUDIT-ACK (identity, token from the current plan/collector/bundle, after
+        the plan and before the audit reservation), the audit manifest's plan_sha256, and the calendar and its pinned
+        source (A6/A7.4 raw page), with no prereg prerequisite; any failure refuses with zero live callbacks."""
+>       s1_plan_audit(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:434: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_6')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+_ test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[calendar_source_tampered] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_7')
+ledger = <conftest.Ledger object at 0x00000204F4922AE0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F4923410>
+breakage = 'calendar_source_tampered'
+
+    @pytest.mark.parametrize("breakage", ["no_ack_recorded", "ack_missing_from_mailbox", "plan_edited_after_audit",
+                                          "ack_before_plan", "ack_after_reservation", "manifest_plan_sha",
+                                          "raw_page_tampered", "calendar_source_tampered"])
+    def test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture(
+            tmp_path, ledger, monkeypatch, breakage):
+        """A8.2: the opening mode verifies the AUDIT-ACK (identity, token from the current plan/collector/bundle, after
+        the plan and before the audit reservation), the audit manifest's plan_sha256, and the calendar and its pinned
+        source (A6/A7.4 raw page), with no prereg prerequisite; any failure refuses with zero live callbacks."""
+>       s1_plan_audit(tmp_path, START)
+
+s1_tests\test_s1_t12_a3_a8.py:434: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_opening_mode_verifies_7')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+______________ test_a8_do_audit_checks_the_ack_is_after_the_plan ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_do_audit_checks_the_ac0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F49215E0>
+
+    def test_a8_do_audit_checks_the_ack_is_after_the_plan(tmp_path, monkeypatch):
+        """A8.2: the AUDIT-ACK must be created after the plan it binds (and before planned START); an earlier one
+        refuses before any request or reservation."""
+        import httpx
+        fixed = datetime(2026, 10, 21, 12, tzinfo=UTC)
+        monkeypatch.setattr(c, "now_utc", lambda: fixed)
+        k.write_plan(tmp_path, datetime(2026, 11, 2, 14, 30, tzinfo=UTC), "2026-10-30", ["A"], "2026-10-01")
+        s1_mailbox(tmp_path, "a1", k.audit_token(tmp_path), fixed - timedelta(minutes=5))
+        monkeypatch.setattr(c, "now_utc", lambda: fixed + timedelta(hours=1))
+        seen = []
+        cl = httpx.Client(transport=httpx.MockTransport(lambda req: seen.append(req) or httpx.Response(500)),
+                          follow_redirects=False)
+        with pytest.raises(SystemExit, match="plan"):
+>           k.do_audit(tmp_path, "a1", cl, ("K", "S"))
+
+s1_tests\test_s1_t12_a3_a8.py:485: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_collect.py:303: in do_audit
+    return _run_attempt(d, out, ack, created, body, {"publication_cutoff": cutoff,
+s1_collect.py:244: in _run_attempt
+    _abort(d, out, ack, created, e)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+d = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_do_audit_checks_the_ac0/s1_out/audit')
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_do_audit_checks_the_ac0/s1_out')
+ack = {'ack_id': 'a1', 'created_utc': '2026-10-21T11:55:00+00:00'}
+created = [WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_do_audit_checks_the_ac0/s1_out/audit/pages/calendar.json')]
+e = Structural('calendar.json: HTTP 500')
+
+    def _abort(d: Path, out: Path, ack: dict, created, e: Exception):
+        """ABORTED manifest (exclusive). Only an S1/E1 Structural's text is recorded (key-free by construction);
+        anything else records the exception TYPE NAME only. All pages stay, hashed."""
+        structural = isinstance(e, (Structural, c.fetch().Structural))
+        _write_once(d / "manifest.json", {
+            "outcome": "ABORTED", "error_type": type(e).__name__, "error": str(e) if structural else type(e).__name__,
+            "ack": ack, "pages": _page_hashes(out, created)})
+>       raise SystemExit(f"{d.name}: ABORTED ({type(e).__name__}); attempt preserved, see manifest.json") from None
+E       SystemExit: audit: ABORTED (Structural); attempt preserved, see manifest.json
+
+s1_collect.py:237: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_do_audit_checks_the_ac0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F49215E0>
+
+    def test_a8_do_audit_checks_the_ack_is_after_the_plan(tmp_path, monkeypatch):
+        """A8.2: the AUDIT-ACK must be created after the plan it binds (and before planned START); an earlier one
+        refuses before any request or reservation."""
+        import httpx
+        fixed = datetime(2026, 10, 21, 12, tzinfo=UTC)
+        monkeypatch.setattr(c, "now_utc", lambda: fixed)
+        k.write_plan(tmp_path, datetime(2026, 11, 2, 14, 30, tzinfo=UTC), "2026-10-30", ["A"], "2026-10-01")
+        s1_mailbox(tmp_path, "a1", k.audit_token(tmp_path), fixed - timedelta(minutes=5))
+        monkeypatch.setattr(c, "now_utc", lambda: fixed + timedelta(hours=1))
+        seen = []
+        cl = httpx.Client(transport=httpx.MockTransport(lambda req: seen.append(req) or httpx.Response(500)),
+                          follow_redirects=False)
+>       with pytest.raises(SystemExit, match="plan"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'plan'
+E        Input: 'audit: ABORTED (Structural); attempt preserved, see manifest.json'
+
+s1_tests\test_s1_t12_a3_a8.py:484: AssertionError
+____________ test_a8_score_reverifies_the_run_ack_before_reserving ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_score_reverifies_the_r0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F4CDA990>
+
+    def test_a8_score_reverifies_the_run_ack_before_reserving(tmp_path, monkeypatch):
+        """A8.2 / mapping 2.1: the score re-verifies the registration's RUN-ACK in the mailbox; an unverifiable one
+        refuses before the reservation (no output)."""
+>       st_ = s1_state(tmp_path, START, score_ready=True)
+
+s1_tests\test_s1_t12_a3_a8.py:492: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:308: in s1_state
+    start, raw_cal, opening_close, created = s1_plan_audit(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_score_reverifies_the_r0')
+planned_start = '2026-10-26T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+>                            (dl.date() + timedelta(days=40)).isoformat()))
+E       AttributeError: 'datetime.date' object has no attribute 'date'
+
+s1_tests\conftest.py:215: AttributeError
+________ test_a8_genuine_bootstrap_through_s1_register_then_checkpoint ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_genuine_bootstrap_thro0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000204F4923B00>
+
+    def test_a8_genuine_bootstrap_through_s1_register_then_checkpoint(tmp_path, monkeypatch):
+        """A8.1: the causal bootstrap (plan -> AUDIT-ACK -> audit -> opening seal -> START attestation -> RUN-ACK ->
+        prereg) with no hand-made artifact; a scheduled checkpoint on another START weekday then verifies and seals."""
+        import test_s1_seal as ts
+>       reg = s1_register(tmp_path, "2026-10-14T13:30:00+00:00", calendar=ts.CAL)
+
+s1_tests\test_s1_t12_a3_a8.py:507: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_tests\conftest.py:434: in s1_register
+    start, raw_cal, opening_close, _ = s1_plan_audit(root, planned_start, calendar=calendar,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15331/test_a8_genuine_bootstrap_thro0')
+planned_start = '2026-10-14T13:30:00+00:00'
+
+    def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
+                      calendar=None, ack_id="audit-ack"):
+        """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
+        clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
+        Returns (start, raw calendar, opening close date, plan creation instant).
+        Task 12 interface (A3/A6/A8): an S1-AUDIT-ACK message `ack_id` (12 h after the plan, before the audit
+        reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
+        calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
+        time). `calendar` overrides the synthetic weekday calendar."""
+        from datetime import timedelta
+        import s1_collect as k
+        import s1_common as c
+        import s1_seal as z
+    
+        out = Path(root) / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        raw_cal = (list(calendar) if calendar is not None else
+                   _weekdays((start - timedelta(days=40)).date().isoformat(),
+                             (dl.date() + timedelta(days=40)).isoformat()))
+        opening_close = max(d["date"] for d in raw_cal if d["date"] < start_day)
+        created = start - timedelta(days=14)
+        with _Clock(created):
+            k.write_plan(root, start, opening_close, sorted(set(carry_in_syms)), first_day or start_day)
+        plan = json.loads((out / "plan.json").read_text(encoding="utf-8"))
+        ack_t = created + timedelta(hours=12)
+>       s1_mailbox(root, ack_id, c.audit_token(out), ack_t)
+E       AttributeError: module 's1_common' has no attribute 'audit_token'
+
+s1_tests\conftest.py:222: AttributeError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_audit_manifest_binds_the_plan_and_the_audit_ack_binds_the_bundle
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_attest_start_refuses_before_the_opening_seal_capture
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_hand_made_prereg_reaches_no_live_callback
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[plan_edited]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[attest_edited]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[books_edited]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_deleted]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_after_start]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_before_attestation]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[prereg_binding]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_valid_registration_reaches_the_capture
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[no_ack_recorded]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_missing_from_mailbox]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[plan_edited_after_audit]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_before_plan]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_after_reservation]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[manifest_plan_sha]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[raw_page_tampered]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[calendar_source_tampered]
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_do_audit_checks_the_ack_is_after_the_plan
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_score_reverifies_the_run_ack_before_reserving
+FAILED s1_tests/test_s1_t12_a3_a8.py::test_a8_genuine_bootstrap_through_s1_register_then_checkpoint
+23 failed, 17 deselected in 1.40s

@@ -1,0 +1,60 @@
+FFF.FFFFFFFFFFFFFFFFFFFFFFF.FF.                                          [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_registration_is_record0\\s1_out\\registry\\opening.json'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:116: AssertionError: []
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:130: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_0\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_1\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_2\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_3\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_4\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_5\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_6\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_7\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_8\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_9\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:166: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_11\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_12\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_13\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:166: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:166: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_deleting_prereg_and_th0\\s1_out\\aborted.json'
+<frozen os>:366: FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_deleting_prereg_and_th1\\s1_out\\registry'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_audit_re_entry_cannot_0\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_opening_re_entry_canno0\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:225: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:240: AssertionError: assert []
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_mailbox_outage_canno0\\s1_out\\aborted.json'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_fix2_b3.py:283: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app\runtime\python\Lib\json\decoder.py:354: json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_registration_is_recorded_independently_of_the_artifacts_it_binds
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_an_invalid_handmade_prereg_before_the_opening_is_a_preserved_refusal_with_no_callback
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_the_opening_changed_after_the_opening_but_before_the_run_ack_is_a_persistent_abort
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[plan.json-changed]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[plan.json-deleted]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[audit/manifest.json-changed]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[audit/manifest.json-deleted]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[audit/calendar.json-changed]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[audit/calendar.json-deleted]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[attest_start.json-changed]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[attest_start.json-deleted]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[opening_books.json-changed]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[opening_books.json-deleted]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[prereg.json-changed]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[prereg.json-deleted]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[seals/2026-10-23.json-changed]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[seals/2026-10-23.json-deleted]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[opening_receipt.json-changed]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[opening_receipt.json-deleted]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_deleting_prereg_and_the_opening_together_cannot_erase_the_registration[False]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_deleting_prereg_and_the_opening_together_cannot_erase_the_registration[True]
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_audit_re_entry_cannot_bypass_persistence
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_opening_re_entry_cannot_bypass_persistence
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_post_stop_integrity_of_frozen_artifacts_is_persistent
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_mailbox_outage_is_a_refusal_not_proof_of_tampering
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_mailbox_outage_cannot_downgrade_an_established_violation
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_registration_artifact_violation_at_the_score_is_persisted_and_prices_nothing
+FAILED s1_tests/test_s1_t12_fix2_b3.py::test_b3_a_corrupt_aborted_json_fails_closed
+28 failed, 3 passed in 10.13s

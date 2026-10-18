@@ -1,0 +1,81 @@
+Task 12 fix round 5 - R-3: the §17.3 crash-like residual probe (reviewer test_probe7.py) rewritten so R-1 no longer blocks it; run on the final round-5 sources:
+93c8ce861c251cebd2b9c04f5ab7262f0e89a1fcd1a460ec4feff568dfad271e */c/Users/gl450/trading_app-s1/research/s1/s1_common.py
+8fa2eb2fc6b92da6a6df95b7c3ef8415ff916365ea6d84dbea217e863d0dc121 */c/Users/gl450/trading_app-s1/research/s1/s1_checkpoint.py
+===== probe source (scratchpad/probe/test_probe7_fix5.py) =====
+"""Fix round 5 (R-3): the §17.3 crash-like residual probe (reviewer test_probe7.py), re-run on the round-5 code
+(R-1 no longer blocks it: the finalizer's MISSED records of the never-claimed opening slots are consistent).
+Variants:
+  V1 probe7 as written: sealed at 20:45, NO later opening slot ran; delete the seal, both opening records, every
+     resolution and report of the opening close, opening_receipt.json (claims + capture dir kept).
+  V2 a later opening slot (20:47) ran after the seal (R-3 after-seal claim/resolution/report), then the V1 deletion
+     set (which also removes the after-seal resolution and report; its claim stays).
+  V3 as V2 but the after-seal report and resolution are kept (only the sealing slot's records deleted).
+Each prints whether a second, different opening seal is written at the 00:00 UTC opening slot, and any abort."""
+import shutil
+import sys
+from datetime import timedelta
+
+import pytest
+
+sys.path.insert(0, "C:/Users/gl450/trading_app-s1/research/s1/s1_tests")
+import s1_checkpoint as ck, s1_common as c, s1_seal as z
+from realconf import S1_RECEIPT, S1_PROCESS, Ledger, _Clock, s1_plan_audit, s1_opening_checkpoint
+
+START = "2026-10-26T13:30:00+00:00"
+FMT = "%Y%m%dT%H%M%SZ"
+
+
+def _run(tmp_path, lg, day, cal, i):
+    sch = z.schedule(day, cal)[i]
+    act = sch + timedelta(seconds=30)
+    with _Clock(act):
+        return ck.run_opening_checkpoint(tmp_path, lg.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                                         tmp_path / "crash.log", now=lambda: act)
+
+
+@pytest.mark.parametrize("variant", ["V1", "V2", "V3"])
+def test_crash_like_residual(tmp_path, variant):
+    start, cal, oc, _ = s1_plan_audit(tmp_path, START)
+    lg = Ledger(tmp_path / "l.sqlite3")
+    day = next(d for d in cal if d["date"] == oc)
+    s1_opening_checkpoint(tmp_path, lg, oc, cal, S1_RECEIPT)
+    out = tmp_path / "s1_out"
+    first = c.sha256_file(out / "seals" / f"{oc}.json")
+    if variant in ("V2", "V3"):
+        try:
+            _run(tmp_path, lg, day, cal, 1)
+        except SystemExit as e:
+            print(variant, "after-seal slot:", str(e)[:120])
+    (out / "seals" / f"{oc}.json").unlink()
+    for d in ("registry", "witnesses"):
+        shutil.rmtree(out / d)
+    sealing = z.schedule(day, cal)[0].strftime(FMT)
+    for p in (out / "captures" / oc).glob("*"):
+        if p.name.endswith((".resolution.json", ".report.json")) and (variant != "V3" or p.name.startswith(sealing)):
+            p.unlink()
+    (out / "opening_receipt.json").unlink()
+    print(variant, "left:", sorted(p.relative_to(out).as_posix() for p in out.rglob("*") if p.is_file()
+                                   and not p.relative_to(out).as_posix().startswith(("audit/", "captures/" + oc + "/" + sealing + "/"))))
+    lg.trade("Z", "BUY", 1, 10.0, (z.schedule(day, cal)[8] - timedelta(minutes=1)).isoformat())
+    lg.set_portfolio("Z", 1)
+    try:
+        rep = _run(tmp_path, lg, day, cal, 8)
+        print(variant, "RESULT seal", rep["seal"], "| second, different seal:",
+              rep["seal"].get("written") is True and rep["seal"].get("sha256") != first)
+    except SystemExit as e:
+        print(variant, "RESULT refused:", str(e)[:200])
+    print(variant, "ABORT", (c.load_abort(out) or {}).get("reason"))
+===== output =====
+V1 left: ['captures/2026-10-23/20261023T204500Z.attempt.json', 'last_process.json', 'plan.json']
+V1 RESULT seal {'written': True, 'sha256': 'c8d56c19b4304be830569b94ad9e604ef2c56a11074100f5db1db77c225abd67'} | second, different seal: True
+V1 ABORT None
+.V2 after-seal slot: opening seal exists (2026-10-23): refusing (recorded its sha256 in 20261023T204700Z.report.json)
+V2 left: ['captures/2026-10-23/20261023T204500Z.attempt.json', 'captures/2026-10-23/20261023T204700Z.attempt.json', 'last_process.json', 'plan.json']
+V2 RESULT refused: opening checkpoint refused: registration artifact(s) missing or changed: ['opening_receipt.json missing (required at opening)', 'seals/2026-10-23.json missing (required at opening)', 'registry/opening
+V2 ABORT registration artifact
+.V3 after-seal slot: opening seal exists (2026-10-23): refusing (recorded its sha256 in 20261023T204700Z.report.json)
+V3 left: ['captures/2026-10-23/20261023T204500Z.attempt.json', 'captures/2026-10-23/20261023T204700Z.attempt.json', 'captures/2026-10-23/20261023T204700Z.report.json', 'captures/2026-10-23/20261023T204700Z.resolution.json', 'last_process.json', 'plan.json']
+V3 RESULT refused: opening checkpoint refused: registration artifact(s) missing or changed: ['opening_receipt.json missing (required at opening)', 'seals/2026-10-23.json missing (required at opening)', 'registry/opening
+V3 ABORT registration artifact
+.
+3 passed in 0.85s

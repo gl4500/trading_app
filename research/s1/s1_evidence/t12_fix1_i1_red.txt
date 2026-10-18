@@ -1,0 +1,81 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+__ test_fix1_i1_an_unparseable_closure_member_is_a_terminal_receipt_failure ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15995/test_fix1_i1_an_unparseable_cl0')
+
+    def test_fix1_i1_an_unparseable_closure_member_is_a_terminal_receipt_failure(tmp_path):
+        """I-1 (A1.3/A9.2): a closure member that no longer parses (merge conflict) is a terminal ReceiptError, never a
+        transient foreign exception."""
+        from test_s1_t12_a1 import ROOTS, contract, repo
+        root = repo(tmp_path)
+        (root / "backend" / "agents" / "mean_reversion_agent.py").write_text("<<<<<<< HEAD\nx = 1\n=======\n")
+        with pytest.raises(rc.ReceiptError) as e:
+>           rc.semantic_receipt(root, root / ".env", None, roots=ROOTS, contract=contract())
+
+s1_tests\test_s1_t12_fix1.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+s1_receipt.py:365: in semantic_receipt
+    rels = closure(backend, roots or ct["closure_roots"])
+s1_receipt.py:207: in closure
+    todo.extend(_imported_modules(backend, f, _parse(f)))
+s1_receipt.py:192: in _parse
+    return ast.parse(f.read_text(encoding="utf-8"))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+source = '<<<<<<< HEAD\nx = 1\n=======\n', filename = '<unknown>', mode = 'exec'
+
+    def parse(source, filename='<unknown>', mode='exec', *,
+              type_comments=False, feature_version=None):
+        """
+        Parse the source into an AST node.
+        Equivalent to compile(source, filename, mode, PyCF_ONLY_AST).
+        Pass type_comments=True to get back type comments where the syntax allows.
+        """
+        flags = PyCF_ONLY_AST
+        if type_comments:
+            flags |= PyCF_TYPE_COMMENTS
+        if feature_version is None:
+            feature_version = -1
+        elif isinstance(feature_version, tuple):
+            major, minor = feature_version  # Should be a 2-tuple.
+            if major != 3:
+                raise ValueError(f"Unsupported major version: {major}")
+            feature_version = minor
+        # Else it should be an int giving the minor version for 3.x.
+>       return compile(source, filename, mode, flags,
+                       _feature_version=feature_version)
+E         File "<unknown>", line 1
+E           <<<<<<< HEAD
+E           ^^
+E       SyntaxError: invalid syntax
+
+..\..\..\trading_app\runtime\python\Lib\ast.py:52: SyntaxError
+_ test_fix1_i1_merge_conflict_mid_trial_is_aborted_invalid_and_restoring_does_not_resume _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15995/test_fix1_i1_merge_conflict_mi0')
+
+    def test_fix1_i1_merge_conflict_mid_trial_is_aborted_invalid_and_restoring_does_not_resume(tmp_path):
+        """I-1, the reviewer's scenario: the live MR file is mid-merge at a checkpoint -> ABORTED-INVALID; restoring the
+        old bytes does not resume the trial (no later seal)."""
+        from test_s1_t12_a1 import ROOTS, contract, repo
+        root = repo(tmp_path / "live")
+    
+        def receipt():
+            return rc.semantic_receipt(root, root / ".env", None, roots=ROOTS, contract=contract())
+        st_ = _reg(tmp_path, receipt())
+        mr = root / "backend" / "agents" / "mean_reversion_agent.py"
+        old = mr.read_bytes()
+        mr.write_text("<<<<<<< HEAD\nx = 1\n=======\n")
+        rep = _cp(tmp_path, st_, MON, receipt)
+>       assert rep["stop"]["status"] == "ABORTED-INVALID" and rep["seal"]["written"] is False
+E       AssertionError: assert ('RUNNING' == 'ABORTED-INVALID'
+E         
+E         - ABORTED-INVALID
+E         + RUNNING)
+
+s1_tests\test_s1_t12_fix1.py:68: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix1.py::test_fix1_i1_an_unparseable_closure_member_is_a_terminal_receipt_failure
+FAILED s1_tests/test_s1_t12_fix1.py::test_fix1_i1_merge_conflict_mid_trial_is_aborted_invalid_and_restoring_does_not_resume
+2 failed, 6 deselected in 1.57s

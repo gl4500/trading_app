@@ -1,0 +1,67 @@
+.F..F...F                                                                [100%]
+================================== FAILURES ===================================
+_ test_a6_completeness_is_checked_against_the_pinned_listing[<lambda>-order] __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15347/test_a6_completeness_is_checke0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000281CC822750>
+mutate = <function <lambda> at 0x00000281CC7E6D40>, why = 'order'
+
+    @pytest.mark.parametrize("mutate,why", [
+        (lambda cal: cal[:5] + [cal[6], cal[5]] + cal[7:], "order"),                          # listing out of order
+        (lambda cal: cal[:5] + [cal[5]] + cal[5:], "duplicate"),
+        (lambda cal: cal[:5] + [dict(cal[5], open="16:00", close="09:30")] + cal[6:], "open is not before close"),
+        (lambda cal: [d for d in cal if d["date"] > "2026-10-30"], "opening close"),           # misses the opening close
+        (lambda cal: [d for d in cal if d["date"] <= "2027-05-04"], "deadline"),               # < 3 sessions after
+    ])
+    def test_a6_completeness_is_checked_against_the_pinned_listing(tmp_path, monkeypatch, mutate, why):
+        """A6: ordered (as listed), unique, open < close, covering the session before START (the opening close) through
+        the deadline + the final lag; any listed gap or inconsistency aborts the audit attempt."""
+        cal = mutate(cal_rows("2026-10-21", "2027-05-31"))
+        _plan_and_ack(tmp_path, monkeypatch, datetime(2026, 10, 21, 12, tzinfo=UTC), datetime(2026, 10, 21, 13, tzinfo=UTC))
+>       with pytest.raises(SystemExit, match="ABORTED"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+s1_tests\test_s1_t12_a5_a6.py:413: Failed
+_ test_a6_completeness_is_checked_against_the_pinned_listing[<lambda>-opening close] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-15347/test_a6_completeness_is_checke3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000281CC86A7B0>
+mutate = <function <lambda> at 0x00000281CC7E6F20>, why = 'opening close'
+
+    @pytest.mark.parametrize("mutate,why", [
+        (lambda cal: cal[:5] + [cal[6], cal[5]] + cal[7:], "order"),                          # listing out of order
+        (lambda cal: cal[:5] + [cal[5]] + cal[5:], "duplicate"),
+        (lambda cal: cal[:5] + [dict(cal[5], open="16:00", close="09:30")] + cal[6:], "open is not before close"),
+        (lambda cal: [d for d in cal if d["date"] > "2026-10-30"], "opening close"),           # misses the opening close
+        (lambda cal: [d for d in cal if d["date"] <= "2027-05-04"], "deadline"),               # < 3 sessions after
+    ])
+    def test_a6_completeness_is_checked_against_the_pinned_listing(tmp_path, monkeypatch, mutate, why):
+        """A6: ordered (as listed), unique, open < close, covering the session before START (the opening close) through
+        the deadline + the final lag; any listed gap or inconsistency aborts the audit attempt."""
+        cal = mutate(cal_rows("2026-10-21", "2027-05-31"))
+        _plan_and_ack(tmp_path, monkeypatch, datetime(2026, 10, 21, 12, tzinfo=UTC), datetime(2026, 10, 21, 13, tzinfo=UTC))
+        with pytest.raises(SystemExit, match="ABORTED"):
+            k.do_audit(tmp_path, "a1", _audit_client(cal), ("K", "S"))
+        m = read(tmp_path / "s1_out" / "audit" / "manifest.json")
+>       assert m["outcome"] == "ABORTED" and why in m["error"], m["error"]
+E       AssertionError: fewer than 5 sessions between the plan and START
+E       assert ('ABORTED' == 'ABORTED'
+E         
+E           ABORTED and 'opening close' in 'fewer than 5 sessions between the plan and START')
+
+s1_tests\test_s1_t12_a5_a6.py:416: AssertionError
+_____ test_a6_the_disclosed_calendar_limitation_is_in_the_build_evidence ______
+
+    def test_a6_the_disclosed_calendar_limitation_is_in_the_build_evidence():
+        """A6: the disclosed limitation (no independent NYSE calendar proof beyond the pinned provider listing) is
+        stated in S1_BUILD_EVIDENCE.md."""
+        text = (HERE / "s1_evidence" / "S1_BUILD_EVIDENCE.md").read_text(encoding="utf-8")
+>       assert "pinned provider" in text and "limitation" in text.lower() and "/v2/calendar" in text
+E       assert ('pinned provider' in "# S1 build evidence (Task 10 review package)\n\nBranch `research/s1-shadow-trial`, worktree `C:\\Users\\gl450\\tradin...).\n- The Task 10 brief's statement that hashes were recorded on LF copies is contradicted by the files (section 9).\n")
+
+s1_tests\test_s1_t12_a5_a6.py:448: AssertionError
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a6_completeness_is_checked_against_the_pinned_listing[<lambda>-order]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a6_completeness_is_checked_against_the_pinned_listing[<lambda>-opening close]
+FAILED s1_tests/test_s1_t12_a5_a6.py::test_a6_the_disclosed_calendar_limitation_is_in_the_build_evidence
+3 failed, 6 passed, 29 deselected in 2.45s

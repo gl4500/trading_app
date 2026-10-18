@@ -95,7 +95,7 @@ import sqlite3                                                                  
 from datetime import timedelta                                                   # noqa: E402
 
 import s1_common                                                                 # noqa: E402
-from conftest import S1_RECEIPT, s1_bar, s1_mailbox                              # noqa: E402
+from conftest import S1_RECEIPT, s1_bar, s1_mailbox, s1_receipt_with, s1_unattest  # noqa: E402
 from hypothesis import given, settings, strategies as st                        # noqa: E402
 
 START = "2026-10-26T13:30:00+00:00"
@@ -219,21 +219,23 @@ def test_attest_start_requires_exact_statement_once_and_before_start(tmp_path, m
     assert a["plan_sha256"] == s1_common.sha256_file(out / "plan.json")
     assert a["audit_manifest_sha256"] == s1_common.sha256_file(out / "audit" / "manifest.json")
     assert a["opening_seal_sha256"] == s1_common.sha256_file(out / "seals" / "2026-10-23.json")
-    assert a["receipt_sha256"] == s1_common.sha256_bytes(s1_common.canonical(S1_RECEIPT))
+    assert a["receipt_sha256"] == s1_common.receipt_sha256(S1_RECEIPT)                 # Task 12 (A1)
     at(monkeypatch, START_DT - timedelta(days=1))
     with pytest.raises(SystemExit):
         r.attest_start(tmp_path, r.START_STATEMENT + " ", S1_RECEIPT)
     with pytest.raises(SystemExit):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)                   # already recorded
-    (out / "attest_start.json").unlink()
+    s1_unattest(tmp_path, books=False)                    # (fix round 2 migration, B3: the pre-attestation state)
     at(monkeypatch, START_DT)
     with pytest.raises(SystemExit, match="START"):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
     at(monkeypatch, START_DT - timedelta(days=1))
     (out / "seals" / "2026-10-23.json").unlink()
-    with pytest.raises(SystemExit, match="opening seal"):
+    # (fix round 2, B3.3: the registered opening seal deleted is the persistent "registration artifact" abort, not
+    # the old "opening seal" refusal)
+    with pytest.raises(SystemExit, match="registration artifact"):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
-    assert not (out / "attest_start.json").exists()
+    assert not (out / "attest_start.json").exists() and read(out / "aborted.json")["reason"] == "registration artifact"
 
 
 def test_prereg_writes_what_checkpoint_and_collectors_read_once(tmp_path, monkeypatch):
@@ -262,7 +264,7 @@ def test_prereg_refusals_write_nothing(tmp_path, monkeypatch, breakage, match):
     at(monkeypatch, START_DT - timedelta(hours=2))
     receipt, ack = S1_RECEIPT, "run-ack"
     if breakage == "receipt":
-        receipt = dict(S1_RECEIPT, head="other")
+        receipt = s1_receipt_with(S1_RECEIPT, files={"x.py": "other"})               # Task 12 (A1): fingerprint
     elif breakage == "ack":
         s1_mailbox(tmp_path, "bad", "approve, roughly", START_DT - timedelta(days=1))
         ack = "bad"
@@ -270,7 +272,7 @@ def test_prereg_refusals_write_nothing(tmp_path, monkeypatch, breakage, match):
         m = read(out / "audit" / "manifest.json")
         (out / "audit" / "manifest.json").write_text(json.dumps(dict(m, outcome="ABORTED")), encoding="utf-8")
     else:
-        (out / "attest_start.json").unlink()
+        s1_unattest(tmp_path)                             # (fix round 2 migration, B3: the pre-attestation state)
     with pytest.raises(SystemExit, match=match):
         r.do_prereg(tmp_path, ack, receipt)
     assert not (out / "prereg.json").exists()
@@ -440,12 +442,16 @@ def test_score_bridge_ticker_split_is_inconclusive(tmp_path, monkeypatch):      
 
 @pytest.mark.parametrize("n_x,want", [(10, "SHADOW PASS"), (11, "INCONCLUSIVE")])
 def test_score_exclusion_cap_exactly_ten_percent_allowed(tmp_path, monkeypatch, n_x, want):
+    """Task 12 (A4.2b/A10.1) REPLACEMENT of the excluding action: a forward split on X with X SELLs on/after it is
+    now whole-trial INCONCLUSIVE (any post-event SELL of a contaminated symbol), so the cap boundary is tested with a
+    per-lot-only economic action (a special cash dividend inside every X lot's window); expectations unchanged."""
     lots = ([{"symbol": "X", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, 80.0)} for _ in range(n_x)]
             + [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, 80.0)}
                for i in range(100 - n_x)])
-    _, rep, _ = scored(tmp_path, monkeypatch, lots=lots, final_actions=[split("X", "2026-10-27")])
+    div = {"type": "cash_dividends", "id": "dx", "symbol": "X", "special": True, "ex_date": "2026-10-27"}
+    _, rep, _ = scored(tmp_path, monkeypatch, lots=lots, final_actions=[div])
     assert rep["verdict"] == want and rep["k"] == n_x and rep["n"] == 100
-    assert len(rep["excluded"]) == n_x and all("forward_splits" in " ".join(v) for v in rep["excluded"].values())
+    assert len(rep["excluded"]) == n_x and all("cash_dividends" in " ".join(v) for v in rep["excluded"].values())
     assert rep["excluded_notional_share"] == pytest.approx(n_x / 100)
 
 
@@ -499,18 +505,23 @@ def row(i, sym, act, sh, day, hhmm="15:00", px=100.0):
             "reasoning_sha256": "0" * 64}
 
 
+T12_START, T12_STOP = datetime(2026, 10, 26, 13, 30, tzinfo=UTC), datetime(2026, 10, 30, 20, 0, tzinfo=UTC)
+
+
 def test_split_with_a_lot_open_across_it_excludes_every_lot_of_the_symbol():
-    """Retrospective (Task 7 controller rulings): lot A entered before the split and still open across it, lot B
-    entered after it -> FIFO attribution untrusted, both excluded in both arms."""
+    """Retrospective (Task 7 controller rulings). Task 12 (A4.2) REPLACEMENT of the C-2 interface (fifo_untrusted ->
+    contaminated_symbols): lot A entered before the split and open across it, lot B after it, no SELL of A -> A is
+    contaminated (rule 2c) and both lots are excluded in both arms (expectation unchanged)."""
     rows = [row(1, "A", "BUY", 10, "2026-10-26"), row(2, "A", "BUY", 10, "2026-10-29")]
     acts = [split("A", "2026-10-28", i="sp1")]
-    untrusted = r.fifo_untrusted(rows, acts, "2026-10-26", "2026-10-30")
-    assert untrusted == {"A": ["FIFO attribution untrusted after sp1 on 2026-10-28"]}
+    contam = r.contaminated_symbols(rows, acts, T12_START, T12_STOP)
+    assert contam == {"A": {"actions": ["sp1"], "effective_dates": ["2026-10-28"], "sells": []}}
+    untrusted = {"A": ["contaminated symbol A"]}
     bars = {"A": {d: bar(d) for d in SESS}}
     lots = [lot(1, "A", "2026-10-26"), lot(2, "A", "2026-10-29")]
     ex = r.exclusions(lots, acts, [], "2026-10-30", SESS, bars, [], untrusted=untrusted)
     assert set(ex) == {1, 2}
-    assert any("FIFO attribution untrusted after sp1 on 2026-10-28" in w for w in ex[2])
+    assert any("contaminated symbol A" in w for w in ex[2])
 
 
 def test_split_with_no_lot_open_across_it_does_not_exclude_later_lots():
@@ -519,32 +530,33 @@ def test_split_with_no_lot_open_across_it_does_not_exclude_later_lots():
     rows = [row(1, "A", "BUY", 10, "2026-10-26"), row(2, "A", "SELL", 10, "2026-10-27"),
             row(3, "A", "BUY", 10, "2026-10-29")]
     acts = [split("A", "2026-10-28", i="sp1")]
-    assert r.fifo_untrusted(rows, acts, "2026-10-26", "2026-10-30") == {}
+    assert r.contaminated_symbols(rows, acts, T12_START, T12_STOP) == {}           # Task 12 (A4.2) interface
     bars = {"A": {d: bar(d) for d in SESS}}
     assert r.exclusions([lot(3, "A", "2026-10-29")], acts, [], "2026-10-30", SESS, bars, [], untrusted={}) == {}
 
 
 def test_fifo_untrusted_ignores_actions_outside_the_trial_window_and_acquirer_side():
-    """Retrospective (Task 7 controller rulings)."""
+    """Retrospective (Task 7 controller rulings). Task 12 (A4.2) interface: contaminated_symbols; an action
+    effective after the stop session and the acquirer side never contaminate (unchanged)."""
     rows = [row(1, "A", "BUY", 10, "2026-10-26")]
     acts = [split("A", "2026-10-31", i="late"),
             {"type": "stock_mergers", "id": "m", "acquirer_symbol": "A", "acquiree_symbol": "T",
              "effective_date": "2026-10-28"}]
-    assert r.fifo_untrusted(rows, acts, "2026-10-26", "2026-10-30") == {}
+    assert r.contaminated_symbols(rows, acts, T12_START, T12_STOP) == {}
 
 
 def test_score_excludes_post_split_lot_when_an_earlier_lot_was_open_across_the_split(tmp_path, monkeypatch):
     """Retrospective (Task 7 controller rulings): X1 bought day 0 and sold day 2, split on day 1, X2 bought day 2
-    (after the split) -> both X lots excluded; X2 with the FIFO-attribution reason."""
+    (after the split). Task 12 (A4.2b/A10.1) REPLACEMENT - old expectation (both X lots excluded, SHADOW PASS on the
+    rest) contradicts A4.2b: X is contaminated and SELLs of X follow the split before the stop, so the whole trial is
+    INCONCLUSIVE ("unit event may affect stop/cohort attribution"), no SHADOW PASS/FAIL from the remaining symbols."""
     lots = ([{"symbol": "X", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (2, 80.0)},
              {"symbol": "X", "qty": 10, "px": 100.0, "buy_day": 2, "sell": (2, 80.0)}]
             + [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, 80.0)} for i in range(98)])
     st_, rep, _ = scored(tmp_path, monkeypatch, lots=lots, final_actions=[split("X", "2026-10-27", i="spx")])
     assert st_["stop"]["stop_close"] == "2026-10-28T20:00:00+00:00"
-    x_ids = [t["id"] for t in st_["rows"] if t["symbol"] == "X" and t["action"] == "BUY"]
-    assert set(rep["excluded"]) == {str(i) for i in x_ids}
-    assert any("FIFO attribution untrusted after spx on 2026-10-27" in w for w in rep["excluded"][str(x_ids[1])])
-    assert rep["k"] == 2 and rep["verdict"] == "SHADOW PASS"
+    assert rep["verdict"] == "INCONCLUSIVE" and "levels" not in rep
+    assert any("unit event may affect stop/cohort attribution: X" in x for x in rep["reasons"]), rep["reasons"]
 
 
 def test_score_runner_changed_since_prereg_is_invalid(tmp_path, monkeypatch):
@@ -568,7 +580,9 @@ def test_early_score_ack_while_running_is_refused_with_no_output(tmp_path, monke
     st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
     at(monkeypatch, START_DT + timedelta(days=2))
     s1_mailbox(tmp_path, "early", r.score_token(tmp_path), START_DT + timedelta(days=1))
-    with pytest.raises(SystemExit, match="RUNNING"):
+    # Task 12 (A2.1) input note: s1_state's final snapshot already persisted the NO-VALID-SEAL stop, so the early
+    # ACK is refused for preceding the persisted end (the refusal and "nothing written" are unchanged)
+    with pytest.raises(SystemExit, match="RUNNING|not strictly after"):
         r.score(tmp_path, "early")
     assert not (tmp_path / "s1_out" / "score").exists()
     at(monkeypatch, st_["now"])
@@ -623,7 +637,8 @@ def test_fifo_untrust_triggers_are_unit_identity_actions_only(action, trigger):
     """Retrospective (Task 7 review fix round 1), M-1: special dividends and spin-off/rights sources stay ordinary
     per-lot exclusions (lot 1's window still excludes it) but do not untrust the symbol's later lots."""
     rows = [row(1, "A", "BUY", 10, "2026-10-26"), row(2, "A", "BUY", 10, "2026-10-29")]
-    untrusted = r.fifo_untrusted(rows, [action], "2026-10-26", "2026-10-30")
+    contam = r.contaminated_symbols(rows, [action], T12_START, T12_STOP)    # Task 12 (A4.2) interface
+    untrusted = {s: [f"contaminated symbol {s}"] for s in contam}
     assert ("A" in untrusted) is trigger
     bars = {"A": {d: bar(d) for d in SESS}}
     ex = r.exclusions([lot(1, "A", "2026-10-26"), lot(2, "A", "2026-10-29")], [action], [], "2026-10-30", SESS,
@@ -854,11 +869,15 @@ def test_cr_fifo_untrusted_window_inclusive_and_every_action_scanned():
 
     def sp(d, i):
         return {"type": "forward_splits", "id": i, "symbol": "AA", "ex_date": d}
-    assert r.fifo_untrusted(rows, [sp("2026-10-26", "a")], "2026-10-26", "2026-10-30") != {}
-    assert r.fifo_untrusted(rows, [sp("2026-10-30", "b")], "2026-10-26", "2026-10-30") != {}
-    assert r.fifo_untrusted(rows, [sp("2026-10-23", "c")], "2026-10-26", "2026-10-30") == {}
-    assert r.fifo_untrusted(rows, [{"type": "forward_splits", "id": "u", "symbol": "AA"}, sp("2026-10-28", "d")],
-                            "2026-10-26", "2026-10-30") == {"AA": ["FIFO attribution untrusted after d on 2026-10-28"]}
+    # Task 12 (A4.2/A10.1) REPLACEMENT of the C-2 window: any lot open across the effective date contaminates, up to
+    # the stop session inclusive (a pre-START action with the carry-in lot open across it now contaminates too -
+    # the carry-in rule A4.1 decides that trial first); an action after the stop session does not; an undated
+    # unit/identity action contaminates a symbol held at START and never ends the scan
+    cs = lambda acts, held=(): r.contaminated_symbols(rows, acts, T12_START, T12_STOP, held_syms=held)  # noqa: E731
+    assert cs([sp("2026-10-26", "a")]) != {} and cs([sp("2026-10-30", "b")]) != {}
+    assert cs([sp("2026-10-23", "c")]) != {} and cs([sp("2026-10-31", "e")]) == {}
+    got = cs([{"type": "forward_splits", "id": "u", "symbol": "AA"}, sp("2026-10-28", "d")], held=("AA",))
+    assert got["AA"]["actions"] == ["u", "d"] and got["AA"]["effective_dates"] == [None, "2026-10-28"]
 
 
 def test_cr_exclusions_scan_every_action():
@@ -979,7 +998,7 @@ def test_cr_attest_start_statement_receipt_and_clock(tmp_path, monkeypatch):
     still a mismatch; any time after planned START is refused."""
     s1_state(tmp_path, START)
     out = tmp_path / "s1_out"
-    (out / "attest_start.json").unlink()
+    s1_unattest(tmp_path, books=False)                    # (fix round 2 migration, B3: the pre-attestation state)
     at(monkeypatch, START_DT - timedelta(days=1))
     for bad in ("", "~" * 5):
         with pytest.raises(SystemExit, match="statement"):
@@ -990,11 +1009,16 @@ def test_cr_attest_start_statement_receipt_and_clock(tmp_path, monkeypatch):
     at(monkeypatch, START_DT - timedelta(days=1))
     p = out / "seals" / "2026-10-23.json"
     good = p.read_text(encoding="utf-8")
+    assert r.attest_start(tmp_path, _fresh(r.START_STATEMENT), S1_RECEIPT)["trial_id"] == "S1"
+    # (fix round 2, B3.3: an edited registered opening seal is now the persistent "registration artifact" abort -
+    # observed first, before the attestation's own receipt-vs-seal comparison; restoring does not resume)
+    s1_unattest(tmp_path, books=False)
     p.write_text(json.dumps(dict(json.loads(good), receipt_sha256="0" * 64)), encoding="utf-8")
-    with pytest.raises(SystemExit, match="does not match the opening seal"):
+    with pytest.raises(SystemExit, match="registration artifact"):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
     p.write_text(good, encoding="utf-8")
-    assert r.attest_start(tmp_path, _fresh(r.START_STATEMENT), S1_RECEIPT)["trial_id"] == "S1"
+    with pytest.raises(SystemExit, match="ABORTED-INVALID"):
+        r.attest_start(tmp_path, _fresh(r.START_STATEMENT), S1_RECEIPT)
 
 
 def test_cr_start_attestation_problem_whichever_way_a_hash_differs(tmp_path):
@@ -1015,17 +1039,19 @@ def test_cr_prereg_refusal_paths(tmp_path, monkeypatch):
     s1_state(tmp_path, START)
     out = tmp_path / "s1_out"
     at(monkeypatch, START_DT - timedelta(hours=2))
-    mp = out / "audit" / "manifest.json"
-    good = mp.read_text(encoding="utf-8")
-    mp.write_text(json.dumps(dict(json.loads(good), outcome="ABORTED")), encoding="utf-8")
-    with pytest.raises(SystemExit, match="prereg refused: audit not COMPLETE"):
-        r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
-    mp.write_text(good, encoding="utf-8")
 
     def unreadable(*a, **kw):
         raise s1_books.BookError("corrupt row")
-    monkeypatch.setattr(r, "_carry_in", unreadable)
-    with pytest.raises(SystemExit, match="opening ledger unreadable"):
+    with monkeypatch.context() as m:
+        m.setattr(r, "_carry_in", unreadable)
+        with pytest.raises(SystemExit, match="opening ledger unreadable"):
+            r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    assert not (out / "prereg.json").exists()
+    # (fix round 2, B3.3: the incomplete-audit case now runs second - an edited registered audit manifest is the
+    # persistent "registration artifact" abort, observed before prereg's own audit check)
+    mp = out / "audit" / "manifest.json"
+    mp.write_text(json.dumps(dict(json.loads(mp.read_text(encoding="utf-8")), outcome="ABORTED")), encoding="utf-8")
+    with pytest.raises(SystemExit, match="prereg refused: registration artifact"):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     assert not (out / "prereg.json").exists()
 
@@ -1060,7 +1086,8 @@ def test_cr_no_valid_seal_end_when_the_deadline_is_not_a_session(tmp_path, monke
     NO-VALID-SEAL end is still the last eligible session's window end, so an ACK before it is refused."""
     start = "2026-11-02T14:30:00+00:00"
     st_ = s1_state(tmp_path, start, score_ready=True, lots=[], seal_days=[])
-    assert s1_common.sim().ny_date(s1_common.aware(start)) and str(r.z.deadline(s1_common.aware(start))) == "2027-05-02"
+    assert s1_common.sim().ny_date(s1_common.aware(start)) and r.z.deadline(s1_common.aware(start)).astimezone(
+        s1_common.NY).date().isoformat() == "2027-05-02"                  # Task 12 (A5.1) interface: an instant
     s1_mailbox(tmp_path, "before-end", r.score_token(tmp_path), st_["now"] - timedelta(days=5))
     at(monkeypatch, st_["now"])
     with pytest.raises(SystemExit, match="SCORE-ACK"):
@@ -1141,7 +1168,7 @@ def test_cr_seal_chain_problems_every_defect(tmp_path):
     """Retrospective (Task 9 CR survivors s1_run:603-615, _seal_chain_problems)."""
     out, seals, _, _ = _fs(tmp_path)
     pr = read(out / "prereg.json")
-    rsha, tc = r._receipt_sha(pr["receipt"]), pr["toolchain_sha256"]           # Task 11 (I-1) interface: tc
+    rsha, tc = r._receipt_sha(pr["receipt"]), pr["bundle_sha256"]              # Task 12 (A3) interface: bundle
     assert r._seal_chain_problems(out, seals, rsha, tc) == []
 
     def with_last(edit):
@@ -1323,7 +1350,10 @@ def test_cr_duplicate_seal_is_a_bad_seal_record_reason(tmp_path, monkeypatch):
         rep = r.score(tmp_path, "score-ack")
     except SystemExit:
         rep = read(out / "score" / "s1.json")
-    assert any(x.startswith("bad seal record: ValueError") for x in rep["reasons"]), rep["reasons"]
+    # Task 12 (A2.1/A2.3, A10.1) REPLACEMENT of the reason: the stop is the persisted one (never recomputed, so no
+    # "two seals" ValueError); the duplicate is a seal outside the persisted stop's frozen slices -> ABORTED-INVALID
+    assert rep["verdict"] == "ABORTED-INVALID"
+    assert any("zz.json is not among the persisted stop's frozen slices" in x for x in rep["reasons"]), rep["reasons"]
 
 
 @pytest.mark.parametrize("what", ["prereg0", "preregf", "plan-1", "plan+1", "outcome", "noplan"])
@@ -1431,8 +1461,10 @@ def test_cr_prereg_refuses_when_the_opening_seal_is_missing(tmp_path, monkeypatc
     s1_state(tmp_path, START)
     (tmp_path / "s1_out" / "seals" / "2026-10-23.json").unlink()
     at(monkeypatch, START_DT - timedelta(hours=2))
-    with pytest.raises(SystemExit, match="prereg refused: opening seal 2026-10-23 missing"):
+    # (fix round 2, B3.3: the registered opening seal missing is the persistent "registration artifact" abort)
+    with pytest.raises(SystemExit, match="prereg refused: registration artifact.*seals/2026-10-23.json missing"):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    assert read(tmp_path / "s1_out" / "aborted.json")["reason"] == "registration artifact"
 
 
 def test_cr_stop_attestation_ledger_hash_above_the_real_one_differs(tmp_path):
@@ -1517,12 +1549,16 @@ def test_fr1_candidate_endpoint_reason_compared_by_value(monkeypatch):
 def test_fr1_running_status_compared_by_value_at_the_score_gate(tmp_path, monkeypatch):
     """Retrospective (Task 9 fix round 1, review M-1: s1_run:522 Eq_Is): a RUNNING status that is an equal but
     distinct str still refuses the score with nothing written."""
-    st_ = s1_state(tmp_path, START, score_ready=True)
+    # Task 12 (A2.1) input: no persisted stop yet - the trial is built without stop attestation, final plan or final
+    # snapshot (fix round 1, m-4: DELETING a persisted stop.json is now itself an integrity failure)
+    st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final=False, final_snapshot=False)
+    assert not (tmp_path / "s1_out" / "stop.json").exists()
     monkeypatch.setattr(r.z, "stop_decision", lambda *a, **kw: {"status": "".join(list("RUNNING")),
                                                                 "stop_close": None, "missed": []})
     at(monkeypatch, st_["now"])
+    s1_mailbox(tmp_path, "score-ack-r", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))   # binds stop.json
     with pytest.raises(SystemExit, match="still RUNNING"):
-        r.score(tmp_path, "score-ack")
+        r.score(tmp_path, "score-ack-r")
     assert not (tmp_path / "s1_out" / "score").exists()
 
 
@@ -1549,7 +1585,9 @@ def test_fr1_unreadable_seal_rows_are_a_bad_seal_record_reason(tmp_path, monkeyp
     except SystemExit:
         rep = read(tmp_path / "s1_out" / "score" / "s1.json")
     assert rep["outcome"] == "SCORED" and rep["verdict"] == "ABORTED-INVALID"
-    assert any(x.startswith("bad seal record: BookError") for x in rep["reasons"]), rep["reasons"]
+    # Task 12 (A2.3, A10.1) REPLACEMENT of the reason: the seal is a frozen slice of the persisted stop, so its
+    # change is reported as such (the persisted stop is never recomputed from the changed rows)
+    assert any("frozen slice seals/2026-10-26.json changed" in x for x in rep["reasons"]), rep["reasons"]
 
 
 def test_fr1_write_once_refuses_with_the_recorded_message(tmp_path):

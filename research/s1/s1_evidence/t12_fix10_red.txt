@@ -1,0 +1,24 @@
+Task 12 fix round 10 - m-1 behavioural RED, run against the round-9 sources (working tree before any fix-10 edit)
+bc0744a76849414ac3dd191311d47b0082f8c79d40744cb97dbf0d263b58d017 *s1_seal.py
+c6c5c508f175f77708f512efc72cdfa56e4cffaeed18d6312267735c8f024729 *s1_common.py
+ceaf87f82a13029cd9c3cef93b5ee5c17fbedc111406506aa3ea7f11cec705bb *s1_tests/test_s1_t12_fix10.py
+command: python -m pytest s1_tests/test_s1_t12_fix10.py -q -p no:cacheprovider -rf --tb=short
+FFF.                                                                     [100%]
+================================== FAILURES ===================================
+_ test_m1_a_session_closing_before_the_earliest_early_close_refuses_the_audit[2026-10-23] _
+s1_tests\test_s1_t12_fix10.py:21: in test_m1_a_session_closing_before_the_earliest_early_close_refuses_the_audit
+    with pytest.raises(SystemExit):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_ test_m1_a_session_closing_before_the_earliest_early_close_refuses_the_audit[2026-11-27] _
+s1_tests\test_s1_t12_fix10.py:21: in test_m1_a_session_closing_before_the_earliest_early_close_refuses_the_audit
+    with pytest.raises(SystemExit):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_ test_m1_a_session_closing_before_the_earliest_early_close_refuses_the_audit[2027-05-14] _
+s1_tests\test_s1_t12_fix10.py:21: in test_m1_a_session_closing_before_the_earliest_early_close_refuses_the_audit
+    with pytest.raises(SystemExit):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED s1_tests/test_s1_t12_fix10.py::test_m1_a_session_closing_before_the_earliest_early_close_refuses_the_audit[2026-10-23]
+FAILED s1_tests/test_s1_t12_fix10.py::test_m1_a_session_closing_before_the_earliest_early_close_refuses_the_audit[2026-11-27]
+FAILED s1_tests/test_s1_t12_fix10.py::test_m1_a_session_closing_before_the_earliest_early_close_refuses_the_audit[2027-05-14]
+3 failed, 1 passed in 0.73s

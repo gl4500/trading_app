@@ -1,0 +1,1437 @@
+Task 12 targeted semantic mutants (A10.2). Sources (sha256, the source each mutant is bound to):
+  e1_fetch.py 401f17deb3551b0a585be64eb49294f50bc0396272ecd48c9f9049acc86984d6
+  e1_sim.py 68f21ab19d74be27fc855f826a78b667990c2a37b5d75dd12e1a7be1f5a740fb
+  s1_books.py a9975dffd27ce602e94daf8b8da8cc504b163c6eeeb9c93c666717f1d4b59491
+  s1_checkpoint.py 4ea9f663643a246f04f18897220dfe554efbd19d9e1aa96abaa51918b5122c64
+  s1_collect.py 59c672680b02dc7f1e29ba5783ad8a00e67e71a5ebffb238047cbc289a13a9a6
+  s1_common.py 3a0c9996c4d7aedd84a40510d46ce8e888e1654ce214cbd221321422885d6d99
+  s1_gates.py 7a4920f5d88c60c8697764ac95fe36dfe9d92797fc9f672c47df275556a273bc
+  s1_receipt.py ec6e3183cd534f671e2a4d4432d66bb6c634a1d534677661dead357bca62d534
+  s1_run.py 2e6bdcd5b7af44bf0ce6cadc98ab6b19881220d4dc2a8f8f3357a1c9c3c4a16a
+  s1_seal.py 68ce620429af57f68b5db97c9d9c53eaf2f41706e370fb075188135cf947de05
+  s1_snapshot.py b930627620b7f6585fe6f0c0fe86985738b7c3d45826ab9b04966577bef0ddcc
+Tests: conftest.py c82ab2983a00ce7f, test_s1_books.py 9f934c7914c36e18, test_s1_bridge_8b.py b27555e323a7f71a, test_s1_checkpoint.py 384b8fe949dd00b3, test_s1_checkpoint_7b.py 714cf0d4fefa5b58, test_s1_collect.py d32cd27f2714a19d, test_s1_common.py fbb4f57cd16095be, test_s1_connected.py c8f47510aaaed25b, test_s1_receipt.py d5fe98ad7a33c9b2, test_s1_run.py 5a3fb4b946b8a9b3, test_s1_seal.py 33492ebe6827c560, test_s1_snapshot.py ffac3f120fcd4d2b, test_s1_t12_a1.py 1e2337ae056c9b89, test_s1_t12_a1b.py 387639ea85a974ca, test_s1_t12_a2.py 68c47c43494d8d2d, test_s1_t12_a3_a8.py d71e88de5788beb7, test_s1_t12_a4.py 242f6abbe7872499, test_s1_t12_a5_a6.py 09a093f7662703ad, test_s1_t12_a7.py 46ac89e44c55d7ec, test_s1_t12_a9.py f1b1ca34367ed112, test_s1_t12_mutant_followups.py c3478420a875c391, test_s1_t12_mutant_survivors.py 343e6de66c995f92, test_s1_t12_reporting.py d5a891473d55e410, test_s1_task11.py 49abf7390487e87c
+
+[KILLED] bundle_manifest ignores unexpected s1_*.py
+  function: s1_common.py::bundle_manifest   mutated sha256: s1_common.py 665e16b25052f388
+  intended: test_s1_t12_a3_a8.py::test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle
+  intended assertion: an extra s1_extra.py changes the bundle hash and is a bundle problem
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle :: 
+  pytest rc=1: 1 failed in 0.52s
+
+[KILLED] bundle_manifest omits the documents
+  function: s1_common.py::bundle_manifest   mutated sha256: s1_common.py 7a6d5f815cbca5ab
+  intended: test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes, test_s1_t12_a3_a8.py::test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle
+  intended assertion: the manifest carries the three document hashes; a changed document changes the bundle
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes :: 
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle :: 
+  pytest rc=1: 2 failed in 0.50s
+
+[KILLED] _sha_or_missing hashes nothing (constant)
+  function: s1_common.py::_sha_or_missing   mutated sha256: s1_common.py 0e8ec7b5363bf4c8
+  intended: test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes
+  intended assertion: manifest code entries equal each file's sha256
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes :: 
+  pytest rc=1: 1 failed in 0.45s
+
+[KILLED] bundle_problems drops the missing-member check
+  function: s1_common.py::bundle_problems   mutated sha256: s1_common.py 7ec49a541b4c9094
+  intended: test_s1_t12_a3_a8.py::test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle
+  intended assertion: a missing s1_seal.py is a named bundle problem
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle :: 
+  pytest rc=1: 1 failed in 0.54s
+
+[KILLED] bundle_sha256 over the code list only
+  function: s1_common.py::bundle_sha256   mutated sha256: s1_common.py 2f19fa1b54e584b7
+  intended: test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes
+  intended assertion: bundle_sha256 == sha256(canonical(manifest))
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes :: 
+  pytest rc=1: 1 failed in 0.44s
+
+[KILLED] load_pinned cache keyed by name only
+  function: s1_common.py::load_pinned   mutated sha256: s1_common.py d280b1dc7971927b
+  intended: test_s1_t12_a3_a8.py::test_a3_pinned_core_cache_is_keyed_by_resolved_path_and_approved_hash
+  intended assertion: the same name from another approved file is that file's module
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_pinned_core_cache_is_keyed_by_resolved_path_and_approved_hash :: 
+  pytest rc=1: 1 failed in 0.44s
+
+[KILLED] write_abort overwrites (last abort wins)
+  function: s1_common.py::write_abort   mutated sha256: s1_common.py ccadd264eba52176
+  intended: test_s1_checkpoint.py::test_cr_first_abort_wins_and_a_second_returns_it, test_s1_checkpoint.py::test_abort_survives_receipt_revert
+  intended assertion: a second abort returns and keeps the first record
+  failing: s1_tests/test_s1_checkpoint.py::test_cr_first_abort_wins_and_a_second_returns_it :: 
+  pytest rc=1: 1 failed, 1 passed in 0.92s
+
+[KILLED] bundle_gate: a registered mismatch is a refusal only (no persistent abort)
+  function: s1_common.py::bundle_gate   mutated sha256: s1_common.py d0a51f9cf0363637
+  intended: test_s1_t12_a3_a8.py::test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture, test_s1_t12_a3_a8.py::test_a3_score_bundle_mismatch_aborts_reserves_nothing_and_restoration_scores_aborted_invalid
+  intended assertion: aborted.json reason bundle is written and persists after restoration
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture :: 
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_score_bundle_mismatch_aborts_reserves_nothing_and_restoration_scores_aborted_invalid :: 
+  pytest rc=1: 2 failed in 2.17s
+
+[KILLED] bundle_gate accepts any bundle
+  function: s1_common.py::bundle_gate   mutated sha256: s1_common.py 1f725e1dca943efa
+  intended: test_s1_t12_a3_a8.py::test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture, test_s1_t12_a3_a8.py::test_a3_opening_checkpoint_bundle_mismatch_refuses_with_zero_callbacks_and_no_abort
+  intended assertion: a changed bundle refuses before any capture
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture :: 
+  pytest rc=1: 1 failed, 1 passed in 0.69s
+
+[KILLED] mailbox_message accepts any sender
+  function: s1_common.py::mailbox_message   mutated sha256: s1_common.py 95733de79e021286
+  intended: test_s1_t12_mutant_survivors.py::test_ms_a_message_from_another_sender_carrying_the_exact_token_is_not_an_ack, test_s1_collect.py::test_audit_refuses_without_exact_ack_and_makes_no_request, test_s1_t12_a3_a8.py::test_a8_hand_made_prereg_reaches_no_live_callback, test_s1_run.py::test_mismatched_or_duplicate_acks_make_no_request_no_output
+  intended assertion: only codex->claude experiments-prereg messages are ACKs
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_a_message_from_another_sender_carrying_the_exact_token_is_not_an_ack :: 
+  pytest rc=1: 1 failed, 3 passed in 2.82s
+
+[KILLED] ack accepts an embedded (non-standalone) token
+  function: s1_common.py::ack   mutated sha256: s1_common.py 6954e7063a76c343
+  intended: test_s1_collect.py::test_ack_future_missing_or_embedded_token_is_refused
+  intended assertion: an embedded token line is refused
+  failing: s1_tests/test_s1_collect.py::test_ack_future_missing_or_embedded_token_is_refused :: 
+  pytest rc=1: 1 failed in 0.59s
+
+[KILLED] ack accepts a future ACK
+  function: s1_common.py::ack   mutated sha256: s1_common.py 5c08a19943ceac54
+  intended: test_s1_collect.py::test_ack_future_missing_or_embedded_token_is_refused
+  intended assertion: an ACK in the future is refused
+  failing: s1_tests/test_s1_collect.py::test_ack_future_missing_or_embedded_token_is_refused :: 
+  pytest rc=1: 1 failed in 0.59s
+
+[KILLED] token_fields keeps only the first field
+  function: s1_common.py::token_fields   mutated sha256: s1_common.py 7442e690c8197549
+  intended: test_s1_t12_a3_a8.py::test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture, test_s1_t12_a3_a8.py::test_a8_valid_registration_reaches_the_capture
+  intended assertion: the bundle field is parsed from the RUN-ACK line
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture :: 
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_valid_registration_reaches_the_capture :: 
+  pytest rc=1: 2 failed in 0.61s
+
+[KILLED] ack_line takes the first of several lines
+  function: s1_common.py::ack_line   mutated sha256: s1_common.py 8120327531d66cab
+  intended: test_s1_t12_mutant_followups.py::test_mf_an_ack_message_with_two_run_lines_refuses
+  intended assertion: an ACK with two prefix lines is ambiguous and refuses
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_an_ack_message_with_two_run_lines_refuses :: 
+  pytest rc=1: 1 failed in 0.57s
+
+[KILLED] load_json reads nothing (empty dict)
+  function: s1_common.py::load_json   mutated sha256: s1_common.py 6a518cc41bd72a21
+  intended: test_s1_t12_a3_a8.py::test_a8_valid_registration_reaches_the_capture
+  intended assertion: load_json returns the file's JSON
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_valid_registration_reaches_the_capture :: 
+  pytest rc=1: 1 failed in 0.51s
+
+[KILLED] sha_or_absent always absent
+  function: s1_common.py::sha_or_absent   mutated sha256: s1_common.py 1eea7c42bbfc24c3
+  intended: test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle
+  intended assertion: tokens bind the attestation/opening seal/books hashes
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle :: 
+  pytest rc=1: 1 failed in 0.59s
+
+[KILLED] receipt_sha256 hashes the whole receipt (provenance compared)
+  function: s1_common.py::receipt_sha256   mutated sha256: s1_common.py 7739a6679e835b4f
+  intended: test_s1_t12_a1.py::test_a1_a_head_or_dirty_change_alone_seals_and_is_recorded_as_provenance
+  intended assertion: a HEAD-only change keeps the seal's receipt hash = the fingerprint's
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_a_head_or_dirty_change_alone_seals_and_is_recorded_as_provenance :: 
+  pytest rc=1: 1 failed in 0.81s
+
+[KILLED] receipt_sha256 accepts a fingerprint-less receipt
+  function: s1_common.py::receipt_sha256   mutated sha256: s1_common.py d3d597e86a20e70f
+  intended: test_s1_t12_mutant_survivors.py::test_ms_receipt_sha256_refuses_a_receipt_without_fingerprint, test_s1_t12_a9.py::test_a9_missing_required_evidence_never_becomes_a_plausible_match
+  intended assertion: missing fingerprint never matches / never seals
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_receipt_sha256_refuses_a_receipt_without_fingerprint :: 
+  pytest rc=1: 1 failed, 1 passed in 0.94s
+
+[KILLED] opening_seal_path names a fixed file
+  function: s1_common.py::opening_seal_path   mutated sha256: s1_common.py b4b8b4afe6cd10ee
+  intended: test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle
+  intended assertion: RUN token binds the opening seal's sha
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle :: 
+  pytest rc=1: 1 failed in 0.61s
+
+[KILLED] audit_token without the bundle
+  function: s1_common.py::audit_token   mutated sha256: s1_common.py f72eaa8e5e3fb935
+  intended: test_s1_t12_a3_a8.py::test_a8_audit_manifest_binds_the_plan_and_the_audit_ack_binds_the_bundle
+  intended assertion: the AUDIT-ACK token carries the bundle
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_audit_manifest_binds_the_plan_and_the_audit_ack_binds_the_bundle :: 
+  pytest rc=1: 1 failed in 0.48s
+
+[KILLED] run_token binds no opening books
+  function: s1_common.py::run_token   mutated sha256: s1_common.py 00cdbcabaac44a42
+  intended: test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle
+  intended assertion: the RUN token binds opening_books_sha256
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle :: 
+  pytest rc=1: 1 failed in 0.58s
+
+[KILLED] acquire_token binds no stop attestation
+  function: s1_common.py::acquire_token   mutated sha256: s1_common.py 67a8cc1205c8fcba
+  intended: test_s1_task11.py::test_i4_acquire_ack_binds_the_stop_attestation_and_do_final_records_the_plan
+  intended assertion: ACQUIRE-ACK binds attest_stop_sha256
+  failing: s1_tests/test_s1_task11.py::test_i4_acquire_ack_binds_the_stop_attestation_and_do_final_records_the_plan :: 
+  pytest rc=1: 1 failed in 2.19s
+
+[KILLED] score_token binds no persisted stop
+  function: s1_common.py::score_token   mutated sha256: s1_common.py 7ed578ed1e55c1ab
+  intended: test_s1_t12_mutant_followups.py::test_mf_the_score_ack_binds_the_persisted_stop
+  intended assertion: a stop.json edited after the SCORE-ACK makes that ACK stale (refused, nothing written)
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_the_score_ack_binds_the_persisted_stop :: 
+  pytest rc=1: 1 failed in 2.47s
+
+[KILLED] registration: prereg bundle not cross-checked with its RUN-ACK
+  function: s1_common.py::registration   mutated sha256: s1_common.py 03d872a88117e95e
+  intended: test_s1_t12_mutant_survivors.py::test_ms_registration_refuses_a_prereg_whose_bundle_differs_from_its_run_ack, test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[prereg]
+  intended assertion: a prereg recording another bundle than its RUN-ACK refuses
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_registration_refuses_a_prereg_whose_bundle_differs_from_its_run_ack :: 
+  pytest rc=1: 1 failed, 1 passed in 2.67s
+
+[KILLED] registration: audit stage never registered
+  function: s1_common.py::registration   mutated sha256: s1_common.py a9beb49f06af77ea
+  intended: test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal
+  intended assertion: from the opening seal on a mismatch is the persistent bundle abort
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[attest_start] :: 
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[do_prereg] :: 
+  pytest rc=1: 2 failed in 0.73s
+
+[KILLED] verify_bundle_first: no prereg requirement
+  function: s1_common.py::verify_bundle_first   mutated sha256: s1_common.py 31ffb23d3b9927bc
+  intended: test_s1_t12_mutant_survivors.py::test_ms_verify_bundle_first_needs_a_prereg_when_asked, test_s1_checkpoint_7b.py::test_final_snapshot_refuses_without_prereg_and_while_running, test_s1_t12_a3_a8.py::test_a8_hand_made_prereg_reaches_no_live_callback
+  intended assertion: post-prereg commands refuse without a verified prereg
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_verify_bundle_first_needs_a_prereg_when_asked :: 
+  pytest rc=1: 1 failed, 2 passed in 1.25s
+
+[KILLED] attempt does not re-verify raw pages
+  function: s1_gates.py::attempt   mutated sha256: s1_gates.py b48fe97bfe7e01d1
+  intended: test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[raw_page_tampered], test_s1_t12_a7.py::test_a7_4_a_tampered_final_raw_page_is_an_integrity_failure_at_score
+  intended assertion: a tampered raw page refuses (opening) / is ABORTED-INVALID (score)
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[raw_page_tampered] :: 
+  failing: s1_tests/test_s1_t12_a7.py::test_a7_4_a_tampered_final_raw_page_is_an_integrity_failure_at_score :: 
+  pytest rc=1: 2 failed in 3.88s
+
+[KILLED] attempt accepts a non-COMPLETE manifest
+  function: s1_gates.py::attempt   mutated sha256: s1_gates.py bb5696ec16f66fa2
+  intended: test_s1_checkpoint_7b.py::test_opening_mode_refuses_an_incomplete_audit, test_s1_run.py::test_cr_incomplete_audit_is_a_recorded_reason_not_a_score_error
+  intended assertion: an ABORTED audit is refused
+  failing: s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_an_incomplete_audit[outcome] :: 
+  failing: s1_tests/test_s1_run.py::test_cr_incomplete_audit_is_a_recorded_reason_not_a_score_error :: 
+  pytest rc=1: 2 failed, 2 passed in 2.87s
+
+[KILLED] verify_audit_ack skips the token check
+  function: s1_gates.py::verify_audit_ack   mutated sha256: s1_gates.py a41ca0d046156673
+  intended: test_s1_t12_mutant_survivors.py::test_ms_an_audit_ack_message_without_the_exact_audit_token_refuses, test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[plan_edited_after_audit]
+  intended assertion: a plan edited after its audit refuses the opening
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_an_audit_ack_message_without_the_exact_audit_token_refuses :: 
+  pytest rc=1: 1 failed, 1 passed in 0.73s
+
+[KILLED] verify_audit_ack: ACK before the plan accepted
+  function: s1_gates.py::verify_audit_ack   mutated sha256: s1_gates.py 8d91404f79b694ef
+  intended: test_s1_t12_mutant_survivors.py::test_ms_audit_ack_causal_timing_is_checked_on_its_own, test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_before_plan]
+  intended assertion: an AUDIT-ACK before the plan refuses
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_audit_ack_causal_timing_is_checked_on_its_own[before_plan] :: 
+  pytest rc=1: 1 failed, 2 passed in 0.83s
+
+[KILLED] verify_audit_ack: ACK after the reservation accepted
+  function: s1_gates.py::verify_audit_ack   mutated sha256: s1_gates.py 6cb0b71efc51ef5a
+  intended: test_s1_t12_mutant_survivors.py::test_ms_audit_ack_causal_timing_is_checked_on_its_own, test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_after_reservation]
+  intended assertion: an AUDIT-ACK after the audit reservation refuses
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_audit_ack_causal_timing_is_checked_on_its_own[after_reservation] :: 
+  pytest rc=1: 1 failed, 2 passed in 0.77s
+
+[KILLED] verified_audit: plan binding not checked
+  function: s1_gates.py::verified_audit   mutated sha256: s1_gates.py b4824395eab3f3c7
+  intended: test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[manifest_plan_sha]
+  intended assertion: an audit manifest bound to another plan refuses
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[manifest_plan_sha] :: 
+  pytest rc=1: 1 failed in 0.52s
+
+[KILLED] verified_audit: calendar completeness skipped
+  function: s1_gates.py::verified_audit   mutated sha256: s1_gates.py eadb0eb39cd71617
+  intended: test_s1_t12_mutant_survivors.py::test_ms_an_out_of_order_pinned_listing_refuses_the_opening, test_s1_checkpoint_7b.py::test_cr_opening_refuses_when_the_audit_calendar_ends_at_the_opening_day
+  intended assertion: a pinned listing that does not cover the deadline+lag refuses the opening
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_an_out_of_order_pinned_listing_refuses_the_opening :: 
+  pytest rc=1: 1 failed, 1 passed in 0.93s
+
+[KILLED] run_ack_problems skips the token
+  function: s1_gates.py::run_ack_problems   mutated sha256: s1_gates.py 2337af46b6f7b6ca
+  intended: test_s1_t12_mutant_survivors.py::test_ms_a_run_ack_message_not_carrying_the_exact_run_token_refuses, test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[plan_edited]
+  intended assertion: an artifact edited after prereg refuses the checkpoint with zero callbacks
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_a_run_ack_message_not_carrying_the_exact_run_token_refuses :: 
+  pytest rc=1: 1 failed, 1 passed in 0.98s
+
+[KILLED] run_ack_problems: ACK after START accepted
+  function: s1_gates.py::run_ack_problems   mutated sha256: s1_gates.py 0e488277680f57df
+  intended: test_s1_t12_mutant_survivors.py::test_ms_a_run_ack_after_planned_start_is_reported_on_its_own, test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_after_start]
+  intended assertion: a RUN-ACK after planned START refuses
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_a_run_ack_after_planned_start_is_reported_on_its_own :: 
+  pytest rc=1: 1 failed, 1 passed in 1.05s
+
+[KILLED] run_ack_problems: prereg calendar not bound
+  function: s1_gates.py::run_ack_problems   mutated sha256: s1_gates.py 69a1dac813a98287
+  intended: test_s1_t12_a5_a6.py::test_a6_a_dropped_session_relative_to_the_pinned_listing_refuses, test_s1_bridge_8b.py::test_opening_close_error_is_a_recorded_refusal_not_a_crash
+  intended assertion: a prereg calendar differing from the pinned listing refuses the checkpoint
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a6_a_dropped_session_relative_to_the_pinned_listing_refuses :: 
+  failing: s1_tests/test_s1_bridge_8b.py::test_opening_close_error_is_a_recorded_refusal_not_a_crash :: 
+  pytest rc=1: 2 failed in 2.89s
+
+[KILLED] verified_registration ignores problems
+  function: s1_gates.py::verified_registration   mutated sha256: s1_gates.py 9e4e407c4c0b9d45
+  intended: test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[plan_edited]
+  intended assertion: an unverifiable registration refuses with zero callbacks
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[plan_edited] :: 
+  pytest rc=1: 1 failed in 0.87s
+
+[KILLED] _abort_stop reports the trial RUNNING
+  function: s1_checkpoint.py::_abort_stop   mutated sha256: s1_checkpoint.py e82894c39fdb709b
+  intended: test_s1_checkpoint.py::test_abort_survives_receipt_revert
+  intended assertion: after an abort every report says ABORTED-INVALID
+  failing: s1_tests/test_s1_checkpoint.py::test_abort_survives_receipt_revert :: A...
+  pytest rc=1: 1 failed in 0.90s
+
+[KILLED] _write_abort records no reason
+  function: s1_checkpoint.py::_write_abort   mutated sha256: s1_checkpoint.py 047272535f2ce1e9
+  intended: test_s1_t12_a1.py::test_a1_a_fingerprint_change_between_the_opening_seal_and_the_stop_is_aborted_invalid
+  intended assertion: aborted.json reason = semantic receipt changed
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_a_fingerprint_change_between_the_opening_seal_and_the_stop_is_aborted_invalid :: 
+  pytest rc=1: 1 failed in 0.73s
+
+[KILLED] _fingerprint compares whole receipts
+  function: s1_checkpoint.py::_fingerprint   mutated sha256: s1_checkpoint.py f4cd732d9953f670
+  intended: test_s1_t12_a1.py::test_a1_a_head_or_dirty_change_alone_seals_and_is_recorded_as_provenance
+  intended assertion: a HEAD-only change matches (provenance is not compared)
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_a_head_or_dirty_change_alone_seals_and_is_recorded_as_provenance :: 
+  pytest rc=1: 1 failed in 0.69s
+
+[KILLED] _failure leaks the foreign exception text
+  function: s1_checkpoint.py::_failure   mutated sha256: s1_checkpoint.py 8102f228f4dfdf3a
+  intended: test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals
+  intended assertion: the secret-bearing exception text never appears in the report
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals[receipt] :: 
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals[process] :: 
+  pytest rc=1: 2 failed in 1.18s
+
+[KILLED] _failure marks every failure transient
+  function: s1_checkpoint.py::_failure   mutated sha256: s1_checkpoint.py 047b238dfb3c6f16
+  intended: test_s1_t12_a9.py::test_a9_an_established_receipt_violation_is_terminal_and_survives_restoration
+  intended assertion: a terminal ReceiptError aborts
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_an_established_receipt_violation_is_terminal_and_survives_restoration :: 
+  pytest rc=1: 1 failed in 0.76s
+
+[KILLED] _safe re-raises
+  function: s1_checkpoint.py::_safe   mutated sha256: s1_checkpoint.py b32c9edc7d154e63
+  intended: test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals, test_s1_t12_a9.py::test_a9_a_capture_exception_is_preserved_and_never_seals
+  intended assertion: an observation exception is preserved, never a crash without a report
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals[receipt] :: 
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals[process] :: 
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_a_capture_exception_is_preserved_and_never_seals :: 
+  pytest rc=1: 3 failed in 1.27s
+
+[KILLED] _report_path renames the report
+  function: s1_checkpoint.py::_report_path   mutated sha256: s1_checkpoint.py 55d7aa3a3bb5d483
+  intended: test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved, test_s1_checkpoint_7b.py::test_opening_mode_seals_the_opening_close_from_plan_and_audit_without_prereg
+  intended assertion: the capture report is <slot>.report.json
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at0] :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at1] :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at2] :: 
+  failing: s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_seals_the_opening_close_from_plan_and_audit_without_prereg :: 
+  pytest rc=1: 4 failed in 1.72s
+
+[KILLED] _claim_slot allows a duplicate execution
+  function: s1_checkpoint.py::_claim_slot   mutated sha256: s1_checkpoint.py 1e8b4cb0b838afb3
+  intended: test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved, test_s1_checkpoint.py::test_rerun_of_captured_slot_is_recorded_and_refused
+  intended assertion: a rerun of a slot is refused and recorded
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at0] :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at1] :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at2] :: 
+  failing: s1_tests/test_s1_checkpoint.py::test_rerun_of_captured_slot_is_recorded_and_refused :: 
+  pytest rc=1: 4 failed in 3.13s
+
+[KILLED] _new_report: eligibility ignores the capture end
+  function: s1_checkpoint.py::_new_report   mutated sha256: s1_checkpoint.py 136e1870211c53cc
+  intended: test_s1_t12_a5_a6.py::test_a5_a_capture_finishing_after_E_never_seals_one_ending_exactly_at_E_does
+  intended assertion: a capture ending after E is late and never seals
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_a_capture_finishing_after_E_never_seals_one_ending_exactly_at_E_does :: 
+  pytest rc=1: 1 failed in 1.02s
+
+[KILLED] _clock_refusal: no pre-capture clock check
+  function: s1_checkpoint.py::_clock_refusal   mutated sha256: s1_checkpoint.py 61a572d69ba8de63
+  intended: test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved
+  intended assertion: an early/late invocation takes no capture
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at0] :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at1] :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at2] :: 
+  pytest rc=1: 3 failed in 1.81s
+
+[KILLED] _clock_refusal: E is the window end, not s + slack
+  function: s1_checkpoint.py::_clock_refusal   mutated sha256: s1_checkpoint.py 5b5ba0edd21d7e0a
+  intended: test_s1_t12_a5_a6.py::test_a5_a_delayed_invocation_cannot_claim_a_later_slot
+  intended assertion: a slot-45 invocation at 20:56 is refused
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_a_delayed_invocation_cannot_claim_a_later_slot :: 
+  pytest rc=1: 1 failed in 0.97s
+
+[KILLED] _capture: a snapshot exception is not preserved
+  function: s1_checkpoint.py::_capture   mutated sha256: s1_checkpoint.py b81acf075aedf639
+  intended: test_s1_t12_a9.py::test_a9_a_capture_exception_is_preserved_and_never_seals
+  intended assertion: a capture exception is preserved
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_a_capture_exception_is_preserved_and_never_seals :: 
+  pytest rc=1: 1 failed in 0.65s
+
+[KILLED] _observe_process: process exceptions crash
+  function: s1_checkpoint.py::_observe_process   mutated sha256: s1_checkpoint.py 10088e117710a3d5
+  intended: test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals
+  intended assertion: a process-observation exception is preserved
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals[process] :: 
+  pytest rc=1: 1 failed, 1 passed in 1.04s
+
+[KILLED] _observe_process: no gap for an unobserved first process
+  function: s1_checkpoint.py::_observe_process   mutated sha256: s1_checkpoint.py f48077e1f726ab1c
+  intended: test_s1_t12_mutant_survivors.py::test_ms_a_first_ever_unobserved_process_is_a_gap, test_s1_checkpoint.py::test_first_run_pidless_reports_not_observed_gap
+  intended assertion: an unobserved process is a reported gap
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_a_first_ever_unobserved_process_is_a_gap :: 
+  pytest rc=1: 1 failed, 1 passed in 1.19s
+
+[KILLED] _bind_process: a changed binding is accepted
+  function: s1_checkpoint.py::_bind_process   mutated sha256: s1_checkpoint.py 42f3a65c17a4e126
+  intended: test_s1_t12_a1b.py::test_a1b_the_first_observed_binding_is_the_reference_and_a_change_is_aborted_invalid
+  intended assertion: a different observed binding is ABORTED-INVALID
+  failing: s1_tests/test_s1_t12_a1b.py::test_a1b_the_first_observed_binding_is_the_reference_and_a_change_is_aborted_invalid :: 
+  pytest rc=1: 1 failed in 0.97s
+
+[KILLED] _bind_process: unobserved binding not reported
+  function: s1_checkpoint.py::_bind_process   mutated sha256: s1_checkpoint.py b2cc25c82cc12472
+  intended: test_s1_t12_a1b.py::test_a1b_an_unobserved_binding_is_a_reported_gap_never_a_change
+  intended assertion: an unobserved binding is a gap
+  failing: s1_tests/test_s1_t12_a1b.py::test_a1b_an_unobserved_binding_is_a_reported_gap_never_a_change :: 
+  pytest rc=1: 1 failed in 1.00s
+
+[KILLED] _read_capture: consistency ignored
+  function: s1_checkpoint.py::_read_capture   mutated sha256: s1_checkpoint.py 63c8fee6f2b9a1a3
+  intended: test_s1_checkpoint.py::test_inconsistent_capture_does_not_seal_and_is_preserved
+  intended assertion: an inconsistent capture never seals
+  failing: s1_tests/test_s1_checkpoint.py::test_inconsistent_capture_does_not_seal_and_is_preserved :: 
+  pytest rc=1: 1 failed in 0.95s
+
+[KILLED] _receipt: a fingerprint-less receipt matches
+  function: s1_checkpoint.py::_receipt   mutated sha256: s1_checkpoint.py 3e5fd54ba8eeaa7e
+  intended: test_s1_t12_a9.py::test_a9_missing_required_evidence_never_becomes_a_plausible_match
+  intended assertion: missing evidence never matches
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_missing_required_evidence_never_becomes_a_plausible_match :: 
+  pytest rc=1: 1 failed in 0.73s
+
+[KILLED] _candidate omits the bridge record
+  function: s1_checkpoint.py::_candidate   mutated sha256: s1_checkpoint.py fe0b9b2e6a2382bc
+  intended: test_s1_bridge_8b.py::test_example19_first_post_start_seal_records_the_bridge
+  intended assertion: the first post-START seal carries its bridge record
+  failing: s1_tests/test_s1_bridge_8b.py::test_example19_first_post_start_seal_records_the_bridge :: 
+  pytest rc=1: 1 failed in 0.81s
+
+[KILLED] _candidate: opening receipt not carried
+  function: s1_checkpoint.py::_candidate   mutated sha256: s1_checkpoint.py 5dd97ce9469d8d4e
+  intended: test_s1_checkpoint_7b.py::test_opening_mode_seals_the_opening_close_from_plan_and_audit_without_prereg
+  intended assertion: opening_receipt.json is the opening receipt
+  failing: s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_seals_the_opening_close_from_plan_and_audit_without_prereg :: 
+  pytest rc=1: 1 failed in 0.59s
+
+[KILLED] _slot_reports reads no reports
+  function: s1_checkpoint.py::_slot_reports   mutated sha256: s1_checkpoint.py 427540774d73fee0
+  intended: test_s1_t12_a5_a6.py::test_a5_a_deferred_capture_seals_once_the_earlier_slots_window_has_passed
+  intended assertion: the deferred slot-47 capture is the seal at slot 55
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_a_deferred_capture_seals_once_the_earlier_slots_window_has_passed :: 
+  pytest rc=1: 1 failed in 1.20s
+
+[KILLED] _finalize: earlier unresolved slots ignored
+  function: s1_checkpoint.py::_finalize   mutated sha256: s1_checkpoint.py c58e5ce46b820919
+  intended: test_s1_t12_a5_a6.py::test_a5_a_later_slot_capture_waits_for_an_unresolved_earlier_slot_then_the_earlier_one_seals
+  intended assertion: a later slot never seals while an earlier slot's window is open
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_a_later_slot_capture_waits_for_an_unresolved_earlier_slot_then_the_earlier_one_seals :: 
+  pytest rc=1: 1 failed in 0.98s
+
+[KILLED] _finalize: only this invocation's capture can seal
+  function: s1_checkpoint.py::_finalize   mutated sha256: s1_checkpoint.py 3cab75e3f5867cd7
+  intended: test_s1_t12_a5_a6.py::test_a5_a_deferred_capture_seals_once_the_earlier_slots_window_has_passed
+  intended assertion: the first eligible capture in slot order is the seal, not this invocation's
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_a_deferred_capture_seals_once_the_earlier_slots_window_has_passed :: 
+  pytest rc=1: 1 failed in 1.20s
+
+[KILLED] _seal_from: projection not re-verified
+  function: s1_checkpoint.py::_seal_from   mutated sha256: s1_checkpoint.py 3715a8de78c7ad62
+  intended: test_s1_t12_mutant_followups.py::test_mf_a_tampered_deferred_capture_never_seals
+  intended assertion: a deferred capture changed before its seal is written never seals
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_a_tampered_deferred_capture_never_seals :: 
+  pytest rc=1: 1 failed in 1.16s
+
+[KILLED] _seal_from: seal records no bundle
+  function: s1_checkpoint.py::_seal_from   mutated sha256: s1_checkpoint.py 39b3f924206b0026
+  intended: test_s1_task11.py::test_i1_every_seal_records_the_checkpoint_toolchain
+  intended assertion: every seal records the bundle
+  failing: s1_tests/test_s1_task11.py::test_i1_every_seal_records_the_checkpoint_toolchain :: 
+  pytest rc=1: 1 failed in 0.76s
+
+[KILLED] _seal_from: seal records no capture start/end
+  function: s1_checkpoint.py::_seal_from   mutated sha256: s1_checkpoint.py c727c36f6e81cc48
+  intended: test_s1_t12_mutant_followups.py::test_mf_every_seal_records_its_measured_capture_interval
+  intended assertion: every seal records its measured capture start/end
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_every_seal_records_its_measured_capture_interval :: 
+  pytest rc=1: 1 failed in 0.94s
+
+[KILLED] _trial_stop never persists (stop decision only)
+  function: s1_checkpoint.py::_trial_stop   mutated sha256: s1_checkpoint.py 1623c41d0772ffd2
+  intended: test_s1_t12_a2.py::test_a2_post_stop_checkpoints_follow_the_persisted_stop
+  intended assertion: post-stop follows the persisted stop
+  failing: s1_tests/test_s1_t12_a2.py::test_a2_post_stop_checkpoints_follow_the_persisted_stop :: 
+  pytest rc=1: 1 failed in 2.39s
+
+[KILLED] _public keeps the internal flag
+  function: s1_checkpoint.py::_public   mutated sha256: s1_checkpoint.py 7301aef1181a2357
+  intended: test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL-None]
+  intended assertion: the reported stop equals the stop decision
+  failing: s1_tests/test_s1_connected.py::test_connected_lifecycle_matches_independent_oracle[chop-FAIL-None] :: 
+  pytest rc=1: 1 failed in 29.21s
+
+[KILLED] run_checkpoint: a late capture may seal
+  function: s1_checkpoint.py::run_checkpoint   mutated sha256: s1_checkpoint.py 6319a3af4072c605
+  intended: test_s1_t12_a5_a6.py::test_a5_a_capture_finishing_after_E_never_seals_one_ending_exactly_at_E_does
+  intended assertion: a capture ending after E never seals
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_a_capture_finishing_after_E_never_seals_one_ending_exactly_at_E_does :: 
+  pytest rc=1: 1 failed in 0.98s
+
+[KILLED] run_checkpoint: a failed observation may seal
+  function: s1_checkpoint.py::run_checkpoint   mutated sha256: s1_checkpoint.py 3a0dec8dcf2ef84b
+  intended: test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals
+  intended assertion: a process exception never seals
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_receipt_or_process_exception_is_preserved_sanitized_and_never_seals[process] :: 
+  pytest rc=1: 1 failed, 1 passed in 1.19s
+
+[KILLED] run_checkpoint: terminal receipt error not an abort
+  function: s1_checkpoint.py::run_checkpoint   mutated sha256: s1_checkpoint.py 5e5581763d0fbd19
+  intended: test_s1_t12_a9.py::test_a9_an_established_receipt_violation_is_terminal_and_survives_restoration
+  intended assertion: an established receipt violation is terminal
+  failing: s1_tests/test_s1_t12_a9.py::test_a9_an_established_receipt_violation_is_terminal_and_survives_restoration :: 
+  pytest rc=1: 1 failed in 0.79s
+
+[KILLED] run_checkpoint: stop not persisted at the stop seal
+  function: s1_checkpoint.py::run_checkpoint   mutated sha256: s1_checkpoint.py eedcc87664c32981
+  intended: test_s1_t12_a2.py::test_a2_the_stop_is_persisted_once_at_the_seal_with_its_identity
+  intended assertion: stop.json written at the stop seal
+  failing: s1_tests/test_s1_t12_a2.py::test_a2_the_stop_is_persisted_once_at_the_seal_with_its_identity :: 
+  pytest rc=1: 1 failed in 2.22s
+
+[KILLED] run_checkpoint: registration not verified
+  function: s1_checkpoint.py::run_checkpoint   mutated sha256: s1_checkpoint.py 90cf1354b54d2458
+  intended: test_s1_t12_a3_a8.py::test_a8_hand_made_prereg_reaches_no_live_callback
+  intended assertion: a hand-made prereg reaches no live callback
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_hand_made_prereg_reaches_no_live_callback :: 
+  pytest rc=1: 1 failed in 0.82s
+
+[KILLED] run_opening_checkpoint: bundle not verified first
+  function: s1_checkpoint.py::run_opening_checkpoint   mutated sha256: s1_checkpoint.py 33ed88a5d2074e95
+  intended: test_s1_t12_mutant_survivors.py::test_ms_the_opening_compares_the_bundle_before_reading_the_audit, test_s1_t12_a3_a8.py::test_a3_opening_checkpoint_bundle_mismatch_refuses_with_zero_callbacks_and_no_abort
+  intended assertion: the opening refuses a changed bundle
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_the_opening_compares_the_bundle_before_reading_the_audit :: 
+  pytest rc=1: 1 failed, 1 passed in 0.75s
+
+[KILLED] run_opening_checkpoint: a late capture may seal
+  function: s1_checkpoint.py::run_opening_checkpoint   mutated sha256: s1_checkpoint.py 3834fcd2c5d9808c
+  intended: test_s1_t12_mutant_followups.py::test_mf_an_opening_capture_ending_after_E_never_seals
+  intended assertion: an opening capture ending after E never seals
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_an_opening_capture_ending_after_E_never_seals :: 
+  pytest rc=1: 1 failed in 0.70s
+
+[KILLED] _audit_calendar: audit not verified
+  function: s1_checkpoint.py::_audit_calendar   mutated sha256: s1_checkpoint.py a004fe2d3fed7c1f
+  intended: test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture
+  intended assertion: an unverified audit refuses the opening
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[plan_edited_after_audit] :: 
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_before_plan] :: 
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_after_reservation] :: 
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[manifest_plan_sha] :: 
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[raw_page_tampered] :: 
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[calendar_source_tampered] :: 
+  pytest rc=1: 6 failed, 2 passed in 0.93s
+
+[KILLED] _opening_day: any slot accepted
+  function: s1_checkpoint.py::_opening_day   mutated sha256: s1_checkpoint.py 29e78b7390e177d6
+  intended: test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot
+  intended assertion: a non-opening slot refuses
+  failing: s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot[scheduled0] :: 
+  failing: s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot[scheduled1] :: 
+  failing: s1_tests/test_s1_checkpoint_7b.py::test_opening_mode_refuses_a_non_opening_slot[scheduled2] :: 
+  pytest rc=1: 3 failed in 0.69s
+
+[KILLED] _trial_state: an aborted trial is not reported ABORTED
+  function: s1_checkpoint.py::_trial_state   mutated sha256: s1_checkpoint.py 04d8a1c0c855e012
+  intended: test_s1_checkpoint_7b.py::test_final_snapshot_after_a_recorded_abort_is_taken
+  intended assertion: an aborted trial's final snapshot reports ABORTED-INVALID
+  failing: s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_after_a_recorded_abort_is_taken :: 
+  pytest rc=1: 1 failed in 0.70s
+
+[KILLED] run_final_snapshot: frozen-slice problems not recorded
+  function: s1_checkpoint.py::run_final_snapshot   mutated sha256: s1_checkpoint.py b5e54230d194083b
+  intended: test_s1_checkpoint_7b.py::test_cr_final_snapshot_refuses_on_a_bad_seal_record
+  intended assertion: an extra seal among the frozen slices is a recorded violation
+  failing: s1_tests/test_s1_checkpoint_7b.py::test_cr_final_snapshot_refuses_on_a_bad_seal_record[dup] :: 
+  pytest rc=1: 1 failed, 2 passed in 5.52s
+
+[KILLED] run_final_snapshot: no bundle recorded
+  function: s1_checkpoint.py::run_final_snapshot   mutated sha256: s1_checkpoint.py be7a867ef3b25271
+  intended: test_s1_t12_a3_a8.py::test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle
+  intended assertion: the final snapshot records the bundle
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle :: 
+  pytest rc=1: 1 failed in 2.05s
+
+[KILLED] deadline at the end of the NY day (A5.1 regression)
+  function: s1_seal.py::deadline   mutated sha256: s1_seal.py 13a8f373f15e10c9
+  intended: test_s1_t12_a5_a6.py::test_a5_codex_probe_a_the_deadline_days_close_after_a_0930_deadline_is_ineligible, test_s1_t12_a5_a6.py::test_a5_deadline_is_an_aware_instant_at_starts_new_york_wall_time
+  intended assertion: Apr-15 16:00 is ineligible for an Apr-15 09:30 deadline
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_codex_probe_a_the_deadline_days_close_after_a_0930_deadline_is_ineligible :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_deadline_is_an_aware_instant_at_starts_new_york_wall_time :: 
+  pytest rc=1: 2 failed in 0.80s
+
+[KILLED] deadline without the month-end clamp
+  function: s1_seal.py::deadline   mutated sha256: s1_seal.py 16eb043eebea2696
+  intended: test_s1_t12_a5_a6.py::test_a5_deadline_is_an_aware_instant_at_starts_new_york_wall_time
+  intended assertion: Aug-31 + 6 months = Feb-28
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_deadline_is_an_aware_instant_at_starts_new_york_wall_time :: 
+  pytest rc=1: 1 failed in 0.63s
+
+[KILLED] eligible_sessions by date (A5.1 regression)
+  function: s1_seal.py::eligible_sessions   mutated sha256: s1_seal.py a375ee54f7d6a905
+  intended: test_s1_t12_a5_a6.py::test_a5_codex_probe_a_the_deadline_days_close_after_a_0930_deadline_is_ineligible, test_s1_t12_a5_a6.py::test_a5_an_ineligible_post_deadline_close_can_never_be_the_stop
+  intended assertion: the deadline day's close is ineligible
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_codex_probe_a_the_deadline_days_close_after_a_0930_deadline_is_ineligible :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_an_ineligible_post_deadline_close_can_never_be_the_stop :: 
+  pytest rc=1: 2 failed in 1.45s
+
+[KILLED] eligible_until without the window clamp
+  function: s1_seal.py::eligible_until   mutated sha256: s1_seal.py 53563c371ddf1948
+  intended: test_s1_t12_a5_a6.py::test_a5_eligible_until_is_min_of_slot_plus_slack_and_the_window_end, test_s1_t12_a5_a6.py::test_a5_the_0800_slot_has_no_positive_duration_window_and_is_not_slid
+  intended assertion: the 08:00 slot's E is W itself
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_eligible_until_is_min_of_slot_plus_slack_and_the_window_end :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_0800_slot_has_no_positive_duration_window_and_is_not_slid :: 
+  pytest rc=1: 2 failed in 0.60s
+
+[KILLED] capture_eligible allows a start before s
+  function: s1_seal.py::capture_eligible   mutated sha256: s1_seal.py 0b09cf45e947062a
+  intended: test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples
+  intended assertion: a capture starting before s is ineligible
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples[-1-30-False] :: 
+  pytest rc=1: 1 failed, 6 passed in 0.64s
+
+[KILLED] capture_eligible: completion exactly at E refused
+  function: s1_seal.py::capture_eligible   mutated sha256: s1_seal.py dead8cdfc58d6987
+  intended: test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples
+  intended assertion: completion exactly at E is allowed
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_capture_eligibility_predicate_examples[30-600-True] :: 
+  pytest rc=1: 1 failed, 6 passed in 0.60s
+
+[KILLED] choose_seal by arrival order
+  function: s1_seal.py::choose_seal   mutated sha256: s1_seal.py 79ba393b1b58a706
+  intended: test_s1_t12_a5_a6.py::test_a5_overlapping_retry_tolerances_are_resolved_by_slot_order_not_arrival
+  intended assertion: the slot-45 capture is the seal even though it arrived later
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_overlapping_retry_tolerances_are_resolved_by_slot_order_not_arrival :: 
+  pytest rc=1: 1 failed in 0.61s
+
+[KILLED] calendar_rows keeps extra provider fields
+  function: s1_seal.py::calendar_rows   mutated sha256: s1_seal.py 3be9071376245bf4
+  intended: test_s1_t12_mutant_followups.py::test_mf_calendar_rows_keep_only_date_open_close
+  intended assertion: prereg's calendar holds only the session rows of the pinned listing
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_calendar_rows_keep_only_date_open_close :: 
+  pytest rc=1: 1 failed in 0.53s
+
+[KILLED] calendar_problems: order not checked
+  function: s1_seal.py::calendar_problems   mutated sha256: s1_seal.py 7f19406492b75354
+  intended: test_s1_t12_a5_a6.py::test_a6_completeness_is_checked_against_the_pinned_listing
+  intended assertion: an out-of-order listing aborts
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a6_completeness_is_checked_against_the_pinned_listing[<lambda>-order] :: 
+  pytest rc=1: 1 failed, 4 passed in 0.77s
+
+[KILLED] calendar_problems: lag coverage off by one
+  function: s1_seal.py::calendar_problems   mutated sha256: s1_seal.py 49e1da08c6bee3ef
+  intended: test_s1_t12_a5_a6.py::test_a6_completeness_is_checked_against_the_pinned_listing
+  intended assertion: fewer than 3 sessions after the deadline aborts
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a6_completeness_is_checked_against_the_pinned_listing[<lambda>-deadline] :: 
+  pytest rc=1: 1 failed, 4 passed in 0.78s
+
+[KILLED] calendar_problems: opening close not required
+  function: s1_seal.py::calendar_problems   mutated sha256: s1_seal.py ba0ebc116a5c1582
+  intended: test_s1_t12_a5_a6.py::test_a6_completeness_is_checked_against_the_pinned_listing
+  intended assertion: a listing missing the opening close aborts
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a6_completeness_is_checked_against_the_pinned_listing[<lambda>-opening close] :: 
+  pytest rc=1: 1 failed, 4 passed in 0.82s
+
+[KILLED] calendar_pin_problems: raw page binding skipped
+  function: s1_seal.py::calendar_pin_problems   mutated sha256: s1_seal.py 44fa2efe81ddc058
+  intended: test_s1_t12_mutant_followups.py::test_mf_a_calendar_json_differing_from_its_pinned_raw_page_refuses
+  intended assertion: a calendar.json differing from its pinned raw page refuses (manifest hash rewritten)
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_a_calendar_json_differing_from_its_pinned_raw_page_refuses :: 
+  pytest rc=1: 1 failed in 0.65s
+
+[KILLED] calendar_pin_problems: params not compared
+  function: s1_seal.py::calendar_pin_problems   mutated sha256: s1_seal.py 22840b942d9ddc26
+  intended: test_s1_t12_mutant_followups.py::test_mf_a_calendar_pinned_with_other_request_parameters_refuses
+  intended assertion: a pin whose request parameters are not the plan's refuses
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_a_calendar_pinned_with_other_request_parameters_refuses :: 
+  pytest rc=1: 1 failed in 0.61s
+
+[KILLED] stop_decision admits a post-deadline close
+  function: s1_seal.py::stop_decision   mutated sha256: s1_seal.py d60de0a53c67e895
+  intended: test_s1_t12_a5_a6.py::test_a5_an_ineligible_post_deadline_close_can_never_be_the_stop
+  intended assertion: a post-deadline close is never the stop
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_an_ineligible_post_deadline_close_can_never_be_the_stop :: 
+  pytest rc=1: 1 failed in 1.38s
+
+[KILLED] stop_record: cohort ids include the post-stop rows
+  function: s1_seal.py::stop_record   mutated sha256: s1_seal.py 8bd4368751144f05
+  intended: test_s1_t12_mutant_followups.py::test_mf_cohort_ids_are_the_stop_seals_cohort_through_the_stop_close
+  intended assertion: cohort ids = BUYs with START <= stored time <= the stop close
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_cohort_ids_are_the_stop_seals_cohort_through_the_stop_close :: 
+  pytest rc=1: 1 failed in 2.31s
+
+[KILLED] stop_record: frozen slices = every seal
+  function: s1_seal.py::stop_record   mutated sha256: s1_seal.py d8ca17f588287742
+  intended: test_s1_t12_mutant_followups.py::test_mf_frozen_slices_stop_at_the_stop_close
+  intended assertion: the frozen slices are the seals through the stop close
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_frozen_slices_stop_at_the_stop_close :: 
+  pytest rc=1: 1 failed in 1.97s
+
+[KILLED] persist_stop overwrites
+  function: s1_seal.py::persist_stop   mutated sha256: s1_seal.py 829e665ab3172cc4
+  intended: test_s1_t12_a2.py::test_a2_the_stop_is_persisted_once_at_the_seal_with_its_identity
+  intended assertion: stop.json is written once
+  failing: s1_tests/test_s1_t12_a2.py::test_a2_the_stop_is_persisted_once_at_the_seal_with_its_identity :: 
+  pytest rc=1: 1 failed in 2.10s
+
+[KILLED] load_stop never finds the stop
+  function: s1_seal.py::load_stop   mutated sha256: s1_seal.py b558d952ffee9e51
+  intended: test_s1_t12_a2.py::test_a2_post_stop_checkpoints_follow_the_persisted_stop, test_s1_t12_a2.py::test_a2_the_persisted_stop_is_never_recomputed_from_later_rows_or_changed_helpers
+  intended assertion: the persisted stop governs later commands
+  failing: s1_tests/test_s1_t12_a2.py::test_a2_post_stop_checkpoints_follow_the_persisted_stop :: 
+  failing: s1_tests/test_s1_t12_a2.py::test_a2_the_persisted_stop_is_never_recomputed_from_later_rows_or_changed_helpers :: 
+  pytest rc=1: 2 failed in 4.58s
+
+[KILLED] current_stop recomputes even when persisted
+  function: s1_seal.py::current_stop   mutated sha256: s1_seal.py fe58a1e81654d9ba
+  intended: test_s1_t12_a2.py::test_a2_post_stop_checkpoints_follow_the_persisted_stop
+  intended assertion: never recomputed after persisting
+  failing: s1_tests/test_s1_t12_a2.py::test_a2_post_stop_checkpoints_follow_the_persisted_stop :: 
+  pytest rc=1: 1 failed in 2.35s
+
+[KILLED] stop_problems: extra slices ignored
+  function: s1_seal.py::stop_problems   mutated sha256: s1_seal.py 91b170e7994833dd
+  intended: test_s1_t12_mutant_survivors.py::test_ms_stop_problems_reports_an_extra_seal_among_the_frozen_slices, test_s1_t12_a2.py::test_a2_integrity_of_the_frozen_slices_is_enforced_at_score, test_s1_t12_a2.py::test_a2_no_valid_seal_is_terminal_persisted_and_never_rescued_by_a_late_seal
+  intended assertion: an extra seal among the frozen slices is an integrity failure
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_stop_problems_reports_an_extra_seal_among_the_frozen_slices :: 
+  pytest rc=1: 1 failed, 4 passed in 9.76s
+
+[KILLED] stop_problems: changed slice ignored
+  function: s1_seal.py::stop_problems   mutated sha256: s1_seal.py 730dc3ed02e68b2a
+  intended: test_s1_run.py::test_fr1_unreadable_seal_rows_are_a_bad_seal_record_reason
+  intended assertion: a changed frozen slice is reported
+  failing: s1_tests/test_s1_run.py::test_fr1_unreadable_seal_rows_are_a_bad_seal_record_reason :: 
+  pytest rc=1: 1 failed in 2.32s
+
+[KILLED] stop_problems: no consistency re-check
+  function: s1_seal.py::stop_problems   mutated sha256: s1_seal.py f725c9451074bb76
+  intended: test_s1_t12_mutant_followups.py::test_mf_a_stop_json_naming_a_non_qualifying_close_is_aborted_invalid
+  intended assertion: a stop.json whose stop is not the frozen slices' stop is ABORTED-INVALID
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_a_stop_json_naming_a_non_qualifying_close_is_aborted_invalid :: 
+  pytest rc=1: 1 failed in 2.27s
+
+[KILLED] _seal_index reads no seals
+  function: s1_seal.py::_seal_index   mutated sha256: s1_seal.py 4204618ec8422817
+  intended: test_s1_t12_a2.py::test_a2_the_stop_is_persisted_once_at_the_seal_with_its_identity
+  intended assertion: the stop is decided over the seals
+  failing: s1_tests/test_s1_t12_a2.py::test_a2_the_stop_is_persisted_once_at_the_seal_with_its_identity :: 
+  pytest rc=1: 1 failed in 1.95s
+
+[KILLED] take_snapshot ignores the injected clock
+  function: s1_snapshot.py::take_snapshot   mutated sha256: s1_snapshot.py 6e6511ae0d446e01
+  intended: test_s1_t12_mutant_survivors.py::test_ms_take_snapshot_measures_with_the_injected_clock, test_s1_t12_a5_a6.py::test_a5_a_capture_finishing_after_E_never_seals_one_ending_exactly_at_E_does
+  intended assertion: measured capture instants come from the injected clock
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_take_snapshot_measures_with_the_injected_clock :: 
+  pytest rc=1: 1 failed, 1 passed in 1.24s
+
+[KILLED] _ack bypasses the shared reader (no future check)
+  function: s1_collect.py::_ack   mutated sha256: s1_collect.py 178405cb7067e0be
+  intended: test_s1_collect.py::test_ack_future_missing_or_embedded_token_is_refused
+  intended assertion: a future ACK is refused
+  failing: s1_tests/test_s1_collect.py::test_ack_future_missing_or_embedded_token_is_refused :: 
+  pytest rc=1: 1 failed in 0.53s
+
+[KILLED] _approved_bundle returns nothing (no bundle check at the audit)
+  function: s1_collect.py::_approved_bundle   mutated sha256: s1_collect.py 65d0422a8045b2b1
+  intended: test_s1_t12_mutant_followups.py::test_mf_do_audit_refuses_an_ack_for_another_bundle_before_any_request
+  intended assertion: an AUDIT-ACK approving another bundle refuses before any request
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_do_audit_refuses_an_ack_for_another_bundle_before_any_request :: 
+  pytest rc=1: 1 failed in 0.55s
+
+[KILLED] do_audit: an ACK before the plan accepted
+  function: s1_collect.py::do_audit   mutated sha256: s1_collect.py 3f349ac37084e452
+  intended: test_s1_t12_a3_a8.py::test_a8_do_audit_checks_the_ack_is_after_the_plan
+  intended assertion: an AUDIT-ACK before its plan refuses
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_do_audit_checks_the_ack_is_after_the_plan :: 
+  pytest rc=1: 1 failed in 0.58s
+
+[KILLED] do_audit.body: no calendar pin written
+  function: s1_collect.py::do_audit.body   mutated sha256: s1_collect.py 68e2297e2c418cf5
+  intended: test_s1_t12_a5_a6.py::test_a6_the_audit_pins_the_calendar_source_parameters_retrieval_time_and_raw_page
+  intended assertion: the audit pins calendar_source.json
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a6_the_audit_pins_the_calendar_source_parameters_retrieval_time_and_raw_page :: 
+  pytest rc=1: 1 failed in 0.67s
+
+[KILLED] do_audit: manifest does not bind the plan
+  function: s1_collect.py::do_audit   mutated sha256: s1_collect.py 3fa087eb852bba1b
+  intended: test_s1_t12_a3_a8.py::test_a8_audit_manifest_binds_the_plan_and_the_audit_ack_binds_the_bundle, test_s1_t12_mutant_followups.py::test_mf_do_audit_manifest_binds_plan_and_bundle
+  intended assertion: the audit manifest binds plan_sha256
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_do_audit_manifest_binds_plan_and_bundle :: 
+  pytest rc=1: 1 failed, 1 passed in 0.72s
+
+[KILLED] _validate_calendar counts sessions from the plan (A5.4 regression)
+  function: s1_collect.py::_validate_calendar   mutated sha256: s1_collect.py 310ba8e6281b1376
+  intended: test_s1_t12_a5_a6.py::test_a5_five_sessions_are_counted_from_the_audit_acks_recorded_time
+  intended assertion: >= 5 sessions count from the AUDIT-ACK's time
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_five_sessions_are_counted_from_the_audit_acks_recorded_time :: 
+  pytest rc=1: 1 failed in 0.66s
+
+[KILLED] _validate_calendar: 4 sessions accepted
+  function: s1_collect.py::_validate_calendar   mutated sha256: s1_collect.py 40d818cd7de65ea9
+  intended: test_s1_t12_mutant_survivors.py::test_ms_four_sessions_after_the_audit_ack_abort, test_s1_t12_a5_a6.py::test_a5_five_sessions_are_counted_from_the_audit_acks_recorded_time
+  intended assertion: 3 sessions after the ACK abort
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_four_sessions_after_the_audit_ack_abort :: 
+  pytest rc=1: 1 failed, 1 passed in 0.80s
+
+[KILLED] write_plan: generic +200 days range
+  function: s1_collect.py::write_plan   mutated sha256: s1_collect.py cf6d4d42eb862ff4
+  intended: test_s1_t12_a5_a6.py::test_a5_plan_records_the_deadline_instant_and_a_derived_calendar_range
+  intended assertion: calendar range end = deadline date + CAL_TAIL_DAYS
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_plan_records_the_deadline_instant_and_a_derived_calendar_range :: 
+  pytest rc=1: 1 failed in 0.63s
+
+[KILLED] write_plan records the deadline date
+  function: s1_collect.py::write_plan   mutated sha256: s1_collect.py 9dc675a1498ada13
+  intended: test_s1_t12_a5_a6.py::test_a5_plan_records_the_deadline_instant_and_a_derived_calendar_range
+  intended assertion: plan deadline is an instant
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_plan_records_the_deadline_instant_and_a_derived_calendar_range :: 
+  pytest rc=1: 1 failed in 0.61s
+
+[KILLED] reconcile_actions: conflicts silently kept (no problem)
+  function: s1_collect.py::reconcile_actions   mutated sha256: s1_collect.py 8facc70007a66e8f
+  intended: test_s1_t12_a7.py::test_a7_2_identical_records_are_kept_once_and_a_conflict_blocks_the_union_of_symbols, test_s1_t12_a7.py::test_a7_2_codex_probe_i_window_and_full_history_records_are_reconciled_at_the_acquisition
+  intended assertion: one identity with differing records is a conflict problem
+  failing: s1_tests/test_s1_t12_a7.py::test_a7_2_identical_records_are_kept_once_and_a_conflict_blocks_the_union_of_symbols :: 
+  failing: s1_tests/test_s1_t12_a7.py::test_a7_2_codex_probe_i_window_and_full_history_records_are_reconciled_at_the_acquisition :: 
+  pytest rc=1: 2 failed in 3.41s
+
+[KILLED] reconcile_actions: type-scoped identity
+  function: s1_collect.py::reconcile_actions   mutated sha256: s1_collect.py 94d877f3da561b49
+  intended: test_s1_t12_a7.py::test_a7_2_the_identity_is_the_provider_id_alone_not_type_scoped
+  intended assertion: a changed type under one id conflicts
+  failing: s1_tests/test_s1_t12_a7.py::test_a7_2_the_identity_is_the_provider_id_alone_not_type_scoped :: 
+  pytest rc=1: 1 failed in 0.51s
+
+[KILLED] reconcile_actions: conflict blocks only the first record's symbols
+  function: s1_collect.py::reconcile_actions   mutated sha256: s1_collect.py 1590df7e6bbf7cb8
+  intended: test_s1_t12_a7.py::test_a7_2_identical_records_are_kept_once_and_a_conflict_blocks_the_union_of_symbols
+  intended assertion: a conflict blocks the union of affected symbols
+  failing: s1_tests/test_s1_t12_a7.py::test_a7_2_identical_records_are_kept_once_and_a_conflict_blocks_the_union_of_symbols :: 
+  pytest rc=1: 1 failed in 0.51s
+
+[KILLED] _identity_view ignores dates
+  function: s1_collect.py::_identity_view   mutated sha256: s1_collect.py beac8ebbf381081c
+  intended: test_s1_t12_a7.py::test_a7_2_identical_records_are_kept_once_and_a_conflict_blocks_the_union_of_symbols
+  intended assertion: a moved date is a conflict
+  failing: s1_tests/test_s1_t12_a7.py::test_a7_2_identical_records_are_kept_once_and_a_conflict_blocks_the_union_of_symbols :: 
+  pytest rc=1: 1 failed in 0.53s
+
+[KILLED] do_final.body: window and full history not reconciled
+  function: s1_collect.py::do_final.body   mutated sha256: s1_collect.py 2b4d91573c92457d
+  intended: test_s1_t12_a7.py::test_a7_2_codex_probe_i_window_and_full_history_records_are_reconciled_at_the_acquisition
+  intended assertion: the acquisition reconciles window + full history
+  failing: s1_tests/test_s1_t12_a7.py::test_a7_2_codex_probe_i_window_and_full_history_records_are_reconciled_at_the_acquisition :: 
+  pytest rc=1: 1 failed in 3.64s
+
+[KILLED] do_final: registration not verified
+  function: s1_collect.py::do_final   mutated sha256: s1_collect.py c8ff1821dac4bb10
+  intended: test_s1_t12_a3_a8.py::test_a3_final_acquisition_verifies_the_bundle_before_any_request
+  intended assertion: do_final checks the bundle first
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_final_acquisition_verifies_the_bundle_before_any_request :: 
+  pytest rc=1: 1 failed in 2.16s
+
+[KILLED] do_final: manifest binds no bundle
+  function: s1_collect.py::do_final   mutated sha256: s1_collect.py 765ba9a445dcf155
+  intended: test_s1_t12_mutant_followups.py::test_mf_the_final_manifest_binds_the_bundle_and_the_persisted_stop
+  intended assertion: the final manifest binds the bundle
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_the_final_manifest_binds_the_bundle_and_the_persisted_stop :: 
+  pytest rc=1: 1 failed in 3.54s
+
+[KILLED] _stop_state ignores the persisted stop's integrity
+  function: s1_collect.py::_stop_state   mutated sha256: s1_collect.py db593eb7082f580d
+  intended: test_s1_t12_mutant_followups.py::test_mf_the_final_plan_refuses_a_changed_frozen_slice
+  intended assertion: a changed frozen slice refuses the final plan
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_the_final_plan_refuses_a_changed_frozen_slice :: 
+  pytest rc=1: 1 failed in 2.00s
+
+[KILLED] final_plan_record binds no persisted stop
+  function: s1_collect.py::final_plan_record   mutated sha256: s1_collect.py deff6ca5e3287fa3
+  intended: test_s1_t12_mutant_followups.py::test_mf_the_final_plan_binds_the_persisted_stop
+  intended assertion: the final plan binds stop.json
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_the_final_plan_binds_the_persisted_stop :: 
+  pytest rc=1: 1 failed in 2.13s
+
+[KILLED] write_final_plan without the stop attestation check
+  function: s1_collect.py::write_final_plan   mutated sha256: s1_collect.py d599109a18b666f2
+  intended: test_s1_task11.py::test_i4_final_plan_refused_without_the_stop_attestation
+  intended assertion: no final plan before attest_stop
+  failing: s1_tests/test_s1_task11.py::test_i4_final_plan_refused_without_the_stop_attestation :: 
+  pytest rc=1: 1 failed in 2.28s
+
+[KILLED] _stop_attestation (collect) ignores stop.json
+  function: s1_collect.py::_stop_attestation   mutated sha256: s1_collect.py 8a2ba1d4a8765896
+  intended: test_s1_t12_mutant_followups.py::test_mf_the_final_plan_binds_the_persisted_stop
+  intended assertion: the attestation must bind the persisted stop
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_the_final_plan_binds_the_persisted_stop :: 
+  pytest rc=1: 1 failed in 2.13s
+
+[KILLED] _require_no_redirects accepts any client
+  function: s1_collect.py::_require_no_redirects   mutated sha256: s1_collect.py c4ec99e40ba05cc1
+  intended: test_s1_task11.py::test_m4_collectors_refuse_a_client_that_may_follow_redirects
+  intended assertion: a redirect-following client refuses
+  failing: s1_tests/test_s1_task11.py::test_m4_collectors_refuse_a_client_that_may_follow_redirects[<lambda>0] :: 
+  failing: s1_tests/test_s1_task11.py::test_m4_collectors_refuse_a_client_that_may_follow_redirects[<lambda>1] :: 
+  pytest rc=1: 2 failed in 0.61s
+
+[KILLED] collect _load reads nothing
+  function: s1_collect.py::_load   mutated sha256: s1_collect.py cbc7984e85a4cff1
+  intended: test_s1_task11.py::test_i4_final_plan_is_derived_from_the_stop_seal
+  intended assertion: the final plan reads the stop seal
+  failing: s1_tests/test_s1_task11.py::test_i4_final_plan_is_derived_from_the_stop_seal :: 
+  pytest rc=1: 1 failed in 2.10s
+
+[KILLED] collect audit_token not the shared one
+  function: s1_collect.py::audit_token   mutated sha256: s1_collect.py b435ca13724ca5fa
+  intended: test_s1_t12_a3_a8.py::test_a8_audit_manifest_binds_the_plan_and_the_audit_ack_binds_the_bundle
+  intended assertion: the audit token binds the bundle
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_audit_manifest_binds_the_plan_and_the_audit_ack_binds_the_bundle :: 
+  pytest rc=1: 1 failed in 0.50s
+
+[KILLED] collect acquire_token drops the bundle
+  function: s1_collect.py::acquire_token   mutated sha256: s1_collect.py 2dfa0cb57a03b404
+  intended: test_s1_t12_a3_a8.py::test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle
+  intended assertion: ACQUIRE-ACK binds the bundle
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle :: 
+  pytest rc=1: 1 failed in 2.21s
+
+[KILLED] contract ignores the env override
+  function: s1_receipt.py::contract   mutated sha256: s1_receipt.py 1b0933ce81b75c80
+  intended: test_s1_t12_a1.py::test_a1_a_missing_required_env_fails_explicitly_and_an_optional_one_is_recorded_absent
+  intended assertion: a reviewed alternate contract records an absent .env
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_a_missing_required_env_fails_explicitly_and_an_optional_one_is_recorded_absent :: 
+  pytest rc=1: 1 failed in 0.99s
+
+[KILLED] key_id independent of the key
+  function: s1_receipt.py::key_id   mutated sha256: s1_receipt.py 22b6f44b038be317
+  intended: test_s1_t12_a1.py::test_a1_the_hmac_key_is_created_once_outside_s1_out_and_its_identity_is_bound
+  intended assertion: a new key changes the fingerprint (key id bound)
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_the_hmac_key_is_created_once_outside_s1_out_and_its_identity_is_bound :: 
+  pytest rc=1: 1 failed in 1.13s
+
+[KILLED] load_or_create_key recreates the key every call
+  function: s1_receipt.py::load_or_create_key   mutated sha256: s1_receipt.py ac8de98e126c4570
+  intended: test_s1_t12_a1.py::test_a1_the_hmac_key_is_created_once_outside_s1_out_and_its_identity_is_bound
+  intended assertion: the key is created once
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_the_hmac_key_is_created_once_outside_s1_out_and_its_identity_is_bound :: 
+  pytest rc=1: 1 failed in 0.98s
+
+[KILLED] _hmac unkeyed (plain sha256 of the secret)
+  function: s1_receipt.py::_hmac   mutated sha256: s1_receipt.py 37d0863a136ef96e
+  intended: test_s1_t12_mutant_followups.py::test_mf_the_secret_fingerprint_is_keyed
+  intended assertion: the secret fingerprint depends on the key
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_the_secret_fingerprint_is_keyed :: 
+  pytest rc=1: 1 failed in 1.26s
+
+[KILLED] _imported_modules: missing members silently skipped
+  function: s1_receipt.py::_imported_modules   mutated sha256: s1_receipt.py 4d3403b8564d76fc
+  intended: test_s1_t12_a1.py::test_a1_a_new_closure_member_changes_the_fingerprint_and_a_missing_member_fails
+  intended assertion: a missing in-repo member is a receipt failure
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_a_new_closure_member_changes_the_fingerprint_and_a_missing_member_fails :: 
+  pytest rc=1: 1 failed in 1.21s
+
+[KILLED] _in_repo never true
+  function: s1_receipt.py::_in_repo   mutated sha256: s1_receipt.py bb4423fed15886b5
+  intended: test_s1_receipt.py::test_dirty_lists_any_extension_and_renames
+  intended assertion: a renamed (missing) member fails the receipt
+  failing: s1_tests/test_s1_receipt.py::test_dirty_lists_any_extension_and_renames :: 
+  pytest rc=1: 1 failed in 0.97s
+
+[KILLED] _namespace_dir always true
+  function: s1_receipt.py::_namespace_dir   mutated sha256: s1_receipt.py 190c654a84ade4aa
+  intended: test_s1_t12_a1.py::test_a1_a_new_closure_member_changes_the_fingerprint_and_a_missing_member_fails
+  intended assertion: a missing submodule of a namespace package fails
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_a_new_closure_member_changes_the_fingerprint_and_a_missing_member_fails :: 
+  pytest rc=1: 1 failed in 0.82s
+
+[KILLED] closure root check skipped
+  function: s1_receipt.py::closure   mutated sha256: s1_receipt.py b5b1ff3778e130fa
+  intended: test_s1_receipt.py::test_missing_root_raises
+  intended assertion: a missing root raises
+  failing: s1_tests/test_s1_receipt.py::test_missing_root_raises :: FileNotFoundEr...
+  pytest rc=1: 1 failed in 0.59s
+
+[KILLED] _mr_config_keys drops secret keys again
+  function: s1_receipt.py::_mr_config_keys   mutated sha256: s1_receipt.py b7a280e5c4b3d911
+  intended: test_s1_t12_a1.py::test_a1_secret_named_fields_are_bound_by_name_presence_and_keyed_hmac_never_raw
+  intended assertion: secret-named MR keys are bound (by HMAC)
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_secret_named_fields_are_bound_by_name_presence_and_keyed_hmac_never_raw :: 
+  pytest rc=1: 1 failed in 0.87s
+
+[KILLED] _git_status: untracked files not listed
+  function: s1_receipt.py::_git_status   mutated sha256: s1_receipt.py e86f1d93c8429ebf
+  intended: test_s1_t12_a1.py::test_a1_sqlite_sidecars_logs_and_caches_appearing_or_disappearing_are_provenance_only
+  intended assertion: transient files appear in the provenance
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_sqlite_sidecars_logs_and_caches_appearing_or_disappearing_are_provenance_only :: 
+  pytest rc=1: 1 failed in 0.96s
+
+[KILLED] _dirty_backend includes untracked non-.py
+  function: s1_receipt.py::_dirty_backend   mutated sha256: s1_receipt.py 70d60489c94ac3e0
+  intended: test_s1_task11.py::test_i2_untracked_non_py_runtime_files_do_not_change_the_receipt
+  intended assertion: sidecars are not in the dirty list
+  failing: s1_tests/test_s1_task11.py::test_i2_untracked_non_py_runtime_files_do_not_change_the_receipt :: 
+  pytest rc=1: 1 failed in 1.11s
+
+[KILLED] _transient lists nothing
+  function: s1_receipt.py::_transient   mutated sha256: s1_receipt.py 62f18247b83e49fe
+  intended: test_s1_t12_a1.py::test_a1_sqlite_sidecars_logs_and_caches_appearing_or_disappearing_are_provenance_only
+  intended assertion: transient files are recorded as provenance
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_sqlite_sidecars_logs_and_caches_appearing_or_disappearing_are_provenance_only :: 
+  pytest rc=1: 1 failed in 0.90s
+
+[KILLED] _runtime: missing required runtime tolerated
+  function: s1_receipt.py::_runtime   mutated sha256: s1_receipt.py 26d84acb6e8f55b0
+  intended: test_s1_t12_a1.py::test_a1_a_missing_required_runtime_fails_explicitly
+  intended assertion: a missing required runtime fails
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_a_missing_required_runtime_fails_explicitly :: 
+  pytest rc=1: 1 failed in 0.88s
+
+[KILLED] _runtime ignores site-packages
+  function: s1_receipt.py::_runtime   mutated sha256: s1_receipt.py 9fa49f6ee7646d51
+  intended: test_s1_t12_a1.py::test_a1_the_runtime_binds_python_and_the_backends_site_packages
+  intended assertion: site-packages versions are bound
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_the_runtime_binds_python_and_the_backends_site_packages :: 
+  pytest rc=1: 1 failed in 1.09s
+
+[KILLED] semantic_receipt: missing required .env -> empty values
+  function: s1_receipt.py::semantic_receipt   mutated sha256: s1_receipt.py fa96fa31a262b31b
+  intended: test_s1_t12_a1.py::test_a1_a_missing_required_env_fails_explicitly_and_an_optional_one_is_recorded_absent
+  intended assertion: a missing required .env fails explicitly
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_a_missing_required_env_fails_explicitly_and_an_optional_one_is_recorded_absent :: 
+  pytest rc=1: 1 failed in 0.83s
+
+[KILLED] semantic_receipt: HEAD in the fingerprint
+  function: s1_receipt.py::semantic_receipt   mutated sha256: s1_receipt.py 3a1e9cf317b807ad
+  intended: test_s1_t12_a1.py::test_a1_an_unrelated_commit_or_checkout_does_not_change_the_fingerprint
+  intended assertion: an unrelated commit changes provenance only
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_an_unrelated_commit_or_checkout_does_not_change_the_fingerprint :: 
+  pytest rc=1: 1 failed in 1.22s
+
+[KILLED] semantic_receipt: resources not bound
+  function: s1_receipt.py::semantic_receipt   mutated sha256: s1_receipt.py 7d976e803f41bebc
+  intended: test_s1_t12_a1.py::test_a1_a_relevant_non_python_resource_is_bound_by_presence_and_hash_independent_of_git
+  intended assertion: a registered resource is bound by sha256
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_a_relevant_non_python_resource_is_bound_by_presence_and_hash_independent_of_git :: 
+  pytest rc=1: 1 failed in 0.89s
+
+[KILLED] semantic_receipt: transport keys compared
+  function: s1_receipt.py::semantic_receipt   mutated sha256: s1_receipt.py 4a828922b4acedb6
+  intended: test_s1_t12_a1.py::test_a1_receipt_separates_the_compared_fingerprint_from_informational_provenance
+  intended assertion: HOST is provenance only
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_receipt_separates_the_compared_fingerprint_from_informational_provenance :: 
+  pytest rc=1: 1 failed in 0.85s
+
+[KILLED] sanitize_cmdline masks nothing
+  function: s1_receipt.py::sanitize_cmdline   mutated sha256: s1_receipt.py da1d6f6391d6aaba
+  intended: test_s1_t12_a1b.py::test_a1b_command_line_is_sanitized_secret_values_masked
+  intended assertion: secret option values are masked
+  failing: s1_tests/test_s1_t12_a1b.py::test_a1b_command_line_is_sanitized_secret_values_masked :: 
+  pytest rc=1: 1 failed in 0.43s
+
+[KILLED] process_identity reports no binding
+  function: s1_receipt.py::process_identity   mutated sha256: s1_receipt.py 6dc4147bc6c57929
+  intended: test_s1_t12_a1b.py::test_a1b_process_identity_reports_the_binding
+  intended assertion: the process observation carries the binding
+  failing: s1_tests/test_s1_t12_a1b.py::test_a1b_process_identity_reports_the_binding :: 
+  pytest rc=1: 1 failed in 0.44s
+
+[KILLED] ReceiptError defaults to transient
+  function: s1_receipt.py::ReceiptError.__init__   mutated sha256: s1_receipt.py aaf12899f41bbed8
+  intended: test_s1_t12_mutant_followups.py::test_mf_a_receipt_error_is_terminal_unless_declared_transient
+  intended assertion: missing inputs are terminal by default
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_a_receipt_error_is_terminal_unless_declared_transient :: 
+  pytest rc=1: 1 failed in 0.64s
+
+[KILLED] _out points elsewhere
+  function: s1_run.py::_out   mutated sha256: s1_run.py 4973f970dfc0fcbf
+  intended: test_s1_run.py::test_attest_start_requires_exact_statement_once_and_before_start
+  intended assertion: the runner reads and writes s1_out/
+  failing: s1_tests/test_s1_run.py::test_attest_start_requires_exact_statement_once_and_before_start :: 
+  pytest rc=1: 1 failed in 0.81s
+
+[KILLED] _seals returns none
+  function: s1_run.py::_seals   mutated sha256: s1_run.py 3f7cb17476cedf0a
+  intended: test_s1_t12_mutant_survivors.py::test_ms_runner_seals_lists_every_seal_file, test_s1_checkpoint_7b.py::test_full_synthetic_lifecycle_uses_the_real_opening_seal_and_final_snapshot
+  intended assertion: the score reads every seal
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_runner_seals_lists_every_seal_file :: 
+  pytest rc=1: 1 failed, 1 passed in 5.82s
+
+[KILLED] _sha_or_absent always absent
+  function: s1_run.py::_sha_or_absent   mutated sha256: s1_run.py 079c28cc8bc3794c
+  intended: test_s1_t12_mutant_followups.py::test_mf_runner_sha_or_absent_hashes_an_existing_file
+  intended assertion: an existing file's sha256, absent otherwise
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_runner_sha_or_absent_hashes_an_existing_file :: 
+  pytest rc=1: 1 failed in 0.64s
+
+[KILLED] _ack: an unreadable mailbox crashes
+  function: s1_run.py::_ack   mutated sha256: s1_run.py ad7beeeaaddf18a0
+  intended: test_s1_t12_mutant_followups.py::test_mf_runner_ack_unreadable_mailbox_is_a_refusal
+  intended assertion: an unreadable mailbox is a refusal
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_runner_ack_unreadable_mailbox_is_a_refusal :: 
+  pytest rc=1: 1 failed in 0.60s
+
+[KILLED] _write_once overwrites
+  function: s1_run.py::_write_once   mutated sha256: s1_run.py 4b8796a9b4b7a386
+  intended: test_s1_t12_mutant_survivors.py::test_ms_runner_write_once_refuses_and_keeps_the_first, test_s1_run.py::test_attest_start_requires_exact_statement_once_and_before_start
+  intended assertion: a second START attestation is refused, the first kept
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_runner_write_once_refuses_and_keeps_the_first :: 
+  pytest rc=1: 1 failed, 1 passed in 1.01s
+
+[KILLED] _clean keeps private keys (report serialisation)
+  function: s1_run.py::_clean   mutated sha256: s1_run.py e441c444a1d54a51
+  intended: test_s1_t12_mutant_followups.py::test_mf_the_score_report_has_no_private_keys_and_no_secret
+  intended assertion: no '_'-prefixed key is serialised
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_the_score_report_has_no_private_keys_and_no_secret :: 
+  pytest rc=1: 1 failed in 3.92s
+
+[KILLED] _serialise unsorted / unclean
+  function: s1_run.py::_serialise   mutated sha256: s1_run.py 5af1dcadfdae447a
+  intended: test_s1_t12_mutant_followups.py::test_mf_the_score_report_has_no_private_keys_and_no_secret
+  intended assertion: serialisation goes through _clean
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_the_score_report_has_no_private_keys_and_no_secret :: 
+  pytest rc=1: 1 failed in 3.96s
+
+[KILLED] _books_record keeps no economic lots
+  function: s1_run.py::_books_record   mutated sha256: s1_run.py 551e04d6ddb79f58
+  intended: test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle
+  intended assertion: the frozen opening books list the open lots
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle :: 
+  pytest rc=1: 1 failed in 0.58s
+
+[KILLED] _opening_books accepts a changed existing file
+  function: s1_run.py::_opening_books   mutated sha256: s1_run.py 0e5d731ad621db31
+  intended: test_s1_t12_mutant_followups.py::test_mf_an_edited_opening_books_file_refuses_the_start_attestation
+  intended assertion: an existing opening_books.json must equal the recomputation
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_an_edited_opening_books_file_refuses_the_start_attestation :: 
+  pytest rc=1: 1 failed in 0.65s
+
+[KILLED] attest_start: not after the opening seal's capture
+  function: s1_run.py::attest_start   mutated sha256: s1_run.py 16d690b01b54ca04
+  intended: test_s1_t12_a3_a8.py::test_a8_attest_start_refuses_before_the_opening_seal_capture
+  intended assertion: the attestation follows the opening seal
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_attest_start_refuses_before_the_opening_seal_capture :: 
+  pytest rc=1: 1 failed in 0.60s
+
+[KILLED] attest_start: bundle not verified first
+  function: s1_run.py::attest_start   mutated sha256: s1_run.py 4bef77569f344503
+  intended: test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal
+  intended assertion: R-1: a changed bundle at the attestation is the persistent abort
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[attest_start] :: 
+  pytest rc=1: 1 failed, 1 passed in 0.73s
+
+[KILLED] do_prereg: resumes after an abort
+  function: s1_run.py::do_prereg   mutated sha256: s1_run.py 3c3acdcf848a82b4
+  intended: test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal
+  intended assertion: restoring files never resumes the registration
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[do_prereg] :: 
+  pytest rc=1: 1 failed, 1 passed in 0.82s
+
+[KILLED] do_prereg: no pre-START bound
+  function: s1_run.py::_blocked_reasons   mutated sha256: s1_run.py 2c0f8bb9c1d16f0e
+  intended: test_s1_t12_a4.py::test_a4_1_prereg_bounds_the_opening_audit_to_actions_effective_before_start
+  intended assertion: a pre-announced post-START action does not BLOCK
+  failing: s1_tests/test_s1_t12_a4.py::test_a4_1_prereg_bounds_the_opening_audit_to_actions_effective_before_start :: 
+  pytest rc=1: 1 failed in 0.54s
+
+[KILLED] _pre_start_day is START's day
+  function: s1_run.py::_pre_start_day   mutated sha256: s1_run.py 7bbcaa5efbd3f320
+  intended: test_s1_t12_mutant_survivors.py::test_ms_an_action_effective_on_the_start_day_does_not_block_the_registration, test_s1_t12_a4.py::test_a4_1_prereg_bounds_the_opening_audit_to_actions_effective_before_start
+  intended assertion: the bound is before START
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_an_action_effective_on_the_start_day_does_not_block_the_registration :: 
+  pytest rc=1: 1 failed, 1 passed in 0.94s
+
+[KILLED] effective_date falls back to process_date (A7.3 regression)
+  function: s1_run.py::effective_date   mutated sha256: s1_run.py 6bc4d38545805769
+  intended: test_s1_t12_a4.py::test_a7_no_processing_or_publication_date_is_an_effective_date
+  intended assertion: process_date is never an effective date
+  failing: s1_tests/test_s1_t12_a4.py::test_a7_no_processing_or_publication_date_is_an_effective_date :: 
+  pytest rc=1: 1 failed in 0.41s
+
+[KILLED] effective_date ignores ambiguity
+  function: s1_run.py::effective_date   mutated sha256: s1_run.py e5a29d2a34d88640
+  intended: test_s1_t12_a4.py::test_a7_no_processing_or_publication_date_is_an_effective_date
+  intended assertion: an ambiguous record has unknown timing
+  failing: s1_tests/test_s1_t12_a4.py::test_a7_no_processing_or_publication_date_is_an_effective_date :: 
+  pytest rc=1: 1 failed in 0.39s
+
+[KILLED] effective_date ignores reconciliation conflicts
+  function: s1_run.py::effective_date   mutated sha256: s1_run.py 9d7e030ca33043cf
+  intended: test_s1_t12_a4.py::test_a7_no_processing_or_publication_date_is_an_effective_date
+  intended assertion: a conflicting record has unknown timing
+  failing: s1_tests/test_s1_t12_a4.py::test_a7_no_processing_or_publication_date_is_an_effective_date :: 
+  pytest rc=1: 1 failed in 0.37s
+
+[KILLED] _date keeps the Task 7 fallback
+  function: s1_run.py::_date   mutated sha256: s1_run.py d1edb4c029dfc9a6
+  intended: test_s1_t12_a4.py::test_a7_an_undated_action_with_only_a_process_date_blocks_every_lot_of_its_symbol
+  intended assertion: process-date-only records block every lot (undated)
+  failing: s1_tests/test_s1_t12_a4.py::test_a7_an_undated_action_with_only_a_process_date_blocks_every_lot_of_its_symbol :: 
+  pytest rc=1: 1 failed in 0.66s
+
+[KILLED] contaminated_symbols: undated actions ignored
+  function: s1_run.py::contaminated_symbols   mutated sha256: s1_run.py 3a1f11fa2ddf7f9b
+  intended: test_s1_t12_a4.py::test_a4_a_unit_action_with_missing_or_ambiguous_date_follows_the_conservative_rule
+  intended assertion: unknown timing is never outside the date comparison
+  failing: s1_tests/test_s1_t12_a4.py::test_a4_a_unit_action_with_missing_or_ambiguous_date_follows_the_conservative_rule[action0] :: 
+  failing: s1_tests/test_s1_t12_a4.py::test_a4_a_unit_action_with_missing_or_ambiguous_date_follows_the_conservative_rule[action1] :: 
+  pytest rc=1: 2 failed in 4.62s
+
+[KILLED] contaminated_symbols: only SELLs strictly after the effective date
+  function: s1_run.py::contaminated_symbols   mutated sha256: s1_run.py cc3db4948ad1763d
+  intended: test_s1_t12_a4.py::test_a4_2b_a_post_event_sell_makes_the_whole_trial_inconclusive
+  intended assertion: a SELL on the effective date is post-event
+  failing: s1_tests/test_s1_t12_a4.py::test_a4_2b_a_post_event_sell_makes_the_whole_trial_inconclusive :: 
+  pytest rc=1: 1 failed in 2.48s
+
+[KILLED] contaminated_symbols: no lot needs to be open across
+  function: s1_run.py::contaminated_symbols   mutated sha256: s1_run.py 4d87e9affec5e7f1
+  intended: test_s1_t12_a4.py::test_a4_a_resolved_pre_entry_event_does_not_contaminate
+  intended assertion: a fully resolved event does not contaminate
+  failing: s1_tests/test_s1_t12_a4.py::test_a4_a_resolved_pre_entry_event_does_not_contaminate :: 
+  pytest rc=1: 1 failed in 3.81s
+
+[KILLED] contaminated_symbols: post-stop actions included
+  function: s1_run.py::contaminated_symbols   mutated sha256: s1_run.py d76cbab32b2a2d69
+  intended: test_s1_run.py::test_fifo_untrusted_ignores_actions_outside_the_trial_window_and_acquirer_side
+  intended assertion: an action effective after the stop session is outside the trial
+  failing: s1_tests/test_s1_run.py::test_fifo_untrusted_ignores_actions_outside_the_trial_window_and_acquirer_side :: 
+  pytest rc=1: 1 failed in 0.69s
+
+[KILLED] _score: 2b downgraded to exclusion
+  function: s1_run.py::_score   mutated sha256: s1_run.py fe883fa496dfcb89
+  intended: test_s1_t12_a4.py::test_a4_2b_a_post_event_sell_makes_the_whole_trial_inconclusive
+  intended assertion: any post-event SELL -> INCONCLUSIVE
+  failing: s1_tests/test_s1_t12_a4.py::test_a4_2b_a_post_event_sell_makes_the_whole_trial_inconclusive :: 
+  pytest rc=1: 1 failed in 2.26s
+
+[KILLED] _score: 2c lots not excluded
+  function: s1_run.py::_score   mutated sha256: s1_run.py cf8f8e7216cd51be
+  intended: test_s1_t12_a4.py::test_a4_2c_cohort_only_contamination_without_a_sell_excludes_every_cohort_lot_of_the_symbol
+  intended assertion: cohort-only contamination excludes every lot of the symbol
+  failing: s1_tests/test_s1_t12_a4.py::test_a4_2c_cohort_only_contamination_without_a_sell_excludes_every_cohort_lot_of_the_symbol :: 
+  pytest rc=1: 1 failed in 3.56s
+
+[KILLED] _score: audit and final actions not reconciled
+  function: s1_run.py::_score   mutated sha256: s1_run.py c4bd5f8fc99f3e8a
+  intended: test_s1_t12_a7.py::test_a7_2_audit_and_final_records_are_reconciled_at_the_score
+  intended assertion: audit vs final conflicts are found
+  failing: s1_tests/test_s1_t12_a7.py::test_a7_2_audit_and_final_records_are_reconciled_at_the_score :: 
+  pytest rc=1: 1 failed in 3.98s
+
+[KILLED] _score: RUN-ACK not re-verified
+  function: s1_run.py::_score   mutated sha256: s1_run.py c17cd529a7623f35
+  intended: test_s1_t12_mutant_followups.py::test_mf_the_score_reverifies_the_run_token_bindings
+  intended assertion: an artifact changed after prereg is ABORTED-INVALID
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_the_score_reverifies_the_run_token_bindings :: 
+  pytest rc=1: 1 failed in 2.48s
+
+[KILLED] _score: persisted-stop integrity not checked
+  function: s1_run.py::_score   mutated sha256: s1_run.py bf9935ef1c93c65d
+  intended: test_s1_t12_a2.py::test_a2_integrity_of_the_frozen_slices_is_enforced_at_score
+  intended assertion: frozen-slice tampering is ABORTED-INVALID
+  failing: s1_tests/test_s1_t12_a2.py::test_a2_integrity_of_the_frozen_slices_is_enforced_at_score[stop_seal_edited] :: 
+  failing: s1_tests/test_s1_t12_a2.py::test_a2_integrity_of_the_frozen_slices_is_enforced_at_score[slice_seal_deleted] :: 
+  pytest rc=1: 2 failed, 1 passed in 8.66s
+
+[KILLED] _score: stop.json changed after the attestation accepted
+  function: s1_run.py::_score   mutated sha256: s1_run.py 75ab25d30f4ca937
+  intended: test_s1_t12_mutant_survivors.py::test_ms_stop_json_changed_after_the_attestation_is_named, test_s1_t12_a2.py::test_a2_attest_stop_binds_the_persisted_stop
+  intended assertion: stop.json edited after attest_stop is ABORTED-INVALID
+  failing: s1_tests/test_s1_t12_mutant_survivors.py::test_ms_stop_json_changed_after_the_attestation_is_named :: 
+  pytest rc=1: 1 failed, 1 passed in 4.69s
+
+[KILLED] _score: final manifest bundle not checked
+  function: s1_run.py::_score   mutated sha256: s1_run.py c61628f360ef4347
+  intended: test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[final_manifest]
+  intended assertion: the final manifest's bundle is checked
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[final_manifest] :: 
+  pytest rc=1: 1 failed in 3.72s
+
+[KILLED] _seal_chain_problems: seal bundle not checked
+  function: s1_run.py::_seal_chain_problems   mutated sha256: s1_run.py a3d1bc703ac7c821
+  intended: test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[seal]
+  intended assertion: every seal's bundle is checked
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[seal] :: 
+  pytest rc=1: 1 failed in 2.18s
+
+[KILLED] _final_snapshot_problems: bundle not checked
+  function: s1_run.py::_final_snapshot_problems   mutated sha256: s1_run.py 6ef17a8c841e5c96
+  intended: test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[final_snapshot]
+  intended assertion: the final snapshot's bundle is checked
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[final_snapshot] :: 
+  pytest rc=1: 1 failed in 3.65s
+
+[KILLED] _start_attestation_problems: books not bound
+  function: s1_run.py::_start_attestation_problems   mutated sha256: s1_run.py 15daa6d2eae3cee4
+  intended: test_s1_t12_mutant_followups.py::test_mf_an_edited_opening_books_file_is_aborted_invalid_at_score
+  intended assertion: the attestation binds the books
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_an_edited_opening_books_file_is_aborted_invalid_at_score :: 
+  pytest rc=1: 1 failed in 2.58s
+
+[KILLED] _stop_attestation (score): stop.json not bound
+  function: s1_run.py::_stop_attestation   mutated sha256: s1_run.py 3f2b1e0a31a0b943
+  intended: test_s1_t12_mutant_followups.py::test_mf_an_attestation_binding_another_stop_json_is_unverified
+  intended assertion: the attestation binds stop.json
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_an_attestation_binding_another_stop_json_is_unverified :: 
+  pytest rc=1: 1 failed in 2.53s
+
+[KILLED] _trial_end: integrity failure still demands the final manifest
+  function: s1_run.py::_trial_end   mutated sha256: s1_run.py c0edf50033433def
+  intended: test_s1_run.py::test_cr_malformed_seal_without_final_manifest_is_still_scored_invalid
+  intended assertion: a broken frozen slice is scored ABORTED-INVALID without a final manifest
+  failing: s1_tests/test_s1_run.py::test_cr_malformed_seal_without_final_manifest_is_still_scored_invalid :: 
+  pytest rc=1: 1 failed in 2.20s
+
+[KILLED] _pre_reserve_gate: pinned core not loaded first
+  function: s1_run.py::_pre_reserve_gate   mutated sha256: s1_run.py b5ea1e02ad841388
+  intended: test_s1_run.py::test_pinned_core_hash_mismatch_is_refused_before_reservation
+  intended assertion: refused before the reservation
+  failing: s1_tests/test_s1_run.py::test_pinned_core_hash_mismatch_is_refused_before_reservation :: 
+  pytest rc=1: 1 failed in 2.36s
+
+[KILLED] score: bundle not verified first
+  function: s1_run.py::score   mutated sha256: s1_run.py 703573a68b77ccb3
+  intended: test_s1_t12_a3_a8.py::test_a3_score_bundle_mismatch_aborts_reserves_nothing_and_restoration_scores_aborted_invalid
+  intended assertion: a score under another bundle reserves nothing
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_score_bundle_mismatch_aborts_reserves_nothing_and_restoration_scores_aborted_invalid :: 
+  pytest rc=1: 1 failed in 2.11s
+
+[KILLED] attest_stop: registration not verified
+  function: s1_run.py::attest_stop   mutated sha256: s1_run.py 7b2c50d4f5861228
+  intended: test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first
+  intended assertion: attest_stop checks the bundle first
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first[attest_stop] :: 
+  pytest rc=1: 1 failed, 2 passed in 5.45s
+
+[KILLED] attest_stop: binds no stop.json
+  function: s1_run.py::attest_stop   mutated sha256: s1_run.py 01738f0c8813cd95
+  intended: test_s1_t12_a2.py::test_a2_attest_stop_binds_the_persisted_stop
+  intended assertion: attest_stop binds stop.json
+  failing: s1_tests/test_s1_t12_a2.py::test_a2_attest_stop_binds_the_persisted_stop :: 
+  pytest rc=1: 1 failed in 1.90s
+
+[KILLED] _capture_notes lists no refusals
+  function: s1_run.py::_capture_notes   mutated sha256: s1_run.py 56f878763172012d
+  intended: test_s1_t12_reporting.py::test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_in_the_score
+  intended assertion: refused captures are listed
+  failing: s1_tests/test_s1_t12_reporting.py::test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_in_the_score :: 
+  pytest rc=1: 1 failed in 3.72s
+
+[KILLED] _capture_notes drops binding gaps
+  function: s1_run.py::_capture_notes   mutated sha256: s1_run.py b87dec3c79a01317
+  intended: test_s1_t12_reporting.py::test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_in_the_score
+  intended assertion: binding observation gaps are reported
+  failing: s1_tests/test_s1_t12_reporting.py::test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_in_the_score :: 
+  pytest rc=1: 1 failed in 3.61s
+
+[KILLED] _report_restarts_and_bridge omits the capture notes
+  function: s1_run.py::_report_restarts_and_bridge   mutated sha256: s1_run.py 4da317300b652691
+  intended: test_s1_t12_reporting.py::test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_in_the_score
+  intended assertion: the report carries the capture notes
+  failing: s1_tests/test_s1_t12_reporting.py::test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_in_the_score :: 
+  pytest rc=1: 1 failed in 3.56s
+
+[KILLED] _capture_seal_problems ignores a missing seal
+  function: s1_run.py::_capture_seal_problems   mutated sha256: s1_run.py a601c2b6496c06ca
+  intended: test_s1_task11.py::test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid
+  intended assertion: a capture report naming a missing seal is ABORTED-INVALID
+  failing: s1_tests/test_s1_task11.py::test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid[missing] :: 
+  failing: s1_tests/test_s1_task11.py::test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid[different] :: 
+  pytest rc=1: 2 failed in 7.57s
+
+[KILLED] carry_in_reasons: until not applied
+  function: s1_run.py::carry_in_reasons   mutated sha256: s1_run.py 691c7419398dd4a2
+  intended: test_s1_t12_a4.py::test_a4_1_prereg_bounds_the_opening_audit_to_actions_effective_before_start
+  intended assertion: the pre-START bound applies
+  failing: s1_tests/test_s1_t12_a4.py::test_a4_1_prereg_bounds_the_opening_audit_to_actions_effective_before_start :: 
+  pytest rc=1: 1 failed in 0.60s
+
+[KILLED] exclusions: undated actions ignored
+  function: s1_run.py::exclusions   mutated sha256: s1_run.py 97fa3c1741218f1d
+  intended: test_s1_t12_a4.py::test_a7_an_undated_action_with_only_a_process_date_blocks_every_lot_of_its_symbol
+  intended assertion: an undated action blocks every lot
+  failing: s1_tests/test_s1_t12_a4.py::test_a7_an_undated_action_with_only_a_process_date_blocks_every_lot_of_its_symbol :: 
+  pytest rc=1: 1 failed in 0.63s
+
+[KILLED] _receipt_sha over the whole receipt
+  function: s1_run.py::_receipt_sha   mutated sha256: s1_run.py f9787a70a833de17
+  intended: test_s1_t12_a1.py::test_a1_a_head_or_dirty_change_alone_seals_and_is_recorded_as_provenance, test_s1_run.py::test_attest_start_requires_exact_statement_once_and_before_start
+  intended assertion: the attestation binds the fingerprint hash
+  failing: s1_tests/test_s1_t12_a1.py::test_a1_a_head_or_dirty_change_alone_seals_and_is_recorded_as_provenance :: 
+  failing: s1_tests/test_s1_run.py::test_attest_start_requires_exact_statement_once_and_before_start :: 
+  pytest rc=1: 2 failed in 0.99s
+
+[KILLED] _calendar keeps extra fields
+  function: s1_run.py::_calendar   mutated sha256: s1_run.py 7324ef7ef9dd0346
+  intended: test_s1_t12_mutant_followups.py::test_mf_calendar_rows_keep_only_date_open_close
+  intended assertion: only session rows
+  failing: s1_tests/test_s1_t12_mutant_followups.py::test_mf_calendar_rows_keep_only_date_open_close :: 
+  pytest rc=1: 1 failed in 0.61s
+
+[KILLED] run_token (runner) not the shared token
+  function: s1_run.py::run_token   mutated sha256: s1_run.py 4ebb7bbb06115d06
+  intended: test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle
+  intended assertion: the RUN token binds the books
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle :: 
+  pytest rc=1: 1 failed in 0.64s
+
+[KILLED] score_token (runner) drops the bundle
+  function: s1_run.py::score_token   mutated sha256: s1_run.py 33cc204125dd8f60
+  intended: test_s1_t12_a3_a8.py::test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle
+  intended assertion: SCORE-ACK binds the bundle
+  failing: s1_tests/test_s1_t12_a3_a8.py::test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle :: 
+  pytest rc=1: 1 failed in 2.00s
+
+[SURVIVED] held_symbols ignores operational holdings
+  function: s1_books.py::held_symbols   mutated sha256: s1_books.py 60e774a42c86e68c
+  intended: test_s1_task11.py::test_i4_final_plan_is_derived_from_the_stop_seal
+  intended assertion: EXPECTED EQUIVALENT: the economic FIFO keeps every residual the operational book writes off (see triage)
+  pytest rc=0: 1 passed in 2.20s
+
+[KILLED] sold_events replays the whole prefix per SELL symbol-agnostically
+  function: s1_books.py::sold_events   mutated sha256: s1_books.py cda71d541c95e3b6
+  intended: test_s1_task11.py::test_i3_sold_events_on_2000_rows_completes_in_under_5_seconds
+  intended assertion: per-symbol prefix replay (equivalent output, I-3 performance bound)
+  failing: s1_tests/test_s1_task11.py::test_i3_sold_events_on_2000_rows_completes_in_under_5_seconds :: 
+  pytest rc=1: 1 failed in 22.46s
+
+[KILLED] _write_report writes nothing
+  function: s1_checkpoint.py::_write_report   mutated sha256: s1_checkpoint.py 9694c93a20512834
+  intended: test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved
+  intended assertion: every attempt's report is preserved
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at0] :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at1] :: 
+  failing: s1_tests/test_s1_t12_a5_a6.py::test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_preserved[at2] :: 
+  pytest rc=1: 3 failed in 1.47s
+
+[KILLED] _attempt (runner) resolves raw pages against the attempt dir
+  function: s1_run.py::_attempt   mutated sha256: s1_run.py 993a4b11e04ef4d2
+  intended: test_s1_checkpoint_7b.py::test_full_synthetic_lifecycle_uses_the_real_opening_seal_and_final_snapshot
+  intended assertion: the audit's raw pages (relative to s1_out) verify
+  failing: s1_tests/test_s1_checkpoint_7b.py::test_full_synthetic_lifecycle_uses_the_real_opening_seal_and_final_snapshot :: 
+  pytest rc=1: 1 failed in 2.24s
+
+SUMMARY KILLED=197, SURVIVED=1 (total 198)

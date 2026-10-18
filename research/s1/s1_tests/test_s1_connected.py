@@ -40,7 +40,7 @@ import s1_checkpoint as ck
 import s1_collect as k
 import s1_common
 import s1_run as r
-from conftest import Ledger, s1_mailbox
+from conftest import S1_BINDING, Ledger, s1_mailbox
 
 UTC = timezone.utc
 NYZ = ZoneInfo("America/New_York")
@@ -57,8 +57,10 @@ LATE_DAYS = (2, 9, 16)            # a late-cycle BUY at C+40 lands before its po
 UNSEALED_DAY = 20                 # first close with >= 100 fully sold, but its only capture fires 3 h late
 RESTART_DAY = 10
 SPIN_DAY = 6
-RECEIPT = {"head": "h8", "dirty": [], "files": {"agents/mean_reversion_agent.py": "f8"}, "config": {"K": "v"},
-           "versions": {"python": "3.12"}}
+# Task 12 (A1) interface: {"fingerprint": compared, "provenance": recorded only}
+RECEIPT = {"fingerprint": {"closure": {"agents/mean_reversion_agent.py": "f8"}, "resources": {},
+                           "config": {"K": "v"}, "runtime": {"python": "3.12"}},
+           "provenance": {"head": "h8", "dirty": []}}
 
 
 # ------------------------------------------------------------------ synthetic world (raw data only)
@@ -315,7 +317,8 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
         clock["t"] = t
         return t
 
-    proc = {"pid": 1000, "process_start": "2026-10-01T09:00:00"}
+    # (fix round 2 migration, Addendum 2 B2.1: the observation carries the sanitized launcher binding)
+    proc = {"pid": 1000, "process_start": "2026-10-01T09:00:00", "binding": dict(S1_BINDING)}
     crash = root / "crash.log"
     crash.write_text("2026-10-01 09:00:00,000 [PROCESS START] pid=1000\n" * 2, encoding="utf-8")
     ledger = Ledger(root / "trading.db")
@@ -385,7 +388,12 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
             assert rep["consistent"] and rep["seal"]["written"], (d, rep)
         elif i == UNSEALED_DAY:                                # scheduler fired 3 h late (PC asleep)
             rep = checkpoint(C + timedelta(minutes=45), C + timedelta(hours=3, minutes=45))
-            assert rep["late"] and rep["consistent"] and not rep["seal"]["written"], (d, rep)
+            # Task 12 (A5.2/A10.1) REPLACEMENT (old: the late invocation captured, consistent, unsealed): the clock
+            # is checked BEFORE any capture, so the late invocation is a preserved refused attempt with no capture
+            assert rep["late"] and rep["capture_ok"] is False and "clock" in rep["refused"], (d, rep)
+            assert not rep["seal"]["written"] and not (out / "seals" / f"{d}.json").exists()
+            reports[i] = rep
+            continue
         else:
             rep = checkpoint(C + timedelta(minutes=45), C + timedelta(minutes=45, seconds=30))
             assert rep["consistent"] and rep["seal"]["written"], (d, rep)
@@ -445,7 +453,8 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     s1_mailbox(root, "acq-ack", k.ACQUIRE_ACK.format(collector=k.collector_sha(),
                                                      plan=s1_common.sha256_file(out / "final_plan.json"),
                                                      prereg=s1_common.sha256_file(out / "prereg.json"),
-                                                     attest=s1_common.sha256_file(out / "attest_stop.json")),
+                                                     attest=s1_common.sha256_file(out / "attest_stop.json"),
+                                                     bundle=s1_common.bundle_sha256()),     # Task 12 (A7.1)
                acq_at - timedelta(hours=1))
     at(acq_at)
     fm = k.do_final(root, "acq-ack", httpx.Client(transport=httpx.MockTransport(final_handler)), KEYS)
@@ -463,8 +472,8 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
         pd = sessions[N_DAYS + 3]
         newt = ny(pd, "11:00")
         app.trade(dict(sym="ZZZ", action="BUY", qty=1.0, px=10.0, t=newt, ts=newt.isoformat()))
-        if post_stop == "receipt":
-            receipt["head"] = "post-stop-commit"
+        if post_stop == "receipt":                     # Task 12 (A1): a fingerprint change (HEAD is provenance)
+            receipt["fingerprint"]["closure"]["agents/mean_reversion_agent.py"] = "post-stop"
         pc = checkpoint(close_of(pd) + timedelta(minutes=45), close_of(pd) + timedelta(minutes=45, seconds=30))
         assert pc.get("post_stop") is True and pc["seal"]["written"] is False, pc
         assert pc["stop"]["status"] == "STOPPED" and pc["stop"]["stop_close"] == stop_close.isoformat(), pc["stop"]

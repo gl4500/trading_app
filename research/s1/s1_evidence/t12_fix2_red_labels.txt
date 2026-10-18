@@ -1,0 +1,80 @@
+Task 12 fix round 2 - RED labels (s1_evidence/t12_fix2_<I1|B1|B2|B3>_red.txt, recorded BEFORE the fixes).
+MI = missing-interface RED (a new name / key / file that does not exist yet: the behaviour itself was not
+exercised); B = behavioural RED (the old code ran and gave the wrong outcome: a missing abort, a wrong seal,
+a crash, a missing refusal). Each label is derived from the RED file's --tb=line failure line (paired in order
+with its FAILED id). Tests later corrected after RED and before GREEN are listed in S1_BUILD_EVIDENCE 15.
+
+== I1: 5 failing
+  [MI] test_i1_an_unchanged_closure_against_the_bound_reference_gives_the_same_fingerprint :: TypeError: semantic_receipt() got an unexpected keyword argument 'reference'
+  [MI] test_i1_a_changed_closure_member_is_terminal_before_any_parse[edited] :: TypeError: semantic_receipt() got an unexpected keyword argument 'reference'
+  [MI] test_i1_a_changed_closure_member_is_terminal_before_any_parse[merge-conflict] :: TypeError: semantic_receipt() got an unexpected keyword argument 'reference'
+  [MI] test_i1_a_changed_closure_member_is_terminal_before_any_parse[deleted] :: TypeError: semantic_receipt() got an unexpected keyword argument 'reference'
+  [B] test_i1_the_checkpoint_passes_the_bound_reference_and_a_valid_edit_aborts :: assert (None is not None)
+
+== B1: 16 failing
+  [MI] test_b1_resolution_timeout_is_thirty_minutes_and_single_sourced :: AttributeError: module 's1_seal' has no attribute 'RESOLUTION_TIMEOUT'
+  [B] test_b1_the_reviews_overlap_race_selects_the_earlier_slot_in_both_completion_orders[later_slot_finalizes_first] :: assert (True is True and True is False)
+  [B] test_b1_a_claim_without_a_report_stays_pending_after_E_and_times_out_at_D :: assert (True is False)
+  [MI] test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_times_out[offset0-True] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_a_success_published_st0\\s1_out\\c
+  [MI] test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_times_out[offset1-False] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_a_success_published_st1\\s1_out\\c
+  [MI] test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_times_out[offset2-False] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_a_success_published_st2\\s1_out\\c
+  [MI] test_b1_expiration_racing_a_late_completion_cannot_change_the_winner[publication_first] :: AttributeError: module 's1_checkpoint' has no attribute 'finalize_close'
+  [MI] test_b1_expiration_racing_a_late_completion_cannot_change_the_winner[expiration_first] :: AttributeError: module 's1_checkpoint' has no attribute 'finalize_close'
+  [MI] test_b1_expiration_racing_a_late_completion_cannot_change_the_winner[barrier] :: AttributeError: module 's1_common' has no attribute 'publish_exclusive'
+  [MI] test_b1_killed_and_merely_slow_workers_get_the_same_timeout_disposition[killed] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_killed_and_merely_slow0\\s1_out\\c
+  [MI] test_b1_killed_and_merely_slow_workers_get_the_same_timeout_disposition[slow] :: KeyError: 'resolution'
+  [MI] test_b1_D_never_extends_capture_eligibility[at0] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_D_never_extends_captur0\\s1_out\\c
+  [MI] test_b1_D_never_extends_capture_eligibility[at1] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16420\\test_b1_D_never_extends_captur1\\s1_out\\c
+  [MI] test_b1_the_0800_slot_takes_no_capture_after_W :: AttributeError: module 's1_seal' has no attribute 'resolution_deadline'
+  [MI] test_b1_concurrent_finalizers_and_restart_replay_give_one_deterministic_seal :: AttributeError: module 's1_checkpoint' has no attribute 'finalize_close'
+  [B] test_b1_a_pending_resolution_cannot_cause_an_early_terminal_stop_followed_by_rescue :: AssertionError: {'missed': ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-11-02', ...], 'persisted': True, 'status': 'NO-VALID-SEAL', 'stop_
+
+== B2: 16 failing
+  [B] test_b2_an_unobservable_opening_binding_writes_no_opening_seal[gap] :: assert True is False
+  [B] test_b2_an_unobservable_opening_binding_writes_no_opening_seal[no-binding] :: assert True is False
+  [B] test_b2_an_unobservable_opening_binding_writes_no_opening_seal[observation-error] :: assert True is False
+  [MI] test_b2_the_opening_binding_is_the_reference_bound_by_the_attestation_and_prereg :: KeyError: 'process_binding'
+  [B] test_b2_deleting_or_replacing_the_reference_sidecar_cannot_rebase[replaced] :: assert (True is False)
+  [B] test_b2_deleting_or_replacing_the_reference_sidecar_cannot_rebase[deleted] :: assert (True is False)
+  [B] test_b2_a_then_gap_then_b_is_a_persistent_invalidity :: assert (False is True)
+  [B] test_b2_a_then_gap_then_a_preserves_the_gap_and_invents_no_change :: assert (False)
+  [B] test_b2_an_observation_exception_mid_trial_is_preserved_and_never_seals :: assert (True is False)
+  [B] test_b2_a_malformed_claimed_binding_is_not_equality :: AssertionError: assert (False is False and None)
+  [MI] test_b2_an_identical_binding_restart_is_provenance_not_a_semantic_change :: KeyError: 'process_binding'
+  [B] test_b2_a_corrupt_bound_reference_fails_closed :: Failed: DID NOT RAISE <class 'SystemExit'>
+  [B] test_b2_the_score_rechecks_every_seals_binding_and_invalid_makes_zero_valuation_calls[observed-B] :: Failed: baseline_economics
+  [B] test_b2_the_score_rechecks_every_seals_binding_and_invalid_makes_zero_valuation_calls[missing] :: Failed: baseline_economics
+  [B] test_b2_the_score_rechecks_every_seals_binding_and_invalid_makes_zero_valuation_calls[malformed] :: Failed: baseline_economics
+  [MI] test_b2_the_score_reports_a_gap_without_inventing_a_change :: KeyError: 'seal_binding_gaps'
+
+== B3: 28 failing
+  [MI] test_b3_registration_is_recorded_independently_of_the_artifacts_it_binds :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_registration_is_record0\\s1_out\\r
+  [B] test_b3_an_invalid_handmade_prereg_before_the_opening_is_a_preserved_refusal_with_no_callback :: AssertionError: []
+  [B] test_b3_the_opening_changed_after_the_opening_but_before_the_run_ack_is_a_persistent_abort :: Failed: DID NOT RAISE <class 'SystemExit'>
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[plan.json-changed] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_0\\s1_out\\a
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[plan.json-deleted] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_1\\s1_out\\a
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[audit/manifest.json-changed] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_2\\s1_out\\a
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[audit/manifest.json-deleted] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_3\\s1_out\\a
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[audit/calendar.json-changed] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_4\\s1_out\\a
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[audit/calendar.json-deleted] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_5\\s1_out\\a
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[attest_start.json-changed] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_6\\s1_out\\a
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[attest_start.json-deleted] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_7\\s1_out\\a
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[opening_books.json-changed] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_8\\s1_out\\a
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[opening_books.json-deleted] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_9\\s1_out\\a
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[prereg.json-changed] :: Failed: DID NOT RAISE <class 'SystemExit'>
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[prereg.json-deleted] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_11\\s1_out\\
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[seals/2026-10-23.json-changed] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_12\\s1_out\\
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[seals/2026-10-23.json-deleted] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_registered_artifact_13\\s1_out\\
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[opening_receipt.json-changed] :: Failed: DID NOT RAISE <class 'SystemExit'>
+  [B] test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[opening_receipt.json-deleted] :: Failed: DID NOT RAISE <class 'SystemExit'>
+  [B] test_b3_deleting_prereg_and_the_opening_together_cannot_erase_the_registration[False] :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_deleting_prereg_and_th0\\s1_out\\a
+  [MI] test_b3_deleting_prereg_and_the_opening_together_cannot_erase_the_registration[True] :: FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_deleting_prereg
+  [B] test_b3_audit_re_entry_cannot_bypass_persistence :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_audit_re_entry_cannot_0\\s1_out\\a
+  [B] test_b3_opening_re_entry_cannot_bypass_persistence :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_opening_re_entry_canno0\\s1_out\\a
+  [B] test_b3_post_stop_integrity_of_frozen_artifacts_is_persistent :: Failed: DID NOT RAISE <class 'SystemExit'>
+  [B] test_b3_a_mailbox_outage_is_a_refusal_not_proof_of_tampering :: AssertionError: assert []
+  [B] test_b3_a_mailbox_outage_cannot_downgrade_an_established_violation :: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-16422\\test_b3_a_mailbox_outage_canno0\\s1_out\\a
+  [B] test_b3_a_registration_artifact_violation_at_the_score_is_persisted_and_prices_nothing :: Failed: DID NOT RAISE <class 'SystemExit'>
+  [B] test_b3_a_corrupt_aborted_json_fails_closed :: json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+
+TOTAL: MI=22 B=43
