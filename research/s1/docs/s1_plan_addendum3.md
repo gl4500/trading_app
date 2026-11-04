@@ -1,30 +1,56 @@
-# S1 Addendum 3 (external trial journal) Implementation Plan — revision 1
+# S1 Addendum 3 (external trial journal) Implementation Plan — revision 2
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-Revision 1 answers Codex final f045bd31 (FORUM-S1-A3-PLAN, CHANGES_REQUIRED on revision 0, sha256 81116f87…).
-The review records are in `C:\Users\gl450\.coordination\trading_app\s1_a3_plan_codex_review_20261103\`.
+Revision 2 answers Codex final 3ddf7d83 (FORUM-S1-A3-PLAN-R1, CHANGES_REQUIRED / NO_CONSENSUS on revision 1, sha256
+f67f739f…, head ce5b2cb). Its records are in
+`C:\Users\gl450\.coordination\trading_app\s1_a3_plan_r1_codex_review_20261103\`. Revision 1 answered Codex final
+f045bd31 (FORUM-S1-A3-PLAN on revision 0, sha256 81116f87…; records in
+`C:\Users\gl450\.coordination\trading_app\s1_a3_plan_codex_review_20261103\`).
 
-It also implements Erratum 1 draft revision 1 (E1–E5). That draft is
-`C:\Users\gl450\.coordination\trading_app\.sdd_s1\s1_design_v5_addendum3_erratum1_draft_r1.md`, sha256 bee16ded…
-of the draft; it supersedes rev 0 (4dc7a3c5…). It is not yet adopted.
+**Controller note (erratum draft revision 3).** The erratum this plan implements is now draft revision 3,
+`C:\Users\gl450\.coordination\trading_app\.sdd_s1\s1_design_v5_addendum3_erratum1_draft_r3.md`, sha256
+`777de1743b3455b6d38a2c5008d51baf0d86cfbaf66215119e78c0f270d8e368`. It supersedes revisions 0–2 (4dc7a3c5…,
+bee16ded…, b03b760d…), which are kept unchanged. Revision 3 rewrites E2 (seals are F4 stages; atomic STOP prefix),
+E3.4 (S1 never recomputes a historical BLOCKED CLOSE; closure is monotone) and corrects the E1.3 oracle. Wherever
+this plan's revision-1 text says "Erratum 1 r1/r2", the governing text is now r3; the "Revision 2 changes" table
+lists every place that changed. It is not yet adopted.
 
-**Controller note (erratum draft revision 2).** The erratum under review is now draft revision 2,
-`s1_design_v5_addendum3_erratum1_draft_r2.md`, sha256
-`b03b760dcded5b5d6ede5981e2c6b643d7647edb5bcedfbd2c9ba723cae1ef28`. It differs from revision 1 only by three
-clarifications that this plan already implements, which the drafter raised as alignment points:
-- E2.4: `seals_checked` lists every seal file under `s1_out/seals/`;
-- E3.4: a BLOCKED CLOSE that cannot be recomputed fails closed;
-- E5.5: staging keys label the real files under `<root>/s1_staging/…`, and the manifest hashes live bytes.
+**Controller note (erratum draft revision 4).** The governing erratum draft is now revision 4,
+`s1_design_v5_addendum3_erratum1_draft_r4.md`, sha256
+`b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f`. It adds only the clarifications the drafter
+raised against r3, which this plan already implements:
+- E2.2: the wrong-selection check at step 4a;
+- E2.3: the single sqlite file under the trusted-writer model;
+- E2.5: post-START closes only, the fence vs the stop record, and at most 3 retries per invocation;
+- E5.5: the nested seal staging key.
 
-References below to "draft revision 1" read as revision 2 for these three items.
+Read "r3" below as r4.
 
 **Every Codex ruling below is a requirement. There is no "implement the proposed reading until Codex disagrees"
 default anywhere in this plan.** Items that still need a decision are listed under "Blockers", together with the
 tasks they stop.
 
-## Revision 1 changes
+## Revision 2 changes
+Each line gives the change and the finding, ruling or erratum item it answers. Rows 1–333 keep their numbers (some
+are rewritten in place); rows 334–341 are new. Rows whose revision-1 content was removed are rewritten, not deleted,
+so numbering stays contiguous.
+
+| # | change | answers |
+|---|---|---|
+| R2-01 | Every post-START seal is the F4 stage `seal/<close>` (single member `seals/<close>.json`; envelope inputs `qualified_line` + `tree_manifest`; request_policy null; F4.1–F4.7 incl. recovery). Task 8: `spec`, `single_member`, `seal_stages`, `SEAL_SPEC`, `run(…, extra_gate, stage_check)`, evaluate covers seal stages and seal files on disk. Task 7: `run_seal_stage`, `seal_gate`, `seal_check`, `determined`; `finalize_close` runs the seal stage. Task 3: lock name `stage-seal-<close>`. Rows 266, 331 rewritten. | A3-PR1-1, E2.1 r3 |
+| R2-02 | Atomic decisions: every stage row goes through `product_context`, whose CLOSED is read from the CLOSE rows of the same sqlite file inside BEGIN IMMEDIATE (steps 2/3 for INTENT, PREPARED, CREATED). Seal INTENT only while ACTIVE and for a determined close (step 5); a wrong selected QUALIFIED is INVALIDATE (4a, new `Context.stage_check`, `Request.inputs`). Barrier tests: INVALID and CLOSE committed between the ACTIVE read and PREPARED. Rows 260, 261 rewritten; row 334 added. | A3-PR1-1, E2.2, E2.3 r3, E2.8 |
+| R2-03 | TRIAL-STOP fence: new `Context.stop_fence`, evaluated at step 5 inside the TRIAL-STOP transaction (`s1_slot.stop_fence`): refused unless every close determined by its rows has a CREATED seal stage. `decide_stop` = run pending seal stages, append, retry on the fence refusal (bounded), never INVALID, no worker-lock wait. Test: later-close QUALIFIED before STOP with an unchanged stop record is fenced, then commits. Rows 262, 323 rewritten. | A3-PR1-1, E2.5 r3, E2.8 |
+| R2-04 | Removed: `seals_checked` (reports and PREPARED commitments), the published-committed set, `publish_seal`, stop-lock publication, the r1 `required_seals` routes. `required_seals` = CREATED seal stages. After STOP: a deleted CREATED seal is stage-replaced and never recreated; a seal file with no PREPARED is registration-artifact; a post-STOP seal INTENT is refused. Rows 55, 187, 263–265, 324, 325 rewritten; rows 335, 336 added. Tests replaced in Tasks 6, 7, 8, 11. | A3-PR1-1, E2.4, E2.6, E2.7 r3 |
+| R2-05 | Execution order 1–5, 8, 6, 7, 9…: Tasks 6 and 7 need Task 8's stage engine (task numbers unchanged). | consequence of R2-01 |
+| R2-06 | S1 never recomputes a historical BLOCKED CLOSE: `_blocked_evidence_problem` and every `root` parameter of `trials`, `_close`, `open_trial`, `require_no_open_trial`, `closed_in` and the gate's lookup are removed; a BLOCKED CLOSE is validated like every CLOSE from the mailbox alone; closure is monotone. Two-root lifecycle test added (row 337). Row 273 rewritten (grammar/prev/bundle + the helper), row 328 becomes Codex-procedural (`proc`), row 332 shows closure unaffected by local files. | A3-PR1-2, E3.4, E3.6 r3 |
+| R2-07 | E1.3 oracle: after a committed TIMEOUT, a later QUALIFIED/FAILED from the authorized worker is LOST-RACE at 4c whatever R; REFUSE for late R only while no terminal exists. Row 257 test and text fixed (both cases LOST-RACE), rows 320–321 reworded; precedence cases added (row 338); the Hypothesis property gains the two boundary `@example`s. | Codex E1 oracle note, E1.3 r3 |
+| R2-08 | Hypothesis: `@settings(derandomize=True, database=None)` plus explicit `@example`s for every retained minimized failure (listed in `a3/t2_examples.md`); no example database. Row 298 is now an executed test that imports and runs the decorated property in the pinned testenv and inspects its settings object (no source-string check). Rows 48, 298, Global Constraints and Task 15 Step 4 rewritten. | A3-PR1-3 |
+| R2-09 | Mutation harness classifies from pytest JUnit XML plus a plugin installation record (anchor found, original/mutated source sha256 differ): "killed" only with a passing control, the killer collected and set up OK, and a `<failure>` at its reviewed agreed assertion `file:line`; error, untested, timeout, crash, not-installed, failed-elsewhere, survived and equivalent are separate labels. Cosmic Ray runs through `cr_guard` (errors never count as kills). Classifier self-tests for collection error, missing fixture, syntax error, plugin error, semantic regression, timeout, crash, not-installed, failing control, listed equivalent. Rows 291–297 rewritten; rows 339–341 added. Erratum mutants now cover CLOSE-blind seal decisions, the STOP fence and non-monotone BLOCKED closure. | A3-PR1-4 |
+| R2-10 | Controller note, Spec paragraph, Revision 2 table and self-review point to Erratum 1 draft r3 (777de174…). ERRATUM1_SHA256 is the adopted copy of r3 (or the revision actually adopted). | coordinator instruction |
+
+## Revision 1 changes (history; where an R1 entry conflicts with an R2 entry above, R2 governs)
 Each line gives the change and the finding, ruling or erratum item it answers. "Row n" means a row of the
 requirement map. Row numbers 1–255 are kept; rows 256–333 are new. R1-33..R1-36 align the plan with Erratum 1
 draft revision 1 (bee16ded…).
@@ -102,9 +128,9 @@ journal (OQ-19).
 recorded in `C:\Users\gl450\.coordination\trading_app\s1_addendum3_r5_check_codex_20261102\REVIEW.txt`. The
 interpretations recorded there are conditions of this plan; see "Codex conditions".
 
-**Erratum 1 governs over Addendum 3 where they differ.** Its draft is revision 1, sha256
-`bee16deda794a652098f9ae79ac1d5357ca6cb63b20735ed32d786a74980c63e` (rev 0, 4dc7a3c5…, is superseded). The adopted
-byte-frozen copy of revision 1 (or of whatever revision Codex and the operator adopt) will be
+**Erratum 1 governs over Addendum 3 where they differ.** Its draft is revision 3, sha256
+`777de1743b3455b6d38a2c5008d51baf0d86cfbaf66215119e78c0f270d8e368` (revisions 0–2 are superseded). The adopted
+byte-frozen copy of revision 3 (or of whatever revision Codex and the operator adopt) will be
 `research/s1/docs/s1_design_v5_addendum3_erratum1.md`, with hash ERRATUM1_SHA256 filled from that copy. Erratum
 items E1–E5 are requirements of this plan, each marked "pending Codex acceptance of E1–E5". Under the erratum's E6,
 no task starts before the erratum is adopted.
@@ -162,19 +188,25 @@ together; the spec's clauses govern.
   - Slot terminal decisions (QUALIFIED, FAILED, TIMEOUT, MISSED) are arbitrated only by the journal transaction. The
     finalizer never takes, waits for or tests the work lock for a decision.
   - Stage and stop operations keep F5.1.
-- **Seals (Erratum E2 r1):**
-  - No seal is published unless the trial is ACTIVE, under the stop lock; a held stop lock is pending (E2.6).
-  - The stop operation publishes every determined unpublished seal before TRIAL-STOP (E2.5).
-  - Every QUALIFIED tree and every PREPARED commitment carries `seals_checked`; those seals are published-committed
-    and are never recreated (E2.4). After STOP, seals are only verified.
+- **Seals (Erratum E2 r3, revision 2):**
+  - Every post-START seal is the F4 stage `seal/<close>` (single member `seals/<close>.json`; inputs = the selected
+    QUALIFIED line and its tree detail; request_policy null). Its INTENT is allowed only while ACTIVE and only for
+    a determined close; its INTENT/PREPARED/CREATED are decided in the F0.1 transaction, which reads INVALID, STOP
+    and CLOSE (Codex's CLOSE rows, same sqlite file), so no seal is decided outside ACTIVE.
+  - TRIAL-STOP is refused inside its own transaction unless every close determined by its rows has a CREATED seal
+    stage; the stop operation runs pending seal stages, appends, and retries on that refusal.
+  - A CREATED seal missing/changed is stage-replaced and never recreated; a seal file with no PREPARED is
+    registration-artifact. `seals_checked`, the published-committed set and stop-lock publication are removed.
 - **Evidence manifest (Erratum E5.5 r1):** exact format and membership; a mismatch is INVALIDATE
   (registration-artifact), checked at the start attestation and by every gate after the OPENING-ACK.
 - **ACK candidates (Erratum E4):** only codex->claude `experiments-prereg` lines at line start.
 - **Mutation testing (Task 15):** Cosmic Ray 8.3.15 on the changed critical modules, plus targeted semantic mutants.
   Survivors, timeouts and untested mutants are reported separately. There is no blanket score target.
-- **Property tests:** every Hypothesis test uses `derandomize=True`, `@seed(20261103)` and
-  `database=DirectoryBasedExampleDatabase("research/s1/s1_evidence/a3/hypothesis_db")`. Every minimized failure ever
-  found is kept as an `@example`. Each property's docstring states its actual scope.
+- **Property tests (revision 2, A3-PR1-3):** every Hypothesis test uses `@settings(derandomize=True,
+  database=None)`; the pinned Hypothesis rejects derandomize with an explicit database (Codex probe
+  `hypothesis-settings-probe.json`). Reproducibility comes from derandomization, not database replay. Every minimized
+  failure ever found is kept as an explicit `@example` and listed in `a3/t2_examples.md`. Row 298 imports and
+  executes each decorated property in the pinned testenv. Each property's docstring states its actual scope.
 - **TDD:**
   - Every task records a **behavioural RED**, obtained against an interface stub that has the final signatures and
     permissive (pre-Addendum-3) behaviour, before the fix.
@@ -332,9 +364,8 @@ or rejected a proposal, the affected task code and map rows are rewritten (see "
 - **OQ-11 (report before J; after.json): AMEND.**
   - The pre-J report is frozen and is a member of the QUALIFIED tree.
   - `after.json` is display-only and optional. It is never read by any check or decision (E5.2).
-  - Required seal membership comes from committed history (E2.4 r1): each pre-J report's `seals_checked` (bound by
-    the QUALIFIED tree), each committed PREPARED commitment's `seals_checked`, the first-QUALIFIED rows and the F2
-    stop record.
+  - Required seal membership comes from committed history only: revision 2 (E2.6 r3) makes it exactly the CREATED
+    `seal/<close>` stages (the r1 `seals_checked` route is removed).
   - `_report_seals` and `_capture_seal_problems` are rewritten accordingly. The old->new mapping is listed in
     `a3/t6_old_new.md`. Rows 264–266; Tasks 6 and 7.
 - **OQ-12 (FAILED timing): APPROVE WITH CONDITIONS.**
@@ -351,17 +382,17 @@ or rejected a proposal, the affected task code and map rows are rewritten (see "
      tree. The seal file is the published copy of `s1_slot.seal_bytes` of that evidence.
   2. **Readers.** Fences, stop record, final plan and score recompute from the evidence; a present copy must equal the
      recomputation.
-  3. **Publication.** Only while ACTIVE, under the stop lock (read state, publish, re-read state); a held stop lock
-     is no change and pending (E2.6). The stop operation publishes every determined unpublished seal, re-reads, then
-     appends TRIAL-STOP, under the same lock (E2.5). A seal is never published in STOPPED, INVALID or CLOSED.
-  4. **Required (published-committed, E2.4 r1).** A seal is determined once its close's first QUALIFIED slot is
-     committed with every earlier slot terminal. It becomes published-committed once a later committed QUALIFIED
-     tree or PREPARED commitment lists it in `seals_checked`, or the F2 stop record lists it. A published-committed
-     seal that is missing or different is INVALID (registration-artifact) and is never recreated.
-  5. **Not yet required.** Before STOP, a determined, not-yet-published-committed, missing seal may be published
-     once, with exactly its recomputed bytes.
+  3. **Publication = a committed stage decision (revision 2, E2 r3).** The seal is the F4 stage `seal/<close>`.
+     Its INTENT is refused unless ACTIVE and the close is determined (step 5); a wrong selected QUALIFIED is
+     INVALIDATE contradictory-stage (4a); PREPARED/CREATED follow steps 2 and 3 inside the transaction that reads
+     INVALID, STOP and CLOSE. A file written after a concurrent INVALID/CLOSE for a PREPARED decided while ACTIVE
+     is a materialization of that decision and carries no authority in INVALID/CLOSED.
+  4. **STOP prefix.** TRIAL-STOP is refused in its own transaction unless every close determined by its rows has a
+     CREATED seal stage; the stop operation runs pending seal stages, then appends, and retries on that refusal.
+  5. **Required.** Every CREATED seal stage; missing/changed/unparseable is stage-replaced and never recreated. A
+     seal file with no PREPARED is registration-artifact in every state.
 
-  Rows 55, 187, 260–266, 323–325 and 331; Tasks 6, 7, 8 and 11.
+  Rows 55, 187, 260–266, 323–325, 331 and 334–336; Tasks 2, 7, 8 and 11.
 - **OQ-15 (opening receipt and books): AMEND; KEEP SINGLE.**
   - start_attest stays the single member `attest_start.json`.
   - `opening_books.json` is a deterministic derived input:
@@ -399,7 +430,8 @@ or rejected a proposal, the affected task code and map rows are rewritten (see "
 - **OQ-22 (ACQUIRE-ACK lag): APPROVE.** Both the ACK's `created` and the actual execution time satisfy the lag, the
   attestation causal order is kept, and the New York session instants are exact. Task 12.
 - **OQ-23 (lock names): APPROVE WITH CONDITIONS.**
-  - Lock names are validated against `^(slot-\d{8}T\d{6}Z|stage-(audit|opening|start_attest|prereg|stop_attest|final_plan|final|score)|stop)$`.
+  - Lock names are validated against `^(slot-\d{8}T\d{6}Z|stage-(audit|opening|start_attest|prereg|stop_attest|final_plan|final|score|seal-\d{4}-\d{2}-\d{2})|stop)$`
+    (revision 2 adds the `seal-<close>` stage locks of E2.1 r3).
   - The trial_id is validated against uuid4.
   - Any other name is a LockError: no path traversal or cross-trial aliasing. The deadline conflict is solved by
     E1, not by naming. Row 309; Task 3.
@@ -537,8 +569,9 @@ or rejected a proposal, the affected task code and map rows are rewritten (see "
 | `research/s1/s1_tests/conftest.py` | MAILBOX_SCHEMA, `s1_mailbox_init`, network guard, `Spies`, trial and journal fixtures, migrated helpers | 1, 5, 6, 7, 9–13 |
 | `research/s1/s1_tests/test_s1_a3_*.py` (new) | journal, precedence, locks, trial, gate, slots, finalizer, stage, audit, prestart, stop, final, score, matrix, residual, codex_probes, mutants | each |
 | `research/s1/docs/s1_design_v5_addendum3_erratum1.md` (pending, BLK-1) | the adopted byte-frozen Erratum 1; pinned in DOC_PINS as ERRATUM1_SHA256 | 1 (precondition) |
-| `research/s1/s1_evidence/a3/` (new) | RED/GREEN/full outputs, old->new lists, hashes, historical probes, t11_dispositions.md (BLK-3), hypothesis_db/, t15 mutation reports | each |
-| `research/s1/s1_evidence/cr_a3/<module>/cr.toml` (new) | Cosmic Ray 8.3.15 configs for the changed critical modules | 15 |
+| `research/s1/s1_evidence/a3/` (new) | RED/GREEN/full outputs, old->new lists, hashes, historical probes, t11_dispositions.md (BLK-3), t2_examples.md (retained Hypothesis examples), t15 mutation reports with JUnit files and t15_agreed_assertions.json | each |
+| `research/s1/s1_evidence/cr_a3/<module>/cr.toml` (new) | Cosmic Ray 8.3.15 configs for the changed critical modules (test-command through `cr_guard`) | 15 |
+| `research/s1/s1_tests/cr_guard.py` (new, test tooling) | JUnit-based guard so Cosmic Ray never reports an error as a kill (A3-PR1-4) | 15 |
 
 ---
 ## Requirement -> expected-outcome map (spec F10: "delivered with the implementation plan, before code, for Codex review")
@@ -603,14 +636,14 @@ All test paths are under `research/s1/s1_tests/`. `[x]` names a parametrize id.
 | 45 | F0.5 6, E1.2 | TIMEOUT with now < D -> refuse; at D it appends whether or not a worker is alive | test_s1_a3_precedence.py::test_precedence_table[6-t-before-d,7-t-finalizer-actor]; row 256 | REFUSE / APPEND at D | T2,T7 | B |
 | 46 | F0.5 6 | MISSED with now < E -> refuse | test_s1_a3_precedence.py::test_precedence_table[6-m-before-e,6-m-at-e] | REFUSE / APPEND | T2 | B |
 | 47 | F0.5 7 | otherwise APPEND | test_s1_a3_precedence.py::test_precedence_table[7-*] (gi-permitted, p, c-opening-actor, c-recovery-actor, trial-invalid-active, trial-invalid-stopped, stop) | APPEND | T2 | B |
-| 48 | F0.5 sub-order | sub-step conditions are disjoint; no outcome depends on table order | test_s1_a3_precedence.py::test_substep_conditions_are_disjoint_and_decide_matches_the_oracle (Hypothesis, pinned: derandomize, seed 20261103, example database kept; scope: slot-subject histories × slot kinds × 5 instants only, not the stage or trial lifecycle) | at most one condition per sub-step; decide == independent oracle; minimized failures kept as @example | T2 | B |
+| 48 | F0.5 sub-order | sub-step conditions are disjoint; no outcome depends on table order | test_s1_a3_precedence.py::test_substep_conditions_are_disjoint_and_decide_matches_the_oracle (Hypothesis, A3-PR1-3: `derandomize=True` with `database=None`; every retained minimized failure is an explicit `@example`; scope: slot-subject histories × slot kinds × 5 instants only, not the stage or trial lifecycle) | at most one condition per sub-step; decide == independent oracle; the decorated property executes in the pinned testenv (row 298) | T2 | B |
 | 49 | F0.5 who | QUALIFIED/FAILED/PREPARED need the opening actor; work never taken over | rows 13, 25, 27 | as stated | T2 | B |
 | 50 | F0.7 | exceptions in a finalizer/recovery path append no row; unexpected errors fail closed | test_s1_a3_finalizer.py::test_finalizer_unexpected_error_appends_nothing; test_s1_a3_stage.py::test_recovery_unexpected_error_appends_nothing | SystemExit refusal, row count unchanged (the finalizer path takes no work lock, E1) | T7,T8 | B |
 | 51 | F0.6 | the journal decides; local files are evidence | test_s1_a3_gate.py::test_journal_state_governs_over_local_files | INVALID row and no aborted.json -> refuse, no work | T5 | B |
 | 52 | F0.6 | before any callback, capture, request or pricing: open trial, state, bundle are read | test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[10 commands] | refusal with spies zero; gate call order recorded first | T5 | B |
 | 53 | F0.6 | INVALID is irreversible; restoring files or deleting aborted.json never resumes | test_s1_a3_gate.py::test_invalid_is_irreversible | still refused, zero callbacks | T5 | B |
 | 54 | F1 | ACTIVE/STOPPED/INVALID derivation; CLOSED layered on top | test_s1_a3_precedence.py::test_trial_state_derivation; test_s1_a3_trial.py::test_closed_is_layered_on_the_journal_state | as stated | T2,T4 | B |
-| 55 | F1 table, E2.1 | no new seal in STOPPED/INVALID/CLOSED, whatever the QUALIFIED's seq | test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified; test_s1_a3_stop.py::test_no_new_seal_after_the_stop (QUALIFIED after the STOP) | pre-STOP QUALIFIED with an unpublished seal, then STOP: no seal file ever; post-STOP QUALIFIED: no seal; neither is a stop input | T7,T11 | B |
+| 55 | F1 table, E2 r3 | no seal stage INTENT or PREPARED commits in STOPPED/INVALID/CLOSED, whatever the QUALIFIED's seq | test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified; test_s1_a3_stop.py::test_no_new_seal_after_the_stop (QUALIFIED after the STOP) | close determined only after the STOP: seal INTENT refused, no seal file; post-STOP QUALIFIED: no seal; neither is a stop input | T7,T11 | B |
 | 56 | F1 table | finalization stages forbidden while ACTIVE | test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[stop_attest,final_plan,final,score] | REFUSE, no row, zero callbacks | T11 | B |
 | 57 | F1 table | re-entry follows its gate; INVALID refused with no work | rows 53, 226 | as stated | T5,T8 | B |
 | 58 | F1 graph | each finalization stage once, in dependency order, binding the STOP row | test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[8 stages] | REFUSE until predecessor CREATED and ACK | T8 | B |
@@ -742,7 +775,7 @@ All test paths are under `research/s1/s1_tests/`. `[x]` names a parametrize id.
 | 184 | F10 CH1 | final_plan before stop_attest refuses with no row | test_s1_a3_stop.py::test_final_plan_before_stop_attest_refuses_with_no_row | REFUSE, no row | T11 | B |
 | 185 | F10 CH1 | post-STOP sampled slot excluded; post-stop historical prices used | rows 62, 63 | as stated | T11,T13 | B |
 | 186 | F10 CH1 | post-STOP SLOT-INTENT for a new slot: LOST-RACE, no capture | test_s1_a3_slots.py::test_post_stop_new_slot_intent_is_lost_race_with_no_capture | LOST-RACE; spies zero | T6 | B |
-| 187 | F10 CH1, E2 | post-STOP new seal forbidden, including a pre-STOP QUALIFIED whose seal was unpublished | rows 55, 260–263 | no seal; missing required seal INVALID | T7,T11 | B |
+| 187 | F10 CH1, E2 r3 | post-STOP new seal forbidden, including a pre-STOP QUALIFIED whose close is determined only after the STOP | rows 55, 260–263, 334–336 | no seal; a deleted CREATED seal is INVALID | T7,T11 | B |
 | 188 | F10 CH1 | post-STOP SLOT-INTENT for a slot with a row: INVALID repeat-attempt | test_s1_a3_slots.py::test_post_stop_repeat_slot_intent_is_invalid_repeat_attempt | INVALID repeat-attempt | T6 | B |
 | 189 | F10 CH1 | an in-flight slot started before the stop completes but never enters final or score | test_s1_a3_stop.py::test_in_flight_slot_started_before_the_stop_completes_but_never_enters_final_or_score | QUALIFIED appended; absent from final_plan/score inputs | T11 | B |
 | 190 | F10 CH1 | stop.json publication gap recovers; deleting after a finalization INTENT is INVALID; restoration doesn't resume | rows 66, 68 | as stated | T11 | B |
@@ -812,23 +845,23 @@ All test paths are under `research/s1/s1_tests/`. `[x]` names a parametrize id.
 | 254 | F10 Other | before the AUDIT-ACK, the opening and START are blocked | test_s1_a3_gate.py::test_before_the_audit_ack_the_opening_and_start_are_blocked | refusal, zero callbacks | T5 | B |
 | 255 | F10 Other | matrix: every non-empty subset of the 9 elements × {bundle same, changed} × {deleted, changed, unparseable} at each commitment point. The 10 points are 9 commitment points (audit, opening, start_attest, prereg, TRIAL-STOP+stop.json, stop_attest, final_plan, final, score) plus the OPENING-ACK point. "Audit tree" means every file under s1_out/audit/ | test_s1_a3_matrix.py::test_matrix (exhaustive when S1_MATRIX_FULL=1: 511×2×3×10 = 30,660 cases; default: singletons, pairs, complements, full set) | the oracle's outcome; zero callbacks on every refusal/INVALID. INTENT/PREPARED boundaries are covered by the per-stage state-table tests (rows 122–129, 180, 228–229), not by the matrix; the matrix claims no more | T14 | B |
 | 256 | E1.2, E1.7a, PLAN-1 | a real child holds `slot-<s>` and stays alive and blocked past D; a competing finalizer at D appends TIMEOUT | test_s1_a3_finalizer.py::test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock | TIMEOUT row (op = the child's INTENT op, actor = finalizer); child still alive; no INVALID | T7 | B |
-| 257 | E1.3, E1.4, E1.7a | the live child's later QUALIFIED request is REFUSE (R >= D) or LOST-RACE (R < D, after TIMEOUT); no seal; its files are not moved while it lives | test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_refuse_or_lost_race_and_its_files_stay[late-r,early-r] | REFUSE / LOST-RACE; claim and capture still in captures/ until the child exits; then its own move to late/ (LOST-RACE) or the deferred cleanup | T7 | B |
+| 257 | E1.3 r3, E1.4, E1.7a | after a committed TIMEOUT, the live child's later QUALIFIED request is LOST-RACE at 4c whatever its R (REFUSE for a late R applies only while no terminal exists, row 205); no seal, no INVALID; its files are not moved while it lives | test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[late-r,early-r] | LOST-RACE in both cases; claim and capture still in captures/ until the child exits; then the deferred cleanup | T7 | B |
 | 258 | E1.2 | the finalizer's TIMEOUT/MISSED decisions never take, wait for or test the work lock | test_s1_a3_finalizer.py::test_finalizer_decision_never_touches_the_work_lock | lock spy: no `slot-*` acquire before or during the TIMEOUT/MISSED append | T7 | B |
 | 259 | E1.4, OQ-13 | leftover cleanup after TIMEOUT runs only when the work lock is acquirable; deferred otherwise; it never affects a decision | test_s1_a3_finalizer.py::test_timeout_cleanup_waits_for_the_work_lock | while held: files stay, deferred note; after release: own-op files to late/; decisions identical | T7 | B |
-| 260 | E2.1, E2.7 (1), PLAN-2 | a QUALIFIED committed before the STOP whose seal becomes determined only after the STOP (an earlier slot still in flight): once TRIAL-STOP is committed no seal is ever written, including by a finalizer that read state before the STOP | test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified | no seal file; refusal "outside ACTIVE" in STOPPED | T7 | B |
-| 261 | E2.3, E2.7 (2) | publish-then-STOP race: the publisher holds the stop lock; the stop side finds it held, then sees the published seal | test_s1_a3_finalizer.py::test_seal_publication_and_stop_race[publish-first] | seal published while ACTIVE; TRIAL-STOP after it; no post-STOP seal | T7 | B |
-| 262 | E2.3, E2.5, E2.6, E2.7 (2) | STOP-then-publish race: the stop side holds the stop lock; the publisher finds it held, makes no change and returns pending (E2.6); after TRIAL-STOP it publishes nothing. The stop operation itself publishes every determined unpublished seal before TRIAL-STOP (E2.5) | test_s1_a3_finalizer.py::test_seal_publication_and_stop_race[stop-first]; test_s1_a3_stop.py::test_decide_stop_publishes_every_sampled_seal_before_trial_stop | pending while held; no seal written after STOP; decide_stop's seal publication precedes its TRIAL-STOP append | T7,T11 | B |
-| 263 | E2.2, E2.7 (3) | a missing required (published-committed) seal after STOP is INVALID (registration-artifact), never recreated | test_s1_a3_finalizer.py::test_missing_required_seal_after_stop_is_invalid | INVALID; the file still absent; zero callbacks | T7 | B |
+| 260 | E2.3, E2.8 r3 (barrier INVALID), A3-PR1-1 | ACTIVE read (seal INTENT committed), then a concurrent TRIAL-INVALID commits, then the seal stage's PREPARED is LOST-RACE inside its own transaction; also: a QUALIFIED committed before the STOP whose close is determined only after the STOP gets no seal (INTENT refused) | test_s1_a3_finalizer.py::test_barrier_invalid_between_active_read_and_prepared; test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified | seal stage rows == [INTENT]; no PREPARED; no seal file / INTENT refused, no file | T7 | B |
+| 261 | E2.3, E2.8 r3 (barrier CLOSE), A3-PR1-1 | the same barrier with a Codex CLOSE committed into the same sqlite file: PREPARED is refused (F0.5 step 2, CLOSED read in the transaction) | test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared | seal stage rows == [INTENT]; the trial is closed; no seal file | T7 | B |
+| 262 | E2.5 r3, E2.8 r3 (later close), A3-PR1-1 | TRIAL-STOP is refused in its own transaction unless every close determined by its rows has a CREATED seal stage; the stop operation's seal pass is followed by a later-close QUALIFIED with an unchanged stop record: STOP refused, then after that seal stage STOP commits | test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal; test_s1_a3_stop.py::test_later_close_qualified_before_stop_with_unchanged_record_is_fenced | REFUSE "not sealed" / APPEND after the seal stage; the later seal's CREATED seq < the STOP seq; stop record unchanged | T7,T11 | B |
+| 263 | E2.6 r3, E2.8 r3 (deleted CREATED seal) | a CREATED seal deleted after STOP (and while ACTIVE) is INVALID (stage-replaced), never recreated | test_s1_a3_finalizer.py::test_deleted_created_seal_is_invalid_and_never_recreated[after-stop,while-active] | INVALID stage-replaced; the file still absent; zero callbacks | T7 | B |
 | 264 | E5.2, OQ-11, PLAN-4 | after.json is display only: deleting or tampering with it changes no decision | test_s1_a3_slots.py::test_after_json_is_display_only[deleted,tampered] | gate outcome, required seals and stop record identical to the untouched run | T6,T7 | B |
-| 265 | E2.4 r1, OQ-14 | a published-committed seal (listed by a committed QUALIFIED tree's `seals_checked`), deleted while ACTIVE, is INVALID and never recreated; a determined seal NOT yet published-committed may be published once with exactly its recomputed bytes | test_s1_a3_finalizer.py::test_previously_required_seal_deleted_is_invalid_and_never_recreated; test_s1_a3_finalizer.py::test_seal_publication_and_stop_race[publish-first] (the not-yet-required republication) | INVALID registration-artifact, no publication / first publication allowed | T7 | B |
-| 266 | E2.4 r1, OQ-11 | required seal membership comes from committed history: the pre-J report's `seals_checked` is in the QUALIFIED tree | test_s1_a3_slots.py::test_reports_record_seals_checked_in_the_tree | report `seals_checked` == {relpath: sha} of the published seals; changing it changes the tree detail | T6 | B |
+| 265 | E2.4 r3, E2.8 r3 (seal without PREPARED), OQ-14 | a seal file with no PREPARED row is a violation in every state | test_s1_a3_finalizer.py::test_seal_file_without_prepared_is_invalid | INVALID registration-artifact | T7 | B |
+| 266 | E2.1 r3, OQ-14 | every post-START seal is the F4 stage `seal/<close>`: kind single, member seals/<close>.json, envelope inputs = the selected QUALIFIED line and its tree detail, request_policy null; INTENT -> PREPARED -> CREATED | test_s1_a3_finalizer.py::test_seal_is_an_f4_stage | rows as stated; inputs {qualified_line, tree_manifest}; policy None; no `seals_checked` | T7 | B |
 | 267 | E5.6, OQ-32, PLAN-4 | raw capture backup change/deletion on a QUALIFIED slot | test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-changed,qualified-backup-deleted] | INVALID registration-artifact | T7 | B |
 | 268 | OQ-15 | opening_books.json is a hash-bound derived input of the single start_attest stage | test_s1_a3_prestart.py::test_opening_books_is_a_hash_bound_derived_input[changed,deleted] | after start_attest CREATED: change or deletion -> INVALID stage-replaced; before INTENT: a differing pre-existing file refuses the attestation | T10 | B |
 | 269 | F7.2(b) literal, OQ-37 | start_attest refuses when any scheduled opening-close slot lacks a terminal row in the OPENING-ACK prefix | test_s1_a3_prestart.py::test_start_attest_requires_every_opening_close_slot_terminal_in_the_ack_prefix | REFUSE, no row | T10 | B |
 | 270 | F3, OQ-37 | the opening slot is the earliest QUALIFIED, independent of issuance | test_s1_a3_prestart.py::test_opening_slot_is_the_earliest_qualified_independent_of_issuance | OPENING-ACK opening_slot must equal the earliest QUALIFIED even when later slots also qualified | T10 | B |
 | 271 | E3.6a (pending E3) | BLOCKED inputs: blocked.json written, no journal row, ACTIVE, zero captures/requests/valuation | test_s1_a3_prestart.py::test_blocked_prereg_is_a_pre_intent_refusal_record | as stated | T10 | B |
 | 272 | E3.6b (pending E3) | deleting blocked.json and re-running gives the same refusal and an identical recomputation of the reasons | test_s1_a3_prestart.py::test_blocked_rerun_after_deletion_recomputes_identically | same SystemExit text; same reasons; still no row | T10 | B |
-| 273 | E3.4 r1, E3.6c (pending E3) | a CLOSE with reason BLOCKED whose evidence hash is wrong is refused; a correct one closes; h = sha256(c.canonical({trial_id, reasons})), never the file bytes | test_s1_a3_trial.py::test_close_blocked_evidence_hash[ok,wrong] (unit, recomputation stubbed); test_s1_a3_prestart.py::test_close_blocked_evidence_hash_end_to_end[ok,wrong] | ok: zero open trials; wrong: Refusal (trial stays open); h != sha256 of blocked.json bytes | T4,T10 | B |
+| 273 | E3.4 r3, A3-PR1-2 (pending E3) | a BLOCKED CLOSE is validated like every CLOSE (grammar, prev, AUDIT order, bundle, channel) from the mailbox alone; S1 never recomputes its evidence; h = sha256(c.canonical({trial_id, reasons})) is the helper Codex issues, never the file bytes | test_s1_a3_trial.py::test_close_blocked_is_validated_like_every_close[ok,wrong-prev,wrong-bundle]; test_s1_a3_prestart.py::test_blocked_close_evidence_helper_end_to_end | ok: zero open trials; wrong prev/bundle: Refusal; h != sha256 of blocked.json bytes | T4,T10 | B |
 | 274 | E3.6d (pending E3) | a non-BLOCKED prereg is unaffected | test_s1_a3_prestart.py::test_non_blocked_prereg_is_unaffected | prereg CREATED; no blocked.json | T10 | ctrl |
 | 275 | E4.2, E4.4, PLAN-5 | CLOSE-looking lines outside the official channel are never candidates | test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-role-close,wrong-key-close] | ignored: the trial stays open, nothing refuses | T4 | B |
 | 276 | E4.2, PLAN-5 | arbitrary peer drafts, indented or quoted token lines in any message are ignored | test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[peer-draft,indented-line,quoted-line] | ignored | T4 | B |
@@ -846,14 +879,14 @@ All test paths are under `research/s1/s1_tests/`. `[x]` names a parametrize id.
 | 288 | PLAN-6 | Cosmic Ray on s1_stage.py | a3/t15_cr_s1_stage.txt | as row 284 | T15 | proc |
 | 289 | PLAN-6 | Cosmic Ray on the changed s1_seal.py functions (stop_record, decide_stop, stop_check, sampled_seals, sampled_history) | a3/t15_cr_s1_seal.txt | as row 284 | T15 | proc |
 | 290 | PLAN-6 | Cosmic Ray on the changed s1_collect.py functions (audit_policy, final_policy, _Authorizer, _get, _paged, do_audit, do_final) | a3/t15_cr_s1_collect.txt | as row 284 | T15 | proc |
-| 291 | PLAN-6 | targeted mutant: deadline comparisons (`>=` -> `>`, `<` -> `<=`) in decide step 6, ×4 | test_s1_a3_mutants.py::test_targeted_mutant_is_killed[deadline-*] | each mutant killed by a named test | T15 | B |
-| 292 | PLAN-6 | targeted mutant: omitted commitments/ACKs (envelope input dropped, verify_ack field skipped, check_journal skipped, evidence-manifest check skipped) | …[omitted-*] | killed | T15 | B |
-| 293 | PLAN-6 | targeted mutant: STOP rules (STOP_N `>=` -> `>`, pending exclusion removed, prefix seq `<=` -> `<`) | …[stop-*] | killed | T15 | B |
-| 294 | PLAN-6 | targeted mutant: owner/takeover (4a actor check removed, TIMEOUT op check removed, recovery uses own op) | …[owner-*] | killed | T15 | B |
-| 295 | PLAN-6 | targeted mutant: wrong CA scope (window/full_history swapped; full_history start = window start) | …[scope-*] | killed | T15 | B |
-| 296 | PLAN-6 | targeted mutant: midnight cutoff from the reservation clock | …[cutoff-reservation-clock] | killed | T15 | B |
-| 297 | PLAN-6 | targeted mutants for the erratum: the finalizer takes the work lock; a seal is published in STOPPED; a non-official CLOSE counts; the backup is dropped from the tree; after.json is used as authority | …[erratum-*] | killed | T15 | B |
-| 298 | PLAN-6 | Hypothesis settings pinned; the example database is kept under evidence | test_s1_a3_mutants.py::test_hypothesis_settings_are_pinned | every @given in test_s1_a3_* has derandomize=True and @seed(20261103) | T15 | static |
+| 291 | PLAN-6, A3-PR1-4 | targeted mutant: deadline comparisons (`>=` -> `>`, `<` -> `<=`) in decide step 6, ×4 | test_s1_a3_mutants.py::test_targeted_mutant_is_killed[deadline-*] | label "killed" only per the JUnit classifier: mutation installed (anchor source hash differs; installed marker), unmutated control passes, the named killer test collected and set up OK and failed at its agreed assertion | T15 | B |
+| 292 | PLAN-6, A3-PR1-4 | targeted mutant: omitted commitments/ACKs (envelope input dropped, verify_ack field skipped, check_journal skipped, evidence-manifest check skipped) | …[omitted-*] | "killed" per the classifier (as row 291) | T15 | B |
+| 293 | PLAN-6, A3-PR1-4 | targeted mutant: STOP rules (STOP_N `>=` -> `>`, pending exclusion removed, prefix seq `<=` -> `<`, the E2.5 STOP fence removed) | …[stop-*] | "killed" per the classifier | T15 | B |
+| 294 | PLAN-6, A3-PR1-4 | targeted mutant: owner/takeover (4a actor check removed, TIMEOUT op check removed, recovery uses own op) | …[owner-*] | "killed" per the classifier | T15 | B |
+| 295 | PLAN-6, A3-PR1-4 | targeted mutant: wrong CA scope (window/full_history swapped; full_history start = window start) | …[scope-*] | "killed" per the classifier | T15 | B |
+| 296 | PLAN-6, A3-PR1-4 | targeted mutant: midnight cutoff from the reservation clock | …[cutoff-reservation-clock] | "killed" per the classifier | T15 | B |
+| 297 | PLAN-6, A3-PR1-4 | targeted mutants for the erratum: the finalizer takes the work lock; a seal stage's PREPARED ignores CLOSED/INVALID (closed_in skipped); a non-official CLOSE counts; the backup is dropped from the tree; a BLOCKED CLOSE is re-derived from a root (closure non-monotone) | …[erratum-*] | "killed" per the classifier | T15 | B |
+| 298 | PLAN-6, A3-PR1-3 | Hypothesis policy: `derandomize=True`, `database=None`, retained failures as `@example`; the decorated property is imported and EXECUTED in the pinned testenv (no settings or collection error), and its settings object is inspected | test_s1_a3_mutants.py::test_hypothesis_property_executes_with_the_pinned_settings | the property runs to completion; settings.derandomize is True and settings.database is None; every retained example is listed | T15 | B |
 | 299 | OQ-3 | op-reuse never hides a repeated opening subject | test_s1_a3_precedence.py::test_precedence_table[4b-si-repeat-with-reused-op,4b-gi-repeat-with-reused-op] | INVALIDATE repeat-attempt / repeat-stage | T2 | B |
 | 300 | OQ-8 (BLK-3) | lots: the earliest eligible close whose seal reaches 100 sold triggers | test_s1_a3_stop.py::test_stop_dispositions[lots-earliest] | STOPPED at that close; triggering slot = its first QUALIFIED | T11 | B |
 | 301 | OQ-8 (BLK-3) | lots: a later close that also qualifies is not chosen | …[lots-later-not-chosen] | earlier close wins | T11 | B |
@@ -875,22 +908,30 @@ All test paths are under `research/s1/s1_tests/`. `[x]` names a parametrize id.
 | 317 | OQ-35 | intent.json/prepared.json lost or changed after CREATED | test_s1_a3_stage.py::test_intent_or_prepared_json_lost_after_created_is_invalid[intent-deleted,prepared-changed] | INVALID stage-replaced | T8 | B |
 | 318 | OQ-30 | opening_receipt_sha256 is the raw file hash, distinct from the fingerprint | test_s1_a3_trial.py::test_opening_receipt_sha256_is_the_raw_file_hash | artifact_fields value == sha256_file; != receipt_sha256(fingerprint) | T4 | B |
 | 319 | Codex reply P-4 | valid pagination and empty families are not anomalous | test_s1_a3_audit.py::test_valid_pagination_and_empty_families_are_not_anomalous | COMPLETE; no TRIAL-INVALID | T9 | ctrl |
-| 320 | E1.7 (1) | live child past D; finalizer TIMEOUT; later QUALIFIED REFUSE or LOST-RACE; no seal, no INVALID; files not moved while it lives | rows 256–257 | as stated | T7 | B |
-| 321 | E1.7 (2) | R < D and J after D with TIMEOUT committed first: TIMEOUT stands | test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_refuse_or_lost_race_and_its_files_stay[early-r] | LOST-RACE; TIMEOUT stands | T7 | B |
+| 320 | E1.7 (1) r3 | live child past D; finalizer TIMEOUT; later QUALIFIED is LOST-RACE (4c) whatever its R; no seal, no INVALID; files not moved while it lives | rows 256–257 | as stated | T7 | B |
+| 321 | E1.7 (2) | R < D and J after D with TIMEOUT committed first: TIMEOUT stands | test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[early-r] | LOST-RACE; TIMEOUT stands | T7 | B |
 | 322 | E1.7 (3) | two finalizers at D: exactly one TIMEOUT | test_s1_a3_codex_probes.py::test_race_two_finalizers_one_terminal (no work lock involved) | one TIMEOUT | T7 | B |
-| 323 | E2.7 (1) | a pre-STOP QUALIFIED with an unpublished (determined) seal, then a stop operation: the stop operation publishes it before TRIAL-STOP; once TRIAL-STOP is committed no seal is ever written, including by a finalizer that read state before the STOP | test_s1_a3_stop.py::test_decide_stop_publishes_every_sampled_seal_before_trial_stop; row 260 | as stated | T7,T11 | B |
-| 324 | E2.7 (2) | the STOP race in both orders: exactly one consistent outcome | rows 261–262 | one consistent outcome, no post-STOP seal | T7 | B |
-| 325 | E2.7 (3) | a missing required seal after STOP: INVALID (registration-artifact) | row 263 | as stated | T7 | B |
+| 323 | E2.5 r3 | the stop operation runs every pending seal stage, then appends TRIAL-STOP | test_s1_a3_stop.py::test_stop_operation_runs_pending_seal_stages_before_trial_stop | every `seal/*` CREATED precedes the TRIAL-STOP append | T11 | B |
+| 324 | E2.8 r3 (publish-first, STOP-first) | publish-first: seal CREATED, then the fenced STOP commits and the seal verifies; STOP-first: a close determined after the STOP gets no seal | test_s1_a3_finalizer.py::test_seal_stage_and_stop_orders[publish-first,stop-first] | one consistent outcome, no post-STOP seal | T7 | B |
+| 325 | E2.8 r3 (deleted CREATED seal after STOP) | as row 263 | row 263 | INVALID stage-replaced | T7 | B |
 | 326 | E3.6 (1) | BLOCKED: record, no row, ACTIVE, zero spies | row 271 | as stated | T10 | B |
 | 327 | E3.6 (2) | blocked.json deleted and re-run: same refusal, identical recomputation | row 272 | as stated | T10 | B |
-| 328 | E3.6 (3) | CLOSE BLOCKED with a wrong evidence hash refused | row 273 | as stated | T4,T10 | B |
+| 328 | E3.6 r3 (Codex issuance check) | wrong reasons for a BLOCKED trial means Codex issues no CLOSE (procedural, Codex-side: checked against that trial's own root); S1 does not re-check | none (Codex procedure); S1 side: row 273 | no CLOSE issued | — | proc |
 | 329 | E3.6 (4) | a non-BLOCKED prereg unaffected | row 274 | as stated | T10 | ctrl |
 | 330 | E4.4 | wrong-role CLOSE ignored, tested next to an arbitrary-draft message and a historical other-trial message | rows 238, 275–277 | ignored; the trial stays open | T4,T5 | B |
-| 331 | E2.4 r1 | every PREPARED commitment carries `seals_checked` = {relpath: sha256} of every seal published at that moment; a committed PREPARED's `seals_checked` makes those seals published-committed (required) | test_s1_a3_stage.py::test_prepared_commitment_format[single,tree]; test_s1_a3_stage.py::test_seal_seen_only_by_a_prepared_commitment_is_required | commitment keys include `seals_checked` with the exact map; a seal listed only by a committed PREPARED is in `s1_slot.required_seals` (so Task 7's evidence check makes its deletion INVALID registration-artifact, never recreated) | T8 | B |
-| 332 | E3.4 r1 (pending E3) | with an existing valid BLOCKED CLOSE, deleting blocked.json, or deleting and re-creating it with a different `recorded_utc`, never changes h and never re-opens the trial | test_s1_a3_prestart.py::test_blocked_close_survives_delete_and_recreate[deleted,deleted-and-recreated] | h unchanged; the trial stays closed; commands refuse with "zero open trials" | T10 | B |
+| 331 | E2.1/E2.2 r3 (engine side) | the stage engine's seal family: `spec`/`single_member` for `seal/<close>` (unknown names fail closed); an extra_gate refusal makes no row; a stage_check INVALIDATE (wrong selected QUALIFIED) is committed; commitments carry no `seals_checked` | test_s1_a3_stage.py::test_seal_stage_family_in_the_engine[created,gate-refuses,selection-invalid]; test_s1_a3_stage.py::test_prepared_commitment_format[single,tree] | CREATED with policy null / no row / TRIAL-INVALID contradictory-stage; commitment keys exactly the F4.3 six | T8 | B |
+| 332 | E3.4 r3 (pending E3) | with an existing valid BLOCKED CLOSE, deleting blocked.json, or deleting and re-creating it with a different `recorded_utc`, does not affect closure (S1 never reads it for closure) and does not change the recomputed h | test_s1_a3_prestart.py::test_blocked_close_survives_delete_and_recreate[deleted,deleted-and-recreated] | h unchanged; the trial stays closed; commands refuse with "zero open trials" | T10 | B |
 | 333 | E5.6 r1, F7.2(b), OQ-37 | once the opening STAGE-INTENT exists, a later opening-close SLOT-INTENT is refused with no row by the opening gate and ends MISSED at its E; the OPENING-ACK cannot be issued before the E of the last scheduled opening-close slot | test_s1_a3_prestart.py::test_opening_window_later_slots_refused_then_missed | refusal, no slot row; MISSED after its E; issuance ineligible 1µs before the last slot's E, eligible after close-out | T10 | B |
+| 334 | E2.5 r3, F0.5 step 5 (TRIAL-STOP) | the precedence: a TRIAL-STOP with an unsealed determined close is REFUSE (fence), APPEND when the fence passes; a seal INTENT for a non-determined close is REFUSE; a seal INTENT naming another QUALIFIED is INVALIDATE contradictory-stage | test_s1_a3_precedence.py::test_precedence_table[5-stop-fence-unsealed-close,5-stop-fence-ok,5-seal-intent-not-determined,4a-seal-intent-wrong-selection] | as stated | T2 | B |
+| 335 | E2.8 r3 (post-STOP seal INTENT) | a seal INTENT after the STOP is refused (F1: not ACTIVE) | test_s1_a3_finalizer.py::test_seal_stage_and_stop_orders[stop-first] | no seal stage row, no file | T7 | B |
+| 336 | E2.4 r3 (materialization) | "publication" is the committed PREPARED decision: a seal is authoritative only through its CREATED row; a QUALIFIED committed before the STOP whose close is determined after it gets no seal | test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified | INTENT refused; no file; no stop input | T7 | B |
+| 337 | E3.6 r3 (two-root lifecycle), A3-PR1-2 | root A BLOCKED, valid BLOCKED CLOSE, then root B write_plan + AUDIT-ACK: B is the unique open trial and A stays closed, rootless and from either root | test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone | open_trial == B (no root parameter exists); A.closed set, no problems | T4 | B |
+| 338 | E1.3 r3 oracle | after a committed TIMEOUT, a late-R (R >= D) QUALIFIED and a FAILED are LOST-RACE at 4c, before step 6 | test_s1_a3_precedence.py::test_precedence_table[4c-q-late-r-after-timeout,4c-f-after-timeout] | LOST-RACE | T2 | B |
+| 339 | A3-PR1-4 (harness self-test) | an injected collection ImportError, a missing fixture, a syntax error and a plugin error in the mutant run are labelled error/untested, never killed | test_s1_a3_mutants.py::test_classifier_self_tests[collection-error,missing-fixture,syntax-error,plugin-error] | label in {"error", "untested"} | T15 | B |
+| 340 | A3-PR1-4 (harness self-test) | an intended semantic regression produces the named failing assertion and is "killed"; a timeout is "timeout"; a hard crash is "crash"; an unchanged-source mutant is "not-installed" | test_s1_a3_mutants.py::test_classifier_self_tests[semantic-regression,timeout,crash,not-installed] | killed / timeout / crash / not-installed | T15 | B |
+| 341 | A3-PR1-4 (control) | a mutant whose unmutated control fails is "untested" (no claim); an "equivalent" label comes only from the reviewed equivalence list | test_s1_a3_mutants.py::test_classifier_self_tests[control-fails,equivalent-listed] | untested / equivalent | T15 | B |
 
-Map rows: 333. Spec rules with no S1-testable counterpart are rows 153, 166 and 167 (`proc`) and row 176
+Map rows: 341. Spec rules with no S1-testable counterpart are rows 153, 166 and 167 (`proc`) and row 176
 (process evidence). Rows 284–290 are mutation-evidence rows (`proc`): a Cosmic Ray run is evidence, not a pass/fail
 test.
 
@@ -902,9 +943,15 @@ test.
 3. **Ownership locks.** Independent; needed by 6, 7, 8 and 11.
 4. **Trial identity and ACK reading**, plus write_plan trial_id and tokens. Needs 1 and 2.
 5. **The trial gate in every command**, the conftest migration, spies and the network guard. Needs 1–4.
-6. **Slot worker**: SLOT-INTENT, QUALIFIED/FAILED, LOST-RACE, post-stop, PREREG-ACK. Needs 1–5.
-7. **Slot finalizer and the F3 evidence table**, plus post-START seals. Needs 6.
-8. **Stage engine**: INTENT/PREPARED/CREATED, staging, recovery, the stage-state table. Needs 1–5.
+6. **Slot worker**: SLOT-INTENT, QUALIFIED/FAILED, LOST-RACE, post-stop, PREREG-ACK. Needs 1–5 and 8
+   (`required_seals` reads the CREATED seal stages).
+7. **Slot finalizer and the F3 evidence table**, plus post-START seals as `seal/<close>` stages and the STOP fence
+   (E2 r3). Needs 6 and 8.
+8. **Stage engine**: INTENT/PREPARED/CREATED, staging, recovery, the stage-state table, the seal-stage family
+   (`spec`, `single_member`, `seal_stages`), `extra_gate`/`stage_check`. Needs 1–5.
+
+Revision 2 execution order: 1, 2, 3, 4, 5, **8**, 6, 7, 9, 10, … (Task numbers and map rows are unchanged; Task 8
+no longer depends on Task 6 or 7.)
 9. **Request policy plus the audit stage**, with the F4.9 audit rows. Needs 8.
 10. **Pre-START stages**: opening seal, start_attest (OPENING-ACK), prereg (RUN-ACK, PREREG-ACK). Needs 6–9.
 11. **STOP and the finalization prefix**: the F2 stop record, stop_attest, final_plan. Needs 7, 8 and 10.
@@ -1045,6 +1092,7 @@ class Request:
     detail: Optional[str] = None
     detail_fn: Optional[Callable] = None
     r_at: Optional[datetime] = None
+    inputs: Optional[dict] = None
 
 
 @dataclass
@@ -1054,6 +1102,8 @@ class Context:
     stop_detail: Optional[Callable] = None
     stage_gate: Optional[Callable] = None
     slot_gate: Optional[Callable] = None
+    stage_check: Optional[Callable] = None
+    stop_fence: Optional[Callable] = None
 
 
 @dataclass(frozen=True)
@@ -1628,7 +1678,8 @@ class Row:
 @dataclass
 class Request:
     """A requested row. `detail_fn(at)` (STAGE-INTENT, OQ-7) computes the detail from the in-transaction clock; `r_at`
-    is R for SLOT-QUALIFIED (its `at`, F3)."""
+    is R for SLOT-QUALIFIED (its `at`, F3); `inputs` is the STAGE-INTENT envelope's inputs (whose hash is in the
+    detail), visible to Context.stage_check (E2.2 r3)."""
     kind: str
     subject: str
     op: str
@@ -1636,18 +1687,25 @@ class Request:
     detail: Optional[str] = None
     detail_fn: Optional[Callable[[datetime], str]] = None
     r_at: Optional[datetime] = None
+    inputs: Optional[dict] = None
 
 
 @dataclass
 class Context:
-    """What the caller supplies, evaluated inside the transaction: CLOSED (F7.5); slot_times(subject) -> (E, D);
-    stop_detail(rows) -> the stop record sha256 committed history gives, or None (rule not met); stage_gate(rows,
-    stage) / slot_gate(rows, subject) -> a refusal reason or None (F1 permission, predecessor, ACKs)."""
+    """What the caller supplies, evaluated inside the transaction: CLOSED (F7.5, read from the CLOSE rows of the same
+    sqlite file, E2.3 r3); slot_times(subject) -> (E, D); stop_detail(rows) -> the stop record sha256 committed
+    history gives, or None (rule not met); stage_gate(rows, stage) / slot_gate(rows, subject) -> a refusal reason or
+    None (F1 permission, predecessor, ACKs, the seal stage's determined close); stage_check(rows, subject, inputs)
+    -> Decision | None at step 4a for a STAGE-INTENT (E2.2 r3: a seal stage selecting another QUALIFIED than the
+    first one is INVALIDATE contradictory-stage); stop_fence(rows) -> a refusal reason or None at step 5 for
+    TRIAL-STOP (E2.5 r3: every close determined by these rows must have a CREATED seal stage)."""
     closed: bool = False
     slot_times: Optional[Callable[[str], tuple]] = None
     stop_detail: Optional[Callable[[list], Optional[str]]] = None
     stage_gate: Optional[Callable[[list, str], Optional[str]]] = None
     slot_gate: Optional[Callable[[list, str], Optional[str]]] = None
+    stage_check: Optional[Callable[[list, str, dict], Optional["Decision"]]] = None
+    stop_fence: Optional[Callable[[list], Optional[str]]] = None
 
 
 @dataclass(frozen=True)
@@ -1967,8 +2025,7 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from hypothesis import given, seed, settings, strategies as st
-from hypothesis.database import DirectoryBasedExampleDatabase
+from hypothesis import example, given, settings, strategies as st
 import s1_common as c
 import s1_journal as j
 from conftest import s1_mailbox_init
@@ -1981,6 +2038,7 @@ TRIAL = "3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f"
 GEN = "7" * 64
 T0 = datetime(2026, 11, 2, 21, 0, tzinfo=UTC)
 S, S2, G = "slot/20261102T214500Z", "slot/20261102T214700Z", "stage/audit"
+SG = "stage/seal/2026-10-27"                                         # E2.1 r3: a post-START seal stage
 E = datetime(2026, 11, 2, 21, 55, tzinfo=UTC)
 D = E + timedelta(minutes=30)
 US = timedelta(microseconds=1)
@@ -2013,13 +2071,13 @@ def build(specs):
     return rows
 
 
-def rq(kind, subject=S, op=AO, actor=AA, detail=None, r_at=None):
-    return j.Request(kind, subject, op, actor, detail=detail, r_at=r_at)
+def rq(kind, subject=S, op=AO, actor=AA, detail=None, r_at=None, inputs=None):
+    return j.Request(kind, subject, op, actor, detail=detail, r_at=r_at, inputs=inputs)
 
 
 def ctx(**kw):
     base = dict(slot_times=lambda s: (E, D), stop_detail=lambda rows: H1, stage_gate=lambda rows, g: None,
-                slot_gate=lambda rows, s: None)
+                slot_gate=lambda rows, s: None, stop_fence=lambda rows: None)      # revision 2: E2.5 r3 fence
     base.update(kw)
     return j.Context(**base)
 
@@ -2060,6 +2118,9 @@ CASES = [
     ("4b-gi-repeat-with-reused-op", [GI], rq("STAGE-INTENT", G, op=AO, actor=BA, detail=H2), E, {}, "INVALIDATE",
      "repeat-stage"),
     ("4c-q-after-timeout", [SI, TO], Q(), D, {}, "LOST-RACE", None),
+    # E1.3 r3: after a committed TIMEOUT, a late R (R >= D) is LOST-RACE at 4c, before step 6 (row 257)
+    ("4c-q-late-r-after-timeout", [SI, TO], Q(r_at=D), D + US, {}, "LOST-RACE", None),
+    ("4c-f-after-timeout", [SI, TO], rq("SLOT-FAILED", detail=H1), D + US, {}, "LOST-RACE", None),
     ("4c-f-after-qualified", [SI, QU], rq("SLOT-FAILED", detail=H2), E, {}, "LOST-RACE", None),
     ("4c-t-after-qualified", [SI, QU], rq("SLOT-TIMEOUT", actor=FA), D, {}, "LOST-RACE", None),
     ("4c-m-after-qualified", [SI, QU], rq("SLOT-MISSED", op=N1, actor=FA), E, {}, "LOST-RACE", None),
@@ -2081,6 +2142,16 @@ CASES = [
      "REFUSE", None),
     ("5-gi-forbidden", [], rq("STAGE-INTENT", G, op=N1, detail=H1), E, {"stage_gate": lambda rows, g: "no pred"},
      "REFUSE", None),
+    # E2.2/E2.5 r3 (row 334): seal-stage selection at 4a, the STOP fence at step 5
+    ("4a-seal-intent-wrong-selection", [], rq("STAGE-INTENT", SG, op=N1, detail=H1, inputs={"qualified_line": H2}),
+     E, {"stage_check": lambda rows, s, inputs: j.Decision("INVALIDATE", "contradictory-stage")},
+     "INVALIDATE", "contradictory-stage"),
+    ("5-seal-intent-not-determined", [], rq("STAGE-INTENT", SG, op=N1, detail=H1), E,
+     {"stage_gate": lambda rows, g: "close not determined (E2.2)"}, "REFUSE", None),
+    ("5-stop-fence-unsealed-close", [], rq("TRIAL-STOP", "trial", op=N1, actor=FA, detail=H1), E,
+     {"stop_fence": lambda rows: "determined close 2026-10-27 has no CREATED seal stage (E2.5)"}, "REFUSE", None),
+    ("5-stop-fence-ok", [], rq("TRIAL-STOP", "trial", op=N1, actor=FA, detail=H1), E,
+     {"stop_fence": lambda rows: None}, "APPEND", None),
     ("5-stop-rule-not-met", [], rq("TRIAL-STOP", "trial", op=N1, actor=FA, detail=H1), E,
      {"stop_detail": lambda rows: None}, "REFUSE", None),
     ("5-stop-differs-from-recomputed", [], rq("TRIAL-STOP", "trial", op=N1, actor=FA, detail=H2), E, {}, "REFUSE",
@@ -2278,11 +2349,14 @@ def oracle(specs, req, now):
 
 
 # Scope (f045bd31): slot-subject histories × slot kinds × 5 instants. Stage and trial lifecycles are covered by the
-# explicit tables, not by this property. Pinned per Global Constraints (derandomize, seed, kept example database);
-# every minimized counterexample found during development is added as an @example and kept.
-@seed(20261103)
-@settings(max_examples=400, deadline=None, derandomize=True,
-          database=DirectoryBasedExampleDatabase(str(HERE / "s1_evidence" / "a3" / "hypothesis_db")))
+# explicit tables, not by this property. Revision 2 policy (A3-PR1-3; the pinned Hypothesis rejects derandomize=True
+# with an explicit database): derandomize=True and database=None, so every run explores the same deterministic
+# sequence; reproducibility comes from derandomization, NOT database replay. Every minimized counterexample found
+# during development is kept as an explicit @example below (the retained set is listed in a3/t2_examples.md). The
+# two seed examples are the E1.3 r3 boundary: a late R after a committed TIMEOUT, and a late R with no terminal.
+@settings(max_examples=400, deadline=None, derandomize=True, database=None)
+@example(hist=[SI, TO], kind="SLOT-QUALIFIED", who=(AO, AA), now=D + US)          # 4c LOST-RACE (E1.3 r3)
+@example(hist=[SI], kind="SLOT-QUALIFIED", who=(AO, AA), now=D)                   # step 6 REFUSE (no terminal)
 @given(hist=st.sampled_from(HISTORIES), kind=st.sampled_from(j.SLOT_KINDS),
        who=st.sampled_from([(AO, AA), (BO, AA), (AO, BA), (BO, BA)]),
        now=st.sampled_from([E - US, E, D - US, D, D + US]))
@@ -2301,6 +2375,9 @@ def test_substep_conditions_are_disjoint_and_decide_matches_the_oracle(hist, kin
     CLOSED/INVALID tests, `test_append_decides…` (APPEND instead of LOST-RACE), `test_invalidate…`,
     `test_reused_op…` and the oracle property.
   - The malformed and chain tests pass: Task 1 already enforces them. Label them `retro`.
+  - Revision 2 cases (rows 334, 338): `4a-seal-intent-wrong-selection`, `5-seal-intent-not-determined`,
+    `5-stop-fence-unsealed-close`, `4c-q-late-r-after-timeout` and `4c-f-after-timeout` fail against the permissive
+    stub (APPEND); `5-stop-fence-ok` passes on the stub and is `ctrl`.
   - The `7-*` and `6-si-before-e`/`6-m-at-e`/`6-q-r-d-minus-1us`/`5-q-intent-before-stop` cases pass. Label them
     `ctrl`.
 
@@ -2402,6 +2479,10 @@ def _stage(rows, mine, req, ctx, reused=False) -> Decision:
         return Decision("INVALIDATE", "contradictory-stage")
     if k == "STAGE-CREATED" and (prepared is None or req.op != intent.op):                                # 4a
         return Decision("INVALIDATE", "contradictory-stage")
+    if k == "STAGE-INTENT" and intent is None and ctx.stage_check is not None:                            # 4a
+        d = ctx.stage_check(rows, req.subject, req.inputs or {})             # E2.2 r3: the selected QUALIFIED
+        if d is not None:
+            return d
     if k == "STAGE-INTENT" and intent is not None:                                                         # 4b
         return Decision("INVALIDATE", "repeat-stage")
     if reused:                                                                                             # OQ-3
@@ -2438,6 +2519,9 @@ def _stop(rows, req, ctx, reused=False) -> Decision:
         return Decision("REFUSE", "the stop rule is not met by committed history")
     if want != req.detail:
         return Decision("REFUSE", "the stop record differs from the one committed history gives (OQ-9: escalate)")
+    fence = ctx.stop_fence(rows) if ctx.stop_fence is not None else "no stop fence supplied (fail closed)"
+    if fence:                                                                 # E2.5 r3: the frozen prefix
+        return Decision("REFUSE", f"STOP prefix not sealed: {fence} (run the missing seal stages and retry)")
     return Decision("APPEND")
 ```
 
@@ -2446,7 +2530,8 @@ def _stop(rows, req, ctx, reused=False) -> Decision:
 - [ ] **Step 6: Full suite, old->new, hashes.** Save `a3/t2_full.txt`, `a3/t2_old_new.md` (expected: none) and
   `a3/t2_hashes.txt`.
 - [ ] **Step 7: Controller review and commit.**
-  - Message: `S1 A3 Task 2: F0.5 append precedence (4a-4d sub-order)`, listing map rows 7, 12, 13, 16, 21–49 and 54.
+  - Message: `S1 A3 Task 2: F0.5 append precedence (4a-4d sub-order)`, listing map rows 7, 12, 13, 16, 21–49, 54,
+    299, 334 and 338.
   - End with the Co-Authored-By line. Push, and assert the HEAD SHA.
 
 ---
@@ -2500,7 +2585,8 @@ def slot_lock_name(subject: str) -> str:
 
 
 def stage_lock_name(stage: str) -> str:
-    return "stage-" + stage
+    """`stage-<name>`; a seal stage `seal/<close>` becomes `stage-seal-<close>` (revision 2, E2.1 r3)."""
+    return "stage-" + stage.replace("/", "-")
 
 
 def lock_acquirable(root, trial_id, name) -> bool:
@@ -2584,6 +2670,7 @@ def test_lock_lives_outside_s1_out(tmp_path):
     assert p == tmp_path / "s1_locks" / TRIAL / "stage-audit.lock"
     assert (tmp_path / "s1_out") not in p.parents
     assert L.slot_lock_name("slot/20261102T214500Z") == "slot-20261102T214500Z" and L.STOP_LOCK == "stop"
+    assert L.lock_path(tmp_path, TRIAL, L.stage_lock_name("seal/2026-10-27")).name == "stage-seal-2026-10-27.lock"
 
 
 def test_acquire_release_and_reacquire_in_one_process(tmp_path):
@@ -2755,7 +2842,7 @@ if sys.platform == "win32":
 
 
 NAME_RE = re.compile(r"^(slot-\d{8}T\d{6}Z|stage-(audit|opening|start_attest|prereg|stop_attest|final_plan|final"
-                     r"|score)|stop)$")                                                   # OQ-23 ruling
+                     r"|score|seal-\d{4}-\d{2}-\d{2})|stop)$")         # OQ-23 ruling; seal-<close>: E2.1 r3
 UUID4_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 
 
@@ -2774,7 +2861,8 @@ def slot_lock_name(subject: str) -> str:
 
 
 def stage_lock_name(stage: str) -> str:
-    return "stage-" + stage
+    """`stage-<name>`; a seal stage `seal/<close>` becomes `stage-seal-<close>` (revision 2, E2.1 r3)."""
+    return "stage-" + stage.replace("/", "-")
 
 
 def lock_acquirable(root, trial_id: str, name: str) -> bool:
@@ -2999,7 +3087,7 @@ def attributed_trial(line):
     return None
 
 
-def trials(acks, root=None) -> dict:
+def trials(acks) -> dict:
     out = {}
     for a in acks:
         if a.kind == "S1-AUDIT-ACK":
@@ -3009,14 +3097,14 @@ def trials(acks, root=None) -> dict:
     return out
 
 
-def open_trial(mailbox=None, root=None) -> Trial:
+def open_trial(mailbox=None) -> Trial:
     ts = list(trials(scan(mailbox)).values())
     if not ts:
         raise Refusal("zero open trials")
     return ts[0]
 
 
-def require_no_open_trial(mailbox=None, root=None) -> None:
+def require_no_open_trial(mailbox=None) -> None:
     return None
 
 
@@ -3028,7 +3116,7 @@ def state(trial, rows) -> str:
     return j.trial_state(rows)
 
 
-def closed_in(con, trial, root=None) -> bool:
+def closed_in(con, trial) -> bool:
     return False
 
 
@@ -3350,27 +3438,48 @@ def test_attribution_grammar_is_the_e43_grammar():                              
     assert t.attributed_trial("S1-OPENING-ACK trial_id=3f2b8c1e-5d4a-1b6c-9e7f-0a1b2c3d4e5f") is None   # not v4
 
 
-@pytest.mark.parametrize("case", ["ok", "wrong"])
-def test_close_blocked_evidence_hash(tmp_path, monkeypatch, case):                     # row 273, Task 4 unit part
-    """E3.4 r1 (pending E3): h = sha256(canonical({trial_id, reasons})), never the blocked.json bytes. The
-    recomputation itself is Task 10's (s1_run.blocked_close_evidence); here it is stubbed to a known record, and the
-    end-to-end form is test_s1_a3_prestart.py::test_close_blocked_evidence_hash_end_to_end."""
-    import s1_run
+@pytest.mark.parametrize("case", ["ok", "wrong-prev", "wrong-bundle"])
+def test_close_blocked_is_validated_like_every_close(tmp_path, case):                  # row 273 (E3.4 r3)
+    """E3.4 r3 (A3-PR1-2): a BLOCKED CLOSE is validated by F7.5 grammar, prev, bundle and channel only, from the
+    mailbox alone; S1 never recomputes its evidence (Codex checked it against the trial's own root at issuance).
+    `close_evidence` stays the helper Codex uses for h = sha256(canonical({trial_id, reasons}))."""
     mb = s1_mailbox_init(tmp_path)
     a = tid()
     rec = {"trial_id": a, "reasons": ["coverage"]}
     h = t.close_evidence("BLOCKED", blocked_record=rec)
     assert h == c.sha256_bytes(c.canonical(rec))
-    monkeypatch.setattr(s1_run, "blocked_close_evidence", lambda out: h, raising=False)
     post(mb, "a1", audit(a), T0)
-    post(mb, "c1", line("S1-CLOSE-ACK", trial_id=a, bundle_sha256=BUNDLE, prev="a1", reason="BLOCKED",
-                        evidence_sha256=h if case == "ok" else "8" * 64), T0 + timedelta(hours=1))
+    post(mb, "c1", line("S1-CLOSE-ACK", trial_id=a, bundle_sha256="9" * 64 if case == "wrong-bundle" else BUNDLE,
+                        prev="zz" if case == "wrong-prev" else "a1", reason="BLOCKED", evidence_sha256=h),
+         T0 + timedelta(hours=1))
     if case == "ok":
         with pytest.raises(t.Refusal, match="zero open"):
-            t.open_trial(mb, root=tmp_path)
+            t.open_trial(mb)
     else:
-        with pytest.raises(t.Refusal, match="BLOCKED evidence"):
-            t.open_trial(mb, root=tmp_path)
+        with pytest.raises(t.Refusal, match="CLOSE"):
+            t.open_trial(mb)
+
+
+def test_two_root_blocked_lifecycle_closure_is_monotone(tmp_path):                    # row 337 (E3.6 r3)
+    """Root A BLOCKED -> valid BLOCKED CLOSE -> root B write_plan + AUDIT-ACK: B is the unique open trial and A stays
+    closed, rootless and from either root. (Synthetic mailbox; A's blocked.json and B's tree never consulted.)"""
+    mb = s1_mailbox_init(tmp_path)
+    root_a, root_b = tmp_path / "A", tmp_path / "B"
+    root_a.mkdir()
+    root_b.mkdir()
+    a, b = tid(), tid()
+    post(mb, "a1", audit(a), T0)
+    h = t.close_evidence("BLOCKED", blocked_record={"trial_id": a, "reasons": ["coverage"]})
+    post(mb, "ca", line("S1-CLOSE-ACK", trial_id=a, bundle_sha256=BUNDLE, prev="a1", reason="BLOCKED",
+                        evidence_sha256=h), T0 + timedelta(hours=1))
+    with _clock(T0 + timedelta(hours=2)):
+        t.require_no_open_trial(mb)                                 # B's write_plan precondition: nothing open
+    post(mb, "b1", audit(b), T0 + timedelta(hours=3))
+    for _ in (None, root_a, root_b):                                # the lookup takes no root: same answer
+        tr = t.open_trial(mb)
+        assert tr.trial_id == b
+    trs = t.trials(t.scan(mb))
+    assert trs[a].closed is not None and trs[a].problems == [] and trs[b].closed is None
 
 
 def test_opening_receipt_sha256_is_the_raw_file_hash(tmp_path, monkeypatch):           # row 318 (OQ-30)
@@ -3405,7 +3514,9 @@ class _clock:
     the stub, which counts any `S1-…-ACK` line in any message. `[indented-line,quoted-line,historical-other-trial]`
     pass on the stub. Label them `ctrl`; their meaning comes from the wrong-channel cases and from rows 276–277
     against the Step 4 code.
-  - `test_malformed_candidate…` and `test_close_blocked_evidence_hash[*]` fail (no refusal). Row 318 fails because
+  - `test_malformed_candidate…` and `test_close_blocked_is_validated_like_every_close[wrong-prev,wrong-bundle]` fail
+    (no refusal); `[ok]` fails too (the stub ignores CLOSE). `test_two_root_blocked_lifecycle_closure_is_monotone`
+    fails (the stub returns the first AUDIT's trial, A). Row 318 fails because
     the stub's `artifact_fields` returns {}.
   - The `ok`/`one` cases pass. Label them `ctrl`.
 
@@ -3532,26 +3643,12 @@ def _chain_problems(kind: str, a: Ack, audit: Ack, chosen: dict) -> list:
     return probs
 
 
-def _blocked_evidence_problem(a: Ack, root):
-    """E3.4 (Erratum 1 r1; pending Codex acceptance of E3): a BLOCKED CLOSE's evidence_sha256 must be
-    h = sha256(c.canonical({"trial_id", "reasons"})), the deterministic recomputation from committed inputs - not the
-    blocked.json bytes. Task 4 ships the fail-closed form (refused: the recomputation arrives in Task 10, which
-    replaces this body with `_blocked_h(root) != evidence_sha256`). Without a root it is refused."""
-    if root is None:
-        return "BLOCKED evidence cannot be checked without the trial root"
-    try:
-        import s1_run                                    # late import; blocked_close_evidence is Task 10's
-        want = s1_run.blocked_close_evidence(Path(root) / "s1_out")
-    except (AttributeError, OSError, ValueError, KeyError, SystemExit) as e:
-        return f"BLOCKED evidence not recomputable ({type(e).__name__})"
-    if want != a.fields["evidence_sha256"]:
-        return "BLOCKED evidence_sha256 is not sha256(canonical({trial_id, reasons})) of the recomputation (E3.4)"
-    return None
-
-
-def _close(closes: list, audit: Ack, chosen: dict, root=None) -> tuple:
+def _close(closes: list, audit: Ack, chosen: dict) -> tuple:
     """F7.5 with E4: (the valid CLOSE or None, problems). Every CLOSE here is an official candidate (E4.1); any that
-    is not valid refuses the trial's commands."""
+    is not valid refuses the trial's commands. Revision 2 (E3.4 r3, A3-PR1-2): a BLOCKED CLOSE is validated exactly
+    like every CLOSE (grammar, prev, AUDIT order, bundle, duplicate) from the mailbox alone. S1 never recomputes a
+    historical CLOSE's evidence from any directory; Codex verified it against that trial's own root at issuance
+    (ruling-6 trust). Closure is therefore monotone: once valid, the trial is closed for every caller and root."""
     if not closes:
         return None, []
     if len(closes) > 1:
@@ -3560,10 +3657,6 @@ def _close(closes: list, audit: Ack, chosen: dict, root=None) -> tuple:
     present = [audit] + [chosen[k_] for k_ in CHAIN[1:] if k_ in chosen]
     latest = present[-1]
     why = []
-    if a.fields["reason"] == "BLOCKED":
-        bp = _blocked_evidence_problem(a, root)
-        if bp:
-            why.append(bp)
     if a.created <= audit.created:
         why.append("before the AUDIT-ACK")
     if a.fields["prev"] != latest.mailbox_id:
@@ -3577,8 +3670,8 @@ def _close(closes: list, audit: Ack, chosen: dict, root=None) -> tuple:
     return a, []
 
 
-def trials(acks, root=None) -> dict:
-    """Per trial: the ACK chain, CLOSE and problems. A malformed candidate (E4.3) refuses the trial whose trial_id it
+def trials(acks) -> dict:
+    """Per trial: the ACK chain, CLOSE and problems, from the mailbox alone (no root: E3.4 r3). A malformed candidate (E4.3) refuses the trial whose trial_id it
     names; an unattributable one is handled by open_trial (it refuses every trial-bound command)."""
     audits = {}
     for a in acks:
@@ -3600,7 +3693,7 @@ def trials(acks, root=None) -> dict:
         for kind, a in chosen.items():
             probs += _chain_problems(kind, a, audit, chosen)
         closed, cprobs = _close([a for a in acks if a.kind == "S1-CLOSE-ACK" and a.fields.get("trial_id") == tid],
-                                audit, chosen, root)
+                                audit, chosen)
         probs += [f"malformed official ACK line in {a.mailbox_id} names this trial (E4.3): refuse and escalate"
                   for a in acks if a.kind is None and a.fields.get("trial_id") == tid]
         out[tid] = Trial(tid, audit.fields["bundle_sha256"], audit, chosen, closed, probs + cprobs,
@@ -3608,9 +3701,9 @@ def trials(acks, root=None) -> dict:
     return out
 
 
-def open_trial(mailbox=None, root=None) -> Trial:
-    """F6.3: exactly one open trial (an AUDIT-ACK with no valid CLOSE-ACK), from the mailbox; `root` is used only to
-    check a BLOCKED CLOSE's evidence (E3.4)."""
+def open_trial(mailbox=None) -> Trial:
+    """F6.3: exactly one open trial (an AUDIT-ACK with no valid CLOSE-ACK), from the mailbox only. No directory is
+    consulted (E3.4 r3): the answer is the same from every root and from the rootless lookup."""
     try:
         acks = scan(mailbox)
     except sqlite3.Error as e:
@@ -3619,7 +3712,7 @@ def open_trial(mailbox=None, root=None) -> Trial:
     if bad:
         raise Refusal(f"unattributable malformed official ACK line(s) in {bad[:3]}: every trial-bound command "
                       f"refuses (E4.3): escalate")
-    open_ = [x for x in trials(acks, root).values() if x.closed is None]
+    open_ = [x for x in trials(acks).values() if x.closed is None]
     if not open_:
         raise Refusal("zero open trials: trial-bound commands refuse (F6.3)")
     if len(open_) > 1:
@@ -3630,13 +3723,13 @@ def open_trial(mailbox=None, root=None) -> Trial:
     return tr
 
 
-def require_no_open_trial(mailbox=None, root=None) -> None:
+def require_no_open_trial(mailbox=None) -> None:
     """F9 / OQ-20: write_plan runs only without an open trial; an unreadable mailbox refuses (fail closed)."""
     try:
         acks = [a for a in scan(mailbox) if a.kind is not None]
     except sqlite3.Error as e:
         raise Refusal(f"write_plan refused: mailbox unreadable ({type(e).__name__}) (OQ-20)") from None
-    open_ = [x for x in trials(acks, root).values() if x.closed is None]
+    open_ = [x for x in trials(acks).values() if x.closed is None]
     if open_:
         raise Refusal(f"write_plan refused: trial {open_[0].trial_id} is open (F9)")
 
@@ -3664,9 +3757,10 @@ def state(trial: Trial, rows: list) -> str:
     return "CLOSED" if trial.closed is not None else j.trial_state(rows)
 
 
-def closed_in(con, trial: Trial, root=None) -> bool:
-    """For a journal Context built inside the BEGIN IMMEDIATE transaction (same connection, same snapshot)."""
-    tr = trials(acks_from(con.execute(_SCAN).fetchall()), root).get(trial.trial_id)
+def closed_in(con, trial: Trial) -> bool:
+    """For a journal Context built inside the BEGIN IMMEDIATE transaction (same connection, same snapshot): the CLOSE
+    rows Codex writes into the same sqlite file are read here, so CLOSED is atomic with the append (E2.3 r3)."""
+    tr = trials(acks_from(con.execute(_SCAN).fetchall())).get(trial.trial_id)
     return tr is None or tr.closed is not None
 
 
@@ -3823,9 +3917,9 @@ Add `"s1_trial.py"` to BUNDLE_CODE and to the test BUNDLE tuple.
 
   Save `a3/t4_full.txt`, `a3/t4_old_new.md` and `a3/t4_hashes.txt`.
 - [ ] **Step 7: Controller review and commit.** Message: `S1 A3 Task 4: trial identity, ACK grammar and chain, CLOSE,
-  write_plan trial_id`, listing map rows 54, 138–143, 146, 148–150, 158, 159, 168, 170, 253, 273, 275–278 and 318,
-  with the Co-Authored-By line. Push and assert the HEAD SHA. (Row 273 implements E3.4, pending Codex acceptance
-  of E3. The commit follows BLK-1 like every task.)
+  write_plan trial_id`, listing map rows 54, 138–143, 146, 148–150, 158, 159, 168, 170, 253, 273, 275–278, 318 and
+  337, with the Co-Authored-By line. Push and assert the HEAD SHA. (Row 273 implements E3.4 r3, pending Codex
+  acceptance of E3. The commit follows BLK-1 like every task.)
 
 ---
 
@@ -3862,7 +3956,7 @@ Add `"s1_trial.py"` to BUNDLE_CODE and to the test BUNDLE tuple.
   - `gate(root, where, *, mailbox=None, now=None) -> Gate`, which raises `Refusal`;
   - `invalidate(trial, reason, record, *, root, mailbox=None, clock=None) -> j.Result`;
   - `invalidate_current(out, reason, record, mailbox=None) -> None`, best effort (F8.1);
-  - `product_context(trial, cal=None, *, slot_gate=None, stage_gate=None, stop_detail=None) -> Callable[[rows, con], j.Context]`.
+  - `product_context(trial, cal=None, *, slot_gate=None, stage_gate=None, stop_detail=None, stage_check=None, stop_fence=None) -> Callable[[rows, con], j.Context]`.
 - Produces (conftest):
   - `Spies(monkeypatch)` with `.receipt(rec=S1_RECEIPT)`, `.process()`, `.client(handler=None) -> httpx.Client`,
     `.n` and `.assert_zero()`;
@@ -3898,7 +3992,8 @@ def invalidate_current(out, reason, record, mailbox=None) -> None:
     return None
 
 
-def product_context(trial, cal=None, *, slot_gate=None, stage_gate=None, stop_detail=None):
+def product_context(trial, cal=None, *, slot_gate=None, stage_gate=None, stop_detail=None, stage_check=None,
+                    stop_fence=None):
     return lambda rows, con: j.Context(stage_gate=stage_gate, slot_gate=slot_gate, stop_detail=stop_detail)
 ```
 
@@ -3987,7 +4082,8 @@ def s1_jappend(root, kind, subject, *, at, detail=None, op=None, actor=None, r_a
     tr = t.open_trial(mb)
     far = at + timedelta(days=3650)
     ctx = j.Context(slot_times=lambda s: (far, far), stop_detail=lambda rows: detail,
-                    stage_gate=lambda rows, g: None, slot_gate=lambda rows, s: None)
+                    stage_gate=lambda rows, g: None, slot_gate=lambda rows, s: None,
+                    stop_fence=lambda rows: None)                      # synthetic: no E2.5 fence (test-only)
     res = j.append(tr.trial_id, tr.genesis, j.Request(kind, subject, op or j.new_nonce(), actor or j.new_nonce(),
                                                        detail=detail, r_at=r_at),
                    lambda rows, con: ctx, mailbox=mb, clock=lambda: at)
@@ -4436,16 +4532,20 @@ def invalidate_current(out: Path, reason: str, record: dict, mailbox=None) -> No
         pass
 
 
-def product_context(trial: Trial, cal=None, *, slot_gate=None, stage_gate=None, stop_detail=None):
-    """The Context every product append uses: CLOSED read inside the transaction; slot timing from the pinned
-    calendar (Task 6 supplies slot_times through s1_slot); stage/slot gates and the stop rule from their owners."""
+def product_context(trial: Trial, cal=None, *, slot_gate=None, stage_gate=None, stop_detail=None,
+                    stage_check=None, stop_fence=None):
+    """The Context every product append uses: CLOSED read inside the transaction from the CLOSE rows of the same
+    sqlite file (`con`, the BEGIN IMMEDIATE connection; E2.3 r3: atomic with CLOSE); slot timing from the pinned
+    calendar (Task 6 supplies slot_times through s1_slot); stage/slot gates, the seal selection check, the stop rule
+    and the STOP fence from their owners."""
     def build(rows, con):
         st_ = None
         if cal is not None:
             import s1_slot                                   # (Task 6 module; absent before Task 6, cal is None)
             st_ = s1_slot.slot_times(cal)
         return j.Context(closed=closed_in(con, trial), slot_times=st_, stop_detail=stop_detail,
-                         stage_gate=stage_gate, slot_gate=slot_gate)
+                         stage_gate=stage_gate, slot_gate=slot_gate, stage_check=stage_check,
+                         stop_fence=stop_fence)
     return build
 
 
@@ -4457,7 +4557,7 @@ def gate(root, where: str, *, mailbox=None, now=None) -> Gate:
     root = Path(root)
     out = root / "s1_out"
     try:
-        tr = open_trial(mailbox, root=root)                                            # root: E3.4 BLOCKED evidence
+        tr = open_trial(mailbox)                                        # mailbox only: closure is monotone (E3.4 r3)
         rows = j.read_trial(tr.trial_id, tr.genesis, mailbox)
     except (Refusal, j.JournalError) as e:
         _refuse(out, where, str(e), now)
@@ -4557,8 +4657,8 @@ In `s1_common.registration_gate`, insert before the `write_abort` call at line 1
   - `finalize_close` accepts a SUCCESS only for a slot with a SLOT-QUALIFIED row (new keyword
     `qualified: frozenset`).
 - Modify: `research/s1/s1_common.py:561-577`. `_report_seals` is rewritten to take required seal membership from
-  committed history (`s1_slot.required_seals`), never from `after.json` (OQ-11 ruling, E5.2). BUNDLE_CODE gains
-  `s1_slot.py`.
+  committed history (`s1_slot.required_seals`: the CREATED `seal/<close>` stages, E2.6 r3), never from
+  `after.json` (OQ-11 ruling, E5.2). BUNDLE_CODE gains `s1_slot.py`.
 - Modify: `research/s1/s1_run.py:768-786`. `_capture_seal_problems` is rewritten the same way. The old->new mapping
   of both functions is listed in `a3/t6_old_new.md`.
 - Create: `research/s1/s1_tests/test_s1_a3_slots.py`; append to `research/s1/s1_tests/test_s1_a3_codex_probes.py`.
@@ -4575,11 +4675,9 @@ In `s1_common.registration_gate`, insert before the `write_abort` call at line 1
   - `tree_manifest(out, paths) -> dict[str, str]`;
   - `qualified_tree(out, slot, day_iso) -> dict` (report, resolution, capture `backup.sqlite3`, `meta.json` and
     `projection.json`; OQ-32 ruling, E5.6);
-  - `seals_checked(out) -> dict[str, str]` ({relpath: sha256} of every seal file the capture read, recorded in the
-    pre-J report);
-  - `required_seals(out, rows, cal) -> dict[str, str]` (E2.4 r1, the published-committed seals: the union of
-    `seals_checked` over committed QUALIFIED reports and, once Task 8 exists, committed PREPARED commitments; Task 11
-    adds the stop record's seals);
+  - `required_seals(out, rows) -> dict[str, str]` (E2.6 r3: {member: sha256} of every CREATED `seal/<close>`
+    stage's committed commitment; this needs Task 8's `s1_stage`, so Task 8 runs before Task 6, see Task order).
+    Revision 2 removes `seals_checked` and the published-committed set (E2.7 r3);
   - `failed_tree(out, slot, day_iso) -> dict` (claim, report);
   - `move_own_late(out, slot, day_iso, actor, committed: set) -> list[str]`;
   - `post_start_gate(trial) -> Callable[[rows, subject], str | None]`;
@@ -4777,21 +4875,20 @@ def test_qualified_at_is_r_and_detail_is_the_tree_manifest(tmp_path, monkeypatch
             assert (rec["op"], rec["actor"]) == (op1, act1)
 
 
-def test_reports_record_seals_checked_in_the_tree(tmp_path):                         # row 266 (E2.4)
+def test_claim_names_its_capture_dir_and_the_report_is_bound(tmp_path):              # row 311 (OQ-10), row 70
+    """Revision 2: the r1 `seals_checked` report field is gone (E2.7 r3); the report is still frozen before J and
+    bound by the QUALIFIED tree."""
     st_ = registered(tmp_path)
     day, sch = first_slot(st_)
     out = tmp_path / "s1_out"
-    want = sl.seals_checked(out)                                   # the opening seal is present after registration
-    assert want
     run(tmp_path, st_, sch, sch + timedelta(seconds=30))
     n = sl.names(out, sch, day["date"])
-    assert json.loads(n["report"].read_text(encoding="utf-8"))["seals_checked"] == want
+    rep = json.loads(n["report"].read_text(encoding="utf-8"))
+    assert "seals_checked" not in rep
     claim = json.loads(n["claim"].read_text(encoding="utf-8"))
     assert claim["capture_dir"] == n["capture"].relative_to(out).as_posix()          # OQ-10 ruling
     det = slot_rows(tmp_path, sch)[1][4]
-    rep = json.loads(n["report"].read_text(encoding="utf-8"))
-    rep["seals_checked"] = {}
-    n["report"].write_text(json.dumps(rep, indent=1), encoding="utf-8")              # the TEST edits its tmp report
+    n["report"].write_text(json.dumps(dict(rep, note="x"), indent=1), encoding="utf-8")   # the TEST edits its tmp
     assert j.detail_of(sl.qualified_tree(out, sch, day["date"])) != det              # bound by the tree
 
 
@@ -4801,7 +4898,7 @@ def test_after_json_is_display_only(tmp_path, damage):                          
     day, sch = first_slot(st_)
     out = tmp_path / "s1_out"
     run(tmp_path, st_, sch, sch + timedelta(seconds=30))
-    probe = lambda: (sl.required_seals(out, rows(tmp_path), st_["calendar"]),               # noqa: E731
+    probe = lambda: (sl.required_seals(out, rows(tmp_path)),                                # noqa: E731
                      r._capture_seal_problems(out, rows(tmp_path), st_["calendar"]),
                      c._report_seals(out, rows(tmp_path), st_["calendar"]))
     before = probe()
@@ -5089,12 +5186,12 @@ def test_publication_well_before_d_seals(tmp_path, monkeypatch):
   - `test_publication_well_before_d_seals` and the `[-1]` case assert rows too, so they fail on the stub as well.
     Their outcome part (sealed) is labelled `ctrl`.
   - Revision 1 rows:
-    - 266 fails (no `seals_checked`, no `capture_dir`);
+    - `test_claim_names_its_capture_dir_and_the_report_is_bound` fails (no `capture_dir`);
     - 264 fails (the stub has no `required_seals`, and the legacy readers have the old signature);
     - 308 fails (the stub writes the local abort first and appends no row);
     - 310 fails at s−1µs, E and E+1µs (no rows; the legacy late path writes a claim).
-  - The stub must also define `seals_checked` and `required_seals` as permissive names (returning {}) so that
-    collection succeeds.
+  - The stub must also define `required_seals(out, rows)` as a permissive name (returning {}) so that collection
+    succeeds.
 
 - [ ] **Step 4: Implement `research/s1/s1_slot.py`.** Replace the stub. Keep `slot_of`, `day_for`, `slot_times` and
   `names` as in the stub. Add the following:
@@ -5124,53 +5221,22 @@ def _rel(out, p) -> str:
     return Path(p).relative_to(out).as_posix()
 
 
-def seals_checked(out) -> dict:
-    """{relpath: sha256} of every seal file under s1_out/seals/ at capture time (the ones _read_seals reads). It is
-    written into the pre-J report, so the QUALIFIED/FAILED tree binds it (E2.4, OQ-11)."""
-    out = Path(out)
-    return {_rel(out, p): c.sha256_file(p) for p in sorted((out / "seals").glob("*.json"))}
-
-
-def required_seals(out, rows, cal) -> dict:
-    """E2.4 (Erratum 1 r1): the PUBLISHED-COMMITTED seals - a determined seal becomes required once a later committed
-    tree records it. Task 6: the union of `seals_checked` over the reports of committed QUALIFIED rows whose tree
-    detail still verifies (a report that does not verify is itself a Task 7 violation). Task 8 adds every committed
-    PREPARED commitment's `seals_checked`; Task 11 adds the F2 stop record's seals. after.json is never read (E5.2).
-    A determined seal that is not in this set and is missing may still be published once, with exactly its
-    recomputed bytes, while ACTIVE (E2.4); one in this set is never recreated."""
+def required_seals(out, rows) -> dict:
+    """E2.6 (Erratum 1 r3): the required post-START seals are exactly the CREATED `seal/<close>` stages, each with
+    its committed member hash. Nothing else makes a seal required (the r1/r2 `seals_checked` and published-committed
+    set are removed, E2.7 r3). after.json is never read (E5.2). A missing or changed one is stage-replaced through
+    s1_stage.evaluate and never recreated."""
+    import s1_stage
+    tid = {x.trial_id for x in rows}.pop() if rows else None
     got = {}
-    for r_ in rows:
-        if r_.kind == "STAGE-PREPARED":                                            # Task 8 (E2.4: PREPARED)
-            try:
-                import s1_stage
-                tid = {x.trial_id for x in rows}.pop()
-                com = s1_stage.committed_commitment(Path(out).parent, tid, r_.subject[len("stage/"):], rows)
-            except (ImportError, AttributeError, OSError, ValueError, SystemExit):
-                continue                                    # a bad commitment is s1_stage.evaluate's violation
-            for rel, sha in (com.get("seals_checked") or {}).items():
-                got.setdefault(rel, sha)
+    for stage in s1_stage.seal_stages(rows):
+        if s1_stage.stage_rows(rows, stage)["created"] is None:
             continue
-        if r_.kind != "SLOT-QUALIFIED":
-            continue
-        s = slot_of(r_.subject)
-        n = names(out, s, day_for(s, cal)["date"])
         try:
-            rep = json.loads(n["report"].read_text(encoding="utf-8"))
+            got.update(s1_stage.committed_commitment(Path(out).parent, tid, stage, rows)["members"])
         except (OSError, ValueError):
-            continue
-        if j.detail_of(_tree_or_empty(out, r_, s, cal)) != r_.detail:
-            continue
-        for rel, sha in (rep.get("seals_checked") or {}).items():
-            got.setdefault(rel, sha)
+            continue                                        # a bad commitment is s1_stage.evaluate's violation
     return got
-
-
-def _tree_or_empty(out, r_, s, cal) -> dict:
-    try:
-        f = qualified_tree if r_.kind == "SLOT-QUALIFIED" else failed_tree
-        return f(out, s, day_for(s, cal)["date"])
-    except OSError:
-        return {}
 
 
 def tree_manifest(out, paths) -> dict:
@@ -5305,10 +5371,9 @@ class Worker:
         return None
 
     def complete(self, rep: dict, success: bool) -> dict:
-        """P: the resolution, then the report (each carries op/actor; the report is frozen before J and carries
-        `seals_checked`, E2.4); R; then J (QUALIFIED with at = R) or FAILED. Seal and stop outcomes go to the
-        display-only <slot>.after.json (E5.2), which no check or decision reads."""
-        rep.setdefault("seals_checked", {})
+        """P: the resolution, then the report (each carries op/actor; the report is frozen before J); R; then J
+        (QUALIFIED with at = R) or FAILED. Seal and stop outcomes go to the display-only <slot>.after.json (E5.2),
+        which no check or decision reads."""
         import s1_checkpoint as ck
         ev = ck._evidence(rep)
         ok = bool(success and rep.get("candidate") and ck._complete_success(ev))
@@ -5388,7 +5453,6 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
         proc, rec = _observe_process(out, rep, process_fn, crash_log)
         binding_changed = _binding(rep, proc, pr.get("process_binding"))
         receipt, receipt_sha = _receipt(rep, receipt_fn, pr["receipt"])
-        rep["seals_checked"] = s1_slot.seals_checked(out)                     # E2.4: bound by the tree
         seals, seals_err = _read_seals(out, rep)
         proj = _read_capture(cap_dir, meta, rep, lambda trades: (len(z.cohort(trades, start, close)),
                                                                  z.count_sold(trades, start, close)))
@@ -5472,9 +5536,9 @@ reads:
 Their new signatures are `_report_seals(out, rows, cal) -> list[(relpath, seal path, sha256)]` and
 `_capture_seal_problems(out, rows, cal) -> list[str]`; each caller passes the gate's `gv.rows` and the plan
 calendar:
-- the required seals are `s1_slot.required_seals(out, rows, cal)` (committed reports' `seals_checked`; Task 11 adds
-  the stop record), read from the trial's journal;
-- each required seal must exist with the listed sha256, otherwise a registration-artifact problem;
+- the required seals are `s1_slot.required_seals(out, rows)` (the CREATED `seal/<close>` stages, E2.6 r3), read
+  from the trial's journal;
+- each required seal must exist with its committed sha256, otherwise a stage-replaced problem (E2.6 r3);
 - neither function opens any `after.json` (E5.2). Their docstrings say so.
 
 `a3/t6_old_new.md` lists, per old line, what it read (`report["seal"]`/after.json) and what it reads now.
@@ -5532,20 +5596,28 @@ Add `"s1_slot.py"` to BUNDLE_CODE and to the BUNDLE test tuple. Add `"establishe
   - `seal_bytes(day, close, ev) -> bytes`;
   - `slot_problems(out, rows, subject, cal) -> list[str]`;
   - `evidence_problems(out, rows, cal) -> list[str]`;
-  - `evidence_check(gv) -> None` (INVALIDATE registration-artifact plus refusal on problems; includes E2.4 required
-    seals);
+  - `evidence_check(gv) -> None` (INVALIDATE registration-artifact plus refusal on problems);
   - `move_leftovers(out, slot, day_iso, op, *, root=None, trial_id=None) -> list[str] | None` (None = deferred: the
     work lock is held, E1.4);
-  - `publish_seal(gv, day, cal, res, *, mailbox=None, before_seal=None, stop_lock_held=False) -> dict` (E2.3: the
-    only seal publisher; under the stop lock; ACTIVE only).
+  - `determined(rows, day, cal) -> Row | None` (E2.2 r3: the close's first QUALIFIED with every earlier slot
+    terminal, the same as `first_qualified`);
+  - `seal_gate(cal) -> Callable[[rows], str | None]` factory and `seal_check(cal)` (the stage_check for the
+    selected QUALIFIED), both evaluated inside the F0.1 transaction;
+  - `run_seal_stage(gv, day, cal, res=None, *, mailbox=None, clock=None, before_publish=None) -> dict` (E2.1 r3:
+    the `seal/<close>` stage via `s1_stage.run`; replaces revision 1's `publish_seal`);
+  - `stop_fence(cal, start) -> Callable[[rows], str | None]` (E2.5 r3: the TRIAL-STOP step-5 check, used by Task 11's
+    `decide_stop` through `product_context(stop_fence=…)`).
+- Revision 2 (E2 r3, A3-PR1-1): no seal is written outside a `seal/<close>` stage. `publish_seal`, the stop-lock
+  publication protocol, `seals_checked` and the published-committed set are removed. Task 7 therefore needs Task 8's
+  stage engine (Task order: 8 runs before 6 and 7).
 - E1: `finalize_close` takes no slot work lock for any decision. The revision-0 "pending: a live owner holds the
   slot lock" path is deleted (PLAN-1).
 
 - [ ] **Step 1: Interface stub.** In `s1_slot`, `finalize_close` calls the legacy
   `s1_checkpoint.finalize_close(gv.out, day, cal, now(), qualified=…)`; `evidence_problems` and `slot_problems`
   return `[]`; `evidence_check` is a no-op; `move_leftovers` returns `[]`; `first_qualified` returns the first
-  QUALIFIED row without the "earlier slots terminal" condition. `publish_seal` calls the legacy seal write with no
-  stop lock and no state check. `finalize_close` takes the slot lock around its legacy call (revision 0's
+  QUALIFIED row without the "earlier slots terminal" condition. `run_seal_stage` calls the legacy seal write
+  (no stage, no state check). `finalize_close` takes the slot lock around its legacy call (revision 0's
   behaviour), so that rows 256–258 have a genuine RED. Wire the gate hook.
 
 - [ ] **Step 2: Write the failing tests.** `research/s1/s1_tests/test_s1_a3_finalizer.py`:
@@ -5567,11 +5639,13 @@ import s1_common as c
 import s1_journal as j
 import s1_seal as z
 import s1_slot as sl
+import s1_stage as sg
 import s1_trial as t
-from conftest import S1_PROCESS, S1_RECEIPT, Spies, _Clock, s1_jappend
-from test_s1_a3_slots import first_slot, registered, rows, run, slot_rows
+from conftest import S1_PROCESS, S1_RECEIPT, Spies, _Clock, s1_ack, s1_jappend
+from test_s1_a3_slots import START, first_slot, registered, rows, run, slot_rows
 
 HERE = Path(__file__).resolve().parent.parent
+REAL_RUN_SEAL_STAGE = sl.run_seal_stage                  # tests that stub it call the real one through this name
 
 
 def fin(tmp_path, st_, day, at):
@@ -5689,7 +5763,7 @@ def test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock(tmp_path):
 
 
 @pytest.mark.parametrize("case", ["late-r", "early-r"])
-def test_live_worker_after_timeout_is_refuse_or_lost_race_and_its_files_stay(tmp_path, case):  # rows 257, 321
+def test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay(tmp_path, case):  # rows 257, 321
     st_ = registered(tmp_path)
     day, sch = first_slot(st_)
     e, d = E_D(st_, day, sch)
@@ -5703,7 +5777,7 @@ def test_live_worker_after_timeout_is_refuse_or_lost_race_and_its_files_stay(tmp
         p.stdin.write(f"complete {r_at.isoformat()} {(d + timedelta(seconds=1)).isoformat()}\n")
         p.stdin.flush()
         said = json.loads(p.stdout.readline())
-        assert said["outcome"] == ("REFUSE" if case == "late-r" else "LOST-RACE")
+        assert said["outcome"] == "LOST-RACE"                          # E1.3 r3: 4c precedes step 6, whatever R
         assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]   # TIMEOUT stands
         assert n["claim"].exists() and (n["capture"] / "meta.json").exists()      # not moved while it lives
         assert not (out / "seals" / f"{day['date']}.json").exists()
@@ -5759,111 +5833,149 @@ def test_timeout_cleanup_waits_for_the_work_lock(tmp_path):                     
                                                          st_["calendar"]) == []
 
 
-# ---------------------------------------------------------------- E2 (rows 55, 260-263, 265, 323-325): PLAN-2
+# ---------------------------------------------------------------- E2 r3 (rows 55, 260-266, 323-325, 331, 334-336)
 def _stop_row(tmp_path, at):
     return s1_jappend(tmp_path, "TRIAL-STOP", "trial", detail="5" * 64, at=at)
 
 
-def test_no_seal_after_stop_even_for_a_pre_stop_qualified(tmp_path):                  # rows 55, 260, 323
+def seal_kinds(tmp_path, day_iso):
+    return [x.kind for x in j.subject_rows(rows(tmp_path), f"stage/seal/{day_iso}")]
+
+
+def test_seal_is_an_f4_stage(tmp_path):                                                # row 266 (E2.1 r3)
+    st_ = registered(tmp_path)
+    day, sch = first_slot(st_)
+    run(tmp_path, st_, sch, sch + timedelta(seconds=30))            # QUALIFIED -> close determined -> seal stage
+    assert seal_kinds(tmp_path, day["date"]) == ["STAGE-INTENT", "STAGE-PREPARED", "STAGE-CREATED"]
+    q = j.first(j.subject_rows(rows(tmp_path), j.slot_subject(sch)), "SLOT-QUALIFIED")
+    tid = t.open_trial(tmp_path / "mailbox.sqlite3").trial_id
+    st_dir = sg.staging_dir(tmp_path, tid, f"seal/{day['date']}")
+    env = json.loads((st_dir / "intent.json").read_bytes())
+    com = json.loads((st_dir / "prepared.json").read_bytes())
+    assert env["inputs"] == {"qualified_line": q.sha, "tree_manifest": q.detail} and env["request_policy"] is None
+    assert com["kind"] == "single" and list(com["members"]) == [f"seals/{day['date']}.json"]
+    assert "seals_checked" not in com                                # removed (E2.7 r3)
+
+
+def test_no_seal_after_stop_even_for_a_pre_stop_qualified(tmp_path):                  # rows 55, 260, 323, 336
+    """A QUALIFIED committed before the STOP whose close becomes determined only after the STOP: the seal INTENT
+    is refused (not ACTIVE), so no seal is decided and no file is written."""
     st_ = registered(tmp_path)
     day, s1_ = first_slot(st_, 45)
     _, s2 = first_slot(st_, 47)
     s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s1_), at=s1_ + timedelta(seconds=1))   # earlier in flight
-    run(tmp_path, st_, s2, s2 + timedelta(seconds=30))             # s2 QUALIFIED; its seal waits for s1
+    run(tmp_path, st_, s2, s2 + timedelta(seconds=30))             # s2 QUALIFIED; close not determined yet
     seal = tmp_path / "s1_out" / "seals" / f"{day['date']}.json"
-    assert not seal.exists()
+    assert not seal.exists() and seal_kinds(tmp_path, day["date"]) == []
     _stop_row(tmp_path, s2 + timedelta(minutes=1))                 # STOP (synthetic) before s1 is terminal
     e1, d1 = E_D(st_, day, s1_)
-    res = fin(tmp_path, st_, day, d1)                               # s1 TIMEOUT: s2 is now the first QUALIFIED
+    res = fin(tmp_path, st_, day, d1)                               # s1 TIMEOUT: the close is now determined
     assert [k_ for k_, *_ in slot_rows(tmp_path, s1_)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
-    assert not seal.exists() and "STOPPED" in str(res["refused"])  # E2.1: never published outside ACTIVE
+    assert seal_kinds(tmp_path, day["date"]) == [] and not seal.exists()          # INTENT refused (E2.6 r3)
+    assert "not allowed while STOPPED" in str(res["refused"])
 
 
-HOLD_STOP = r'''
-import sys
-sys.path.insert(0, sys.argv[1])
-import s1_locks
-try:
-    s1_locks.OwnershipLock(sys.argv[2], sys.argv[3], "stop").acquire()
-    print("acquired", flush=True)
-except s1_locks.LockHeld:
-    print("held", flush=True)
-    sys.exit(0)
-sys.stdin.readline()
-'''
+def _barrier(monkeypatch, commit):
+    """Run `commit()` after the seal stage's INTENT committed (its ACTIVE read) and before its PREPARED: the
+    stage's work calls seal_bytes, which is wrapped here."""
+    real = sl.seal_bytes
+
+    def wrapped(*a, **k):
+        commit()
+        return real(*a, **k)
+    monkeypatch.setattr(sl, "seal_bytes", wrapped)
+
+
+def test_barrier_invalid_between_active_read_and_prepared(tmp_path, monkeypatch):      # row 260b (E2.8 r3)
+    st_ = registered(tmp_path)
+    day, sch = first_slot(st_)
+    _barrier(monkeypatch, lambda: s1_jappend(tmp_path, "TRIAL-INVALID", "reason/registration-artifact",
+                                             detail="6" * 64, at=sch + timedelta(seconds=40)))
+    run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+    assert seal_kinds(tmp_path, day["date"]) == ["STAGE-INTENT"]                   # PREPARED was LOST-RACE
+    assert not (tmp_path / "s1_out" / "seals" / f"{day['date']}.json").exists()
+
+
+def test_barrier_close_between_active_read_and_prepared(tmp_path, monkeypatch):        # row 261 (E2.8 r3)
+    st_ = registered(tmp_path)
+    day, sch = first_slot(st_)
+    _barrier(monkeypatch, lambda: s1_ack(tmp_path, "close", "S1-CLOSE-ACK", sch + timedelta(seconds=40),
+                                         reason="WITHDRAWN", evidence_sha256="e" * 64))
+    run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+    tr = t.trials(t.scan(tmp_path / "mailbox.sqlite3"))
+    (only,) = tr.values()
+    kinds_ = [x.kind for x in j.subject_rows(j.read_trial(only.trial_id, only.genesis, tmp_path / "mailbox.sqlite3"),
+                                             f"stage/seal/{day['date']}")]
+    assert kinds_ == ["STAGE-INTENT"] and only.closed is not None                 # PREPARED refused (CLOSED)
+    assert not (tmp_path / "s1_out" / "seals" / f"{day['date']}.json").exists()
+
+
+def test_stop_fence_refuses_a_determined_close_without_a_created_seal(tmp_path, monkeypatch):   # row 262 (E2.5)
+    st_ = registered(tmp_path)
+    day, sch = first_slot(st_)
+    monkeypatch.setattr(sl, "run_seal_stage", lambda gv, d, cal, res=None, **k: res or {})   # no seal stage yet
+    run(tmp_path, st_, sch, sch + timedelta(seconds=30))            # close determined, no seal stage
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    req = j.Request("TRIAL-STOP", "trial", j.new_nonce(), j.new_nonce(), detail="5" * 64)
+    ctx = t.product_context(tr, st_["calendar"], stop_detail=lambda rows_: "5" * 64,
+                            stop_fence=sl.stop_fence(st_["calendar"], c.aware(START)))
+    at = sch + timedelta(minutes=2)
+    res = j.append(tr.trial_id, tr.genesis, req, ctx, mailbox=tmp_path / "mailbox.sqlite3", clock=lambda: at)
+    assert res.outcome == "REFUSE" and "not sealed" in res.reason
+    gv = t.gate(tmp_path, "seal stage")
+    REAL_RUN_SEAL_STAGE(gv, day, st_["calendar"], mailbox=tmp_path / "mailbox.sqlite3", clock=lambda: at)
+    res = j.append(tr.trial_id, tr.genesis, req, ctx, mailbox=tmp_path / "mailbox.sqlite3", clock=lambda: at)
+    assert res.outcome == "APPEND"
 
 
 @pytest.mark.parametrize("order", ["publish-first", "stop-first"])
-def test_seal_publication_and_stop_race(tmp_path, order):                              # rows 261, 262, 324
+def test_seal_stage_and_stop_orders(tmp_path, order):                                  # rows 324, 335 (E2.8 r3)
     st_ = registered(tmp_path)
     day, sch = first_slot(st_)
     seal = tmp_path / "s1_out" / "seals" / f"{day['date']}.json"
-    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
-    stop_child = [sys.executable, "-I", "-c", HOLD_STOP, str(HERE), str(tmp_path), tr.trial_id]
-    if order == "publish-first":
-        seen = []
-
-        def before_seal():                                          # runs while the publisher holds the stop lock
-            p = subprocess.run(stop_child, input="", capture_output=True, text=True, timeout=60)
-            seen.append(p.stdout.strip())
-        gv = t.gate(tmp_path, "race")
-        run(tmp_path, st_, sch, sch + timedelta(seconds=30))        # QUALIFIED; seal published by the worker path
-        assert seal.exists()
-        seal.unlink()                                               # (not yet required: no committed report lists it)
-        with _Clock(sch + timedelta(minutes=1)):
-            sl.finalize_close(gv, day, st_["calendar"], lambda: sch + timedelta(minutes=1),
-                              mailbox=tmp_path / "mailbox.sqlite3", before_seal=before_seal)
-        assert seen == ["held"] and seal.exists()                   # the STOP side had to wait
+    if order == "publish-first":                                    # seal CREATED, then the (fenced) STOP commits
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+        assert seal_kinds(tmp_path, day["date"])[-1] == "STAGE-CREATED" and seal.exists()
         _stop_row(tmp_path, sch + timedelta(minutes=2))
-        assert rows(tmp_path)[-1].kind == "TRIAL-STOP"
-    else:
+        t.gate(tmp_path, "after the STOP")                          # the CREATED seal verifies: no INVALID
+    else:                                                           # STOP first: a later determination is refused
         _, s2 = first_slot(st_, 47)
         s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(sch), at=sch + timedelta(seconds=1))   # earlier in flight
-        run(tmp_path, st_, s2, s2 + timedelta(seconds=30))         # s2 QUALIFIED; its seal waits for sch
+        run(tmp_path, st_, s2, s2 + timedelta(seconds=30))         # s2 QUALIFIED; not determined
+        _stop_row(tmp_path, s2 + timedelta(minutes=1))              # nothing determined: the fence would pass
         d1 = E_D(st_, day, sch)[1]
-        p = subprocess.Popen(stop_child, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
-        try:
-            assert p.stdout.readline().strip() == "acquired"        # the STOP side holds the stop lock
-            res = fin(tmp_path, st_, day, d1)                       # TIMEOUT for sch; publication deferred
-            assert "stop lock is held" in str(res["deferred"]) and not seal.exists()
-            _stop_row(tmp_path, d1 + timedelta(seconds=1))           # ... the STOP commits under its lock
-        finally:
-            p.stdin.close()
-            p.wait(timeout=30)
-        res = fin(tmp_path, st_, day, d1 + timedelta(seconds=2))   # now STOPPED: never published
-        assert not seal.exists() and "outside ACTIVE" in str(res["refused"])
+        res = fin(tmp_path, st_, day, d1)                           # sch TIMEOUT -> determined after the STOP
+        assert seal_kinds(tmp_path, day["date"]) == [] and not seal.exists()       # post-STOP seal INTENT refused
+        assert "not allowed while STOPPED" in str(res["refused"])
 
 
-def test_missing_required_seal_after_stop_is_invalid(tmp_path, monkeypatch):          # rows 263, 325
+@pytest.mark.parametrize("when", ["after-stop", "while-active"])
+def test_deleted_created_seal_is_invalid_and_never_recreated(tmp_path, monkeypatch, when):   # rows 263, 325, 264b
     st_ = registered(tmp_path)
     day, sch = first_slot(st_)
-    _, later = first_slot(st_, 47)
-    run(tmp_path, st_, sch, sch + timedelta(seconds=30))            # QUALIFIED + seal published
+    run(tmp_path, st_, sch, sch + timedelta(seconds=30))            # seal/<close> CREATED
     seal = tmp_path / "s1_out" / "seals" / f"{day['date']}.json"
-    assert seal.exists()
-    run(tmp_path, st_, later, later + timedelta(seconds=30))        # its committed report lists the seal
-    _stop_row(tmp_path, later + timedelta(minutes=1))
+    assert f"seals/{day['date']}.json" in sl.required_seals(tmp_path / "s1_out", rows(tmp_path))
+    if when == "after-stop":
+        _stop_row(tmp_path, sch + timedelta(minutes=1))
     seal.unlink()                                                   # the TEST deletes its tmp seal
     sp = Spies(monkeypatch)
-    with pytest.raises(SystemExit, match="INVALID"):
-        t.gate(tmp_path, "required seal missing")
+    with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+        t.gate(tmp_path, "CREATED seal missing")
     sp.assert_zero()
-    assert rows(tmp_path)[-1].subject == "reason/registration-artifact" and not seal.exists()
+    assert not seal.exists()                                        # never recreated
 
 
-def test_previously_required_seal_deleted_is_invalid_and_never_recreated(tmp_path):   # row 265 (E2.4)
+def test_seal_file_without_prepared_is_invalid(tmp_path, monkeypatch):                 # row 265 (E2.4 r3)
     st_ = registered(tmp_path)
     day, sch = first_slot(st_)
-    _, later = first_slot(st_, 47)
+    monkeypatch.setattr(sl, "run_seal_stage", lambda gv, d, cal, res=None, **k: res or {})   # no stage rows
     run(tmp_path, st_, sch, sch + timedelta(seconds=30))
-    run(tmp_path, st_, later, later + timedelta(seconds=30))        # later report: seals_checked lists the seal
     seal = tmp_path / "s1_out" / "seals" / f"{day['date']}.json"
-    rel = seal.relative_to(tmp_path / "s1_out").as_posix()
-    assert rel in sl.required_seals(tmp_path / "s1_out", rows(tmp_path), st_["calendar"])
-    seal.unlink()
-    with pytest.raises(SystemExit, match="INVALID"):
-        fin(tmp_path, st_, day, later + timedelta(minutes=1))       # the finalizer's gate catches it first
-    assert not seal.exists()
+    seal.parent.mkdir(parents=True, exist_ok=True)
+    seal.write_bytes(b'{"forged": true}')                           # the TEST writes a seal outside any stage
+    with pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+        t.gate(tmp_path, "seal without PREPARED")
 
 
 def test_late_r_refuses_with_no_row_then_timeout(tmp_path, monkeypatch):
@@ -6141,9 +6253,11 @@ def test_race_p_without_j_restart_ends_in_timeout(tmp_path):
     - 256, 257, 259 and 321 fail (no TIMEOUT row; the legacy finalizer writes files);
     - 258 fails on the Step 1 stub only if the stub locks. Make the stub's `finalize_close` take the slot lock
       around its legacy call, as revision 0 did, so that row 258 has a genuine RED;
-    - 260 and 262 fail (the legacy finalizer seals in STOPPED);
-    - 261 fails (no stop lock: the child acquires, so `seen == ["acquired"]`);
-    - 263 and 265 fail (no required-seal check);
+    - revision 2 (E2 r3) seal-stage rows fail on the stub, whose `run_seal_stage` writes the legacy file with no
+      stage: 266 (no `seal/<close>` rows), 260/336 (the stub writes after the STOP), 260b/261 (the barriers write a
+      file and no LOST-RACE/refusal is seen), 262 (no `stop_fence`: AttributeError at the test's call, recorded as an
+      ImportError-class RED and re-run as a behavioural RED once the stub defines `stop_fence = lambda cal, s:
+      (lambda rows: None)`), 263/325 (no stage, so no stage-replaced), 265 (the forged file is not flagged), 324/335;
     - 267 and 311 fail (backup not in the tree; no capture_dir check).
   - Record the RED of each in `a3/t7_red.txt` with its failing assertion.
 
@@ -6229,10 +6343,11 @@ def finalize_close(gv, day, cal, now, *, mailbox=None, before_seal=None, before_
     SLOT-MISSED (own op); INTENT, no terminal and now >= D -> SLOT-TIMEOUT (the INTENT's op, own actor). Neither
     takes, waits for or tests the slot work lock, so a live stalled worker never prevents TIMEOUT at D. After a
     committed TIMEOUT, leftover cleanup runs only if the work lock is acquirable (E1.4), else it is deferred.
-    E2 (PLAN-2): the close's seal (its first QUALIFIED slot with every earlier slot terminal) is published only while
-    the trial is ACTIVE, under the stop lock: read state, publish, re-read state. A held stop lock defers the
-    publication (no seal); in STOPPED/INVALID/CLOSED nothing is ever published, whatever the QUALIFIED's seq.
-    Any unexpected error refuses with no row (F0.7)."""
+    E2 r3 (A3-PR1-1): once the close is determined (its first QUALIFIED slot with every earlier slot terminal), its
+    seal is the F4 stage `seal/<close>` (run_seal_stage). Every decision of that stage (INTENT, PREPARED, CREATED)
+    is taken inside the F0.1 transaction, which reads INVALID, STOP and CLOSE from the same sqlite file, so no seal is
+    ever decided outside ACTIVE. No stop lock, no post-write re-read. Any unexpected error refuses with no row
+    (F0.7)."""
     res = {"written": False, "sha256": None, "from_slot": None, "deferred": None, "refused": None, "cleanup": None}
     out = gv.out
     try:
@@ -6262,7 +6377,9 @@ def finalize_close(gv, day, cal, now, *, mailbox=None, before_seal=None, before_
                 break
             if req.kind == "SLOT-TIMEOUT" and got.outcome == "APPEND":
                 res["cleanup"] = _cleanup(gv, slot, day, got.row)
-        return publish_seal(gv, day, cal, res, mailbox=mailbox, before_seal=before_seal)
+        return run_seal_stage(gv, day, cal, res, mailbox=mailbox, before_publish=before_seal)
+    except SystemExit:
+        raise
     except Exception as e:                       # noqa: BLE001 - F0.7: unexpected errors fail closed, no row
         raise SystemExit(f"finalizer refused with no row ({type(e).__name__}: {e}) (F0.7)") from None
 
@@ -6275,47 +6392,87 @@ def _cleanup(gv, slot, day, timeout_row):
     return {"moved": moved} if moved else None
 
 
-def publish_seal(gv, day, cal, res, *, mailbox=None, before_seal=None, stop_lock_held=False) -> dict:
-    """E2.3-E2.6 (Erratum 1 r1): the only seal publisher (the finalizer and the stop operation both call it). Under
-    the stop lock (non-blocking: held -> no change, pending, E2.6): read the journal; publish a DETERMINED seal only
-    while ACTIVE, with exactly its recomputed bytes, and never a missing published-committed one (E2.4); re-read; a
-    state change between the reads is impossible under the lock and is a refusal if seen.
-    `stop_lock_held=True` is passed only by decide_stop, which already holds the stop lock (Task 11)."""
+def determined(rows, day, cal):
+    """E2.2 r3: close `day` is determined when its first QUALIFIED slot is committed and every earlier slot of the
+    close is terminal; returns that QUALIFIED row (== first_qualified)."""
+    return first_qualified(rows, day, cal)
+
+
+def seal_stage_name(day_iso: str) -> str:
+    return f"seal/{day_iso}"                                                   # subject stage/seal/<close date>
+
+
+def seal_gate(day, cal):
+    """F0.5 step 5 for STAGE-INTENT seal/<c> (E2.2 r3), evaluated inside the transaction: ACTIVE is `permitted`'s
+    check; here the close must be determined."""
+    def g(rows):
+        return None if determined(rows, day, cal) is not None else \
+            f"close {day['date']} is not determined: no seal stage yet (E2.2)"
+    return g
+
+
+def seal_check(day, cal):
+    """F0.5 step 4a for STAGE-INTENT seal/<c> (E2.2 r3): the INTENT's inputs must name the close's first QUALIFIED
+    line; another choice is INVALIDATE (contradictory-stage)."""
+    def chk(rows, subject, inputs):
+        q = determined(rows, day, cal)
+        if q is not None and inputs.get("qualified_line") != q.sha:
+            return j.Decision("INVALIDATE", "contradictory-stage")
+        return None
+    return chk
+
+
+def run_seal_stage(gv, day, cal, res=None, *, mailbox=None, clock=None, before_publish=None) -> dict:
+    """E2.1 r3: the post-START seal of close `day` as the F4 stage seal/<close>: kind single, member
+    seals/<close>.json, envelope inputs = the selected QUALIFIED line and its tree detail, request_policy null,
+    INTENT -> staging -> PREPARED (the exact seal bytes) -> publication -> CREATED, with F4.7 recovery. The opening
+    close is the `opening` stage (Task 10), never this one. Not determined, or not ACTIVE: refused with no row
+    (reported in res["refused"]); INVALID between the reads: PREPARED is LOST-RACE (no decision); CLOSED: refused."""
+    import s1_stage
+    res = res if res is not None else {"written": False, "sha256": None, "from_slot": None, "deferred": None,
+                                       "refused": None, "cleanup": None}
     out = gv.out
-    rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
-    q = first_qualified(rows, day, cal)
-    if q is None:
-        return res
     if day["date"] == _opening_date(out):
         res["deferred"] = "the opening close is sealed by the opening stage (Task 10)"
         return res
-    lk = None
-    if not stop_lock_held:
-        try:
-            lk = L.OwnershipLock(gv.root, gv.trial.trial_id, L.STOP_LOCK).acquire()
-        except L.LockHeld:
-            res["deferred"] = "pending: the stop lock is held; no change, retried on the next run (E2.6)"
-            return res
-    try:
-        import s1_trial
-        rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
-        try:
-            st_ = s1_trial.state(s1_trial.open_trial(mailbox, root=gv.root), rows)
-        except s1_trial.Refusal:
-            st_ = "CLOSED-or-unavailable"                                          # fail closed: no publication
-        if st_ != "ACTIVE":
-            res["refused"] = f"trial {st_}: no seal is ever published outside ACTIVE (E2.1)"
-            return res
-        if before_seal is not None:
-            before_seal()
-        res = _write_post_start_seal(out, rows, q, day, cal, res)
-        again = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
-        if j.trial_state(again) != "ACTIVE":
-            raise SystemExit("the trial left ACTIVE while the stop lock was held (E2.3): refuse")
+    rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
+    q = determined(rows, day, cal)
+    if q is None:
         return res
-    finally:
-        if lk is not None:
-            lk.release()
+    stage = seal_stage_name(day["date"])
+    if s1_stage.stage_rows(rows, stage)["created"] is not None:
+        res["sha256"] = c.sha256_file(out / s1_stage.single_member(out, stage))
+        return res
+    ev = _resolution_evidence(out, q, day["date"])
+
+    def work(sw):                                             # after the INTENT (the barrier tests hook in here)
+        sw.put(s1_stage.single_member(out, stage), seal_bytes(day, z.close_of(day["date"], cal), ev))
+        return []
+    try:
+        com = s1_stage.run(gv, stage, inputs={"qualified_line": q.sha, "tree_manifest": q.detail}, acks={},
+                           work=work, mailbox=mailbox, clock=clock, before_publish=before_publish,
+                           extra_gate=seal_gate(day, cal), stage_check=seal_check(day, cal))
+    except SystemExit as e:                                   # refusal / LOST-RACE / pending lock: no seal decided
+        res["refused"] = str(e)
+        return res
+    res.update(written=True, sha256=com["members"][s1_stage.single_member(out, stage)], from_slot=ev["scheduled"])
+    return res
+
+
+def stop_fence(cal, start):
+    """E2.5 r3, F0.5 step 5 for TRIAL-STOP, evaluated INSIDE the TRIAL-STOP transaction on the rows read there:
+    every post-START close determined by these rows must have a CREATED seal stage. A QUALIFIED that commits between
+    the stop operation's seal pass and its append is inside this check, even when the stop record is unchanged."""
+    def fence(rows):
+        import s1_stage
+        for d in z.eligible_sessions(start, cal):
+            if d["date"] == z.opening_close_of(start, cal):
+                continue                                              # the opening seal is the `opening` stage
+            if determined(rows, d, cal) is not None and \
+                    s1_stage.stage_rows(rows, seal_stage_name(d["date"]))["created"] is None:
+                return f"determined close {d['date']} has no CREATED seal stage (E2.5)"
+        return None
+    return fence
 
 
 def _opening_date(out):
@@ -6330,22 +6487,6 @@ def _resolution_evidence(out, q, day_iso) -> dict:
     if j.detail_of(qualified_tree(out, s, day_iso)) != q.detail:
         raise ValueError(f"{q.subject}: QUALIFIED tree differs from its committed detail")
     return json.loads(names(out, s, day_iso)["resolution"].read_text(encoding="utf-8"))["evidence"]
-
-
-def _write_post_start_seal(out, rows, q, day, cal, res) -> dict:
-    ev = _resolution_evidence(out, q, day["date"])
-    data = seal_bytes(day, z.close_of(day["date"], cal), ev)
-    p = Path(out) / "seals" / f"{day['date']}.json"
-    if not p.exists() and _rel(out, p) in required_seals(out, rows, cal):
-        raise ValueError(f"required seal {p.name} is missing: never recreated (E2.4)")
-    try:
-        c.publish_exclusive(p, data)
-        res.update(written=True, sha256=c.sha256_bytes(data), from_slot=ev["scheduled"])
-    except FileExistsError:
-        if p.read_bytes() != data:
-            raise ValueError(f"seal {p.name} differs from the one its first QUALIFIED slot gives (OQ-14)")
-        res["sha256"] = c.sha256_bytes(data)
-    return res
 
 
 def slot_problems(out, rows, subject, cal) -> list:
@@ -6406,7 +6547,9 @@ def slot_problems(out, rows, subject, cal) -> list:
 
 def evidence_problems(out, rows, cal) -> list:
     """Every slot subject with rows, plus every captures/<day>/<slot>* file whose slot has no row; and every
-    post-START seal that is not the recomputation from its first QUALIFIED slot (OQ-14)."""
+    post-START seal file that is not the recomputation from its first QUALIFIED slot (OQ-14). Seal stage state
+    (a seal file with no PREPARED, a CREATED seal missing or changed) is s1_stage.evaluate's (E2.4/E2.6 r3); this
+    function adds only the recomputation check of the bytes against the selected QUALIFIED evidence."""
     out = Path(out)
     subjects = {r_.subject for r_ in rows if r_.kind in j.SLOT_KINDS}
     for p in sorted((out / "captures").glob("*/*")):
@@ -6429,10 +6572,6 @@ def evidence_problems(out, rows, cal) -> list:
             want = None
         if want is None or seal.read_bytes() != want:
             probs.append(f"seals/{seal.name} is not the seal of its first QUALIFIED slot (OQ-14)")
-    for rel, sha in sorted(required_seals(out, rows, cal).items()):              # E2.2/E2.4: never recreated
-        p = out / rel
-        if not p.is_file() or c.sha256_file(p) != sha:
-            probs.append(f"required seal {rel} is missing or differs from the committed record (E2.4)")
     return probs
 
 
@@ -6466,14 +6605,19 @@ plan check. The late import goes inside `gate`.
 
 `conftest._write_seal` additionally does the following:
 1. `s1_jappend(SLOT-INTENT)` for `sch` at `sch + 1 s`.
-2. It writes the claim (with `capture_dir`), the resolution and the report JSON (with `seals_checked`) with that
+2. It writes the claim (with `capture_dir`), the resolution and the report JSON with that
    row's op and actor. The resolution's `evidence.candidate` holds the capture fields `seal_bytes` reads, the same
    dict the seal file is built from. The capture directory holds `backup.sqlite3` (a copy of the tmp ledger),
    `meta.json` and `projection.json`, so that `qualified_tree` covers the raw bytes (E5.6).
-3. It writes the seal file as `s1_slot.seal_bytes(...)`, and not with `json.dumps(seal)` by hand.
-4. `s1_jappend(SLOT-QUALIFIED, detail=j.detail_of(s1_slot.qualified_tree(out, sch, day)), r_at=sch + 31 s)`.
+3. `s1_jappend(SLOT-QUALIFIED, detail=j.detail_of(s1_slot.qualified_tree(out, sch, day)), r_at=sch + 31 s)`.
+4. Revision 2 (E2 r3): it then runs the REAL seal stage, `s1_slot.run_seal_stage(t.gate(root, "fixture"), day,
+   cal, mailbox=…, clock=…)`, instead of writing the seal file. So every fixture seal is a CREATED `seal/<close>`
+   stage whose member is `s1_slot.seal_bytes(...)`; a hand-written seal file would now be a registration-artifact.
+   A new keyword `with_stage=True` (`_write_seal(out, day, close_dt, trades, receipt, *, start=None,
+   opening_close=None, with_stage=True)`) lets a test stop after step 3: the close is then determined but has no
+   seal stage (used by the E2.8 STOP-fence test in Task 11).
 
-The written seal therefore equals the recomputation.
+The written seal therefore equals the recomputation and is stage-committed.
 
 - [ ] **Step 5: GREEN.** Run the finalizer tests, the race probes and the earlier A3 files into `a3/t7_green.txt`.
   Run the child-process tests three times.
@@ -6493,9 +6637,9 @@ The written seal therefore equals the recomputation.
 
   Save `a3/t7_full.txt`, `a3/t7_old_new.md` and `a3/t7_hashes.txt`.
 - [ ] **Step 7: Controller review and commit.** Message: `S1 A3 Task 7: journal finalizer, F3 evidence table,
-  post-START seals from the first QUALIFIED slot; E1 deadline arbitration; E2 seal publication`, listing map rows
-  12, 20, 45, 50, 55 (pre-STOP part), 72, 73, 75–80, 175, 187, 193–195, 198, 199, 205, 230, 256–263, 265, 267, 311
-  and 320–325, with the Co-Authored-By line. Push and assert the HEAD SHA.
+  post-START seals as seal/<close> stages; E1 deadline arbitration; E2 r3 STOP fence`, listing map rows 12, 20, 45,
+  50, 55, 72, 73, 75–80, 175, 187, 193–195, 198, 199, 205, 230, 256–267, 311, 320–325 and 334–336, with the
+  Co-Authored-By line. Push and assert the HEAD SHA.
 
 ---
 
@@ -6524,14 +6668,17 @@ The written seal therefore equals the recomputation.
   - `class StageWork` (fields gv, stage, staging, intent, policy, op, actor, mailbox, clock; properties `intent_at`
     and `trial_id`; methods `put(rel, data: bytes) -> Path` and `put_json(rel, obj) -> Path`);
   - `envelope(trial_id, stage, inputs, acks, policy) -> dict`;
-  - `commitment(trial_id, stage, op, kind, members, provenance, seals_checked) -> dict` (E2.4 r1: `seals_checked`
-    = `s1_slot.seals_checked(out)` at PREPARED time);
+  - `commitment(trial_id, stage, op, kind, members, provenance) -> dict` (revision 2: no `seals_checked`, E2.7 r3);
+  - `spec(stage) -> dict`, `single_member(out, stage) -> str`, `seal_stages(rows) -> list[str]`, `SEAL_PREFIX`,
+    `SEAL_SPEC` (E2.1 r3: the `seal/<close>` stage family; kind single, member `seals/<close>.json`, state ACTIVE);
+  - `run(…, extra_gate=None, stage_check=None)` (both evaluated inside the F0.1 transaction; moved here from Task 10
+    in revision 2);
   - `committed_commitment(root, trial_id, stage, rows) -> dict`: the staging `prepared.json`, verified against its
     PREPARED row's detail in the caller's (verified) `rows` (`ValueError` otherwise). Body:
     `m = stage_rows(rows, stage)`; `p = staging_dir(root, trial_id, stage) / "prepared.json"`;
     `if m["prepared"] is None or c.sha256_file(p) != m["prepared"].detail: raise ValueError(...)`;
-    `return json.loads(p.read_bytes())`. It is used by `s1_slot.required_seals` (E2.4) and, from Task 10, by
-    `s1_trial.evidence_manifest`;
+    `return json.loads(p.read_bytes())`. It is used by `s1_slot.required_seals` (E2.6 r3: CREATED seal stages)
+    and, from Task 10, by `s1_trial.evidence_manifest`;
   - `staging_dir(root, trial_id, stage) -> Path`;
   - `stage_rows(rows, stage) -> dict` (keys intent, prepared, created);
   - `permitted(trial, rows, stage) -> str | None`;
@@ -6615,7 +6762,7 @@ def envelope(trial_id, stage, inputs, acks, policy):
     return {}
 
 
-def commitment(trial_id, stage, op, kind, members, provenance, seals_checked):
+def commitment(trial_id, stage, op, kind, members, provenance):
     return {}
 
 
@@ -6635,7 +6782,8 @@ def manifest_projection(stage, manifest):
     return dict(manifest.get("files") or {})
 
 
-def run(gv, stage, *, inputs, acks, work, policy_fn=None, mailbox=None, clock=None, before_publish=None):
+def run(gv, stage, *, inputs, acks, work, policy_fn=None, mailbox=None, clock=None, before_publish=None,
+        extra_gate=None, stage_check=None):
     sw = StageWork(gv, stage, gv.out, None, policy_fn(c.now_utc()) if policy_fn else None, "0" * 32, "0" * 32,
                    mailbox, clock)
     work(sw)
@@ -6675,7 +6823,10 @@ import s1_trial as t
 
 
 def relax(monkeypatch_or_none, stage, *, state="ACTIVE"):
-    """Engine tests: drive `stage` with its F1 prerequisites relaxed (they are tested separately)."""
+    """Engine tests: drive `stage` with its F1 prerequisites relaxed (they are tested separately). A `seal/<close>`
+    stage has no predecessor or ACK already (SEAL_SPEC), so it is left as is (revision 2)."""
+    if stage.startswith(sg.SEAL_PREFIX):
+        return
     entry = dict(sg.TABLE[stage], pred=None, ack=None, state=state)
     if monkeypatch_or_none is None:
         sg.TABLE[stage] = entry
@@ -6873,10 +7024,7 @@ def test_prepared_commitment_format(tmp_path, trial, monkeypatch, case):
             drive(tmp_path, "final_plan", two, monkeypatch)
         assert stage_kinds(tmp_path, "final_plan") == ["STAGE-INTENT"]
         return
-    assert set(com) == {"trial_id", "stage", "op", "kind", "members", "provenance", "seals_checked"}
-    seal_dir = tmp_path / "s1_out" / "seals"
-    assert com["seals_checked"] == {f"seals/{p.name}": c.sha256_file(p)
-                                    for p in sorted(seal_dir.glob("*.json"))}     # E2.4 r1 (row 331)
+    assert set(com) == {"trial_id", "stage", "op", "kind", "members", "provenance"}   # no seals_checked (E2.7 r3)
     prepared = j.first(j.subject_rows(jrows(tmp_path), j.stage_subject(com["stage"])), "STAGE-PREPARED")
     assert prepared.detail == j.detail_of(com)
 
@@ -6951,16 +7099,37 @@ def test_member_bytes_do_not_depend_on_the_prepared_or_created_clock(tmp_path_fa
         assert len({r_.at for r_ in rows_b}) == 1
 
 
-def test_seal_seen_only_by_a_prepared_commitment_is_required(tmp_path, trial, monkeypatch):    # row 331 (E2.4 r1)
-    import s1_slot as sl
-    seal = tmp_path / "s1_out" / "seals" / "2026-10-27.json"
-    seal.parent.mkdir(parents=True, exist_ok=True)
-    seal.write_bytes(b'{"synthetic": "published seal"}')                      # the TEST writes its tmp seal
-    drive(tmp_path, "final_plan", h.fake_single, monkeypatch)               # PREPARED records seals_checked
-    req = sl.required_seals(tmp_path / "s1_out", jrows(tmp_path), [])        # no slot rows: PREPARED part only
-    assert req == {"seals/2026-10-27.json": c.sha256_file(seal)}
-    seal.unlink()
-    assert "seals/2026-10-27.json" in sl.required_seals(tmp_path / "s1_out", jrows(tmp_path), [])   # still required
+@pytest.mark.parametrize("case", ["created", "gate-refuses", "selection-invalid"])
+def test_seal_stage_family_in_the_engine(tmp_path, trial, monkeypatch, case):          # row 331 (E2.1/E2.2 r3)
+    """The engine side of a `seal/<close>` stage, with fake inputs (the slot side is Task 7's): kind single, member
+    seals/<close>.json, policy null; the extra_gate refuses with no row; a stage_check INVALIDATE is committed."""
+    stage = "seal/2026-10-27"
+    assert sg.spec(stage)["kind"] == "single" and sg.single_member(tmp_path / "s1_out", stage) == \
+        "seals/2026-10-27.json"
+    with pytest.raises(KeyError):
+        sg.spec("seal/../x")                                                 # unknown names fail closed
+
+    def work(sw):
+        sw.put("seals/2026-10-27.json", b'{"seal": "fake"}')
+        return []
+    kw = {"inputs": {"qualified_line": "1" * 64, "tree_manifest": "2" * 64}}
+    if case == "gate-refuses":
+        kw["extra_gate"] = lambda rows: "close not determined (E2.2)"
+    if case == "selection-invalid":
+        kw["stage_check"] = lambda rows, s, inputs: j.Decision("INVALIDATE", "contradictory-stage")
+    if case == "created":
+        com = drive(tmp_path, stage, work, monkeypatch, **kw)
+        assert com["kind"] == "single" and list(com["members"]) == ["seals/2026-10-27.json"]
+        assert stage_kinds(tmp_path, stage) == ["STAGE-INTENT", "STAGE-PREPARED", "STAGE-CREATED"]
+        env = json.loads((sg.staging_dir(tmp_path, trial.trial.trial_id, stage) / "intent.json").read_bytes())
+        assert env["request_policy"] is None
+        return
+    with pytest.raises(SystemExit):
+        drive(tmp_path, stage, work, monkeypatch, **kw)
+    if case == "gate-refuses":
+        assert stage_kinds(tmp_path, stage) == [] and not (tmp_path / "s1_out" / "seals").exists()
+    else:
+        assert jrows(tmp_path)[-1].subject == "reason/contradictory-stage"
 
 
 def test_stage_kinds_are_the_frozen_f48_kinds():                                       # row 85 (OQ-15)
@@ -7307,8 +7476,8 @@ def test_every_stage_artifact_records_and_is_validated_against_the_trial_id(tmp_
     - `test_stage_kinds_are_the_frozen_f48_kinds` is `static` (the stub carries the final TABLE). It is kept as the
       guard that revision 0's start_attest `tree` cannot return;
     - `test_intent_or_prepared_json_lost_after_created_is_invalid[*]` fails (no INVALID);
-    - `test_seal_seen_only_by_a_prepared_commitment_is_required` fails (no PREPARED row, so nothing required);
-    - `test_prepared_commitment_format` fails on the `seals_checked` key (E2.4 r1).
+    - `test_seal_stage_family_in_the_engine[*]` fails (the stub has no `spec`/`single_member`, appends no rows and
+      ignores `extra_gate`/`stage_check`).
 
 - [ ] **Step 4: Implement `research/s1/s1_stage.py`.** Replace the stub; keep the constant tables from the stub.
 
@@ -7388,11 +7557,41 @@ def envelope(trial_id, stage, inputs: dict, acks: dict, policy) -> dict:
             "acks": dict(sorted(acks.items())), "request_policy": policy}
 
 
-def commitment(trial_id, stage, op, kind, members: dict, provenance: list, seals_checked: dict) -> dict:
-    """F4.3 plus E2.4 (Erratum 1 r1): every PREPARED commitment carries `seals_checked` = {relpath: sha256} of every
-    seal published at that moment, so the seals it saw become published-committed (required)."""
+def commitment(trial_id, stage, op, kind, members: dict, provenance: list) -> dict:
+    """F4.3 (revision 2: the r1 `seals_checked` field is removed with E2.7 r3)."""
     return {"trial_id": trial_id, "stage": stage, "op": op, "kind": kind, "members": dict(sorted(members.items())),
-            "provenance": list(provenance), "seals_checked": dict(sorted(seals_checked.items()))}
+            "provenance": list(provenance)}
+
+
+SEAL_PREFIX = "seal/"                                                         # E2.1 r3: stage seal/<close date>
+SEAL_SPEC = {"kind": "single", "pred": None, "ack": None, "state": "ACTIVE"}
+
+
+def spec(stage: str) -> dict:
+    """The F4 stage table entry; every `seal/<YYYY-MM-DD>` stage shares SEAL_SPEC (E2.1 r3). Any other unknown
+    name is a KeyError (fail closed)."""
+    if stage.startswith(SEAL_PREFIX) and re.fullmatch(r"seal/\d{4}-\d{2}-\d{2}", stage):
+        return SEAL_SPEC
+    return TABLE[stage]
+
+
+def single_member(out, stage: str) -> str:
+    if stage.startswith(SEAL_PREFIX):
+        return f"seals/{stage[len(SEAL_PREFIX):]}.json"                       # E2.1 r3: seals/<close>.json
+    return SINGLE[stage](out)
+
+
+def _opening_close(out) -> str:
+    try:
+        return c.load_json(Path(out) / "plan.json").get("opening_close")
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def seal_stages(rows) -> list:
+    """Every seal stage name with any row in `rows` (evaluate iterates them next to TABLE)."""
+    return sorted({r_.subject[len("stage/"):] for r_ in rows
+                   if r_.kind in j.STAGE_KINDS and r_.subject.startswith("stage/" + SEAL_PREFIX)})
 
 
 def stage_rows(rows, stage: str) -> dict:
@@ -7403,18 +7602,19 @@ def stage_rows(rows, stage: str) -> dict:
 
 def permitted(trial, rows, stage: str):
     """F1 + the finalization graph: the stage's trial state, its predecessor's CREATED row (or the TRIAL-STOP), and
-    its required ACK. A reason string refuses the INTENT with no row (F0.5 step 5)."""
-    spec = TABLE[stage]
+    its required ACK. A reason string refuses the INTENT with no row (F0.5 step 5). A seal stage additionally needs
+    its close determined; that check is the caller's extra_gate (s1_slot.seal_gate, E2.2 r3)."""
+    sp = spec(stage)
     st_ = j.trial_state(rows)
-    if st_ != spec["state"]:
+    if st_ != sp["state"]:
         return f"F1: stage {stage} is not allowed while {st_}"
-    pred = spec["pred"]
+    pred = sp["pred"]
     if pred == "TRIAL-STOP":
         if j.first(rows, "TRIAL-STOP") is None:
             return f"stage {stage}: no TRIAL-STOP"
     elif pred is not None and stage_rows(rows, pred)["created"] is None:
         return f"stage {stage}: predecessor {pred} is not CREATED (F1)"
-    ack = spec["ack"]
+    ack = sp["ack"]
     if ack not in (None, "S1-AUDIT-ACK") and ack not in trial.acks:
         return f"stage {stage}: no {ack} (F1 graph)"
     return None
@@ -7429,8 +7629,8 @@ def manifest_projection(stage: str, manifest: dict) -> dict:
 
 
 def _member_problems(gv, stage, members: dict, provenance: list) -> list:
-    if TABLE[stage]["kind"] == "single":
-        want = SINGLE[stage](gv.out)
+    if spec(stage)["kind"] == "single":
+        want = single_member(gv.out, stage)
         return [] if list(members) == [want] else [f"single stage {stage} must have exactly one member {want}"]
     fixed = set(FIXED_TREE[stage])
     pages = [p.get("page_relpath") for p in provenance]
@@ -7454,10 +7654,14 @@ def _lock(gv, stage):
                          f"(F5.5)") from None
 
 
-def _append(gv, req, mailbox, clock, stage_gate=None):
+def _append(gv, req, mailbox, clock, stage_gate=None, stage_check=None):
+    """Every stage row (INTENT, PREPARED, CREATED) goes through product_context: CLOSED is read from the CLOSE rows of
+    the same sqlite file inside the BEGIN IMMEDIATE transaction (F0.5 step 2) and INVALID from the journal rows
+    (step 3), so a seal stage's PREPARED/CREATED is serializable with TRIAL-INVALID, TRIAL-STOP and CLOSE
+    (E2.3 r3)."""
     import s1_trial
-    return j.append(gv.trial.trial_id, gv.trial.genesis, req, s1_trial.product_context(gv.trial,
-                                                                                       stage_gate=stage_gate),
+    return j.append(gv.trial.trial_id, gv.trial.genesis, req,
+                    s1_trial.product_context(gv.trial, stage_gate=stage_gate, stage_check=stage_check),
                     mailbox=mailbox, clock=clock)
 
 
@@ -7476,9 +7680,13 @@ def _need(res, stage, kind):
 
 
 def run(gv, stage, *, inputs: dict, acks: dict, work, policy_fn=None, mailbox=None, clock=None,
-        before_publish=None) -> dict:
+        before_publish=None, extra_gate=None, stage_check=None) -> dict:
     """F4.1-F4.4 for one stage; re-entry resolves the existing rows per the stage table instead (never a second
-    INTENT). A journal outage before the INTENT is a refusal with no request and no artifact (F4 failure 1)."""
+    INTENT). A journal outage before the INTENT is a refusal with no request and no artifact (F4 failure 1).
+    `extra_gate(rows) -> reason | None` is AND-ed with `permitted` at F0.5 step 5 (revision 2: introduced here,
+    used by the seal stages and by Task 10); `stage_check(rows, subject, inputs) -> Decision | None` is evaluated
+    at step 4a for the INTENT (E2.2 r3: a seal INTENT naming another QUALIFIED than the first one is INVALIDATE
+    contradictory-stage). Both run inside the F0.1 transaction."""
     clock = clock or c.now_utc
     lk = _lock(gv, stage)
     try:
@@ -7494,8 +7702,10 @@ def run(gv, stage, *, inputs: dict, acks: dict, work, policy_fn=None, mailbox=No
             return j.detail_of(held["envelope"])
         try:
             intent = _need(_append(gv, j.Request("STAGE-INTENT", j.stage_subject(stage), op, actor,
-                                                 detail_fn=detail_fn), mailbox, clock,
-                                   stage_gate=lambda rows_, g: permitted(gv.trial, rows_, g)),
+                                                 detail_fn=detail_fn, inputs=dict(inputs)), mailbox, clock,
+                                   stage_gate=lambda rows_, g: permitted(gv.trial, rows_, g)
+                                   or (extra_gate(rows_) if extra_gate is not None else None),
+                                   stage_check=stage_check),
                            stage, "STAGE-INTENT")
         except j.Outage as e:
             raise SystemExit(f"stage {stage}: journal outage before the INTENT ({e}): no request, no artifact") \
@@ -7513,9 +7723,7 @@ def run(gv, stage, *, inputs: dict, acks: dict, work, policy_fn=None, mailbox=No
         if probs:
             raise SystemExit(f"stage {stage}: {probs[0]} (exactly one member / named members, F4.3): no PREPARED")
         members = {rel: c.sha256_bytes(data) for rel, data in staging.files.items()}
-        import s1_slot                                                         # late import (E2.4)
-        com = commitment(gv.trial.trial_id, stage, op, TABLE[stage]["kind"], members, provenance,
-                         s1_slot.seals_checked(gv.out))
+        com = commitment(gv.trial.trial_id, stage, op, spec(stage)["kind"], members, provenance)
         blob = c.canonical(com)
         c.publish_exclusive(staging.dir / "prepared.json", blob)
         detail = c.sha256_bytes(blob)                                         # F0.4: the in-memory bytes
@@ -7608,9 +7816,9 @@ def recover(gv, stage, m, *, mailbox=None, clock=None) -> dict:
 
 
 def _artifacts_present(out: Path, stage: str) -> list:
-    if TABLE[stage]["kind"] == "single":
+    if spec(stage)["kind"] == "single":
         try:
-            rel = SINGLE[stage](out)
+            rel = single_member(out, stage)
         except (OSError, ValueError, KeyError):
             return []
         return [rel] if (out / rel).exists() else []
@@ -7643,7 +7851,7 @@ def created_problems(gv, stage, m) -> list:
                 json.loads(p.read_bytes())
             except ValueError:
                 probs.append(f"{stage}: member {rel} unparseable")
-    if TABLE[stage]["kind"] == "tree" and stage in ("audit", "final", "score"):
+    if spec(stage)["kind"] == "tree" and stage in ("audit", "final", "score"):
         extra = set(_artifacts_present(out, stage)) - set(com["members"])
         probs += [f"{stage}: {rel} is not a committed member (orphan)" for rel in sorted(extra)]
     probs += _member_problems(gv, stage, com["members"], com["provenance"])
@@ -7665,12 +7873,22 @@ def evaluate(gv) -> None:
     """The F4 stage-state table over the enforced stages, run by every gate (and the F7.3 live-file check): no INTENT
     + an artifact -> INVALID (registration-artifact; before the AUDIT-ACK the gate already refused); INTENT or
     PREPARED without CREATED -> pending while a live owner holds the lock, else stage-incomplete / recovery; CREATED ->
-    created_problems -> INVALID (stage-replaced)."""
+    created_problems -> INVALID (stage-replaced).
+    Seal stages (E2 r3) are evaluated too: every `seal/<date>` with a journal row, plus every post-START
+    `seals/<date>.json` present on disk (a seal file with no INTENT/PREPARED is registration-artifact in every state,
+    E2.4 r3; a CREATED seal missing, changed or unparseable is stage-replaced and never recreated, E2.6 r3)."""
     import s1_trial
-    for stage in TABLE:
-        if stage not in ENFORCED:
+    on_disk = [f"{SEAL_PREFIX}{p.stem}" for p in sorted((gv.out / "seals").glob("*.json"))
+               if p.stem != _opening_close(gv.out)]
+    for stage in list(TABLE) + sorted(set(seal_stages(gv.rows)) | set(on_disk)):
+        if stage in TABLE and stage not in ENFORCED:
             continue
         m = stage_rows(gv.rows, stage)
+        if stage.startswith(SEAL_PREFIX) and m["intent"] is not None and m["prepared"] is None \
+                and (gv.out / single_member(gv.out, stage)).exists():
+            s1_trial.invalidate(gv.trial, "registration-artifact", {"stage": stage, "problem": "seal file with no "
+                                "PREPARED"}, root=gv.root, mailbox=gv.mailbox)
+            raise SystemExit(f"stage {stage}: seal file with no PREPARED: INVALID (registration-artifact)")
         if m["intent"] is None:
             present = _artifacts_present(gv.out, stage)
             if present:
@@ -8420,8 +8638,9 @@ comment:
 
 **Files:**
 - Modify: `research/s1/s1_stage.py`:
-  - `run` gains the keywords `extra_gate=None` (a callable `rows -> str | None`, AND-ed with `permitted`) and
-    `publish_ctx=None` (a context-manager factory wrapping `before_publish` + publication);
+  - `run` gains the keyword `publish_ctx=None` (a context-manager factory wrapping `before_publish` +
+    publication); `extra_gate` (a callable `rows -> str | None`, AND-ed with `permitted`) exists since Task 8
+    (revision 2);
   - `ENFORCED = frozenset({"audit", "opening", "start_attest", "prereg"})`;
   - `committed_commitment` (added in Task 8) is also used by `evidence_manifest`.
 - Modify: `research/s1/s1_checkpoint.py`:
@@ -8883,34 +9102,32 @@ def test_blocked_rerun_after_deletion_recomputes_identically(tmp_path):         
     assert stage_kinds(tmp_path, "prereg") == [] and j.trial_state(jrows(tmp_path)) == "ACTIVE"
 
 
-def _blocked_and_closed(tmp_path, st_, good=True):
+def _blocked_and_closed(tmp_path, st_):
     with _Clock(st_["prereg_at"]), pytest.raises(SystemExit, match="S1 BLOCKED"):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
-    h = r.blocked_close_evidence(tmp_path / "s1_out") if good else "8" * 64
+    h = r.blocked_close_evidence(tmp_path / "s1_out")             # what Codex issues after its own check
     s1_ack(tmp_path, "close", "S1-CLOSE-ACK", st_["prereg_at"] + timedelta(minutes=5), reason="BLOCKED",
            evidence_sha256=h)
     return h
 
 
-@pytest.mark.parametrize("case", ["ok", "wrong"])
-def test_close_blocked_evidence_hash_end_to_end(tmp_path, case):                       # rows 273, 328 (E3.4 r1)
+def test_blocked_close_evidence_helper_end_to_end(tmp_path):                          # row 273 (E3.4 r3)
+    """The h Codex issues is sha256(canonical({trial_id, reasons})) of this trial's own recomputation, not the file
+    bytes; with a valid CLOSE the trial is closed (S1 does not re-derive h when reading the CLOSE)."""
     st_ = s1_state(tmp_path, START, audit_actions=[SPLIT])
-    h = _blocked_and_closed(tmp_path, st_, good=(case == "ok"))
+    _blocked_and_closed(tmp_path, st_)
     out = tmp_path / "s1_out"
     rec = r.blocked_reasons_record(out, c.load_json(out / "audit" / "calendar.json"))
     assert r.blocked_close_evidence(out) == c.sha256_bytes(c.canonical({"trial_id": rec["trial_id"],
                                                                          "reasons": rec["reasons"]}))
     assert r.blocked_close_evidence(out) != c.sha256_file(out / "blocked.json")      # not the file bytes
-    if case == "ok":
-        with pytest.raises(SystemExit, match="zero open"):
-            t.gate(tmp_path, "closed BLOCKED")
-    else:
-        with pytest.raises(SystemExit, match="BLOCKED evidence"):
-            t.gate(tmp_path, "wrong BLOCKED evidence")
+    with pytest.raises(SystemExit, match="zero open"):
+        t.gate(tmp_path, "closed BLOCKED")
 
 
 @pytest.mark.parametrize("case", ["deleted", "deleted-and-recreated"])
-def test_blocked_close_survives_delete_and_recreate(tmp_path, case):                   # row 332 (E3.4 r1)
+def test_blocked_close_survives_delete_and_recreate(tmp_path, case):                   # row 332 (E3.4 r3)
+    """Closure is unaffected by any local file state: S1 never reads blocked.json to decide closure."""
     st_ = s1_state(tmp_path, START, audit_actions=[SPLIT])
     h = _blocked_and_closed(tmp_path, st_)
     out = tmp_path / "s1_out"
@@ -8920,8 +9137,8 @@ def test_blocked_close_survives_delete_and_recreate(tmp_path, case):            
         (out / "blocked.json").write_text(json.dumps(dict(rec, status="BLOCKED",
                                                           recorded_utc="2026-12-01T00:00:00+00:00")),
                                           encoding="utf-8")
-    assert r.blocked_close_evidence(out) == h                       # h unchanged
-    tr = t.trials(t.scan(mb(tmp_path)), root=tmp_path)
+    assert r.blocked_close_evidence(out) == h                       # h unchanged (the recomputation)
+    tr = t.trials(t.scan(mb(tmp_path)))
     assert all(x.closed is not None for x in tr.values())            # the closed trial never re-opens
     with pytest.raises(SystemExit, match="zero open"):
         t.gate(tmp_path, "still closed")
@@ -9045,24 +9262,20 @@ def test_prereg_before_created_follows_the_stage_table(tmp_path, monkeypatch, cr
     - row 316 `[ack-after-attest]` fails: no causal check;
     - row 271 fails on the `trial_id` in blocked.json (E5.4) and the zero-spy assertion;
     - row 272 fails: no `blocked_reasons_record`;
-    - rows 273 (end-to-end) and 332 fail: no `blocked_close_evidence`, so every BLOCKED CLOSE is refused;
+    - row 273 (end-to-end helper) and row 332 fail: no `blocked_close_evidence` (AttributeError recorded, then the
+      stub defines it returning "0" * 64 and the h-equality assertion fails);
     - row 333 fails: the stub keeps the legacy opening path (no opening INTENT, so the later slot is captured);
     - row 274 passes. Label it `ctrl`;
     - the issuance cases `later-slot-unfinalized-blocks` and `pending-blocks` fail (the stub always says eligible).
 
 - [ ] **Step 4: Implement.**
 
-`s1_stage.run`: add the keywords and change two places:
+`s1_stage.run`: add the `publish_ctx` keyword (`extra_gate` and `stage_check` already exist since Task 8 in
+revision 2) and change the publication block:
 
 ```python
 def run(gv, stage, *, inputs, acks, work, policy_fn=None, mailbox=None, clock=None, before_publish=None,
-        extra_gate=None, publish_ctx=None) -> dict:
-    ...
-            intent = _need(_append(gv, j.Request("STAGE-INTENT", j.stage_subject(stage), op, actor,
-                                                 detail_fn=detail_fn), mailbox, clock,
-                                   stage_gate=lambda rows_, g: permitted(gv.trial, rows_, g)
-                                   or (extra_gate(rows_) if extra_gate is not None else None)),
-                           stage, "STAGE-INTENT")
+        extra_gate=None, stage_check=None, publish_ctx=None) -> dict:
     ...
             with (publish_ctx() if publish_ctx is not None else contextlib.nullcontext()):
                 if before_publish is not None:
@@ -9406,15 +9619,16 @@ def _blocked_refusal(out, cal) -> None:
 
 
 def blocked_close_evidence(out) -> str:
-    """E3.4 (Erratum 1 r1): the BLOCKED CLOSE evidence h = sha256(c.canonical({"trial_id", "reasons"})) of the
-    deterministic recomputation from committed inputs. It never reads blocked.json, so deleting or re-creating that
-    file never changes h and never re-opens a closed trial."""
+    """E3.4 (Erratum 1 r3): the BLOCKED CLOSE evidence h = sha256(c.canonical({"trial_id", "reasons"})) of the
+    deterministic recomputation from THIS trial's committed inputs. It is the helper Codex uses at issuance (against
+    the trial's own root). S1 never calls it when reading a CLOSE: closure is decided from the mailbox alone."""
     out = Path(out)
     return c.sha256_bytes(c.canonical(blocked_reasons_record(out, c.load_json(out / "audit" / "calendar.json"))))
 ```
 
-  `s1_trial._blocked_evidence_problem` (Task 4) already calls `s1_run.blocked_close_evidence`; from this task on the
-  recomputation exists, so a correct BLOCKED CLOSE closes and a wrong one is refused (rows 273, 328).
+  Revision 2 (E3.4 r3, A3-PR1-2): S1 does not validate a BLOCKED CLOSE's evidence. `_blocked_evidence_problem` and
+  every `root` parameter of the trial/CLOSE readers are removed; wrong evidence at issuance is Codex's procedural
+  check (row 328, `proc`).
 
   In `do_prereg`, the existing BLOCKED block is replaced by `_blocked_refusal(out, cal)`. It sits at the same place,
   after the gate and the RUN-ACK verification and before `s1_stage.run(gv, "prereg", …)`. The refusal text's prefix
@@ -9474,8 +9688,13 @@ def blocked_close_evidence(out) -> str:
 - Modify: `research/s1/s1_tests/a3_helpers.py`: add `stop_history(root, start, case) -> {"calendar", "want"}`,
   which builds each accepted disposition's history (synthetic seals with real slot rows) and its accepted expected
   fields.
-- Modify: `research/s1/s1_slot.py:required_seals`. Once a TRIAL-STOP exists and stop.json parses to its committed
-  record, the record's `seals` are added (E2.4: "listed in the F2 stop record").
+- (Revision 2: `required_seals` is the CREATED seal stages only, E2.6 r3; the r1 "stop record seals" addition is
+  removed.)
+- Modify: `research/s1/s1_tests/conftest.py`: `s1_state` gains `seal_stage=True` (False: post-START seals are written
+  with `_write_seal(…, with_stage=False)`, so their closes are determined without seal stages);
+  `research/s1/s1_tests/a3_helpers.py` gains `later_close_after_the_stop_close(st_) -> {"date", "close", "trades"}`
+  (the next eligible close after the fixture's lot-count stop close, with trades that leave the stop record
+  unchanged).
 
 **Interfaces:**
 - Produces (`s1_seal`):
@@ -9774,23 +9993,54 @@ def test_no_new_seal_after_the_stop(tmp_path, monkeypatch):
     assert "outside ACTIVE" in (rep.get("refused") or "")                       # E2.1 wording (Task 7)
 
 
-def test_decide_stop_publishes_every_sampled_seal_before_trial_stop(tmp_path, monkeypatch):   # row 262 (E2 gap)
-    st_ = s1_state(tmp_path, START, score_ready=True, stop=False)    # seals + rows; decide_stop not yet run
-    seal_dir = tmp_path / "s1_out" / "seals"
+def test_stop_operation_runs_pending_seal_stages_before_trial_stop(tmp_path, monkeypatch):   # rows 323, 334
+    """E2.5 r3: the stop operation runs every pending seal stage, then appends TRIAL-STOP."""
+    st_ = s1_state(tmp_path, START, score_ready=True, stop=False, seal_stage=False)   # determined, no seal stages
     order = []
-    real_pub, real_app = c.publish_exclusive, j.append
-    monkeypatch.setattr(c, "publish_exclusive", lambda p, d: (order.append(("seal", Path(p).name))
-                                                              if Path(p).parent == seal_dir else None,
-                                                              real_pub(p, d))[1])
-    monkeypatch.setattr(j, "append", lambda *a, **k: (order.append(("row", a[2].kind)), real_app(*a, **k))[1])
-    victim = sorted(seal_dir.glob("*.json"))[-1]
-    victim.unlink()                                       # an unpublished (not yet required) sampled seal
+    real_app = j.append
+    monkeypatch.setattr(j, "append", lambda *a, **k: (order.append((a[2].kind, a[2].subject)),
+                                                      real_app(*a, **k))[1])
     gv = t.gate(tmp_path, "decide")
     at = c.aware(START) + timedelta(days=2)               # after post-START day 1's close
     with _Clock(at):
         rec = z.decide_stop(gv, st_["calendar"], c.aware(START), lambda: at, mailbox=mb(tmp_path))
-    assert rec is not None and victim.exists()
-    assert order.index(("seal", victim.name)) < order.index(("row", "TRIAL-STOP"))
+    assert rec is not None
+    created = [i for i, (k_, s_) in enumerate(order) if k_ == "STAGE-CREATED" and s_.startswith("stage/seal/")]
+    assert created and max(created) < order.index(("TRIAL-STOP", "trial"))
+
+
+def test_later_close_qualified_before_stop_with_unchanged_record_is_fenced(tmp_path, monkeypatch):   # row 262
+    """E2.8 r3 (A3-PR1-1): the stop operation finishes its seal pass; then a later-close QUALIFIED commits (that close
+    becomes determined) before TRIAL-STOP, and the chosen stop record is unchanged. TRIAL-STOP is refused in its own
+    transaction (step 5 fence); after that close's seal stage the STOP commits."""
+    st_ = s1_state(tmp_path, START, score_ready=True, stop=False)    # lots stop at post-START day 1, sealed
+    later = h.later_close_after_the_stop_close(st_)                  # the next eligible close (fixture helper)
+    gv = t.gate(tmp_path, "decide")
+    out = tmp_path / "s1_out"
+    before_rec = z.stop_record(out, jrows(tmp_path), c.aware(START), st_["calendar"], gv.trial.bundle)
+    real_app, injected, seen = j.append, [], []
+
+    def inject_then_append(trial_id, gen, req, ctx_fn, **kw):
+        if req.kind == "TRIAL-STOP" and not injected:               # after the seal pass, before the STOP append
+            injected.append(1)
+            _write_seal(out, later["date"], later["close"], later["trades"], S1_RECEIPT, start=c.aware(START),
+                        with_stage=False)                           # QUALIFIED; determined; no seal stage
+            assert z.stop_record(out, jrows(tmp_path), c.aware(START), st_["calendar"], gv.trial.bundle) == \
+                before_rec                                          # the chosen stop record is unchanged
+        res = real_app(trial_id, gen, req, ctx_fn, **kw)
+        if req.kind == "TRIAL-STOP":
+            seen.append((res.outcome, res.reason))
+        return res
+    monkeypatch.setattr(j, "append", inject_then_append)
+    at = c.aware(START) + timedelta(days=4)
+    with _Clock(at):
+        rec = z.decide_stop(gv, st_["calendar"], c.aware(START), lambda: at, mailbox=mb(tmp_path))
+    assert seen[0][0] == "REFUSE" and "not sealed" in seen[0][1]       # fenced in its own transaction
+    assert seen[-1][0] == "APPEND" and rec == before_rec               # retried after the seal stage
+    kinds_ = [x.kind for x in j.subject_rows(jrows(tmp_path), f"stage/seal/{later['date']}")]
+    assert kinds_ == ["STAGE-INTENT", "STAGE-PREPARED", "STAGE-CREATED"]
+    stop = j.first(jrows(tmp_path), "TRIAL-STOP")
+    assert j.first(j.subject_rows(jrows(tmp_path), f"stage/seal/{later['date']}"), "STAGE-CREATED").seq < stop.seq
 
 
 # ---------------------------------------------------------------- OQ-8 dispositions (rows 300-305; BLK-3)
@@ -9818,7 +10068,9 @@ added in this task's conftest change.
   - Expected: no TRIAL-STOP row (the legacy stop.json without a row); `stop_record` is None; no publication-gap
     recovery; damaged stop.json after attest is not INVALID; stop_attest/final_plan are not stages.
   - Revision 1:
-    - `test_decide_stop_publishes_every_sampled_seal_before_trial_stop` fails: no row, no publication;
+    - `test_stop_operation_runs_pending_seal_stages_before_trial_stop` and
+      `test_later_close_qualified_before_stop_with_unchanged_record_is_fenced` fail: the stub's `decide_stop` calls
+      the legacy `current_stop` (no seal stages, no TRIAL-STOP, no fence);
     - `test_stop_dispositions[*]` fails (`stop_record` is None) except `pending-excluded`, which passes on the
       stub. Label that case `ctrl`.
 
@@ -9912,7 +10164,7 @@ def stop_record(out, rows, start, cal, bundle) -> dict:
 def decide_stop(gv, cal, start, now, *, mailbox=None):
     """F2.2: when committed history meets the stop rule, append TRIAL-STOP (detail = sha256 of the record; the record
     recomputed inside the transaction, OQ-9) under the stop lock (F5.1), then publish stop.json. Returns the record,
-    or None (rule not met: no row)."""
+    or None (rule not met, or the STOP prefix still has a determined close without a CREATED seal: no row)."""
     import s1_journal as j
     import s1_locks as L
     import s1_slot
@@ -9924,30 +10176,37 @@ def decide_stop(gv, cal, start, now, *, mailbox=None):
         rec = stop_record(gv.out, rows, start, cal, gv.trial.bundle)
         if rec is None:
             return None
-        # E2.5 (Erratum 1 r1): holding the stop lock, publish EVERY determined seal that is not yet published, then
-        # re-read the journal, then append TRIAL-STOP - so a seal determined before the STOP never becomes
-        # unpublishable (E2.1 does not apply to this pre-append step).
-        for d in eligible_sessions(start, cal):
-            got = s1_slot.publish_seal(gv, d, cal, {"written": False, "sha256": None, "from_slot": None,
-                                                    "deferred": None, "refused": None}, mailbox=mailbox,
-                                       stop_lock_held=True)        # a close with no determined seal: no-op
-            if got.get("refused") or (got.get("deferred") and "opening" not in got["deferred"]):
-                return None                                       # no STOP while a determined seal is unpublished
-        rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
-        if stop_record(gv.out, rows, start, cal, gv.trial.bundle) != rec:
-            return None                                           # history moved: decide again later
-        res = j.append(gv.trial.trial_id, gv.trial.genesis,
-                       j.Request("TRIAL-STOP", j.TRIAL_SUBJECT, j.new_nonce(), j.new_nonce(), detail=j.detail_of(rec)),
-                       s1_trial.product_context(gv.trial, stop_detail=lambda rows_: (
-                           None if (x := stop_record(gv.out, rows_, start, cal, gv.trial.bundle)) is None
-                           else j.detail_of(x))),
-                       mailbox=mailbox, clock=now)
-        if res.outcome == "INVALIDATE":
-            raise SystemExit(f"TRIAL-STOP -> INVALID ({res.reason})")
-        if res.outcome != "APPEND":
-            return None
-        persist_stop(gv.out, rec)
-        return rec
+        # E2.5 (Erratum 1 r3): run every pending seal stage, then append TRIAL-STOP. The append's own transaction
+        # refuses (step 5, `stop_fence`) unless every close determined by the rows it reads has a CREATED seal
+        # stage - so a QUALIFIED arriving after the seal pass, even with an unchanged stop record, is caught there.
+        # A refusal means: run the missing seal stages and retry (bounded), never INVALID. No worker lock is waited
+        # on (E1); the stop lock is only the F5 lock of this operation.
+        fence = s1_slot.stop_fence(cal, start)
+        for _attempt in range(STOP_FENCE_RETRIES):
+            for d in eligible_sessions(start, cal):
+                s1_slot.run_seal_stage(gv, d, cal, mailbox=mailbox, clock=now)    # no-op unless determined, unsealed
+            rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
+            rec = stop_record(gv.out, rows, start, cal, gv.trial.bundle)
+            if rec is None:
+                return None
+            res = j.append(gv.trial.trial_id, gv.trial.genesis,
+                           j.Request("TRIAL-STOP", j.TRIAL_SUBJECT, j.new_nonce(), j.new_nonce(),
+                                     detail=j.detail_of(rec)),
+                           s1_trial.product_context(gv.trial, stop_detail=lambda rows_: (
+                               None if (x := stop_record(gv.out, rows_, start, cal, gv.trial.bundle)) is None
+                               else j.detail_of(x)), stop_fence=fence),
+                           mailbox=mailbox, clock=now)
+            if res.outcome == "INVALIDATE":
+                raise SystemExit(f"TRIAL-STOP -> INVALID ({res.reason})")
+            if res.outcome == "APPEND":
+                persist_stop(gv.out, rec)
+                return rec
+            if res.outcome != "REFUSE" or "not sealed" not in res.reason:
+                return None                                       # rule not met / differs / lost race: no row
+        return None                                               # still unsealed after the retries: decide later
+
+
+STOP_FENCE_RETRIES = 3                                            # bounded retry of the E2.5 r3 seal-then-STOP loop
 
 
 def stop_check(gv) -> None:
@@ -10053,8 +10312,8 @@ caller) also calls `decide_stop` after each `finalize_close`.
   Save `a3/t11_full.txt`, `a3/t11_old_new.md` and `a3/t11_hashes.txt`.
 - [ ] **Step 7: Controller review and commit.** Message: `S1 A3 Task 11: F2 stop record, TRIAL-STOP, stop.json gap
   recovery, stop_attest and final_plan stages`, listing map rows 55, 56, 62, 64–69, 106, 107, 131, 184, 185, 187,
-  189–192, 262 (decide_stop part) and 300–305, with the Co-Authored-By line. Push and assert the HEAD SHA. This step
-  waits for BLK-3 as well as BLK-1.
+  189–192, 262 (STOP-fence part), 300–305, 323 and 334, with the Co-Authored-By line. Push and assert the HEAD SHA.
+  This step waits for BLK-3 as well as BLK-1.
 
 ---
 
@@ -11108,7 +11367,7 @@ def test_matrix_scope_is_the_declared_scope(tmp_path):
 
 ---
 
-### Task 15: Mutation testing - Cosmic Ray on the changed critical modules and targeted semantic mutants (PLAN-6; F10 Other; rows 284–298)
+### Task 15: Mutation testing - Cosmic Ray on the changed critical modules and targeted semantic mutants (PLAN-6, A3-PR1-3, A3-PR1-4; F10 Other; rows 284–298, 339–341)
 
 **Files:**
 - Create: `research/s1/s1_evidence/cr_a3/<module>/cr.toml` for each of `s1_journal`, `s1_locks`, `s1_trial`,
@@ -11120,7 +11379,7 @@ def test_matrix_scope_is_the_declared_scope(tmp_path):
 module-path = "research/s1/s1_journal.py"
 timeout = 300.0
 excluded-modules = []
-test-command = "C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m pytest -x -q -p no:cacheprovider -p conftest research/s1/s1_tests/test_s1_a3_journal.py research/s1/s1_tests/test_s1_a3_precedence.py"
+test-command = "C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m cr_guard research/s1/s1_tests/test_s1_a3_journal.py research/s1/s1_tests/test_s1_a3_precedence.py"
 
 [cosmic-ray.distributor]
 name = "local"
@@ -11137,7 +11396,10 @@ name = "local"
   For `s1_seal` and `s1_collect`, the run is restricted to the changed functions listed in rows 289–290: a
   `cr-filter-pragma`-style exclusion of the other line ranges is generated from `git diff 93f4c3e -- <file>` and
   recorded in the config.
-- Create: `research/s1/s1_tests/test_s1_a3_mutants.py` (rows 291–298).
+- Create: `research/s1/s1_tests/test_s1_a3_mutants.py` (rows 291–298 and 339–341);
+  `research/s1/s1_tests/cr_guard.py` (Step 3b); `research/s1/s1_evidence/a3/t15_agreed_assertions.json` (each
+  killer's agreed assertion `file:line`, reviewed by the controller).
+- Each `cr.toml` test-command is `"<testenv python> -m cr_guard <module test files>"` (Step 3b), not bare pytest.
 - Create: `research/s1/s1_evidence/a3/t15_cr_<module>.txt` (rows 284–290) and `a3/t15_mutants.txt`.
 
 **Interfaces:** none (tests and evidence only).
@@ -11156,24 +11418,46 @@ name = "local"
     silently accepted.
 
   A timeout is not a kill. Rerun it with a longer `timeout` once, then triage it as a survivor.
-- [ ] **Step 3: Targeted semantic mutants** (`test_s1_a3_mutants.py`). Each case applies one named mutation by
-  monkeypatching a named function with a mutated copy, never by editing a file. It then runs the named killing test
-  through `pytest.main([...])` in a child process and asserts that the test FAILS. The unmutated control asserts that
-  the same test PASSES:
+- [ ] **Step 3: Targeted semantic mutants with a structured classifier** (`test_s1_a3_mutants.py`; revision 2,
+  A3-PR1-4). Each case installs one named mutation by re-executing a named function's mutated source in its module
+  (never editing a file). It runs the named killer test in a child pytest with `--junitxml`, then classifies the
+  result from the JUnit XML and the plugin's installation record, never from the exit code alone.
+  - **killed** requires all of:
+    - the unmutated control run passes: the killer testcase is present, with no failure, error or skip;
+    - the mutation is verified installed: the plugin wrote `installed.json` with the anchor found and the mutated
+      source's sha256 different from the original's;
+    - the killer testcase was collected and set up OK: it is present in the XML, with no `<error>` element (pytest
+      reports collection and fixture/setup failures as `<error>`);
+    - it has a `<failure>` whose traceback ends at its agreed assertion `file:line`, recorded in
+      `a3/t15_agreed_assertions.json` (reviewed by the controller).
+  - Every other outcome gets its own label, and none of them is ever counted as killed:
+    - **survived**: the killer passed;
+    - **error**: a collection, setup, syntax or plugin error;
+    - **untested**: the killer testcase is absent, or the control fails;
+    - **timeout**;
+    - **crash**: no JUnit file, or a negative return code;
+    - **not-installed**: the anchor is missing or the hash is unchanged;
+    - **failed-elsewhere**: a failure at another line;
+    - **equivalent**: only from the reviewed list `EQUIVALENT`.
 
 ```python
-"""PLAN-6: targeted semantic mutants that Cosmic Ray's operators do not express. Each MUTANT names (target, mutated
-behaviour, killing test). The mutation is installed by a tiny plugin module written to tmp_path and loaded with
-`-p`; the child pytest must fail. Never edits product files."""
+"""PLAN-6 / A3-PR1-4: targeted semantic mutants that Cosmic Ray's operators do not express, classified from
+structured pytest JUnit XML plus the mutation's installation record. Each MUTANT names (target, anchor, mutated
+text, killer test). Never edits product files; tmp only."""
+import hashlib
+import json
 import os
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 
 HERE = Path(__file__).resolve().parent.parent
 PY = sys.executable
+AGREED = HERE / "s1_evidence" / "a3" / "t15_agreed_assertions.json"   # {mutant: "test_file.py:LINE"} (reviewed)
+EQUIVALENT = {}                                                         # {mutant: reason} - reviewed list only
 MUTANTS = {
     # rows 291: deadline comparisons in decide step 6
     "deadline-intent-ge-to-gt": ("s1_journal._slot", "now >= e", "now > e",
@@ -11223,16 +11507,23 @@ MUTANTS = {
     "erratum-finalizer-takes-work-lock": ("s1_slot.finalize_close", "got = _finalizer_append(",
                                           "got = _locked_append(",
                                           "test_s1_a3_finalizer.py::test_finalizer_decision_never_touches_the_work_lock"),
-    "erratum-seal-in-stopped": ("s1_slot.publish_seal", 'if st_ != "ACTIVE":', "if False:",
-                                "test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified"),
+    "erratum-seal-ignores-close": ("s1_trial.closed_in", "return tr is None or tr.closed is not None",
+                                   "return False",
+                                   "test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared"),
+    "erratum-stop-fence-removed": ("s1_slot.stop_fence",
+                                   "return f\"determined close {d['date']} has no CREATED seal stage (E2.5)\"",
+                                   "pass",
+                                   "test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal"),
     "erratum-non-official-close-counts": ("s1_trial.acks_from", "if (sender, recipient, key) != ACK_KEY:",
                                           "if False:",
                                           "test_s1_a3_trial.py::test_non_official_lines_are_never_candidates"),
     "erratum-backup-dropped": ("s1_slot.CAPTURE_TREE", '("backup.sqlite3", "meta.json", "projection.json")',
                                '("meta.json", "projection.json")',
                                "test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest"),
-    "erratum-after-json-authority": ("s1_slot.required_seals", 'rep.get("seals_checked")',
-                                     '_after_seals(n)', "test_s1_a3_slots.py::test_after_json_is_display_only"),
+    "erratum-blocked-close-rederived": ("s1_trial._close", "    why = []\n",
+                                        "    why = ['re-derived from a root'] if a.fields['reason'] == 'BLOCKED' "
+                                        "else []\n",
+                                        "test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone"),
 }
 EXTRA = {                                    # helpers some mutated sources call; exec'd into the same namespace
     "erratum-finalizer-takes-work-lock": (
@@ -11240,84 +11531,238 @@ EXTRA = {                                    # helpers some mutated sources call
         "def _locked_append(gv, cal, req, mailbox, now):\n"
         "    with _L.OwnershipLock(gv.root, gv.trial.trial_id, _L.slot_lock_name(req.subject)):\n"
         "        return _finalizer_append(gv, cal, req, mailbox, now)\n"),
-    "erratum-after-json-authority": (
-        "def _after_seals(n):\n"
-        "    import json as _json\n"
-        "    p = n['capture'].parent / (n['capture'].name + '.after.json')\n"
-        "    try:\n"
-        "        s = _json.loads(p.read_text(encoding='utf-8')).get('seal') or {}\n"
-        "    except (OSError, ValueError):\n"
-        "        return {}\n"
-        "    return {'seals/' + n['capture'].parent.name + '.json': s.get('sha256')} if s.get('written') else {}\n"),
 }
 PLUGIN = r'''
-import importlib, inspect, textwrap
-TARGET, OLD, NEW, EXTRA = {target!r}, {old!r}, {new!r}, {extra!r}
+import hashlib, importlib, inspect, json, os, textwrap
+TARGET, OLD, NEW, EXTRA, RECORD = {target!r}, {old!r}, {new!r}, {extra!r}, {record!r}
 mod_name, _, attr = TARGET.rpartition(".")
 mod = importlib.import_module(mod_name)
 obj = getattr(mod, attr)
+rec = {{"target": TARGET, "anchor_found": False, "installed": False}}
 if isinstance(obj, tuple):
+    before = repr(obj)
     setattr(mod, attr, eval(NEW))
+    after = repr(getattr(mod, attr))
+    rec.update(anchor_found=(before == repr(eval(OLD))), installed=(before != after))
 else:
     src = textwrap.dedent(inspect.getsource(obj))
-    assert src.count(OLD) >= 1, ("mutation anchor not found", TARGET, OLD)
-    ns = vars(mod)                                   # the module namespace itself: callers see the mutant
-    exec(EXTRA, ns)
-    exec(compile(src.replace(OLD, NEW, 1), mod.__file__, "exec"), ns)
+    rec["anchor_found"] = src.count(OLD) >= 1
+    if rec["anchor_found"]:
+        new_src = src.replace(OLD, NEW, 1)
+        ns = vars(mod)                               # the module namespace itself: callers see the mutant
+        exec(EXTRA, ns)
+        exec(compile(new_src, mod.__file__, "exec"), ns)
+        rec.update(original_sha256=hashlib.sha256(src.encode()).hexdigest(),
+                   mutated_sha256=hashlib.sha256(new_src.encode()).hexdigest())
+        rec["installed"] = rec["original_sha256"] != rec["mutated_sha256"] and getattr(mod, attr) is not obj
+with open(RECORD, "w", encoding="utf-8") as f:
+    json.dump(rec, f)
 '''
 
 
-def _run(tmp_path, name, mutate):
-    target, old, new, test = MUTANTS[name]
-    plug = tmp_path / "s1_mutant_plugin.py"
-    plug.write_text(PLUGIN.format(target=target, old=old, new=new, extra=EXTRA.get(name, "")) if mutate else "",
-                    encoding="utf-8")
-    env_pp = f"{tmp_path};{HERE};{HERE / 's1_tests'}"
-    return subprocess.run([PY, "-m", "pytest", "-x", "-q", "-p", "no:cacheprovider", "-p", "conftest",
-                           "-p", "s1_mutant_plugin", f"research/s1/s1_tests/{test}"],
-                          cwd=HERE.parent.parent, env=dict(os.environ, PYTHONPATH=env_pp),
-                          capture_output=True, text=True, timeout=1800)
+def run_child(tmp_path, test, plugin_text, *, timeout=1800, label="run"):
+    """One child pytest of exactly `test`, with JUnit XML; returns the raw facts (no interpretation)."""
+    d = tmp_path / label
+    d.mkdir()
+    (d / "s1_mutant_plugin.py").write_text(plugin_text, encoding="utf-8")
+    junit = d / "junit.xml"
+    env_pp = f"{d};{HERE};{HERE / 's1_tests'}"
+    try:
+        p = subprocess.run([PY, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-p", "conftest",
+                            "-p", "s1_mutant_plugin", f"--junitxml={junit}", test],
+                           cwd=HERE.parent.parent, env=dict(os.environ, PYTHONPATH=env_pp),
+                           capture_output=True, text=True, timeout=timeout)
+        rc, timed_out = p.returncode, False
+    except subprocess.TimeoutExpired:
+        rc, timed_out = None, True
+    return {"rc": rc, "timeout": timed_out, "junit": junit if junit.exists() else None,
+            "record": d / "installed.json"}
+
+
+def _case(junit: Path, test: str):
+    """The killer testcase element (by its pytest nodeid's file and name), or None if not collected."""
+    file_, _, name = test.partition("::")
+    for tc in ET.parse(junit).getroot().iter("testcase"):
+        if tc.get("name", "").split("[")[0] == name and tc.get("file", file_).endswith(Path(file_).name):
+            return tc
+    return None
+
+
+def classify(name, control: dict, mutant: dict, test: str, agreed: str) -> str:
+    """A3-PR1-4 labels: killed | survived | error | untested | timeout | crash | not-installed | failed-elsewhere |
+    equivalent. 'killed' only with a passing control, a verified installation, the killer collected and set up OK,
+    and a <failure> at the agreed assertion file:line. Everything else is never a kill."""
+    if name in EQUIVALENT:
+        return "equivalent"
+    if control["timeout"] or control["junit"] is None:
+        return "untested"
+    c_tc = _case(control["junit"], test)
+    if c_tc is None or list(c_tc):                                  # absent, or failure/error/skip in the control
+        return "untested"
+    if mutant["timeout"]:
+        return "timeout"
+    if mutant["junit"] is None and mutant["rc"] in (2, 3, 4):
+        return "error"                                              # pytest: interrupted/internal/usage (plugin)
+    if mutant["junit"] is None or (mutant["rc"] is not None and mutant["rc"] < 0):
+        return "crash"
+    try:
+        rec = json.loads(Path(mutant["record"]).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "error"                                              # the plugin did not run (plugin/import error)
+    if not (rec.get("anchor_found") and rec.get("installed")):
+        return "not-installed"
+    tc = _case(mutant["junit"], test)
+    if tc is None:
+        return "untested" if not list(ET.parse(mutant["junit"]).getroot().iter("error")) else "error"
+    if tc.find("error") is not None:
+        return "error"                                              # collection / fixture / setup error
+    if tc.find("skipped") is not None:
+        return "untested"
+    fail = tc.find("failure")
+    if fail is None:
+        return "survived"
+    text = (fail.get("message") or "") + "\n" + (fail.text or "")
+    return "killed" if (agreed in text and "AssertionError" in text) else "failed-elsewhere"
 
 
 @pytest.mark.parametrize("name", sorted(MUTANTS))
-def test_targeted_mutant_is_killed(tmp_path, name):
-    assert _run(tmp_path, name, mutate=False).returncode == 0           # control: the killing test passes
-    p = _run(tmp_path, name, mutate=True)
-    assert p.returncode != 0 and "mutation anchor not found" not in p.stdout + p.stderr, p.stdout[-2000:]
+def test_targeted_mutant_is_killed(tmp_path, name):                                      # rows 291-297
+    target, old, new, test = MUTANTS[name]
+    test_path = f"research/s1/s1_tests/{test}"
+    agreed = json.loads(AGREED.read_text(encoding="utf-8"))[name]              # e.g. "test_s1_a3_x.py:123"
+    control = run_child(tmp_path, test_path, "", label="control")
+    plugin = PLUGIN.format(target=target, old=old, new=new, extra=EXTRA.get(name, ""),
+                           record=str(tmp_path / "mutant" / "installed.json"))
+    mutant = run_child(tmp_path, test_path, plugin, label="mutant")
+    label = classify(name, control, mutant, test, agreed)
+    assert label == "killed", (name, label)
 ```
 
-  The anchor strings are written against this plan's code. At Step 3 each one is checked against the final code. An
-  anchor that no longer occurs fails loudly ("mutation anchor not found"); it never passes silently. Fix the anchor,
-  not the assertion.
+  The anchor strings are written against this plan's code. At Step 3 each one is checked against the final code: an
+  anchor that no longer occurs gives "not-installed", never a kill. Fix the anchor, not the classifier. The agreed
+  assertion `file:line` of each killer is recorded after its GREEN in `a3/t15_agreed_assertions.json` and reviewed;
+  a failure anywhere else is "failed-elsewhere". The mutated function is re-executed in the module's own namespace,
+  so it replaces the original for every caller (a nested function is mutated by re-executing its enclosing
+  factory, e.g. `stop_fence`). Methods are out of scope for this mechanism: their mutations are Cosmic Ray's.
 
-  The mutated function is re-executed in the module's own namespace, so it replaces the original for every caller.
-  Methods and nested names are out of scope for this mechanism: their mutations are Cosmic Ray's.
-
-- [ ] **Step 4: Hypothesis pinning (row 298).** Add to `test_s1_a3_mutants.py`:
+  Classifier self-tests (rows 339–341), on tiny synthetic test projects written to tmp_path (no product code):
 
 ```python
-def test_hypothesis_settings_are_pinned():
-    import ast
-    for f in sorted((HERE / "s1_tests").glob("test_s1_a3_*.py")):
-        tree = ast.parse(f.read_text(encoding="utf-8"))
-        for fn in [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]:
-            decos = [ast.unparse(d) for d in fn.decorator_list]
-            if any(d.startswith("given(") for d in decos):
-                assert any(d == "seed(20261103)" for d in decos), (f.name, fn.name)
-                assert any("derandomize=True" in d for d in decos), (f.name, fn.name)
-                assert any("DirectoryBasedExampleDatabase" in d for d in decos), (f.name, fn.name)
+SELF = {
+    # kind: (test module source, plugin source, expected label)
+    "collection-error": ("import does_not_exist_xyz\n\ndef test_k():\n    assert 1 == 1\n", "", "error"),
+    "missing-fixture": ("def test_k(no_such_fixture):\n    assert 1 == 1\n", "", "error"),
+    "syntax-error": ("def test_k(:\n    assert 1 == 1\n", "", "error"),
+    "plugin-error": ("def test_k():\n    assert 1 == 1\n", "raise RuntimeError('plugin boom')\n", "error"),
+    "semantic-regression": ("import target_mod\n\ndef test_k():\n    assert target_mod.f() == 1\n",
+                            "MUTATE", "killed"),
+    # timeout/crash only under the mutation, so the unmutated control still passes
+    "timeout": ("import time, target_mod\n\ndef test_k():\n    if target_mod.f() == 2:\n        time.sleep(30)\n"
+                "    assert target_mod.f() == 1\n", "MUTATE", "timeout"),
+    "crash": ("import os, target_mod\n\ndef test_k():\n    if target_mod.f() == 2:\n        os._exit(9)\n"
+              "    assert target_mod.f() == 1\n", "MUTATE", "crash"),
+    "not-installed": ("import target_mod\n\ndef test_k():\n    assert target_mod.f() == 1\n", "NOANCHOR",
+                      "not-installed"),
+}
+
+
+@pytest.mark.parametrize("kind", sorted(SELF) + ["control-fails", "equivalent-listed"])
+def test_classifier_self_tests(tmp_path, monkeypatch, kind):                             # rows 339-341
+    """Codex's A3-PR1-4 examples: collection/fixture/syntax/plugin failures are error/untested, never killed; an
+    intended semantic regression failing at the agreed assertion is killed; timeout and crash are separate."""
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    (proj / "target_mod.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+    src, plug, want = SELF.get(kind, ("import target_mod\n\ndef test_k():\n    assert target_mod.f() == 1\n", "",
+                                      None))
+    (proj / "test_synth.py").write_text(src, encoding="utf-8")
+    record = tmp_path / "mutant" / "installed.json"
+    mutate = PLUGIN.format(target="target_mod.f", old="return 1", new="return 2", extra="", record=str(record))
+    noanchor = PLUGIN.format(target="target_mod.f", old="return 99", new="return 2", extra="", record=str(record))
+    plug_text = {"MUTATE": mutate, "NOANCHOR": noanchor}.get(plug, plug or mutate)
+    test = "test_synth.py::test_k"                                  # children run in proj only (run_child_in)
+    agreed = "test_synth.py:4"
+    control_plugin = "" if kind != "control-fails" else "import target_mod\ntarget_mod.f = lambda: 0\n"
+    control = run_child_in(proj, tmp_path, test, control_plugin, "control", timeout=10)
+    mutant = run_child_in(proj, tmp_path, test, plug_text, "mutant", timeout=10)
+    if kind == "equivalent-listed":
+        monkeypatch.setitem(EQUIVALENT, "synthetic", "listed for this self-test")
+        assert classify("synthetic", control, mutant, test, agreed) == "equivalent"
+        return
+    got = classify("synthetic", control, mutant, test, agreed)
+    if kind == "control-fails":
+        assert got == "untested"
+    elif kind in ("collection-error", "missing-fixture", "syntax-error", "plugin-error"):
+        assert got in ("error", "untested") and got != "killed"
+    else:
+        assert got == want
+
+
+def run_child_in(proj, tmp_path, test, plugin_text, label, timeout):
+    """run_child for a synthetic project directory (no conftest, no product code)."""
+    d = tmp_path / label
+    d.mkdir(exist_ok=True)
+    (d / "s1_mutant_plugin.py").write_text(plugin_text, encoding="utf-8")
+    junit = d / "junit.xml"
+    try:
+        p = subprocess.run([PY, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-p", "s1_mutant_plugin",
+                            f"--junitxml={junit}", test], cwd=proj,
+                           env=dict(os.environ, PYTHONPATH=f"{d};{proj}"), capture_output=True, text=True,
+                           timeout=timeout)
+        rc, timed_out = p.returncode, False
+    except subprocess.TimeoutExpired:
+        rc, timed_out = None, True
+    return {"rc": rc, "timeout": timed_out, "junit": junit if junit.exists() else None,
+            "record": d / "installed.json"}
 ```
 
-  Copy `s1_evidence/a3/hypothesis_db/` into the evidence hashes. Every minimized failure found during Tasks 1–15 is
-  kept as an `@example` next to its `@given`.
+  (For the semantic-regression self-test, the plugin writes `installed.json` into `mutant/`; `test_synth.py:4` is
+  the `assert target_mod.f() == 1` line. The error kinds break the control too, so they classify as "untested" or
+  "error"; either satisfies the requirement that they are never "killed". The timeout and crash kinds misbehave only
+  under the mutation, so their control passes and their own labels are reached. The "crash" case uses
+  `os._exit(9)` (outside pytest's own exit codes 0–5), so pytest writes no JUnit file. If a given pytest version still writes one, the classifier's `rc`
+  check decides, and the self-test records which branch fired.)
+
+- [ ] **Step 3b: Cosmic Ray guard (A3-PR1-4 for the CR runs).** Cosmic Ray treats any nonzero test-command exit as
+  "killed". So each `cr.toml` test-command calls the guard module `research/s1/s1_tests/cr_guard.py` (in the
+  testenv) instead of bare pytest. It runs the module's A3 tests with `--junitxml` and exits:
+  - 1 (killed) only if at least one testcase has a `<failure>` and no testcase has an `<error>`;
+  - 0 (survived, conservative) on any collection, setup or plugin error, or on an empty run.
+
+  Every CR "survived" is triaged (Step 2), and the guard's JUnit files are kept with the report, so an error is never
+  reported as a kill. `test_classifier_self_tests` also runs `cr_guard.main([...])` on the collection-error and
+  semantic-regression projects; it asserts exit 0 and exit 1 respectively.
+
+- [ ] **Step 4: Hypothesis settings executed (row 298; revision 2, A3-PR1-3).** Add to `test_s1_a3_mutants.py`:
+
+```python
+def test_hypothesis_property_executes_with_the_pinned_settings():
+    """Imports and EXECUTES the decorated property in this (pinned) testenv - not a source-string check. A settings
+    or collection error (e.g. derandomize=True with an explicit database, Codex's probe) fails here."""
+    import test_s1_a3_precedence as tp
+    prop = tp.test_substep_conditions_are_disjoint_and_decide_matches_the_oracle
+    s = prop._hypothesis_internal_use_settings                    # the settings object Hypothesis attached
+    assert s.derandomize is True and s.database is None
+    prop()                                                        # runs all examples + generated cases to completion
+    examples = getattr(prop, "hypothesis_explicit_examples", None) or \
+        getattr(prop.hypothesis.inner_test, "hypothesis_explicit_examples", [])
+    assert len(examples) >= 2                                     # the retained @example set is attached
+```
+
+  `a3/t2_examples.md` lists every retained `@example` with the failure it reproduced. The replay procedure is "run the
+  test", because derandomize makes the generated sequence deterministic and the examples are explicit. No example
+  database is used or kept (the `hypothesis_db/` evidence of revision 1 is dropped).
 - [ ] **Step 5: RED/GREEN record.** The behavioural RED of this task is the set of mutants: each must fail its killing
   test. A mutant that survives is a finding. Add a killing test to the owning task's file, then rerun. Save
-  `a3/t15_mutants.txt` (each mutant: control PASS, mutant FAIL, killing test id).
+  `a3/t15_mutants.txt`, one line per mutant: the classifier label, the control outcome, the installation record
+  (anchor found, the original and mutated sha256), the killer test id and the agreed `file:line`, and the JUnit file
+  paths. Only "killed" counts as a kill. The classifier self-tests (rows 339–341) are run first; if any of them
+  fails, no mutant result is reported.
 - [ ] **Step 6: Full suite and hashes.** Save `a3/t15_full.txt` and `a3/t15_hashes.txt`. Update `a3/old_new_all.md`
   with any killing test added in Step 2 or Step 5.
 - [ ] **Step 7: Controller review and commit.** Message: `S1 A3 Task 15: Cosmic Ray on the changed critical modules,
-  targeted semantic mutants, pinned Hypothesis`, listing map rows 284–298, with the Co-Authored-By line. Push and
-  assert the HEAD SHA.
+  targeted semantic mutants with the JUnit classifier, executed Hypothesis settings`, listing map rows 284–298 and
+  339–341, with the Co-Authored-By line. Push and assert the HEAD SHA.
 
 ---
 
@@ -11373,11 +11818,23 @@ def test_hypothesis_settings_are_pinned():
    - **E3** (BLOCKED) is implemented but stays pending Codex acceptance of E3. It is settled only by Erratum 1's
      adoption.
 
-## Plan self-review record (revision 1)
+## Plan self-review record (revision 2)
+- **Revision 2 coverage (Codex final 3ddf7d83, Erratum 1 r3).**
+  - A3-PR1-1: R2-01..R2-05; Tasks 2 (step-4a seal selection, step-5 STOP fence), 3 (seal lock names), 5
+    (`product_context` passes `stage_check`/`stop_fence`), 6 (`required_seals` = CREATED seal stages), 7 (seal stage,
+    fence, barrier tests), 8 (seal family, evaluate), 11 (`decide_stop` seal pass + fenced append + retry); rows 55,
+    187, 260–266, 323–325, 331, 334–336. All E2.8 acceptance items have rows: barrier INVALID (260), barrier CLOSE
+    (261), later-close QUALIFIED with unchanged record (262), publish-first/STOP-first (324), deleted CREATED seal
+    (263/325), seal without PREPARED (265), post-STOP INTENT (335).
+  - A3-PR1-2: R2-06; Task 4 (no root anywhere in trial/CLOSE validation; two-root test), Task 5 gate, Task 10;
+    rows 273, 328 (`proc`), 332, 337.
+  - E1.3 oracle: R2-07; rows 257, 320, 321, 338; the precedence table and the property's `@example`s.
+  - A3-PR1-3: R2-08; rows 48, 298; Task 2 settings, Task 15 Step 4 (executed property).
+  - A3-PR1-4: R2-09; rows 291–297, 339–341; Task 15 Steps 3, 3b, 5.
 - **Spec coverage.**
-  - Every F10 example, every normative rule of F0–F9 and every Erratum 1 r1 acceptance item (E1.7, E2.7, E3.6,
-    E4.4) plus the r1 clarifications E2.4–E2.6, E3.4, E4.3, E5.5 and E5.6 has a map row: 333 rows, where 1–255 keep
-    their numbers and 256–333 are new.
+  - Every F10 example, every normative rule of F0–F9 and every Erratum 1 r3 acceptance item (E1.7, E2.8, E3.6,
+    E4.4) plus the clarifications E3.4, E4.3, E5.5 and E5.6 has a map row: 341 rows, where 1–333 keep their numbers
+    (rewritten in place where revision 2 changed them) and 334–341 are new.
   - The PLAN-1..6 findings, the nine coverage corrections and all 39 OQ rulings each point to a task step and a row
     (the "Revision 1 changes" table).
   - Rows 153, 166 and 167 are procedural (Codex's re-hash, Codex's issuance checks, R-3) and have no S1 test; the
@@ -11385,25 +11842,23 @@ def test_hypothesis_settings_are_pinned():
   - Rows 284–290 are mutation-evidence rows.
   - Nothing is deliberately unimplemented. E3 is implemented, pending Codex acceptance of E3.
 - **Placeholders.** One permitted fill-in: `ERRATUM1_SHA256` (Task 1 Step 0, from the adopted copy of Erratum 1
-  revision 1, or of the revision actually adopted). Two pieces are explicitly not final:
+  revision 3, or of the revision actually adopted). Three pieces are explicitly not final:
   - the BLK-3 stop dispositions (Task 11 `stop_record` and `a3_helpers.stop_history` expected values, fixed by
     Codex's acceptance of `t11_dispositions.md`);
-  - the Task 15 mutant anchors, which are checked against the final code with a loud failure.
+  - the Task 15 mutant anchors, which are checked against the final code ("not-installed", never a kill);
+  - `a3/t15_agreed_assertions.json` (each killer's assertion `file:line`), recorded after the GREEN and reviewed.
 
   No step implements a reading "until Codex disagrees".
 - **Default removed.** Revision 0's rule "implement the proposed reading until Codex disagrees" is gone. Every OQ
   carries its f045bd31 ruling. OQ-8 still needs a Codex decision and is blocker BLK-3, naming the steps that cannot
   start. OQ-17's former blocker BLK-2 is resolved by Erratum 1 r1 E5.5.
-- **Erratum consistency.** The plan was re-checked against Erratum 1 draft revision 1 (sha256 bee16ded…), which
-  governs over the addendum. The four plan-level choices disclosed against rev 0 are now erratum text, and the
-  plan follows that text:
-  - E2.6: a held stop lock means no change and pending;
-  - E2.5: the stop operation publishes every determined unpublished seal before TRIAL-STOP;
-  - E4.3: the attribution grammar;
-  - E5.6: the opening-window consequence.
-
-  E2.4 (`seals_checked` in every QUALIFIED tree and PREPARED commitment), E3.2/E3.4 (trial_id in blocked.json; h
-  over {trial_id, reasons}) and E5.5 (format, membership, INVALIDATE) are implemented as written.
+- **Erratum consistency.** The plan was re-checked against Erratum 1 draft revision 3 (sha256 777de174…), which
+  governs over the addendum: E1 (with the r3 oracle), E2 r3 (seal stages, atomic decisions, STOP fence, removal of
+  `seals_checked`/stop-lock publication), E3 r3 (pre-INTENT record, monotone closure, no S1 recomputation), E4
+  (channel, grammar), E5.5 (format, membership, INVALIDATE) and E5.6 (opening window) are implemented as written.
+  Plan-level choices the erratum leaves open are disclosed in the task text: the bounded STOP retry count
+  (`STOP_FENCE_RETRIES = 3`), the seal-stage lock name `stage-seal-<close>`, and the 4a placement of the
+  selected-QUALIFIED check (`Context.stage_check`).
 - **Type consistency.**
   - These names are used identically across tasks: `s1_journal.Row/Request/Context/Decision/Result/append/decide/read_trial`,
     `s1_trial.Trial/Ack/Gate/gate/open_trial/verify_ack/ack_record/artifact_fields/token/invalidate/product_context`,
@@ -11411,18 +11866,22 @@ def test_hypothesis_settings_are_pinned():
     `s1_slot.Worker/names/qualified_tree/failed_tree/first_qualified/seal_bytes/finalize_close/evidence_check`,
     `s1_stage.run/recover/evaluate/permitted/stage_rows/StageWork/StageAbort/manifest_projection/TABLE/FIXED_TREE`,
     `s1_seal.stop_record/decide_stop/stop_check/sampled_seals/sampled_history`.
-  - `s1_stage.run` gains `extra_gate`/`publish_ctx` in Task 10; earlier callers are unaffected (keywords with
-    defaults).
-  - Revision 1 additions, used consistently:
-    - `s1_locks.lock_acquirable`, `NAME_RE`;
-    - `s1_slot.seals_checked`, `required_seals`, `publish_seal(…, stop_lock_held=)`, `SUBTYPES`, the new
-      `Worker.violation(subtype, reason, rep, receipt_sha)` signature, and `move_leftovers(…, root=, trial_id=)`
-      returning None when deferred;
-    - `s1_trial.attributed_trial`, `evidence_manifest`, `opening_manifest_check`, `open_trial(mailbox, root=)`,
-      and `close_evidence(…, blocked_record: dict)`;
-    - `s1_run.blocked_reasons_record`, `blocked_close_evidence`, `_blocked_refusal` and `_opening_books`;
-    - `s1_stage.committed_commitment(root, trial_id, stage, rows)` and the `seals_checked` argument of
-      `s1_stage.commitment`;
+  - `s1_stage.run` has `extra_gate`/`stage_check` from Task 8 and gains `publish_ctx` in Task 10; earlier callers
+    are unaffected (keywords with defaults).
+  - Revision 1 and 2 additions, used consistently:
+    - `s1_locks.lock_acquirable`, `NAME_RE` (with `stage-seal-<close>`), `stage_lock_name` ("/" -> "-");
+    - `s1_journal.Request.inputs`, `Context.stage_check`, `Context.stop_fence`;
+    - `s1_slot.required_seals(out, rows)`, `determined`, `seal_stage_name`, `seal_gate`, `seal_check`,
+      `run_seal_stage`, `stop_fence`, `SUBTYPES`, `Worker.violation(subtype, reason, rep, receipt_sha)`,
+      `move_leftovers(…, root=, trial_id=)` returning None when deferred (no `seals_checked`, no `publish_seal`);
+    - `s1_trial.attributed_trial`, `evidence_manifest`, `opening_manifest_check`, `open_trial(mailbox)` (no root),
+      `product_context(…, stage_check=, stop_fence=)` and `close_evidence(…, blocked_record: dict)`;
+    - `s1_run.blocked_reasons_record`, `blocked_close_evidence` (Codex's issuance helper), `_blocked_refusal` and
+      `_opening_books`;
+    - `s1_stage.spec`, `single_member`, `seal_stages`, `SEAL_PREFIX`, `SEAL_SPEC`,
+      `committed_commitment(root, trial_id, stage, rows)`, `commitment(…)` without `seals_checked`, and
+      `run(…, extra_gate=, stage_check=)`;
+    - `s1_seal.decide_stop` with `STOP_FENCE_RETRIES`;
     - `s1_common._report_seals(out, rows, cal)` and `s1_run._capture_seal_problems(out, rows, cal)`.
   - The start_attest kind is `single` everywhere: `TABLE`, `SINGLE` and rows 85, 104 and 268.
 - **Review Focus.** Its five lines have tests in Tasks 1, 3, 8, 9 and 12.
@@ -11442,10 +11901,18 @@ def test_hypothesis_settings_are_pinned():
   6. Task 15's Cosmic Ray runs are slow (timeout 300 s per mutant). Run them per module, in the background, never
      against the live app. Timeouts are triaged as survivors.
 - **Self-check of this revision (static, no scripts run).**
-  - Every R1-xx entry names rows that exist.
+  - Every R1-xx and R2-xx entry names rows that exist; map IDs 1–341 are contiguous.
   - Every new row names a task that now contains its test.
   - Every task's commit list includes its new rows.
   - start_attest is never `tree`.
   - No revision-0 "pending: a live owner holds the slot lock" finalizer path remains.
   - Row 121 is no longer `retro`.
+  - Revision 2: no code path writes a post-START seal outside a `seal/<close>` stage; no `seals_checked`,
+    `publish_seal` or `stop_lock_held` remains in any task's code (only in history text); no trial/CLOSE reader takes
+    a `root`; no test expects REFUSE after a committed TIMEOUT; no Hypothesis setting combines derandomize with a
+    database; no mutation result is labelled "killed" from an exit code alone.
+  - Revision 2 limits (not checked here, to be shown at implementation): the tests are planned code and have not
+    been executed; `_need`'s refusal text must contain the gate reason for the "not allowed while STOPPED"
+    assertions; pytest's JUnit `file`/traceback format in the pinned testenv must match `_case`/`classify`
+    (the self-tests, rows 339–341, are the guard).
 
