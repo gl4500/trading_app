@@ -11,6 +11,7 @@ import s1_common as c
 import s1_receipt as rc
 import s1_run as r
 import s1_seal as z
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_state
 
 UTC = timezone.utc
@@ -35,6 +36,7 @@ def _reg(tmp_path, receipt=None):
     st_ = s1_state(tmp_path, START, receipt=receipt)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", receipt or S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
     st_["ledger"].set_portfolio("A", 10)
     return st_
@@ -68,8 +70,9 @@ def test_fix1_i1_merge_conflict_mid_trial_is_aborted_invalid_and_restoring_does_
     assert rep["stop"]["status"] == "ABORTED-INVALID" and rep["seal"]["written"] is False
     assert "semantic receipt" in str(read(tmp_path / "s1_out" / "aborted.json")["reason"])
     mr.write_bytes(old)
-    rep = _cp(tmp_path, st_, MON, receipt, minutes=47)
-    assert rep["seal"]["written"] is False and rep["stop"]["status"] == "ABORTED-INVALID"
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\)"):   # A3 Task 6 (F1)
+        _cp(tmp_path, st_, MON, receipt, minutes=47)                     # restoring never resumes: no work
+    assert not (tmp_path / "s1_out" / "seals" / "2026-10-26.json").exists()
 
 
 # ====================================================================== I-4b
@@ -82,13 +85,16 @@ def test_fix1_i4b_a_corrupt_trial_seal_is_a_preserved_terminal_integrity_failure
     (out / "seals" / "2026-10-26.json").write_text("{not json", encoding="utf-8")
     st_["ledger"].trade("A", "BUY", 1, 50.0, "2026-10-27T15:00:00+00:00")
     st_["ledger"].set_portfolio("A", 11)
-    # (fix round 2, Addendum 2 B3.3: the seal is bound by its capture report, so the registration gate observes it
-    # first: the preserved failure evidence is aborted.json's problems + refusals.jsonl - a clean refusal, no crash)
-    with pytest.raises(SystemExit, match="registration artifact"):
-        _cp(tmp_path, st_, MON + timedelta(days=1))
+    # A3 Task 6 (OQ-11 ruling, E5.2): a capture report no longer binds a seal (it is final before J), so the
+    # registration gate does not see the legacy (stage-less) seal; the next capture's own seal read observes it: the
+    # established violation `seal-record` (OQ-31) - TRIAL-INVALID first, then the persistent abort; no crash, no seal
+    rep = _cp(tmp_path, st_, MON + timedelta(days=1))
+    assert rep["journal"] == {"kind": "TRIAL-INVALID", "reason": "established-violation", "subtype": "seal-record"}
+    assert rep["stop"]["status"] == "ABORTED-INVALID"
     ab = read(out / "aborted.json")
-    assert ab["reason"] == "registration artifact" and any("seals/2026-10-26.json" in x for x in ab["problems"])
-    assert (out / "refusals.jsonl").exists() and not (out / "seals" / "2026-10-27.json").exists()
+    assert "bad seal record" in str(ab["reason"]) and not (out / "seals" / "2026-10-27.json").exists()
+    obs = read(next((out / "invalid").glob("*.json")))
+    assert obs["subtype"] == "seal-record" and "bad seal record" in obs["legacy_reason"]
 
 
 # ====================================================================== m-1
@@ -137,7 +143,10 @@ def test_fix1_m4_a_changed_persisted_stop_before_the_attestation_is_detected(tmp
     out = tmp_path / "s1_out"
     p = out / "stop.json"
     p.write_text(json.dumps(dict(read(p), decided_by="edited")), encoding="utf-8")
-    probs = z.stop_problems(out, START_DT, st_["calendar"], recheck=False)
+    # A3 Task 6 (OQ-11): a capture report no longer records stop_sha256 (the report is final before J; the stop is
+    # display-only in after.json, which is never authority, E5.2); the persisted stop stays bound by its registry
+    # records (B3.1), so the registration check reports the change (Task 11: TRIAL-STOP's detail)
+    probs = c.registration_problems(out)
     assert any("stop.json" in x and "changed" in x for x in probs), probs
 
 

@@ -18,6 +18,7 @@ import s1_run as r
 import s1_seal as z
 import s1_snapshot
 import s1_trial as t
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_score_refused,
                       s1_state, s1_sync_portfolio, s1_unattest)
 
@@ -36,6 +37,7 @@ def _registered(tmp_path):
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
     st_["ledger"].set_portfolio("A", 10)
     return st_
@@ -57,9 +59,13 @@ def test_mf_a_tampered_deferred_capture_never_seals(tmp_path):
     assert rep.get("deferred") and rep.get("candidate")
     proj = Path(rep["candidate"]["dir"]) / "projection.json"
     proj.write_bytes(proj.read_bytes() + b" ")
-    rep = _run(tmp_path, st_, s55, s55 + timedelta(seconds=30))
+    # A3 Task 6 (F3 table, QUALIFIED: a required file changed -> INVALIDATE registration-artifact): the projection is
+    # a member of slot 47's committed QUALIFIED tree, so the selection refuses before building any seal (the former
+    # _seal_bytes re-verification, "differs from its recorded projection", is now the second line of defence)
+    with pytest.raises(SystemExit, match=r"QUALIFIED tree differs from the committed detail.*registration-artifact"):
+        _run(tmp_path, st_, s55, s55 + timedelta(seconds=30))
     assert not (tmp_path / "s1_out" / "seals" / "2026-10-26.json").exists()
-    assert "differs from its recorded projection" in str(rep.get("refused")), rep
+    assert c.load_abort(tmp_path / "s1_out")["reason"] == c.REGISTRATION_ARTIFACT
 
 
 def test_mf_every_seal_records_its_measured_capture_interval(tmp_path):
@@ -139,6 +145,7 @@ def test_mf_cohort_ids_are_the_stop_seals_cohort_through_the_stop_close(tmp_path
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     lg, rows = st_["ledger"], list(st_["rows"])
 
     def add(sym, act, ts):

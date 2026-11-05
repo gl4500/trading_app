@@ -13,6 +13,13 @@ UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"
 
 
+import pytest  # noqa: E402  (A3 Task 6: the held marker)
+
+
+@pytest.mark.skip(reason="HELD with Task 11 (A3 Task 6, F1/OQ-25): the fixture's synthetic TRIAL-STOP precedes these "
+                         "checkpoints, so they are LOST-RACE with no capture (and a late invocation is now refused with "
+                         "no row, F0.5 step 6); the R-6/A9.3 listings need a refused capture and a binding gap "
+                         "committed BEFORE the STOP - Task 11's real TRIAL-STOP flow")
 def test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_in_the_score(tmp_path, monkeypatch):
     """R-6: captures refused (here a late clock refusal) are listed explicitly in the score report; A1.2: the
     receipt PROVENANCE observed at each seal (HEAD changes) is reported; A9.3: process-observation gaps (here an

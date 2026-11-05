@@ -25,7 +25,8 @@ OPENING = ("SLOT-INTENT", "STAGE-INTENT", "SLOT-MISSED", "TRIAL-STOP")          
 STAGES = ("audit", "opening", "start_attest", "prereg", "stop_attest", "final_plan", "final", "score")   # F4.8
 REASONS = ("contradictory-completion", "contradictory-finalizer", "contradictory-stage", "repeat-attempt",
            "repeat-stage", "stop-conflict", "stage-incomplete", "stage-replaced", "provider-structural",
-           "score-aborted", "bundle", "LOST", "registration-artifact")                                 # OQ-1
+           "score-aborted", "bundle", "LOST", "registration-artifact",
+           "established-violation")                                       # OQ-1; OQ-31 (A3 Task 6)
 ABSENT, TRIAL_SUBJECT = "absent", "trial"
 DETAIL_ABSENT = ("SLOT-INTENT", "SLOT-TIMEOUT", "SLOT-MISSED")                                         # OQ-2
 _HEX64, _HEX32 = re.compile(r"[0-9a-f]{64}"), re.compile(r"[0-9a-f]{32}")

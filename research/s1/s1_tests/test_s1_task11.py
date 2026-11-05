@@ -25,6 +25,7 @@ import s1_receipt as rc
 import s1_run as r
 import s1_seal as z
 import s1_trial as t
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_reack, s1_receipt_with, s1_score_refused, s1_state
 
 UTC = timezone.utc
@@ -81,9 +82,10 @@ def test_c1_post_stop_checkpoint_never_seals_or_aborts_and_the_score_is_unchange
         bad = (s1_receipt_with(S1_RECEIPT, files={"agents/mean_reversion_agent.py": "post-stop"})
                if variant == "receipt" else None)
         rep = checkpoint(tmp_path, st_, "2026-10-30", receipt=bad)
-        assert rep["post_stop"] is True and rep["seal"]["written"] is False, rep
-        assert rep["stop"]["status"] == "STOPPED" and rep["stop"]["stop_close"] == STOP_CLOSE, rep["stop"]
-        assert rep["receipt_match"] is (variant != "receipt")                 # reported only
+        # A3 Task 6 (F1, OQ-25; replaces A2.2's post-stop capture): after the TRIAL-STOP a new slot is LOST-RACE - no
+        # row, no capture, no receipt observation (a changed receipt is never observed), no seal, no abort
+        assert rep["outcome"] == "LOST-RACE" and "STOPPED" in rep["reason"], rep
+        assert not (out / "captures" / "2026-10-30").exists()
         assert not (out / "aborted.json").exists()
         assert not (out / "seals" / "2026-10-30.json").exists()
     rep = score(tmp_path, monkeypatch, st_)
@@ -100,8 +102,10 @@ def test_c1_post_stop_fence_difference_is_reported_only(tmp_path, monkeypatch):
     con.commit()
     con.close()
     rep = checkpoint(tmp_path, st_, "2026-10-30")
-    assert rep["post_stop"] is True and rep["fence_violations"], rep
-    assert not (out / "aborted.json").exists() and rep["seal"]["written"] is False
+    # A3 Task 6 (F1, OQ-25): after the TRIAL-STOP the slot is LOST-RACE with no capture, so the changed sealed row is
+    # never observed by a post-stop capture (the final snapshot, taken earlier, already vouched for the slices)
+    assert rep["outcome"] == "LOST-RACE" and not (out / "captures" / "2026-10-30").exists(), rep
+    assert not (out / "aborted.json").exists() and not (out / "seals" / "2026-10-30.json").exists()
 
 
 def test_c1_checkpoint_after_an_abort_is_post_stop_and_never_seals(tmp_path, monkeypatch):
@@ -109,12 +113,15 @@ def test_c1_checkpoint_after_an_abort_is_post_stop_and_never_seals(tmp_path, mon
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     out = tmp_path / "s1_out"
     (out / "aborted.json").write_text(json.dumps({"reason": "x", "close": "c", "scheduled": "s", "actual": "a"}),
                                       encoding="utf-8")
-    rep = checkpoint(tmp_path, st_, "2026-10-26")
-    assert rep["post_stop"] is True and rep["seal"]["written"] is False
-    assert rep["stop"]["status"] == "ABORTED-INVALID"
+    # A3 Task 6 (F8.1): a local aborted.json (here with no committed TRIAL-INVALID) refuses every new capture before
+    # the SLOT-INTENT: no row, no claim, no capture, no seal
+    with pytest.raises(SystemExit, match=r"aborted\.json exists .*no new capture"):
+        checkpoint(tmp_path, st_, "2026-10-26")
+    assert not (out / "captures" / "2026-10-26").exists() and not (out / "seals" / "2026-10-26.json").exists()
 
 
 def test_c1_final_snapshot_and_score_check_fences_only_against_seals_up_to_the_stop(tmp_path, monkeypatch):
@@ -198,6 +205,7 @@ def _prereg_state(tmp_path):
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
     st_["ledger"].set_portfolio("A", 10)
     return st_
@@ -405,6 +413,7 @@ def test_i4_final_plan_refused_while_running_aborted_or_unattested(tmp_path):
     s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     with _Clock(START_DT + timedelta(days=2)):
         with pytest.raises(SystemExit, match="RUNNING"):
             k.write_final_plan(tmp_path)
@@ -622,26 +631,47 @@ def test_m1_final_plan_edited_after_the_acquisition_is_aborted_invalid(tmp_path,
     assert rep["verdict"] == "ABORTED-INVALID" and any("final plan" in x for x in rep["reasons"]), rep["reasons"]
 
 
+def _created_seal_stage(root, day):
+    """A3 Task 6 test fixture: commit the existing seals/<day>.json as a CREATED seal stage `seal/<day>` (synthetic
+    INTENT / PREPARED / CREATED rows whose details are the staged intent.json / prepared.json bytes, Task 8's
+    format) - the only thing that makes a post-START seal REQUIRED (E2.6 r3). Test-only."""
+    import s1_journal as j
+    import s1_stage as sg
+    tr = t.open_trial(Path(root) / "mailbox.sqlite3")
+    stage, rel = f"seal/{day}", f"seals/{day}.json"
+    out = Path(root) / "s1_out"
+    op, actor = j.new_nonce(), j.new_nonce()
+    staging = sg.staging_dir(root, tr.trial_id, stage)
+    env = c.canonical(sg.envelope(tr.trial_id, stage, {"qualified_line": "1" * 64, "tree_manifest": "2" * 64}, {},
+                                  None))
+    com = c.canonical(sg.commitment(tr.trial_id, stage, op, "single", {rel: c.sha256_file(out / rel)}, []))
+    c.publish_exclusive(staging / "intent.json", env)
+    c.publish_exclusive(staging / "prepared.json", com)
+    from conftest import s1_jappend
+    when = c.aware(f"{day}T21:00:00+00:00")
+    for i, (kind, blob) in enumerate((("STAGE-INTENT", env), ("STAGE-PREPARED", com), ("STAGE-CREATED", com))):
+        s1_jappend(root, kind, j.stage_subject(stage), at=when + timedelta(seconds=i), op=op, actor=actor,
+                   detail=c.sha256_bytes(blob))
+    return out / rel
+
+
 @pytest.mark.parametrize("how", ["missing", "different"])
 def test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid(tmp_path, monkeypatch, how):
-    """Task 11 (controller-added), m-2: every capture report with seal.written=true must name an existing seal file
-    with that sha256 (a deleted seal would move the stop)."""
+    """Task 11 (controller-added), m-2: a required seal that is missing or changed is ABORTED-INVALID (a deleted seal
+    would move the stop). A3 Task 6 (OQ-11 ruling, E5.2, E2.6 r3): the required seals are the CREATED `seal/<close>`
+    stages of the journal, never a capture report (the report is final before J and records no seal), so the seal is
+    made required by its CREATED stage and then deleted or changed: the gate commits TRIAL-INVALID (stage-replaced)
+    and the score's own record lists "seal missing" (s1_run._capture_seal_problems)."""
     st_ = s1_state(tmp_path, START, score_ready=True)
-    out = tmp_path / "s1_out"
+    p = _created_seal_stage(tmp_path, "2026-10-26")
     if how == "missing":
-        d = out / "captures" / "2026-10-28"
-        d.mkdir(parents=True)
-        (d / "20261028T204500Z.report.json").write_text(json.dumps({
-            "close": "2026-10-28T20:00:00+00:00", "scheduled": "2026-10-28T20:45:00+00:00",
-            "seal": {"written": True, "sha256": "ab" * 32}, "restart_gaps": []}), encoding="utf-8")
-    else:                                                    # the real opening checkpoint's report, hash edited
-        p = next((out / "captures" / "2026-10-23").glob("*.report.json"))
-        rp = read(p)
-        assert rp["seal"]["written"] is True
-        rp["seal"]["sha256"] = "cd" * 32
-        p.write_text(json.dumps(rp), encoding="utf-8")
+        p.unlink()
+    else:
+        p.write_text(json.dumps(dict(read(p), note="changed")), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    with pytest.raises(SystemExit, match=r"seal/2026-10-26: .*INVALID \(stage-replaced\)"):    # detected by the gate
+        r.score(tmp_path, "score-ack")
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")   # A3 F0.6/F1: refused; the unit record
     assert rep["verdict"] == "ABORTED-INVALID" and any("seal missing" in x for x in rep["reasons"]), rep["reasons"]
 
 

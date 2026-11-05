@@ -19,6 +19,7 @@ import s1_run as r
 import s1_seal as z
 import s1_snapshot
 import s1_trial as t
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit, \
     s1_reack, s1_state
 
@@ -71,6 +72,7 @@ def _registered(tmp_path):
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
     st_["ledger"].set_portfolio("A", 10)
     return st_
@@ -149,6 +151,7 @@ def test_b3_a_prereg_not_yet_due_is_not_corruption(tmp_path):
     assert not (tmp_path / "s1_out" / "aborted.json").exists()
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     assert (tmp_path / "s1_out" / "prereg.json").exists()
 
 
@@ -308,9 +311,12 @@ def test_b3_a_corrupt_aborted_json_fails_closed(tmp_path, monkeypatch):
     the score; the score's fail-closed reading of a corrupt aborted.json is s1_common.load_abort, used by _score.)"""
     st_ = _registered(tmp_path)
     (tmp_path / "s1_out" / "aborted.json").write_text("{corrupt", encoding="utf-8")
-    rep = _cp(tmp_path, st_["ledger"].path)
-    assert rep["seal"]["written"] is False and rep["stop"]["status"] == "ABORTED-INVALID"
-    assert list((tmp_path / "s1_out" / "captures" / "2026-10-26").glob("*.report.json"))
+    # A3 Task 6 (F8.1): a local aborted.json - corrupt included (it fails closed: it IS an abort) - refuses any new
+    # capture before the SLOT-INTENT: no row, no capture, no seal, never a crash
+    with pytest.raises(SystemExit, match=r"aborted\.json exists .*no new capture"):
+        _cp(tmp_path, st_["ledger"].path)
+    assert not (tmp_path / "s1_out" / "captures" / "2026-10-26").exists()
+    assert not (tmp_path / "s1_out" / "seals" / "2026-10-26.json").exists()
 
 
 def test_b3_a_corrupt_aborted_json_fails_closed_at_prereg(tmp_path):

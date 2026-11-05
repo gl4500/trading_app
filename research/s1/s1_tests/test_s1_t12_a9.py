@@ -13,6 +13,7 @@ import s1_common as c
 import s1_receipt as rc
 import s1_run as r
 import s1_snapshot
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_plan_audit, s1_reack, s1_receipt_with, s1_state
 
 UTC = timezone.utc
@@ -30,6 +31,7 @@ def _reg(tmp_path):
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
     st_["ledger"].set_portfolio("A", 10)
     return st_
@@ -112,8 +114,9 @@ def test_a9_an_established_receipt_violation_is_terminal_and_survives_restoratio
                                                              terminal=True)))
     assert rep["stop"]["status"] == "ABORTED-INVALID"
     assert "semantic receipt" in read(tmp_path / "s1_out" / "aborted.json")["reason"]
-    rep = _cp(tmp_path, st_, minutes=47)
-    assert rep["seal"]["written"] is False and rep["stop"]["status"] == "ABORTED-INVALID"
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\)"):   # A3 Task 6 (F1)
+        _cp(tmp_path, st_, minutes=47)                                   # a later good receipt: no work, no seal
+    assert not (tmp_path / "s1_out" / "seals" / "2026-10-26.json").exists()
 
 
 def test_a9_missing_required_evidence_never_becomes_a_plausible_match(tmp_path):

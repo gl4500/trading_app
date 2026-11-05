@@ -11,6 +11,7 @@ import s1_checkpoint as ck
 import s1_common as c
 import s1_run as r
 import s1_seal as z
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, s1_finalize, s1_mailbox, s1_reack, s1_score_refused, s1_state,
                       s1_sync_portfolio)
 
@@ -76,6 +77,7 @@ def _example19(tmp_path):
     st_ = s1_state(tmp_path, START, bridge=BRIDGE)
     with _Clock(st_["prereg_at"]):           # Task 12 (A8.2) input: prereg after the RUN-ACK (Tuesday START)
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     lg = st_["ledger"]
     ts = "2026-10-27T15:00:00+00:00"
     rid = lg.trade("A", "BUY", 10, 50, ts)
@@ -201,12 +203,13 @@ def test_bridge_row_edited_then_scored_is_aborted_invalid(tmp_path, monkeypatch)
     rep = _checkpoint(tmp_path, lg, datetime(2026, 10, 28, 20, 0, tzinfo=UTC))
     assert rep["stop"]["status"] == "ABORTED-INVALID", rep["stop"]
     snap_at = datetime(2026, 10, 29, 12, 0, tzinfo=UTC)
-    ck.run_final_snapshot(tmp_path, lg.path, now=lambda: snap_at)
+    # A3 Task 6 (OQ-31, F1): the bridge violation committed TRIAL-INVALID (established-violation) first, so the final
+    # snapshot and the score are refused with no work; the score's unit-level record still names the abort
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\)"):
+        ck.run_final_snapshot(tmp_path, lg.path, now=lambda: snap_at)
     now = snap_at + timedelta(hours=2)
     monkeypatch.setattr(c, "now_utc", lambda: now)
-    s1_finalize(tmp_path, now - timedelta(hours=2))              # A3 (F7.1): the chain a SCORE-ACK needs
-    s1_reack(tmp_path, "score-ack-a", "S1-SCORE-ACK", now - timedelta(hours=1))
-    sc = r.score(tmp_path, "score-ack-a")
+    sc = s1_score_refused(tmp_path, "score-ack-a", reason="established-violation")
     assert sc["verdict"] == "ABORTED-INVALID" and sc["nomination"] is False, sc
     assert any("ABORTED-INVALID" in x and "bridge" in x for x in sc["reasons"]), sc["reasons"]
 

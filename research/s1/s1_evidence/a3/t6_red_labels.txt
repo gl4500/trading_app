@@ -1,0 +1,35 @@
+Task 6 RED labels (t6_red.txt: test_s1_a3_slots.py + test_s1_a3_codex_probes.py against the Step 1 interface stub,
+kept as t6_red_stub.py.txt; the stub-phase s1_checkpoint wiring ran run_checkpoint / run_opening_checkpoint through the
+stub Worker - intent() = the legacy _claim_slot, complete() = the legacy _publish - and gave s1_trial.gate a
+`defer_pending` keyword it ignored, s1_common._report_seals / s1_run._capture_seal_problems the new (out, rows, cal)
+signature with the legacy behaviour).
+Result: 34 failed, 5 passed. Every failure is an assertion: AssertionError (25, including pytest.raises "Regex pattern
+did not match") or pytest's Failed (9: "DID NOT RAISE <class 'SystemExit'>" x8 and one pytest.fail at the N2 slot-path
+gate). 0 ImportError / AttributeError / KeyError / TypeError / IndexError failures (five KeyError/IndexError/ValueError
+subscripts of the first draft were turned into assertions before this run - Deviation 3 in the task report).
+
+B (behavioural RED, 34): every new test not listed below. Classes seen:
+- no SLOT rows are appended by the stub (`[] != ["SLOT-INTENT", ...]`) - rows 70, 71, 172-174, 186, 188, 196, 197,
+  310 (s, E-1us);
+- the stub's legacy _publish still seals at D and D+1us and resolves RESOLUTION-TIMEOUT (row 173, the B-old probe);
+- the legacy late path writes a claim and a refused report at E and E+1us instead of refusing (row 310 E/E+1us and
+  test_slot_intent_at_or_after_e_refuses_with_no_row_and_no_capture: DID NOT RAISE);
+- the stub writes the local abort first and appends no TRIAL-INVALID (row 308);
+- no capture_dir in the claim (row 311 / 70 report binding);
+- no after.json is written (row 264: `assert after.is_file()`);
+- post-stop captures happen / no LOST-RACE record (row 186); no PREREG-ACK refusal (row 157);
+- no slot-lock order entries (row 130); no "pending" / lock-error refusal for the slot lock (F5.5 additions);
+- a missing slot gate is not refused; the opening gate does not refuse (audit not CREATED; opening already decided);
+- N2: the slot-path gate refuses "pending" while a live child holds an unrelated seal-stage lock.
+
+ctrl (outcome part): test_publication_d_minus_1us_qualifies_when_no_timeout_committed_first and
+test_publication_well_before_d_seals assert rows too, so they FAIL on the stub (no rows); their `sealed` part is a
+positive control (the legacy stub also seals there) - plan Step 3 labelling.
+
+Passing on the stub (5):
+- retro (Task 8 gate, F5.5): test_a_stage_lock_error_is_never_deferred - a seal-stage lock I/O error already refuses
+  every gate (Task 8 _lock); kept as the guard that N2's deferral is limited to a HELD lock (Task 6 must not defer a
+  LockError).
+- pre-existing tests of test_s1_a3_codex_probes.py (Task 5, not Task 6 tests): test_historical_probe_copies_are_frozen,
+  test_historical_probe_copies_are_never_collected, test_combined_damage_is_invalid_bundle_after_any_journal_row
+  [missing, unparseable].

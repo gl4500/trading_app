@@ -6,7 +6,7 @@ OQ-5). No function here takes an output root for the trial lookup: closure is mo
 import re
 import sqlite3
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -425,6 +425,7 @@ class Gate:
     rows: list
     state: str
     mailbox: object = None
+    deferred: list = field(default_factory=list)      # A3 Task 6 (N2): pending stages a slot-path gate deferred
 
 
 def _record(out: Path, where: str, msg, now=None) -> None:
@@ -501,13 +502,16 @@ def product_context(trial: Trial, cal=None, *, slot_gate=None, stage_gate=None, 
     return build
 
 
-def gate(root, where: str, *, mailbox=None, now=None) -> Gate:
+def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Gate:
     """F0.6: the first step of every trial-bound command, before any callback, capture, provider request or pricing:
     the open trial (F6.3) and its ACK chain (F7.1) from the mailbox; the journal (chain, F0.5 step 1); the trial
     state (F1: INVALID refuses with no work, F0.6 - checked before the bundle so re-entry adds no repeat row); total
     loss (F6.6: INVALID (LOST)); the bundle against the AUDIT-ACK's (F6.4: refusal before any row, INVALID (bundle) +
     local abort after); the plan's trial_id (F6.2). The gate never creates or writes into a missing s1_out (review
-    I-1). `now`: the command's clock callable (refusal records, the INVALID row's `at`)."""
+    I-1). `now`: the command's clock callable (refusal records, the INVALID row's `at`). `defer_pending` (A3 Task 6,
+    ruling N2, Erratum 1 E1.2): only the slot paths pass True - a stage whose lock is held by a live (possibly stalled)
+    owner is recorded in gv.deferred instead of refusing "pending", so deadline arbitration is never blocked by a
+    work lock."""
     root = Path(root)
     out = root / "s1_out"
     try:
@@ -556,7 +560,7 @@ def gate(root, where: str, *, mailbox=None, now=None) -> Gate:
         _refuse(out, where, f"plan.json trial_id {plan_tid!r} differs from the AUDIT-ACK's {tr.trial_id} (F6.2)", now)
     gv = Gate(root, out, tr, rows, st_, mailbox)
     import s1_stage                                       # A3 Task 8: the F4 stage-state table (never creates s1_out)
-    s1_stage.evaluate(gv)
+    s1_stage.evaluate(gv, defer_pending=defer_pending)    # A3 Task 6 (N2): the slot paths defer a held stage lock
     return gv
 
 

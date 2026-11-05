@@ -18,6 +18,7 @@ import s1_run as r
 import s1_seal as z
 import s1_snapshot
 import s1_trial as t
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, _weekdays, s1_mailbox, s1_state
 
 
@@ -254,6 +255,7 @@ def _registered(tmp_path):
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
     st_["ledger"].set_portfolio("A", 10)
     return st_
@@ -278,12 +280,19 @@ def test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_p
     the same predicate's verdict); the slot is then consumed (a rerun of it is a duplicate)."""
     st_ = _registered(tmp_path)
     spy = Snap(monkeypatch)
-    rep = _run(tmp_path, st_, S45, at)
+    if at >= S45 + timedelta(minutes=10):              # A3 Task 6 (F0.5 step 6, OQ-33): now >= E -> no row, no claim
+        with pytest.raises(SystemExit, match="now >= E"):
+            _run(tmp_path, st_, S45, at)
+        assert spy.calls == 0 and not (tmp_path / "s1_out" / "captures" / "2026-10-26").exists()
+        assert not SEAL_P(tmp_path).exists()
+        return
+    rep = _run(tmp_path, st_, S45, at)                 # early (t < s): the claim, a refused report, SLOT-FAILED
     assert spy.calls == 0 and rep["seal"]["written"] is False and rep["capture_ok"] is False
     assert rep["late"] is True and "clock" in str(rep.get("refused")) and rep["scheduled"] == S45.isoformat()
+    assert rep["journal"]["kind"] == "SLOT-FAILED" and rep["journal"]["outcome"] == "APPEND"
     reports = list((tmp_path / "s1_out" / "captures" / "2026-10-26").glob("*.report.json"))
     assert len(reports) == 1 and read(reports[0])["scheduled"] == S45.isoformat()
-    with pytest.raises(SystemExit, match="slot already"):
+    with pytest.raises(SystemExit, match="a restart never re-intents"):   # A3 Task 6 (F3): the slot is consumed
         _run(tmp_path, st_, S45, S45 + timedelta(seconds=30))
     assert spy.calls == 0
 
@@ -308,9 +317,9 @@ def test_a5_codex_probe_b_the_0800_slot_finishing_at_0805_never_seals(tmp_path, 
     st_ = _registered(tmp_path)
     s8 = z.schedule(next(d for d in st_["calendar"] if d["date"] == "2026-10-26"), st_["calendar"])[-1]
     spy = Snap(monkeypatch, dur=timedelta(minutes=5))
-    rep = _run(tmp_path, st_, s8, s8 + timedelta(seconds=30))
-    assert rep["seal"]["written"] is False and rep["late"] is True and spy.calls == 0
-    assert not SEAL_P(tmp_path).exists()
+    with pytest.raises(SystemExit, match="now >= E"):  # A3 Task 6 (F0.5 step 6): E = W = s for the 08:00 slot
+        _run(tmp_path, st_, s8, s8 + timedelta(seconds=30))
+    assert spy.calls == 0 and not SEAL_P(tmp_path).exists()
 
 
 def test_a5_a_later_slot_capture_waits_for_an_unresolved_earlier_slot_then_the_earlier_one_seals(tmp_path,
@@ -345,9 +354,11 @@ def test_a5_a_delayed_invocation_cannot_claim_a_later_slot(tmp_path, monkeypatch
     capture (the slot is its --scheduled argument, never recomputed from the invocation time)."""
     st_ = _registered(tmp_path)
     spy = Snap(monkeypatch)
-    rep = _run(tmp_path, st_, S45, S45 + timedelta(minutes=11))
-    assert rep["scheduled"] == S45.isoformat() and spy.calls == 0 and not SEAL_P(tmp_path).exists()
-    names = [p.name for p in (tmp_path / "s1_out" / "captures" / "2026-10-26").iterdir()]
+    with pytest.raises(SystemExit, match=r"slot/20261026T204500Z: .*now >= E"):   # A3 Task 6: refused for slot 45
+        _run(tmp_path, st_, S45, S45 + timedelta(minutes=11))
+    assert spy.calls == 0 and not SEAL_P(tmp_path).exists()
+    d = tmp_path / "s1_out" / "captures" / "2026-10-26"
+    names = [p.name for p in d.iterdir()] if d.exists() else []
     assert not any("204700" in n for n in names), names
 
 

@@ -1,0 +1,30 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 14%]
+........................................................................ [ 19%]
+........................................................................ [ 24%]
+........................................................................ [ 29%]
+........................................................................ [ 33%]
+........................................................................ [ 38%]
+........................................................................ [ 43%]
+........................................................................ [ 48%]
+........................................................................ [ 53%]
+........................................................................ [ 58%]
+........................................................................ [ 62%]
+........................................................................ [ 67%]
+........................................................................ [ 72%]
+................s..........s..................................s......... [ 77%]
+.................................sss.................................... [ 82%]
+........................................................................ [ 87%]
+........................................................................ [ 91%]
+........................................................................ [ 96%]
+....s..........................................                          [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_fix2_mutants.py:131: HELD with Task 7 (A3 Task 6 fix round 1, review I2): the F3 evidence table (no row: any claim, capture, report or resolution for s is INVALIDATE registration-artifact) is Task 7's s1_slot.slot_problems; until then a forged resolution of a no-row slot is not detected
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_fix2_mutants.py:318: HELD with Task 11 (A3 Task 6, OQ-11/E5.2): the capture report is final before J and no longer records the stop hash (display-only after.json never is authority), so with stop.json and both stop records deleted nothing witnesses the legacy stop; Task 11's TRIAL-STOP detail is the stop's authority (F2)
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_fix3.py:573: HELD with Task 10 (A3 Task 6, OQ-11/E5.2): the opening capture report is final before J and no longer records the written seal, so after the seal and both opening records are deleted only in-progress witnesses remain; Task 10 makes the opening seal the `opening` stage (a deleted CREATED member is stage-replaced)
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_fix5.py:217: HELD with Task 7 (A3 Task 6, plan Step 6 'R-3 -> opening gate'): the after-seal record no longer exists (a later opening slot is refused with no row); the deleted QUALIFIED tree of the sealing slot is the F3 evidence-table violation, caught before any callback by Task 7's gate-level slot check (Task 6 catches it at the seal selection, after a capture)
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_fix5.py:241: HELD with Task 7 (A3 Task 6): no after-seal claim exists any more (the opening gate refuses with no row); the deletion is the F3 evidence-table violation of Task 7
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_fix5.py:262: HELD with Task 7 (A3 Task 6, OQ-11/E5.2): a capture report is never seal authority; the forged claim/resolution/report of a slot with no journal row is the F3 evidence-table violation (no row: any claim, report or resolution) of Task 7
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_reporting.py:19: HELD with Task 11 (A3 Task 6, F1/OQ-25): the fixture's synthetic TRIAL-STOP precedes these checkpoints, so they are LOST-RACE with no capture (and a late invocation is now refused with no row, F0.5 step 6); the R-6/A9.3 listings need a refused capture and a binding gap committed BEFORE the STOP - Task 11's real TRIAL-STOP flow
+1480 passed, 7 skipped in 921.98s (0:15:21)

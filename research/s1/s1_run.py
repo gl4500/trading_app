@@ -597,7 +597,7 @@ def attest_stop(root, statement: str, *, mailbox=None) -> dict:
     pr = _load(out / "prereg.json")
     try:                                                   # Task 12 (A2.1): the persisted stop (stop.json)
         import s1_checkpoint                               # fix round 3 (I-1): finalize BEFORE freezing the stop
-        s1_checkpoint.finalize_pending(out, pr["calendar"], c.aware(pr["start"]), c.now_utc())
+        s1_checkpoint.finalize_pending(out, pr["calendar"], c.aware(pr["start"]), c.now_utc(), mailbox=mailbox)
         stop = z.current_stop(out, c.aware(pr["start"]), pr["calendar"], c.now_utc(), "stop attestation")
     except (ValueError, KeyError, TypeError) as e:
         raise SystemExit(f"stop attestation refused: bad seal record ({e})") from None
@@ -788,24 +788,18 @@ def _seal_chain_problems(out: Path, seals, receipt_sha: str, bundle: str) -> lis
     return bad
 
 
-def _capture_seal_problems(out: Path) -> list:
-    """Task 11 (controller-added), m-2: every capture report that records seal.written=true must name an existing
-    seal file (seals/<close session>.json) with that sha256: a deleted or replaced seal (stop shopping) is INVALID."""
+def _capture_seal_problems(out: Path, rows=None, cal=None) -> list:
+    """Task 11 (controller-added), m-2, rewritten in A3 Task 6 (OQ-11 ruling, E5.2; Erratum 1 E2.6 r3): every
+    REQUIRED post-START seal - a CREATED `seal/<close>` stage of the trial's journal (s1_slot.required_seals) - must
+    exist with its committed sha256; a deleted or replaced one (stop shopping) is INVALID (stage-replaced, never
+    recreated). It never opens a capture report or any <slot>.after.json (display only). `rows`: the caller's
+    verified journal rows (None = the open trial's rows, s1_common._report_seals); `cal`: the plan calendar (the
+    plan's signature; unused)."""
     bad = []
-    for p in sorted((out / "captures").glob("*/*.report.json")):
-        where = f"{p.parent.name}/{p.name}"
-        try:
-            rep = _load(p)
-            seal = rep.get("seal") or {}
-            if seal.get("written") is not True:
-                continue
-            sp = out / "seals" / f"{_ny_day(c.aware(rep['close']))}.json"
-        except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
-            bad.append(f"capture report {where} unreadable ({type(e).__name__})")
-            continue
-        if not sp.is_file() or c.sha256_file(sp) != seal.get("sha256"):
-            bad.append(f"seal missing: capture report {where} records seal {sp.name} "
-                       f"{str(seal.get('sha256'))[:12]}, no seal file with that hash")
+    for rel, sp, h in c._report_seals(out, rows, cal):
+        if not sp.is_file() or c.sha256_file(sp) != h:
+            bad.append(f"seal missing: {rel} is a CREATED seal stage's member {str(h)[:12]}, no seal file with that "
+                       f"hash (stage-replaced, E2.6)")
     return bad
 
 

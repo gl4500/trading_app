@@ -1,0 +1,78 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFF.FF....FFFF                                  [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:68: AssertionError: assert [] == ['SLOT-INTENT...OT-QUALIFIED']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:95: AssertionError: assert None == 'captures/2026-10-26/20261026T204500Z'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:112: AssertionError: assert False
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:112: AssertionError: assert False
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:144: AssertionError: assert ([('abort', None)] and ('abort', None) == ('invalid', False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:144: AssertionError: assert ([('abort', None)] and ('abort', None) == ('invalid', False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:144: AssertionError: assert ([('abort', None)] and ('abort', None) == ('invalid', False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:169: AssertionError: assert [] == ['SLOT-INTENT', 'SLOT-FAILED']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:173: AssertionError: assert ([1] == [1]
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:173: AssertionError: assert ([1] == [1]
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:164: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:164: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:181: AssertionError: assert [] == ['SLOT-INTENT', 'SLOT-FAILED']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:189: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:210: AssertionError: assert None == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:245: AssertionError:
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:262: AssertionError: assert None == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:277: AssertionError: assert ('LOST-RACE',...not invalid)') == ('INVALIDATE'...peat-attempt')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:289: AssertionError: assert ('REFUSE', 'n...fail closed)') == ('INVALIDATE'...peat-attempt')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:299: AssertionError: assert None is not None
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:299: AssertionError: assert None is not None
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:299: AssertionError: assert None is not None
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:316: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:339: AssertionError: assert ('lock', 'slot-20261026T204500Z.lock') in [('read', None)]
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:356: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:373: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:387: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:420: Failed: the slot-path gate was refused: stage seal/2026-10-27: pending - a live owner holds the stage lock: no work (F4 table)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:493: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:503: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_codex_probes.py:114: AssertionError: assert ([] == ['SLOT-INTENT...OT-QUALIFIED']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_codex_probes.py:120: AssertionError: assert ([] == ['SLOT-INTENT']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_codex_probes.py:120: AssertionError: assert ([] == ['SLOT-INTENT']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_codex_probes.py:125: AssertionError: assert ([] == ['SLOT-INTENT...OT-QUALIFIED']
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_a_stage_lock_error_is_never_deferred
+PASSED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_historical_probe_copies_are_frozen
+PASSED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_historical_probe_copies_are_never_collected
+PASSED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_combined_damage_is_invalid_bundle_after_any_journal_row[missing]
+PASSED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_combined_damage_is_invalid_bundle_after_any_journal_row[unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_claim_names_its_capture_dir_and_the_report_is_bound
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_after_json_is_display_only[deleted]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_after_json_is_display_only[tampered]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_established_violation_is_external_first_with_subtype[receipt]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_established_violation_is_external_first_with_subtype[binding]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_established_violation_is_external_first_with_subtype[fence]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[s-1us]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[s]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[E-1us]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[E]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[E+1us]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_failed_detail_binds_the_claim_and_the_failure_report
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_slot_intent_at_or_after_e_refuses_with_no_row_and_no_capture
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_lost_race_moves_only_own_uncommitted_files_to_late
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_restart_after_a_worker_crash_never_appends_qualified
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_post_stop_new_slot_intent_is_lost_race_with_no_capture
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_post_stop_repeat_slot_intent_is_invalid_repeat_attempt
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_new_slot_intent_after_a_terminal_row_is_invalid_repeat_attempt
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[no-intent]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-op]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-actor]
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_post_start_capture_requires_the_prereg_ack
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_slot_lock_is_taken_before_the_journal_read
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_a_held_slot_lock_is_pending_with_no_row_and_no_work
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_slot_lock_access_denied_is_a_refusal_with_no_row
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_a_missing_slot_gate_fails_closed
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_a_held_stage_lock_never_blocks_the_slot_path_or_the_deadline_rows
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_an_opening_slot_after_the_opening_is_decided_is_refused_with_no_row
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_an_opening_slot_needs_the_created_audit_stage
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_d_minus_1us_qualifies_when_no_timeout_committed_first
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_at_d_and_d_plus_1us_does_not_seal[0]
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_at_d_and_d_plus_1us_does_not_seal[1]
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_well_before_d_seals
+34 failed, 5 passed in 22.16s

@@ -188,6 +188,7 @@ def test_identity_refusals_have_zero_callbacks(tmp_path, monkeypatch, case):
     else:
         s1_state(tmp_path, START)
         _damage(tmp_path, case)
+    before = raw_kinds(tmp_path)          # A3 Task 6: the fixture's opening slot has its SLOT-INTENT/QUALIFIED rows
     sp = Spies(monkeypatch)
     sch = c.aware(START) + timedelta(hours=7, minutes=15)
     with pytest.raises(t.Refusal, match=re.escape(IDENTITY[case])):
@@ -197,7 +198,7 @@ def test_identity_refusals_have_zero_callbacks(tmp_path, monkeypatch, case):
         else:
             commands(tmp_path, sp, sch)["checkpoint"]()
     sp.assert_zero()
-    assert "SLOT-INTENT" not in raw_kinds(tmp_path)
+    assert raw_kinds(tmp_path) == before                      # the refused command appended no row (no SLOT-INTENT)
 
 
 def test_bundle_mismatch_before_any_journal_row_is_a_refusal(tmp_path, monkeypatch):

@@ -396,12 +396,12 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
             rep = checkpoint(C + timedelta(minutes=47), C + timedelta(minutes=47, seconds=30))
             assert rep["consistent"] and rep["seal"]["written"], (d, rep)
         elif i == UNSEALED_DAY:                                # scheduler fired 3 h late (PC asleep)
-            rep = checkpoint(C + timedelta(minutes=45), C + timedelta(hours=3, minutes=45))
             # Task 12 (A5.2/A10.1) REPLACEMENT (old: the late invocation captured, consistent, unsealed): the clock
-            # is checked BEFORE any capture, so the late invocation is a preserved refused attempt with no capture
-            assert rep["late"] and rep["capture_ok"] is False and "clock" in rep["refused"], (d, rep)
-            assert not rep["seal"]["written"] and not (out / "seals" / f"{d}.json").exists()
-            reports[i] = rep
+            # is checked BEFORE any capture. A3 Task 6 (F0.5 step 6): a SLOT-INTENT at now >= E is refused with no
+            # row and no claim (the finalizer appends MISSED, Task 7) - no capture, no seal
+            with pytest.raises(SystemExit, match="now >= E"):
+                checkpoint(C + timedelta(minutes=45), C + timedelta(hours=3, minutes=45))
+            assert not (out / "captures" / d).exists() and not (out / "seals" / f"{d}.json").exists()
             continue
         else:
             rep = checkpoint(C + timedelta(minutes=45), C + timedelta(minutes=45, seconds=30))
@@ -481,9 +481,11 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
         if post_stop == "receipt":                     # Task 12 (A1): a fingerprint change (HEAD is provenance)
             receipt["fingerprint"]["closure"]["agents/mean_reversion_agent.py"] = "post-stop"
         pc = checkpoint(close_of(pd) + timedelta(minutes=45), close_of(pd) + timedelta(minutes=45, seconds=30))
-        assert pc.get("post_stop") is True and pc["seal"]["written"] is False, pc
-        assert pc["stop"]["status"] == "STOPPED" and pc["stop"]["stop_close"] == stop_close.isoformat(), pc["stop"]
-        assert pc["receipt_match"] is (post_stop != "receipt")              # reported only
+        # A3 Task 6 (F1, OQ-25; replaces A2.2's post-stop capture): after the TRIAL-STOP a new slot's SLOT-INTENT is
+        # LOST-RACE - no row, no capture, no receipt observation, no seal, no abort (a receipt change after the stop
+        # is never observed, so never reported)
+        assert pc["outcome"] == "LOST-RACE" and "STOPPED" in pc["reason"], pc
+        assert not (out / "captures" / pd).exists()
         assert not (out / "aborted.json").exists() and not (out / "seals" / f"{pd}.json").exists()
 
     # 11. SCORE-ACK and the one score

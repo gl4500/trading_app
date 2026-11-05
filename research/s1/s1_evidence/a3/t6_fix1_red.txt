@@ -1,0 +1,18 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:542: AssertionError: assert not True
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:587: assert (True is False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:608: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_finalize_pending_never_seals_a_slot_without_a_qualified_row
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_an_in_flight_earlier_slot_defers_the_seal_even_past_its_d
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_a_damaged_qualified_tree_on_another_pending_close_is_invalid
+3 failed, 31 deselected in 3.01s
+
+=== I1 RED (revised test: slot 45 TIMEOUT committed first, so slot 47's damaged tree is reached), against the I1 fix reverted only ===
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_slots.py:611: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_a_damaged_qualified_tree_on_another_pending_close_is_invalid
+1 failed, 33 deselected in 1.41s

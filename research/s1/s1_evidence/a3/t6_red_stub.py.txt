@@ -1,0 +1,107 @@
+"""S1 slot rows and slot evidence - Task 6 INTERFACE STUB (permissive; replaced in Step 4)."""
+from datetime import datetime, timezone
+from pathlib import Path
+
+import s1_common as c
+import s1_journal as j
+import s1_seal as z
+
+REASON_VIOLATION = "established-violation"
+SUBTYPES = ("receipt", "binding", "fence", "bridge", "seal-record")
+
+
+def slot_of(subject: str) -> datetime:
+    return datetime.strptime(subject[len("slot/"):], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+
+
+def day_for(slot, cal) -> dict:
+    for d in cal:
+        try:
+            if slot in z.schedule(d, cal):
+                return d
+        except ValueError:
+            continue
+    raise SystemExit(f"{slot.isoformat()} is not a registered seal slot")
+
+
+def slot_times(cal):
+    def f(subject):
+        s = slot_of(subject)
+        d = day_for(s, cal)
+        return z.eligible_until(s, d, cal), z.resolution_deadline(s, d, cal)
+    return f
+
+
+def names(out, slot, day_iso) -> dict:
+    n = slot.strftime("%Y%m%dT%H%M%SZ")
+    d = Path(out) / "captures" / day_iso
+    return {"claim": d / f"{n}.attempt.json", "report": d / f"{n}.report.json",
+            "resolution": d / f"{n}.resolution.json", "capture": d / n, "after": d / f"{n}.after.json"}
+
+
+def tree_manifest(out, paths) -> dict:
+    return {}
+
+
+def qualified_tree(out, slot, day_iso) -> dict:
+    return {}
+
+
+def failed_tree(out, slot, day_iso) -> dict:
+    return {}
+
+
+def required_seals(out, rows) -> dict:
+    return {}
+
+
+def committed_paths(out, rows, cal) -> set:
+    return set()
+
+
+def move_own_late(out, slot, day_iso, actor, committed) -> list:
+    return []
+
+
+def post_start_gate(trial):
+    return lambda rows, subject: None
+
+
+def opening_gate(trial, out):
+    return lambda rows, subject: None
+
+
+def slot_problems(out, rows, subject, cal) -> list:
+    return []
+
+
+class Worker:
+    def __init__(self, gv, slot, day, cal, *, slot_gate, mailbox=None, now=c.now_utc):
+        self.gv, self.slot, self.day, self.cal, self.now, self.mailbox = gv, slot, day, cal, now, mailbox
+        self.subject = j.slot_subject(slot)
+        self.op, self.actor = j.new_nonce(), j.new_nonce()
+        self.n = names(gv.out, slot, day["date"])
+        self.cap_dir = self.n["capture"]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def _append(self, req):
+        return None
+
+    def intent(self):
+        import s1_checkpoint as ck
+        ck._claim_slot(self.gv.out, self.cap_dir, self.slot, z.close_of(self.day["date"], self.cal), self.now())
+        return None
+
+    def complete(self, rep, success) -> dict:
+        import s1_checkpoint as ck
+        rec = ck._publish(self.cap_dir, self.day, self.cal, rep, self.now)
+        return {"kind": None, "outcome": rec.get("outcome"), "reason": "", "record": rec}
+
+    def violation(self, subtype, reason, rep, receipt_sha) -> None:
+        import s1_checkpoint as ck
+        ck._write_abort(self.gv.out, reason, rep, rep.get("snapshot"), receipt_sha)

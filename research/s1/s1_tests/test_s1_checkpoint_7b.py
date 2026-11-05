@@ -37,12 +37,24 @@ def opening_ready(tmp_path, ledger):
     ledger.set_portfolio("A", 10)
 
 
-def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30):
+def opening(tmp_path, ledger, minutes=45, receipt=S1_RECEIPT, scheduled=None, delay=30, intent_delay=None):
+    """A3 Task 6 (F0.5 step 6: a SLOT-INTENT at now >= E is refused with no row): `intent_delay` (seconds) is the
+    clock until the slot's claim exists, `delay` the clock afterwards (the capture, R and J)."""
     sch = scheduled or OPEN_CLOSE + timedelta(minutes=minutes)
     act = sch + timedelta(seconds=delay)
+    claim = tmp_path / "s1_out" / "captures" / OPEN_DAY / f"{sch:%Y%m%dT%H%M%SZ}.attempt.json"
+    now = (lambda: act) if intent_delay is None else \
+        (lambda: act if claim.exists() else sch + timedelta(seconds=intent_delay))
     with _Clock(act):
         return ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: receipt, lambda: dict(PROC),
-                                         tmp_path / "crash.log", now=lambda: act)
+                                         tmp_path / "crash.log", now=now)
+
+
+def slot_kinds(tmp_path, sch):
+    import s1_journal as j
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    return [x.kind for x in j.subject_rows(j.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3"),
+                                           j.slot_subject(sch))]
 
 
 def no_capture(tmp_path):
@@ -122,9 +134,10 @@ def test_opening_mode_refuses_a_second_run_once_the_opening_seal_exists(tmp_path
     opening(tmp_path, ledger, minutes=45)
     seal_p = tmp_path / "s1_out" / "seals" / f"{OPEN_DAY}.json"
     before = seal_p.read_bytes(), (tmp_path / "s1_out" / "opening_receipt.json").read_bytes()
-    with pytest.raises(SystemExit, match="opening seal exists"):
+    with pytest.raises(SystemExit, match="the opening is already decided"):     # A3 Task 6: the opening gate (E5.6)
         opening(tmp_path, ledger, minutes=47)
     assert not (tmp_path / "s1_out" / "captures" / OPEN_DAY / "20261023T204700Z").exists()
+    assert slot_kinds(tmp_path, OPEN_CLOSE + timedelta(minutes=47)) == []                # no row
     assert (seal_p.read_bytes(), (tmp_path / "s1_out" / "opening_receipt.json").read_bytes()) == before
 
 
@@ -136,9 +149,9 @@ def test_opening_inconsistent_capture_does_not_seal_rerun_refused_retry_slot_sea
     rep = opening(tmp_path, ledger, minutes=45)
     assert rep["consistent"] is False and rep["seal"]["written"] is False
     assert not (out / "seals").exists() and not (out / "opening_receipt.json").exists()
-    with pytest.raises(SystemExit, match="slot already captured"):
+    with pytest.raises(SystemExit, match="a restart never re-intents"):        # A3 Task 6 (F3): the journal pre-check
         opening(tmp_path, ledger, minutes=45)
-    assert len((out / "reruns.jsonl").read_text().splitlines()) == 1
+    assert slot_kinds(tmp_path, OPEN_CLOSE + timedelta(minutes=45)) == ["SLOT-INTENT", "SLOT-FAILED"]   # no new row
     ledger.set_portfolio("A", 10)
     rep = opening(tmp_path, ledger, minutes=47)
     assert rep["seal"]["written"] is True and (out / "seals" / f"{OPEN_DAY}.json").exists()
@@ -147,7 +160,7 @@ def test_opening_inconsistent_capture_does_not_seal_rerun_refused_retry_slot_sea
 def test_opening_late_capture_does_not_seal(tmp_path, ledger):
     """Task 7b (controller-added): the seal is the first consistent capture within SCHEDULE_SLACK of its slot."""
     opening_ready(tmp_path, ledger)
-    rep = opening(tmp_path, ledger, minutes=45, delay=11 * 60)
+    rep = opening(tmp_path, ledger, minutes=45, delay=11 * 60, intent_delay=30)   # A3 Task 6: INTENT before E
     assert rep["late"] is True and rep["seal"]["written"] is False
 
 
@@ -531,8 +544,10 @@ def test_receipt_stored_concurrently_after_the_early_check_is_reported(tmp_path,
         opening(tmp_path, ledger, minutes=45)
     rp = out / "captures" / OPEN_DAY / "20261023T204500Z.report.json"
     assert rp.exists()
-    rep = read(rp)
-    assert "(concurrent)" in rep["refused"] and rep["seal"]["written"] is False and rep["consistent"] is True
+    rep = read(rp)                                   # A3 Task 6 (OQ-11): the report is final before J ...
+    assert rep["seal"]["written"] is False and rep["consistent"] is True
+    after = read(out / "captures" / OPEN_DAY / "20261023T204500Z.after.json")   # ... the refusal is in after.json
+    assert "(concurrent)" in after["refused"]
     assert not (out / "seals" / f"{OPEN_DAY}.json").exists()
 
 
@@ -628,7 +643,7 @@ def test_cr_concurrent_receipt_conflict_reports_receipt_match_false(tmp_path, le
     monkeypatch.setattr(ck, "_store_opening_receipt", racing)
     with pytest.raises(ck._ReceiptConflict):
         opening(tmp_path, ledger, minutes=45)
-    rep = read(tmp_path / "s1_out" / "captures" / OPEN_DAY / "20261023T204500Z.report.json")
+    rep = read(tmp_path / "s1_out" / "captures" / OPEN_DAY / "20261023T204500Z.after.json")   # A3 Task 6 (OQ-11)
     assert "(concurrent)" in rep["refused"] and rep["receipt_match"] is False
 
 

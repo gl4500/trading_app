@@ -12,6 +12,7 @@ import s1_collect as k
 import s1_common as c
 import s1_run as r
 import s1_seal as z
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, _write_seal, s1_mailbox, s1_reack, s1_score_refused, s1_state,
                       s1_sync_portfolio)
 
@@ -39,6 +40,7 @@ def _live_stop(tmp_path):
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     lg = st_["ledger"]
     rows = list(st_["rows"])
     for i in range(100):
@@ -132,7 +134,10 @@ def test_a2_post_stop_checkpoints_follow_the_persisted_stop(tmp_path, monkeypatc
     monkeypatch.setattr(z, "stop_decision", lambda *a, **kw: {"status": "RUNNING", "stop_close": None,
                                                                  "missed": []})
     rep = _cp(tmp_path, lg, datetime(2026, 10, 28, 20, 0, tzinfo=UTC))
-    assert rep["post_stop"] is True and rep["seal"]["written"] is False
+    # A3 Task 6: the legacy `post_stop` report flag is gone (the post-STOP state is the journal's, F1; with no
+    # TRIAL-STOP row yet - Task 11 appends it - this slot still commits); the persisted stop is still followed and
+    # nothing seals after it
+    assert rep["journal"]["outcome"] == "APPEND" and rep["seal"]["written"] is False
     assert rep["stop"]["status"] == "STOPPED" and c.aware(rep["stop"]["stop_close"]) == STOP_CLOSE
     assert not (out / "seals" / "2026-10-28.json").exists()
 

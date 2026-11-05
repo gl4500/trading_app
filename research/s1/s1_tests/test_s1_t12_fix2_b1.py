@@ -12,7 +12,9 @@ import pytest
 
 import s1_checkpoint as ck
 import s1_common as c
+import s1_journal as j
 import s1_seal as z
+import s1_trial as t
 from conftest import S1_PROCESS, S1_RECEIPT
 from test_s1_t12_a5_a6 import MON_CLOSE, S45, S47, SEAL_P, Snap, _registered
 
@@ -89,6 +91,26 @@ def _day(st_):
     return next(d for d in st_["calendar"] if d["date"] == DAY)
 
 
+def _rows(tmp_path):
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    return j.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3")
+
+
+def kinds(tmp_path, slot):
+    """A3 Task 6: the slot's journal rows (the journal decides the slot, F3)."""
+    return [x.kind for x in j.subject_rows(_rows(tmp_path), j.slot_subject(slot))]
+
+
+def timeout_row(tmp_path, st_, slot, at):
+    """A3 Task 6 (E1.2): the finalizer's SLOT-TIMEOUT for `slot` at `at` (the INTENT's op, its own actor) through the
+    product context - the journal transaction arbitrates it against the worker's J; no lock is taken (Task 7 builds
+    the finalizer command around this append)."""
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    intent = j.first(j.subject_rows(_rows(tmp_path), j.slot_subject(slot)), "SLOT-INTENT")
+    return j.append(tr.trial_id, tr.genesis, j.Request("SLOT-TIMEOUT", j.slot_subject(slot), intent.op, j.new_nonce()),
+                    t.product_context(tr, st_["calendar"]), mailbox=tmp_path / "mailbox.sqlite3", clock=lambda: at)
+
+
 # ====================================================================== B1.1 single-sourced deadline
 def test_b1_resolution_timeout_is_thirty_minutes_and_single_sourced():
     """B1.1: RESOLUTION_TIMEOUT = 30 min, named and single-sourced in s1_seal; D(s) = E(s) + 30 min."""
@@ -159,9 +181,13 @@ def test_b1_a_claim_without_a_report_stays_pending_after_E_and_times_out_at_D(tm
     assert "pending" in str(rep21.get("deferred")), rep21
     assert not res_path(tmp_path, S45).exists()
     clock.t = S2200 + timedelta(seconds=30)                     # after D45
+    # A3 Task 6 (B1.3 -> F3, E1.4; fix round 1, review C2): no RESOLUTION-TIMEOUT file is written into the slot (the
+    # finalizer never touches a worker's files); an INTENT-only slot is not terminal, so the finalizer's SLOT-TIMEOUT
+    # row (Task 7's, here timeout_row) commits first at D45 - then slot 47 is selectable and is the seal
+    assert timeout_row(tmp_path, st_, S45, D45).outcome == "APPEND"
     rep22 = run(tmp_path, st_, S2200, clock)
-    res = read(res_path(tmp_path, S45))
-    assert res["outcome"] == "RESOLUTION-TIMEOUT" and c.aware(res["deadline_utc"]) == D45, res
+    assert not res_path(tmp_path, S45).exists() and kinds(tmp_path, S45) == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+    assert z.resolution_deadline(S45, _day(st_), st_["calendar"]) == D45 < clock.t
     assert rep22["seal"]["written"] is True and rep22["seal"].get("from_slot") == S47.isoformat()
     assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()
 
@@ -192,12 +218,17 @@ def test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_tim
         assert rep45["seal"]["written"] is True
         assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S45.isoformat()
         return
-    assert read(res_path(tmp_path, S45))["outcome"] == "RESOLUTION-TIMEOUT"
+    # A3 Task 6 (F0.5 step 6, F3; replaces B1.3's late-worker RESOLUTION-TIMEOUT and .late.json): R >= D, so the
+    # SLOT-QUALIFIED is refused with no row (the finalizer later appends TIMEOUT, Task 7); the worker's own P stays
+    # (its evidence is preserved in place, never selectable) and it writes no seal
+    assert rep45["journal"]["kind"] == "SLOT-QUALIFIED" and rep45["journal"]["outcome"] == "REFUSE"
+    assert "late R" in rep45["journal"]["reason"] and kinds(tmp_path, S45) == ["SLOT-INTENT"]
     assert rep45["seal"]["written"] is False and not SEAL_P(tmp_path).exists()
-    late = res_path(tmp_path, S45).with_name(f"{S45.strftime('%Y%m%dT%H%M%SZ')}.late.json")
-    assert late.exists() and read(late)["evidence"]["candidate"], "late evidence preserved separately"
+    assert read(res_path(tmp_path, S45))["evidence"]["candidate"], "the worker's evidence is preserved"
+    assert not res_path(tmp_path, S45).with_name(f"{S45.strftime('%Y%m%dT%H%M%SZ')}.late.json").exists()
     clock.t = S2200 + timedelta(seconds=30)
-    rep22 = run(tmp_path, st_, S2200, clock)
+    assert timeout_row(tmp_path, st_, S45, clock.t).outcome == "APPEND"      # fix round 1 (C2): the finalizer's row
+    rep22 = run(tmp_path, st_, S2200, clock)                                # first (Task 7), then slot 47 seals
     assert rep22["seal"]["written"] is True
     assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()
 
@@ -207,7 +238,10 @@ def test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_tim
 def test_b1_expiration_racing_a_late_completion_cannot_change_the_winner(tmp_path, monkeypatch, order):
     """B1.3: completion and expiration are ONE exclusive, irreversible transition per slot. The worker (its clock
     just before D) and a finalizer (at D) race for slot 45: exactly one resolution exists, the seal follows it, and
-    neither the loser nor any later replay changes it."""
+    neither the loser nor any later replay changes it.
+    A3 Task 6 (B1.3 -> F3, Erratum 1 E1.2/E1.3): that one transition is the slot's FIRST TERMINAL JOURNAL ROW - the
+    worker's SLOT-QUALIFIED (R just before D) or the finalizer's SLOT-TIMEOUT (at D, appended with no lock) - decided
+    inside the journal transaction; the loser is LOST-RACE (no row, no INVALID); the seal follows the winner."""
     st_, clock = _setup(tmp_path, monkeypatch, S45 + timedelta(minutes=9, seconds=50))
     Snap(monkeypatch, dur=timedelta(seconds=8))
     gate = Gate()
@@ -218,38 +252,43 @@ def test_b1_expiration_racing_a_late_completion_cannot_change_the_winner(tmp_pat
     assert run(tmp_path, st_, S47, clock)["seal"]["written"] is False
     out, day, cal = tmp_path / "s1_out", _day(st_), st_["calendar"]
     wclock.t, clock.t = D45 - timedelta(microseconds=1), D45
+    fin = {}
     if order == "barrier":
         bar = threading.Barrier(2, timeout=WAIT)
-        real = c.publish_exclusive
+        real = j.append
 
-        def raced(path, data):
-            if Path(path).name.endswith(".resolution.json") and S45.strftime("%Y%m%dT%H%M%SZ") in Path(path).name:
+        def raced(trial_id, gen, req, ctx_fn, **kw):
+            if req.kind in ("SLOT-QUALIFIED", "SLOT-TIMEOUT") and req.subject == j.slot_subject(S45):
                 bar.wait()
-            return real(path, data)
-        monkeypatch.setattr(c, "publish_exclusive", raced)
+            return real(trial_id, gen, req, ctx_fn, **kw)
+        monkeypatch.setattr(j, "append", raced)
         gate.go.set()
-        ck.finalize_close(out, day, cal, D45)
+        fin["res"] = timeout_row(tmp_path, st_, S45, D45)
         th.join(WAIT)
     elif order == "publication_first":
         gate.go.set()
         th.join(WAIT)
-        ck.finalize_close(out, day, cal, D45)
+        fin["res"] = timeout_row(tmp_path, st_, S45, D45)
     else:
-        ck.finalize_close(out, day, cal, D45)
+        fin["res"] = timeout_row(tmp_path, st_, S45, D45)
         gate.go.set()
         th.join(WAIT)
     assert "err" not in box, box
-    res = read(res_path(tmp_path, S45))
-    winner = S45 if res["outcome"] == "SUCCESS" else S47
+    terminal = [k_ for k_ in kinds(tmp_path, S45) if k_ != "SLOT-INTENT"]
+    assert len(terminal) == 1, terminal                                    # exactly one terminal transition
+    winner = S45 if terminal == ["SLOT-QUALIFIED"] else S47
+    loser = box["rep"]["journal"]["outcome"] if winner == S47 else fin["res"].outcome
+    assert loser == "LOST-RACE" and all(x.kind != "TRIAL-INVALID" for x in _rows(tmp_path))
     if order == "publication_first":
         assert winner == S45
     if order == "expiration_first":
-        assert winner == S47 and res["outcome"] == "RESOLUTION-TIMEOUT"
-    ck.finalize_close(out, day, cal, D45 + timedelta(minutes=1))
+        assert winner == S47 and terminal == ["SLOT-TIMEOUT"]
+    rows = _rows(tmp_path)
+    ck.finalize_close(out, day, cal, D45 + timedelta(minutes=1), rows=rows)
     seal_bytes = SEAL_P(tmp_path).read_bytes()
     assert json.loads(seal_bytes)["capture"]["scheduled"] == winner.isoformat()
-    ck.finalize_close(out, day, cal, D45 + timedelta(hours=1))          # replay: nothing changes
-    assert SEAL_P(tmp_path).read_bytes() == seal_bytes and read(res_path(tmp_path, S45)) == res
+    ck.finalize_close(out, day, cal, D45 + timedelta(hours=1), rows=_rows(tmp_path))    # replay: nothing changes
+    assert SEAL_P(tmp_path).read_bytes() == seal_bytes and [x.line for x in _rows(tmp_path)] == [x.line for x in rows]
 
 
 # ====================================================================== killed vs slow
@@ -273,15 +312,24 @@ def test_b1_killed_and_merely_slow_workers_get_the_same_timeout_disposition(tmp_
     clock.t = S47 + timedelta(seconds=30)
     run(tmp_path, st_, S47, clock)
     clock.t = S2200 + timedelta(seconds=30)
+    # fix round 1 (review C2): the finalizer's SLOT-TIMEOUT for slot 45 (Task 7's row, here timeout_row) commits at
+    # D45 with no lock, while the slow worker still holds the slot (E1.2); then slot 47 is selectable
+    assert timeout_row(tmp_path, st_, S45, D45).outcome == "APPEND"
     run(tmp_path, st_, S2200, clock)
     if th is not None:
         gate.go.set()
         th.join(WAIT)
+        # A3 Task 6 (E1.3): after the committed TIMEOUT the slow worker's QUALIFIED is LOST-RACE at 4c, whatever its
+        # R: no row, no INVALID, no seal; its own files move to late/ (no .late.json record)
         assert "err" not in box and box["rep"]["seal"]["written"] is False, box
-        assert box["rep"]["resolution"]["outcome"] == "RESOLUTION-TIMEOUT"
-        assert res_path(tmp_path, S45).with_name(f"{S45.strftime('%Y%m%dT%H%M%SZ')}.late.json").exists()
-    res = read(res_path(tmp_path, S45))
-    assert res["outcome"] == "RESOLUTION-TIMEOUT" and c.aware(res["deadline_utc"]) == D45
+        assert box["rep"]["journal"]["outcome"] == "LOST-RACE", box["rep"]["journal"]
+        assert not res_path(tmp_path, S45).with_name(f"{S45.strftime('%Y%m%dT%H%M%SZ')}.late.json").exists()
+    # A3 Task 6 (B1.3 -> F3, E1.4): both dispositions are the same - slot 45 ends SLOT-TIMEOUT (the finalizer's row);
+    # no RESOLUTION-TIMEOUT file is written into the slot
+    assert kinds(tmp_path, S45) == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+    assert z.resolution_deadline(S45, _day(st_), st_["calendar"]) == D45
+    if kind == "killed":
+        assert not res_path(tmp_path, S45).exists()
     assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()
 
 
@@ -292,9 +340,9 @@ def test_b1_D_never_extends_capture_eligibility(tmp_path, monkeypatch, at):
     evidence only."""
     st_, clock = _setup(tmp_path, monkeypatch, at)
     spy = Snap(monkeypatch)
-    rep = run(tmp_path, st_, S45, clock)
-    assert spy.calls == 0 and rep["capture_ok"] is False and "clock" in str(rep.get("refused"))
-    assert read(res_path(tmp_path, S45))["outcome"] == "FAILURE"
+    with pytest.raises(SystemExit, match="now >= E"):          # A3 Task 6 (F0.5 step 6): refused with no row
+        run(tmp_path, st_, S45, clock)
+    assert spy.calls == 0 and not res_path(tmp_path, S45).exists() and kinds(tmp_path, S45) == []
 
 
 def test_b1_the_0800_slot_takes_no_capture_after_W(tmp_path, monkeypatch):
@@ -305,8 +353,9 @@ def test_b1_the_0800_slot_takes_no_capture_after_W(tmp_path, monkeypatch):
     monkeypatch.setattr(c, "now_utc", clock)
     spy = Snap(monkeypatch)
     assert z.resolution_deadline(s8, _day(st_), st_["calendar"]) > s8
-    rep = run(tmp_path, st_, s8, clock)
-    assert spy.calls == 0 and rep["seal"]["written"] is False
+    with pytest.raises(SystemExit, match="now >= E"):          # A3 Task 6 (F0.5 step 6): refused with no row
+        run(tmp_path, st_, s8, clock)
+    assert spy.calls == 0 and kinds(tmp_path, s8) == [] and not SEAL_P(tmp_path).exists()
 
 
 # ====================================================================== concurrent finalizers + replay
@@ -360,22 +409,16 @@ def test_b1_a_pending_resolution_cannot_cause_an_early_terminal_stop_followed_by
     s8 = z.schedule(last, cal)[-1]
     clock = Clock(s8)
     monkeypatch.setattr(c, "now_utc", clock)
-    Snap(monkeypatch, dur=timedelta(0))
-    gate = Gate()
-    th, box = bg(lambda: run(tmp_path, st_, s8, clock, receipt_fn=gate))
-    assert gate.inside.wait(WAIT)
-    clock.t = s8 + timedelta(minutes=10)
+    spy = Snap(monkeypatch, dur=timedelta(0))
+    # A3 Task 6 (F0.5 step 6 with A5.3's E = W = s): the 08:00 slot's SLOT-INTENT at s = E is refused with no row
+    # (and A5.2 refuses any capture before s), so the slot can never be in flight: no pending attempt exists that a
+    # later publication could "rescue" - the stop is decided once
+    assert z.eligible_until(s8, last, cal) == s8
+    with pytest.raises(SystemExit, match="now >= E"):
+        run(tmp_path, st_, s8, clock)
+    assert spy.calls == 0 and kinds(tmp_path, s8) == []
     out = tmp_path / "s1_out"
-    st = z.current_stop(out, start, cal, clock.t, "test")
-    assert st["status"] == "RUNNING" and not (out / "stop.json").exists(), st
-    clock.t = s8 + timedelta(minutes=20)
-    gate.go.set()
-    th.join(WAIT)
-    assert "err" not in box, box
-    assert box["rep"]["seal"]["written"] is True
-    # (corrected after RED, before GREEN: the checkpoint decides the stop at its CAPTURE instant, W itself, where the
-    # trial is still RUNNING; the frozen stop is decided by the next command after W - here a stop decision at 08:25)
-    assert not (out / "stop.json").exists()
-    z.current_stop(out, start, cal, s8 + timedelta(minutes=25), "test")
-    stop = read(out / "stop.json")
-    assert stop["status"] == "TIMEOUT" and c.aware(stop["stop_close"]) == z.close_of(last["date"], cal), stop
+    st1 = z.current_stop(out, start, cal, s8 + timedelta(minutes=10), "test")
+    st2 = z.current_stop(out, start, cal, s8 + timedelta(minutes=25), "test")
+    assert (st1["status"], st1["stop_close"]) == (st2["status"], st2["stop_close"]), (st1, st2)
+    assert st1["status"] != "RUNNING" and read(out / "stop.json")["status"] == st1["status"]

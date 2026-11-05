@@ -10,10 +10,14 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
+import s1_checkpoint as ck
 import s1_common as c
+import s1_journal as j
 import s1_run as r
+import s1_seal as z
+import s1_slot as sl  # noqa: F401 (the slot worker under test, Task 6)
 import s1_trial as t
-from conftest import S1_RECEIPT, Spies, _Clock, s1_jappend, s1_state  # noqa: F401 (s1_jappend: Task 7 appends, P41)
+from conftest import S1_PROCESS, S1_RECEIPT, Spies, _Clock, s1_ack, s1_jappend, s1_state  # noqa: F401 (s1_jappend: Task 7 appends, P41)
 
 START = "2026-10-26T13:30:00+00:00"
 HIST = Path(__file__).resolve().parent.parent / "s1_evidence" / "a3" / "codex_probes_historical"
@@ -75,3 +79,47 @@ def test_combined_damage_is_invalid_bundle_after_any_journal_row(tmp_path, monke
     with _Clock(at + timedelta(minutes=1)), pytest.raises(t.Refusal, match=r"trial INVALID \(reason/bundle\)"):
         t.gate(tmp_path, "Codex restored probe")
     sp.assert_zero()
+
+
+def _publication(tmp_path, monkeypatch, offset_us):
+    """Old: test_codex_publication.exercise (frozen copy). New: the clock is moved to D + offset just before the
+    report - the last file of P - is published, so R = D + offset."""
+    st_ = s1_state(tmp_path, START)
+    with _Clock(st_["prereg_at"]):
+        r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_ack(tmp_path, "prereg-ack", "S1-PREREG-ACK", st_["prereg_at"] + timedelta(minutes=1))
+    day = next(d for d in st_["calendar"] if d["date"] == "2026-10-26")
+    sch = z.close_of(day["date"], st_["calendar"]) + timedelta(minutes=45)
+    dl = z.resolution_deadline(sch, day, st_["calendar"])
+    clock = [sch + timedelta(seconds=30)]
+    target = f"{sch:%Y%m%dT%H%M%SZ}.report.json"
+    real = c.publish_exclusive
+
+    def delayed(path, data):
+        if offset_us is not None and Path(path).name == target:
+            clock[0] = dl + timedelta(microseconds=offset_us)
+        return real(path, data)
+    monkeypatch.setattr(c, "publish_exclusive", delayed)
+    with _Clock(clock[0]):
+        rep = ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, lambda reference=None: S1_RECEIPT,
+                                lambda: dict(S1_PROCESS), tmp_path / "crash.log", now=lambda: clock[0])
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    got = [x.kind for x in j.subject_rows(j.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3"),
+                                          j.slot_subject(sch))]
+    return rep, got, (tmp_path / "s1_out" / "seals" / f"{day['date']}.json").exists()
+
+
+def test_publication_d_minus_1us_qualifies_when_no_timeout_committed_first(tmp_path, monkeypatch):
+    rep, got, sealed = _publication(tmp_path, monkeypatch, -1)
+    assert got == ["SLOT-INTENT", "SLOT-QUALIFIED"] and sealed
+
+
+@pytest.mark.parametrize("offset_us", [0, 1])
+def test_publication_at_d_and_d_plus_1us_does_not_seal(tmp_path, monkeypatch, offset_us):
+    rep, got, sealed = _publication(tmp_path, monkeypatch, offset_us)
+    assert got == ["SLOT-INTENT"] and not sealed and rep["journal"]["outcome"] == "REFUSE"
+
+
+def test_publication_well_before_d_seals(tmp_path, monkeypatch):
+    rep, got, sealed = _publication(tmp_path, monkeypatch, None)
+    assert got == ["SLOT-INTENT", "SLOT-QUALIFIED"] and sealed

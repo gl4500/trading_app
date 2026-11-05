@@ -23,14 +23,18 @@ def make_prereg(root, receipt=REC):
     s1_register(root, START.isoformat(), calendar=CAL, receipt=receipt)
 
 
-def run(root, ledger, minutes=45, receipt=REC, pid=1, log=None, proc=None, delay=30):
+def run(root, ledger, minutes=45, receipt=REC, pid=1, log=None, proc=None, delay=30, intent_delay=None):
     sch = datetime(2026, 10, 15, 20, 0, tzinfo=UTC).timestamp() + minutes * 60
     # (fix round 2 migration, Addendum 2 B2: an observation carries the sanitized launcher binding; the registered
     # reference is the opening's, conftest.S1_BINDING)
     p = {"pid": pid, "process_start": "2026-10-12T23:17:25", "binding": dict(S1_BINDING)} if proc is None else proc
-    return k.run_checkpoint(root, ledger.path, datetime.fromtimestamp(sch, UTC), lambda: receipt,
-                            lambda: p, log or root / "crash.log",
-                            now=lambda: datetime.fromtimestamp(sch + delay, UTC))
+    # A3 Task 6 (F0.5 step 6: a SLOT-INTENT at now >= E is refused with no row): `intent_delay` is the clock until the
+    # slot's claim exists (the INTENT and its claim), `delay` the clock afterwards (the capture, R and J)
+    when = datetime.fromtimestamp(sch, UTC)
+    claim = root / "s1_out" / "captures" / "2026-10-15" / f"{when:%Y%m%dT%H%M%SZ}.attempt.json"
+    now = (lambda: datetime.fromtimestamp(sch + delay, UTC)) if intent_delay is None else \
+        (lambda: datetime.fromtimestamp(sch + (delay if claim.exists() else intent_delay), UTC))
+    return k.run_checkpoint(root, ledger.path, when, lambda: receipt, lambda: p, log or root / "crash.log", now=now)
 
 
 def test_counts_only_report_and_seal(tmp_path, ledger):
@@ -46,7 +50,9 @@ def test_counts_only_report_and_seal(tmp_path, ledger):
                         # Task 12 interface (A5.2 timing/eligibility, slot-order candidate, A1/A9.3 gaps):
                         "capture_start", "capture_end", "eligible_until", "candidate", "observation_gaps",
                         # fix round 2 (Addendum 2 B2 binding disposition, B1 slot resolution):
-                        "process_binding", "resolution"}
+                        "process_binding", "resolution",
+                        # A3 Task 6 (OQ-11): the journal outcome of the slot's J (returned, display only)
+                        "journal"}
     assert (tmp_path / "s1_out" / "seals" / "2026-10-15.json").exists()
     assert "price" not in json.dumps(rep) and "pnl" not in json.dumps(rep).lower()
 
@@ -120,8 +126,8 @@ def test_abort_survives_receipt_revert(tmp_path, ledger):
     assert rep["stop"]["status"] == "ABORTED-INVALID" and ABORT(tmp_path).exists()
     first = json.loads(ABORT(tmp_path).read_text())
     assert {"reason", "close", "scheduled", "actual", "projection_sha256", "receipt_sha256"} <= set(first)
-    rep = run(tmp_path, ledger, minutes=49)                                   # receipt back to the registered one
-    assert rep["receipt_match"] and rep["stop"]["status"] == "ABORTED-INVALID"
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\)"):   # A3 Task 6 (F1)
+        run(tmp_path, ledger, minutes=49)                                     # receipt back to the registered one
     assert json.loads(ABORT(tmp_path).read_text()) == first                  # exclusive: first abort is kept
     assert not SEAL(tmp_path).exists()                                        # nothing seals after an abort
 
@@ -135,13 +141,15 @@ def test_abort_after_fence_violation_survives_clean_and_failed_runs(tmp_path, le
     ledger._x("DELETE FROM portfolios", ())
     rep = run(tmp_path, ledger, minutes=47)
     assert rep["fence_violations"] and rep["stop"]["status"] == "ABORTED-INVALID"
-    rep = run(tmp_path, ledger, minutes=49)
-    assert rep["stop"]["status"] == "ABORTED-INVALID"
+    first = ABORT(tmp_path).read_bytes()
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\)"):   # A3 Task 6 (F1)
+        run(tmp_path, ledger, minutes=49)
     bad = tmp_path / "nodb.sqlite3"
-    rep = k.run_checkpoint(tmp_path, bad, datetime(2026, 10, 15, 20, 51, tzinfo=UTC), lambda: REC,
-                           lambda: {"pid": 1}, tmp_path / "crash.log",
-                           now=lambda: datetime(2026, 10, 15, 20, 51, 30, tzinfo=UTC))
-    assert rep["capture_ok"] is False and rep["stop"]["status"] == "ABORTED-INVALID"
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\)"):
+        k.run_checkpoint(tmp_path, bad, datetime(2026, 10, 15, 20, 51, tzinfo=UTC), lambda: REC,
+                         lambda: {"pid": 1}, tmp_path / "crash.log",
+                         now=lambda: datetime(2026, 10, 15, 20, 51, 30, tzinfo=UTC))
+    assert ABORT(tmp_path).read_bytes() == first and not bad.exists()                  # no work after INVALID
 
 
 def test_backdated_row_later_deleted_stays_aborted(tmp_path, ledger):
@@ -153,8 +161,10 @@ def test_backdated_row_later_deleted_stays_aborted(tmp_path, ledger):
     rep = run(tmp_path, ledger, minutes=47)
     assert any("backdated" in v for v in rep["fence_violations"]) and rep["stop"]["status"] == "ABORTED-INVALID"
     ledger._x("DELETE FROM trades WHERE id=?", (rid,)); ledger.drop_portfolio("B")
-    rep = run(tmp_path, ledger, minutes=49)
-    assert rep["fence_violations"] == [] and rep["stop"]["status"] == "ABORTED-INVALID"
+    first = ABORT(tmp_path).read_bytes()
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\)"):   # A3 Task 6 (F1)
+        run(tmp_path, ledger, minutes=49)
+    assert ABORT(tmp_path).read_bytes() == first
 
 
 @pytest.mark.parametrize("bad", [{}, {"error": "OSError"}])
@@ -196,15 +206,18 @@ def test_real_restart_on_second_run_observed_and_unlogged_pid_change_is_gap(tmp_
 def test_receipt_mismatch_capture_does_not_seal_and_seal_carries_receipt(tmp_path, ledger):
     """Retrospective (Task 5 review fix round 1), C3/M1/M3."""
     _good(tmp_path, ledger)
-    rep = run(tmp_path, ledger, minutes=45, receipt=s1_receipt_with(REC, files={"a.py": "x"}))   # Task 12 (A1)
-    assert not SEAL(tmp_path).exists() and rep["seal"] == {"written": False, "sha256": None}
-    ABORT(tmp_path).unlink()                                                  # fresh trial for the positive half
-    rep = run(tmp_path, ledger, minutes=47)
+    # A3 Task 6 (F1: INVALID is irreversible, deleting aborted.json never resumes): the positive half runs FIRST,
+    # then the mismatching slot of the same close must not seal (no new or changed seal)
+    rep = run(tmp_path, ledger, minutes=45)
     seal = json.loads(SEAL(tmp_path).read_text())
     import s1_common
     assert seal["receipt_match"] is True and seal["receipt_sha256"] == s1_common.receipt_sha256(REC)   # A1
     assert rep["seal"]["written"] is True and rep["seal"]["sha256"] == s1_common.sha256_file(SEAL(tmp_path))
     assert rep["snapshot"] and len(rep["snapshot"]) == 64
+    before = SEAL(tmp_path).read_bytes()
+    rep = run(tmp_path, ledger, minutes=47, receipt=s1_receipt_with(REC, files={"a.py": "x"}))   # Task 12 (A1)
+    assert SEAL(tmp_path).read_bytes() == before and rep["seal"] == {"written": False, "sha256": None}
+    assert ABORT(tmp_path).exists() and "candidate" not in rep
 
 
 def test_writeoff_audit_in_report_has_quantities_only(tmp_path, ledger):
@@ -239,10 +252,14 @@ def test_rerun_of_captured_slot_is_recorded_and_refused(tmp_path, ledger):
     _good(tmp_path, ledger)
     run(tmp_path, ledger, minutes=45)
     before = SEAL(tmp_path).read_bytes()
-    with pytest.raises(SystemExit, match="slot already captured"):
+    with pytest.raises(SystemExit, match="a restart never re-intents"):        # A3 Task 6 (F3): the journal pre-check
         run(tmp_path, ledger, minutes=45)
-    lines = (tmp_path / "s1_out" / "reruns.jsonl").read_text().splitlines()
-    assert len(lines) == 1 and "scheduled" in json.loads(lines[0])
+    import s1_journal as j
+    import s1_trial as t
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    got = [x.kind for x in j.subject_rows(j.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3"),
+                                          "slot/20261015T204500Z")]
+    assert got == ["SLOT-INTENT", "SLOT-QUALIFIED"]                           # the rerun added no row
     assert SEAL(tmp_path).read_bytes() == before
 
 
@@ -250,7 +267,7 @@ def test_late_capture_flagged(tmp_path, ledger):
     """Retrospective (Task 5 review fix round 1), m2."""
     _good(tmp_path, ledger)
     assert run(tmp_path, ledger, minutes=45, delay=30)["late"] is False
-    rep = run(tmp_path, ledger, minutes=47, delay=11 * 60)
+    rep = run(tmp_path, ledger, minutes=47, delay=11 * 60, intent_delay=30)   # A3 Task 6: INTENT before E
     assert rep["late"] is True
 
 
@@ -321,7 +338,7 @@ def test_cr_first_abort_wins_and_a_second_returns_it(tmp_path):
 def test_cr_capture_exactly_at_the_slack_is_on_time_and_seals(tmp_path, ledger):
     """Retrospective (Task 9 CR survivor s1_checkpoint:88): actual == scheduled + SCHEDULE_SLACK is not late."""
     _good(tmp_path, ledger)
-    rep = run(tmp_path, ledger, minutes=45, delay=600)
+    rep = run(tmp_path, ledger, minutes=45, delay=600, intent_delay=599)      # A3 Task 6: INTENT before E (step 6)
     assert rep["late"] is False and rep["seal"]["written"] is True
 
 
@@ -426,6 +443,9 @@ def test_fr1_main_and_trial_state_compare_modes_and_status_by_value(tmp_path, mo
         k.main([])
         assert json.loads(capsys.readouterr().out)["mode"] == mode
     (tmp_path / "s1_out").mkdir()
+    # A3 Task 6 fix round 1 (C1): finalize_pending reads the open trial's journal (fail closed); this unit test has no
+    # trial, and its subject is the RUNNING comparison: an empty journal is supplied
+    monkeypatch.setattr(s1_common, "_open_trial_rows", lambda mailbox=None: [])
     monkeypatch.setattr(k.z, "stop_decision", lambda *a, **kw: {"status": "".join(list("RUNNING")),
                                                                 "stop_close": None})
     with pytest.raises(SystemExit, match="RUNNING"):

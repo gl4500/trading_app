@@ -51,7 +51,7 @@ _CACHE = {}
 # runtime dependencies: never listed.
 BUNDLE_CODE = ("e1_fetch.py", "e1_sim.py", "s1_books.py", "s1_checkpoint.py", "s1_collect.py", "s1_common.py",
                "s1_gates.py", "s1_journal.py", "s1_locks.py", "s1_receipt.py", "s1_run.py", "s1_seal.py",
-               "s1_snapshot.py", "s1_stage.py", "s1_trial.py")
+               "s1_slot.py", "s1_snapshot.py", "s1_stage.py", "s1_trial.py")
 DOC_PINS = {"docs/s1_design_v5.md": "33c3284072dc51392476f7cae596eab05f1fcbaccd622abbe05c6e6a198cbb9b",
             "docs/s1_spec.md": "4b882f52a448dbf2d30583828c5085a636009f6c8db7b18307bc6e9991529c98",
             "docs/s1_design_v5_addendum1.md": "6cb89e36840975b8d949ec85debf9d2cedbe45bbeb9dcb374d91343dddc5e590",
@@ -549,23 +549,31 @@ def _registry_record(p: Path):
     return rec if isinstance(rec, dict) and isinstance(rec.get("artifacts"), dict) else None
 
 
-def _report_seals(out: Path) -> list:
-    """(report path, seal path, sha256) of every capture report that records a written seal - or (fix round 5, R-3)
-    of every capture report or slot claim that records an existing opening seal it found (the "after_seal" record of
-    an opening slot that ran after the seal)."""
-    got = []
+def _open_trial_rows(mailbox=None) -> list:
+    """The open trial's verified journal rows (mode=ro). Fix round 1 (review M4): fails closed - no single open trial
+    or an unreadable / broken journal is a SystemExit refusal, never "no rows" (which would read as "no required
+    seal")."""
+    import s1_journal
+    import s1_trial                                      # (late imports: both import this module)
+    try:
+        tr = s1_trial.open_trial(mailbox)
+        return s1_journal.read_trial(tr.trial_id, tr.genesis, mailbox)
+    except s1_journal.JournalError as e:
+        raise SystemExit(f"journal unreadable ({type(e).__name__}: {e}): refused (fail closed)") from None
+
+
+def _report_seals(out: Path, rows=None, cal=None, *, mailbox=None) -> list:
+    """A3 Task 6 (OQ-11 ruling, E5.2; Erratum 1 E2.6 r3): (relpath, seal path, sha256) of every REQUIRED post-START
+    seal - exactly the CREATED `seal/<close>` stages of the trial's journal, each with its committed member hash
+    (s1_slot.required_seals). It never opens a capture report, a slot claim or any <slot>.after.json (display only).
+    `rows`: the caller's verified journal rows (the gate's gv.rows); None = the open trial's rows read here (mode=ro;
+    fails closed, review M4). `cal` (the plan calendar) is accepted for the plan's signature; membership needs no
+    calendar."""
+    import s1_slot                                       # (late import: s1_slot imports this module)
     out = Path(out)
-    for p in sorted(out.glob("captures/*/*.report.json")) + sorted(out.glob("captures/*/*.attempt.json")):
-        try:
-            rep = load_json(p)
-            seal, after = rep.get("seal") or {}, rep.get("after_seal") or {}
-            if seal.get("written") is True or after.get("sha256"):
-                day = datetime.fromisoformat(rep["close"].replace("Z", "+00:00")).astimezone(NY).date().isoformat()
-                got.append((p, Path(out) / "seals" / f"{day}.json",
-                            seal.get("sha256") if seal.get("written") is True else after.get("sha256")))
-        except (OSError, ValueError, KeyError, TypeError, AttributeError):
-            continue
-    return got
+    if rows is None:
+        rows = _open_trial_rows(mailbox)
+    return [(rel, out / rel, h) for rel, h in sorted(s1_slot.required_seals(out, rows).items())]
 
 
 def _opening_seal_rel(out: Path):
@@ -805,8 +813,9 @@ def registration_witnesses(out: Path, oday, external: bool) -> list:
     got = []
     if rel and (out / rel).is_file() and _valid_opening_seal(out, rel):          # fix round 4 (N-3): a valid one
         got.append("opening seal")
-    if oday and any(sp.stem == oday for _, sp, _ in _report_seals(out)):
-        got.append("opening capture report")
+    # A3 Task 6 (OQ-11, E5.2): a capture report is final before J and records no seal, so the former "opening capture
+    # report" witness (a report recording a written / after-seal opening seal) no longer exists; the opening seal,
+    # the opening resolution and the opening capture remain the opening-tied witnesses.
     if oday and _day_success(out, oday):
         got.append("opening resolution")
     if oday and (out / "captures" / oday).is_dir() and any((out / "captures" / oday).iterdir()):
@@ -974,9 +983,15 @@ def registration_problems(out: Path, mailbox=None, now=None) -> list:
         probs += _bound_problems(out, "attest_start.json", ATTEST_BINDS, seal_rel)
     if reached["prereg"] and (out / "prereg.json").is_file():
         probs += _bound_problems(out, "prereg.json", PREREG_BINDS, seal_rel)
-    for rp, sp, h in _report_seals(out):
+    try:                                                     # A3 Task 6: the CREATED seal stages (E2.6)
+        required = _report_seals(out, mailbox=mailbox)
+    except SystemExit:                                       # fix round 1 (M4): fail closed - an unreadable journal
+        if not probs:                                        # refuses, unless file problems already decide (B3.4: an
+            raise                                            # outage never downgrades an established violation)
+        required = []
+    for rel, sp, h in required:
         if not sp.is_file() or sha256_file(sp) != h:
-            probs.append(f"seals/{sp.name} missing or changed (recorded by capture report {rp.parent.name}/{rp.name})")
+            probs.append(f"{rel} missing or changed (a CREATED seal stage's committed member, E2.6)")
     probs += _ack_bound_problems(out, st, seal_rel)
     if reached["stop"]:
         import s1_seal                                       # (late import: s1_seal imports this module)

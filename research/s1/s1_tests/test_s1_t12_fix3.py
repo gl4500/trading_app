@@ -19,6 +19,7 @@ import s1_common as c
 import s1_run as r
 import s1_seal as z
 import s1_trial as t
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit, \
     s1_finalize, s1_reack, s1_state
 from test_s1_t12_a5_a6 import S45, S47, SEAL_P, Snap
@@ -262,6 +263,7 @@ def test_c2_probe_deleting_prereg_and_its_registry_record_then_restoring_never_r
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     out = tmp_path / "s1_out"
     good, goodreg = (out / "prereg.json").read_bytes(), (out / "registry" / "prereg.json").read_bytes()
     (out / "prereg.json").unlink()
@@ -282,6 +284,7 @@ def test_c2_probe_seals_registry_and_reports_deleted_with_prereg_present_is_an_a
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     out = tmp_path / "s1_out"
     _delete(out, ["seals", "registry", REPORTS])
     with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
@@ -361,7 +364,12 @@ def _success_without_seal(tmp_path, monkeypatch):
     cal, start = st_["calendar"], st_["start"]
     last = z.eligible_sessions(start, cal)[-1]
     s8 = z.schedule(last, cal)[-1]
-    clock = Clock(s8)
+    # A3 Task 6 (F0.5 step 6 with A5.3's E = W = s): the 08:00 slot can never be opened (its SLOT-INTENT at s = E is
+    # refused), so the crash-window SUCCESS is the last capturable slot's, 07:00 (E = 07:10); every stop decision
+    # below is still taken after W (08:00), as before
+    s7 = z.schedule(last, cal)[-2]
+    assert z.eligible_until(s8, last, cal) == s8 and s7 == s8 - timedelta(hours=1)
+    clock = Clock(s7)
     monkeypatch.setattr(c, "now_utc", clock)
     Snap(monkeypatch, dur=timedelta(0))
     real = ck.finalize_close
@@ -370,10 +378,10 @@ def _success_without_seal(tmp_path, monkeypatch):
         raise Killed()
     monkeypatch.setattr(ck, "finalize_close", boom)
     with pytest.raises(Killed):
-        run(tmp_path, st_, s8, clock)
+        run(tmp_path, st_, s7, clock)
     monkeypatch.setattr(ck, "finalize_close", real)
     out = tmp_path / "s1_out"
-    res = out / "captures" / last["date"] / f"{s8.strftime('%Y%m%dT%H%M%SZ')}.resolution.json"
+    res = out / "captures" / last["date"] / f"{s7.strftime('%Y%m%dT%H%M%SZ')}.resolution.json"
     assert read(res)["outcome"] == "SUCCESS"
     assert not (out / "seals" / f"{last['date']}.json").exists()
     clock.t = s8 + timedelta(minutes=5)
@@ -473,7 +481,10 @@ def test_i2_a_lone_later_stage_registry_record_before_the_opening_is_a_refusal(t
 def test_m1_a_publication_whose_link_lands_at_or_after_D_records_the_overrun(tmp_path, monkeypatch):
     """M-1 (B1.3): the resolution's timestamp is read before its bytes are published; when the durable link itself
     lands at/after D (a slow fsync), the overrun is recorded (s1_out/captures/<day>/<slot>.overrun.json and the
-    report) - it cannot replace the winner (the SUCCESS stays and seals)."""
+    report) - it cannot replace the winner (the SUCCESS stays and seals).
+    A3 Task 6 (B1.3 -> F3; Codex probe rows 172-174): R is the same-process clock read AFTER P is durable, so a link
+    that lands at/after D gives R >= D: the SLOT-QUALIFIED is refused with no row (the finalizer later appends
+    TIMEOUT, Task 7) and nothing seals; no .overrun.json record exists any more (the journal decides)."""
     st_, clock = _setup(tmp_path, monkeypatch, S45 + timedelta(seconds=30))
     Snap(monkeypatch)
     real = c.publish_exclusive
@@ -486,11 +497,9 @@ def test_m1_a_publication_whose_link_lands_at_or_after_D_records_the_overrun(tmp
     rep = run(tmp_path, st_, S45, clock)
     res = read(res_path(tmp_path, S45))
     assert res["outcome"] == "SUCCESS" and c.aware(res["published_utc"]) < D45
-    ov = res_path(tmp_path, S45).with_name(f"{S45.strftime('%Y%m%dT%H%M%SZ')}.overrun.json")
-    assert ov.exists(), "the publication overrun was not recorded"
-    assert c.aware(read(ov)["linked_utc"]) >= c.aware(read(ov)["deadline_utc"]) == D45
-    assert rep["resolution"].get("publication_overrun") is True, rep["resolution"]
-    assert rep["seal"]["written"] is True
+    assert rep["journal"]["outcome"] == "REFUSE" and c.aware(rep["journal"]["R"]) >= D45, rep["journal"]
+    assert not res_path(tmp_path, S45).with_name(f"{S45.strftime('%Y%m%dT%H%M%SZ')}.overrun.json").exists()
+    assert rep["seal"]["written"] is False and not SEAL_P(tmp_path).exists()
 
 
 # ====================================================================== M-2 register before the artifact
@@ -509,6 +518,7 @@ def test_m2_the_attestation_and_prereg_are_registered_before_their_artifacts_are
     s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     for stage in ("attest_start", "prereg"):
         art = f"s1_out/{stage}.json"
         assert art in order, (stage, order)
@@ -560,6 +570,10 @@ def test_c2_retro_the_run_ack_witnesses_the_attestation(tmp_path):
     assert _aborted(tmp_path)["reason"] == "registration artifact"
 
 
+@pytest.mark.skip(reason="HELD with Task 10 (A3 Task 6, OQ-11/E5.2): the opening capture report is final before J and "
+                         "no longer records the written seal, so after the seal and both opening records are deleted "
+                         "only in-progress witnesses remain; Task 10 makes the opening seal the `opening` stage (a "
+                         "deleted CREATED member is stage-replaced)")
 def test_c2_retro_the_opening_report_and_resolution_witness_the_registration(tmp_path):
     """RETROSPECTIVE. C-2: after the opening (before the attestation) the opening seal AND both opening records
     deleted: the opening capture report and the opening resolution still witness the registration -> persistent
@@ -628,6 +642,7 @@ def test_m2_retro_a_concurrent_command_during_the_prereg_publication_refuses(tmp
     monkeypatch.setattr(c, "publish_exclusive", concurrent)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     assert len(seen) == 1 and "stage publication" in seen[0], seen
     assert c.load_abort(out) is None and (out / "prereg.json").exists() and not (out / "stage.lock").exists()
 

@@ -13,6 +13,7 @@ import s1_checkpoint as ck
 import s1_common as c
 import s1_run as r
 import s1_seal as z
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_RECEIPT, S1_PROCESS, Ledger, _Clock, s1_opening_checkpoint, s1_plan_audit, s1_state
 from test_s1_t12_fix2_b3 import MON, Spies, _aborted, _cp
 from test_s1_t12_fix4 import START, START_DT, _delete, _opening, _reopen
@@ -41,7 +42,9 @@ def test_r1_probe_an_opening_whose_first_slot_never_ran_still_seals(tmp_path):
     rep = s1_opening_checkpoint(tmp_path, lg, oc, cal, S1_RECEIPT, minutes=55)
     assert not rep["seal"]["written"] and rep.get("deferred"), rep
     first = out / "captures" / oc / slots[0].strftime(FMT)
-    assert _read(first.parent / f"{first.name}.resolution.json")["outcome"] == "MISSED"
+    # A3 Task 6 (F3, E1.4): the never-opened 20:45 slot gets no MISSED file (its SLOT-MISSED row is the finalizer's,
+    # Task 7); it has no row and no file, and after its E it is no longer selectable
+    assert not (first.parent / f"{first.name}.resolution.json").exists()
     assert not (first.parent / f"{first.name}.attempt.json").exists()
     try:                                                 # (strengthened after GREEN, A10.2: a refusal or abort is
         rep = _reopen(tmp_path, lg, oc, cal, 7)          # an assertion failure, not an escaping SystemExit)
@@ -129,6 +132,7 @@ def test_r2_probe_moving_the_plans_opening_close_after_registration_aborts_and_r
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     out = tmp_path / "s1_out"
     good = _move_plan(out)
     with pytest.raises(SystemExit):
@@ -171,6 +175,7 @@ def test_r2_the_run_ack_alone_anchors_the_opening(tmp_path):
     s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     out = tmp_path / "s1_out"
     assert _delete(out, ["seals", "registry", "witnesses", "captures"])
     _move_plan(out)
@@ -189,21 +194,30 @@ def test_r3_an_opening_slot_after_the_seal_leaves_a_claim_and_a_report_binding_t
     out, cal, oc, lg, first = _opening(tmp_path)
     receipt = (out / "opening_receipt.json").read_bytes()
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit, match="opening seal exists"):
+    # A3 Task 6 (F1, E5.6; replaces fix round 5's after-seal record, plan Step 6 "R-3 -> opening gate"): the opening is
+    # decided, so the later opening slot's SLOT-INTENT is refused by the opening gate with no row - zero live
+    # callbacks, no claim, no capture, no report (the slot ends MISSED at its E, Task 7)
+    with pytest.raises(SystemExit, match="the opening is already decided"):
         _reopen(tmp_path, lg, oc, cal, 1, spies)
     assert spies.zero(), spies.n
     d, name = out / "captures" / oc, _slots(cal, oc)[1].strftime(FMT)
-    assert (d / f"{name}.attempt.json").exists() and not (d / name).exists()
-    assert (d / f"{name}.resolution.json").exists(), "the after-seal slot was left unresolved"   # (after GREEN)
-    assert _read(d / f"{name}.resolution.json")["outcome"] in ("FAILURE", "RESOLUTION-TIMEOUT")
-    rep = _read(d / f"{name}.report.json")
-    assert rep["refused"] and rep["after_seal"] == {"seal": f"seals/{oc}.json", "sha256": first}, rep
+    assert not (d / f"{name}.attempt.json").exists() and not (d / name).exists()
+    assert not (d / f"{name}.resolution.json").exists() and not (d / f"{name}.report.json").exists()
+    import s1_journal as j
+    import s1_trial as t
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    assert j.subject_rows(j.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3"),
+                          j.slot_subject(_slots(cal, oc)[1])) == []
     assert c.sha256_file(out / "seals" / f"{oc}.json") == first
     assert (out / "opening_receipt.json").read_bytes() == receipt
     t = _slots(cal, oc)[1] + timedelta(minutes=5)
     assert c.opening_orphans(out) == [] and c.registration_problems(out, now=lambda: t) == []
 
 
+@pytest.mark.skip(reason="HELD with Task 7 (A3 Task 6, plan Step 6 'R-3 -> opening gate'): the after-seal record no "
+                         "longer exists (a later opening slot is refused with no row); the deleted QUALIFIED tree of "
+                         "the sealing slot is the F3 evidence-table violation, caught before any callback by Task 7's "
+                         "gate-level slot check (Task 6 catches it at the seal selection, after a capture)")
 def test_r3_deleting_the_seal_and_its_sealing_slot_records_after_a_later_slot_bound_it_aborts(tmp_path,
                                                                                               monkeypatch):
     """R-3: the §17.3 crash-like deletion (the opening seal, both records, the sealing slot's resolution and report,
@@ -224,6 +238,8 @@ def test_r3_deleting_the_seal_and_its_sealing_slot_records_after_a_later_slot_bo
     assert spies.zero(), spies.n
 
 
+@pytest.mark.skip(reason="HELD with Task 7 (A3 Task 6): no after-seal claim exists any more (the opening gate refuses "
+                         "with no row); the deletion is the F3 evidence-table violation of Task 7")
 def test_r3_the_after_seal_claim_alone_still_binds_the_seal(tmp_path, monkeypatch):
     """R-3 (written after the first R-3 GREEN, before its code; the residual probe's V2): the same deletion, but
     also the after-seal slot's resolution and report - only its exclusive claim stays. The claim itself records the
@@ -243,6 +259,9 @@ def test_r3_the_after_seal_claim_alone_still_binds_the_seal(tmp_path, monkeypatc
     assert c.load_json(out / "captures" / oc / f"{later}.attempt.json").get("after_seal", {}).get("sha256") == first
 
 
+@pytest.mark.skip(reason="HELD with Task 7 (A3 Task 6, OQ-11/E5.2): a capture report is never seal authority; the "
+                         "forged claim/resolution/report of a slot with no journal row is the F3 evidence-table "
+                         "violation (no row: any claim, report or resolution) of Task 7")
 def test_r3_the_selection_never_writes_an_opening_seal_differing_from_a_recorded_opening_seal_hash(tmp_path):
     """R-3 (selection): a report recording an opening-seal hash appears after the gate ran (written during this run's
     capture, with its claim and resolution, so it is no orphan). The serialized selection compares the seal it is

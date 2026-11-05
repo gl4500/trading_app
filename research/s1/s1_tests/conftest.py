@@ -237,15 +237,16 @@ class Spies:
         assert self.n == dict.fromkeys(self.n, 0), self.n
 
 
-def s1_jappend(root, kind, subject, *, at, detail=None, op=None, actor=None, r_at=None):
+def s1_jappend(root, kind, subject, *, at, detail=None, op=None, actor=None, r_at=None, due=False):
     """A3 synthetic journal fixture (F10 'synthetic journal fixtures'): append one row through the real
-    s1_journal.append with a context that accepts it. Test-only."""
+    s1_journal.append with a context that accepts it. Test-only. A3 Task 6: `due` makes the slot's E and D equal `at`
+    (so a synthetic SLOT-TIMEOUT / SLOT-MISSED is not a premature finalizer); otherwise E and D lie far ahead."""
     from datetime import timedelta
     import s1_journal as j
     import s1_trial as t
     mb = Path(root) / "mailbox.sqlite3"
     tr = t.open_trial(mb)
-    far = at + timedelta(days=3650)
+    far = at if due else at + timedelta(days=3650)
     ctx = j.Context(slot_times=lambda s: (far, far), stop_detail=lambda rows: detail,
                     stage_gate=lambda rows, g: None, slot_gate=lambda rows, s: None,
                     stage_check=lambda rows, s, i: None,                # (fix round 1, M-6: supplied explicitly)
@@ -302,6 +303,16 @@ def s1_finalize(root, at):
                    detail=j.detail_of({"synthetic": "stop", "at": at.isoformat()}))
     if "S1-ACQUIRE-ACK" not in t.open_trial(m).acks:
         s1_ack(root, "acq-ack", "S1-ACQUIRE-ACK", at)
+
+
+def s1_prereg_ack(root):
+    """A3 Task 6 (F7.4: the S1-PREREG-ACK is required before any post-START capture): for tests that run
+    s1_run.do_prereg themselves, post the trial's PREREG-ACK 1 min after prereg.json's recorded time (as the s1_state
+    and s1_register fixtures do). Test-only."""
+    from datetime import timedelta
+    import s1_common as c
+    pr = c.load_json(Path(root) / "s1_out" / "prereg.json")
+    return s1_ack(root, "prereg-ack", "S1-PREREG-ACK", c.aware(pr["recorded_utc"]) + timedelta(minutes=1))
 
 
 def s1_score_refused(root, ack_id, reason="registration-artifact"):

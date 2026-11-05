@@ -16,6 +16,7 @@ import s1_run as r
 import s1_seal as z
 import s1_snapshot
 import s1_trial as t
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import (Ledger, S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit,
                       s1_reack, s1_register, s1_state, s1_unattest)
 
@@ -28,7 +29,7 @@ OPEN_CLOSE = datetime(2026, 10, 23, 20, 0, tzinfo=UTC)
 ADDENDUM_SHA = "6cb89e36840975b8d949ec85debf9d2cedbe45bbeb9dcb374d91343dddc5e590"
 BUNDLE = ("e1_fetch.py", "e1_sim.py", "s1_books.py", "s1_checkpoint.py", "s1_collect.py", "s1_common.py",
           "s1_gates.py", "s1_journal.py", "s1_locks.py", "s1_receipt.py", "s1_run.py", "s1_seal.py",
-          "s1_snapshot.py", "s1_stage.py", "s1_trial.py")
+          "s1_slot.py", "s1_snapshot.py", "s1_stage.py", "s1_trial.py")
 
 
 def read(p):
@@ -79,6 +80,7 @@ def registered(tmp_path):
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     return st_
 
 
@@ -419,6 +421,7 @@ def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_
     elif breakage == "ack_deleted":
         con = sqlite3.connect(c.MAILBOX)
         con.execute("DELETE FROM messages WHERE id='run-ack'")
+        con.execute("DELETE FROM messages WHERE id='prereg-ack'")    # A3 Task 6: (its PREREG-ACK chains to it)
         con.commit()
         con.close()
     elif breakage in ("ack_after_start", "ack_before_attestation"):
@@ -426,6 +429,7 @@ def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_
              else c.aware(read(out / "attest_start.json")["recorded_utc"]) - timedelta(minutes=1))
         con = sqlite3.connect(c.MAILBOX)
         con.execute("UPDATE messages SET created=? WHERE id='run-ack'", (t.timestamp(),))
+        con.execute("DELETE FROM messages WHERE id='prereg-ack'")    # A3 Task 6: (its PREREG-ACK chains to it)
         con.commit()
         con.close()
     else:

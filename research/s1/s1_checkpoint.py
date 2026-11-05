@@ -18,7 +18,15 @@ MISSED after E for a never-claimed slot, RESOLUTION-TIMEOUT at/after D); the sea
 function of those records in slot order (finalize_close), so concurrent finalizers write one seal. B2 - the opening
 capture's observed binding is the registered process-binding reference (bound by the START attestation, RUN-ACK and
 prereg); process_binding.json is gone. B3 - the registration-artifact gate (s1_common.verify_bundle_first) runs in
-every mode; the opening seal is registered (registry/opening.json) just before it is written."""
+every mode; the opening seal is registered (registry/opening.json) just before it is written.
+
+A3 Task 6 (Addendum 3 F3, F0.5, F1, F5.1/E1, F7.4; s1_slot.Worker): both seal modes run one slot worker - the slot
+work lock, SLOT-INTENT, the claim (op, actor, capture_dir), P (resolution, then report: final before J), R, then J
+(SLOT-QUALIFIED, R < D) or SLOT-FAILED. A late invocation (now >= E) and a late R (R >= D) are refused with no row
+(the B1.3 worker-side RESOLUTION-TIMEOUT / .late.json / .overrun.json records are gone; the finalizer's TIMEOUT is
+Task 7); after the STOP a new slot is LOST-RACE with no capture; an established violation commits TRIAL-INVALID
+(established-violation) before the local abort; the seal is selected over QUALIFIED slots only; seal and stop
+presentation is display-only (<slot>.after.json, OQ-11)."""
 import argparse
 import inspect
 import json
@@ -121,26 +129,6 @@ def _safe(rep: dict, where: str, fn, *a, **kw):
 # ------------------------------------------------------------------ shared slot-capture steps (both seal modes)
 def _capture_dir(out: Path, day: str, scheduled: datetime) -> Path:
     return out / "captures" / day / scheduled.strftime("%Y%m%dT%H%M%SZ")
-
-
-def _report_path(cap_dir: Path) -> Path:
-    return cap_dir.parent / f"{cap_dir.name}.report.json"
-
-
-def _claim_slot(out: Path, cap_dir: Path, scheduled: datetime, close: datetime, t: datetime, extra=None) -> None:
-    """A5.2: one attempt per registered slot, preserved with its original scheduled time: the slot is claimed
-    exclusively (captures/<day>/<slot>.attempt.json) before anything else; a duplicate execution is refused and
-    recorded in reruns.jsonl (never overwrites a capture). `extra`: fields the claim also records (fix round 5,
-    R-3: the opening seal an after-seal opening slot found)."""
-    claim = cap_dir.parent / f"{cap_dir.name}.attempt.json"
-    try:                                                   # fix round 3 (C-1): published atomically
-        c.publish_text_exclusive(claim, json.dumps({"scheduled": scheduled.isoformat(), "invoked_utc": t.isoformat(),
-                                                    "close": close.isoformat(), **(extra or {})}))
-    except FileExistsError:
-        with (out / "reruns.jsonl").open("a", encoding="utf-8") as f:
-            f.write(json.dumps({"scheduled": scheduled.isoformat(), "actual": t.isoformat(),
-                                "close": close.isoformat()}) + "\n")
-        raise SystemExit(f"slot already captured (or attempted): {cap_dir}") from None
 
 
 def _new_report(close: datetime, scheduled: datetime, actual: datetime, meta: dict, until: datetime) -> dict:
@@ -334,10 +322,6 @@ def _res_path(cap_dir: Path) -> Path:
     return cap_dir.parent / f"{cap_dir.name}.resolution.json"
 
 
-def _late_path(cap_dir: Path) -> Path:
-    return cap_dir.parent / f"{cap_dir.name}.late.json"
-
-
 def _jsonable(obj):
     return json.loads(c.canonical(obj))
 
@@ -383,63 +367,6 @@ def _resolve(p: Path, rec: dict) -> dict:
     return rec
 
 
-def _publish(cap_dir: Path, day, cal, rep: dict, now) -> dict:
-    """B1.2/B1.3: resolve this invocation's own claimed slot. Published strictly before D = resolution_deadline:
-    SUCCESS (a complete candidate) or FAILURE. At/after D, or when the slot was already resolved (an expiration won),
-    the outcome is RESOLUTION-TIMEOUT: this late worker cannot replace it or seal; its evidence is preserved
-    separately (<slot>.late.json). An observed violation was already persisted before this step (never erased).
-    Fix round 3 (M-1): the publication time is read as late as possible (after the evidence is built, just before
-    the bytes are written) and the instant the link is durable is read again afterwards; a link that landed at/after
-    D (a slow fsync) is recorded as an overrun (<slot>.overrun.json and the report) - it cannot replace the winner."""
-    sch = c.aware(rep["scheduled"])
-    dl = z.resolution_deadline(sch, day, cal)
-    ev = _evidence(rep)
-    rp = _res_path(cap_dir)
-    t = now()
-    if t < dl and not rp.exists():
-        mine = {"outcome": SUCCESS if rep.get("candidate") and _complete_success(ev) else FAILURE,
-                "slot": sch.isoformat(), "deadline_utc": dl.isoformat(), "published_utc": t.isoformat(),
-                "evidence": ev}
-        rec = _resolve(rp, mine)
-        if rec == _jsonable(mine):
-            linked = now()
-            rep["resolution"] = {"outcome": rec["outcome"], "published_utc": rec["published_utc"],
-                                 "linked_utc": linked.isoformat()}
-            if linked >= dl:
-                _record_overrun(cap_dir, sch, t, linked, dl)
-                rep["resolution"]["publication_overrun"] = True
-            return rec
-    else:
-        rec = _resolve(rp, {"outcome": TIMEOUT, "slot": sch.isoformat(), "deadline_utc": dl.isoformat(),
-                            "decided_utc": t.isoformat(), "decided_by": "late worker"})
-    late = {"slot": sch.isoformat(), "observed_utc": t.isoformat(), "resolution": rec.get("outcome"),
-            "evidence": ev}
-    try:
-        c.publish_exclusive(_late_path(cap_dir), json.dumps(_jsonable(late), indent=1).encode("utf-8"))
-    except FileExistsError:
-        pass
-    rep["resolution"] = {"outcome": rec.get("outcome"), "late_evidence": _late_path(cap_dir).name}
-    rep["late_evidence"] = True
-    rep.pop("candidate", None)
-    return rec
-
-
-def _overrun_path(cap_dir: Path) -> Path:
-    return cap_dir.parent / f"{cap_dir.name}.overrun.json"
-
-
-def _record_overrun(cap_dir: Path, sch: datetime, t: datetime, linked: datetime, dl: datetime) -> None:
-    """Fix round 3 (M-1): preserve that a resolution stamped before D became durable at/after D (reported only)."""
-    rec = {"slot": sch.isoformat(), "published_utc": t.isoformat(), "linked_utc": linked.isoformat(),
-           "deadline_utc": dl.isoformat(),
-           "note": "the resolution was stamped before D but its durable link landed at/after D; the exclusive "
-                   "resolution stands (an overrun cannot replace the winner, B1.3) and is reported"}
-    try:
-        c.publish_exclusive(_overrun_path(cap_dir), json.dumps(rec, indent=1).encode("utf-8"))
-    except FileExistsError:
-        pass
-
-
 def _seal_bytes(day, close: datetime, ev: dict) -> bytes:
     """The bytes of the close's seal built from a SUCCESS resolution's evidence -
     deterministic, so every finalizer of the close builds the identical seal."""
@@ -466,7 +393,50 @@ class _NoSeal(Exception):
     """The chosen candidate cannot be sealed (recorded as a refusal; the close may stay unsealed)."""
 
 
-def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_build=None) -> dict:
+class _QualifiedEvidence(ValueError):
+    """F3 table, QUALIFIED: a required file of the slot's committed tree is missing, changed or unparseable (or its
+    resolution is not a SUCCESS): INVALIDATE (reason registration-artifact); the seal is never built from it."""
+
+
+def _journal_slot(rp: Path, slot, day, cal, t: datetime, rows) -> tuple:
+    """A3 Task 6 (F3, E1.2, E1.4), the journal mode of finalize_close: what slot `slot` is for the selection, from the
+    journal rows - ("select", its SUCCESS resolution) for a SLOT-QUALIFIED slot (its tree verified, F3); ("skip",
+    None) for a slot with any other terminal row, or a never-opened slot at/after its E (no SLOT-INTENT can commit at
+    now >= E, F0.5 step 6); ("defer", reason) while an earlier slot may still qualify - an INTENT-only slot defers
+    until it has a terminal row, whatever t is (fix round 1, review C2: E1.3/E1.7 - a J with R < D committed after D
+    wins when no TIMEOUT committed first; E2.2/B1.4 - every earlier slot must be terminal; the finalizer's TIMEOUT
+    row is Task 7's). It never writes, moves or reads a slot file other than a QUALIFIED slot's tree (the finalizer
+    never touches a live worker's files, E1.4)."""
+    import s1_journal as j
+    import s1_slot
+    mine = j.subject_rows(rows, j.slot_subject(slot))
+    q = j.first(mine, "SLOT-QUALIFIED")
+    if q is not None:
+        try:
+            tree = s1_slot.qualified_tree(Path(rp).parents[2], slot, day["date"])
+            rec = _read_resolution(rp)
+        except (OSError, ValueError) as e:
+            raise _QualifiedEvidence(f"{q.subject}: a file of its QUALIFIED tree is missing or unreadable "
+                                     f"({type(e).__name__})") from None
+        if j.detail_of(tree) != q.detail:
+            raise _QualifiedEvidence(f"{q.subject}: its QUALIFIED tree differs from the committed detail (F3)")
+        if rec is None or rec.get("outcome") != SUCCESS:
+            raise _QualifiedEvidence(f"{q.subject}: its resolution is not a SUCCESS (F3)")
+        return "select", rec
+    if j.first(mine, *j.TERMINAL) is not None:
+        return "skip", None
+    if j.first(mine, "SLOT-INTENT") is not None:
+        return "defer", (f"earlier slot {slot.isoformat()} is in flight (SLOT-INTENT, no terminal row; pending; its "
+                         f"TIMEOUT is due at {z.resolution_deadline(slot, day, cal).isoformat()}): the seal waits for "
+                         f"its terminal row, in slot order (F3, E1.3, E2.2)")
+    until = z.eligible_until(slot, day, cal)
+    if t < until:
+        return "defer", (f"earlier slot {slot.isoformat()} has no row and its window is open until "
+                         f"{until.isoformat()}: the seal waits for slot order (A5.2)")
+    return "skip", None
+
+
+def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_build=None, *, rows=None) -> dict:
     """Addendum 2 B1.4 (amends A5.2): the serialized close-level selection. Walk the close's slots in ORIGINAL
     SLOT ORDER over their immutable resolution records: an unresolved slot that is claimed is PENDING until D (the
     selection waits; at/after D this finalizer publishes RESOLUTION-TIMEOUT), one never claimed waits until E
@@ -474,7 +444,13 @@ def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_bu
     function of that record, so concurrent finalizers and restart replays write one identical seal. Respects a
     persisted stop and any abort (no seal). `before_build(candidate)` runs before the seal is built and
     `before_seal(candidate, seal_sha256)` just before it is written (the opening: receipt, then registry).
-    Returns {"written", "sha256", "from_slot", "deferred", "refused"}."""
+    Returns {"written", "sha256", "from_slot", "deferred", "refused"}.
+    A3 Task 6 (F3: the journal decides). `rows` (the trial's verified journal rows; every Task 6 slot caller passes
+    them) is the journal mode: each slot's state is its rows (_journal_slot) - only a SLOT-QUALIFIED slot is
+    selectable, and no resolution file is ever written (E1.4: a live worker's files are never touched; the TIMEOUT /
+    MISSED rows are the finalizer's, Task 7). Without `rows`: the legacy resolution-only selection, which writes
+    RESOLUTION-TIMEOUT / MISSED records - no product caller uses it any more (fix round 1, review C1: finalize_pending
+    is journal mode too); Task 7 removes it."""
     out = Path(out)
     res = {"written": False, "sha256": None, "from_slot": None, "deferred": None, "refused": None}
     if c.load_abort(out) is not None or (out / "stop.json").exists():
@@ -487,7 +463,15 @@ def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_bu
     for slot in z.schedule(day, cal):
         cap_dir = _capture_dir(out, day["date"], slot)
         rp = _res_path(cap_dir)
-        rec = _read_resolution(rp)
+        if rows is not None:                               # A3 Task 6: the journal mode (no file is written)
+            action, rec = _journal_slot(rp, slot, day, cal, t, rows)
+            if action == "defer":
+                res["deferred"] = rec
+                return res
+            if action == "skip":
+                continue
+        else:
+            rec = _read_resolution(rp)
         if rec is None:
             until = z.eligible_until(slot, day, cal)
             dl = z.resolution_deadline(slot, day, cal)
@@ -543,49 +527,57 @@ def _apply_finalize(rep: dict, fin: dict) -> None:
             rep[k_] = fin[k_]
 
 
-def _finalize_others(out: Path, cal, start, current: str, t: datetime) -> None:
+def _finalize_others(out: Path, cal, start, current: str, t: datetime, *, rows=None) -> None:
     """B1.4/B1.5: resolve and seal any OTHER unsealed close of the trial left pending (e.g. an earlier close whose
     last slots outlived W): D lies after W only for processing already captured evidence."""
     start_day = start.astimezone(c.NY).date().isoformat()
-    rows = {d["date"]: d for d in cal}
+    by_day = {d["date"]: d for d in cal}
     for day_dir in sorted((out / "captures").glob("*")):
         d = day_dir.name
-        if d == current or d < start_day or d not in rows or (out / "seals" / f"{d}.json").exists():
+        if d == current or d < start_day or d not in by_day or (out / "seals" / f"{d}.json").exists():
             continue
         try:
-            finalize_close(out, rows[d], cal, t)
+            finalize_close(out, by_day[d], cal, t, rows=rows)
+        except _QualifiedEvidence:                         # fix round 1 (review I1): F3 - never swallowed
+            raise
         except ValueError:                                 # no next session / corrupt record: left for the score
             continue
 
 
-def finalize_pending(out: Path, cal, start, t: datetime) -> None:
+def finalize_pending(out: Path, cal, start, t: datetime, *, mailbox=None) -> None:
     """Fix round 3 (I-1): the serialized close-level selection (B1.4) of every unsealed post-START close, run by a
     command BEFORE it decides or freezes the stop (stop attestation, final plan, final snapshot): a SUCCESS whose
-    seal a crashed worker never wrote is applied first, so no stop is frozen across it."""
-    _finalize_others(Path(out), cal, start, "", t)
+    seal a crashed worker never wrote is applied first, so no stop is frozen across it.
+    A3 Task 6 fix round 1 (review C1: F3, A2 B1.3, E1.2, E1.4): the JOURNAL-mode selection over the open trial's rows
+    (read after `t`, M1; an unreadable journal refuses, fail closed): only a SLOT-QUALIFIED slot is selectable (a
+    worker refused for a late R keeps its SUCCESS P, which is never selected) and no TIMEOUT / MISSED file is written
+    into any slot. A damaged QUALIFIED tree raises _QualifiedEvidence (a ValueError: the callers refuse, no seal)."""
+    rows = c._open_trial_rows(mailbox)
+    _finalize_others(Path(out), cal, start, "", t, rows=rows)
 
 
-def _write_report(cap_dir: Path, rep: dict) -> None:
-    """The capture report (one per claimed slot, exclusive; never overwritten; fix round 3 C-1: atomic)."""
-    c.publish_text_exclusive(_report_path(cap_dir), json.dumps(rep, indent=1))
-
-
-def _trial_stop(out: Path, start, cal, t: datetime):
-    """A2: (state, error): the persisted stop (s1_out/stop.json), else the decision over the existing seals -
-    persisted once if the trial has ended. Task 12 fix round 1 (I-4b, m-4): unreadable seal records or a persisted
-    stop that has gone missing give (None, reason): a preserved integrity failure (the abort below), never a crash
-    and never a silent recompute."""
+def _trial_stop_error(out: Path, start, cal, t: datetime):
+    """A2.1 / I-4b (kept from the pre-A3 checkpoint): the persisted stop or the decision over the existing seals,
+    read BEFORE the capture only for its integrity: a bad seal record or a persisted stop gone missing is the
+    established violation `seal-record` (OQ-31); None when it reads."""
     try:
-        return _public(z.current_stop(out, start, cal, t, "checkpoint")), None
+        z.current_stop(out, start, cal, t, "checkpoint")
+        return None
     except (ValueError, KeyError, TypeError, b.BookError) as e:
-        return None, f"{type(e).__name__}: {e}"
+        return f"{type(e).__name__}: {e}"
 
 
-def _stop_hash(out: Path, rep: dict) -> None:
-    """m-4: once the stop is persisted every report records stop.json's sha256 (a later change or deletion of
-    stop.json is then detectable: s1_seal.stop_problems / current_stop)."""
-    if (out / "stop.json").exists():
-        rep["stop_sha256"] = c.sha256_file(out / "stop.json")
+def _qualified_violation(gv, w, out: Path, e: Exception, now) -> None:
+    """F3 (QUALIFIED: a required file missing, changed or unparseable): TRIAL-INVALID (registration-artifact) first,
+    then the local abort; refused (no seal)."""
+    t = now()
+    rec = {"where": "seal selection", "problems": [str(e)], "observed_utc": t.isoformat()}
+    try:
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root, mailbox=gv.mailbox, clock=now)
+    finally:
+        c.write_abort(out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                projection_sha256=None, receipt_sha256=None))
+    raise SystemExit(f"seal selection refused: {e}: INVALID (registration-artifact)")
 
 
 def _public(st_: dict) -> dict:
@@ -596,93 +588,130 @@ def _public(st_: dict) -> dict:
 # ------------------------------------------------------------------ scheduled (post-prereg) mode
 def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, now=c.now_utc,
                    mailbox=None) -> dict:
-    """One registered slot of one close. Order (Task 12): bundle FIRST, then the RUN-ACK registration (A3.2/A8.2);
-    the persisted stop / invalidity (A2); the slot claim and the pre-capture clock check (A5.2); the capture
-    (A9.1); receipt, process, fences; the persistent abort on an established violation (A9.2); the measured
-    eligibility; the slot-order seal (A5.2); the stop decision, persisted when it ends the trial (A2.1)."""
-    gv = s1_trial.gate(root, "checkpoint", mailbox=mailbox, now=now)   # A3 F0.6: open trial, state, bundle first
+    """One registered post-START slot (Addendum 3 F3; Task 6): the trial gate (F0.6; a slot path: a held stage lock
+    is deferred, ruling N2 / E1.2), the RUN-ACK registration (A8.2), the slot work lock, SLOT-INTENT (STOPPED ->
+    LOST-RACE with no capture; now >= E -> refusal with no row; no PREREG-ACK -> refusal, F7.4), the claim, the A5.2
+    clock check (t < s: FAILED with the refused report, OQ-33), the capture and the observations (unchanged), an
+    established violation external first (OQ-31), the resolution and report (P), R and J (QUALIFIED, R < D) or
+    FAILED; then the legacy seal selection over QUALIFIED slots and the legacy stop (display-only <slot>.after.json,
+    OQ-11/E5.2). The stored report is final before J; the returned dict adds the post-J outcome."""
+    import s1_slot
+    gv = s1_trial.gate(root, "checkpoint", mailbox=mailbox, now=now, defer_pending=True)   # A3 F0.6 (N2)
     out = Path(root) / "s1_out"
     pr = g.verified_registration(out, "checkpoint", mailbox, now)     # Task 12: A3.2 bundle first, then A8.2
     start, cal = c.aware(pr["start"]), pr["calendar"]
     day = _close_for(scheduled, cal)
     close = z.close_of(day["date"], cal)
-    cap_dir = _capture_dir(out, day["date"], scheduled)
-    t0 = now()
-    _claim_slot(out, cap_dir, scheduled, close, t0)                    # A5.2: duplicate execution prevented
-    already = c.load_abort(out)                                       # fix round 2 (B3.4): corrupt fails closed
-    state, state_err = _trial_stop(out, start, cal, t0) if already is None else (None, None)
-    ended = already is not None or (state is not None and state["status"] in ENDED)
-    until = z.eligible_until(scheduled, day, cal)
-    refused = _clock_refusal(cap_dir, day, cal, close, scheduled, t0)
-    if refused is not None:                                            # A5.2: no capture outside [s, E]
-        if ended:
-            refused.update(post_stop=True, stop=_abort_stop(already) if already is not None else state)
-        _publish(cap_dir, day, cal, refused, now)                      # B1: a FAILURE resolves the claimed slot
-        _write_report(cap_dir, refused)
-        return refused
-    meta, rep = _capture(close, scheduled, live_db, cap_dir, now, until)
-    actual = c.aware(rep["actual"])
-    proc, rec = _observe_process(out, rep, process_fn, crash_log)
-    binding_changed = _binding(rep, proc, pr.get("process_binding"))  # B2: the opening-bound reference
-    receipt, receipt_sha = _receipt(rep, receipt_fn, pr["receipt"])
-    seals, seals_err = _read_seals(out, rep)                          # fix round 1 (I-4b): never a crash
-    proj = _read_capture(cap_dir, meta, rep, lambda trades: (len(z.cohort(trades, start, close)),
-                                                             z.count_sold(trades, start, close)))
-    if proj is not None and seals_err is None:
-        rep["fence_violations"] = z.check_fences(seals, proj)
-        rep["fence_violations"] += z.check_bridge(seals, proj["trades"], start)   # Task 8b (§6/§11)
-    if ended:
-        # Task 11 (controller-added), C-1 / Task 12 (A2.2): after the persisted stop (or an abort) a capture is still
-        # taken and recorded, but it never seals and never aborts: receipt and fence differences after the stop are
-        # reported only (the final snapshot and the score check the frozen slices through the persisted stop).
-        rep["post_stop"] = True
-        rep["stop"] = _abort_stop(already) if already is not None else state
-        _stop_hash(out, rep)
-        _publish(cap_dir, day, cal, rep, now)
-        _write_report(cap_dir, rep)
-        return rep
-    failures = rep.get("failures") or {}
-    reason = None
-    if state_err is not None or seals_err is not None:                # fix round 1 (I-4b/m-4): corrupt records
-        reason = f"bad seal record: {state_err or seals_err}"
-    elif rep["receipt_match"] is False:
-        reason = "semantic receipt changed"
-    elif failures.get("receipt", {}).get("terminal"):                  # A9.2: an established violation
-        reason = f"semantic receipt changed: {failures['receipt']['reason']}"
-    elif binding_changed:                                               # A1.1: observed binding differs
-        reason = "process binding changed (launcher/process binding evidence differs from the reference)"
-    elif rep["fence_violations"]:
-        reason = rep["fence_violations"]
-    if reason is not None:
-        already = _write_abort(out, reason, rep, rep["snapshot"], receipt_sha)
-    if already is None and proj is not None and rep["consistent"] and not rep["fence_violations"] \
-            and rep["receipt_match"] is True and not failures and not rep["late"]:
-        try:                                               # Task 12 (A3): the bundle was verified first
-            bridge = (z.bridge_record(proj["trades"], start, z.opening_close_of(start, cal)) if close >= start
-                      else None)
-        except ValueError as e:                            # Task 9 (c): a recorded refusal, never a crash
-            rep["refused"] = f"bridge record unavailable: {e}"
-        else:
-            rep["candidate"] = _candidate(rep, meta, cap_dir, proc, rec, receipt, receipt_sha, bridge, False)
-    published = _publish(cap_dir, day, cal, rep, now)                  # B1.3: before D, or a late worker
-    if already is None and not rep.get("late_evidence"):
-        try:
-            t_fin = now()
-            _apply_finalize(rep, finalize_close(out, day, cal, t_fin))      # B1.4: serialized, slot order
-            _finalize_others(out, cal, start, day["date"], t_fin)
-        except ValueError as e:                                            # corrupt resolution / seal evidence
-            already = _write_abort(out, f"bad resolution record: {e}", rep, rep["snapshot"], receipt_sha)
-    if already is None:
-        try:
-            rep["stop"] = _public(z.current_stop(out, start, cal, actual, "checkpoint"))   # A2.1: persisted if ended
-            _stop_hash(out, rep)
-        except (ValueError, KeyError, TypeError, b.BookError) as e:              # a bad seal record is corruption
-            already = _write_abort(out, f"bad seal record: {e}", rep, rep["snapshot"], receipt_sha)
-    if already is not None:
-        rep["stop"] = _abort_stop(already)
-    rep["resolution"] = rep.get("resolution") or {"outcome": published.get("outcome")}
-    _write_report(cap_dir, rep)
-    return rep
+    _no_local_abort(out, "checkpoint")
+    with s1_slot.Worker(gv, scheduled, day, cal, slot_gate=s1_slot.post_start_gate(gv.trial), mailbox=mailbox,
+                        now=now) as w:
+        lost = w.intent()
+        if lost is not None:                                        # F1: STOPPED -> LOST-RACE, no capture
+            return lost
+        cap_dir, t0 = w.cap_dir, now()
+        refused = _clock_refusal(cap_dir, day, cal, close, scheduled, t0)
+        if refused is not None:                                    # A5.2 (t < s; t >= E cannot reach here)
+            return dict(refused, journal=w.complete(refused, success=False))
+        state_err = _trial_stop_error(out, start, cal, t0)        # A2.1 / I-4b: corrupt stop or seal records
+        meta, rep = _capture(close, scheduled, live_db, cap_dir, now, z.eligible_until(scheduled, day, cal))
+        actual = c.aware(rep["actual"])
+        proc, rec = _observe_process(out, rep, process_fn, crash_log)
+        binding_changed = _binding(rep, proc, pr.get("process_binding"))  # B2: the opening-bound reference
+        receipt, receipt_sha = _receipt(rep, receipt_fn, pr["receipt"])
+        seals, seals_err = _read_seals(out, rep)                          # fix round 1 (I-4b): never a crash
+        proj = _read_capture(cap_dir, meta, rep, lambda trades: (len(z.cohort(trades, start, close)),
+                                                                 z.count_sold(trades, start, close)))
+        fences, bridges = [], []
+        if proj is not None and seals_err is None:
+            fences = z.check_fences(seals, proj)
+            bridges = z.check_bridge(seals, proj["trades"], start)             # Task 8b (§6/§11)
+            rep["fence_violations"] = fences + bridges                         # unchanged legacy field
+        failures = rep.get("failures") or {}
+        reason = subtype = None
+        if state_err is not None or seals_err is not None:              # fix round 1 (I-4b/m-4): corrupt records
+            reason, subtype = f"bad seal record: {state_err or seals_err}", "seal-record"
+        elif rep["receipt_match"] is False:
+            reason, subtype = "semantic receipt changed", "receipt"
+        elif failures.get("receipt", {}).get("terminal"):                  # A9.2: an established violation
+            reason, subtype = f"semantic receipt changed: {failures['receipt']['reason']}", "receipt"
+        elif binding_changed:                                               # A1.1: observed binding differs
+            reason = "process binding changed (launcher/process binding evidence differs from the reference)"
+            subtype = "binding"
+        elif rep["fence_violations"]:
+            reason, subtype = rep["fence_violations"], ("fence" if fences else "bridge")
+        if reason is None and proj is not None and rep["consistent"] and rep["receipt_match"] is True \
+                and not failures and not rep["late"]:
+            try:                                               # Task 12 (A3): the bundle was verified first
+                bridge = (z.bridge_record(proj["trades"], start, z.opening_close_of(start, cal)) if close >= start
+                          else None)
+            except ValueError as e:                            # Task 9 (c): a recorded refusal, never a crash
+                rep["refused"] = f"bridge record unavailable: {e}"
+            else:
+                rep["candidate"] = _candidate(rep, meta, cap_dir, proc, rec, receipt, receipt_sha, bridge, False)
+        if reason is not None:                                  # OQ-31: external first, then local; no slot row
+            w.violation(subtype, reason, rep, receipt_sha)
+            return dict(rep, stop=_abort_stop(c.load_abort(out) or {"reason": reason}),        # (display, A9.2)
+                        journal={"kind": "TRIAL-INVALID", "reason": s1_slot.REASON_VIOLATION, "subtype": subtype})
+        result = w.complete(rep, success=bool(rep.get("candidate")))
+    if result["outcome"] != "APPEND":                           # REFUSE (late R) or LOST-RACE: no seal, no stop
+        return dict(rep, journal=result)
+    after = {"journal": result}
+    after.update(_after_terminal(gv, w, out, day, cal, start, actual, rep, receipt_sha, now, mailbox))
+    w.after(after)
+    return dict(rep, **after)
+
+
+def _no_local_abort(out: Path, where: str) -> None:
+    """F8.1: while a local aborted.json exists (an observed violation, e.g. one whose TRIAL-INVALID could not
+    commit) no new capture is started (a committed TRIAL-INVALID is already refused by the gate)."""
+    if c.load_abort(out) is not None:
+        raise SystemExit(f"{where} refused: s1_out/aborted.json exists (an observed violation, F8.1): no new capture")
+
+
+def _journal_rows(gv, mailbox) -> list:
+    """The trial's verified journal rows for the seal selection (read after J); unreadable -> refused, no seal."""
+    import s1_journal as j
+    try:
+        return j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
+    except j.JournalError as e:
+        raise SystemExit(f"seal selection refused: journal unreadable ({type(e).__name__}): no seal") from None
+
+
+def _seal_view(rep: dict, fin: dict) -> dict:
+    """The legacy rep["seal"] / deferred / refused presentation of a finalize_close result (display only)."""
+    view = {"seal": dict(rep.get("seal") or {"written": False, "sha256": None}), "scheduled": rep["scheduled"]}
+    _apply_finalize(view, fin)
+    view.pop("scheduled")
+    return view
+
+
+def _after_terminal(gv, w, out, day, cal, start, actual, rep, receipt_sha, now, mailbox) -> dict:
+    """Task 6, after a committed QUALIFIED or FAILED: the legacy serialized selection restricted to slots with a
+    SLOT-QUALIFIED row (the journal decides), for this close and every other pending close, then the legacy
+    persisted stop (A2.1). Corrupt resolution or seal records are the established violation `seal-record` (OQ-31:
+    external first). Task 7 replaces the selection with the journal finalizer and the seal stages; Task 11 the stop
+    with TRIAL-STOP. Display only: what this returns goes to the returned dict and <slot>.after.json (E5.2)."""
+    got = {}
+    try:
+        t_fin = now()                                     # fix round 1 (M1): t first, then the rows
+        rows = _journal_rows(gv, mailbox)
+        got.update(_seal_view(rep, finalize_close(out, day, cal, t_fin, rows=rows)))
+        _finalize_others(out, cal, start, day["date"], t_fin, rows=rows)
+    except _QualifiedEvidence as e:                                    # F3: a committed tree damaged
+        _qualified_violation(gv, w, out, e, now)
+    except ValueError as e:                                            # corrupt resolution / seal evidence
+        why = f"bad resolution record: {e}"
+        w.violation("seal-record", why, rep, receipt_sha)
+        return dict(got, stop=_abort_stop(c.load_abort(out) or {"reason": why}))
+    try:
+        got["stop"] = _public(z.current_stop(out, start, cal, actual, "checkpoint"))   # A2.1: persisted if ended
+        if (out / "stop.json").exists():
+            got["stop_sha256"] = c.sha256_file(out / "stop.json")
+    except (ValueError, KeyError, TypeError, b.BookError) as e:              # a bad seal record is corruption
+        why = f"bad seal record: {e}"
+        w.violation("seal-record", why, rep, receipt_sha)
+        got["stop"] = _abort_stop(c.load_abort(out) or {"reason": why})
+    return got
 
 
 ENDED = z.ENDED
@@ -776,33 +805,12 @@ class _OpeningSealConflict(SystemExit):
     """Fix round 5 (R-3): the opening seal about to be written differs from a recorded opening-seal hash."""
 
 
-def _after_opening_seal(out: Path, day, cal, close: datetime, scheduled: datetime, cap_dir: Path, now) -> None:
-    """Fix round 5 (R-3): an opening slot invoked after the opening seal exists leaves durable evidence binding that
-    seal before it refuses (zero live callbacks, no capture): its exclusive slot claim and a refused report, BOTH
-    recording the seal's sha256 ("after_seal"), with its resolution (B1.3) between them. A missing seal or one whose
-    hash differs from either is then a registration problem (s1_common._report_seals) and the selection never writes
-    such a seal (_before_opening_seal)."""
-    seal_rel = f"seals/{day['date']}.json"
-    sha = c.sha256_file(out / seal_rel)
-    t = now()
-    try:
-        _claim_slot(out, cap_dir, scheduled, close, t, {"after_seal": {"seal": seal_rel, "sha256": sha}})
-    except SystemExit:                                     # a rerun of this slot: its evidence is already there
-        raise SystemExit(f"opening seal exists ({day['date']}): refusing (slot already claimed)") from None
-    rep = _new_report(close, scheduled, t, {"ok": False}, z.eligible_until(scheduled, day, cal))
-    rep.update(entries=NA, sold=NA, stop=NA, after_seal={"seal": seal_rel, "sha256": sha},
-               refused=f"opening seal exists ({day['date']}, sha256 {sha}): no capture")
-    _publish(cap_dir, day, cal, rep, now)
-    _write_report(cap_dir, rep)
-    raise SystemExit(f"opening seal exists ({day['date']}): refusing (recorded its sha256 in "
-                     f"{_report_path(cap_dir).name})")
-
-
-def _before_opening_seal(out: Path, day_iso: str, seal_sha: str, t: datetime) -> None:
-    """Fix round 5 (R-3): the serialized selection never writes an opening seal whose sha256 differs from an
-    opening-seal hash a capture report recorded (a written seal or an after-seal record): the persistent
-    "registration artifact" abort (a second, different opening seal)."""
-    recorded = sorted({h for _, sp, h in c._report_seals(out) if sp.name == f"{day_iso}.json"})
+def _before_opening_seal(out: Path, day_iso: str, seal_sha: str, t: datetime, rows=None) -> None:
+    """Fix round 5 (R-3): the serialized selection never writes an opening seal whose sha256 differs from a recorded
+    opening-seal hash: the persistent "registration artifact" abort (a second, different opening seal). A3 Task 6
+    (OQ-11, E2.6 r3): the recorded hashes are the REQUIRED seals of the journal (s1_common._report_seals), never a
+    capture report or after.json; the opening seal becomes the `opening` stage in Task 10."""
+    recorded = sorted({h for _, sp, h in c._report_seals(out, rows) if sp.name == f"{day_iso}.json"})
     if recorded and seal_sha not in recorded:
         probs = [f"seals/{day_iso}.json: the selected opening seal {seal_sha} differs from the recorded opening seal "
                  f"hash(es) {recorded} (a second, different opening seal)"]
@@ -821,68 +829,80 @@ def run_opening_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, cra
     Controller ruling 3: opening_receipt.json is written BEFORE the seal. A receipt left by an earlier run that crashed
     before sealing is kept if it equals this run's receipt; if it differs, this run refuses (no seal, the stored
     receipt is left untouched for the operator). Task 12: bundle first (A3.2), the verified AUDIT-ACK'd audit and
-    its pinned calendar (A8.2/A6), the slot claim and clock (A5.2), failures preserved (A9.1), slot-order seal."""
-    gv = s1_trial.gate(root, "opening checkpoint", mailbox=mailbox, now=now)      # A3 F0.6: the gate first
+    its pinned calendar (A8.2/A6), the clock (A5.2), failures preserved (A9.1), slot-order seal.
+    A3 Task 6: the same slot worker as run_checkpoint (slot lock, SLOT-INTENT, P, R, J) with the opening gate (F1:
+    the audit stage CREATED; E5.6: once the opening is decided a later opening-close slot is refused with no row,
+    which replaces fix round 5's after-seal record); the seal is selected over QUALIFIED slots only."""
+    import s1_journal as j
+    import s1_slot
+    gv = s1_trial.gate(root, "opening checkpoint", mailbox=mailbox, now=now, defer_pending=True)   # A3 F0.6 (N2)
     out = Path(root) / "s1_out"
     c.verify_bundle_first(out, "opening checkpoint", mailbox=mailbox, now=now, need="audit")    # Task 12: A3.2
     day, cal = _opening_day(out, scheduled, mailbox)                                             # A8.2
     close = z.close_of(day["date"], cal)
-    cap_dir = _capture_dir(out, day["date"], scheduled)
-    if (out / "seals" / f"{day['date']}.json").exists():
-        _after_opening_seal(out, day, cal, close, scheduled, cap_dir, now)                       # fix5 (R-3)
-    t0 = now()
-    _claim_slot(out, cap_dir, scheduled, close, t0)
-    until = z.eligible_until(scheduled, day, cal)
-    refused = _clock_refusal(cap_dir, day, cal, close, scheduled, t0)
-    if refused is not None:
-        refused.update(entries=NA, sold=NA, stop=NA)
-        _publish(cap_dir, day, cal, refused, now)
-        _write_report(cap_dir, refused)
-        return refused
-    meta, rep = _capture(close, scheduled, live_db, cap_dir, now, until)
-    rep.update(entries=NA, sold=NA, stop=NA)
-    proc, rec = _observe_process(out, rep, process_fn, crash_log)
-    _binding(rep, proc, None)                                       # B2.1: the observed binding IS the reference
-    if rep["process_binding"]["status"] != "REFERENCE" and "process_binding" not in rep.get("failures", {}):
-        rep.setdefault("failures", {})["process_binding"] = {
-            "class": "BindingUnavailable", "terminal": False,
-            "reason": f"the opening requires an observed process binding (B2.1): {rep['process_binding'].get('reason')}"}
-    receipt, receipt_sha = _receipt(rep, receipt_fn, None)          # the opening receipt IS the reference
+    _no_local_abort(out, "opening checkpoint")
     rp = out / "opening_receipt.json"
-    proj = _read_capture(cap_dir, meta, rep, None)        # fix round 1 (M-1): read before any refusal
-    seals, seals_err = _read_seals(out, rep)                     # fix round 1 (I-4b): preserved, never a crash
-    if proj is not None and seals_err is None:
-        rep["fence_violations"] = z.check_fences(seals, proj)
-    if receipt_sha is not None and rp.exists() and _stored_receipt(rp) != receipt:   # leftover, crashed before seal
-        rep["receipt_match"] = False
-        rep["refused"] = f"receipt conflict: stored {rp.name} differs from this run's receipt"
-        _publish(cap_dir, day, cal, rep, now)
-        _write_report(cap_dir, rep)                       # never sealed on this path
-        raise SystemExit(f"opening refused: stored {rp.name} differs from this run's receipt (no opening seal "
-                         f"exists; remove it only after checking which receipt is right)")
-    if proj is not None and rep["consistent"] and not rep["fence_violations"] and receipt_sha is not None \
-            and not rep.get("failures") and not rep["late"]:
-        rep["candidate"] = _candidate(rep, meta, cap_dir, proc, rec, receipt, receipt_sha, None, True)
-    _publish(cap_dir, day, cal, rep, now)                 # B1.3
+    with s1_slot.Worker(gv, scheduled, day, cal, slot_gate=s1_slot.opening_gate(gv.trial, out), mailbox=mailbox,
+                        now=now) as w:
+        lost = w.intent()
+        if lost is not None:
+            return lost
+        cap_dir, t0 = w.cap_dir, now()
+        refused = _clock_refusal(cap_dir, day, cal, close, scheduled, t0)
+        if refused is not None:
+            refused.update(entries=NA, sold=NA, stop=NA)
+            return dict(refused, journal=w.complete(refused, success=False))
+        meta, rep = _capture(close, scheduled, live_db, cap_dir, now, z.eligible_until(scheduled, day, cal))
+        rep.update(entries=NA, sold=NA, stop=NA)
+        proc, rec = _observe_process(out, rep, process_fn, crash_log)
+        _binding(rep, proc, None)                                   # B2.1: the observed binding IS the reference
+        if rep["process_binding"]["status"] != "REFERENCE" and "process_binding" not in rep.get("failures", {}):
+            rep.setdefault("failures", {})["process_binding"] = {
+                "class": "BindingUnavailable", "terminal": False,
+                "reason": f"the opening requires an observed process binding (B2.1): "
+                          f"{rep['process_binding'].get('reason')}"}
+        receipt, receipt_sha = _receipt(rep, receipt_fn, None)      # the opening receipt IS the reference
+        proj = _read_capture(cap_dir, meta, rep, None)    # fix round 1 (M-1): read before any refusal
+        seals, seals_err = _read_seals(out, rep)                 # fix round 1 (I-4b): preserved, never a crash
+        if proj is not None and seals_err is None:
+            rep["fence_violations"] = z.check_fences(seals, proj)
+        if receipt_sha is not None and rp.exists() and _stored_receipt(rp) != receipt:   # leftover, crashed before seal
+            rep["receipt_match"] = False
+            rep["refused"] = f"receipt conflict: stored {rp.name} differs from this run's receipt"
+            w.complete(rep, success=False)                # never sealed on this path (FAILED)
+            raise SystemExit(f"opening refused: stored {rp.name} differs from this run's receipt (no opening seal "
+                             f"exists; remove it only after checking which receipt is right)")
+        if proj is not None and rep["consistent"] and not rep["fence_violations"] and receipt_sha is not None \
+                and not rep.get("failures") and not rep["late"]:
+            rep["candidate"] = _candidate(rep, meta, cap_dir, proc, rec, receipt, receipt_sha, None, True)
+        result = w.complete(rep, success=bool(rep.get("candidate")))
+    if result["outcome"] != "APPEND":
+        return dict(rep, journal=result)
+    after = {"journal": result}
+    rows = None
 
     def before_seal(cand, seal_sha):                      # B3.1: registered just before the seal is written
-        _before_opening_seal(out, day["date"], seal_sha, now())                                 # fix5 (R-3)
+        _before_opening_seal(out, day["date"], seal_sha, now(), rows)                            # fix5 (R-3)
         _register_opening(out, day["date"], rp, (cand.get("process_binding") or {}).get("binding"), seal_sha)
-    if not rep.get("late_evidence"):
-        try:
-            _apply_finalize(rep, finalize_close(out, day, cal, now(), before_seal=before_seal,     # ruling 3:
-                                                before_build=lambda cand: _before_opening_build(out, rp, cand)))
-        except _ReceiptConflict as e:                     # fix round 1 (M-2): a concurrent run stored another
-            rep["receipt_match"] = False
-            rep["refused"] = f"receipt conflict (concurrent): {e}"
-            _write_report(cap_dir, rep)
-            raise
-        except (_OpeningEvidenceConflict, _OpeningSealConflict) as e:     # N-2 / R-3: never a second opening seal
-            rep["refused"] = str(e)
-            _write_report(cap_dir, rep)
-            raise
-    _write_report(cap_dir, rep)
-    return rep
+    try:
+        t_fin = now()                                     # fix round 1 (M1): t first, then the rows
+        rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
+        after.update(_seal_view(rep, finalize_close(out, day, cal, t_fin, before_seal=before_seal, rows=rows,
+                                                    before_build=lambda cand: _before_opening_build(out, rp,
+                                                                                                     cand))))
+    except _ReceiptConflict as e:                         # fix round 1 (M-2): a concurrent run stored another
+        w.after(dict(after, receipt_match=False, refused=f"receipt conflict (concurrent): {e}"))
+        raise
+    except (_OpeningEvidenceConflict, _OpeningSealConflict) as e:     # N-2 / R-3: never a second opening seal
+        w.after(dict(after, refused=str(e)))
+        raise
+    except _QualifiedEvidence as e:                                    # F3: a committed tree damaged
+        _qualified_violation(gv, w, out, e, now)
+    except j.JournalError as e:
+        raise SystemExit(f"opening seal selection refused: journal unreadable ({type(e).__name__}): no seal") \
+            from None
+    w.after(after)
+    return dict(rep, **after)
 
 
 # ------------------------------------------------------------------ final-snapshot mode (Task 7b)

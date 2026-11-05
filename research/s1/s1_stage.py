@@ -45,6 +45,11 @@ SEAL_SPEC = {"kind": "single", "pred": None, "ack": None, "state": "ACTIVE"}
 _SEAL_NAME = re.compile(r"seal/\d{4}-\d{2}-\d{2}", re.ASCII)
 
 
+class Pending(SystemExit):
+    """A live owner holds the stage lock (LockHeld): "pending", a refusal with no row and no work (F4 table). A
+    slot-path gate may defer it instead (evaluate(defer_pending=True), ruling N2 / Erratum 1 E1.2)."""
+
+
 class StageAbort(Exception):
     """A provider anomaly (provider-structural) or a score computation error (score-aborted): the staged evidence and
     an ABORTED record are kept, no PREPARED is appended, the trial becomes INVALID with this reason (F4.6, F4.9)."""
@@ -211,7 +216,7 @@ def _lock(gv, stage):
         lk = L.OwnershipLock(gv.root, gv.trial.trial_id, L.stage_lock_name(stage))
         lk.acquire()
     except L.LockHeld:
-        raise SystemExit(f"stage {stage}: pending - a live owner holds the stage lock: no work (F4 table)") from None
+        raise Pending(f"stage {stage}: pending - a live owner holds the stage lock: no work (F4 table)") from None
     except L.LockError as e:
         raise SystemExit(f"stage {stage}: lock error ({e}): refused with no row and no liveness verdict "
                          f"(F5.5)") from None
@@ -524,7 +529,7 @@ def _decide_locked(gv, stage, m) -> None:
     _resolve(gv, stage, m, gv.mailbox, None)
 
 
-def evaluate(gv) -> None:
+def evaluate(gv, *, defer_pending: bool = False) -> None:
     """The F4 stage-state table over the enforced stages, run by every gate (and the F7.3 live-file check): no INTENT
     + an artifact -> INVALID (registration-artifact; before the AUDIT-ACK the gate already refused); INTENT or
     PREPARED without CREATED -> pending while a live owner holds the lock, else stage-incomplete / recovery; CREATED ->
@@ -535,7 +540,12 @@ def evaluate(gv) -> None:
     E2.6 r3). Never creates s1_out (F6.6).
     Fix round 1 (I1, F5.1): the gate's snapshot `gv.rows` only selects what to look at. A CREATED row is final, so it
     is checked directly; every decision that depends on the ABSENCE of a row (no INTENT, no PREPARED, no CREATED) is
-    taken under the stage lock on rows re-read there: a live owner -> pending, never INVALID."""
+    taken under the stage lock on rows re-read there: a live owner -> pending, never INVALID.
+    A3 Task 6 (ruling N2, Erratum 1 E1.2): `defer_pending` (the slot paths: a worker's capture and, Task 7, the
+    finalizer's deadline rows) records a stage whose lock is HELD in gv.deferred and goes on, instead of refusing
+    "pending": a stalled stage owner never blocks a slot capture, a TIMEOUT at D or a MISSED at E. Deferring decides
+    nothing about that stage (the next gate after its lock is free does); a LockError still refuses (F5.5), and
+    every CREATED check and every decision on an acquirable lock is unchanged."""
     on_disk = _seals_on_disk(gv.out) if SEALS_ENFORCED else []
     for stage in list(TABLE) + sorted(set(seal_stages(gv.rows)) | set(on_disk)):
         if stage in TABLE and stage not in ENFORCED:
@@ -546,7 +556,13 @@ def evaluate(gv) -> None:
             continue
         if m["intent"] is None and not _artifacts_present(gv.out, stage):
             continue                                                           # no row, no artifact: nothing to do
-        lk = _lock(gv, stage)
+        try:
+            lk = _lock(gv, stage)
+        except Pending:
+            if not defer_pending:
+                raise
+            gv.deferred.append(stage)                                          # N2: undecided, not blocking
+            continue
         try:
             rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox)       # re-validated under the lock
             _decide_locked(gv, stage, stage_rows(rows, stage))

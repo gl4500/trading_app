@@ -15,6 +15,7 @@ import s1_common as c
 import s1_gates as g
 import s1_receipt as rc
 import s1_run as r
+from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_BINDING, S1_PROCESS, S1_RECEIPT, s1_receipt_with, s1_state
 from test_s1_t12_a5_a6 import S45, S47, SEAL_P, Snap, _registered
 from test_s1_t12_fix2_b1 import Clock, Killed, res_path, run
@@ -118,7 +119,32 @@ def test_mt_a_forged_success_without_complete_evidence_never_seals(tmp_path, mon
                         .encode("utf-8"))
     rep = run(tmp_path, st_, S47, clock)
     assert rep["seal"]["written"] is False and not SEAL_P(tmp_path).exists()
-    assert "bad resolution record" in str(read(tmp_path / "s1_out" / "aborted.json")["reason"])
+    # A3 Task 6 (F3: the journal decides): slot 45 has no row, so its forged SUCCESS file is never read or selected
+    # (the "bad resolution record" abort is replaced; the stray file's own INVALID is the F3 evidence table, Task 7):
+    # once slot 45's window has passed, slot 47 - the QUALIFIED one - is the seal, never the forged record
+    s22 = datetime(2026, 10, 26, 22, 0, tzinfo=UTC)                     # every earlier slot's window has passed
+    clock.t = s22 + timedelta(seconds=30)
+    run(tmp_path, st_, s22, clock)
+    assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()
+
+
+@pytest.mark.skip(reason="HELD with Task 7 (A3 Task 6 fix round 1, review I2): the F3 evidence table (no row: any "
+                         "claim, capture, report or resolution for s is INVALIDATE registration-artifact) is Task 7's "
+                         "s1_slot.slot_problems; until then a forged resolution of a no-row slot is not detected")
+def test_mt_a_forged_success_of_a_no_row_slot_is_invalid(tmp_path, monkeypatch):
+    """The detection half of test_mt_a_forged_success_without_complete_evidence_never_seals (B1.2's "corrupt
+    evidence" abort): a SUCCESS resolution forged into a slot with no journal row is the F3 "no row" violation -
+    TRIAL-INVALID (registration-artifact) and the abort, with zero live callbacks (Task 7)."""
+    st_ = _registered(tmp_path)
+    clock = Clock(S47 + timedelta(seconds=30))
+    monkeypatch.setattr(c, "now_utc", clock)
+    spy = Snap(monkeypatch)
+    c.publish_exclusive(res_path(tmp_path, S45), json.dumps({"outcome": "SUCCESS", "evidence": {"candidate": {}}})
+                        .encode("utf-8"))
+    with pytest.raises(SystemExit, match="registration-artifact"):
+        run(tmp_path, st_, S47, clock)
+    assert spy.calls == 0 and not SEAL_P(tmp_path).exists()
+    assert c.load_abort(tmp_path / "s1_out")["reason"] == c.REGISTRATION_ARTIFACT
 
 
 def test_mt_a_later_close_resolves_an_earlier_close_left_pending(tmp_path, monkeypatch):
@@ -137,10 +163,15 @@ def test_mt_a_later_close_resolves_an_earlier_close_left_pending(tmp_path, monke
     assert run(tmp_path, st_, S47, clock)["seal"]["written"] is False
     nxt = datetime(2026, 10, 27, 20, 45, tzinfo=UTC)
     clock.t = nxt + timedelta(seconds=30)
+    # fix round 1 (review C2): slot 45 is INTENT-only, not terminal: the finalizer's SLOT-TIMEOUT (Task 7's row; the
+    # B1 test helper) commits first
+    from test_s1_t12_fix2_b1 import D45, timeout_row
+    assert timeout_row(tmp_path, st_, S45, D45).outcome == "APPEND"
     run(tmp_path, st_, nxt, clock)
-    assert res_path(tmp_path, S45).exists(), "the earlier close was not resolved"
-    assert read(res_path(tmp_path, S45))["outcome"] == "RESOLUTION-TIMEOUT"
-    assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()
+    # A3 Task 6 (B1.3 -> F3, E1.4): the earlier close is resolved from the journal (slot 45: SLOT-TIMEOUT, slot 47
+    # QUALIFIED); no RESOLUTION-TIMEOUT file is written into its slot
+    assert not res_path(tmp_path, S45).exists()
+    assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat(), "the earlier close was not resolved"
 
 
 def test_mt_run_ack_problems_names_a_prereg_binding_that_is_not_the_opening_reference(tmp_path):
@@ -177,6 +208,7 @@ def _reg_prereg(tmp_path):
     st_ = s1_state(tmp_path, START)
     with _Clock(START_DT - timedelta(days=1)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
     st_["ledger"].set_portfolio("A", 10)
     return st_
@@ -211,10 +243,15 @@ def test_mt_a_duplicate_slot_execution_is_refused_before_any_capture(tmp_path, m
     spy = Snap(monkeypatch)
     sch = MON + timedelta(minutes=45)
     _cp(tmp_path, st_, sch, sch + timedelta(seconds=30))
+    import s1_journal as j
+    import s1_trial as t
+    mb = tmp_path / "mailbox.sqlite3"
+    before = j.read_all(mb)
     with pytest.raises(BaseException) as e:
         _cp(tmp_path, st_, sch, sch + timedelta(seconds=40))
-    assert e.type is SystemExit and "slot already" in str(e.value)
-    assert spy.calls == 1 and (tmp_path / "s1_out" / "reruns.jsonl").exists()
+    assert e.type is SystemExit and "a restart never re-intents" in str(e.value)    # A3 Task 6 (F3 pre-check)
+    assert spy.calls == 1 and j.read_all(mb) == before                   # no second capture and no row
+    assert t.open_trial(mb) is not None
 
 
 @pytest.mark.parametrize("why", ["late", "failed-observation"])
@@ -271,10 +308,17 @@ def test_mt_an_unbound_corrupt_seal_is_a_preserved_abort_not_a_crash(tmp_path, m
     except Exception as e:                                       # noqa: BLE001 - the property under test
         pytest.fail(f"a corrupt seal crashed the checkpoint: {type(e).__name__}")
     assert rep["stop"]["status"] == "ABORTED-INVALID"
-    assert list((out / "captures" / "2026-10-27").glob("*.report.json"))
+    # A3 Task 6 (OQ-31, E5.1): the preserved evidence is the committed observation (TRIAL-INVALID
+    # established-violation, subtype seal-record, external first) and the local abort; no P is published
+    assert rep["journal"] == {"kind": "TRIAL-INVALID", "reason": "established-violation", "subtype": "seal-record"}
+    assert read(next((out / "invalid").glob("*.json")))["subtype"] == "seal-record"
     assert "seal" in str(read(out / "aborted.json")["reason"])
 
 
+@pytest.mark.skip(reason="HELD with Task 11 (A3 Task 6, OQ-11/E5.2): the capture report is final before J and no "
+                         "longer records the stop hash (display-only after.json never is authority), so with stop.json "
+                         "and both stop records deleted nothing witnesses the legacy stop; Task 11's TRIAL-STOP detail "
+                         "is the stop's authority (F2)")
 def test_mt_a_deleted_stop_and_its_registry_record_is_never_recomputed_or_sealed_past(tmp_path):
     """Mutants "stop_was_persisted always false" / "run_checkpoint: a corrupt seal is not an abort" (m-4): with
     stop.json AND registry/stop.json deleted (the B3 gate then has no stop to check), the capture reports' recorded
