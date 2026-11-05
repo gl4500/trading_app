@@ -11586,7 +11586,7 @@ with open(RECORD, "w", encoding="utf-8") as f:
 
 # ---- revision 3 (PLAN-R2-1): exact nodeids, whole-selection control, TERMINAL assertion frame -----------------------
 JUNIT_OPTS = ["-o", "junit_family=xunit2", "-o", "junit_logging=no"]      # pinned explicitly, never the ini default
-TERMINAL = re.compile(r"^(?P<path>\S[^\n]*?):(?P<line>\d+): (?P<exc>[A-Za-z_][\w.]*)[ \t]*$", re.M)
+TERMINAL = re.compile(r"^(?P<path>\S[^\n]*?):(?P<line>\d+): (?P<exc>[A-Za-z_][\w.]*)(?::[^\n]*)?[ \t]*$", re.M)
 
 
 def xunit2_key(nodeid: str) -> tuple:
@@ -11642,7 +11642,7 @@ def run_child(cwd: Path, workdir: Path, selection: str, plugin_text: str, *, pyt
     junit = workdir / "junit.xml"
     env = dict(os.environ, PYTHONPATH=f"{workdir};{pythonpath}")
     base = [PY, "-m", "pytest", "-q", "-p", "no:cacheprovider"] + (["-p", "conftest"] if conftest else [])
-    col = subprocess.run(base + ["--collect-only", "-q", selection], cwd=cwd, env=env, capture_output=True,
+    col = subprocess.run(base + ["--collect-only", selection], cwd=cwd, env=env, capture_output=True,
                          text=True, timeout=600)
     nodeids = [ln.strip() for ln in col.stdout.splitlines() if "::" in ln and not ln.startswith(" ")]
     try:
@@ -11687,7 +11687,7 @@ def classify(name, control: dict, mutant: dict, agreed: dict) -> str:
         return "untested"                                           # the agreed case is not in the selection
     if mutant["timeout"]:
         return "timeout"
-    if mutant["junit"] is None and mutant["rc"] in (2, 3, 4):
+    if mutant["junit"] is None and mutant["rc"] in (1, 2, 3, 4, 5):
         return "error"                                              # pytest: interrupted/internal/usage (plugin)
     if mutant["junit"] is None or (mutant["rc"] is not None and mutant["rc"] < 0):
         return "crash"
