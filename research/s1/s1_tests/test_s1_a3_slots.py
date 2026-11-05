@@ -214,7 +214,11 @@ def test_lost_race_moves_only_own_uncommitted_files_to_late(tmp_path, monkeypatc
     assert not (out / "seals" / f"{day['date']}.json").exists()
     assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
     assert all(x.kind != "TRIAL-INVALID" for x in rows(tmp_path))
-    assert res["journal"]["recheck"] == []      # (Task 7 STUB: slot_problems returns [] until the F3 evidence table)
+    assert res["journal"]["recheck"] == []      # the winner's (TIMEOUT) evidence re-checked by the real F3 table
+    seal = out / "seals" / f"{day['date']}.json"            # (Task 7, review M3) control: the same re-check is not
+    seal.parent.mkdir(parents=True, exist_ok=True)          # vacuous - a seal citing the TIMEOUT slot is a violation
+    seal.write_text(json.dumps({"capture": {"scheduled": sch.isoformat()}}), encoding="utf-8")
+    assert sl.slot_problems(out, rows(tmp_path), j.slot_subject(sch), st_["calendar"]) != []
 
 
 CRASH_AFTER_P = r'''
@@ -540,7 +544,13 @@ def test_finalize_pending_never_seals_a_slot_without_a_qualified_row(tmp_path, m
     pr = json.loads((out / "prereg.json").read_text(encoding="utf-8"))
     ck.finalize_pending(out, cal, c.aware(pr["start"]), z.window_end(day, cal) + timedelta(hours=1))
     assert not (out / "seals" / f"{day['date']}.json").exists()
-    assert files() == before                                   # no file written into a live or no-row slot
+    # A3 Task 7 (E1.2, E1.4, OQ-13): the journal finalizer appends slot 45's TIMEOUT (past D, no QUALIFIED) and,
+    # the worker being gone, moves its leftovers to late/; nothing is ever written INTO a slot
+    assert [k_ for k_, *_ in slot_rows(tmp_path, s45)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+    assert set(files()) <= set(before)                         # no file written into a live or no-row slot
+    late = out / "late" / day["date"] / f"{s45:%Y%m%dT%H%M%SZ}"
+    gone = {Path(x).name for x in set(before) - set(files()) if x.count("/") == 2}
+    assert gone and gone <= {p.name for p in late.iterdir()}   # the losing op's own files, in late/ (never selectable)
 
 
 def test_an_in_flight_earlier_slot_defers_the_seal_even_past_its_d(tmp_path, monkeypatch):
@@ -584,10 +594,14 @@ def test_an_in_flight_earlier_slot_defers_the_seal_even_past_its_d(tmp_path, mon
     with _Clock(clock45[0]):
         ck.run_checkpoint(tmp_path, st_["ledger"].path, s45, lambda reference=None: S1_RECEIPT,
                           lambda: dict(S1_PROCESS), tmp_path / "crash.log", now=lambda: clock45[0])
-    assert nested["r47"]["seal"]["written"] is False and "in flight" in str(nested["r47"].get("deferred"))
-    assert [k_ for k_, *_ in slot_rows(tmp_path, s45)] == ["SLOT-INTENT", "SLOT-QUALIFIED"]
+    # A3 Task 7 (E1.2, E1.3, E1.7): slot 47's worker runs the journal finalizer after its J, at t >= D45: slot 45 is
+    # INTENT-only, so its SLOT-TIMEOUT commits first (the selection never skips it: C2) and the close is determined
+    # from slot 47; slot 45's later J (R < D45) is LOST-RACE at 4c - TIMEOUT stands, no INVALID
+    assert nested["r47"]["seal"]["written"] is True
+    assert [k_ for k_, *_ in slot_rows(tmp_path, s45)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
     seal = json.loads((tmp_path / "s1_out" / "seals" / f"{day['date']}.json").read_text(encoding="utf-8"))
-    assert seal["capture"]["scheduled"] == s45.isoformat()
+    assert seal["capture"]["scheduled"] == s47.isoformat()
+    assert all(x.kind != "TRIAL-INVALID" for x in rows(tmp_path))
 
 
 def test_a_damaged_qualified_tree_on_another_pending_close_is_invalid(tmp_path):

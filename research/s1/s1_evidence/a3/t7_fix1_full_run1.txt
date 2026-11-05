@@ -1,0 +1,113 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+........................................................................ [ 23%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 37%]
+........................................................................ [ 41%]
+........................................................................ [ 46%]
+........................................................................ [ 51%]
+........................................................................ [ 55%]
+........................................................................ [ 60%]
+........................................................................ [ 64%]
+........................................................................ [ 69%]
+........................................................................ [ 74%]
+...................s..................................s................. [ 78%]
+........................................................................ [ 83%]
+........................................................................ [ 88%]
+........................................................................ [ 92%]
+..................FF................................................s... [ 97%]
+.......................................                                  [100%]
+================================== FAILURES ===================================
+_ test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts[2026-10-24] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21148/test_h3_probe_a_session_insert0')
+fake = '2026-10-24'
+
+    @pytest.mark.parametrize("fake", ["2026-10-24", "2026-10-25"])
+    def test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts(tmp_path, fake):
+        """H-3 reviewer probe test_calendar_insert_after_opening (B3.3): after the opening seal (before any RUN-ACK) a
+        fake session is inserted into audit/calendar.json between the real opening close and START. The opening close
+        comes from plan.json verified against the AUDIT-ACK's plan_sha256 and the anchor never reads calendar.json, so the
+        next opening slot records the persistent "registration artifact" abort (the calendar is bound by the audit
+        manifest); restoring calendar.json does not resume: the START attestation is refused and the abort stays."""
+        start, cal, oc, _ = s1_plan_audit(tmp_path, START)
+        lg = Ledger(tmp_path / "l.sqlite3")
+        assert s1_opening_checkpoint(tmp_path, lg, oc, cal, S1_RECEIPT)["seal"]["written"]
+        out = tmp_path / "s1_out"
+        cp = out / "audit" / "calendar.json"
+        good = cp.read_bytes()
+        rows = json.loads(good)
+        rows.append({"date": fake, "open": "09:30", "close": "16:00"})
+        rows.sort(key=lambda x: x["date"])
+        cp.write_text(json.dumps(rows), encoding="utf-8")
+        sch = z.schedule(next(d for d in cal if d["date"] == oc), cal)[8]
+        act = sch + timedelta(seconds=30)
+        with _Clock(act), pytest.raises(SystemExit):
+            ck.run_opening_checkpoint(tmp_path, lg.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                                      tmp_path / "crash.log", now=lambda: act)
+>       assert _aborted(tmp_path)["reason"] == "registration artifact"
+
+research\s1\s1_tests\test_s1_t12_fix9.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21148/test_h3_probe_a_session_insert0')
+
+    def _aborted(tmp_path):
+        p = tmp_path / "s1_out" / "aborted.json"
+>       assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E       AssertionError: no persistent abort recorded
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21148/test_h3_probe_a_session_insert0/s1_out/aborted.json').exists
+
+research\s1\s1_tests\test_s1_t12_fix2_b3.py:83: AssertionError
+_ test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts[2026-10-25] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21148/test_h3_probe_a_session_insert1')
+fake = '2026-10-25'
+
+    @pytest.mark.parametrize("fake", ["2026-10-24", "2026-10-25"])
+    def test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts(tmp_path, fake):
+        """H-3 reviewer probe test_calendar_insert_after_opening (B3.3): after the opening seal (before any RUN-ACK) a
+        fake session is inserted into audit/calendar.json between the real opening close and START. The opening close
+        comes from plan.json verified against the AUDIT-ACK's plan_sha256 and the anchor never reads calendar.json, so the
+        next opening slot records the persistent "registration artifact" abort (the calendar is bound by the audit
+        manifest); restoring calendar.json does not resume: the START attestation is refused and the abort stays."""
+        start, cal, oc, _ = s1_plan_audit(tmp_path, START)
+        lg = Ledger(tmp_path / "l.sqlite3")
+        assert s1_opening_checkpoint(tmp_path, lg, oc, cal, S1_RECEIPT)["seal"]["written"]
+        out = tmp_path / "s1_out"
+        cp = out / "audit" / "calendar.json"
+        good = cp.read_bytes()
+        rows = json.loads(good)
+        rows.append({"date": fake, "open": "09:30", "close": "16:00"})
+        rows.sort(key=lambda x: x["date"])
+        cp.write_text(json.dumps(rows), encoding="utf-8")
+        sch = z.schedule(next(d for d in cal if d["date"] == oc), cal)[8]
+        act = sch + timedelta(seconds=30)
+        with _Clock(act), pytest.raises(SystemExit):
+            ck.run_opening_checkpoint(tmp_path, lg.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                                      tmp_path / "crash.log", now=lambda: act)
+>       assert _aborted(tmp_path)["reason"] == "registration artifact"
+
+research\s1\s1_tests\test_s1_t12_fix9.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21148/test_h3_probe_a_session_insert1')
+
+    def _aborted(tmp_path):
+        p = tmp_path / "s1_out" / "aborted.json"
+>       assert p.exists(), "no persistent abort recorded"     # (strengthened after GREEN: an assertion, not a read error)
+E       AssertionError: no persistent abort recorded
+E       assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21148/test_h3_probe_a_session_insert1/s1_out/aborted.json').exists
+
+research\s1\s1_tests\test_s1_t12_fix2_b3.py:83: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_t12_fix9.py::test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts[2026-10-24]
+FAILED research/s1/s1_tests/test_s1_t12_fix9.py::test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_aborts[2026-10-25]
+2 failed, 1546 passed, 3 skipped in 1115.42s (0:18:35)

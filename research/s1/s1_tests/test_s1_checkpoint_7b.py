@@ -658,17 +658,21 @@ def test_cr_opening_failed_capture_is_reported_not_a_crash(tmp_path, ledger, mon
 
 
 @pytest.mark.parametrize("bad", ["{}", "[]", "dup"])
-def test_cr_final_snapshot_refuses_on_a_bad_seal_record(tmp_path, bad):
+def test_cr_final_snapshot_refuses_on_a_bad_seal_record(tmp_path, monkeypatch, bad):
     """Retrospective (Task 9 CR survivors s1_checkpoint:339): a seal the stop decision cannot read (KeyError,
     TypeError) or two seals for one close (ValueError) -> SystemExit "bad seal record", no attempt."""
     st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
     seals = tmp_path / "s1_out" / "seals"
     last = sorted(seals.glob("*.json"))[-1]
     (seals / "zz.json").write_text(last.read_text() if bad == "dup" else bad, encoding="utf-8")
-    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):   # A3 fix 1 (I-2)
+    # A3 Task 7 (E2.4 r3, OQ-14): the gate's F3 table commits it (a seal file outside any seal stage)
+    with pytest.raises(t.Refusal, match=r"seals/zz\.json is not the seal .*INVALID \(registration-artifact\)"):
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
     assert not (tmp_path / "s1_out" / "final_snapshot").exists()   # the command captures nothing; the
     # fence logic is then reached at unit level (_final_snapshot_capture, after every gate)
+    # (A3 Task 7: finalize_pending is the journal finalizer behind its own trial gate, which refuses the now INVALID
+    # trial; at unit level it is a no-op so the fence logic under test is still reached)
+    monkeypatch.setattr(ck, "finalize_pending", lambda *a, **kw: None)
     if bad == "dup":
         # Task 12 (A2.1/A2.3, A10.1) REPLACEMENT for the duplicate: the stop is the PERSISTED one (never recomputed,
         # so no "two seals" ValueError); the extra seal is a frozen-slice integrity failure RECORDED by the
@@ -717,7 +721,7 @@ def test_cr_failed_final_attempt_is_not_fence_checked(tmp_path, monkeypatch):
     (lambda s: s.update(fence={"x": "h"}), "ValueError"),
     (lambda s: s.update(max_id="a"), "TypeError"),
 ])
-def test_cr_final_snapshot_records_a_malformed_seal_fence_as_a_violation(tmp_path, edit, kind):
+def test_cr_final_snapshot_records_a_malformed_seal_fence_as_a_violation(tmp_path, monkeypatch, edit, kind):
     """Retrospective (Task 9 CR survivors s1_checkpoint:402): a seal whose fence/max_id cannot be checked (but whose
     close/rows the stop decision reads) is recorded as "bad seal record: <error>", fence_checked True."""
     st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
@@ -725,10 +729,14 @@ def test_cr_final_snapshot_records_a_malformed_seal_fence_as_a_violation(tmp_pat
     s = read(p)
     edit(s)
     p.write_text(json.dumps(s), encoding="utf-8")
-    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):   # A3 fix 1 (I-2)
+    # A3 Task 7 (E2.6 r3): the edited seal is a CREATED seal/<close> stage member: INVALID (stage-replaced)
+    with pytest.raises(SystemExit, match=r"member seals/.* missing or changed.*INVALID \(stage-replaced\)"):
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
     assert not (tmp_path / "s1_out" / "final_snapshot").exists()   # the command captures nothing; the
     # fence logic is then reached at unit level (_final_snapshot_capture, after every gate)
+    # (A3 Task 7: finalize_pending is the journal finalizer behind its own trial gate, which refuses the now INVALID
+    # trial; at unit level it is a no-op so the fence logic under test is still reached)
+    monkeypatch.setattr(ck, "finalize_pending", lambda *a, **kw: None)
     rep = ck._final_snapshot_capture(tmp_path / "s1_out", st_["ledger"].path, lambda: st_["snapshot_at"])
     assert rep["fence_checked"] is True and rep["fence_violations"][0].startswith(f"bad seal record: {kind}")
 

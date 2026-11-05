@@ -276,6 +276,13 @@ def test_n3_probe_two_handmade_later_stage_files_before_any_opening_are_a_refusa
     start, cal, oc, _ = s1_plan_audit(tmp_path, START)
     _fabricate(tmp_path, pair, cal)
     spies = Spies(monkeypatch)
+    if pair[1] == "seals/2026-01-01.json":
+        # A3 Task 7 (E2.4 r3, "in every state"): a seal file of a non-opening close with no seal-stage row is a
+        # registration artifact once the trial exists: TRIAL-INVALID at the gate, zero live callbacks
+        with pytest.raises(SystemExit, match=r"seal/2026-01-01: artifacts .*INVALID \(registration-artifact\)"):
+            _cp(tmp_path, Ledger(tmp_path / "l.sqlite3").path, spies)
+        assert spies.zero(), spies.n
+        return
     with pytest.raises(SystemExit):
         _cp(tmp_path, Ledger(tmp_path / "l.sqlite3").path, spies)
     assert c.load_abort(tmp_path / "s1_out") is None, c.load_abort(tmp_path / "s1_out")

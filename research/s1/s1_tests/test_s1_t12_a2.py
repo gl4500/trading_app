@@ -115,8 +115,10 @@ def test_a2_no_valid_seal_is_terminal_persisted_and_never_rescued_by_a_late_seal
     s = read(out / "stop.json")
     assert s["status"] == "NO-VALID-SEAL" and s["stop_close"] is None and s["stop_seal"] is None
     before = (out / "stop.json").read_bytes()
-    _write_seal(out, "2026-10-26", datetime(2026, 10, 26, 20, 0, tzinfo=UTC), st_["rows"], S1_RECEIPT,
-                start=START_DT, opening_close=datetime(2026, 10, 23, 20, 0, tzinfo=UTC))
+    # A3 Task 7 (E2.4/E2.6 r3): no seal stage can start after the STOP, so the late 'rescue' seal can only be a file
+    # written outside any stage (here the opening seal's bytes under an eligible close's name): a registration
+    # artifact at the score's gate (TRIAL-INVALID), and never a trial result
+    (out / "seals" / "2026-10-26.json").write_bytes((out / "seals" / "2026-10-23.json").read_bytes())
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
     s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
     rep = s1_score_refused(tmp_path, "score-ack-2")   # A3 F0.6/F1: refused; the unit-level record
@@ -168,11 +170,15 @@ def test_a2_integrity_of_the_frozen_slices_is_enforced_at_score(tmp_path, monkey
         p.write_text(json.dumps(dict(read(p), note="x")), encoding="utf-8")
     elif tamper == "slice_seal_deleted":
         (out / "seals" / "2026-10-26.json").unlink()
-    else:
-        _write_seal(out, "2026-10-22", datetime(2026, 10, 22, 20, 0, tzinfo=UTC), [], S1_RECEIPT)
+    else:                                             # A3 Task 7 (E2.6): no seal stage after the STOP - an extra
+        (out / "seals" / "2026-10-22.json").write_bytes(    # seal can only be a file outside any stage
+            (out / "seals" / "2026-10-23.json").read_bytes())
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
     s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
-    rep = s1_score_refused(tmp_path, "score-ack-2")   # A3 F0.6/F1: refused; the unit-level record
+    # A3 Task 7 (E2.4/E2.6 r3): a changed or deleted CREATED seal is stage-replaced; an extra one with no stage rows
+    # is a registration artifact - both TRIAL-INVALID at the score's gate (the unit-level record is unchanged)
+    rep = s1_score_refused(tmp_path, "score-ack-2",
+                           reason="registration-artifact" if tamper == "extra_slice_seal" else "stage-replaced")
     assert rep["verdict"] == "ABORTED-INVALID" and any("stop" in x or "seal" in x for x in rep["reasons"]), \
         rep["reasons"]
 

@@ -37,9 +37,10 @@ TRIAL_ID_MEMBERS = {"audit": ("audit/attempt.json",), "start_attest": ("attest_s
                     "final_plan": ("final_plan.json",), "final": ("final/attempt.json",),
                     "score": ("score/attempt.json", "score/s1.json")}
 ENFORCED = frozenset()      # transitional (Task 8); Tasks 9-13 add their stage; Task 14 requires all of TABLE
-# Transitional (Task 8): seal files on disk with no seal-stage row are evaluated (E2.4 r3) only once the post-START
-# seal writer is a stage (Task 7 sets this True). Seal stages that have journal rows are always evaluated.
-SEALS_ENFORCED = False
+# Transitional (Task 8; Task 14 deletes it with ENFORCED): seal files on disk with no seal-stage row are evaluated
+# (E2.4 r3) once the post-START seal writer is a stage - A3 Task 7 made it one (s1_slot.run_seal_stage), so it is True.
+# Seal stages that have journal rows are always evaluated.
+SEALS_ENFORCED = True
 SEAL_PREFIX = "seal/"                                                         # E2.1 r3: stage seal/<close date>
 SEAL_SPEC = {"kind": "single", "pred": None, "ack": None, "state": "ACTIVE"}
 _SEAL_NAME = re.compile(r"seal/\d{4}-\d{2}-\d{2}", re.ASCII)

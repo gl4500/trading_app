@@ -256,7 +256,9 @@ def test_mf_the_final_plan_refuses_a_changed_frozen_slice(tmp_path):
     with _Clock(st_["stop_attested_at"] + timedelta(hours=1)):
         # (fix round 2, B3.3: the post-stop integrity check is now the registration gate's persistent abort,
         # observed before _stop_state's own check; the frozen slice is named either way)
-        with pytest.raises(SystemExit, match="frozen slice"):
+        # A3 Task 7 (E2.6 r3): the frozen slice is a CREATED seal/<close> stage member - its change is INVALID
+        # (stage-replaced) at the final plan's own trial gate, before either legacy check
+        with pytest.raises(SystemExit, match=r"seals/2026-10-26\.json missing or changed.*INVALID \(stage-replaced\)"):
             k.write_final_plan(tmp_path)
 
 

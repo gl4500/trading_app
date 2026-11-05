@@ -1,0 +1,3 @@
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_evidence_check_runs_after_the_plan_check
+1 failed, 53 deselected in 0.50s

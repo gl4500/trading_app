@@ -173,7 +173,7 @@ def test_score_with_a_seal_missing_its_bridge_record_is_aborted_invalid(tmp_path
     st_ = s1_state(tmp_path, START, score_ready=True, bridge=BRIDGE)
     _edit_first_seal(tmp_path, lambda s: s.pop("bridge"))
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")   # A3 T7 (E2.6): the edited CREATED seal
     assert rep["verdict"] == "ABORTED-INVALID" and any("bridge" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -183,7 +183,7 @@ def test_score_with_a_bridge_hash_differing_from_the_final_ledger_is_aborted_inv
     st_ = s1_state(tmp_path, START, score_ready=True, bridge=BRIDGE)
     _edit_first_seal(tmp_path, lambda s: s["bridge"].update(bridge_sha256="0" * 64))
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")   # A3 T7 (E2.6): the edited CREATED seal
     assert rep["verdict"] == "ABORTED-INVALID" and any("bridge" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -261,6 +261,6 @@ def test_score_with_a_bridge_record_not_matching_its_rows_is_aborted_invalid(tmp
     st_ = s1_state(tmp_path, START, score_ready=True, bridge=BRIDGE)
     _edit_first_seal(tmp_path, lambda s: s["bridge"].update(bridge_row_ids=s["bridge"]["bridge_row_ids"][1:]))
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")   # A3 T7 (E2.6): the edited CREATED seal
     assert rep["verdict"] == "ABORTED-INVALID", rep["reasons"]
     assert any("bridge record does not match its rows" in x for x in rep["reasons"]), rep["reasons"]

@@ -415,7 +415,7 @@ def test_score_seal_or_receipt_violation_is_invalid(tmp_path, monkeypatch, tampe
         seal["capture"]["projection_sha256"] = "e" * 64
     p.write_text(json.dumps(seal), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    assert s1_score_refused(tmp_path, "score-ack")["verdict"] == "ABORTED-INVALID"
+    assert s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")["verdict"] == "ABORTED-INVALID"
 
 
 def test_score_no_valid_seal_is_never_fail(tmp_path, monkeypatch):                       # Review Focus 5
@@ -804,7 +804,7 @@ def test_malformed_seal_is_recorded_as_aborted_invalid_not_refused_forever(tmp_p
     del seal["close"]
     p.write_text(json.dumps(seal), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rec = s1_score_refused(tmp_path, "score-ack")             # A3 F0.6/F1: refused; the unit-level record
+    rec = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")             # A3 F0.6/F1: refused; the unit-level record
     assert rec["verdict"] == "ABORTED-INVALID"
 
 
@@ -1090,7 +1090,9 @@ def test_cr_attest_stop_statement_and_bad_seal(tmp_path, monkeypatch):
     seals = tmp_path / "s1_out" / "seals"
     (seals / "zz.json").write_bytes((seals / "2026-10-23.json").read_bytes())
     at(monkeypatch, START_DT + timedelta(days=3))
-    with pytest.raises(SystemExit, match="bad seal record"):
+    # A3 Task 7 (E2.4 r3, OQ-14): a seal file outside any seal stage (a copy under another name) is a registration
+    # artifact at the stop attestation's gate - TRIAL-INVALID, never only a "bad seal record" refusal
+    with pytest.raises(SystemExit, match=r"seals/zz\.json is not the seal .*INVALID \(registration-artifact\)"):
         r.attest_stop(tmp_path, r.STOP_STATEMENT)
 
 
@@ -1122,7 +1124,7 @@ def test_cr_malformed_seal_without_final_manifest_is_still_scored_invalid(tmp_pa
     p.write_text(json.dumps(seal), encoding="utf-8")
     s1_reack(tmp_path, "ack-nf", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
-    rec = s1_score_refused(tmp_path, "ack-nf")                # A3 F0.6/F1: refused; the unit-level record
+    rec = s1_score_refused(tmp_path, "ack-nf", reason="stage-replaced")                # A3 F0.6/F1: refused; the unit-level record
     assert rec["verdict"] == "ABORTED-INVALID"
     r._pre_reserve_gate(out, {"ack_id": "ack-nf",                # unit level: no final manifest is demanded
                               "created_utc": (st_["now"] - timedelta(hours=1)).isoformat()})
@@ -1588,7 +1590,7 @@ def test_fr1_unreadable_seal_rows_are_a_bad_seal_record_reason(tmp_path, monkeyp
     seal["trades"][-1]["action"] = "HOLD"
     p.write_text(json.dumps(seal), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["outcome"] == "SCORED" and rep["verdict"] == "ABORTED-INVALID"
     # Task 12 (A2.3, A10.1) REPLACEMENT of the reason: the seal is a frozen slice of the persisted stop, so its
     # change is reported as such (the persisted stop is never recomputed from the changed rows)

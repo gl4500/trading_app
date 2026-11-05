@@ -1,0 +1,73 @@
+.F.F.FF                                                                  [100%]
+================================== FAILURES ===================================
+_ test_a_worker_starting_during_the_seal_stage_recheck_is_not_a_violation[legitimate-start] _
+research\s1\s1_tests\test_s1_a3_finalizer.py:767: in test_a_worker_starting_during_the_seal_stage_recheck_is_not_a_violation
+    REAL_RUN_SEAL_STAGE(gv, day, st_["calendar"], mailbox=tmp_path / "mailbox.sqlite3", clock=lambda: at)
+research\s1\s1_slot.py:551: in run_seal_stage
+    evidence_violation(gv, probs, f"seal stage {stage}", mailbox)
+research\s1\s1_slot.py:748: in evidence_violation
+    raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E   s1_trial.Refusal: seal stage seal/2026-10-26: slot evidence violation ['slot/20261026T204700Z: claim exists with no journal row (F3)']: INVALID (registration-artifact)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:769: in test_a_worker_starting_during_the_seal_stage_recheck_is_not_a_violation
+    pytest.fail(f"a legitimate worker start inside the re-check window was refused: {e}")
+E   Failed: a legitimate worker start inside the re-check window was refused: seal stage seal/2026-10-26: slot evidence violation ['slot/20261026T204700Z: claim exists with no journal row (F3)']: INVALID (registration-artifact)
+_ test_a_worker_starting_during_the_opening_recheck_is_not_a_violation[legitimate-start] _
+research\s1\s1_tests\test_s1_a3_finalizer.py:791: in test_a_worker_starting_during_the_opening_recheck_is_not_a_violation
+    rep = s1_opening_checkpoint(tmp_path, Ledger(tmp_path / "l.sqlite3"), oc, cal, S1_RECEIPT)
+research\s1\s1_tests\conftest.py:543: in s1_opening_checkpoint
+    return ck.run_opening_checkpoint(root, ledger.path, sch, lambda: receipt, lambda: dict(S1_PROCESS),
+research\s1\s1_checkpoint.py:826: in run_opening_checkpoint
+    s1_slot.evidence_violation(gv, probs, "opening seal selection", mailbox, clock=now)
+research\s1\s1_slot.py:748: in evidence_violation
+    raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E   s1_trial.Refusal: opening seal selection: slot evidence violation ['slot/20261023T204700Z: claim exists with no journal row (F3)']: INVALID (registration-artifact)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:793: in test_a_worker_starting_during_the_opening_recheck_is_not_a_violation
+    pytest.fail(f"a legitimate opening-slot start inside the re-check window was refused: {e}")
+E   Failed: a legitimate opening-slot start inside the re-check window was refused: opening seal selection: slot evidence violation ['slot/20261023T204700Z: claim exists with no journal row (F3)']: INVALID (registration-artifact)
+___________ test_a_journal_read_error_in_the_gate_hook_is_a_refusal ___________
+research\s1\s1_tests\test_s1_a3_finalizer.py:809: in test_a_journal_read_error_in_the_gate_hook_is_a_refusal
+    with pytest.raises(SystemExit, match=r"journal unreadable .*refused with no row"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+________________ test_slot_rows_without_a_calendar_fail_closed ________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:823: in test_slot_rows_without_a_calendar_fail_closed
+    with pytest.raises(SystemExit, match=r"no registered calendar .*fail closed"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_seal_stage_recheck_is_not_a_violation[legitimate-start]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_opening_recheck_is_not_a_violation[legitimate-start]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_journal_read_error_in_the_gate_hook_is_a_refusal
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_rows_without_a_calendar_fail_closed
+4 failed, 3 passed, 53 deselected in 5.00s
+
+===== revised M2/M3 tests, re-run against the pre-fix gate hook (evidence_check body reverted) =====
+FF                                                                       [100%]
+================================== FAILURES ===================================
+___________ test_a_journal_read_error_in_the_gate_hook_is_a_refusal ___________
+research\s1\s1_tests\test_s1_a3_finalizer.py:815: in test_a_journal_read_error_in_the_gate_hook_is_a_refusal
+    t.gate(tmp_path, "M2 outage")
+research\s1\s1_trial.py:571: in gate
+    s1_slot.evidence_check(gv)                            # (Deviation 1, Task 8 D4: a foreign root is never judged)
+research\s1\s1_slot.py:788: in evidence_check
+    first = evidence_problems(out, read(), cal)
+research\s1\s1_slot.py:787: in read
+    return j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox)
+research\s1\s1_tests\test_s1_a3_finalizer.py:810: in outage_in_the_hook
+    raise j.Outage("mailbox unreadable (OperationalError)")
+E   s1_journal.Outage: mailbox unreadable (OperationalError)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:817: in test_a_journal_read_error_in_the_gate_hook_is_a_refusal
+    pytest.fail(f"the hook let a JournalError escape: {e!r}")
+E   Failed: the hook let a JournalError escape: Outage('mailbox unreadable (OperationalError)')
+________________ test_slot_rows_without_a_calendar_fail_closed ________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:832: in test_slot_rows_without_a_calendar_fail_closed
+    with pytest.raises(SystemExit, match=r"no registered calendar .*fail closed"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_journal_read_error_in_the_gate_hook_is_a_refusal
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_rows_without_a_calendar_fail_closed
+2 failed, 58 deselected in 1.45s

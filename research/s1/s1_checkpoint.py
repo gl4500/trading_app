@@ -19,6 +19,9 @@ function of those records in slot order (finalize_close), so concurrent finalize
 capture's observed binding is the registered process-binding reference (bound by the START attestation, RUN-ACK and
 prereg); process_binding.json is gone. B3 - the registration-artifact gate (s1_common.verify_bundle_first) runs in
 every mode; the opening seal is registered (registry/opening.json) just before it is written.
+(A3 Task 7: the B1 resolution-record mechanism above is superseded - no finalizer publishes MISSED or
+RESOLUTION-TIMEOUT records any more; a slot's state is its journal rows (F3: the finalizer's SLOT-TIMEOUT /
+SLOT-MISSED), and a post-START seal is the seal/<close> stage, s1_slot.finalize_close / run_seal_stage.)
 
 A3 Task 6 (Addendum 3 F3, F0.5, F1, F5.1/E1, F7.4; s1_slot.Worker): both seal modes run one slot worker - the slot
 work lock, SLOT-INTENT, the claim (op, actor, capture_dir), P (resolution, then report: final before J), R, then J
@@ -314,10 +317,6 @@ CANDIDATE_KEYS = ("projection_sha256", "dir", "max_id", "capture_start", "captur
                   "receipt_sha256", "receipt_provenance", "bridge", "bundle_sha256", "process_binding")
 
 
-def _claim_path(cap_dir: Path) -> Path:
-    return cap_dir.parent / f"{cap_dir.name}.attempt.json"
-
-
 def _res_path(cap_dir: Path) -> Path:
     return cap_dir.parent / f"{cap_dir.name}.resolution.json"
 
@@ -354,43 +353,6 @@ def _read_resolution(p: Path):
     if not isinstance(rec, dict) or rec.get("outcome") not in (SUCCESS, FAILURE, MISSED, TIMEOUT):
         raise ValueError(f"resolution record {p.name} malformed")
     return rec
-
-
-def _resolve(p: Path, rec: dict) -> dict:
-    """B1.3: the ONE exclusive, irreversible transition of a slot: publish `rec` unless a resolution exists; returns
-    the stored record (this one, or the earlier winner)."""
-    rec = _jsonable(rec)
-    try:
-        c.publish_exclusive(p, json.dumps(rec, indent=1, sort_keys=True).encode("utf-8"))
-    except FileExistsError:
-        return _read_resolution(p)
-    return rec
-
-
-def _seal_bytes(day, close: datetime, ev: dict) -> bytes:
-    """The bytes of the close's seal built from a SUCCESS resolution's evidence -
-    deterministic, so every finalizer of the close builds the identical seal."""
-    cand = ev["candidate"]
-    cap_dir = Path(cand["dir"])
-    proj_p = cap_dir / "projection.json"
-    if not proj_p.is_file() or c.sha256_file(proj_p) != cand["projection_sha256"]:
-        raise _NoSeal(f"candidate capture {cap_dir.name} differs from its recorded projection")
-    proj = _load(proj_p)
-    cap = {"scheduled": ev["scheduled"], "actual": ev["actual"], "capture_start": cand["capture_start"],
-           "capture_end": cand["capture_end"], "ok": True, "consistent": True,
-           "projection_sha256": cand["projection_sha256"], "dir": cand["dir"]}
-    seal = {"close": close.isoformat(), "fence": z.fence(proj), "max_id": cand["max_id"], "trades": proj["trades"],
-            "capture": cap, "restart_record": cand["restart_record"], "process": cand["process"],
-            "process_binding": cand["process_binding"],
-            "receipt_sha256": cand["receipt_sha256"], "receipt_match": True,
-            "receipt_provenance": cand["receipt_provenance"], "bundle_sha256": cand["bundle_sha256"]}
-    if cand.get("bridge") is not None:
-        seal["bridge"] = cand["bridge"]
-    return json.dumps(seal).encode("utf-8")
-
-
-class _NoSeal(Exception):
-    """The chosen candidate cannot be sealed (recorded as a refusal; the close may stay unsealed)."""
 
 
 class _QualifiedEvidence(ValueError):
@@ -436,21 +398,15 @@ def _journal_slot(rp: Path, slot, day, cal, t: datetime, rows) -> tuple:
     return "skip", None
 
 
-def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_build=None, *, rows=None) -> dict:
-    """Addendum 2 B1.4 (amends A5.2): the serialized close-level selection. Walk the close's slots in ORIGINAL
-    SLOT ORDER over their immutable resolution records: an unresolved slot that is claimed is PENDING until D (the
-    selection waits; at/after D this finalizer publishes RESOLUTION-TIMEOUT), one never claimed waits until E
-    (then MISSED); the first SUCCESS is the seal. Every record is exclusive and immutable and the seal bytes are a
-    function of that record, so concurrent finalizers and restart replays write one identical seal. Respects a
-    persisted stop and any abort (no seal). `before_build(candidate)` runs before the seal is built and
-    `before_seal(candidate, seal_sha256)` just before it is written (the opening: receipt, then registry).
-    Returns {"written", "sha256", "from_slot", "deferred", "refused"}.
-    A3 Task 6 (F3: the journal decides). `rows` (the trial's verified journal rows; every Task 6 slot caller passes
-    them) is the journal mode: each slot's state is its rows (_journal_slot) - only a SLOT-QUALIFIED slot is
-    selectable, and no resolution file is ever written (E1.4: a live worker's files are never touched; the TIMEOUT /
-    MISSED rows are the finalizer's, Task 7). Without `rows`: the legacy resolution-only selection, which writes
-    RESOLUTION-TIMEOUT / MISSED records - no product caller uses it any more (fix round 1, review C1: finalize_pending
-    is journal mode too); Task 7 removes it."""
+def _opening_selection(out: Path, day, cal, t: datetime, rows, before_seal=None, before_build=None) -> dict:
+    """The OPENING close's serialized selection until Task 10 makes the opening a stage. Journal mode only (A3 Task
+    6): each slot's state is its rows (_journal_slot); only a SLOT-QUALIFIED slot is selectable, its tree verified
+    (F3); no resolution file is ever written (E1.4). `before_build(candidate)` runs before the seal is built and
+    `before_seal(candidate, seal_sha256)` just before it is written (the opening: receipt, then registry). A3 Task 7:
+    the legacy resolution-file branch (RESOLUTION-TIMEOUT / MISSED records, B1.3) is removed; post-START closes use the
+    journal finalizer and the seal/<close> stages (finalize_close). Returns {"written", "sha256", "from_slot",
+    "deferred", "refused"}."""
+    import s1_slot
     out = Path(out)
     res = {"written": False, "sha256": None, "from_slot": None, "deferred": None, "refused": None}
     if c.load_abort(out) is not None or (out / "stop.json").exists():
@@ -461,45 +417,20 @@ def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_bu
         return res
     close = z.close_of(day["date"], cal)
     for slot in z.schedule(day, cal):
-        cap_dir = _capture_dir(out, day["date"], slot)
-        rp = _res_path(cap_dir)
-        if rows is not None:                               # A3 Task 6: the journal mode (no file is written)
-            action, rec = _journal_slot(rp, slot, day, cal, t, rows)
-            if action == "defer":
-                res["deferred"] = rec
-                return res
-            if action == "skip":
-                continue
-        else:
-            rec = _read_resolution(rp)
-        if rec is None:
-            until = z.eligible_until(slot, day, cal)
-            dl = z.resolution_deadline(slot, day, cal)
-            if _claim_path(cap_dir).exists():
-                if t < dl:
-                    res["deferred"] = (f"earlier slot {slot.isoformat()} is claimed and pending (no published report "
-                                       f"before its resolution deadline {dl.isoformat()}): the seal waits for slot "
-                                       f"order (B1)")
-                    return res
-                rec = _resolve(rp, {"outcome": TIMEOUT, "slot": slot.isoformat(), "deadline_utc": dl.isoformat(),
-                                    "decided_utc": t.isoformat(), "decided_by": "finalizer"})
-            else:
-                if t <= until:
-                    res["deferred"] = (f"earlier slot {slot.isoformat()} unresolved (never claimed; its window is "
-                                       f"open until {until.isoformat()}): the seal waits for slot order (A5.2)")
-                    return res
-                rec = _resolve(rp, {"outcome": MISSED, "slot": slot.isoformat(), "eligible_until": until.isoformat(),
-                                    "decided_utc": t.isoformat()})
-        if rec["outcome"] != SUCCESS:
+        action, rec = _journal_slot(_res_path(_capture_dir(out, day["date"], slot)), slot, day, cal, t, rows)
+        if action == "defer":
+            res["deferred"] = rec
+            return res
+        if action == "skip":
             continue
         ev = rec.get("evidence")
         if not _complete_success(ev):
-            raise ValueError(f"resolution record {rp.name} claims SUCCESS without complete evidence")
+            raise ValueError(f"the resolution record of {slot.isoformat()} claims SUCCESS without complete evidence")
         if before_build is not None:
             before_build(ev["candidate"])
         try:
-            data = _seal_bytes(day, close, ev)
-        except _NoSeal as e:
+            data = s1_slot.seal_bytes(day, close, ev)
+        except ValueError as e:                            # the capture differs from its recorded projection
             res["refused"] = f"seal refused: {e}"
             return res
         sha = c.sha256_bytes(data)
@@ -517,6 +448,20 @@ def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_bu
     return res
 
 
+def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_build=None, *, mailbox=None) -> dict:
+    """A3 Task 7: the finalizer command for one post-START close - the trial gate as a deadline path (ruling N2:
+    defer_pending=True, so a stalled stage lock never delays a TIMEOUT at D or a MISSED at E; the gate also runs the
+    F3 evidence table), then s1_slot.finalize_close (the journal finalizer: TIMEOUT / MISSED rows, the deferred
+    leftover cleanup, the seal/<close> stage). It never writes a resolution file. `t`: the finalizer's clock.
+    `before_seal` is the seal stage's before_publish hook; `before_build` is accepted for the legacy signature and
+    ignored (only the opening selection used it; the opening is Task 10's stage).
+    Returns {"written", "sha256", "from_slot", "deferred", "refused", "cleanup"}."""
+    import s1_slot
+    gv = s1_trial.gate(Path(out).parent, "finalize", mailbox=mailbox, now=lambda: t, defer_pending=True)
+    return s1_slot.finalize_close(gv, day, cal, lambda: t, mailbox=mailbox, before_seal=before_seal,
+                                  before_build=before_build)
+
+
 def _apply_finalize(rep: dict, fin: dict) -> None:
     if fin["written"]:
         rep["seal"] = {"written": True, "sha256": fin["sha256"]}
@@ -527,33 +472,40 @@ def _apply_finalize(rep: dict, fin: dict) -> None:
             rep[k_] = fin[k_]
 
 
-def _finalize_others(out: Path, cal, start, current: str, t: datetime, *, rows=None) -> None:
-    """B1.4/B1.5: resolve and seal any OTHER unsealed close of the trial left pending (e.g. an earlier close whose
-    last slots outlived W): D lies after W only for processing already captured evidence."""
+def _finalize_others(gv, cal, start, current: str, now, mailbox=None) -> None:
+    """B1.4/B1.5 on the journal (A3 Task 7): the journal finalizer (s1_slot.finalize_close) for every OTHER post-START
+    close of the trial that has slot rows and no CREATED seal stage - e.g. an earlier close whose worker crashed
+    before J: its TIMEOUT at D, then its seal from the first QUALIFIED slot (sealing liveness, Task 6 review C2). D
+    lies after W only for processing already captured evidence. A refusal or INVALID propagates (fail closed)."""
+    import s1_journal as j
+    import s1_slot
+    import s1_stage
     start_day = start.astimezone(c.NY).date().isoformat()
     by_day = {d["date"]: d for d in cal}
-    for day_dir in sorted((out / "captures").glob("*")):
-        d = day_dir.name
-        if d == current or d < start_day or d not in by_day or (out / "seals" / f"{d}.json").exists():
-            continue
+    rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox if mailbox is None else mailbox)
+    days = set()
+    for sub in sorted({r_.subject for r_ in rows if r_.kind in j.SLOT_KINDS}):
         try:
-            finalize_close(out, by_day[d], cal, t, rows=rows)
-        except _QualifiedEvidence:                         # fix round 1 (review I1): F3 - never swallowed
-            raise
-        except ValueError:                                 # no next session / corrupt record: left for the score
+            days.add(s1_slot.day_for(s1_slot.slot_of(sub), cal)["date"])
+        except SystemExit:                                 # (no committed row names an unregistered slot)
             continue
+    for d in sorted(days):
+        if d == current or d < start_day or d not in by_day:
+            continue
+        if s1_stage.stage_rows(rows, s1_slot.seal_stage_name(d))["created"] is not None:
+            continue                                       # sealed: nothing left to decide for the seal
+        s1_slot.finalize_close(gv, by_day[d], cal, now, mailbox=mailbox)
 
 
 def finalize_pending(out: Path, cal, start, t: datetime, *, mailbox=None) -> None:
-    """Fix round 3 (I-1): the serialized close-level selection (B1.4) of every unsealed post-START close, run by a
-    command BEFORE it decides or freezes the stop (stop attestation, final plan, final snapshot): a SUCCESS whose
-    seal a crashed worker never wrote is applied first, so no stop is frozen across it.
-    A3 Task 6 fix round 1 (review C1: F3, A2 B1.3, E1.2, E1.4): the JOURNAL-mode selection over the open trial's rows
-    (read after `t`, M1; an unreadable journal refuses, fail closed): only a SLOT-QUALIFIED slot is selectable (a
-    worker refused for a late R keeps its SUCCESS P, which is never selected) and no TIMEOUT / MISSED file is written
-    into any slot. A damaged QUALIFIED tree raises _QualifiedEvidence (a ValueError: the callers refuse, no seal)."""
-    rows = c._open_trial_rows(mailbox)
-    _finalize_others(Path(out), cal, start, "", t, rows=rows)
+    """Fix round 3 (I-1) on the journal (A3 Task 7): run by a command BEFORE it decides or freezes the stop (stop
+    attestation, final plan, final snapshot) - the journal finalizer of every unsealed post-START close with slot rows
+    (TIMEOUT at D, MISSED at E, then its seal stage, which is refused with no row once the trial is not ACTIVE, E2.6).
+    Its own gate is a deadline path (defer_pending=True, ruling N2) and runs the F3 evidence table, so a damaged
+    QUALIFIED tree is TRIAL-INVALID (registration-artifact), never a mere refusal (Task 6 review N-2). It never writes
+    a resolution file into any slot (E1.4)."""
+    gv = s1_trial.gate(Path(out).parent, "finalize pending", mailbox=mailbox, now=lambda: t, defer_pending=True)
+    _finalize_others(gv, cal, start, "", lambda: t, mailbox)
 
 
 def _trial_stop_error(out: Path, start, cal, t: datetime):
@@ -668,15 +620,6 @@ def _no_local_abort(out: Path, where: str) -> None:
         raise SystemExit(f"{where} refused: s1_out/aborted.json exists (an observed violation, F8.1): no new capture")
 
 
-def _journal_rows(gv, mailbox) -> list:
-    """The trial's verified journal rows for the seal selection (read after J); unreadable -> refused, no seal."""
-    import s1_journal as j
-    try:
-        return j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
-    except j.JournalError as e:
-        raise SystemExit(f"seal selection refused: journal unreadable ({type(e).__name__}): no seal") from None
-
-
 def _seal_view(rep: dict, fin: dict) -> dict:
     """The legacy rep["seal"] / deferred / refused presentation of a finalize_close result (display only)."""
     view = {"seal": dict(rep.get("seal") or {"written": False, "sha256": None}), "scheduled": rep["scheduled"]}
@@ -686,23 +629,15 @@ def _seal_view(rep: dict, fin: dict) -> dict:
 
 
 def _after_terminal(gv, w, out, day, cal, start, actual, rep, receipt_sha, now, mailbox) -> dict:
-    """Task 6, after a committed QUALIFIED or FAILED: the legacy serialized selection restricted to slots with a
-    SLOT-QUALIFIED row (the journal decides), for this close and every other pending close, then the legacy
-    persisted stop (A2.1). Corrupt resolution or seal records are the established violation `seal-record` (OQ-31:
-    external first). Task 7 replaces the selection with the journal finalizer and the seal stages; Task 11 the stop
-    with TRIAL-STOP. Display only: what this returns goes to the returned dict and <slot>.after.json (E5.2)."""
-    got = {}
-    try:
-        t_fin = now()                                     # fix round 1 (M1): t first, then the rows
-        rows = _journal_rows(gv, mailbox)
-        got.update(_seal_view(rep, finalize_close(out, day, cal, t_fin, rows=rows)))
-        _finalize_others(out, cal, start, day["date"], t_fin, rows=rows)
-    except _QualifiedEvidence as e:                                    # F3: a committed tree damaged
-        _qualified_violation(gv, w, out, e, now)
-    except ValueError as e:                                            # corrupt resolution / seal evidence
-        why = f"bad resolution record: {e}"
-        w.violation("seal-record", why, rep, receipt_sha)
-        return dict(got, stop=_abort_stop(c.load_abort(out) or {"reason": why}))
+    """Task 6, after a committed QUALIFIED or FAILED: A3 Task 7 - the journal finalizer (s1_slot.finalize_close:
+    TIMEOUT / MISSED rows, the seal/<close> stage from the first QUALIFIED slot, E2) for this close and every other
+    pending close (the worker's gate is a slot path, defer_pending=True: ruling N2); a damaged QUALIFIED tree is
+    TRIAL-INVALID (registration-artifact) there and refuses. Then the legacy persisted stop (A2.1; a corrupt seal record
+    is the established violation `seal-record`, OQ-31: external first); Task 11 replaces it with TRIAL-STOP. Display
+    only: what this returns goes to the returned dict and <slot>.after.json (E5.2)."""
+    import s1_slot
+    got = dict(_seal_view(rep, s1_slot.finalize_close(gv, day, cal, now, mailbox=mailbox)))    # A3 Task 7
+    _finalize_others(gv, cal, start, day["date"], now, mailbox)
     try:
         got["stop"] = _public(z.current_stop(out, start, cal, actual, "checkpoint"))   # A2.1: persisted if ended
         if (out / "stop.json").exists():
@@ -887,9 +822,12 @@ def run_opening_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, cra
     try:
         t_fin = now()                                     # fix round 1 (M1): t first, then the rows
         rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
-        after.update(_seal_view(rep, finalize_close(out, day, cal, t_fin, before_seal=before_seal, rows=rows,
-                                                    before_build=lambda cand: _before_opening_build(out, rp,
-                                                                                                     cand))))
+        probs = s1_slot.confirmed_close_problems(gv, out, rows, day, cal, mailbox)   # A3 Task 7: the F3 table
+        if probs:
+            s1_slot.evidence_violation(gv, probs, "opening seal selection", mailbox, clock=now)
+        after.update(_seal_view(rep, _opening_selection(out, day, cal, t_fin, rows, before_seal=before_seal,
+                                                        before_build=lambda cand: _before_opening_build(out, rp,
+                                                                                                         cand))))
     except _ReceiptConflict as e:                         # fix round 1 (M-2): a concurrent run stored another
         w.after(dict(after, receipt_match=False, refused=f"receipt conflict (concurrent): {e}"))
         raise
@@ -906,15 +844,15 @@ def run_opening_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, cra
 
 
 # ------------------------------------------------------------------ final-snapshot mode (Task 7b)
-def _trial_state(out: Path, pr: dict, t: datetime) -> tuple:
+def _trial_state(out: Path, pr: dict, t: datetime, *, mailbox=None) -> tuple:
     """(status, stop_close) of a trial that has ended; refuses while it is RUNNING. Task 12 (A2.1): the persisted
     stop (s1_out/stop.json; persisted now if the trial has ended and it is absent); an abort keeps its frozen stop
     close (when one was persisted) for the slices."""
     if c.load_abort(out) is not None:                   # terminal; a persisted stop keeps its frozen slices
         st_ = z.load_stop(out)
         return "ABORTED-INVALID", (st_ or {}).get("stop_close")
-    finalize_pending(out, pr["calendar"], c.aware(pr["start"]), t)        # B1.5 / fix round 3 (I-1): finalize first
-    try:
+    try:                                                # A3 Task 7 (review N-1, F0.7): inside the try, mailbox threaded
+        finalize_pending(out, pr["calendar"], c.aware(pr["start"]), t, mailbox=mailbox)   # B1.5 / I-1: finalize first
         st_ = z.current_stop(out, c.aware(pr["start"]), pr["calendar"], t, "final snapshot")
     except (ValueError, KeyError, TypeError) as e:
         raise SystemExit(f"final snapshot refused: bad seal record ({type(e).__name__}: {e})") from None
@@ -958,14 +896,15 @@ def run_final_snapshot(root, live_db, now=c.now_utc, mailbox=None) -> dict:
         raise SystemExit("final snapshot refused: no prereg (the trial never started)")
     g.verified_registration(out, "final snapshot", mailbox, now, gate_refuses=False)   # A3.2 bundle, then A8.2
     gv = s1_trial.gate(root, "final snapshot", mailbox=mailbox, now=now)   # A3 (F1, F8.1, OQ-19; review I-2): a
-    return _final_snapshot_capture(out, live_db, now)      # violation the legacy detector just committed: no capture
+    return _final_snapshot_capture(out, live_db, now, mailbox=mailbox)   # violation the legacy detector just
+    #                                                                     committed: no capture
 
 
-def _final_snapshot_capture(out: Path, live_db, now) -> dict:
+def _final_snapshot_capture(out: Path, live_db, now, *, mailbox=None) -> dict:
     """The final snapshot's capture and fence check, after every gate of run_final_snapshot (split out in Task 5 fix
     round 1 so the fence logic is reachable at unit level; run_final_snapshot is its only product caller)."""
     t = now()
-    status, stop_close = _trial_state(out, _load(out / "prereg.json"), t)
+    status, stop_close = _trial_state(out, _load(out / "prereg.json"), t, mailbox=mailbox)
     d = out / "final_snapshot"
     if (d / "report.json").exists() or ok_attempts(d):    # fix round 1 (I-1): any ok attempt is final
         raise SystemExit(f"final snapshot already taken (a successful capture exists: "

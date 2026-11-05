@@ -204,17 +204,14 @@ def _scored_state(tmp_path, monkeypatch, dispositions):
     n = {"i": 0}
 
     def write(out, day, close_dt, trades, receipt, **kw):
-        real(out, day, close_dt, trades, receipt, **kw)
+        # A3 Task 7 (E2 r3): every fixture seal is a CREATED seal/<close> stage, so editing its bytes afterwards is
+        # INVALID (stage-replaced); the disposition is the capture's own (the candidate's process_binding), and
+        # "missing" is a capture that recorded none (null)
         i = n["i"]
         n["i"] += 1
         if i < len(dispositions) and dispositions[i] is not None:
-            p = out / "seals" / f"{day}.json"
-            seal = json.loads(p.read_text(encoding="utf-8"))
-            if dispositions[i] == "missing":
-                seal.pop("process_binding", None)
-            else:
-                seal["process_binding"] = dispositions[i]
-            p.write_text(json.dumps(seal), encoding="utf-8")
+            kw["process_binding"] = None if dispositions[i] == "missing" else dispositions[i]
+        real(out, day, close_dt, trades, receipt, **kw)
     monkeypatch.setattr(conftest, "_write_seal", write)
     st_ = s1_state(tmp_path, START, score_ready=True)
     monkeypatch.setattr(conftest, "_write_seal", real)

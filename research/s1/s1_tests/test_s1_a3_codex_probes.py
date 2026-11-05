@@ -123,3 +123,116 @@ def test_publication_at_d_and_d_plus_1us_does_not_seal(tmp_path, monkeypatch, of
 def test_publication_well_before_d_seals(tmp_path, monkeypatch):
     rep, got, sealed = _publication(tmp_path, monkeypatch, None)
     assert got == ["SLOT-INTENT", "SLOT-QUALIFIED"] and sealed
+
+
+# ---------------------------------------------------------------- A3 Task 7: the P/R/J/T races (F10 CH2, Erratum 1 E1)
+from test_s1_a3_slots import first_slot, registered, rows as journal_rows, run as run_slot, slot_rows  # noqa: E402
+
+
+def _fin(tmp_path, st_, day, at):
+    gv = t.gate(tmp_path, "probe finalizer", defer_pending=True)
+    with _Clock(at):
+        return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+
+
+def test_race_t_commits_then_j_is_lost_race(tmp_path, monkeypatch):
+    st_ = registered(tmp_path)
+    day, sch = first_slot(st_)
+    d = z.resolution_deadline(sch, day, st_["calendar"])
+    real = sl.Worker._append
+
+    def t_first(self, req):
+        if req.kind == "SLOT-QUALIFIED":
+            intent = j.first(j.subject_rows(journal_rows(tmp_path), self.subject), "SLOT-INTENT")
+            s1_jappend(tmp_path, "SLOT-TIMEOUT", self.subject, op=intent.op, at=d, due=True)
+        return real(self, req)
+    monkeypatch.setattr(sl.Worker, "_append", t_first)
+    res = run_slot(tmp_path, st_, sch, sch + timedelta(seconds=30))
+    assert res["journal"]["outcome"] == "LOST-RACE"
+    assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+    assert not (tmp_path / "s1_out" / "seals" / f"{day['date']}.json").exists()
+    assert all(x.kind != "TRIAL-INVALID" for x in journal_rows(tmp_path))
+
+
+def test_race_j_commits_then_stale_t_is_lost_race(tmp_path):
+    st_ = registered(tmp_path)
+    day, sch = first_slot(st_)
+    run_slot(tmp_path, st_, sch, sch + timedelta(seconds=30))
+    _fin(tmp_path, st_, day, z.resolution_deadline(sch, day, st_["calendar"]))
+    assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-QUALIFIED"]
+
+
+FINALIZE = r'''
+import sys
+sys.path.insert(0, sys.argv[1])
+import s1_common as c, s1_slot as sl, s1_trial as t
+c.MAILBOX = sys.argv[2] + "/mailbox.sqlite3"
+at = c.aware(sys.argv[3]); c.now_utc = lambda: at
+import json
+cal = json.loads(open(sys.argv[4], encoding="utf-8").read())
+day = next(d for d in cal if d["date"] == sys.argv[5])
+gv = t.gate(sys.argv[2], "child finalizer", defer_pending=True)
+import os, time                                       # fix round 1 (review M5): a file barrier - both children have
+from pathlib import Path                              # passed their gate before either finalizer appends
+bar = Path(sys.argv[6])
+(bar / f"ready-{os.getpid()}").write_text("1")
+deadline = time.monotonic() + 60
+while len(list(bar.glob("ready-*"))) < 2:
+    if time.monotonic() > deadline:
+        sys.exit("barrier timeout")
+    time.sleep(0.01)
+print(json.dumps(sl.finalize_close(gv, day, cal, lambda: at, mailbox=c.MAILBOX), default=str), flush=True)
+'''
+
+
+def test_race_two_finalizers_one_terminal(tmp_path):
+    st_ = registered(tmp_path)
+    day, sch = first_slot(st_)
+    d = z.resolution_deadline(sch, day, st_["calendar"])
+    s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(sch), at=sch + timedelta(seconds=1))
+    cal_p = tmp_path / "cal.json"
+    cal_p.write_text(json.dumps(st_["calendar"]), encoding="utf-8")
+    bar = tmp_path / "barrier"
+    bar.mkdir()
+    args = [sys.executable, "-I", "-c", FINALIZE, str(Path(c.HERE)), str(tmp_path), d.isoformat(), str(cal_p),
+            day["date"], str(bar)]
+    procs = [subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)]
+    outs = [p.communicate(timeout=120) for p in procs]
+    assert all(p.returncode == 0 for p in procs), outs
+    assert len(list(bar.glob("ready-*"))) == 2                       # both reached the barrier (they overlapped)
+    got = [json.loads(o.strip().splitlines()[-1]) for o, _ in outs]
+    assert all(g["refused"] is None for g in got), got
+    kinds_ = [k_ for k_, *_ in slot_rows(tmp_path, sch)]
+    assert kinds_.count("SLOT-TIMEOUT") == 1 and kinds_[0] == "SLOT-INTENT"
+    assert all(x.kind != "TRIAL-INVALID" for x in journal_rows(tmp_path))
+
+
+CRASH = r'''
+import os, sys
+sys.path.insert(0, sys.argv[1]); sys.path.insert(0, sys.argv[1] + "/s1_tests")
+import s1_common as c, s1_checkpoint as ck, s1_journal as j
+c.MAILBOX = sys.argv[2] + "/mailbox.sqlite3"
+at = c.aware(sys.argv[4]); c.now_utc = lambda: at
+real = j.append
+def crash(trial_id, gen, req, ctx_fn, **kw):
+    if req.kind == "SLOT-QUALIFIED":
+        os._exit(9)
+    return real(trial_id, gen, req, ctx_fn, **kw)
+j.append = crash
+from conftest import S1_RECEIPT, S1_PROCESS
+ck.run_checkpoint(sys.argv[2], sys.argv[3], c.aware(sys.argv[5]), lambda reference=None: S1_RECEIPT,
+                  lambda: dict(S1_PROCESS), sys.argv[2] + "/crash.log", now=lambda: at)
+'''
+
+
+def test_race_p_without_j_restart_ends_in_timeout(tmp_path):
+    st_ = registered(tmp_path)
+    day, sch = first_slot(st_)
+    at = sch + timedelta(seconds=30)
+    p = subprocess.run([sys.executable, "-I", "-c", CRASH, str(Path(c.HERE)), str(tmp_path), str(st_["ledger"].path),
+                        at.isoformat(), sch.isoformat()], capture_output=True, text=True, timeout=120)
+    assert p.returncode == 9, p.stderr
+    with pytest.raises(SystemExit, match="never re-intents"):
+        run_slot(tmp_path, st_, sch, at + timedelta(seconds=30))
+    _fin(tmp_path, st_, day, z.resolution_deadline(sch, day, st_["calendar"]))
+    assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]

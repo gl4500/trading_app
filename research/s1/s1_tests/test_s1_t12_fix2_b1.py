@@ -14,8 +14,9 @@ import s1_checkpoint as ck
 import s1_common as c
 import s1_journal as j
 import s1_seal as z
+import s1_slot as sl
 import s1_trial as t
-from conftest import S1_PROCESS, S1_RECEIPT
+from conftest import S1_PROCESS, S1_RECEIPT, _Clock
 from test_s1_t12_a5_a6 import MON_CLOSE, S45, S47, SEAL_P, Snap, _registered
 
 UTC = timezone.utc
@@ -283,11 +284,16 @@ def test_b1_expiration_racing_a_late_completion_cannot_change_the_winner(tmp_pat
         assert winner == S45
     if order == "expiration_first":
         assert winner == S47 and terminal == ["SLOT-TIMEOUT"]
-    rows = _rows(tmp_path)
-    ck.finalize_close(out, day, cal, D45 + timedelta(minutes=1), rows=rows)
+    # A3 Task 7: the finalizer command (the journal finalizer behind its own gate; it also appends the MISSED rows
+    # of the later past-E slots, F3) - the seal follows the winner, and a replay changes nothing
+    with _Clock(D45 + timedelta(minutes=1)):
+        ck.finalize_close(out, day, cal, D45 + timedelta(minutes=1))
     seal_bytes = SEAL_P(tmp_path).read_bytes()
     assert json.loads(seal_bytes)["capture"]["scheduled"] == winner.isoformat()
-    ck.finalize_close(out, day, cal, D45 + timedelta(hours=1), rows=_rows(tmp_path))    # replay: nothing changes
+    rows = _rows(tmp_path)
+    assert [k_ for k_ in kinds(tmp_path, S45) if k_ != "SLOT-INTENT"] == terminal      # the winner stands
+    with _Clock(D45 + timedelta(minutes=2)):
+        ck.finalize_close(out, day, cal, D45 + timedelta(minutes=2))                    # replay: nothing changes
     assert SEAL_P(tmp_path).read_bytes() == seal_bytes and [x.line for x in _rows(tmp_path)] == [x.line for x in rows]
 
 
@@ -366,15 +372,15 @@ def test_b1_concurrent_finalizers_and_restart_replay_give_one_deterministic_seal
     st_, clock = _setup(tmp_path, monkeypatch, S47 + timedelta(seconds=30))
     Snap(monkeypatch)
     run(tmp_path, st_, S47, clock)
-    real = ck.finalize_close
+    real, real_journal = ck.finalize_close, sl.finalize_close    # A3 Task 7: the worker path's finalizer is the
 
-    def crash_before_finalize(*a, **kw):
+    def crash_before_finalize(*a, **kw):                        # journal finalizer (s1_slot.finalize_close)
         raise Killed()
-    monkeypatch.setattr(ck, "finalize_close", crash_before_finalize)
+    monkeypatch.setattr(sl, "finalize_close", crash_before_finalize)
     clock.t = S45 + timedelta(minutes=4)
     with pytest.raises(Killed):
         run(tmp_path, st_, S45, clock)
-    monkeypatch.setattr(ck, "finalize_close", real)
+    monkeypatch.setattr(sl, "finalize_close", real_journal)
     assert read(res_path(tmp_path, S45))["outcome"] == "SUCCESS" and not SEAL_P(tmp_path).exists()
     out, day, cal = tmp_path / "s1_out", _day(st_), st_["calendar"]
     bar = threading.Barrier(4, timeout=WAIT)

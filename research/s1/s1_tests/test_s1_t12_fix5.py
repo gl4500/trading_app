@@ -30,6 +30,14 @@ def _read(p):
 
 
 # ====================================================================== R-1 a MISSED slot is not an orphan
+def _last_row(root):
+    """A3 Task 7: the trial's last journal row (the F3 violation's TRIAL-INVALID)."""
+    import s1_journal as j
+    import s1_trial as t
+    tr = t.open_trial(root / "mailbox.sqlite3")
+    return j.read_trial(tr.trial_id, tr.genesis, root / "mailbox.sqlite3")[-1]
+
+
 def test_r1_probe_an_opening_whose_first_slot_never_ran_still_seals(tmp_path):
     """R-1 reviewer probe test_legit_missed_first_slot (B1.2/B1.4): the opening's first slot (20:45) never runs; slot
     20:55 captures and defers (slot 20:47's window is still open), and its finalizer publishes the MISSED record of
@@ -214,58 +222,61 @@ def test_r3_an_opening_slot_after_the_seal_leaves_a_claim_and_a_report_binding_t
     assert c.opening_orphans(out) == [] and c.registration_problems(out, now=lambda: t) == []
 
 
-@pytest.mark.skip(reason="HELD with Task 7 (A3 Task 6, plan Step 6 'R-3 -> opening gate'): the after-seal record no "
-                         "longer exists (a later opening slot is refused with no row); the deleted QUALIFIED tree of "
-                         "the sealing slot is the F3 evidence-table violation, caught before any callback by Task 7's "
-                         "gate-level slot check (Task 6 catches it at the seal selection, after a capture)")
 def test_r3_deleting_the_seal_and_its_sealing_slot_records_after_a_later_slot_bound_it_aborts(tmp_path,
                                                                                               monkeypatch):
     """R-3: the §17.3 crash-like deletion (the opening seal, both records, the sealing slot's resolution and report,
     the stored receipt; its claim and capture kept) AFTER a later opening slot recorded the seal's hash: the after-
     seal report witnesses the seal, so the next opening slot records the persistent abort with zero live callbacks
-    and no second, different opening seal is ever written."""
+    and no second, different opening seal is ever written.
+    A3 Task 7 (un-held; OQ-11/E5.2, E5.6, F3): the later opening slot is refused by the opening gate with no row (no
+    after-seal record exists); the deletion of the sealing slot's resolution and report is the F3 evidence-table
+    violation of its QUALIFIED tree - TRIAL-INVALID (registration-artifact) and the abort at the next gate, before any
+    callback."""
     out, cal, oc, lg, first = _opening(tmp_path)
-    with pytest.raises(SystemExit, match="opening seal exists"):
+    with pytest.raises(SystemExit, match="the opening is already decided"):
         _reopen(tmp_path, lg, oc, cal, 1)
     sealing = _slots(cal, oc)[0].strftime(FMT)
     assert _delete(out, [f"seals/{oc}.json", "registry", "witnesses", f"captures/{oc}/{sealing}.resolution.json",
                          f"captures/{oc}/{sealing}.report.json", "opening_receipt.json"])
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"QUALIFIED tree differs .*INVALID \(registration-artifact\)"):
         _reopen(tmp_path, lg, oc, cal, 8, spies)
     assert not (out / "seals" / f"{oc}.json").exists(), "a second, different opening seal was written"
     assert _aborted(tmp_path)["reason"] == "registration artifact"
     assert spies.zero(), spies.n
+    assert _last_row(tmp_path).subject == "reason/registration-artifact"
 
 
-@pytest.mark.skip(reason="HELD with Task 7 (A3 Task 6): no after-seal claim exists any more (the opening gate refuses "
-                         "with no row); the deletion is the F3 evidence-table violation of Task 7")
 def test_r3_the_after_seal_claim_alone_still_binds_the_seal(tmp_path, monkeypatch):
     """R-3 (written after the first R-3 GREEN, before its code; the residual probe's V2): the same deletion, but
     also the after-seal slot's resolution and report - only its exclusive claim stays. The claim itself records the
-    seal's sha256, so it still witnesses the seal: the persistent abort, never a second opening seal."""
+    seal's sha256, so it still witnesses the seal: the persistent abort, never a second opening seal.
+    A3 Task 7 (un-held; OQ-11/E5.2, E5.6, F3): no after-seal claim exists any more - the later opening slot is refused
+    by the opening gate with no row, so it leaves no claim; the deletion is the F3 violation of the sealing slot's
+    QUALIFIED tree: TRIAL-INVALID (registration-artifact), the abort, zero callbacks, never a second opening seal."""
     out, cal, oc, lg, first = _opening(tmp_path)
-    with pytest.raises(SystemExit, match="opening seal exists"):
+    with pytest.raises(SystemExit, match="the opening is already decided"):
         _reopen(tmp_path, lg, oc, cal, 1)
     later = _slots(cal, oc)[1].strftime(FMT)
     assert _delete(out, [f"seals/{oc}.json", "registry", "witnesses", f"captures/{oc}/*.resolution.json",
                          f"captures/{oc}/*.report.json", "opening_receipt.json"])
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"QUALIFIED tree differs .*INVALID \(registration-artifact\)"):
         _reopen(tmp_path, lg, oc, cal, 8, spies)
     assert not (out / "seals" / f"{oc}.json").exists(), "a second, different opening seal was written"
     assert _aborted(tmp_path)["reason"] == "registration artifact"
     assert spies.zero(), spies.n
-    assert c.load_json(out / "captures" / oc / f"{later}.attempt.json").get("after_seal", {}).get("sha256") == first
+    assert not (out / "captures" / oc / f"{later}.attempt.json").exists()          # (no after-seal claim, E5.6)
+    assert _last_row(tmp_path).subject == "reason/registration-artifact"
 
 
-@pytest.mark.skip(reason="HELD with Task 7 (A3 Task 6, OQ-11/E5.2): a capture report is never seal authority; the "
-                         "forged claim/resolution/report of a slot with no journal row is the F3 evidence-table "
-                         "violation (no row: any claim, report or resolution) of Task 7")
 def test_r3_the_selection_never_writes_an_opening_seal_differing_from_a_recorded_opening_seal_hash(tmp_path):
     """R-3 (selection): a report recording an opening-seal hash appears after the gate ran (written during this run's
     capture, with its claim and resolution, so it is no orphan). The serialized selection compares the seal it is
-    about to write with every recorded opening-seal hash: a different seal is the persistent abort, never written."""
+    about to write with every recorded opening-seal hash: a different seal is the persistent abort, never written.
+    A3 Task 7 (un-held; OQ-11/E5.2, F3): a report is never seal authority; the forged claim/resolution/report of a
+    slot with no journal row is the F3 "no row" violation, re-checked over the opening close just before the
+    selection: TRIAL-INVALID (registration-artifact) and the abort, never the seal."""
     start, cal, oc, _ = s1_plan_audit(tmp_path, START)
     out = tmp_path / "s1_out"
     lg = Ledger(tmp_path / "l.sqlite3")
@@ -284,11 +295,12 @@ def test_r3_the_selection_never_writes_an_opening_seal_differing_from_a_recorded
             "after_seal": {"seal": f"seals/{oc}.json", "sha256": "ab" * 32}}), encoding="utf-8")
         return S1_RECEIPT
     act = slots[0] + timedelta(seconds=30)
-    with _Clock(act), pytest.raises(SystemExit):
+    with _Clock(act), pytest.raises(SystemExit, match=r"exists with no journal row .*INVALID \(registration-artifact\)"):
         ck.run_opening_checkpoint(tmp_path, lg.path, slots[0], receipt, lambda: dict(S1_PROCESS),
                                   tmp_path / "crash.log", now=lambda: act)
     assert not (out / "seals" / f"{oc}.json").exists(), "an opening seal differing from the recorded hash was written"
     assert _aborted(tmp_path)["reason"] == "registration artifact"
+    assert _last_row(tmp_path).subject == "reason/registration-artifact"
 
 
 def test_r1_retro_a_failure_record_left_without_its_claim_and_capture_is_an_orphan(tmp_path):

@@ -369,7 +369,7 @@ def _load(p: Path):
     return json.loads(Path(p).read_text(encoding="utf-8"))
 
 
-def _stop_state(out: Path, now: datetime) -> tuple:
+def _stop_state(out: Path, now: datetime, mailbox=None) -> tuple:
     """Task 11 (controller-added), I-4: (prereg, stop decision, stop seal path, stop seal) of a trial that has
     STOPPED or TIMED OUT, from the seals (the same stop_decision the score uses). Refuses with no prereg, once
     aborted.json exists (nothing to acquire), on bad seal records, and while RUNNING / NO-VALID-SEAL."""
@@ -380,7 +380,7 @@ def _stop_state(out: Path, now: datetime) -> tuple:
     pr = _load(out / "prereg.json")
     try:                                                   # Task 12 (A2.1/A7.1): the PERSISTED stop
         import s1_checkpoint                               # fix round 3 (I-1): finalize BEFORE freezing the stop
-        s1_checkpoint.finalize_pending(out, pr["calendar"], c.aware(pr["start"]), now)
+        s1_checkpoint.finalize_pending(out, pr["calendar"], c.aware(pr["start"]), now, mailbox=mailbox)
         st = s1_seal.current_stop(out, c.aware(pr["start"]), pr["calendar"], now, "final plan")
     except (ValueError, KeyError, TypeError) as e:
         raise SystemExit(f"final plan refused: bad seal record ({type(e).__name__}: {e})") from None
@@ -401,7 +401,7 @@ def final_plan_record(root, now: datetime = None, mailbox=None) -> dict:
     c.verify_bundle_first(out, "final plan", mailbox=mailbox)           # fix round 2 (B3): gate first
     if (out / "prereg.json").exists():
         g.verified_registration(out, "final plan", mailbox)            # Task 12: A3.2 bundle first, then A8.2
-    pr, st, stop_p, seal = _stop_state(out, c.now_utc() if now is None else now)
+    pr, st, stop_p, seal = _stop_state(out, c.now_utc() if now is None else now, mailbox)
     start, stop = c.aware(pr["start"]), c.aware(st["stop_close"])
     try:
         asof = [t for t in seal["trades"] if c.aware(t["ts"]) <= stop]

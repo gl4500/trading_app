@@ -1,0 +1,399 @@
+F.FFFFFFFFFFFFFFFFFFF..FF.FF.FFF.FF.F..F.FFFFFFFFFFFFF........FF         [100%]
+================================== FAILURES ===================================
+______________ test_missed_after_e_with_its_own_op_and_no_files _______________
+research\s1\s1_tests\test_s1_a3_finalizer.py:50: in test_missed_after_e_with_its_own_op_and_no_files
+    assert [k_ for k_, *_ in got] == ["SLOT-MISSED"]
+E   AssertionError: assert [] == ['SLOT-MISSED']
+E     
+E     Right contains one more item: 'SLOT-MISSED'
+E     Use -v to get more diff
+_______ test_missed_against_an_in_flight_slot_refuses_then_timeout_at_d _______
+research\s1\s1_tests\test_s1_a3_finalizer.py:74: in test_missed_against_an_in_flight_slot_refuses_then_timeout_at_d
+    assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E   AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E     
+E     Right contains one more item: 'SLOT-TIMEOUT'
+E     Use -v to get more diff
+_________ test_timeout_carries_the_intent_op_and_the_finalizer_actor __________
+research\s1\s1_tests\test_s1_a3_finalizer.py:85: in test_timeout_carries_the_intent_op_and_the_finalizer_actor
+    assert len(got) == 2
+E   AssertionError: assert 1 == 2
+E    +  where 1 = len([('SLOT-INTENT', '11111111111111111111111111111111', '22222222222222222222222222222222', '2026-10-26T20:45:01.000000+00:00', 'absent')])
+______ test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock ______
+research\s1\s1_tests\test_s1_a3_finalizer.py:135: in _fin_or_fail
+    return fin(tmp_path, st_, day, at)
+research\s1\s1_tests\test_s1_a3_finalizer.py:37: in fin
+    return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+research\s1\s1_slot.py:364: in finalize_close
+    raise SystemExit(f"{j.slot_subject(slot)}: pending - a live owner holds the slot lock") from None
+E   SystemExit: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:146: in test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock
+    _fin_or_fail(tmp_path, st_, day, d)
+research\s1\s1_tests\test_s1_a3_finalizer.py:137: in _fin_or_fail
+    pytest.fail(f"the finalizer was refused: {e}")
+E   Failed: the finalizer was refused: slot/20261026T204500Z: pending - a live owner holds the slot lock
+_ test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[late-r] _
+research\s1\s1_tests\test_s1_a3_finalizer.py:135: in _fin_or_fail
+    return fin(tmp_path, st_, day, at)
+research\s1\s1_tests\test_s1_a3_finalizer.py:37: in fin
+    return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+research\s1\s1_slot.py:364: in finalize_close
+    raise SystemExit(f"{j.slot_subject(slot)}: pending - a live owner holds the slot lock") from None
+E   SystemExit: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:166: in test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay
+    res = _fin_or_fail(tmp_path, st_, day, d)                       # TIMEOUT first; cleanup deferred
+research\s1\s1_tests\test_s1_a3_finalizer.py:137: in _fin_or_fail
+    pytest.fail(f"the finalizer was refused: {e}")
+E   Failed: the finalizer was refused: slot/20261026T204500Z: pending - a live owner holds the slot lock
+_ test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[early-r] _
+research\s1\s1_tests\test_s1_a3_finalizer.py:135: in _fin_or_fail
+    return fin(tmp_path, st_, day, at)
+research\s1\s1_tests\test_s1_a3_finalizer.py:37: in fin
+    return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+research\s1\s1_slot.py:364: in finalize_close
+    raise SystemExit(f"{j.slot_subject(slot)}: pending - a live owner holds the slot lock") from None
+E   SystemExit: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:166: in test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay
+    res = _fin_or_fail(tmp_path, st_, day, d)                       # TIMEOUT first; cleanup deferred
+research\s1\s1_tests\test_s1_a3_finalizer.py:137: in _fin_or_fail
+    pytest.fail(f"the finalizer was refused: {e}")
+E   Failed: the finalizer was refused: slot/20261026T204500Z: pending - a live owner holds the slot lock
+_____________ test_finalizer_decision_never_touches_the_work_lock _____________
+research\s1\s1_tests\test_s1_a3_finalizer.py:208: in test_finalizer_decision_never_touches_the_work_lock
+    assert decided
+E   assert []
+________________ test_timeout_cleanup_waits_for_the_work_lock _________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:135: in _fin_or_fail
+    return fin(tmp_path, st_, day, at)
+research\s1\s1_tests\test_s1_a3_finalizer.py:37: in fin
+    return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+research\s1\s1_slot.py:364: in finalize_close
+    raise SystemExit(f"{j.slot_subject(slot)}: pending - a live owner holds the slot lock") from None
+E   SystemExit: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:219: in test_timeout_cleanup_waits_for_the_work_lock
+    res = _fin_or_fail(tmp_path, st_, day, d)
+research\s1\s1_tests\test_s1_a3_finalizer.py:137: in _fin_or_fail
+    pytest.fail(f"the finalizer was refused: {e}")
+E   Failed: the finalizer was refused: slot/20261026T204500Z: pending - a live owner holds the slot lock
+__________________________ test_seal_is_an_f4_stage ___________________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:244: in test_seal_is_an_f4_stage
+    assert seal_kinds(tmp_path, day["date"]) == ["STAGE-INTENT", "STAGE-PREPARED", "STAGE-CREATED"]
+E   AssertionError: assert [] == ['STAGE-INTEN...TAGE-CREATED']
+E     
+E     Right contains 3 more items, first extra item: 'STAGE-INTENT'
+E     Use -v to get more diff
+____________ test_no_seal_after_stop_even_for_a_pre_stop_qualified ____________
+research\s1\s1_tests\test_s1_a3_finalizer.py:268: in test_no_seal_after_stop_even_for_a_pre_stop_qualified
+    assert [k_ for k_, *_ in slot_rows(tmp_path, s1_)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E   AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E     
+E     Right contains one more item: 'SLOT-TIMEOUT'
+E     Use -v to get more diff
+____________ test_barrier_invalid_between_active_read_and_prepared ____________
+research\s1\s1_tests\test_s1_a3_finalizer.py:293: in test_barrier_invalid_between_active_read_and_prepared
+    assert seal_kinds(tmp_path, day["date"]) == ["STAGE-INTENT"]                   # PREPARED was LOST-RACE
+E   AssertionError: assert [] == ['STAGE-INTENT']
+E     
+E     Right contains one more item: 'STAGE-INTENT'
+E     Use -v to get more diff
+_____________ test_barrier_close_between_active_read_and_prepared _____________
+research\s1\s1_tests\test_s1_a3_finalizer.py:307: in test_barrier_close_between_active_read_and_prepared
+    assert kinds_ == ["STAGE-INTENT"] and only.closed is not None                 # PREPARED refused (CLOSED)
+E   AssertionError: assert ([] == ['STAGE-INTENT']
+E     
+E     Right contains one more item: 'STAGE-INTENT'
+E     Use -v to get more diff)
+______ test_stop_fence_refuses_a_determined_close_without_a_created_seal ______
+research\s1\s1_tests\test_s1_a3_finalizer.py:322: in test_stop_fence_refuses_a_determined_close_without_a_created_seal
+    assert res.outcome == "REFUSE" and "not sealed" in res.reason
+E   AssertionError: assert ('APPEND' == 'REFUSE'
+E     
+E     - REFUSE
+E     + APPEND)
+_______________ test_seal_stage_and_stop_orders[publish-first] ________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:336: in test_seal_stage_and_stop_orders
+    assert seal_kinds(tmp_path, day["date"])[-1:] == ["STAGE-CREATED"] and seal.exists()
+E   AssertionError: assert ([] == ['STAGE-CREATED']
+E     
+E     Right contains one more item: 'STAGE-CREATED'
+E     Use -v to get more diff)
+_________________ test_seal_stage_and_stop_orders[stop-first] _________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:346: in test_seal_stage_and_stop_orders
+    assert seal_kinds(tmp_path, day["date"]) == [] and not seal.exists()       # post-STOP seal INTENT refused
+E   AssertionError: assert ([] == []
+E     
+E     Use -v to get more diff and not True)
+E    +  where True = exists()
+E    +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21099/test_seal_stage_and_stop_order1/s1_out/seals/2026-10-26.json').exists
+____ test_deleted_created_seal_is_invalid_and_never_recreated[after-stop] _____
+research\s1\s1_tests\test_s1_a3_finalizer.py:356: in test_deleted_created_seal_is_invalid_and_never_recreated
+    assert f"seals/{day['date']}.json" in sl.required_seals(tmp_path / "s1_out", rows(tmp_path))
+E   AssertionError: assert 'seals/2026-10-26.json' in {}
+E    +  where {} = <function required_seals at 0x00000256F1BD09A0>((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21099/test_deleted_created_seal_is_i0') / 's1_out'), [Row(trial_id='0f601c8a-f1cf-4664-9d33-72592ed7b982', seq=1, prev='8e8f8db0761b9c80c7fbb23fc8b0f8aaa5a06ef5f8e3e89ca69...4c at=2026-10-26T20:45:30.000000+00:00', mailbox_id='50bebcd8-1c15-4292-ba75-d9395496616a', created=1793047530.0), ...])
+E    +    where <function required_seals at 0x00000256F1BD09A0> = sl.required_seals
+E    +    and   [Row(trial_id='0f601c8a-f1cf-4664-9d33-72592ed7b982', seq=1, prev='8e8f8db0761b9c80c7fbb23fc8b0f8aaa5a06ef5f8e3e89ca69...4c at=2026-10-26T20:45:30.000000+00:00', mailbox_id='50bebcd8-1c15-4292-ba75-d9395496616a', created=1793047530.0), ...] = rows(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21099/test_deleted_created_seal_is_i0'))
+___ test_deleted_created_seal_is_invalid_and_never_recreated[while-active] ____
+research\s1\s1_tests\test_s1_a3_finalizer.py:356: in test_deleted_created_seal_is_invalid_and_never_recreated
+    assert f"seals/{day['date']}.json" in sl.required_seals(tmp_path / "s1_out", rows(tmp_path))
+E   AssertionError: assert 'seals/2026-10-26.json' in {}
+E    +  where {} = <function required_seals at 0x00000256F1BD09A0>((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21099/test_deleted_created_seal_is_i1') / 's1_out'), [Row(trial_id='126c853f-1a6a-4c64-bcc3-92b6840ad603', seq=1, prev='7711f10d6c88f315bac4ba2b1aa95551b7d2624245046ad662a...7a at=2026-10-26T20:45:30.000000+00:00', mailbox_id='c77a32b4-555e-4fff-b775-68624965f65d', created=1793047530.0), ...])
+E    +    where <function required_seals at 0x00000256F1BD09A0> = sl.required_seals
+E    +    and   [Row(trial_id='126c853f-1a6a-4c64-bcc3-92b6840ad603', seq=1, prev='7711f10d6c88f315bac4ba2b1aa95551b7d2624245046ad662a...7a at=2026-10-26T20:45:30.000000+00:00', mailbox_id='c77a32b4-555e-4fff-b775-68624965f65d', created=1793047530.0), ...] = rows(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21099/test_deleted_created_seal_is_i1'))
+_________________ test_seal_file_without_prepared_is_invalid __________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:376: in test_seal_file_without_prepared_is_invalid
+    with pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+__________________________ test_seals_enforced_is_on __________________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:381: in test_seals_enforced_is_on
+    assert sg.SEALS_ENFORCED is True
+E   assert False is True
+E    +  where False = sg.SEALS_ENFORCED
+________________ test_late_r_refuses_with_no_row_then_timeout _________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:398: in test_late_r_refuses_with_no_row_then_timeout
+    assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E   AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E     
+E     Right contains one more item: 'SLOT-TIMEOUT'
+E     Use -v to get more diff
+________________ test_slot_evidence_table[no-row-stray-claim] _________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_______________ test_slot_evidence_table[no-row-stray-capture] ________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_______________ test_slot_evidence_table[in-flight-foreign-op] ________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_____ test_slot_evidence_table[in-flight-capture-dir-not-named-by-claim] ______
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_________________ test_slot_evidence_table[qualified-missing] _________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_________________ test_slot_evidence_table[qualified-changed] _________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_______________ test_slot_evidence_table[qualified-unparseable] _______________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_____________ test_slot_evidence_table[qualified-backup-changed] ______________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_____________ test_slot_evidence_table[qualified-backup-deleted] ______________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_______________ test_slot_evidence_table[failed-report-changed] _______________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+________________ test_slot_evidence_table[timeout-seal-cites] _________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+___________________ test_slot_evidence_table[missed-stray] ____________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: in test_slot_evidence_table
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_ test_seal_from_the_first_qualified_slot_in_schedule_order_after_earlier_slots_terminal _
+research\s1\s1_tests\test_s1_a3_finalizer.py:528: in test_seal_from_the_first_qualified_slot_in_schedule_order_after_earlier_slots_terminal
+    assert [k_ for k_, *_ in slot_rows(tmp_path, s1_)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E   AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E     
+E     Right contains one more item: 'SLOT-TIMEOUT'
+E     Use -v to get more diff
+_______________ test_late_files_are_never_selectable_for_a_seal _______________
+research\s1\s1_tests\test_s1_a3_finalizer.py:542: in test_late_files_are_never_selectable_for_a_seal
+    assert not (out / "seals" / f"{day['date']}.json").exists() and \
+E   AssertionError: assert (not False and [] == ['SLOT-MISSED']
+E    +  where False = exists()
+E    +    where exists = ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21099/test_late_files_are_never_sele0/s1_out') / 'seals') / '2026-10-26.json').exists
+E     
+E     Right contains one more item: 'SLOT-MISSED'
+E     Use -v to get more diff)
+_______________ test_finalizer_unexpected_error_appends_nothing _______________
+research\s1\s1_tests\test_s1_a3_finalizer.py:551: in test_finalizer_unexpected_error_appends_nothing
+    with pytest.raises(SystemExit, match="refused with no row"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+________________ test_evidence_check_runs_after_the_plan_check ________________
+research\s1\s1_tests\test_s1_a3_finalizer.py:570: in test_evidence_check_runs_after_the_plan_check
+    assert sl.evidence_problems(other / "s1_out", rows(tmp_path), st_["calendar"])        # a violation, if judged
+E   AssertionError: assert []
+E    +  where [] = <function evidence_problems at 0x00000256F1BD1760>((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21099/test_evidence_check_runs_after0/other_root') / 's1_out'), [Row(trial_id='647a90b1-9624-4638-b363-bded77c08372', seq=1, prev='8e109c9e4c59a6ab0655f7cf83e5635eaa2c02a9c6cf0347578...0968e7e at=2026-10-23T20:45:30.000000+00:00', mailbox_id='63deb47a-425b-493c-a847-14e950671608', created=1792788330.0)], [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...])
+E    +    where <function evidence_problems at 0x00000256F1BD1760> = sl.evidence_problems
+E    +    and   [Row(trial_id='647a90b1-9624-4638-b363-bded77c08372', seq=1, prev='8e109c9e4c59a6ab0655f7cf83e5635eaa2c02a9c6cf0347578...0968e7e at=2026-10-23T20:45:30.000000+00:00', mailbox_id='63deb47a-425b-493c-a847-14e950671608', created=1792788330.0)] = rows(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21099/test_evidence_check_runs_after0'))
+_____ test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows _____
+research\s1\s1_tests\test_s1_a3_finalizer.py:595: in test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows
+    assert [k_ for k_, *_ in slot_rows(tmp_path, s45)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E   AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E     
+E     Right contains one more item: 'SLOT-TIMEOUT'
+E     Use -v to get more diff
+_ test_a_damaged_qualified_tree_behind_an_in_flight_slot_is_invalid_at_the_gate _
+research\s1\s1_tests\test_s1_a3_finalizer.py:619: in test_a_damaged_qualified_tree_behind_an_in_flight_slot_is_invalid_at_the_gate
+    with pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_ test_post_stop_commands_invalidate_a_damaged_qualified_tree[stop attestation] _
+research\s1\s1_tests\test_s1_a3_finalizer.py:645: in test_post_stop_commands_invalidate_a_damaged_qualified_tree
+    r.attest_stop(tmp_path, r.STOP_STATEMENT)
+research\s1\s1_run.py:605: in attest_stop
+    raise SystemExit(f"stop attestation refused: no stop recorded (status {stop['status']})")
+E   SystemExit: stop attestation refused: no stop recorded (status RUNNING)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:643: in test_post_stop_commands_invalidate_a_damaged_qualified_tree
+    with _Clock(at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'INVALID \\(registration-artifact\\)'
+E    Input: 'stop attestation refused: no stop recorded (status RUNNING)'
+___ test_post_stop_commands_invalidate_a_damaged_qualified_tree[final plan] ___
+research\s1\s1_tests\test_s1_a3_finalizer.py:647: in test_post_stop_commands_invalidate_a_damaged_qualified_tree
+    k.write_final_plan(tmp_path)
+research\s1\s1_collect.py:442: in write_final_plan
+    rec = final_plan_record(root, mailbox=mailbox)
+research\s1\s1_collect.py:404: in final_plan_record
+    pr, st, stop_p, seal = _stop_state(out, c.now_utc() if now is None else now)
+research\s1\s1_collect.py:388: in _stop_state
+    raise SystemExit(f"final plan refused: the trial is {st['status']} (RUNNING = no stop yet)")
+E   SystemExit: final plan refused: the trial is RUNNING (RUNNING = no stop yet)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:643: in test_post_stop_commands_invalidate_a_damaged_qualified_tree
+    with _Clock(at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'INVALID \\(registration-artifact\\)'
+E    Input: 'final plan refused: the trial is RUNNING (RUNNING = no stop yet)'
+_ test_post_stop_commands_invalidate_a_damaged_qualified_tree[final snapshot] _
+research\s1\s1_tests\test_s1_a3_finalizer.py:649: in test_post_stop_commands_invalidate_a_damaged_qualified_tree
+    ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: at)
+research\s1\s1_checkpoint.py:962: in run_final_snapshot
+    return _final_snapshot_capture(out, live_db, now)      # violation the legacy detector just committed: no capture
+research\s1\s1_checkpoint.py:969: in _final_snapshot_capture
+    status, stop_close = _trial_state(out, _load(out / "prereg.json"), t)
+research\s1\s1_checkpoint.py:923: in _trial_state
+    raise SystemExit("final snapshot refused: the trial is still RUNNING (no stop yet)")
+E   SystemExit: final snapshot refused: the trial is still RUNNING (no stop yet)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:643: in test_post_stop_commands_invalidate_a_damaged_qualified_tree
+    with _Clock(at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'INVALID \\(registration-artifact\\)'
+E    Input: 'final snapshot refused: the trial is still RUNNING (no stop yet)'
+_ test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback __
+research\s1\s1_tests\test_s1_a3_finalizer.py:672: in test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback
+    ck._trial_state(out, pr, d45 + timedelta(hours=1), mailbox=tmp_path / "mailbox.sqlite3")
+research\s1\s1_checkpoint.py:917: in _trial_state
+    finalize_pending(out, pr["calendar"], c.aware(pr["start"]), t)        # B1.5 / fix round 3 (I-1): finalize first
+research\s1\s1_checkpoint.py:557: in finalize_pending
+    _finalize_others(Path(out), cal, start, "", t, rows=rows)
+research\s1\s1_checkpoint.py:541: in _finalize_others
+    finalize_close(out, by_day[d], cal, t, rows=rows)
+research\s1\s1_checkpoint.py:468: in finalize_close
+    action, rec = _journal_slot(rp, slot, day, cal, t, rows)
+research\s1\s1_checkpoint.py:422: in _journal_slot
+    raise _QualifiedEvidence(f"{q.subject}: its QUALIFIED tree differs from the committed detail (F3)")
+E   s1_checkpoint._QualifiedEvidence: slot/20261026T204700Z: its QUALIFIED tree differs from the committed detail (F3)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_finalizer.py:676: in test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback
+    pytest.fail(f"_trial_state escaped with {type(e).__name__}: {e}")
+E   Failed: _trial_state escaped with _QualifiedEvidence: slot/20261026T204700Z: its QUALIFIED tree differs from the committed detail (F3)
+___ test_access_denied_on_the_slot_lock_refuses_the_cleanup_with_no_invalid ___
+research\s1\s1_tests\test_s1_a3_finalizer.py:693: in test_access_denied_on_the_slot_lock_refuses_the_cleanup_with_no_invalid
+    res = _fin_or_fail(tmp_path, st_, day, d)
+research\s1\s1_tests\test_s1_a3_finalizer.py:135: in _fin_or_fail
+    return fin(tmp_path, st_, day, at)
+research\s1\s1_tests\test_s1_a3_finalizer.py:37: in fin
+    return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+research\s1\s1_slot.py:362: in finalize_close
+    lk.acquire()
+research\s1\s1_locks.py:132: in acquire
+    fd = _open_exclusive(self.path)
+research\s1\s1_locks.py:112: in _open_exclusive
+    raise LockError(f"{path.name}: lock I/O error (Windows error {err})")
+E   s1_locks.LockError: slot-20261026T204500Z.lock: lock I/O error (Windows error 5)
+___________ test_access_denied_on_the_seal_stage_lock_is_a_refusal ____________
+research\s1\s1_tests\test_s1_a3_finalizer.py:711: in test_access_denied_on_the_seal_stage_lock_is_a_refusal
+    assert "lock error" in str(res["refused"]) and seal_kinds(tmp_path, day["date"]) == []
+E   AssertionError: assert ('lock error' in 'None')
+E    +  where 'None' = str(None)
+____________________ test_race_two_finalizers_one_terminal ____________________
+research\s1\s1_tests\test_s1_a3_codex_probes.py:190: in test_race_two_finalizers_one_terminal
+    assert all(p.returncode == 0 for p in procs), outs
+E   AssertionError: [('{"written": false, "sha256": null, "from_slot": null, "deferred": "earlier slot 2026-10-26T22:00:00+00:00 unresolve..."refused": null, "cleanup": null}
+E     ', ''), ('', 'slot/20261026T204500Z: pending - a live owner holds the slot lock
+E     ')]
+E   assert False
+E    +  where False = all(<generator object test_race_two_finalizers_one_terminal.<locals>.<genexpr> at 0x00000256F209FED0>)
+________________ test_race_p_without_j_restart_ends_in_timeout ________________
+research\s1\s1_tests\test_s1_a3_codex_probes.py:224: in test_race_p_without_j_restart_ends_in_timeout
+    assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E   AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E     
+E     Right contains one more item: 'SLOT-TIMEOUT'
+E     Use -v to get more diff
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_against_an_in_flight_slot_refuses_then_timeout_at_d
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_carries_the_intent_op_and_the_finalizer_actor
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[late-r]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[early-r]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_decision_never_touches_the_work_lock
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_cleanup_waits_for_the_work_lock
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_is_an_f4_stage
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_invalid_between_active_read_and_prepared
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_stage_and_stop_orders[publish-first]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_stage_and_stop_orders[stop-first]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_deleted_created_seal_is_invalid_and_never_recreated[after-stop]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_deleted_created_seal_is_invalid_and_never_recreated[while-active]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_file_without_prepared_is_invalid
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seals_enforced_is_on
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_late_r_refuses_with_no_row_then_timeout
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-claim]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-capture]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-foreign-op]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-capture-dir-not-named-by-claim]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-missing]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-changed]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-changed]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-deleted]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-report-changed]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[timeout-seal-cites]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[missed-stray]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_from_the_first_qualified_slot_in_schedule_order_after_earlier_slots_terminal
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_late_files_are_never_selectable_for_a_seal
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_unexpected_error_appends_nothing
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_evidence_check_runs_after_the_plan_check
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_damaged_qualified_tree_behind_an_in_flight_slot_is_invalid_at_the_gate
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[stop attestation]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[final plan]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[final snapshot]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_access_denied_on_the_slot_lock_refuses_the_cleanup_with_no_invalid
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_access_denied_on_the_seal_stage_lock_is_a_refusal
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_race_two_finalizers_one_terminal
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_race_p_without_j_restart_ends_in_timeout
+46 failed, 18 passed, 2 deselected in 40.27s

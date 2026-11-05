@@ -18,6 +18,7 @@ import s1_collect as k
 import s1_common as c
 import s1_run as r
 import s1_seal as z
+import s1_slot as sl
 import s1_trial as t
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit, \
@@ -34,6 +35,11 @@ START = "2026-10-26T13:30:00+00:00"
 START_DT = datetime(2026, 10, 26, 13, 30, tzinfo=UTC)
 WAIT = 20                                            # seconds a synchronization wait may block (never a sleep)
 D45 = S45 + timedelta(minutes=40)                    # E45 = S45 + 10 min, D45 = E45 + 30 min
+
+# A3 Task 7: the legacy registration detector's abort OR the F3 evidence table's registration-artifact INVALID
+# (the same disposition; the F3 table reads the journal-bound QUALIFIED tree first)
+REG_OR_F3 = (r"(registration artifact\(s\) missing or changed|QUALIFIED tree differs from the committed detail.*"
+             r"INVALID \(registration-artifact\))")
 
 
 def read(p):
@@ -92,15 +98,15 @@ def _two_successes_no_seal(tmp_path, monkeypatch):
     st_, clock = _setup(tmp_path, monkeypatch, S47 + timedelta(seconds=30))
     Snap(monkeypatch)
     run(tmp_path, st_, S47, clock)
-    real = ck.finalize_close
+    real, real_journal = ck.finalize_close, sl.finalize_close
 
     def crash(*a, **kw):
         raise Killed()
-    monkeypatch.setattr(ck, "finalize_close", crash)
+    monkeypatch.setattr(sl, "finalize_close", crash)       # A3 Task 7: the worker path's journal finalizer
     clock.t = S45 + timedelta(minutes=4)
     with pytest.raises(Killed):
         run(tmp_path, st_, S45, clock)
-    monkeypatch.setattr(ck, "finalize_close", real)
+    monkeypatch.setattr(sl, "finalize_close", real_journal)
     assert read(res_path(tmp_path, S45))["outcome"] == "SUCCESS" and not SEAL_P(tmp_path).exists()
     return st_, real
 
@@ -127,7 +133,10 @@ def test_c1_a_concurrent_finalizer_and_a_reader_never_observe_a_partial_seal(tmp
     assert err is None, f"finalizer B observed a partial seal: {err!r}"
     assert "err" not in box, box
     assert sum(1 for x in (mine, box["rep"]) if x["written"]) == 1, (mine, box["rep"])
-    assert mine["sha256"] == box["rep"]["sha256"] == c.sha256_file(SEAL_P(tmp_path))
+    # A3 Task 7 (E2.1 r3, F5.1): the seal is the seal/<close> stage - finalizer B, inside A's publication window,
+    # finds the stage lock held and is refused "pending" (no partial seal observed, no second seal); A reports it
+    assert box["rep"]["sha256"] == c.sha256_file(SEAL_P(tmp_path))
+    assert mine["sha256"] is None and "pending" in str(mine["refused"]), mine
     assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S45.isoformat()
 
 
@@ -247,7 +256,9 @@ def test_c2_deleting_an_artifact_with_its_registry_record_is_a_persistent_abort(
     shutil.copytree(out, backup)
     gone = _delete(out, COMBOS[combo])
     assert gone
-    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
+    # A3 Task 7 (F3 table): the deleted reports/resolutions are the opening slot's QUALIFIED tree - the gate's F3
+    # table commits the same registration-artifact INVALID (and abort) before the legacy detector runs
+    with pytest.raises(SystemExit, match=REG_OR_F3):
         _cp(tmp_path, st_["ledger"].path)
     ab = _aborted(tmp_path)
     assert ab["reason"] == "registration artifact", ab
@@ -287,7 +298,9 @@ def test_c2_probe_seals_registry_and_reports_deleted_with_prereg_present_is_an_a
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     out = tmp_path / "s1_out"
     _delete(out, ["seals", "registry", REPORTS])
-    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
+    # A3 Task 7 (F3 table): the deleted reports/resolutions are the opening slot's QUALIFIED tree - the gate's F3
+    # table commits the same registration-artifact INVALID (and abort) before the legacy detector runs
+    with pytest.raises(SystemExit, match=REG_OR_F3):
         _cp(tmp_path, st_["ledger"].path)
     assert _aborted(tmp_path)["reason"] == "registration artifact"
 
@@ -304,7 +317,9 @@ def test_c2_the_external_run_ack_witnesses_the_registration_when_every_other_loc
     RUN-ACK (codex mailbox, binding this plan) still witnesses the registration -> persistent abort."""
     st_ = _registered_b3(tmp_path)
     _only_prereg_left(tmp_path / "s1_out")
-    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
+    # A3 Task 7 (F3 table): the deleted reports/resolutions are the opening slot's QUALIFIED tree - the gate's F3
+    # table commits the same registration-artifact INVALID (and abort) before the legacy detector runs
+    with pytest.raises(SystemExit, match=REG_OR_F3):
         _cp(tmp_path, st_["ledger"].path)
     assert _aborted(tmp_path)["reason"] == "registration artifact"
 
@@ -323,7 +338,7 @@ def test_c2_residual_every_local_witness_gone_and_the_mailbox_unreadable_is_a_re
         _cp(tmp_path, st_["ledger"].path, spies)
     assert spies.zero() and c.load_abort(tmp_path / "s1_out") is None and _refusals(tmp_path)
     (tmp_path / "mailbox.away").rename(tmp_path / "mailbox.sqlite3")
-    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
+    with pytest.raises(SystemExit, match=REG_OR_F3):            # A3 Task 7: or the F3 table first (same INVALID)
         _cp(tmp_path, st_["ledger"].path, minutes=47)
     assert _aborted(tmp_path)["reason"] == "registration artifact"
 
@@ -372,14 +387,14 @@ def _success_without_seal(tmp_path, monkeypatch):
     clock = Clock(s7)
     monkeypatch.setattr(c, "now_utc", clock)
     Snap(monkeypatch, dur=timedelta(0))
-    real = ck.finalize_close
+    real, real_journal = ck.finalize_close, sl.finalize_close
 
     def boom(*a, **kw):
         raise Killed()
-    monkeypatch.setattr(ck, "finalize_close", boom)
+    monkeypatch.setattr(sl, "finalize_close", boom)        # A3 Task 7: the worker path's journal finalizer
     with pytest.raises(Killed):
         run(tmp_path, st_, s7, clock)
-    monkeypatch.setattr(ck, "finalize_close", real)
+    monkeypatch.setattr(sl, "finalize_close", real_journal)
     out = tmp_path / "s1_out"
     res = out / "captures" / last["date"] / f"{s7.strftime('%Y%m%dT%H%M%SZ')}.resolution.json"
     assert read(res)["outcome"] == "SUCCESS"
@@ -456,6 +471,12 @@ def test_i2_a_stray_seal_before_the_opening_is_a_preserved_refusal_never_an_abor
     with _Clock(sch + timedelta(seconds=30)), pytest.raises(BaseException) as e:
         ck.run_opening_checkpoint(tmp_path, lg.path, sch, spies.receipt, spies.process, tmp_path / "crash.log",
                                   now=lambda: sch + timedelta(seconds=30))
+    if name != f"{oc}.json":
+        # A3 Task 7 (E2.4 r3, "in every state"): a seal file of a non-opening close with no seal-stage row is a
+        # registration artifact once the trial exists: TRIAL-INVALID at the gate, zero callbacks, no claim
+        assert isinstance(e.value, SystemExit) and "INVALID (registration-artifact)" in str(e.value), repr(e.value)
+        assert f"seal/{name[:-5]}" in str(e.value) and spies.zero() and not (out / "captures").exists()
+        return
     # (strengthened after GREEN, for the A10.2 meaningful-kill rule: the refusal itself, not any escaping exception)
     assert isinstance(e.value, SystemExit) and "pre-registration" in str(e.value), repr(e.value)
     assert c.load_abort(out) is None, c.load_abort(out)
@@ -654,7 +675,9 @@ def test_c2_retro_the_run_ack_alone_witnesses_the_registration(tmp_path):
     out = tmp_path / "s1_out"
     _only_prereg_left(out)
     (out / "prereg.json").unlink()
-    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
+    # A3 Task 7 (F3 table): the deleted reports/resolutions are the opening slot's QUALIFIED tree - the gate's F3
+    # table commits the same registration-artifact INVALID (and abort) before the legacy detector runs
+    with pytest.raises(SystemExit, match=REG_OR_F3):
         _cp(tmp_path, st_["ledger"].path)
     assert _aborted(tmp_path)["reason"] == "registration artifact"
 
@@ -705,10 +728,11 @@ def test_c1_retro_an_unreadable_seal_stops_the_checkpoint_before_any_seal(tmp_pa
     _write_seal(out, "2026-10-26", mon, st_["rows"], S1_RECEIPT, start=st_["start"],
                 opening_close=z.close_of("2026-10-23", st_["calendar"]))
     (out / "seals" / "2026-10-26.json").write_text("{not json", encoding="utf-8")
-    rep = _cp(tmp_path, st_["ledger"].path, day=1)
-    assert rep["stop"]["status"] == "ABORTED-INVALID" and rep["seal"]["written"] is False
-    assert not (out / "seals" / "2026-10-27.json").exists()
-    assert "bad seal record" in str(_aborted(tmp_path)["reason"])
+    # A3 Task 7 (E2.6 r3): the seal is a CREATED seal/<close> stage, so the checkpoint's gate observes its changed,
+    # unparseable member first: TRIAL-INVALID (stage-replaced) before any capture, so before its own close is sealed
+    with pytest.raises(SystemExit, match=r"seals/2026-10-26\.json missing or changed.*INVALID \(stage-replaced\)"):
+        _cp(tmp_path, st_["ledger"].path, day=1)
+    assert not (out / "seals" / "2026-10-27.json").exists() and not (out / "captures" / "2026-10-27").exists()
 
 
 def test_c1_retro_a_bad_seal_record_stops_the_checkpoint_before_any_seal(tmp_path):

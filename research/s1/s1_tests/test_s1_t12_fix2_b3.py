@@ -232,11 +232,17 @@ def test_b3_post_stop_integrity_of_frozen_artifacts_is_persistent(tmp_path):
     sl = out / "seals" / f"{st_['sessions'][0]}.json"
     sl.write_bytes(sl.read_bytes() + b" ")
     sch = z.close_of(st_["sessions"][5], st_["calendar"]) + timedelta(minutes=45)
+    # A3 Task 7 (E2.6 r3): the frozen slice is a CREATED seal/<close> stage member - its change is TRIAL-INVALID
+    # (stage-replaced) at the next gate, persistent: every later command refuses "trial INVALID" and records the abort
     with (_Clock(sch + timedelta(seconds=30)),
-          pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed")):
+          pytest.raises(SystemExit, match=r"member seals/.* missing or changed.*INVALID \(stage-replaced\)")):
         ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
                           tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
+    with (_Clock(sch + timedelta(minutes=1)),
+          pytest.raises(SystemExit, match=r"trial INVALID \(reason/stage-replaced\)")):
+        ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                          tmp_path / "crash.log", now=lambda: sch + timedelta(minutes=1))
+    assert "stage-replaced" in str(_aborted(tmp_path)["reason"])
 
 
 # ====================================================================== B3.4 mailbox outage vs corruption

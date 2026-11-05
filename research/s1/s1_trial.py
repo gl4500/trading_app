@@ -558,9 +558,17 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
         if rows:                                          # OQ-19: after any row a lost/changed plan is a detected
             _legacy_detectors(out, where, now, mailbox)   # registration-artifact violation, never only a refusal
         _refuse(out, where, f"plan.json trial_id {plan_tid!r} differs from the AUDIT-ACK's {tr.trial_id} (F6.2)", now)
+    if rows and c.sha_or_absent(out / "plan.json") != tr.audit.fields.get("plan_sha256"):
+        # A3 Task 7 (Deviation): the stage table and the F3 evidence table read the plan's opening close, so a plan
+        # that is not the AUDIT-ACK's (A8.1) is judged first by the legacy detector (OQ-19: after any row a changed
+        # plan is a detected registration-artifact violation), never mis-read as a stage-less seal. Before any
+        # registration the detector finds nothing and the command's own A8.1 check refuses (no opening seal exists)
+        _legacy_detectors(out, where, now, mailbox)
     gv = Gate(root, out, tr, rows, st_, mailbox)
     import s1_stage                                       # A3 Task 8: the F4 stage-state table (never creates s1_out)
     s1_stage.evaluate(gv, defer_pending=defer_pending)    # A3 Task 6 (N2): the slot paths defer a held stage lock
+    import s1_slot                                        # A3 Task 7: the F3 evidence table, after the plan check
+    s1_slot.evidence_check(gv)                            # (Deviation 1, Task 8 D4: a foreign root is never judged)
     return gv
 
 

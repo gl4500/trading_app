@@ -103,9 +103,12 @@ def test_mt_an_arbitrary_report_file_does_not_resolve_a_slot(tmp_path, monkeypat
     (tmp_path / "s1_out" / "captures" / "2026-10-26" / "20261026T204500Z.report.json").write_text(
         json.dumps(fake), encoding="utf-8")
     out, day = tmp_path / "s1_out", next(d for d in st_["calendar"] if d["date"] == "2026-10-26")
-    fin = ck.finalize_close(out, day, st_["calendar"], S45 + timedelta(minutes=11))
-    assert fin["written"] is True and read(res_path(tmp_path, S45))["outcome"] == "MISSED"
-    assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()
+    # A3 Task 7 (F3 table, "no row: any claim, capture, report or resolution"): the dropped report resolves nothing
+    # and is itself the registration-artifact violation at the finalizer's gate - no MISSED file, no seal from it
+    with pytest.raises(SystemExit, match=r"report exists with no journal row .*INVALID \(registration-artifact\)"):
+        ck.finalize_close(out, day, st_["calendar"], S45 + timedelta(minutes=11))
+    assert not res_path(tmp_path, S45).exists() and not SEAL_P(tmp_path).exists()
+    assert c.load_abort(out)["reason"] == c.REGISTRATION_ARTIFACT
 
 
 def test_mt_a_forged_success_without_complete_evidence_never_seals(tmp_path, monkeypatch):
@@ -117,20 +120,14 @@ def test_mt_a_forged_success_without_complete_evidence_never_seals(tmp_path, mon
     Snap(monkeypatch)
     c.publish_exclusive(res_path(tmp_path, S45), json.dumps({"outcome": "SUCCESS", "evidence": {"candidate": {}}})
                         .encode("utf-8"))
-    rep = run(tmp_path, st_, S47, clock)
-    assert rep["seal"]["written"] is False and not SEAL_P(tmp_path).exists()
-    # A3 Task 6 (F3: the journal decides): slot 45 has no row, so its forged SUCCESS file is never read or selected
-    # (the "bad resolution record" abort is replaced; the stray file's own INVALID is the F3 evidence table, Task 7):
-    # once slot 45's window has passed, slot 47 - the QUALIFIED one - is the seal, never the forged record
-    s22 = datetime(2026, 10, 26, 22, 0, tzinfo=UTC)                     # every earlier slot's window has passed
-    clock.t = s22 + timedelta(seconds=30)
-    run(tmp_path, st_, s22, clock)
-    assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()
+    # A3 Task 7 (F3 table): slot 45 has no row, so its forged SUCCESS file is never read or selected - it is the "no
+    # row" violation at the next gate (TRIAL-INVALID registration-artifact; the detection half is
+    # test_mt_a_forged_success_of_a_no_row_slot_is_invalid): nothing is ever sealed from it
+    with pytest.raises(SystemExit, match=r"resolution exists with no journal row .*INVALID \(registration-artifact\)"):
+        run(tmp_path, st_, S47, clock)
+    assert not SEAL_P(tmp_path).exists()
 
 
-@pytest.mark.skip(reason="HELD with Task 7 (A3 Task 6 fix round 1, review I2): the F3 evidence table (no row: any "
-                         "claim, capture, report or resolution for s is INVALIDATE registration-artifact) is Task 7's "
-                         "s1_slot.slot_problems; until then a forged resolution of a no-row slot is not detected")
 def test_mt_a_forged_success_of_a_no_row_slot_is_invalid(tmp_path, monkeypatch):
     """The detection half of test_mt_a_forged_success_without_complete_evidence_never_seals (B1.2's "corrupt
     evidence" abort): a SUCCESS resolution forged into a slot with no journal row is the F3 "no row" violation -
@@ -303,16 +300,16 @@ def test_mt_an_unbound_corrupt_seal_is_a_preserved_abort_not_a_crash(tmp_path, m
                 opening_close=z.close_of("2026-10-23", st_["calendar"]))
     (out / "seals" / "2026-10-26.json").write_text("{not json", encoding="utf-8")
     sch = MON + timedelta(days=1, minutes=45)
+    # A3 Task 7 (E2.6 r3): the seal is a CREATED seal/<close> stage, so the next command's gate observes its changed,
+    # unparseable member: TRIAL-INVALID (stage-replaced) committed before any capture - a preserved refusal with an
+    # external record and its evidence copy, never a crash (no other exception escapes)
     try:
-        rep = _cp(tmp_path, st_, sch, sch + timedelta(seconds=30))
+        with pytest.raises(SystemExit, match=r"seals/2026-10-26\.json missing or changed.*INVALID \(stage-replaced\)"):
+            _cp(tmp_path, st_, sch, sch + timedelta(seconds=30))
     except Exception as e:                                       # noqa: BLE001 - the property under test
         pytest.fail(f"a corrupt seal crashed the checkpoint: {type(e).__name__}")
-    assert rep["stop"]["status"] == "ABORTED-INVALID"
-    # A3 Task 6 (OQ-31, E5.1): the preserved evidence is the committed observation (TRIAL-INVALID
-    # established-violation, subtype seal-record, external first) and the local abort; no P is published
-    assert rep["journal"] == {"kind": "TRIAL-INVALID", "reason": "established-violation", "subtype": "seal-record"}
-    assert read(next((out / "invalid").glob("*.json")))["subtype"] == "seal-record"
-    assert "seal" in str(read(out / "aborted.json")["reason"])
+    assert read(next((out / "invalid").glob("*.json")))["stage"] == "seal/2026-10-26"
+    assert not (out / "seals" / "2026-10-27.json").exists()
 
 
 @pytest.mark.skip(reason="HELD with Task 11 (A3 Task 6, OQ-11/E5.2): the capture report is final before J and no "
@@ -370,7 +367,9 @@ def test_mt_a_resolution_claiming_success_for_a_late_capture_never_seals(tmp_pat
               "evidence": dict(ev, scheduled=S45.isoformat(), late=True)}
     c.publish_exclusive(res_path(tmp_path, S45), json.dumps(forged).encode("utf-8"))
     out, day = tmp_path / "s1_out", next(d for d in st_["calendar"] if d["date"] == "2026-10-26")
-    with pytest.raises(ValueError, match="without complete evidence"):
+    # A3 Task 7 (F3): a forged resolution of a slot with no journal row is never selected - the finalizer's gate
+    # finds it (the "no row" violation): TRIAL-INVALID (registration-artifact), never a seal
+    with pytest.raises(SystemExit, match=r"resolution exists with no journal row .*INVALID \(registration-artifact\)"):
         ck.finalize_close(out, day, st_["calendar"], S47 + timedelta(minutes=9))
     assert not SEAL_P(tmp_path).exists()
 

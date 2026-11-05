@@ -324,8 +324,17 @@ def s1_score_refused(root, ack_id, reason="registration-artifact"):
     import s1_run as r
     import s1_trial as t
     out = Path(root) / "s1_out"
-    with pytest.raises(t.Refusal, match=rf"trial INVALID \(reason/{reason}\)"):
+    # A3 Task 7: also the refusal of the gate that COMMITS the INVALID itself (the stage table's stage-replaced /
+    # registration-artifact and the F3 evidence table raise "...: INVALID (<reason>)"; for registration-artifact also
+    # the legacy detector the gate runs first for a plan that is not the AUDIT-ACK's), not only "trial INVALID"
+    legacy = r"|registration artifact\(s\) missing or changed" if reason == "registration-artifact" else ""
+    with pytest.raises(SystemExit, match=rf"(trial INVALID \(reason/{reason}\)|: INVALID \({reason}\){legacy})"):
         r.score(root, ack_id)
+    import s1_journal as j                                       # fix round 1 (review M1): the committed row itself,
+    tr = t.trials(t.scan(Path(root) / "mailbox.sqlite3"))         # not only the refusal text
+    (tid,) = [x for x, tr_ in tr.items() if tr_.closed is None]
+    inv = j.first(j.read_trial(tid, tr[tid].genesis, Path(root) / "mailbox.sqlite3"), "TRIAL-INVALID")
+    assert inv is not None and inv.subject == f"reason/{reason}", inv
     assert not (out / "score").exists()
     try:
         return json.loads(r._serialise(r._score(out)))
@@ -343,35 +352,88 @@ def _dump(path: Path, obj):
     path.write_text(json.dumps(obj, indent=1, sort_keys=True), encoding="utf-8")
 
 
-def _write_seal(out: Path, day: str, close_dt, trades, receipt, *, start=None, opening_close=None):
+_MATCH = object()
+
+
+def _write_seal(out: Path, day: str, close_dt, trades, receipt, *, start=None, opening_close=None, with_stage=True,
+                process_binding=_MATCH):
     """A seal exactly as s1_checkpoint writes it, plus its preserved capture projection. Task 8b (controller-added):
     a post-START seal (`start` given, close >= start) carries the bridge record s1_seal.bridge_record. Task 12
     interface: the capture records its measured start/end (A5), the seal the registered bundle (A3) and the receipt
-    FINGERPRINT hash (A1)."""
+    FINGERPRINT hash (A1).
+    A3 Task 7 (F3, E5.6, E2 r3): the slot (close + 45 min) is a real QUALIFIED slot - a synthetic SLOT-INTENT at
+    sch + 1 s, its claim (with capture_dir), resolution and report carrying that row's op and actor (the resolution's
+    evidence.candidate holds the fields s1_slot.seal_bytes reads), a capture tree with backup.sqlite3 (a copy of the
+    tmp ledger), meta.json and projection.json, and a synthetic SLOT-QUALIFIED whose detail is the real tree manifest
+    (R = sch + 31 s). Then (`with_stage`, default) the REAL seal stage s1_slot.run_seal_stage writes the seal: every
+    fixture seal is a CREATED seal/<close> stage whose member is s1_slot.seal_bytes(...) (a hand-written seal file is
+    now a registration artifact, E2.4). with_stage=False stops after the QUALIFIED row: the close is determined but
+    has no seal stage. `process_binding`: the capture's recorded binding disposition (default MATCH of
+    S1_BINDING; a test of the score's binding recheck injects another one here, so the sealed bytes stay the
+    stage's). Test-only."""
     from datetime import timedelta
     import s1_common as c
+    import s1_journal as j
     import s1_seal as z
+    import s1_slot as sl
+    import s1_trial as t
+    out = Path(out)
+    root = out.parent
     proj = {"agent_id": 2, "trades": trades, "portfolios": {}, "schema": {}}
     sch = close_dt + timedelta(minutes=45)
-    cap_dir = out / "captures" / day / sch.strftime("%Y%m%dT%H%M%SZ")
+    n = sl.names(out, sch, day)
+    cap_dir = n["capture"]
     cap_dir.mkdir(parents=True)
     blob = c.canonical(proj)
     (cap_dir / "projection.json").write_bytes(blob)
-    t = (sch + timedelta(seconds=30)).isoformat()
-    cap = {"scheduled": sch.isoformat(), "actual": t, "capture_start": t, "capture_end": t, "ok": True,
-           "consistent": True, "projection_sha256": c.sha256_bytes(blob), "dir": str(cap_dir)}
-    seal = {"close": close_dt.isoformat(), "fence": z.fence(proj),
-            "max_id": max((t["id"] for t in trades), default=0), "trades": trades, "capture": cap,
+    led = root / "s1_ledger.sqlite3"
+    (cap_dir / "backup.sqlite3").write_bytes(led.read_bytes() if led.is_file() else b"")
+    ts = (sch + timedelta(seconds=30)).isoformat()
+    max_id = max((t_["id"] for t_ in trades), default=0)
+    (cap_dir / "meta.json").write_text(json.dumps({"ok": True, "capture_start": ts, "capture_end": ts,
+                                                   "projection_sha256": c.sha256_bytes(blob),
+                                                   "max_trade_id": max_id, "n_trades": len(trades)}), encoding="utf-8")
+    sub = j.slot_subject(sch)
+    intent = s1_jappend(root, "SLOT-INTENT", sub, at=sch + timedelta(seconds=1))
+    who = {"op": intent.op, "actor": intent.actor}
+    binding = ({"status": "MATCH", "binding": dict(S1_BINDING)} if process_binding is _MATCH      # fix round 2 (B2)
+               else process_binding)
+    cand = {"projection_sha256": c.sha256_bytes(blob), "dir": str(cap_dir), "max_id": max_id,
+            "capture_start": ts, "capture_end": ts, "process": json.loads(json.dumps(S1_PROCESS)),
             "restart_record": {"starts": [], "size": 0, "sha256": None, "prefix_sha256": None},
-            "process": json.loads(json.dumps(S1_PROCESS)),
-            "process_binding": {"status": "MATCH", "binding": dict(S1_BINDING)},     # fix round 2 (B2)
-            "receipt_sha256": c.receipt_sha256(receipt), "receipt_match": True,
-            "receipt_provenance": receipt.get("provenance"),
-            "bundle_sha256": c.bundle_sha256()}                             # Task 12 (A3): as the checkpoint
-    if start is not None and close_dt >= start:
-        seal["bridge"] = z.bridge_record(trades, start, opening_close)
-    (out / "seals").mkdir(parents=True, exist_ok=True)
-    (out / "seals" / f"{day}.json").write_text(json.dumps(seal), encoding="utf-8")
+            "receipt_sha256": c.receipt_sha256(receipt), "receipt_provenance": receipt.get("provenance"),
+            "bridge": (z.bridge_record(trades, start, opening_close) if start is not None and close_dt >= start
+                       else None),
+            "bundle_sha256": c.bundle_sha256(), "process_binding": binding}           # Task 12 (A3): as the checkpoint
+    ev = {"close": close_dt.isoformat(), "scheduled": sch.isoformat(), "actual": ts, "capture_start": ts,
+          "capture_end": ts, "eligible_until": (sch + z.SCHEDULE_SLACK).isoformat(), "late": False,
+          "capture_ok": True, "consistent": True, "receipt_match": True, "process_binding": binding,
+          "snapshot": c.sha256_bytes(blob), "fence_violations": [], "failures": {}, "refused": None,
+          "candidate": cand}
+    n["claim"].write_text(json.dumps(dict(who, scheduled=sch.isoformat(), invoked_utc=intent.at,
+                                          close=close_dt.isoformat(), intent_seq=intent.seq,
+                                          capture_dir=cap_dir.relative_to(out).as_posix())), encoding="utf-8")
+    n["resolution"].write_text(json.dumps(dict(who, outcome="SUCCESS", slot=sch.isoformat(),
+                                               deadline_utc=(sch + z.SCHEDULE_SLACK + z.RESOLUTION_TIMEOUT)
+                                               .isoformat(), published_utc=ts, evidence=ev), indent=1,
+                                          sort_keys=True), encoding="utf-8")
+    n["report"].write_text(json.dumps(dict(who, close=close_dt.isoformat(), scheduled=sch.isoformat(), actual=ts,
+                                           capture_ok=True, consistent=True, receipt_match=True, late=False,
+                                           seal={"written": False, "sha256": None}), indent=1), encoding="utf-8")
+    r_at = sch + timedelta(seconds=31)
+    s1_jappend(root, "SLOT-QUALIFIED", sub, at=r_at, op=intent.op, actor=intent.actor, r_at=r_at,
+               detail=j.detail_of(sl.qualified_tree(out, sch, day)))
+    if not with_stage:
+        return
+    try:
+        cal = c.load_json(out / "prereg.json")["calendar"]
+    except (OSError, KeyError):
+        cal = c.load_json(out / "audit" / "calendar.json")
+    day_row = next(d for d in cal if d["date"] == day)
+    gv = t.gate(root, "fixture seal")
+    res = sl.run_seal_stage(gv, day_row, cal, mailbox=root / "mailbox.sqlite3",
+                            clock=lambda: sch + timedelta(seconds=32))
+    assert res["written"], res
 
 
 def _dl_day(dl):

@@ -24,6 +24,7 @@ import s1_common as c
 import s1_receipt as rc
 import s1_run as r
 import s1_seal as z
+import s1_slot as sl
 import s1_trial as t
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_reack, s1_receipt_with, s1_score_refused, s1_state
@@ -127,19 +128,24 @@ def test_c1_checkpoint_after_an_abort_is_post_stop_and_never_seals(tmp_path, mon
 def test_c1_final_snapshot_and_score_check_fences_only_against_seals_up_to_the_stop(tmp_path, monkeypatch):
     """Task 11 (controller-added), C-1: a (legacy) seal of a close after the stop whose rows the ledger no longer
     holds is not a fence the final snapshot or the score checks."""
-    from conftest import _write_seal
     st_ = s1_state(tmp_path, START, score_ready=True, final_snapshot=False)
     out = tmp_path / "s1_out"
     ghost = dict(st_["rows"][-1], id=10_000, symbol="GHOST", action="BUY", timestamp="2026-10-29T15:00:00+00:00",
                  ts="2026-10-29T15:00:00+00:00")
-    _write_seal(out, "2026-10-29", datetime(2026, 10, 29, 20, tzinfo=UTC), st_["rows"] + [ghost], S1_RECEIPT,
-                start=START_DT, opening_close=z.close_of("2026-10-23", st_["calendar"]))
+    # A3 Task 7 (E2.4/E2.6 r3): no seal stage can start after the STOP, so a seal of a later close can only be a
+    # (legacy) file written outside any stage - the stop seal's record with the later close and the ghost row
+    legacy = dict(read(out / "seals" / "2026-10-27.json"), close=datetime(2026, 10, 29, 20, tzinfo=UTC).isoformat())
+    legacy["trades"] = legacy["trades"] + [ghost]
+    (out / "seals" / "2026-10-29.json").write_text(json.dumps(legacy), encoding="utf-8")
     snap_at = st_["snapshot_at"]
-    with _Clock(snap_at):
-        rep = ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: snap_at)
+    with _Clock(snap_at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+        ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: snap_at)   # the file itself: INVALID
+    monkeypatch.setattr(ck, "finalize_pending", lambda *a, **kw: None)              # unit level: the fence logic
+    rep = ck._final_snapshot_capture(out, st_["ledger"].path, lambda: snap_at)
     assert rep["fence_violations"] == [] and "2026-10-29.json" not in {x["file"] for x in rep["seals_checked"]}
     s1_reack(tmp_path, "ack-c1", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
-    rep = score(tmp_path, monkeypatch, st_, "ack-c1")
+    at(monkeypatch, st_["now"])
+    rep = s1_score_refused(tmp_path, "ack-c1")                                       # refused; the unit-level record
     assert not any("final snapshot" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -244,7 +250,7 @@ def test_i1_score_requires_every_seal_and_itself_to_match_the_prereg_toolchain(t
     s["bundle_sha256"] = "0" * 64
     p.write_text(json.dumps(s), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")   # A3 T7 (E2.6): the edited CREATED seal
     assert rep["verdict"] == "ABORTED-INVALID" and any("bundle" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -631,30 +637,6 @@ def test_m1_final_plan_edited_after_the_acquisition_is_aborted_invalid(tmp_path,
     assert rep["verdict"] == "ABORTED-INVALID" and any("final plan" in x for x in rep["reasons"]), rep["reasons"]
 
 
-def _created_seal_stage(root, day):
-    """A3 Task 6 test fixture: commit the existing seals/<day>.json as a CREATED seal stage `seal/<day>` (synthetic
-    INTENT / PREPARED / CREATED rows whose details are the staged intent.json / prepared.json bytes, Task 8's
-    format) - the only thing that makes a post-START seal REQUIRED (E2.6 r3). Test-only."""
-    import s1_journal as j
-    import s1_stage as sg
-    tr = t.open_trial(Path(root) / "mailbox.sqlite3")
-    stage, rel = f"seal/{day}", f"seals/{day}.json"
-    out = Path(root) / "s1_out"
-    op, actor = j.new_nonce(), j.new_nonce()
-    staging = sg.staging_dir(root, tr.trial_id, stage)
-    env = c.canonical(sg.envelope(tr.trial_id, stage, {"qualified_line": "1" * 64, "tree_manifest": "2" * 64}, {},
-                                  None))
-    com = c.canonical(sg.commitment(tr.trial_id, stage, op, "single", {rel: c.sha256_file(out / rel)}, []))
-    c.publish_exclusive(staging / "intent.json", env)
-    c.publish_exclusive(staging / "prepared.json", com)
-    from conftest import s1_jappend
-    when = c.aware(f"{day}T21:00:00+00:00")
-    for i, (kind, blob) in enumerate((("STAGE-INTENT", env), ("STAGE-PREPARED", com), ("STAGE-CREATED", com))):
-        s1_jappend(root, kind, j.stage_subject(stage), at=when + timedelta(seconds=i), op=op, actor=actor,
-                   detail=c.sha256_bytes(blob))
-    return out / rel
-
-
 @pytest.mark.parametrize("how", ["missing", "different"])
 def test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid(tmp_path, monkeypatch, how):
     """Task 11 (controller-added), m-2: a required seal that is missing or changed is ABORTED-INVALID (a deleted seal
@@ -663,7 +645,10 @@ def test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid(
     made required by its CREATED stage and then deleted or changed: the gate commits TRIAL-INVALID (stage-replaced)
     and the score's own record lists "seal missing" (s1_run._capture_seal_problems)."""
     st_ = s1_state(tmp_path, START, score_ready=True)
-    p = _created_seal_stage(tmp_path, "2026-10-26")
+    # A3 Task 7: every fixture seal is already a CREATED seal/<close> stage (conftest._write_seal runs the real seal
+    # stage), so the seal is REQUIRED as it stands - no synthetic stage rows are added
+    p = tmp_path / "s1_out" / "seals" / "2026-10-26.json"
+    assert "seals/2026-10-26.json" in sl.required_seals(tmp_path / "s1_out", c._open_trial_rows(tmp_path / "mailbox.sqlite3"))
     if how == "missing":
         p.unlink()
     else:

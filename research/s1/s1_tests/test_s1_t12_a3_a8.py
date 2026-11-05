@@ -272,9 +272,9 @@ def test_a3_score_checks_bundle_consistency_across_every_artifact(tmp_path, monk
         rep = r.score(tmp_path, "score-ack-2")
     except SystemExit as e:                                  # prereg: the registration itself no longer verifies
         assert not (out / "score").exists()
-        if where == "seal":                                  # A3 (F0.6/F1, OQ-19): an edited seal is a registration
-            assert isinstance(e, t.Refusal) and "trial INVALID (reason/registration-artifact)" in str(e), e
-            rep = json.loads(r._serialise(r._score(out)))    # artifact: TRIAL-INVALID, refused; the unit-level record
+        if where == "seal":                                  # A3 Task 7 (E2.6 r3): an edited seal is a CREATED
+            assert "seals/2026-10-26.json missing or changed" in str(e) and "INVALID (stage-replaced)" in str(e), e
+            rep = json.loads(r._serialise(r._score(out)))    # seal stage's changed member: refused; the unit record
         else:
             assert where == "prereg" and ("bundle" in str(e) or "RUN-ACK" in str(e)), e
             return

@@ -183,7 +183,9 @@ def test_ms_stop_problems_reports_an_extra_seal_among_the_frozen_slices(tmp_path
     """Mutant "stop_problems: extra slices ignored"."""
     st_ = s1_state(tmp_path, START, score_ready=True)
     out = tmp_path / "s1_out"
-    _write_seal(out, "2026-10-22", datetime(2026, 10, 22, 20, 0, tzinfo=UTC), [], S1_RECEIPT)
+    # A3 Task 7 (E2.6 r3): no seal stage can start after the STOP, so the extra seal is a file outside any stage
+    # (stop_problems is the unit under test; the file's own INVALID is the gate's, E2.4)
+    (out / "seals" / "2026-10-22.json").write_bytes((out / "seals" / "2026-10-23.json").read_bytes())
     probs = z.stop_problems(out, START_DT, st_["calendar"], recheck=False)
     assert any("seals/2026-10-22.json is not among" in p for p in probs), probs
 

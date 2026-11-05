@@ -69,10 +69,13 @@ def test_f1_probe_fabricated_earlier_close_evidence_before_the_opening_is_a_refu
     out = tmp_path / "s1_out"
     _fabricate(out, files, cal)
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit):
+    # A3 Task 7 (F3 table "no row: any claim ..."; E2.4 r3 "a seal file with no PREPARED ... in every state"): once
+    # the trial exists (AUDIT-ACK, audit stage rows), hand-made slot claims / a stage-less seal are a registration
+    # artifact at the gate - TRIAL-INVALID (and the abort) with zero live callbacks; Addendum 3 governs over the
+    # B3.2 pre-opening "refusal, no abort" outcome for these files (the calendar-free clock anchor is unchanged)
+    with pytest.raises(SystemExit, match=r"(exists with no journal row|with no INTENT).*INVALID \(registration-artifact\)"):
         _opening_attempt(tmp_path, cal, oc, spies)
-    assert c.load_abort(out) is None, c.load_abort(out)
-    assert spies.zero() and _refusals(tmp_path), (spies.n, _refusals(tmp_path))
+    assert spies.zero(), spies.n
     assert c.opening_anchor(out) == c._earliest_first_slot(oc)      # (fix round 9: the calendar-free anchor)
 
 

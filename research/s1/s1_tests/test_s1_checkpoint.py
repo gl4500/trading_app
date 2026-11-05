@@ -52,7 +52,10 @@ def test_counts_only_report_and_seal(tmp_path, ledger):
                         # fix round 2 (Addendum 2 B2 binding disposition, B1 slot resolution):
                         "process_binding", "resolution",
                         # A3 Task 6 (OQ-11): the journal outcome of the slot's J (returned, display only)
-                        "journal"}
+                        "journal",
+                        # A3 Task 7 (F3): the journal finalizer walks every slot of the close after the seal; its
+                        # status for the later slots ("waiting for E (slot order)") is display text, no count
+                        "deferred"}
     assert (tmp_path / "s1_out" / "seals" / "2026-10-15.json").exists()
     assert "price" not in json.dumps(rep) and "pnl" not in json.dumps(rep).lower()
 
@@ -381,9 +384,11 @@ def test_cr_bad_seal_record_is_recorded_as_an_abort_not_a_crash(tmp_path, ledger
     _good(tmp_path, ledger)
     assert run(tmp_path, ledger, minutes=45)["seal"]["written"]
     (tmp_path / "s1_out" / "seals" / "2026-10-15-copy.json").write_bytes(SEAL(tmp_path).read_bytes())
-    rep = run(tmp_path, ledger, minutes=47)
-    assert rep["stop"]["status"] == "ABORTED-INVALID" and "bad seal record" in rep["stop"]["reason"]
-    assert "two seals" in json.loads(ABORT(tmp_path).read_text())["reason"]
+    # A3 Task 7 (E2.4 r3, OQ-14): a second seal file outside any seal stage is a registration artifact at the next
+    # gate - TRIAL-INVALID and the abort before any capture (it no longer reaches the legacy "two seals" stop check)
+    with pytest.raises(SystemExit, match=r"2026-10-15-copy\.json is not the seal .*INVALID \(registration-artifact\)"):
+        run(tmp_path, ledger, minutes=47)
+    assert json.loads(ABORT(tmp_path).read_text())["reason"] == s1_common.REGISTRATION_ARTIFACT
 
 
 def test_cr_main_dispatches_each_mode_with_the_live_paths(monkeypatch, capsys):
@@ -446,6 +451,8 @@ def test_fr1_main_and_trial_state_compare_modes_and_status_by_value(tmp_path, mo
     # A3 Task 6 fix round 1 (C1): finalize_pending reads the open trial's journal (fail closed); this unit test has no
     # trial, and its subject is the RUNNING comparison: an empty journal is supplied
     monkeypatch.setattr(s1_common, "_open_trial_rows", lambda mailbox=None: [])
+    # A3 Task 7: finalize_pending is the journal finalizer behind its own trial gate; this unit test has no trial
+    monkeypatch.setattr(k, "finalize_pending", lambda *a, **kw: None)
     monkeypatch.setattr(k.z, "stop_decision", lambda *a, **kw: {"status": "".join(list("RUNNING")),
                                                                 "stop_close": None})
     with pytest.raises(SystemExit, match="RUNNING"):

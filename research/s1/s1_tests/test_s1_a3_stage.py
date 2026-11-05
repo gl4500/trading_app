@@ -650,13 +650,16 @@ def test_a_created_seal_deleted_is_stage_replaced_and_never_recreated(tmp_path, 
     assert not seal.exists()
 
 
-def test_seal_files_on_disk_are_not_evaluated_while_the_seal_family_is_not_enforced(tmp_path, trial):
-    """Transitional (Task 8): the existing post-START seal writers have no seal stage yet (Task 7 adds it), so a seal
-    file with no rows is not evaluated until SEALS_ENFORCED is set; ENFORCED (the TABLE stages) is empty too."""
-    assert sg.ENFORCED == frozenset() and sg.SEALS_ENFORCED is False
+def test_seal_files_on_disk_are_evaluated_once_the_seal_family_is_enforced(tmp_path, trial):
+    """Transitional (Task 8) switch, flipped by A3 Task 7 (Task 8 D5 condition (a)): the post-START seal writer is now
+    the seal/<close> stage, so SEALS_ENFORCED is True and a seal file with no rows is a registration artifact (E2.4 r3)
+    on the module default; ENFORCED (the TABLE stages) is still empty (Tasks 9-14)."""
+    assert sg.ENFORCED == frozenset() and sg.SEALS_ENFORCED is True
     (tmp_path / "s1_out" / "seals").mkdir()
     (tmp_path / "s1_out" / "seals" / "2026-10-27.json").write_text("{}", encoding="utf-8")
-    t.gate(tmp_path, "transitional")
+    with pytest.raises(SystemExit, match=r"seal/2026-10-27: artifacts .* with no INTENT: INVALID \(registration-artifact\)"):
+        t.gate(tmp_path, "enforced")
+    assert jrows(tmp_path)[-1].subject == "reason/registration-artifact"
 
 
 def test_a_foreign_root_is_refused_by_the_plan_check_before_the_stage_table(tmp_path, trial, monkeypatch):

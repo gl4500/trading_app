@@ -85,16 +85,15 @@ def test_fix1_i4b_a_corrupt_trial_seal_is_a_preserved_terminal_integrity_failure
     (out / "seals" / "2026-10-26.json").write_text("{not json", encoding="utf-8")
     st_["ledger"].trade("A", "BUY", 1, 50.0, "2026-10-27T15:00:00+00:00")
     st_["ledger"].set_portfolio("A", 11)
-    # A3 Task 6 (OQ-11 ruling, E5.2): a capture report no longer binds a seal (it is final before J), so the
-    # registration gate does not see the legacy (stage-less) seal; the next capture's own seal read observes it: the
-    # established violation `seal-record` (OQ-31) - TRIAL-INVALID first, then the persistent abort; no crash, no seal
-    rep = _cp(tmp_path, st_, MON + timedelta(days=1))
-    assert rep["journal"] == {"kind": "TRIAL-INVALID", "reason": "established-violation", "subtype": "seal-record"}
-    assert rep["stop"]["status"] == "ABORTED-INVALID"
-    ab = read(out / "aborted.json")
-    assert "bad seal record" in str(ab["reason"]) and not (out / "seals" / "2026-10-27.json").exists()
+    # A3 Task 7 (E2.6 r3): the seal is a CREATED seal/<close> stage, so the next command's gate finds its member
+    # changed and unparseable: TRIAL-INVALID (stage-replaced) recorded before any capture - a refusal with an
+    # external record (and its evidence copy), never a crash with no record; no seal of the next close
+    with pytest.raises(SystemExit, match=r"seals/2026-10-26\.json missing or changed.*INVALID \(stage-replaced\)"):
+        _cp(tmp_path, st_, MON + timedelta(days=1))
+    assert not (out / "seals" / "2026-10-27.json").exists()
+    assert not (out / "captures" / "2026-10-27").exists()
     obs = read(next((out / "invalid").glob("*.json")))
-    assert obs["subtype"] == "seal-record" and "bad seal record" in obs["legacy_reason"]
+    assert obs["stage"] == "seal/2026-10-26" and any("unparseable" in x or "changed" in x for x in obs["problems"])
 
 
 # ====================================================================== m-1

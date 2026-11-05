@@ -1,0 +1,1400 @@
+F.FFFFFFFFFFFFFFFFFFF..FF.FF.FFF.FF.F..F.FFFFFFFFFFFFF........FF         [100%]
+================================== FAILURES ===================================
+______________ test_missed_after_e_with_its_own_op_and_no_files _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_missed_after_e_with_its_o0')
+
+    def test_missed_after_e_with_its_own_op_and_no_files(tmp_path):
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        fin(tmp_path, st_, day, e)
+        got = slot_rows(tmp_path, sch)
+>       assert [k_ for k_, *_ in got] == ["SLOT-MISSED"]
+E       AssertionError: assert [] == ['SLOT-MISSED']
+E         
+E         Right contains one more item: 'SLOT-MISSED'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:50: AssertionError
+_______ test_missed_against_an_in_flight_slot_refuses_then_timeout_at_d _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_missed_against_an_in_flig0')
+
+    def test_missed_against_an_in_flight_slot_refuses_then_timeout_at_d(tmp_path):
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(sch), at=sch + timedelta(seconds=1))
+        fin(tmp_path, st_, day, e)                                      # 4d: no MISSED for an in-flight slot
+        assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT"]
+        fin(tmp_path, st_, day, d)
+>       assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E       AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E         
+E         Right contains one more item: 'SLOT-TIMEOUT'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:74: AssertionError
+_________ test_timeout_carries_the_intent_op_and_the_finalizer_actor __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_timeout_carries_the_inten0')
+
+    def test_timeout_carries_the_intent_op_and_the_finalizer_actor(tmp_path):
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(sch), at=sch + timedelta(seconds=1), op="1" * 32,
+                   actor="2" * 32)
+        fin(tmp_path, st_, day, d)
+        got = slot_rows(tmp_path, sch)
+>       assert len(got) == 2
+E       AssertionError: assert 1 == 2
+E        +  where 1 = len([('SLOT-INTENT', '11111111111111111111111111111111', '22222222222222222222222222222222', '2026-10-26T20:45:01.000000+00:00', 'absent')])
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:85: AssertionError
+______ test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_timeout_commits_at_d_whil0')
+st_ = {'calendar': [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'ope...tzinfo=datetime.timezone.utc), 'prereg_at': datetime.datetime(2026, 10, 25, 13, 30, tzinfo=datetime.timezone.utc), ...}
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+at = datetime.datetime(2026, 10, 26, 21, 25, tzinfo=datetime.timezone.utc)
+
+    def _fin_or_fail(tmp_path, st_, day, at):
+        try:
+>           return fin(tmp_path, st_, day, at)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_finalizer.py:37: in fin
+    return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_timeout_commits_at_d_whil0'..., mailbox_id='269c74ed-57d7-4b16-9136-bcf5bb3721e5', created=1793047501.0)], state='ACTIVE', mailbox=None, deferred=[])
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+now = <function fin.<locals>.<lambda> at 0x00000185ACFE7BA0>
+
+    def finalize_close(gv, day, cal, now, *, mailbox=None, before_seal=None, before_build=None) -> dict:
+        """STUB (revision 0): the legacy file-writing finalizer under the close's slot locks."""
+        import s1_checkpoint as ck
+        locks = []
+        try:
+            for slot in z.schedule(day, cal):
+                lk = L.OwnershipLock(gv.root, gv.trial.trial_id, L.slot_lock_name(j.slot_subject(slot)))
+                try:
+                    lk.acquire()
+                except L.LockHeld:
+>                   raise SystemExit(f"{j.slot_subject(slot)}: pending - a live owner holds the slot lock") from None
+E                   SystemExit: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+research\s1\s1_slot.py:364: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_timeout_commits_at_d_whil0')
+
+    def test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock(tmp_path):       # rows 256, 320
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        p, hello = live_worker(tmp_path, st_, day, sch)
+        try:
+>           _fin_or_fail(tmp_path, st_, day, d)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:146: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_timeout_commits_at_d_whil0')
+st_ = {'calendar': [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'ope...tzinfo=datetime.timezone.utc), 'prereg_at': datetime.datetime(2026, 10, 25, 13, 30, tzinfo=datetime.timezone.utc), ...}
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+at = datetime.datetime(2026, 10, 26, 21, 25, tzinfo=datetime.timezone.utc)
+
+    def _fin_or_fail(tmp_path, st_, day, at):
+        try:
+            return fin(tmp_path, st_, day, at)
+        except SystemExit as e:                                         # B3: an escaping refusal fails by assertion
+>           pytest.fail(f"the finalizer was refused: {e}")
+E           Failed: the finalizer was refused: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:137: Failed
+_ test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[late-r] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_live_worker_after_timeout0')
+st_ = {'calendar': [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'ope...tzinfo=datetime.timezone.utc), 'prereg_at': datetime.datetime(2026, 10, 25, 13, 30, tzinfo=datetime.timezone.utc), ...}
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+at = datetime.datetime(2026, 10, 26, 21, 25, tzinfo=datetime.timezone.utc)
+
+    def _fin_or_fail(tmp_path, st_, day, at):
+        try:
+>           return fin(tmp_path, st_, day, at)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_finalizer.py:37: in fin
+    return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_live_worker_after_timeout0'..., mailbox_id='d84e3414-e893-4225-a5c2-8df1af68452e', created=1793047501.0)], state='ACTIVE', mailbox=None, deferred=[])
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+now = <function fin.<locals>.<lambda> at 0x00000185ACFE5260>
+
+    def finalize_close(gv, day, cal, now, *, mailbox=None, before_seal=None, before_build=None) -> dict:
+        """STUB (revision 0): the legacy file-writing finalizer under the close's slot locks."""
+        import s1_checkpoint as ck
+        locks = []
+        try:
+            for slot in z.schedule(day, cal):
+                lk = L.OwnershipLock(gv.root, gv.trial.trial_id, L.slot_lock_name(j.slot_subject(slot)))
+                try:
+                    lk.acquire()
+                except L.LockHeld:
+>                   raise SystemExit(f"{j.slot_subject(slot)}: pending - a live owner holds the slot lock") from None
+E                   SystemExit: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+research\s1\s1_slot.py:364: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_live_worker_after_timeout0')
+case = 'late-r'
+
+    @pytest.mark.parametrize("case", ["late-r", "early-r"])
+    def test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay(tmp_path, case):  # rows 257, 321
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        out = tmp_path / "s1_out"
+        n = sl.names(out, sch, day["date"])
+        p, hello = live_worker(tmp_path, st_, day, sch)
+        try:
+>           res = _fin_or_fail(tmp_path, st_, day, d)                       # TIMEOUT first; cleanup deferred
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_live_worker_after_timeout0')
+st_ = {'calendar': [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'ope...tzinfo=datetime.timezone.utc), 'prereg_at': datetime.datetime(2026, 10, 25, 13, 30, tzinfo=datetime.timezone.utc), ...}
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+at = datetime.datetime(2026, 10, 26, 21, 25, tzinfo=datetime.timezone.utc)
+
+    def _fin_or_fail(tmp_path, st_, day, at):
+        try:
+            return fin(tmp_path, st_, day, at)
+        except SystemExit as e:                                         # B3: an escaping refusal fails by assertion
+>           pytest.fail(f"the finalizer was refused: {e}")
+E           Failed: the finalizer was refused: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:137: Failed
+_ test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[early-r] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_live_worker_after_timeout1')
+st_ = {'calendar': [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'ope...tzinfo=datetime.timezone.utc), 'prereg_at': datetime.datetime(2026, 10, 25, 13, 30, tzinfo=datetime.timezone.utc), ...}
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+at = datetime.datetime(2026, 10, 26, 21, 25, tzinfo=datetime.timezone.utc)
+
+    def _fin_or_fail(tmp_path, st_, day, at):
+        try:
+>           return fin(tmp_path, st_, day, at)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_finalizer.py:37: in fin
+    return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_live_worker_after_timeout1'..., mailbox_id='787fd767-e74a-4b63-993f-a8e5c75df3a9', created=1793047501.0)], state='ACTIVE', mailbox=None, deferred=[])
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+now = <function fin.<locals>.<lambda> at 0x00000185AD114540>
+
+    def finalize_close(gv, day, cal, now, *, mailbox=None, before_seal=None, before_build=None) -> dict:
+        """STUB (revision 0): the legacy file-writing finalizer under the close's slot locks."""
+        import s1_checkpoint as ck
+        locks = []
+        try:
+            for slot in z.schedule(day, cal):
+                lk = L.OwnershipLock(gv.root, gv.trial.trial_id, L.slot_lock_name(j.slot_subject(slot)))
+                try:
+                    lk.acquire()
+                except L.LockHeld:
+>                   raise SystemExit(f"{j.slot_subject(slot)}: pending - a live owner holds the slot lock") from None
+E                   SystemExit: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+research\s1\s1_slot.py:364: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_live_worker_after_timeout1')
+case = 'early-r'
+
+    @pytest.mark.parametrize("case", ["late-r", "early-r"])
+    def test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay(tmp_path, case):  # rows 257, 321
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        out = tmp_path / "s1_out"
+        n = sl.names(out, sch, day["date"])
+        p, hello = live_worker(tmp_path, st_, day, sch)
+        try:
+>           res = _fin_or_fail(tmp_path, st_, day, d)                       # TIMEOUT first; cleanup deferred
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_live_worker_after_timeout1')
+st_ = {'calendar': [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'ope...tzinfo=datetime.timezone.utc), 'prereg_at': datetime.datetime(2026, 10, 25, 13, 30, tzinfo=datetime.timezone.utc), ...}
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+at = datetime.datetime(2026, 10, 26, 21, 25, tzinfo=datetime.timezone.utc)
+
+    def _fin_or_fail(tmp_path, st_, day, at):
+        try:
+            return fin(tmp_path, st_, day, at)
+        except SystemExit as e:                                         # B3: an escaping refusal fails by assertion
+>           pytest.fail(f"the finalizer was refused: {e}")
+E           Failed: the finalizer was refused: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:137: Failed
+_____________ test_finalizer_decision_never_touches_the_work_lock _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_finalizer_decision_never_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AC099040>
+
+    def test_finalizer_decision_never_touches_the_work_lock(tmp_path, monkeypatch):       # row 258 (E1.2)
+        st_ = registered(tmp_path)
+        day, s_t = first_slot(st_, 45)
+        _, s_m = first_slot(st_, 47)
+        e_t, d_t = E_D(st_, day, s_t)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s_t), at=s_t + timedelta(seconds=1))
+        events = []
+        real_acq, real_app = sl.L.OwnershipLock.acquire, j.append
+    
+        def acq(self):
+            events.append(("lock", self.path.stem))
+            return real_acq(self)
+    
+        def app(trial_id, gen, req, ctx_fn, **kw):
+            res = real_app(trial_id, gen, req, ctx_fn, **kw)
+            events.append(("append", req.kind, res.outcome))
+            return res
+        monkeypatch.setattr(sl.L.OwnershipLock, "acquire", acq)
+        monkeypatch.setattr(j, "append", app)
+        try:
+            fin(tmp_path, st_, day, d_t)                                # s_t -> TIMEOUT, s_m (no INTENT) -> MISSED
+        except SystemExit as e:
+            pytest.fail(f"the finalizer was refused: {e}")
+        decided = [i for i, ev in enumerate(events) if ev[0] == "append" and ev[1] in ("SLOT-TIMEOUT", "SLOT-MISSED")]
+>       assert decided
+E       assert []
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:208: AssertionError
+________________ test_timeout_cleanup_waits_for_the_work_lock _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_timeout_cleanup_waits_for0')
+st_ = {'calendar': [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'ope...tzinfo=datetime.timezone.utc), 'prereg_at': datetime.datetime(2026, 10, 25, 13, 30, tzinfo=datetime.timezone.utc), ...}
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+at = datetime.datetime(2026, 10, 26, 21, 25, tzinfo=datetime.timezone.utc)
+
+    def _fin_or_fail(tmp_path, st_, day, at):
+        try:
+>           return fin(tmp_path, st_, day, at)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_finalizer.py:37: in fin
+    return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_timeout_cleanup_waits_for0'..., mailbox_id='bb920385-cd9c-4b77-b4f1-38edb3e5e276', created=1793047501.0)], state='ACTIVE', mailbox=None, deferred=[])
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+now = <function fin.<locals>.<lambda> at 0x00000185ACFE7B00>
+
+    def finalize_close(gv, day, cal, now, *, mailbox=None, before_seal=None, before_build=None) -> dict:
+        """STUB (revision 0): the legacy file-writing finalizer under the close's slot locks."""
+        import s1_checkpoint as ck
+        locks = []
+        try:
+            for slot in z.schedule(day, cal):
+                lk = L.OwnershipLock(gv.root, gv.trial.trial_id, L.slot_lock_name(j.slot_subject(slot)))
+                try:
+                    lk.acquire()
+                except L.LockHeld:
+>                   raise SystemExit(f"{j.slot_subject(slot)}: pending - a live owner holds the slot lock") from None
+E                   SystemExit: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+research\s1\s1_slot.py:364: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_timeout_cleanup_waits_for0')
+
+    def test_timeout_cleanup_waits_for_the_work_lock(tmp_path):                         # row 259 (E1.4, OQ-13)
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        n = sl.names(tmp_path / "s1_out", sch, day["date"])
+        p, _ = live_worker(tmp_path, st_, day, sch)
+        try:
+>           res = _fin_or_fail(tmp_path, st_, day, d)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_timeout_cleanup_waits_for0')
+st_ = {'calendar': [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'ope...tzinfo=datetime.timezone.utc), 'prereg_at': datetime.datetime(2026, 10, 25, 13, 30, tzinfo=datetime.timezone.utc), ...}
+day = {'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}
+at = datetime.datetime(2026, 10, 26, 21, 25, tzinfo=datetime.timezone.utc)
+
+    def _fin_or_fail(tmp_path, st_, day, at):
+        try:
+            return fin(tmp_path, st_, day, at)
+        except SystemExit as e:                                         # B3: an escaping refusal fails by assertion
+>           pytest.fail(f"the finalizer was refused: {e}")
+E           Failed: the finalizer was refused: slot/20261026T204500Z: pending - a live owner holds the slot lock
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:137: Failed
+__________________________ test_seal_is_an_f4_stage ___________________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_seal_is_an_f4_stage0')
+
+    def test_seal_is_an_f4_stage(tmp_path):                                                # row 266 (E2.1 r3)
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))            # QUALIFIED -> close determined -> seal stage
+>       assert seal_kinds(tmp_path, day["date"]) == ["STAGE-INTENT", "STAGE-PREPARED", "STAGE-CREATED"]
+E       AssertionError: assert [] == ['STAGE-INTEN...TAGE-CREATED']
+E         
+E         Right contains 3 more items, first extra item: 'STAGE-INTENT'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:244: AssertionError
+____________ test_no_seal_after_stop_even_for_a_pre_stop_qualified ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_no_seal_after_stop_even_f0')
+
+    def test_no_seal_after_stop_even_for_a_pre_stop_qualified(tmp_path):                  # rows 55, 260, 323, 336
+        """A QUALIFIED committed before the STOP whose close becomes determined only after the STOP: the seal INTENT
+        is refused (not ACTIVE), so no seal is decided and no file is written."""
+        st_ = registered(tmp_path)
+        day, s1_ = first_slot(st_, 45)
+        _, s2 = first_slot(st_, 47)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s1_), at=s1_ + timedelta(seconds=1))   # earlier in flight
+        run(tmp_path, st_, s2, s2 + timedelta(seconds=30))             # s2 QUALIFIED; close not determined yet
+        seal = tmp_path / "s1_out" / "seals" / f"{day['date']}.json"
+        assert not seal.exists() and seal_kinds(tmp_path, day["date"]) == []
+        _stop_row(tmp_path, s2 + timedelta(minutes=1))                 # STOP (synthetic) before s1 is terminal
+        e1, d1 = E_D(st_, day, s1_)
+        res = fin(tmp_path, st_, day, d1)                               # s1 TIMEOUT: the close is now determined
+>       assert [k_ for k_, *_ in slot_rows(tmp_path, s1_)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E       AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E         
+E         Right contains one more item: 'SLOT-TIMEOUT'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:268: AssertionError
+____________ test_barrier_invalid_between_active_read_and_prepared ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_barrier_invalid_between_a0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACF6B140>
+
+    def test_barrier_invalid_between_active_read_and_prepared(tmp_path, monkeypatch):      # row 260b (E2.8 r3)
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        _barrier(monkeypatch, lambda: s1_jappend(tmp_path, "TRIAL-INVALID", "reason/registration-artifact",
+                                                 detail="6" * 64, at=sch + timedelta(seconds=40)))
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+>       assert seal_kinds(tmp_path, day["date"]) == ["STAGE-INTENT"]                   # PREPARED was LOST-RACE
+E       AssertionError: assert [] == ['STAGE-INTENT']
+E         
+E         Right contains one more item: 'STAGE-INTENT'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:293: AssertionError
+_____________ test_barrier_close_between_active_read_and_prepared _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_barrier_close_between_act0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACFFAB10>
+
+    def test_barrier_close_between_active_read_and_prepared(tmp_path, monkeypatch):        # row 261 (E2.8 r3)
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        _barrier(monkeypatch, lambda: s1_ack(tmp_path, "close", "S1-CLOSE-ACK", sch + timedelta(seconds=40),
+                                             reason="WITHDRAWN", evidence_sha256="e" * 64))
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+        tr = t.trials(t.scan(tmp_path / "mailbox.sqlite3"))
+        (only,) = tr.values()
+        kinds_ = [x.kind for x in j.subject_rows(j.read_trial(only.trial_id, only.genesis, tmp_path / "mailbox.sqlite3"),
+                                                 f"stage/seal/{day['date']}")]
+>       assert kinds_ == ["STAGE-INTENT"] and only.closed is not None                 # PREPARED refused (CLOSED)
+E       AssertionError: assert ([] == ['STAGE-INTENT']
+E         
+E         Right contains one more item: 'STAGE-INTENT'
+E         Use -v to get more diff)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:307: AssertionError
+______ test_stop_fence_refuses_a_determined_close_without_a_created_seal ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_stop_fence_refuses_a_dete0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AD1572C0>
+
+    def test_stop_fence_refuses_a_determined_close_without_a_created_seal(tmp_path, monkeypatch):   # row 262 (E2.5)
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        monkeypatch.setattr(sl, "run_seal_stage", lambda gv, d, cal, res=None, **k: res or {})   # no seal stage yet
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))            # close determined, no seal stage
+        tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+        req = j.Request("TRIAL-STOP", "trial", j.new_nonce(), j.new_nonce(), detail="5" * 64)
+        ctx = t.product_context(tr, st_["calendar"], stop_detail=lambda rows_: "5" * 64,
+                                stop_fence=sl.stop_fence(st_["calendar"], c.aware(START)))
+        at = sch + timedelta(minutes=2)
+        res = j.append(tr.trial_id, tr.genesis, req, ctx, mailbox=tmp_path / "mailbox.sqlite3", clock=lambda: at)
+>       assert res.outcome == "REFUSE" and "not sealed" in res.reason
+E       AssertionError: assert ('APPEND' == 'REFUSE'
+E         
+E         - REFUSE
+E         + APPEND)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:322: AssertionError
+_______________ test_seal_stage_and_stop_orders[publish-first] ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_seal_stage_and_stop_order0')
+order = 'publish-first'
+
+    @pytest.mark.parametrize("order", ["publish-first", "stop-first"])
+    def test_seal_stage_and_stop_orders(tmp_path, order):                                  # rows 324, 335 (E2.8 r3)
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        seal = tmp_path / "s1_out" / "seals" / f"{day['date']}.json"
+        if order == "publish-first":                                    # seal CREATED, then the (fenced) STOP commits
+            run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+>           assert seal_kinds(tmp_path, day["date"])[-1:] == ["STAGE-CREATED"] and seal.exists()
+E           AssertionError: assert ([] == ['STAGE-CREATED']
+E             
+E             Right contains one more item: 'STAGE-CREATED'
+E             Use -v to get more diff)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:336: AssertionError
+_________________ test_seal_stage_and_stop_orders[stop-first] _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_seal_stage_and_stop_order1')
+order = 'stop-first'
+
+    @pytest.mark.parametrize("order", ["publish-first", "stop-first"])
+    def test_seal_stage_and_stop_orders(tmp_path, order):                                  # rows 324, 335 (E2.8 r3)
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        seal = tmp_path / "s1_out" / "seals" / f"{day['date']}.json"
+        if order == "publish-first":                                    # seal CREATED, then the (fenced) STOP commits
+            run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+            assert seal_kinds(tmp_path, day["date"])[-1:] == ["STAGE-CREATED"] and seal.exists()
+            _stop_row(tmp_path, sch + timedelta(minutes=2))
+            t.gate(tmp_path, "after the STOP")                          # the CREATED seal verifies: no INVALID
+        else:                                                           # STOP first: a later determination is refused
+            _, s2 = first_slot(st_, 47)
+            s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(sch), at=sch + timedelta(seconds=1))   # earlier in flight
+            run(tmp_path, st_, s2, s2 + timedelta(seconds=30))         # s2 QUALIFIED; not determined
+            _stop_row(tmp_path, s2 + timedelta(minutes=1))              # nothing determined: the fence would pass
+            d1 = E_D(st_, day, sch)[1]
+            res = fin(tmp_path, st_, day, d1)                           # sch TIMEOUT -> determined after the STOP
+>           assert seal_kinds(tmp_path, day["date"]) == [] and not seal.exists()       # post-STOP seal INTENT refused
+E           AssertionError: assert ([] == []
+E             
+E             Use -v to get more diff and not True)
+E            +  where True = exists()
+E            +    where exists = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_seal_stage_and_stop_order1/s1_out/seals/2026-10-26.json').exists
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:346: AssertionError
+____ test_deleted_created_seal_is_invalid_and_never_recreated[after-stop] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_deleted_created_seal_is_i0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACF98E90>
+when = 'after-stop'
+
+    @pytest.mark.parametrize("when", ["after-stop", "while-active"])
+    def test_deleted_created_seal_is_invalid_and_never_recreated(tmp_path, monkeypatch, when):   # rows 263, 325, 264b
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))            # seal/<close> CREATED
+        seal = tmp_path / "s1_out" / "seals" / f"{day['date']}.json"
+>       assert f"seals/{day['date']}.json" in sl.required_seals(tmp_path / "s1_out", rows(tmp_path))
+E       AssertionError: assert 'seals/2026-10-26.json' in {}
+E        +  where {} = <function required_seals at 0x00000185ACD70C20>((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_deleted_created_seal_is_i0') / 's1_out'), [Row(trial_id='19fb665c-a8c5-4420-a154-83b808b00016', seq=1, prev='0d1a569700dd52baa650e7c228eed828c4c1f8dad82b001066e...bd at=2026-10-26T20:45:30.000000+00:00', mailbox_id='16f0ebe3-5ee0-432a-bf9c-ac6a4acef4fa', created=1793047530.0), ...])
+E        +    where <function required_seals at 0x00000185ACD70C20> = sl.required_seals
+E        +    and   [Row(trial_id='19fb665c-a8c5-4420-a154-83b808b00016', seq=1, prev='0d1a569700dd52baa650e7c228eed828c4c1f8dad82b001066e...bd at=2026-10-26T20:45:30.000000+00:00', mailbox_id='16f0ebe3-5ee0-432a-bf9c-ac6a4acef4fa', created=1793047530.0), ...] = rows(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_deleted_created_seal_is_i0'))
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:356: AssertionError
+___ test_deleted_created_seal_is_invalid_and_never_recreated[while-active] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_deleted_created_seal_is_i1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACFF9BE0>
+when = 'while-active'
+
+    @pytest.mark.parametrize("when", ["after-stop", "while-active"])
+    def test_deleted_created_seal_is_invalid_and_never_recreated(tmp_path, monkeypatch, when):   # rows 263, 325, 264b
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))            # seal/<close> CREATED
+        seal = tmp_path / "s1_out" / "seals" / f"{day['date']}.json"
+>       assert f"seals/{day['date']}.json" in sl.required_seals(tmp_path / "s1_out", rows(tmp_path))
+E       AssertionError: assert 'seals/2026-10-26.json' in {}
+E        +  where {} = <function required_seals at 0x00000185ACD70C20>((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_deleted_created_seal_is_i1') / 's1_out'), [Row(trial_id='aa1e7b5b-0e04-410a-a9ef-b6b4350d63c3', seq=1, prev='419ae545fb0fd1895c47a66639d438590820b9ba65692f262d1...a4 at=2026-10-26T20:45:30.000000+00:00', mailbox_id='e3551c03-67e7-466e-b036-21d6934ac3ff', created=1793047530.0), ...])
+E        +    where <function required_seals at 0x00000185ACD70C20> = sl.required_seals
+E        +    and   [Row(trial_id='aa1e7b5b-0e04-410a-a9ef-b6b4350d63c3', seq=1, prev='419ae545fb0fd1895c47a66639d438590820b9ba65692f262d1...a4 at=2026-10-26T20:45:30.000000+00:00', mailbox_id='e3551c03-67e7-466e-b036-21d6934ac3ff', created=1793047530.0), ...] = rows(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_deleted_created_seal_is_i1'))
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:356: AssertionError
+_________________ test_seal_file_without_prepared_is_invalid __________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_seal_file_without_prepare0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACFAB1D0>
+
+    def test_seal_file_without_prepared_is_invalid(tmp_path, monkeypatch):                 # row 265 (E2.4 r3)
+        """Runs on the module default s1_stage.SEALS_ENFORCED (Task 8 D5 condition (b)): no monkeypatch of it."""
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        monkeypatch.setattr(sl, "run_seal_stage", lambda gv, d, cal, res=None, **k: res or {})   # no stage rows
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+        seal = tmp_path / "s1_out" / "seals" / f"{day['date']}.json"
+        seal.parent.mkdir(parents=True, exist_ok=True)
+        seal.write_bytes(b'{"forged": true}')                           # the TEST writes a seal outside any stage
+>       with pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:376: Failed
+__________________________ test_seals_enforced_is_on __________________________
+
+    def test_seals_enforced_is_on():                                                       # Task 8 D5 condition (b)
+>       assert sg.SEALS_ENFORCED is True
+E       assert False is True
+E        +  where False = sg.SEALS_ENFORCED
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:381: AssertionError
+________________ test_late_r_refuses_with_no_row_then_timeout _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_late_r_refuses_with_no_ro0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACF99AC0>
+
+    def test_late_r_refuses_with_no_row_then_timeout(tmp_path, monkeypatch):
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        real = sl.Worker.complete
+    
+        def late(self, rep, success):
+            self.now = lambda: d                                         # R = D (late)
+            return real(self, rep, success)
+        monkeypatch.setattr(sl.Worker, "complete", late)
+        res = run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+        assert res["journal"]["outcome"] == "REFUSE" and [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT"]
+        monkeypatch.setattr(sl.Worker, "complete", real)        # (never monkeypatch.undo(): it would drop the guards)
+        fin(tmp_path, st_, day, d)
+>       assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E       AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E         
+E         Right contains one more item: 'SLOT-TIMEOUT'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:398: AssertionError
+________________ test_slot_evidence_table[no-row-stray-claim] _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_no_ro1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACF68980>
+case = 'no-row-stray-claim'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+_______________ test_slot_evidence_table[no-row-stray-capture] ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_no_ro2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACF6B800>
+case = 'no-row-stray-capture'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+_______________ test_slot_evidence_table[in-flight-foreign-op] ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_in_fl1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACF98BC0>
+case = 'in-flight-foreign-op'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+_____ test_slot_evidence_table[in-flight-capture-dir-not-named-by-claim] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_in_fl2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AD18CEC0>
+case = 'in-flight-capture-dir-not-named-by-claim'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+_________________ test_slot_evidence_table[qualified-missing] _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_quali1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACFF8710>
+case = 'qualified-missing'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+_________________ test_slot_evidence_table[qualified-changed] _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_quali2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACF98B90>
+case = 'qualified-changed'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+_______________ test_slot_evidence_table[qualified-unparseable] _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_quali3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AD18DB80>
+case = 'qualified-unparseable'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+_____________ test_slot_evidence_table[qualified-backup-changed] ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_quali5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACFF9B20>
+case = 'qualified-backup-changed'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+_____________ test_slot_evidence_table[qualified-backup-deleted] ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_quali6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AD157B90>
+case = 'qualified-backup-deleted'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+_______________ test_slot_evidence_table[failed-report-changed] _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_faile1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACFFADB0>
+case = 'failed-report-changed'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+________________ test_slot_evidence_table[timeout-seal-cites] _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_timeo1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACF99E50>
+case = 'timeout-seal-cites'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+___________________ test_slot_evidence_table[missed-stray] ____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_slot_evidence_table_misse1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AC9166C0>
+case = 'missed-stray'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_slot_evidence_table(tmp_path, monkeypatch, case):
+        st_ = registered(tmp_path)
+        want = _evidence_case(tmp_path, st_, case)
+        sp = Spies(monkeypatch)
+        if want == "ok":
+            try:
+                t.gate(tmp_path, "evidence table")
+            except SystemExit as e:
+                pytest.fail(f"a tolerated F3 state was refused: {e}")
+            return
+>       with pytest.raises(SystemExit, match="INVALID"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:511: Failed
+_ test_seal_from_the_first_qualified_slot_in_schedule_order_after_earlier_slots_terminal _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_seal_from_the_first_quali0')
+
+    def test_seal_from_the_first_qualified_slot_in_schedule_order_after_earlier_slots_terminal(tmp_path):
+        """Also carry-forward 6 (Task 6 C2, sealing liveness): a crashed worker's INTENT-only slot gets the finalizer's
+        SLOT-TIMEOUT at D, so the close becomes determined and seals from the later QUALIFIED slot."""
+        st_ = registered(tmp_path)
+        day, s1_ = first_slot(st_, 45)
+        _, s2 = first_slot(st_, 47)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s1_), at=s1_ + timedelta(seconds=1))   # earlier slot in flight
+        run(tmp_path, st_, s2, s2 + timedelta(seconds=30))                                          # later slot QUALIFIED
+        assert not (tmp_path / "s1_out" / "seals" / f"{day['date']}.json").exists()
+        e1, d1 = E_D(st_, day, s1_)
+        fin(tmp_path, st_, day, d1)                                     # earlier slot TIMEOUT -> later slot seals
+>       assert [k_ for k_, *_ in slot_rows(tmp_path, s1_)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E       AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E         
+E         Right contains one more item: 'SLOT-TIMEOUT'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:528: AssertionError
+_______________ test_late_files_are_never_selectable_for_a_seal _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_late_files_are_never_sele0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AD1561E0>
+
+    def test_late_files_are_never_selectable_for_a_seal(tmp_path, monkeypatch):
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        out = tmp_path / "s1_out"
+        late = out / "late" / day["date"] / f"{sch:%Y%m%dT%H%M%SZ}"
+        _put(late / f"{sch:%Y%m%dT%H%M%SZ}.resolution.json", json.dumps({"outcome": "SUCCESS"}))
+        e, d = E_D(st_, day, sch)
+        fin(tmp_path, st_, day, e)
+>       assert not (out / "seals" / f"{day['date']}.json").exists() and \
+            [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-MISSED"]
+E       AssertionError: assert (not False and [] == ['SLOT-MISSED']
+E        +  where False = exists()
+E        +    where exists = ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_late_files_are_never_sele0/s1_out') / 'seals') / '2026-10-26.json').exists
+E         
+E         Right contains one more item: 'SLOT-MISSED'
+E         Use -v to get more diff)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:542: AssertionError
+_______________ test_finalizer_unexpected_error_appends_nothing _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_finalizer_unexpected_erro0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACF986E0>
+
+    def test_finalizer_unexpected_error_appends_nothing(tmp_path, monkeypatch):
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        monkeypatch.setattr(sl, "slot_times", lambda cal: (_ for _ in ()).throw(RuntimeError("unexpected")))
+>       with pytest.raises(SystemExit, match="refused with no row"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:551: Failed
+________________ test_evidence_check_runs_after_the_plan_check ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_evidence_check_runs_after0')
+
+    def test_evidence_check_runs_after_the_plan_check(tmp_path):                   # carry-forward 1 (Task 8 D4)
+        """A root whose plan.json names another trial is refused by the F6.2 plan check, and its slot files are never
+        judged as the open trial's (no TRIAL-INVALID). Moving evidence_check before the plan check fails this test."""
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        other = tmp_path / "other_root"
+        src = tmp_path / "s1_out"
+        plan = json.loads((src / "plan.json").read_text(encoding="utf-8"))
+        (other / "s1_out").mkdir(parents=True)
+        (other / "s1_out" / "plan.json").write_text(json.dumps(dict(plan, trial_id="9a1b2c3d-4e5f-4a6b-8c7d-"
+                                                                                 "0e1f2a3b4c5d")), encoding="utf-8")
+        shutil.copy(src / "prereg.json", other / "s1_out" / "prereg.json")       # its calendar names the slot
+        _put(sl.names(other / "s1_out", sch, day["date"])["claim"], json.dumps({"op": "9" * 32, "actor": "9" * 32}))
+>       assert sl.evidence_problems(other / "s1_out", rows(tmp_path), st_["calendar"])        # a violation, if judged
+E       AssertionError: assert []
+E        +  where [] = <function evidence_problems at 0x00000185ACD719E0>((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_evidence_check_runs_after0/other_root') / 's1_out'), [Row(trial_id='def5345b-74c6-4f33-a23b-1f5a647a4035', seq=1, prev='b19ed95b0a4bcecf63840b123942650ef22a3e0c94f7a188117...eb76856 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='d3fce05b-53d6-49f6-8ff1-fbe8ded418b5', created=1792788330.0)], [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...])
+E        +    where <function evidence_problems at 0x00000185ACD719E0> = sl.evidence_problems
+E        +    and   [Row(trial_id='def5345b-74c6-4f33-a23b-1f5a647a4035', seq=1, prev='b19ed95b0a4bcecf63840b123942650ef22a3e0c94f7a188117...eb76856 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='d3fce05b-53d6-49f6-8ff1-fbe8ded418b5', created=1792788330.0)] = rows(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_evidence_check_runs_after0'))
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:570: AssertionError
+_____ test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_a_stalled_stage_lock_neve0')
+
+    def test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows(tmp_path):     # carry-forward 3 (N2)
+        """Ruling N2 (E1.2) for the finalizer command (s1_checkpoint.finalize_close, the journal finalizer behind a
+        slot-path gate): while a REAL child process holds an unrelated seal stage's lock after its INTENT (a plain gate is
+        "pending"), TIMEOUT at D and MISSED at E commit; the stalled stage stays undecided (its lock still held)."""
+        st_ = registered(tmp_path)
+        day, s45 = first_slot(st_)
+        cal = st_["calendar"]
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s45), at=s45 + timedelta(seconds=1))    # a crashed worker
+        stage = "seal/2026-10-27"
+        p = _hold_seal_stage(tmp_path, stage, s45 - timedelta(minutes=5))
+        try:
+            d45 = z.resolution_deadline(s45, day, cal)
+            with _Clock(d45), pytest.raises(SystemExit, match="pending"):
+                t.gate(tmp_path, "a plain gate")                         # the hazard N2 removes from the deadline path
+            with _Clock(d45):
+                try:
+>                   res = ck.finalize_close(tmp_path / "s1_out", day, cal, d45, mailbox=tmp_path / "mailbox.sqlite3")
+E                   TypeError: finalize_close() got an unexpected keyword argument 'mailbox'
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:592: TypeError
+_ test_a_damaged_qualified_tree_behind_an_in_flight_slot_is_invalid_at_the_gate _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_a_damaged_qualified_tree_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185ACFFB1D0>
+
+    def test_a_damaged_qualified_tree_behind_an_in_flight_slot_is_invalid_at_the_gate(tmp_path, monkeypatch):  # N-2
+        """The F3 table checks every QUALIFIED slot of a close, not only those reached in slot order: slot 47 is
+        QUALIFIED behind slot 45 (INTENT-only, so the close is not determined); its damaged report is INVALID
+        (registration-artifact) at the next gate, with zero callbacks and the local abort."""
+        st_ = registered(tmp_path)
+        day, s45 = first_slot(st_)
+        s47 = s45 + timedelta(minutes=2)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s45), at=s45 + timedelta(seconds=1))
+        run(tmp_path, st_, s47, s47 + timedelta(seconds=30))
+        rp = sl.names(tmp_path / "s1_out", s47, day["date"])["report"]
+        rp.write_text(rp.read_text(encoding="utf-8") + " ", encoding="utf-8")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:619: Failed
+_ test_post_stop_commands_invalidate_a_damaged_qualified_tree[stop attestation] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_post_stop_commands_invali0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AC917890>
+command = 'stop attestation'
+
+    @pytest.mark.parametrize("command", ["stop attestation", "final plan", "final snapshot"])
+    def test_post_stop_commands_invalidate_a_damaged_qualified_tree(tmp_path, monkeypatch, command):   # N-2
+        """N-2: the stop attestation, the final plan and the final snapshot meet a damaged QUALIFIED tree: TRIAL-INVALID
+        (registration-artifact), not a mere 'bad seal record' refusal."""
+        st_, day, sch = _stopped_with_a_damaged_tree(tmp_path)
+        at = sch + timedelta(days=3)
+        with _Clock(at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+            if command == "stop attestation":
+>               r.attest_stop(tmp_path, r.STOP_STATEMENT)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:645: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_post_stop_commands_invali0')
+statement = 'I confirm that between START and the stop no MeanReversion code, config or package changed (including changed and reverted) and no MeanReversion trade was placed or edited by hand.'
+
+    def attest_stop(root, statement: str, *, mailbox=None) -> dict:
+        """Stop attestations (§12): after a recorded stop (STOPPED/TIMEOUT from the seals), before the final acquisition
+        and any score; binds the START attestation, the actual START and stop and the sealed final ledger (stop seal)."""
+        gv = s1_trial.gate(root, "stop attestation", mailbox=mailbox)       # A3 F0.6: open trial, state, bundle first
+        if statement != STOP_STATEMENT:
+            raise SystemExit("stop attestation refused: the statement must be exactly STOP_STATEMENT")
+        out = _out(root)
+        c.verify_bundle_first(out, "stop attestation", mailbox=mailbox)    # fix round 2 (B3): gate first
+        if not (out / "prereg.json").exists():
+            raise SystemExit("stop attestation refused: no prereg (the trial never started)")
+        g.verified_registration(out, "stop attestation", mailbox)          # Task 12: A3.2 bundle first, then A8.2
+        if c.load_abort(out) is not None:
+            raise SystemExit("stop attestation refused: the trial is ABORTED-INVALID")
+        if (out / "final").exists() or (out / "score").exists():
+            raise SystemExit("stop attestation refused: it must precede the final acquisition and the score")
+        pr = _load(out / "prereg.json")
+        try:                                                   # Task 12 (A2.1): the persisted stop (stop.json)
+            import s1_checkpoint                               # fix round 3 (I-1): finalize BEFORE freezing the stop
+            s1_checkpoint.finalize_pending(out, pr["calendar"], c.aware(pr["start"]), c.now_utc(), mailbox=mailbox)
+            stop = z.current_stop(out, c.aware(pr["start"]), pr["calendar"], c.now_utc(), "stop attestation")
+        except (ValueError, KeyError, TypeError) as e:
+            raise SystemExit(f"stop attestation refused: bad seal record ({e})") from None
+        if stop["status"] not in ("STOPPED", "TIMEOUT"):
+>           raise SystemExit(f"stop attestation refused: no stop recorded (status {stop['status']})")
+E           SystemExit: stop attestation refused: no stop recorded (status RUNNING)
+
+research\s1\s1_run.py:605: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_post_stop_commands_invali0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AC917890>
+command = 'stop attestation'
+
+    @pytest.mark.parametrize("command", ["stop attestation", "final plan", "final snapshot"])
+    def test_post_stop_commands_invalidate_a_damaged_qualified_tree(tmp_path, monkeypatch, command):   # N-2
+        """N-2: the stop attestation, the final plan and the final snapshot meet a damaged QUALIFIED tree: TRIAL-INVALID
+        (registration-artifact), not a mere 'bad seal record' refusal."""
+        st_, day, sch = _stopped_with_a_damaged_tree(tmp_path)
+        at = sch + timedelta(days=3)
+>       with _Clock(at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(registration-artifact\\)'
+E        Input: 'stop attestation refused: no stop recorded (status RUNNING)'
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:643: AssertionError
+___ test_post_stop_commands_invalidate_a_damaged_qualified_tree[final plan] ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_post_stop_commands_invali1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AD156690>
+command = 'final plan'
+
+    @pytest.mark.parametrize("command", ["stop attestation", "final plan", "final snapshot"])
+    def test_post_stop_commands_invalidate_a_damaged_qualified_tree(tmp_path, monkeypatch, command):   # N-2
+        """N-2: the stop attestation, the final plan and the final snapshot meet a damaged QUALIFIED tree: TRIAL-INVALID
+        (registration-artifact), not a mere 'bad seal record' refusal."""
+        st_, day, sch = _stopped_with_a_damaged_tree(tmp_path)
+        at = sch + timedelta(days=3)
+        with _Clock(at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+            if command == "stop attestation":
+                r.attest_stop(tmp_path, r.STOP_STATEMENT)
+            elif command == "final plan":
+>               k.write_final_plan(tmp_path)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:647: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_collect.py:442: in write_final_plan
+    rec = final_plan_record(root, mailbox=mailbox)
+research\s1\s1_collect.py:404: in final_plan_record
+    pr, st, stop_p, seal = _stop_state(out, c.now_utc() if now is None else now)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_post_stop_commands_invali1/s1_out')
+now = datetime.datetime(2026, 10, 29, 20, 45, tzinfo=datetime.timezone.utc)
+
+    def _stop_state(out: Path, now: datetime) -> tuple:
+        """Task 11 (controller-added), I-4: (prereg, stop decision, stop seal path, stop seal) of a trial that has
+        STOPPED or TIMED OUT, from the seals (the same stop_decision the score uses). Refuses with no prereg, once
+        aborted.json exists (nothing to acquire), on bad seal records, and while RUNNING / NO-VALID-SEAL."""
+        if not (out / "prereg.json").exists():
+            raise SystemExit("final plan refused: no prereg (the trial never started)")
+        if c.load_abort(out) is not None:
+            raise SystemExit("final plan refused: the trial is ABORTED-INVALID (nothing to acquire)")
+        pr = _load(out / "prereg.json")
+        try:                                                   # Task 12 (A2.1/A7.1): the PERSISTED stop
+            import s1_checkpoint                               # fix round 3 (I-1): finalize BEFORE freezing the stop
+            s1_checkpoint.finalize_pending(out, pr["calendar"], c.aware(pr["start"]), now)
+            st = s1_seal.current_stop(out, c.aware(pr["start"]), pr["calendar"], now, "final plan")
+        except (ValueError, KeyError, TypeError) as e:
+            raise SystemExit(f"final plan refused: bad seal record ({type(e).__name__}: {e})") from None
+        if st["status"] not in ("STOPPED", "TIMEOUT"):
+>           raise SystemExit(f"final plan refused: the trial is {st['status']} (RUNNING = no stop yet)")
+E           SystemExit: final plan refused: the trial is RUNNING (RUNNING = no stop yet)
+
+research\s1\s1_collect.py:388: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_post_stop_commands_invali1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AD156690>
+command = 'final plan'
+
+    @pytest.mark.parametrize("command", ["stop attestation", "final plan", "final snapshot"])
+    def test_post_stop_commands_invalidate_a_damaged_qualified_tree(tmp_path, monkeypatch, command):   # N-2
+        """N-2: the stop attestation, the final plan and the final snapshot meet a damaged QUALIFIED tree: TRIAL-INVALID
+        (registration-artifact), not a mere 'bad seal record' refusal."""
+        st_, day, sch = _stopped_with_a_damaged_tree(tmp_path)
+        at = sch + timedelta(days=3)
+>       with _Clock(at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(registration-artifact\\)'
+E        Input: 'final plan refused: the trial is RUNNING (RUNNING = no stop yet)'
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:643: AssertionError
+_ test_post_stop_commands_invalidate_a_damaged_qualified_tree[final snapshot] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_post_stop_commands_invali2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AD1685C0>
+command = 'final snapshot'
+
+    @pytest.mark.parametrize("command", ["stop attestation", "final plan", "final snapshot"])
+    def test_post_stop_commands_invalidate_a_damaged_qualified_tree(tmp_path, monkeypatch, command):   # N-2
+        """N-2: the stop attestation, the final plan and the final snapshot meet a damaged QUALIFIED tree: TRIAL-INVALID
+        (registration-artifact), not a mere 'bad seal record' refusal."""
+        st_, day, sch = _stopped_with_a_damaged_tree(tmp_path)
+        at = sch + timedelta(days=3)
+        with _Clock(at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+            if command == "stop attestation":
+                r.attest_stop(tmp_path, r.STOP_STATEMENT)
+            elif command == "final plan":
+                k.write_final_plan(tmp_path)
+            else:
+>               ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: at)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:649: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_checkpoint.py:961: in run_final_snapshot
+    return _final_snapshot_capture(out, live_db, now)      # violation the legacy detector just committed: no capture
+research\s1\s1_checkpoint.py:968: in _final_snapshot_capture
+    status, stop_close = _trial_state(out, _load(out / "prereg.json"), t)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_post_stop_commands_invali2/s1_out')
+pr = {'ack': {'ack_id': 'run-ack', 'created_utc': '2026-10-25T12:30:00+00:00'}, 'attest_start_sha256': 'bc5bb638b3f24e50933...64eec42b08d19ac3dd231e1b3cc', 'bundle_sha256': '50dbf1e3dee865763a8f0050083dd04ab20e9567a8a5f2c29ef0b6c2efde10c5', ...}
+t = datetime.datetime(2026, 10, 29, 20, 45, tzinfo=datetime.timezone.utc)
+
+    def _trial_state(out: Path, pr: dict, t: datetime) -> tuple:
+        """(status, stop_close) of a trial that has ended; refuses while it is RUNNING. Task 12 (A2.1): the persisted
+        stop (s1_out/stop.json; persisted now if the trial has ended and it is absent); an abort keeps its frozen stop
+        close (when one was persisted) for the slices."""
+        if c.load_abort(out) is not None:                   # terminal; a persisted stop keeps its frozen slices
+            st_ = z.load_stop(out)
+            return "ABORTED-INVALID", (st_ or {}).get("stop_close")
+        finalize_pending(out, pr["calendar"], c.aware(pr["start"]), t)        # B1.5 / fix round 3 (I-1): finalize first
+        try:
+            st_ = z.current_stop(out, c.aware(pr["start"]), pr["calendar"], t, "final snapshot")
+        except (ValueError, KeyError, TypeError) as e:
+            raise SystemExit(f"final snapshot refused: bad seal record ({type(e).__name__}: {e})") from None
+        if st_["status"] == "RUNNING":
+>           raise SystemExit("final snapshot refused: the trial is still RUNNING (no stop yet)")
+E           SystemExit: final snapshot refused: the trial is still RUNNING (no stop yet)
+
+research\s1\s1_checkpoint.py:922: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_post_stop_commands_invali2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AD1685C0>
+command = 'final snapshot'
+
+    @pytest.mark.parametrize("command", ["stop attestation", "final plan", "final snapshot"])
+    def test_post_stop_commands_invalidate_a_damaged_qualified_tree(tmp_path, monkeypatch, command):   # N-2
+        """N-2: the stop attestation, the final plan and the final snapshot meet a damaged QUALIFIED tree: TRIAL-INVALID
+        (registration-artifact), not a mere 'bad seal record' refusal."""
+        st_, day, sch = _stopped_with_a_damaged_tree(tmp_path)
+        at = sch + timedelta(days=3)
+>       with _Clock(at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(registration-artifact\\)'
+E        Input: 'final snapshot refused: the trial is still RUNNING (no stop yet)'
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:643: AssertionError
+_ test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_final_snapshot_trial_stat0')
+
+    def test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback(tmp_path):   # carry-forward 8 (N-1)
+        """N-1 (F0.7): the final snapshot's _trial_state meets a damaged QUALIFIED tree of a pending close (slot 45 TIMEOUT
+        by the finalizer, slot 47 QUALIFIED with a damaged report): a SystemExit refusal through the threaded mailbox,
+        never an escaping ValueError (the reviewer's repro)."""
+        st_ = registered(tmp_path)
+        cal = st_["calendar"]
+        day, s45 = first_slot(st_)
+        s47 = s45 + timedelta(minutes=2)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s45), at=s45 + timedelta(seconds=10))
+        run(tmp_path, st_, s47, s47 + timedelta(seconds=30))
+        out = tmp_path / "s1_out"
+        assert not (out / "seals" / f"{day['date']}.json").exists()
+        d45 = z.resolution_deadline(s45, day, cal)
+        intent = j.first(j.subject_rows(rows(tmp_path), j.slot_subject(s45)), "SLOT-INTENT")
+        s1_jappend(tmp_path, "SLOT-TIMEOUT", j.slot_subject(s45), op=intent.op, at=d45, due=True)
+        rp = sl.names(out, s47, day["date"])["report"]
+        rp.write_text(rp.read_text(encoding="utf-8") + " ", encoding="utf-8")
+        pr = json.loads((out / "prereg.json").read_text(encoding="utf-8"))
+        try:
+>           ck._trial_state(out, pr, d45 + timedelta(hours=1), mailbox=tmp_path / "mailbox.sqlite3")
+E           TypeError: _trial_state() got an unexpected keyword argument 'mailbox'
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:672: TypeError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_final_snapshot_trial_stat0')
+
+    def test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback(tmp_path):   # carry-forward 8 (N-1)
+        """N-1 (F0.7): the final snapshot's _trial_state meets a damaged QUALIFIED tree of a pending close (slot 45 TIMEOUT
+        by the finalizer, slot 47 QUALIFIED with a damaged report): a SystemExit refusal through the threaded mailbox,
+        never an escaping ValueError (the reviewer's repro)."""
+        st_ = registered(tmp_path)
+        cal = st_["calendar"]
+        day, s45 = first_slot(st_)
+        s47 = s45 + timedelta(minutes=2)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s45), at=s45 + timedelta(seconds=10))
+        run(tmp_path, st_, s47, s47 + timedelta(seconds=30))
+        out = tmp_path / "s1_out"
+        assert not (out / "seals" / f"{day['date']}.json").exists()
+        d45 = z.resolution_deadline(s45, day, cal)
+        intent = j.first(j.subject_rows(rows(tmp_path), j.slot_subject(s45)), "SLOT-INTENT")
+        s1_jappend(tmp_path, "SLOT-TIMEOUT", j.slot_subject(s45), op=intent.op, at=d45, due=True)
+        rp = sl.names(out, s47, day["date"])["report"]
+        rp.write_text(rp.read_text(encoding="utf-8") + " ", encoding="utf-8")
+        pr = json.loads((out / "prereg.json").read_text(encoding="utf-8"))
+        try:
+            ck._trial_state(out, pr, d45 + timedelta(hours=1), mailbox=tmp_path / "mailbox.sqlite3")
+        except SystemExit as e:
+            assert "registration-artifact" in str(e)
+        except BaseException as e:                                       # noqa: BLE001 - the N-1 defect, by assertion
+>           pytest.fail(f"_trial_state escaped with {type(e).__name__}: {e}")
+E           Failed: _trial_state escaped with TypeError: _trial_state() got an unexpected keyword argument 'mailbox'
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:676: Failed
+___ test_access_denied_on_the_slot_lock_refuses_the_cleanup_with_no_invalid ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_access_denied_on_the_slot0')
+
+    def test_access_denied_on_the_slot_lock_refuses_the_cleanup_with_no_invalid(tmp_path):   # carry-forward 11
+        """ERROR_ACCESS_DENIED (a directory where the slot lock file belongs) at the E1.4 cleanup probe: the TIMEOUT row
+        (a journal decision, no lock) stands; the cleanup is refused (F5.5: no liveness verdict), nothing is moved, and
+        there is no TRIAL-INVALID."""
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        row = s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(sch), at=sch + timedelta(seconds=1))
+        n = sl.names(tmp_path / "s1_out", sch, day["date"])
+        _put(n["claim"], json.dumps({"op": row.op, "actor": row.actor}))
+        tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+        L.lock_path(tmp_path, tr.trial_id, L.slot_lock_name(j.slot_subject(sch))).mkdir(parents=True)
+>       res = _fin_or_fail(tmp_path, st_, day, d)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:693: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_finalizer.py:135: in _fin_or_fail
+    return fin(tmp_path, st_, day, at)
+research\s1\s1_tests\test_s1_a3_finalizer.py:37: in fin
+    return sl.finalize_close(gv, day, st_["calendar"], lambda: at, mailbox=tmp_path / "mailbox.sqlite3")
+research\s1\s1_slot.py:362: in finalize_close
+    lk.acquire()
+research\s1\s1_locks.py:132: in acquire
+    fd = _open_exclusive(self.path)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_access_denied_on_the_slot0/s1_locks/a2b8bcf8-73ce-48b1-ad93-9a57ed4eb05d/slot-20261026T204500Z.lock')
+
+    def _open_exclusive(path: Path) -> int:
+        if sys.platform != "win32":
+            raise LockError("ownership locks require Windows share modes (F5.2): fail closed")
+        h = _k32.CreateFileW(str(path), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, None, OPEN_ALWAYS,
+                             FILE_ATTRIBUTE_NORMAL, None)
+        if h is None or h == _INVALID:
+            err = ctypes.get_last_error()
+            if err in (ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION):
+                raise LockHeld(f"{path.name}: held by another process (Windows error {err})")
+>           raise LockError(f"{path.name}: lock I/O error (Windows error {err})")
+E           s1_locks.LockError: slot-20261026T204500Z.lock: lock I/O error (Windows error 5)
+
+research\s1\s1_locks.py:112: LockError
+___________ test_access_denied_on_the_seal_stage_lock_is_a_refusal ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_access_denied_on_the_seal0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000185AD18F230>
+
+    def test_access_denied_on_the_seal_stage_lock_is_a_refusal(tmp_path, monkeypatch):      # carry-forward 11
+        """ERROR_ACCESS_DENIED on the seal stage lock: the seal stage is refused with no row (no INVALID); once the lock
+        is usable again the stage runs."""
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        monkeypatch.setattr(sl, "run_seal_stage", lambda gv, d, cal, res=None, **k: res or {})
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+        monkeypatch.setattr(sl, "run_seal_stage", REAL_RUN_SEAL_STAGE)
+        tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+        lp = L.lock_path(tmp_path, tr.trial_id, L.stage_lock_name(f"seal/{day['date']}"))
+        lp.mkdir(parents=True)
+        res = _fin_or_fail(tmp_path, st_, day, sch + timedelta(minutes=1))
+>       assert "lock error" in str(res["refused"]) and seal_kinds(tmp_path, day["date"]) == []
+E       AssertionError: assert ('lock error' in 'None')
+E        +  where 'None' = str(None)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:711: AssertionError
+____________________ test_race_two_finalizers_one_terminal ____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_race_two_finalizers_one_t0')
+
+    def test_race_two_finalizers_one_terminal(tmp_path):
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        d = z.resolution_deadline(sch, day, st_["calendar"])
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(sch), at=sch + timedelta(seconds=1))
+        cal_p = tmp_path / "cal.json"
+        cal_p.write_text(json.dumps(st_["calendar"]), encoding="utf-8")
+        args = [sys.executable, "-I", "-c", FINALIZE, str(Path(c.HERE)), str(tmp_path), d.isoformat(), str(cal_p),
+                day["date"]]
+        procs = [subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True) for _ in range(2)]
+        outs = [p.communicate(timeout=120) for p in procs]
+>       assert all(p.returncode == 0 for p in procs), outs
+E       AssertionError: [('', 'slot/20261026T204500Z: pending - a live owner holds the slot lock
+E         '), ('{"written": false, "sha256": null, "fr...pen until 2026-10-26T22:10:00+00:00): the seal waits for slot order (A5.2)", "refused": null, "cleanup": null}
+E         ', '')]
+E       assert False
+E        +  where False = all(<generator object test_race_two_finalizers_one_terminal.<locals>.<genexpr> at 0x00000185AD2D9B10>)
+
+research\s1\s1_tests\test_s1_a3_codex_probes.py:190: AssertionError
+________________ test_race_p_without_j_restart_ends_in_timeout ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21098/test_race_p_without_j_restart_0')
+
+    def test_race_p_without_j_restart_ends_in_timeout(tmp_path):
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        at = sch + timedelta(seconds=30)
+        p = subprocess.run([sys.executable, "-I", "-c", CRASH, str(Path(c.HERE)), str(tmp_path), str(st_["ledger"].path),
+                            at.isoformat(), sch.isoformat()], capture_output=True, text=True, timeout=120)
+        assert p.returncode == 9, p.stderr
+        with pytest.raises(SystemExit, match="never re-intents"):
+            run_slot(tmp_path, st_, sch, at + timedelta(seconds=30))
+        _fin(tmp_path, st_, day, z.resolution_deadline(sch, day, st_["calendar"]))
+>       assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E       AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E         
+E         Right contains one more item: 'SLOT-TIMEOUT'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_codex_probes.py:224: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_against_an_in_flight_slot_refuses_then_timeout_at_d
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_carries_the_intent_op_and_the_finalizer_actor
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[late-r]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[early-r]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_decision_never_touches_the_work_lock
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_cleanup_waits_for_the_work_lock
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_is_an_f4_stage
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_invalid_between_active_read_and_prepared
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_stage_and_stop_orders[publish-first]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_stage_and_stop_orders[stop-first]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_deleted_created_seal_is_invalid_and_never_recreated[after-stop]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_deleted_created_seal_is_invalid_and_never_recreated[while-active]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_file_without_prepared_is_invalid
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seals_enforced_is_on
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_late_r_refuses_with_no_row_then_timeout
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-claim]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-capture]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-foreign-op]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-capture-dir-not-named-by-claim]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-missing]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-changed]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-changed]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-deleted]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-report-changed]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[timeout-seal-cites]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[missed-stray]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_from_the_first_qualified_slot_in_schedule_order_after_earlier_slots_terminal
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_late_files_are_never_selectable_for_a_seal
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_unexpected_error_appends_nothing
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_evidence_check_runs_after_the_plan_check
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_damaged_qualified_tree_behind_an_in_flight_slot_is_invalid_at_the_gate
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[stop attestation]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[final plan]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[final snapshot]
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_access_denied_on_the_slot_lock_refuses_the_cleanup_with_no_invalid
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_access_denied_on_the_seal_stage_lock_is_a_refusal
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_race_two_finalizers_one_terminal
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_race_p_without_j_restart_ends_in_timeout
+46 failed, 18 passed, 2 deselected in 40.23s

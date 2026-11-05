@@ -1,0 +1,40 @@
+A3 Task 7 - retro labels for t7_red.txt (46 failed, 18 passed, 2 deselected [the frozen-probe meta tests])
+RED run: the Step 1 interface stub (s1_slot Task 7 STUB section; the gate hook wired, a no-op), plus two stub
+interface keywords (s1_checkpoint.finalize_close(mailbox=), _trial_state(mailbox=)) added after a first run in which
+those two tests failed with TypeError (an interface RED, re-run as a behavioural RED: t7_red.txt is the re-run).
+Every failure in t7_red.txt is an AssertionError or pytest's Failed (DID NOT RAISE / regex did not match /
+pytest.fail on an escaping refusal). The "SystemExit: ... pending - a live owner holds the slot lock" lines are the
+chained cause inside _fin_or_fail, whose terminal frame is pytest.fail (B3). No Import/Attribute/Key/Type/Index error.
+
+B (behavioural RED, 46): every FAILED line of t7_red.txt.
+  rows 256, 257, 259, 320, 321 (live worker / TIMEOUT at D): the stub (revision 0) takes the slot lock -> "pending",
+    and the legacy finalizer appends no TIMEOUT row;
+  row 258: the stub's decision path takes slot-* locks (events before the last decision);
+  rows 266, 260/336, 260b, 261, 262, 263/325/264b, 265, 324/335: no seal/<close> stage rows (the stub writes the legacy
+    file with no stage, no state check, no STOP fence, SEALS_ENFORCED False);
+  rows 267, 311 and the F3 table: the evidence table is a stub ([]) - DID NOT RAISE;
+  Task 7 additions: SEALS_ENFORCED static (False), hook position (precondition: the stub's evidence_problems is []),
+    N2 finalizer under a held stage lock (no TIMEOUT), N-2 gate-level and post-STOP INVALID (DID NOT RAISE / regex),
+    N-1 (_trial_state did not refuse), ERROR_ACCESS_DENIED (no lock-error refusal recorded), the two child-process
+    races (no TIMEOUT row).
+
+ctrl (passing on the stub by construction - tolerated states / the brief's control):
+  test_race_j_commits_then_stale_t_is_lost_race (the brief's ctrl)
+  test_premature_finalizer_before_e_or_d_refuses_with_no_row (before E/D nothing is decided by either finalizer)
+  test_slot_evidence_table[no-row-clean, in-flight-own-partial, qualified-ok, qualified-late-extra, failed-ok,
+    failed-partial-capture, timeout-leftovers, missed-clean] (the tolerated rows of the F3 table: the gate must pass)
+
+retro (pass on the stub; their oracle is already met by earlier tasks or vacuously by the stub):
+  test_race_t_commits_then_j_is_lost_race (Task 6's worker already gets LOST-RACE at 4c after a committed TIMEOUT)
+  test_stale_finalizer_moves_none_of_the_winners_files_and_the_recheck_passes (stub-vacuous: the stub's
+    move_leftovers/slot_problems return []; in GREEN the real move_leftovers' "terminal is a TIMEOUT of this op"
+    guard is what keeps the winner's files - Deviation 6)
+
+pre-existing (Task 5/6 probe tests in test_s1_a3_codex_probes.py, unchanged): test_combined_damage...[missing,
+  unparseable], test_publication_at_d_and_d_plus_1us_does_not_seal[0, 1], test_publication_d_minus_1us...,
+  test_publication_well_before_d_seals.
+
+revised after RED: test_evidence_check_runs_after_the_plan_check - the RED version (an open trial with journal rows)
+  failed on its precondition; in GREEN that setup tripped the legacy registration detector of the foreign root, so the
+  test now uses an open trial with no journal row (as Task 8's foreign-root test does). Its kill evidence for the
+  hook-placement mutant is t7_mutant_hook.txt (the hook moved before the plan check: the test FAILS).
