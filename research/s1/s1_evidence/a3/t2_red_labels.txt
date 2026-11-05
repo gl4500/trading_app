@@ -1,0 +1,127 @@
+Task 2 RED labels (run against the Task 2 interface stub = Task 1's permissive decide + the permissive trial_state /
+subject_rows / first helpers of brief Step 1; raw output: t2_red.txt). 76 failed, 28 passed.
+Command: PYTHONPATH="research/s1;research/s1/s1_tests" <testenv python> -m pytest -p conftest -p no:cacheprovider
+         research/s1/s1_tests/test_s1_a3_precedence.py -q -rA --tb=line
+No ImportError / AttributeError / NameError / TypeError / collection error: every failure is an AssertionError on the
+outcome (`assert 'APPEND' == ...`, `assert 'ACTIVE' == ...`), i.e. behavioural.
+
+Extra REDs recorded separately:
+- t2_red_property.txt: the Hypothesis property against the stub; the explicit @examples fail first
+  (APPEND != LOST-RACE for [SI,TO] QUALIFIED at D+1us; APPEND != REFUSE for [SI] QUALIFIED R=D).
+- t2_red_d2.txt: the added case 4a-seal-intent-wrong-selection-on-repeat (Deviation D2), RED against the stub
+  (APPEND) and against the plan draft (repeat-stage), GREEN on the implementation. That case was added after t2_red.txt
+  was taken, so it is not in the 104 counted here.
+
+Map-label conflict (preflight P-row for T2): map rows 16 (malformed [unknown-kind]) and 22 (chain [gap,fork,dup,format])
+are labelled "B" in the requirement map but PASS on the stub, because Task 1's validate_request / verify_chain already
+enforce them. Labelled `retro` here, as the brief's Step 3 says. Not counted as REDs.
+
+== B (behavioural RED: fails on the stub) ==
+B      test_s1_a3_precedence.py::test_precedence_table[4a-q-no-intent]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-q-foreign-op]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-q-foreign-actor]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-q-foreign-op-on-terminal]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-f-no-intent]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-f-foreign-op]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-f-foreign-actor]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-t-no-intent]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-t-foreign-op]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-t-foreign-op-on-terminal]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-p-no-intent]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-p-foreign-op]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-p-foreign-actor]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-c-no-prepared]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-c-foreign-op]
+B      test_s1_a3_precedence.py::test_precedence_table[4b-si-after-intent]
+B      test_s1_a3_precedence.py::test_precedence_table[4b-si-after-terminal]
+B      test_s1_a3_precedence.py::test_precedence_table[4b-si-stopped-terminal]
+B      test_s1_a3_precedence.py::test_precedence_table[4b-gi-repeat]
+B      test_s1_a3_precedence.py::test_precedence_table[4b-si-repeat-with-reused-op]
+B      test_s1_a3_precedence.py::test_precedence_table[4b-gi-repeat-with-reused-op]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-q-after-timeout]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-q-late-r-after-timeout]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-f-after-timeout]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-f-after-qualified]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-t-after-qualified]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-m-after-qualified]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-m-after-failed]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-m-after-timeout]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-m-after-missed]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-m-qualified-before-e]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-p-same]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-p-different]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-c-differs-from-prepared]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-c-created-same]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-stop-same]
+B      test_s1_a3_precedence.py::test_precedence_table[4c-stop-different]
+B      test_s1_a3_precedence.py::test_precedence_table[4d-m-in-flight]
+B      test_s1_a3_precedence.py::test_precedence_table[5-si-stopped]
+B      test_s1_a3_precedence.py::test_precedence_table[5-si-gate-refuses]
+B      test_s1_a3_precedence.py::test_precedence_table[5-gi-forbidden]
+B      test_s1_a3_precedence.py::test_precedence_table[4a-seal-intent-wrong-selection]
+B      test_s1_a3_precedence.py::test_precedence_table[5-seal-intent-not-determined]
+B      test_s1_a3_precedence.py::test_precedence_table[5-stop-fence-unsealed-close]
+B      test_s1_a3_precedence.py::test_precedence_table[5-stop-rule-not-met]
+B      test_s1_a3_precedence.py::test_precedence_table[5-stop-differs-from-recomputed]
+B      test_s1_a3_precedence.py::test_precedence_table[5-q-intent-after-stop]
+B      test_s1_a3_precedence.py::test_precedence_table[6-si-at-e]
+B      test_s1_a3_precedence.py::test_precedence_table[6-q-r-at-d]
+B      test_s1_a3_precedence.py::test_precedence_table[6-q-r-d-plus-1us]
+B      test_s1_a3_precedence.py::test_precedence_table[6-t-before-d]
+B      test_s1_a3_precedence.py::test_precedence_table[6-m-before-e]
+B      test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[SLOT-INTENT]
+B      test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[SLOT-QUALIFIED]
+B      test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[SLOT-FAILED]
+B      test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[SLOT-TIMEOUT]
+B      test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[SLOT-MISSED]
+B      test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[STAGE-INTENT]
+B      test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[STAGE-PREPARED]
+B      test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[STAGE-CREATED]
+B      test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[TRIAL-STOP]
+B      test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[TRIAL-INVALID]
+B      test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[SLOT-INTENT]
+B      test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[SLOT-QUALIFIED]
+B      test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[SLOT-FAILED]
+B      test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[SLOT-TIMEOUT]
+B      test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[SLOT-MISSED]
+B      test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[STAGE-INTENT]
+B      test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[STAGE-PREPARED]
+B      test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[STAGE-CREATED]
+B      test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[TRIAL-STOP]
+B      test_s1_a3_precedence.py::test_trial_state_derivation
+B      test_s1_a3_precedence.py::test_reused_op_on_an_opening_row_is_refused
+B      test_s1_a3_precedence.py::test_append_decides_on_the_state_read_inside_the_transaction
+B      test_s1_a3_precedence.py::test_invalidate_appends_trial_invalid_instead_in_the_same_transaction
+B      test_s1_a3_precedence.py::test_substep_conditions_are_disjoint_and_decide_matches_the_oracle
+
+== ctrl (positive control: passes on the stub and after) ==
+ctrl   test_s1_a3_precedence.py::test_precedence_table[5-stop-fence-ok]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[5-q-intent-before-stop]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[6-si-before-e]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[6-q-r-d-minus-1us]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[6-m-at-e]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[7-t-finalizer-actor]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[7-gi-permitted]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[7-p]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[7-c-opening-actor]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[7-c-recovery-actor]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[7-trial-invalid-active]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[7-trial-invalid-stopped]
+ctrl   test_s1_a3_precedence.py::test_precedence_table[7-stop]
+ctrl   test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[TRIAL-INVALID]
+
+== retro (rule already enforced by Task 1) ==
+retro  test_s1_a3_precedence.py::test_chain_integrity_refuses_with_no_row[gap]
+retro  test_s1_a3_precedence.py::test_chain_integrity_refuses_with_no_row[fork]
+retro  test_s1_a3_precedence.py::test_chain_integrity_refuses_with_no_row[dup]
+retro  test_s1_a3_precedence.py::test_chain_integrity_refuses_with_no_row[format]
+retro  test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[absent-on-qualified]
+retro  test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[detail-on-intent]
+retro  test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[naive-r]
+retro  test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[op-not-hex]
+retro  test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[qualified-without-r]
+retro  test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[r-on-failed]
+retro  test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[subject-for-kind]
+retro  test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[unknown-kind]
+retro  test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[unknown-reason]
+retro  test_s1_a3_precedence.py::test_an_exception_inside_the_transaction_appends_no_row

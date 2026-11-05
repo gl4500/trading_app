@@ -1,0 +1,24 @@
+# Deviation D2 pin: test_precedence_table[4a-seal-intent-wrong-selection-on-repeat]
+# command per variant: S1_VARIANT_DIR=<dir> PYTHONPATH=<scratch plug>;research/s1;research/s1/s1_tests <testenv python> -m pytest -p conftest -p swapmod -p no:cacheprovider <id> --tb=short
+# swapmod (scratch-only plugin, not in the worktree) pre-loads <dir>/s1_journal.py as sys.modules['s1_journal']
+
+## (1) Task 1 stub decide (git show fb2a2dc:research/s1/s1_journal.py): expected behavioural RED (APPEND)
+s1_journal under test: C:/Users/gl450/AppData/Local/Temp/claude/C--Users-gl450/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/stubmod\s1_journal.py
+E   AssertionError: ('4a-seal-intent-wrong-selection-on-repeat', Decision(outcome='APPEND', reason=''))
+E   assert 'APPEND' == 'INVALIDATE'
+E     
+E     - INVALIDATE
+E     + APPEND
+============================== 1 failed in 0.40s ==============================
+
+## (2) plan draft (stage_check called only when intent is None): expected behavioural RED (repeat-stage, not contradictory-stage)
+s1_journal under test: C:/Users/gl450/AppData/Local/Temp/claude/C--Users-gl450/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/draftmod\s1_journal.py
+E   AssertionError: assert 'repeat-stage' == 'contradictory-stage'
+E     
+E     - contradictory-stage
+E     + repeat-stage
+============================== 1 failed in 0.38s ==============================
+
+## (3) implementation (research/s1/s1_journal.py): expected GREEN
+s1_journal under test: C:/Users/gl450/trading_app-s1/research/s1\s1_journal.py
+============================== 1 passed in 0.27s ==============================

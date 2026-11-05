@@ -312,9 +312,144 @@ def read_trial(trial_id: str, gen: str, mailbox=None) -> list:
     return verify_chain(read_all(mailbox), trial_id, gen)
 
 
+def trial_state(rows) -> str:
+    """F1: INVALID = any TRIAL-INVALID (with or without a stop); STOPPED = a TRIAL-STOP and no TRIAL-INVALID; else
+    ACTIVE. CLOSED is an authorization status layered on top by s1_trial (F7.5)."""
+    ks = {r.kind for r in rows}
+    if "TRIAL-INVALID" in ks:
+        return "INVALID"
+    return "STOPPED" if "TRIAL-STOP" in ks else "ACTIVE"
+
+
+def subject_rows(rows, subject) -> list:
+    return [r for r in rows if r.subject == subject]
+
+
+def first(rows, *kinds):
+    return next((r for r in rows if r.kind in kinds), None)
+
+
 def decide(rows, req, ctx, now) -> Decision:
-    """Task 1: permissive (always APPEND). This is Task 2's behavioural-RED interface stub; Task 2 replaces it with the
-    F0.5 precedence."""
+    """F0.5 precedence on the state read inside the transaction (step 1, chain integrity, is verify_chain, run before
+    this). Steps in order; the first that decides wins; the step-4 sub-steps 4a, 4b, 4c, 4d are disjoint. The OQ-3
+    reused-op check (a malformed opening request: REFUSE) runs after 4b, so a repeated subject is still
+    repeat-attempt / repeat-stage (f045bd31 OQ-3 ruling)."""
+    if ctx.closed:                                                                     # step 2
+        return Decision("REFUSE", "trial CLOSED: no row of any kind")
+    state = trial_state(rows)
+    if state == "INVALID":                                                             # step 3
+        if req.kind == "TRIAL-INVALID":
+            return Decision("APPEND", "an extra INVALID observation")
+        return Decision("LOST-RACE", "trial INVALID: no work")
+    if req.kind == "TRIAL-INVALID":                                                    # (no step-4..6 rule applies)
+        return Decision("APPEND")
+    mine = subject_rows(rows, req.subject)
+    reused = req.kind in OPENING and any(r.op == req.op for r in rows)                 # OQ-3, applied after 4b
+    if req.kind in SLOT_KINDS:
+        return _slot(rows, mine, req, ctx, now, state, reused)
+    if req.kind in STAGE_KINDS:
+        return _stage(rows, mine, req, ctx, reused)
+    return _stop(rows, req, ctx, reused)
+
+
+_REUSED = Decision("REFUSE", "an opening row must open a new op; this op is already used (OQ-3: malformed)")
+
+
+def _slot(rows, mine, req, ctx, now, state, reused=False) -> Decision:
+    intent, terminal, k = first(mine, "SLOT-INTENT"), first(mine, *TERMINAL), req.kind
+    # 4a identity (before terminal state, so a foreign completion stays invalid on a terminal subject)
+    if k in ("SLOT-QUALIFIED", "SLOT-FAILED") and (intent is None or req.op != intent.op
+                                                   or req.actor != intent.actor):
+        return Decision("INVALIDATE", "contradictory-completion")
+    if k == "SLOT-TIMEOUT" and (intent is None or req.op != intent.op):
+        return Decision("INVALIDATE", "contradictory-finalizer")
+    # 4b repeat
+    if k == "SLOT-INTENT" and mine:
+        return Decision("INVALIDATE", "repeat-attempt")
+    if reused:                                                                         # OQ-3 (after 4b)
+        return _REUSED
+    # 4c already decided (E1.3 r3: after a committed TIMEOUT a completion is LOST-RACE here, whatever its R)
+    if k != "SLOT-INTENT" and terminal is not None:
+        return Decision("LOST-RACE", f"stale: {req.subject} is already {terminal.kind}")
+    # 4d in-flight conflict
+    if k == "SLOT-MISSED" and intent is not None:
+        return Decision("REFUSE", "in flight: the finalizer re-evaluates for a TIMEOUT at D")
+    # 5 trial-state permission (F1)
+    if k == "SLOT-INTENT":
+        if state == "STOPPED":
+            return Decision("LOST-RACE", "STOPPED: no capture after the stop (not invalid)")
+        why = ctx.slot_gate(rows, req.subject) if ctx.slot_gate is not None else None
+        if why:
+            return Decision("REFUSE", why)
+    if k in ("SLOT-QUALIFIED", "SLOT-FAILED") and state == "STOPPED":
+        stop = first(rows, "TRIAL-STOP")
+        if not intent.seq < stop.seq:
+            return Decision("REFUSE", "completion after the STOP needs its INTENT before the STOP (F1)")
+    # 6 timing (E, D, R)
+    if ctx.slot_times is None:
+        return Decision("REFUSE", "no slot timing supplied (fail closed)")
+    e, d = ctx.slot_times(req.subject)
+    if k == "SLOT-INTENT" and now >= e:
+        return Decision("REFUSE", "now >= E: the finalizer appends MISSED")
+    if k == "SLOT-QUALIFIED" and req.r_at >= d:
+        return Decision("REFUSE", "late R (R >= D): the finalizer later appends TIMEOUT")
+    if k == "SLOT-TIMEOUT" and now < d:
+        return Decision("REFUSE", "premature finalizer (now < D)")
+    if k == "SLOT-MISSED" and now < e:
+        return Decision("REFUSE", "premature finalizer (now < E)")
+    return Decision("APPEND")                                                          # 7 (SLOT-FAILED: OQ-12)
+
+
+def _stage(rows, mine, req, ctx, reused=False) -> Decision:
+    intent, prepared, created = (first(mine, x) for x in STAGE_KINDS)
+    k = req.kind
+    if k == "STAGE-PREPARED" and (intent is None or req.op != intent.op or req.actor != intent.actor):   # 4a
+        return Decision("INVALIDATE", "contradictory-stage")
+    if k == "STAGE-CREATED" and (intent is None or prepared is None or req.op != intent.op):              # 4a
+        return Decision("INVALIDATE", "contradictory-stage")
+    if k == "STAGE-INTENT" and ctx.stage_check is not None:                  # 4a (E2.2 r3: the selected QUALIFIED)
+        d = ctx.stage_check(rows, req.subject, req.inputs or {})
+        if d is not None:
+            return d
+    if k == "STAGE-INTENT" and intent is not None:                                                         # 4b
+        return Decision("INVALIDATE", "repeat-stage")
+    if reused:                                                                                             # OQ-3
+        return _REUSED
+    if k == "STAGE-PREPARED" and prepared is not None:                                                     # 4c
+        if req.detail == prepared.detail:
+            return Decision("LOST-RACE", "PREPARED already committed (idempotent)")
+        return Decision("INVALIDATE", "contradictory-stage")
+    if k == "STAGE-CREATED":                                                                               # 4c
+        if req.detail != prepared.detail:
+            return Decision("INVALIDATE", "contradictory-stage")
+        if created is not None:
+            if req.detail == created.detail:
+                return Decision("LOST-RACE", "CREATED already committed (idempotent recovery)")
+            return Decision("INVALIDATE", "contradictory-stage")
+    if k == "STAGE-INTENT":                                                                                # 5
+        why = (ctx.stage_gate(rows, req.subject[len("stage/"):]) if ctx.stage_gate is not None
+               else "no stage gate supplied (fail closed)")
+        if why:
+            return Decision("REFUSE", why)
+    return Decision("APPEND")
+
+
+def _stop(rows, req, ctx, reused=False) -> Decision:
+    stop = first(rows, "TRIAL-STOP")
+    if stop is not None:                                                                                   # 4c
+        if req.detail == stop.detail:
+            return Decision("LOST-RACE", "already STOPPED with this record")
+        return Decision("INVALIDATE", "stop-conflict")
+    if reused:                                                                                             # OQ-3
+        return _REUSED
+    want = ctx.stop_detail(rows) if ctx.stop_detail is not None else None                                 # 5
+    if want is None:
+        return Decision("REFUSE", "the stop rule is not met by committed history")
+    if want != req.detail:
+        return Decision("REFUSE", "the stop record differs from the one committed history gives (OQ-9: escalate)")
+    fence = ctx.stop_fence(rows) if ctx.stop_fence is not None else "no stop fence supplied (fail closed)"
+    if fence:                                                                 # E2.5 r3: the frozen prefix
+        return Decision("REFUSE", f"STOP prefix not sealed: {fence} (run the missing seal stages and retry)")
     return Decision("APPEND")
 
 

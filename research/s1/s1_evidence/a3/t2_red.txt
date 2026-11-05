@@ -1,0 +1,186 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF.FF.FF.FF.FF.........FFFFFFF [ 69%]
+FFFFFFFFFFFF.FFFF..............F                                         [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-q-no-intent', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-q-foreign-op', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-q-foreign-actor', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-q-foreign-op-on-terminal', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-f-no-intent', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-f-foreign-op', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-f-foreign-actor', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-t-no-intent', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-t-foreign-op', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-t-foreign-op-on-terminal', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-p-no-intent', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-p-foreign-op', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-p-foreign-actor', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-c-no-prepared', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-c-foreign-op', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4b-si-after-intent', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4b-si-after-terminal', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4b-si-stopped-terminal', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4b-gi-repeat', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4b-si-repeat-with-reused-op', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4b-gi-repeat-with-reused-op', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-q-after-timeout', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-q-late-r-after-timeout', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-f-after-timeout', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-f-after-qualified', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-t-after-qualified', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-m-after-qualified', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-m-after-failed', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-m-after-timeout', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-m-after-missed', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-m-qualified-before-e', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-p-same', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-p-different', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-c-differs-from-prepared', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-c-created-same', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-stop-same', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4c-stop-different', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4d-m-in-flight', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('5-si-stopped', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('5-si-gate-refuses', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('5-gi-forbidden', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('4a-seal-intent-wrong-selection', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('5-seal-intent-not-determined', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('5-stop-fence-unsealed-close', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('5-stop-rule-not-met', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('5-stop-differs-from-recomputed', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('5-q-intent-after-stop', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('6-si-at-e', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('6-q-r-at-d', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('6-q-r-d-plus-1us', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('6-t-before-d', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:165: AssertionError: ('6-m-before-e', Decision(outcome='APPEND', reason=''))
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:186: AssertionError: assert 'APPEND' == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:186: AssertionError: assert 'APPEND' == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:186: AssertionError: assert 'APPEND' == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:186: AssertionError: assert 'APPEND' == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:186: AssertionError: assert 'APPEND' == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:186: AssertionError: assert 'APPEND' == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:186: AssertionError: assert 'APPEND' == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:186: AssertionError: assert 'APPEND' == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:186: AssertionError: assert 'APPEND' == 'LOST-RACE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:191: AssertionError: assert 'ACTIVE' == 'STOPPED'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:198: AssertionError: assert 'APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:217: AssertionError: assert (('APPEND', Ro...58300.000001)) == ('LOST-RACE', None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_precedence.py:224: AssertionError: assert ('APPEND', '') == ('INVALIDATE'...y-completion')
+C:\Users\gl450\.coordination\trading_app\testenv\Lib\site-packages\hypothesis\core.py:1365: ExceptionGroup: Hypothesis found 2 distinct failures in explicit examples. (2 sub-exceptions)
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[5-stop-fence-ok]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[5-q-intent-before-stop]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-si-before-e]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-q-r-d-minus-1us]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-m-at-e]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[7-t-finalizer-actor]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[7-gi-permitted]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[7-p]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[7-c-opening-actor]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[7-c-recovery-actor]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[7-trial-invalid-active]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[7-trial-invalid-stopped]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[7-stop]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[TRIAL-INVALID]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_chain_integrity_refuses_with_no_row[gap]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_chain_integrity_refuses_with_no_row[fork]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_chain_integrity_refuses_with_no_row[dup]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_chain_integrity_refuses_with_no_row[format]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[absent-on-qualified]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[detail-on-intent]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[naive-r]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[op-not-hex]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[qualified-without-r]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[r-on-failed]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[subject-for-kind]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[unknown-kind]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_malformed_requests_are_refused_with_no_row[unknown-reason]
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_an_exception_inside_the_transaction_appends_no_row
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-q-no-intent]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-q-foreign-op]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-q-foreign-actor]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-q-foreign-op-on-terminal]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-f-no-intent]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-f-foreign-op]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-f-foreign-actor]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-t-no-intent]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-t-foreign-op]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-t-foreign-op-on-terminal]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-p-no-intent]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-p-foreign-op]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-p-foreign-actor]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-c-no-prepared]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-c-foreign-op]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4b-si-after-intent]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4b-si-after-terminal]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4b-si-stopped-terminal]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4b-gi-repeat]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4b-si-repeat-with-reused-op]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4b-gi-repeat-with-reused-op]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-q-after-timeout]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-q-late-r-after-timeout]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-f-after-timeout]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-f-after-qualified]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-t-after-qualified]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-m-after-qualified]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-m-after-failed]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-m-after-timeout]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-m-after-missed]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-m-qualified-before-e]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-p-same]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-p-different]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-c-differs-from-prepared]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-c-created-same]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-stop-same]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4c-stop-different]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4d-m-in-flight]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[5-si-stopped]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[5-si-gate-refuses]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[5-gi-forbidden]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-seal-intent-wrong-selection]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[5-seal-intent-not-determined]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[5-stop-fence-unsealed-close]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[5-stop-rule-not-met]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[5-stop-differs-from-recomputed]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[5-q-intent-after-stop]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-si-at-e]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-q-r-at-d]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-q-r-d-plus-1us]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-t-before-d]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-m-before-e]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[SLOT-INTENT]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[SLOT-QUALIFIED]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[SLOT-FAILED]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[SLOT-TIMEOUT]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[SLOT-MISSED]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[STAGE-INTENT]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[STAGE-PREPARED]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[STAGE-CREATED]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[TRIAL-STOP]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_closed_refuses_every_kind_including_trial_invalid[TRIAL-INVALID]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[SLOT-INTENT]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[SLOT-QUALIFIED]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[SLOT-FAILED]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[SLOT-TIMEOUT]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[SLOT-MISSED]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[STAGE-INTENT]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[STAGE-PREPARED]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[STAGE-CREATED]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalid_appends_trial_invalid_and_lost_races_every_other_kind[TRIAL-STOP]
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_trial_state_derivation
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_reused_op_on_an_opening_row_is_refused
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_append_decides_on_the_state_read_inside_the_transaction
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_invalidate_appends_trial_invalid_instead_in_the_same_transaction
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_substep_conditions_are_disjoint_and_decide_matches_the_oracle
+76 failed, 28 passed in 1.60s
