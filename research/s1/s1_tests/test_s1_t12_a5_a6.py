@@ -18,6 +18,8 @@ import s1_run as r
 import s1_seal as z
 import s1_snapshot
 import s1_trial as t
+from conftest import s1_first_invalid, s1_replaced  # A3 Task 10
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, _weekdays, s1_mailbox, s1_state
 from conftest import S1_AUDIT_ABORTED, s1_audit_aborted  # A3 Task 9
@@ -254,7 +256,7 @@ class Snap:
 
 def _registered(tmp_path):
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
@@ -455,10 +457,13 @@ def test_a6_a_dropped_session_relative_to_the_pinned_listing_refuses(tmp_path, m
     pp.write_text(json.dumps(pr), encoding="utf-8")
     # (fix round 2, B3.3: an edited registered prereg is first the persistent "registration artifact" abort; the
     # score still names the calendar)
-    with pytest.raises(SystemExit, match="registration artifact"):
+    # A3 Task 10 (intended, F4 table CREATED): prereg.json is the CREATED prereg stage's committed member - the gate's
+    # stage table commits TRIAL-INVALID (stage-replaced) before the B3.3 detector (its finding: the unit-level oracle)
+    assert any("prereg.json" in x for x in c.registration_problems(out))
+    with pytest.raises(SystemExit, match=s1_replaced("prereg.json")):
         _run(tmp_path, st_, datetime(2026, 10, 29, 20, 45, tzinfo=UTC), datetime(2026, 10, 29, 20, 45, 30, tzinfo=UTC))
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):   # A3 F0.6/F1: no score
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/stage-replaced\)"):   # A3 F0.6/F1: no score
         r.score(tmp_path, "score-ack")
     assert not (out / "score").exists()
 

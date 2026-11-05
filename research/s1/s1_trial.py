@@ -384,11 +384,200 @@ def token(kind: str, root, *, mailbox=None, **given) -> str:
     if stop is not None:
         vals["stop_line_sha256"] = stop.sha
     vals.update(artifact_fields(kind, out))
+    if kind == "S1-OPENING-ACK":
+        vals.update(_opening_derived(root, out, rows, given, mailbox))
     vals.update({n: str(v) for n, v in given.items()})
     missing = [n for n in ACK_FIELDS[kind] if n not in vals]
     if missing:
         raise ValueError(f"{kind}: no value for {missing}")
     return " ".join([kind] + [f"{n}={vals[n]}" for n in ACK_FIELDS[kind]])
+
+
+def _opening_derived(root, out, rows, given, mailbox) -> dict:
+    """A3 Task 10 (token, S1-OPENING-ACK): the issuer-side fields the journal determines, unless `given`: opening_slot
+    = the first QUALIFIED opening-close slot (F3, OQ-37 / row 270), and evidence_manifest_sha256 = the sha256 of the
+    E5.5 reconstruction at the journal head. A field that cannot be derived (no opening yet, a file missing) is left
+    out (token then raises ValueError naming it)."""
+    import s1_gates
+    import s1_slot
+    got = {}
+    if "opening_slot" not in given:
+        try:
+            cal = s1_gates.verified_audit(out, mailbox)["calendar"]
+            plan = c.load_json(out / "plan.json")
+            q = s1_slot.first_qualified(rows, next(d for d in cal if d["date"] == plan["opening_close"]), cal)
+            if q is not None:
+                got["opening_slot"] = q.subject
+        except (s1_gates.Invalid, OSError, ValueError, KeyError, TypeError, StopIteration, SystemExit):
+            pass                                         # not derivable: the field stays missing (token: ValueError)
+    if "evidence_manifest_sha256" not in given and rows:
+        try:
+            got["evidence_manifest_sha256"] = c.sha256_bytes(c.canonical(evidence_manifest(root, rows,
+                                                                                           rows[-1].seq)))
+        except (OSError, ValueError, KeyError, TypeError, SystemExit):
+            pass
+    return got
+
+
+def verify_opening_ack(gv, cal) -> Ack:
+    """F7.2 (b-d) / F7.4 on the S1 side, for the START attestation: the trial's OPENING-ACK binds the current plan,
+    audit manifest, opening seal and opening receipt (file hashes, OQ-30), the trial and the bundle (verify_ack: also
+    its journal binding, F7.1). Within the journal prefix it names (rows[:journal_seq]): its opening_slot is the first
+    QUALIFIED opening-close slot with every earlier slot terminal (F3, OQ-37 / row 270); EVERY scheduled opening-close
+    slot has a terminal row (F7.2(b) literal, OQ-37 ruling: later rows never repair the ACK's prefix); the opening stage
+    is CREATED and the trial ACTIVE. The evidence manifest is reconstructed (E5.5: a mismatch is INVALIDATE
+    registration-artifact, never a mere refusal). The ACK is created strictly before now, the start_attest INTENT's
+    instant (E5.3, OQ-18). Anything else: no START (Refusal, no row)."""
+    import s1_seal as z
+    import s1_slot
+    import s1_stage
+    out = gv.out
+    plan = c.load_json(out / "plan.json")
+    if "S1-OPENING-ACK" not in gv.trial.acks:
+        raise Refusal("START attestation refused: no S1-OPENING-ACK (F7.4: no START without it)")
+    a = verify_ack(gv.trial, gv.rows, "S1-OPENING-ACK", None,
+                   dict(artifact_fields("S1-OPENING-ACK", out), trial_id=plan.get("trial_id"),
+                        bundle_sha256=c.bundle_sha256()))
+    rows_at = gv.rows[:int(a.fields["journal_seq"])]
+    day = next((d for d in cal if d["date"] == plan.get("opening_close")), None)
+    if day is None:
+        raise Refusal("START attestation refused: the plan's opening close is not in the audit calendar")
+    q = s1_slot.first_qualified(rows_at, day, cal)
+    if q is None or q.subject != a.fields["opening_slot"]:
+        raise Refusal(f"START attestation refused: the OPENING-ACK opening_slot {a.fields['opening_slot']} is not the "
+                      f"first QUALIFIED opening slot (with every earlier slot terminal) at its journal_seq "
+                      f"({q.subject if q is not None else 'none'}; F3, F7.2 c)")
+    open_slots = [j.slot_subject(s) for s in z.schedule(day, cal)]
+    unterminated = [s for s in open_slots if j.first(j.subject_rows(rows_at, s), *j.TERMINAL) is None]
+    if unterminated:                                                               # F7.2(b) literal (OQ-37)
+        raise Refusal(f"START attestation refused: F7.2 (b): {len(unterminated)} scheduled opening-close slot(s) have "
+                      f"no terminal row in the OPENING-ACK's journal prefix (first {unterminated[0]})")
+    if s1_stage.stage_rows(rows_at, "opening")["created"] is None or j.trial_state(rows_at) != "ACTIVE":
+        raise Refusal("START attestation refused: the opening stage is not CREATED (or the trial not ACTIVE) at the "
+                      "OPENING-ACK's journal_seq (F7.2 c, d)")
+    opening_manifest_check(gv, a)                                                  # E5.5 / F7.3: INVALIDATE
+    if not datetime.fromtimestamp(a.created, tz=timezone.utc) < c.now_utc():       # E5.3: before the INTENT
+        raise Refusal("START attestation refused: the OPENING-ACK is not created before the START attestation (E5.3)")
+    return a
+
+
+def _manifest_sha(root, rows, seq) -> str:
+    """The reconstructed manifest's sha256, or "unreconstructible (...)" ONLY for definite absence or corruption (a
+    member gone, unparseable or malformed; an unregistered slot). Fix round 1 (review M2, F0.7, F5.5): any other
+    OSError (a sharing violation, ERROR_ACCESS_DENIED, an I/O error) is no evidence of damage: a refusal with no row."""
+    try:
+        return c.sha256_bytes(c.canonical(evidence_manifest(root, rows, seq)))
+    except (FileNotFoundError, ValueError, KeyError, TypeError, SystemExit) as e:   # gone / corrupt: unreconstructible
+        return f"unreconstructible ({type(e).__name__})"
+    except OSError as e:
+        raise Refusal(f"E5.5 evidence manifest check: a member could not be read ({type(e).__name__}): refused with "
+                      f"no row (F0.7, F5.5)") from None
+
+
+def opening_manifest_check(gv, a=None) -> None:
+    """E5.5 (Erratum 1 r1/r2/r4) as part of the F7.3 live-file check: once the trial has an OPENING-ACK, the evidence
+    manifest reconstructed for its journal_seq (live bytes) must hash to its evidence_manifest_sha256. A wrong hash or
+    a wrong membership, with otherwise valid files, is INVALIDATE (registration-artifact) - never a mere refusal. Run
+    by every gate after s1_stage.evaluate and s1_slot.evidence_check (so a damaged member is reported as
+    stage-replaced or by the F3 table first), and by verify_opening_ack. A mismatch is confirmed on rows re-read after
+    it was first observed (Task 7 I1: every registration-artifact INVALID confirms on re-read)."""
+    a = a if a is not None else gv.trial.acks.get("S1-OPENING-ACK")
+    if a is None:
+        return
+    want, seq = a.fields["evidence_manifest_sha256"], int(a.fields["journal_seq"])
+    got = _manifest_sha(gv.root, gv.rows, seq)
+    if got == want:
+        return
+    try:
+        again = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox)
+    except j.JournalError as e:
+        raise Refusal(f"E5.5 evidence manifest check: journal unreadable ({type(e).__name__}): refused with no row "
+                      f"(F0.7)") from None
+    got = _manifest_sha(gv.root, again, seq)
+    if got == want:
+        return
+    invalidate(gv.trial, "registration-artifact",
+               {"where": "evidence manifest (E5.5)", "expected": want, "reconstructed": got, "journal_seq": seq},
+               root=gv.root, mailbox=gv.mailbox)
+    raise Refusal("OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID "
+                  "(registration-artifact)")
+
+
+def evidence_manifest(root, rows, journal_seq) -> dict:
+    """E5.5 (Erratum 1 r1, r2, r4) exact byte format and membership, used identically by Codex when issuing:
+    c.canonical({"trial_id", "journal_seq", "journal_head_sha256", "files": {relpath: sha256}}), where `files`
+    covers, for the rows with seq <= journal_seq: plan.json and opening_receipt.json; every file of every QUALIFIED or
+    FAILED tree; every CREATED stage member (the audit members included); the staging intent.json and prepared.json of
+    every stage with an INTENT or PREPARED row (OQ-35), keyed `staging/<stage>/<name>` - a label of the real file
+    <root>/s1_staging/<trial_id>/<stage>/<name>, outside s1_out (a seal stage nests: staging/seal/<date>/<name>).
+    Relpaths are relative to s1_out; every sha256 is of the LIVE bytes now (r2); c.canonical sorts the keys. The
+    CREATED membership comes from the stage's committed prepared.json (verified against its PREPARED row). Never
+    reads Codex's folder. Raises (OSError, ValueError, KeyError, SystemExit) when a member is gone."""
+    import s1_seal as z
+    import s1_slot
+    import s1_stage
+    root = Path(root)
+    out = root / "s1_out"
+    pre = rows[:journal_seq]
+    tid = c.load_json(out / "plan.json")["trial_id"]
+    files = {"plan.json": c.sha256_file(out / "plan.json"),
+             "opening_receipt.json": c.sha256_file(out / "opening_receipt.json")}
+    cal = None
+    for r_ in pre:
+        if r_.kind in ("SLOT-QUALIFIED", "SLOT-FAILED"):
+            if cal is None:
+                cal = z.calendar_rows(c.load_json(out / "audit" / "calendar.json"))
+            s = s1_slot.slot_of(r_.subject)
+            tree = s1_slot.qualified_tree if r_.kind == "SLOT-QUALIFIED" else s1_slot.failed_tree
+            files.update(tree(out, s, s1_slot.day_for(s, cal)["date"]))
+        elif r_.kind in ("STAGE-INTENT", "STAGE-PREPARED"):
+            stage = r_.subject[len("stage/"):]
+            name = "intent.json" if r_.kind == "STAGE-INTENT" else "prepared.json"
+            files[f"staging/{stage}/{name}"] = c.sha256_file(s1_stage.staging_dir(root, tid, stage) / name)
+        elif r_.kind == "STAGE-CREATED":
+            stage = r_.subject[len("stage/"):]
+            for rel in s1_stage.committed_commitment(root, tid, stage, pre)["members"]:
+                files[rel] = c.sha256_file(out / rel)                              # r2: the live bytes
+    return {"trial_id": tid, "journal_seq": journal_seq, "journal_head_sha256": pre[-1].sha if pre else None,
+            "files": dict(sorted(files.items()))}
+
+
+def opening_issuance(root, mailbox=None) -> dict:
+    """F7.2 b-d support for Codex's issuance checklist (procedural on Codex's side; one frozen snapshot): the gate
+    (d: ACTIVE, F3/F4 hold, the journal chain), EVERY scheduled opening-close slot terminal (b, literal: OQ-37 ruling;
+    E5.6: so not before the E of the last scheduled opening-close slot), the opening slot = the earliest QUALIFIED
+    with every earlier slot terminal (F3), the opening stage CREATED (c), and the reconstructed evidence manifest at
+    the journal head (E5.5). Refusal (SystemExit) when the gate refuses."""
+    import s1_gates
+    import s1_seal as z
+    import s1_slot
+    import s1_stage
+    gv = gate(root, "opening issuance check", mailbox=mailbox)
+    try:
+        cal = s1_gates.verified_audit(gv.out, mailbox)["calendar"]
+    except s1_gates.Invalid as e:
+        raise Refusal(f"opening issuance check refused: audit not verified ({e})") from None
+    plan = c.load_json(gv.out / "plan.json")
+    day = next((d for d in cal if d["date"] == plan.get("opening_close")), None)
+    if day is None:
+        raise Refusal("opening issuance check refused: the plan's opening close is not in the audit calendar")
+    q = s1_slot.first_qualified(gv.rows, day, cal)
+    reasons = []
+    if q is None:
+        reasons.append("an opening slot before the first QUALIFIED one is in flight, or none qualified (F3, b)")
+    open_ = [j.slot_subject(s) for s in z.schedule(day, cal)
+             if j.first(j.subject_rows(gv.rows, j.slot_subject(s)), *j.TERMINAL) is None]
+    if open_:                                                                      # F7.2(b) literal (OQ-37)
+        reasons.append(f"{len(open_)} scheduled opening-close slot(s) have no terminal row yet (b; first {open_[0]})")
+    if s1_stage.stage_rows(gv.rows, "opening")["created"] is None:
+        reasons.append("the opening stage is not CREATED (c)")
+    f = artifact_fields("S1-OPENING-ACK", gv.out)
+    man = None if reasons else evidence_manifest(gv.root, gv.rows, gv.rows[-1].seq)
+    return {"eligible": not reasons, "reasons": reasons, "opening_slot": q.subject if q is not None else None,
+            "evidence_manifest_sha256": c.sha256_bytes(c.canonical(man)) if man is not None else None,
+            "journal_seq": gv.rows[-1].seq if gv.rows else 0,
+            "journal_head_sha256": gv.rows[-1].sha if gv.rows else None,
+            "opening_seal_sha256": f["opening_seal_sha256"], "opening_receipt_sha256": f["opening_receipt_sha256"]}
 
 
 def verify_ack(trial: Trial, rows: list, kind: str, ack_id, expected: dict) -> Ack:
@@ -511,7 +700,9 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
     I-1). `now`: the command's clock callable (refusal records, the INVALID row's `at`). `defer_pending` (A3 Task 6,
     ruling N2, Erratum 1 E1.2): only the slot paths pass True - a stage whose lock is held by a live (possibly stalled)
     owner is recorded in gv.deferred instead of refusing "pending", so deadline arbitration is never blocked by a
-    work lock."""
+    work lock. Hooks, in order, after the plan check (a foreign root is never judged): the F4 stage table
+    (s1_stage.evaluate), the F3 evidence table (s1_slot.evidence_check), then (A3 Task 10) the E5.5 evidence-manifest
+    check of the OPENING-ACK (opening_manifest_check)."""
     root = Path(root)
     out = root / "s1_out"
     try:
@@ -569,6 +760,7 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
     s1_stage.evaluate(gv, defer_pending=defer_pending)    # A3 Task 6 (N2): the slot paths defer a held stage lock
     import s1_slot                                        # A3 Task 7: the F3 evidence table, after the plan check
     s1_slot.evidence_check(gv)                            # (Deviation 1, Task 8 D4: a foreign root is never judged)
+    opening_manifest_check(gv)                            # A3 Task 10: E5.5 / F7.3, after the stage and F3 tables
     return gv
 
 

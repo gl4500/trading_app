@@ -14,6 +14,7 @@ import pytest
 import s1_common as c
 import s1_run as r
 import s1_trial as t
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import S1_RECEIPT, _Clock, s1_mailbox_init, s1_state
 from test_s1_t12_fix2_b3 import MON, _aborted, _cp
 from test_s1_t12_fix4 import START, START_DT
@@ -28,7 +29,7 @@ T = MON + timedelta(minutes=45)
 
 def _registered(tmp_path):
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     return st_, tmp_path / "s1_out"
 

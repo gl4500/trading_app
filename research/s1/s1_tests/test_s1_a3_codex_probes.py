@@ -95,10 +95,10 @@ def _publication(tmp_path, monkeypatch, offset_us):
     target = f"{sch:%Y%m%dT%H%M%SZ}.report.json"
     real = c.publish_exclusive
 
-    def delayed(path, data):
+    def delayed(path, data, **kw):
         if offset_us is not None and Path(path).name == target:
             clock[0] = dl + timedelta(microseconds=offset_us)
-        return real(path, data)
+        return real(path, data, **kw)
     monkeypatch.setattr(c, "publish_exclusive", delayed)
     with _Clock(clock[0]):
         rep = ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, lambda reference=None: S1_RECEIPT,
@@ -236,3 +236,106 @@ def test_race_p_without_j_restart_ends_in_timeout(tmp_path):
         run_slot(tmp_path, st_, sch, at + timedelta(seconds=30))
     _fin(tmp_path, st_, day, z.resolution_deadline(sch, day, st_["calendar"]))
     assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+
+
+# ---------------------------------------------------------------- A3 Task 10: V1, "A fully deleted then B", prereg
+import shutil as _sh  # noqa: E402
+import s1_checkpoint as ck_  # noqa: E402
+from conftest import Ledger, S1_PROCESS as P_, s1_opening_checkpoint, s1_plan_audit  # noqa: E402,F401
+
+
+def _opened(tmp_path):
+    start, cal, oc, _ = s1_plan_audit(tmp_path, START)
+    lg = Ledger(tmp_path / "ledger.sqlite3")
+    s1_opening_checkpoint(tmp_path, lg, oc, cal, S1_RECEIPT)
+    return start, cal, oc, lg
+
+
+def test_v1_selective_deletion_is_invalid(tmp_path, monkeypatch):                      # row 177 (B-old)
+    start, cal, oc, lg = _opened(tmp_path)
+    out = tmp_path / "s1_out"
+    first = z.schedule(next(d for d in cal if d["date"] == oc), cal)[0]
+    name = f"{first:%Y%m%dT%H%M%SZ}"
+    for p in [out / "seals" / f"{oc}.json", *c.stage_records(out, "opening"), out / "opening_receipt.json",
+              out / "captures" / oc / f"{name}.resolution.json", out / "captures" / oc / f"{name}.report.json"]:
+        p.unlink()                                            # the historical V1 deletion set (frozen copy)
+    later = z.close_of(oc, cal) + timedelta(hours=4)
+    sp = Spies(monkeypatch)
+    changed = json.loads(json.dumps(S1_RECEIPT))
+    changed["fingerprint"]["config"] = {"synthetic_changed_setting": "different"}
+    with _Clock(later), pytest.raises(SystemExit, match=r"stage opening: .*INVALID \(stage-replaced\)"):
+        ck_.run_opening_checkpoint(tmp_path, lg.path, later, sp.receipt(changed), sp.process(), tmp_path / "c.log",
+                                   now=lambda: later)
+    with _Clock(c.aware(START) - timedelta(days=1)), pytest.raises(SystemExit,
+                                                                  match=r"trial INVALID \(reason/stage-replaced\)"):
+        r.attest_start(tmp_path, r.START_STATEMENT, changed)
+    sp.assert_zero()
+
+
+def test_a_fully_deleted_then_b_is_invalid_or_never_ack_eligible(tmp_path, monkeypatch):   # row 178 (B-old)
+    import s1_collect as k_
+    start, cal, oc, lg = _opened(tmp_path)
+    _sh.rmtree(tmp_path / "s1_out")
+    with _Clock(c.aware(START) - timedelta(days=3)), pytest.raises(SystemExit, match="open"):
+        k_.write_plan(tmp_path, c.aware(START) + timedelta(days=7), "2026-10-30", [], "2026-10-01")    # B
+    sp = Spies(monkeypatch)
+    later = z.close_of(oc, cal) + timedelta(hours=4)
+    with _Clock(later), pytest.raises(SystemExit, match=r"INVALID \(LOST\)"):
+        ck_.run_opening_checkpoint(tmp_path, lg.path, later, sp.receipt(), sp.process(), tmp_path / "c.log",
+                                   now=lambda: later)
+    sp.assert_zero()
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/LOST\)"):
+        t.opening_issuance(tmp_path, tmp_path / "mailbox.sqlite3")
+
+
+def test_prereg_restoration_is_invalid_once_created(tmp_path, monkeypatch):            # row 180 (B-old)
+    st_ = s1_state(tmp_path, START)
+    with _Clock(st_["prereg_at"]):
+        r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    out = tmp_path / "s1_out"
+    files = [out / "prereg.json", *c.stage_records(out, "prereg")]
+    saved = {p: p.read_bytes() for p in files}
+    for p in files:
+        p.unlink()
+    with _Clock(st_["prereg_at"] + timedelta(minutes=1)), pytest.raises(SystemExit,
+                                                                       match=r"stage prereg: .*INVALID \(stage-replaced\)"):
+        t.gate(tmp_path, "Codex synthetic probe")
+    for p, b in saved.items():
+        p.write_bytes(b)
+    (out / "aborted.json").unlink(missing_ok=True)
+    sp = Spies(monkeypatch)
+    with _Clock(st_["prereg_at"] + timedelta(minutes=2)), pytest.raises(SystemExit,
+                                                                       match=r"trial INVALID \(reason/stage-replaced\)"):
+        t.gate(tmp_path, "Codex synthetic probe")
+    sp.assert_zero()
+
+
+@pytest.mark.parametrize("crash", ["intent-only-free", "prepared-free"])
+def test_prereg_before_created_follows_the_stage_table(tmp_path, monkeypatch, crash):    # row 180
+    st_ = s1_state(tmp_path, START)
+    real = j.append
+    stop_after = "STAGE-INTENT" if crash == "intent-only-free" else "STAGE-PREPARED"
+    crashed = []
+
+    def crashing(trial_id, gen, req, ctx_fn, **kw):
+        res = real(trial_id, gen, req, ctx_fn, **kw)
+        if req.kind == stop_after and req.subject == "stage/prereg":
+            crashed.append(req.kind)
+            raise KeyboardInterrupt                               # a crash (the lock is released on unwind)
+        return res
+    monkeypatch.setattr(j, "append", crashing)
+    try:
+        with _Clock(st_["prereg_at"]):
+            r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+    except KeyboardInterrupt:
+        pass
+    monkeypatch.setattr(j, "append", real)
+    assert crashed == [stop_after]                                # (A3 Task 10: the crash happened, by assertion)
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    if crash == "intent-only-free":
+        with pytest.raises(SystemExit, match=r"INVALID \(stage-incomplete\)"):
+            t.gate(tmp_path, "probe")
+    else:
+        t.gate(tmp_path, "probe")
+        rows = j.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3")
+        assert [x.kind for x in j.subject_rows(rows, "stage/prereg")][-1:] == ["STAGE-CREATED"]

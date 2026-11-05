@@ -3,6 +3,7 @@
 t12_A8_red.txt). All synthetic: tmp_path ledgers and mailbox, fixed clocks; no live DB, network, real mailbox or
 scheduler."""
 import json
+import re
 import shutil
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -16,6 +17,8 @@ import s1_run as r
 import s1_seal as z
 import s1_snapshot
 import s1_trial as t
+from conftest import s1_first_invalid, s1_replaced  # A3 Task 10
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import (Ledger, S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit,
                       s1_reack, s1_register, s1_state, s1_unattest)
@@ -78,7 +81,7 @@ def checkpoint(root, ledger, cal, day, calls, *, minutes=45, delay=30, receipt=S
 
 def registered(tmp_path):
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     return st_
@@ -229,7 +232,7 @@ def test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_openin
                 r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     assert read(out / "aborted.json")["reason"] == "bundle" and not (out / "prereg.json").exists()
     monkeypatch.undo()
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         with pytest.raises(SystemExit, match=r"trial INVALID \(reason/bundle\)"):
             r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)            # never resumes after restoration
     assert not (out / "prereg.json").exists()
@@ -275,9 +278,9 @@ def test_a3_score_checks_bundle_consistency_across_every_artifact(tmp_path, monk
         if where == "seal":                                  # A3 Task 7 (E2.6 r3): an edited seal is a CREATED
             assert "seals/2026-10-26.json missing or changed" in str(e) and "INVALID (stage-replaced)" in str(e), e
             rep = json.loads(r._serialise(r._score(out)))    # seal stage's changed member: refused; the unit record
-        else:
-            assert where == "prereg" and ("bundle" in str(e) or "RUN-ACK" in str(e)), e
-            return
+        else:                                                # A3 Task 10 (intended, F4 table CREATED): the
+            assert where == "prereg" and re.search(s1_replaced("prereg.json"), str(e)), e     # prereg stage's member
+            rep = json.loads(r._serialise(r._score(out)))    # changed: refused; the unit-level record
     assert rep["verdict"] == "ABORTED-INVALID" and any("bundle" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -348,7 +351,7 @@ def test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_an
                    ("attest_start_sha256", out / "attest_start.json"), ("plan_sha256", out / "plan.json")):
         assert f"{key}={c.sha256_file(p)}" in tok, key
     assert f"bundle_sha256={c.bundle_sha256()}" in tok
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         pr = r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     assert pr["opening_books_sha256"] == c.sha256_file(out / "opening_books.json")
     assert pr["opening_seal_sha256"] == c.sha256_file(out / "seals" / f"{OPEN_DAY}.json")
@@ -356,9 +359,8 @@ def test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_an
 
 def test_a8_attest_start_refuses_before_the_opening_seal_capture(tmp_path):
     """A8.1 causal order: the START attestation comes after the opening capture and seal."""
-    st_ = s1_state(tmp_path, START)
+    st_ = s1_state(tmp_path, START, attest=False)        # A3 Task 10 (fixture change): the pre-attestation state
     out = tmp_path / "s1_out"
-    s1_unattest(tmp_path)                                 # (fix round 2 migration, B3: the pre-attestation state)
     with _Clock(OPEN_CLOSE + timedelta(minutes=40)):
         with pytest.raises(SystemExit, match="opening seal"):
             r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
@@ -387,9 +389,13 @@ def test_a8_hand_made_prereg_reaches_no_live_callback(tmp_path, ledger, monkeypa
 
 # Task 5 fix round 1 (review I-3): the intended refusal of each breakage (B3: no bare SystemExit)
 _REG = r"registration artifact\(s\) missing or changed"
-WHY420 = {"plan_edited": _REG, "attest_edited": _REG, "books_edited": _REG, "prereg_binding": _REG,
+# A3 Task 10 (intended): attest_start.json, opening_books.json and prereg.json are members / bound inputs of CREATED
+# stages - INVALID (stage-replaced) at the gate's stage table (F4 CREATED), before the B3.3 detector; a RUN-ACK moved
+# before the attestation now also precedes the OPENING-ACK - refused by the gate's ACK chain (F6.1/F7.1)
+STAGE420 = {"attest_edited": "attest_start.json", "books_edited": "opening_books.json", "prereg_binding": "prereg.json"}
+WHY420 = {"plan_edited": _REG, **{k_: s1_replaced(v) for k_, v in STAGE420.items()},
           "ack_deleted": "RUN-ACK not verified", "ack_after_start": "registration not verified",
-          "ack_before_attestation": "registration not verified"}
+          "ack_before_attestation": r"S1-RUN-ACK run-ack: created not after its predecessor \(F6\.1\)"}
 WHY478 = {"no_ack_recorded": "the audit manifest names no AUDIT-ACK",
           "ack_missing_from_mailbox": "zero open trials",                       # A3 F6.3: no AUDIT-ACK = no trial
           "plan_edited_after_audit": "audit is not bound to the current plan",
@@ -439,9 +445,11 @@ def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_
     with pytest.raises(SystemExit, match=WHY420[breakage]):
         checkpoint(tmp_path, st_["ledger"], st_["calendar"], "2026-10-26", calls)
     assert calls.zero() and not (out / "captures" / "2026-10-26").exists()
-    if breakage in ("plan_edited", "attest_edited", "books_edited", "prereg_binding"):
+    if breakage == "plan_edited":
         # (fix round 2, B3.3: a registered artifact edited after registration is the persistent abort)
         assert read(out / "aborted.json")["reason"] == "registration artifact"
+    elif breakage in STAGE420:                            # A3 Task 10: TRIAL-INVALID (stage-replaced) first
+        assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
     else:
         assert not (out / "aborted.json").exists()                    # an authorization refusal, not an abort
 

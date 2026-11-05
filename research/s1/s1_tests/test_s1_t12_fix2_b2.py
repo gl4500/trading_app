@@ -11,6 +11,8 @@ import conftest
 import s1_checkpoint as ck
 import s1_common as c
 import s1_run as r
+from conftest import s1_first_invalid, s1_replaced  # A3 Task 10
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_BINDING, S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_state
 
@@ -33,7 +35,7 @@ def proc(binding=S1_BINDING, pid=1, start="2026-10-01T09:00:00"):
 
 def _reg(tmp_path):
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
@@ -181,8 +183,12 @@ def test_b2_a_corrupt_bound_reference_fails_closed(tmp_path):
     st_ = _reg(tmp_path)
     p = tmp_path / "s1_out" / "prereg.json"
     p.write_text(json.dumps(dict(read(p), process_binding={"garbage": True})), encoding="utf-8")
-    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
+    # A3 Task 10 (intended, F4 table CREATED): prereg.json is the CREATED prereg stage's committed member - the gate's
+    # stage table commits TRIAL-INVALID (stage-replaced) before the B3.3 detector (its finding: the unit-level oracle)
+    assert any("prereg.json" in x for x in c.registration_problems(tmp_path / "s1_out"))
+    with pytest.raises(SystemExit, match=s1_replaced("prereg.json")):
         _cp(tmp_path, st_, proc())
+    assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
     assert not (tmp_path / "s1_out" / "seals" / "2026-10-26.json").exists()
 
 

@@ -455,3 +455,68 @@ def test_stray_slot_files_before_the_audit_calendar_are_judged_invalid(tmp_path,
     assert [x.subject for x in inv] == ["reason/registration-artifact"]
     with pytest.raises(SystemExit, match=r"trial INVALID"):              # persistent: the next command refuses
         t.gate(tmp_path, "N1 after")
+
+
+# ---------------------------------------------------------------- A3 Task 10 (Task 9 review m1; carry-forward 4)
+N1_REFUSAL = {"legitimate-intent": r"slot rows exist but no registered calendar is readable .*refused with no row",
+              "stray-control": r"exists with no slot row and no registered calendar .*INVALID \(registration-artifact\)"}
+
+
+@pytest.mark.parametrize("race", ["legitimate-intent", "file-gone", "stray-control"])
+def test_the_n1_confirm_on_re_read_branches(tmp_path, monkeypatch, race):
+    """Task 9 review m1 (Task 7 N1, s1_slot._judge_without_calendar): after the AUDIT-ACK, no slot row in the gate's
+    snapshot and no readable calendar, a claim file exists.
+    - legitimate-intent: a worker's SLOT-INTENT commits after the gate's snapshot (its claim already seen): the hook's
+      re-read sees the slot row - never INVALID; the fail-closed no-calendar refusal applies, with no row.
+    - file-gone: the file seen on the first scan is gone on the second: nothing left to judge, the gate passes.
+    - stray-control: a real stray (no row on the re-read, still present) is TRIAL-INVALID (registration-artifact)."""
+    import s1_slot as sl
+    from conftest import s1_jappend
+    setup(tmp_path, ("A",))
+    out = tmp_path / "s1_out"
+    p = out / "captures" / "2026-10-23" / "20261023T204500Z.attempt.json"
+    p.parent.mkdir(parents=True)
+    p.write_text("{}", encoding="utf-8")
+    real, fired = sl._read_rows, []
+
+    def reread(gv):                                                   # the hook's re-read, after the first scan
+        if not fired:
+            fired.append(1)
+            if race == "legitimate-intent":
+                s1_jappend(tmp_path, "SLOT-INTENT", "slot/20261023T204500Z", at=NOW)
+            elif race == "file-gone":
+                p.unlink()
+        return real(gv)
+    monkeypatch.setattr(sl, "_read_rows", reread)
+    sp = Spies(monkeypatch)
+    if race == "file-gone":
+        t.gate(tmp_path, "N1 re-read: file gone")
+    else:
+        with pytest.raises(SystemExit, match=N1_REFUSAL[race]):
+            t.gate(tmp_path, f"N1 re-read: {race}")
+    sp.assert_zero()
+    assert fired
+    inv = [x.subject for x in j.read_trial(*_tg(tmp_path)) if x.kind == "TRIAL-INVALID"]
+    assert inv == (["reason/registration-artifact"] if race == "stray-control" else [])
+
+
+def test_the_opening_close_seal_with_no_row_is_judged_by_the_stage_table(tmp_path, monkeypatch):
+    """Carry-forward 4 (Task 9 N1): with `opening` in s1_stage.ENFORCED, an opening-close seal file with no opening
+    INTENT is the F4 stage table's violation (registration-artifact), decided before the F3 hook's no-calendar branch
+    is reached (that branch keeps it in _stray_files harmlessly)."""
+    import s1_slot as sl
+    setup(tmp_path, ("A",))
+    p = tmp_path / "s1_out" / "seals" / "2026-10-23.json"
+    p.parent.mkdir(parents=True)
+    p.write_text("{}", encoding="utf-8")
+    hook = []
+    real = sl.evidence_check
+    monkeypatch.setattr(sl, "evidence_check", lambda gv: hook.append(1) or real(gv))
+    sp = Spies(monkeypatch)
+    with pytest.raises(SystemExit, match=r"stage opening: artifacts \['seals/2026-10-23\.json'\] with no INTENT: "
+                                         r"INVALID \(registration-artifact\)"):
+        t.gate(tmp_path, "opening seal with no row")
+    sp.assert_zero()
+    assert hook == []
+    inv = [x.subject for x in j.read_trial(*_tg(tmp_path)) if x.kind == "TRIAL-INVALID"]
+    assert inv == ["reason/registration-artifact"]

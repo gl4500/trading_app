@@ -12,6 +12,7 @@ import s1_collect as k
 import s1_common as c
 import s1_run as r
 import s1_seal as z
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, _write_seal, s1_mailbox, s1_reack, s1_score_refused, s1_state,
                       s1_sync_portfolio)
@@ -38,7 +39,7 @@ def _live_stop(tmp_path):
     """A registered trial whose stop is determined by the REAL scheduled checkpoint: 100 lots bought on the START
     session and sold on the next; checkpoints seal 10-26 and 10-27 (the stop)."""
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     lg = st_["ledger"]

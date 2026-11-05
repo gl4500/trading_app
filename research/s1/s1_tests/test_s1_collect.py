@@ -8,6 +8,7 @@ import pytest
 import s1_collect as k
 import s1_common
 import s1_trial
+from conftest import s1_first_invalid, s1_replaced  # A3 Task 10
 from conftest import s1_reack
 
 UTC = timezone.utc
@@ -508,8 +509,12 @@ def test_final_lag_refused_when_calendar_lacks_three_later_sessions(tmp_path, mo
     calls = []
     # (Task 5 fix round 1, review I-3: the edited prereg is a registered artifact, so the command refuses with the
     # registration-artifact abort - asserted - and the calendar/lag rule itself is asserted at unit level below)
-    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed: \['prereg.json changed"):
+    # A3 Task 10 (intended, F4 table CREATED): prereg.json is the CREATED prereg stage's committed member - the gate's
+    # stage table commits TRIAL-INVALID (stage-replaced) before the B3.3 detector (its finding: the unit-level oracle)
+    assert any("prereg.json changed" in x for x in s1_common.registration_problems(tmp_path / "s1_out"))
+    with pytest.raises(SystemExit, match=s1_replaced("prereg.json")):
         k.do_final(tmp_path, "f9", client(calls), KEYS)
+    assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
     assert calls == [] and not (tmp_path / "s1_out" / "final").exists()
     stop_day = json.loads((tmp_path / "s1_out" / "final_plan.json").read_text())["stop_date"]
     with pytest.raises(SystemExit, match="cannot place the 3rd session after the stop"):
@@ -546,8 +551,12 @@ def test_final_ack_binds_prereg(tmp_path, monkeypatch):
     calls = []
     # (Task 5 fix round 1, review I-3: the edited prereg is a registered artifact, so the command refuses with the
     # registration-artifact abort first; the ACK's own prereg binding is asserted at unit level below)
-    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
+    # A3 Task 10 (intended, F4 table CREATED): prereg.json is the CREATED prereg stage's committed member - the gate's
+    # stage table commits TRIAL-INVALID (stage-replaced) before the B3.3 detector (its finding: the unit-level oracle)
+    assert any("prereg.json" in x for x in s1_common.registration_problems(tmp_path / "s1_out"))
+    with pytest.raises(SystemExit, match=s1_replaced("prereg.json")):
         k.do_final(tmp_path, "f1", client(calls), KEYS)
+    assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
     assert calls == [] and not (tmp_path / "s1_out" / "final").exists()
     ack = s1_trial.open_trial(tmp_path / "mailbox.sqlite3").acks["S1-ACQUIRE-ACK"]
     now_fields = s1_trial.artifact_fields("S1-ACQUIRE-ACK", tmp_path / "s1_out")

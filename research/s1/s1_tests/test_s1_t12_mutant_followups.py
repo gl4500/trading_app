@@ -18,6 +18,7 @@ import s1_run as r
 import s1_seal as z
 import s1_snapshot
 import s1_trial as t
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_score_refused,
                       s1_state, s1_sync_portfolio, s1_unattest)
@@ -35,7 +36,7 @@ def read(p):
 
 def _registered(tmp_path):
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
@@ -153,7 +154,7 @@ def test_mf_cohort_ids_are_the_stop_seals_cohort_through_the_stop_close(tmp_path
     """Mutant "stop_record: cohort ids include the post-stop rows": a BUY stored after the stop close (but captured
     by the stop seal) is not a cohort id."""
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     lg, rows = st_["ledger"], list(st_["rows"])
@@ -343,12 +344,16 @@ def test_mf_the_score_report_has_no_private_keys_and_no_secret(tmp_path, monkeyp
 
 def test_mf_an_edited_opening_books_file_refuses_the_start_attestation(tmp_path):
     """Mutant "_opening_books accepts a changed existing file"."""
-    st_ = s1_state(tmp_path, START)
+    # A3 Task 10 (fixture change): the attestation is the journal-committed start_attest stage, so the state before it
+    # is s1_state(attest=False); the existing books file is the recomputation (written exactly as the attestation
+    # publishes it) with one field changed
+    st_ = s1_state(tmp_path, START, attest=False)
     out = tmp_path / "s1_out"
-    s1_unattest(tmp_path, books=False)                    # (fix round 2 migration, B3: the pre-attestation state)
+    seal_p = out / "seals" / "2026-10-23.json"
+    books = r._books_record(seal_p, read(seal_p))
     p = out / "opening_books.json"
-    p.write_text(json.dumps(dict(read(p), operational={"qty": {}})), encoding="utf-8")
-    with _Clock(START_DT - timedelta(days=1)):
+    p.write_bytes(c.text_bytes(k._json_text(dict(books, operational={"qty": {}}))))
+    with _Clock(st_["attest_at"]):
         with pytest.raises(SystemExit, match="opening_books.json differs"):
             r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
 
@@ -361,7 +366,9 @@ def test_mf_the_score_reverifies_the_run_token_bindings(tmp_path, monkeypatch):
     pr["recorded_utc"] = (c.aware(pr["ack"]["created_utc"]) - timedelta(minutes=1)).isoformat()
     p.write_text(json.dumps(pr), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    # A3 Task 10 (intended, F4 table CREATED): prereg.json is the prereg stage's committed member - the score's gate
+    # commits TRIAL-INVALID (stage-replaced); the unit-level record keeps the score's own reason (the killer)
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")
     assert rep["verdict"] == "ABORTED-INVALID" and any("registration not verified" in x for x in rep["reasons"])
 
 
@@ -371,7 +378,9 @@ def test_mf_an_edited_opening_books_file_is_aborted_invalid_at_score(tmp_path, m
     p = tmp_path / "s1_out" / "opening_books.json"
     p.write_text(json.dumps(dict(read(p), note="x")), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    # A3 Task 10 (intended, F4 table CREATED): opening_books.json is a bound input of the CREATED start_attest stage -
+    # the score's gate commits TRIAL-INVALID (stage-replaced); the unit-level record keeps the score's own reason
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")
     assert "START attestation opening_books_sha256 does not match" in rep["reasons"], rep["reasons"]
 
 

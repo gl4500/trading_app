@@ -19,6 +19,7 @@ import s1_run as r
 import s1_seal as z
 import s1_snapshot
 import s1_trial as t
+from conftest import s1_first_invalid, s1_prereg_at, s1_replaced  # A3 Task 10 (fixture instant, F4 CREATED)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit, \
     s1_reack, s1_state
@@ -70,7 +71,7 @@ def _cp(tmp_path, ledger_path, spies=None, minutes=45, day=0):
 
 def _registered(tmp_path):
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
@@ -117,10 +118,15 @@ def test_b3_an_invalid_handmade_prereg_before_the_opening_is_a_preserved_refusal
                                                  "ack": {"ack_id": "forged", "created_utc": START}}),
                                      encoding="utf-8")
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit, match="inconsistent pre-registration state"):
+    # A3 Task 10 (intended, F4 table 'no INTENT: any artifact for g is a violation after the AUDIT-ACK', with prereg in
+    # s1_stage.ENFORCED; the Task 7 concern-2 ruling: A3 supersedes A2 B3.2 after the AUDIT-ACK): the hand-made
+    # prereg.json is TRIAL-INVALID (registration-artifact) at the gate, still with no callback, no claim and no
+    # registration manufactured (old: a preserved B3.2 refusal)
+    with pytest.raises(SystemExit, match=r"stage prereg: artifacts \['prereg.json'\] with no INTENT: INVALID "
+                                         r"\(registration-artifact\)"):
         _cp(tmp_path, Ledger(tmp_path / "l.sqlite3").path, spies)
     assert spies.zero() and not (out / "captures").exists() and not (out / "aborted.json").exists()
-    assert any(x["where"] == "checkpoint" for x in _refusals(tmp_path)), _refusals(tmp_path)
+    assert s1_first_invalid(tmp_path) == "reason/registration-artifact"
 
 
 # ====================================================================== B3.3 after the opening, before RUN-ACK
@@ -134,12 +140,16 @@ def test_b3_the_opening_changed_after_the_opening_but_before_the_run_ack_is_a_pe
     good = p.read_bytes()
     p.write_bytes(good + b" ")
     at = OPEN_CLOSE + timedelta(hours=2)
-    with _Clock(at), pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
+    # A3 Task 10 (intended, F4 table CREATED): the opening seal is the `opening` stage's committed member: changed ->
+    # INVALID (stage-replaced) at the gate, before the B3.3 detector (whose finding stays the unit-level oracle)
+    assert any(OPENING in x for x in c.registration_problems(tmp_path / "s1_out"))
+    with _Clock(at), pytest.raises(SystemExit, match=s1_replaced(OPENING)):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
+    assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
     p.write_bytes(good)
-    with _Clock(at), pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):   # A3 F0.6
+    with _Clock(at), pytest.raises(t.Refusal, match=r"trial INVALID \(reason/stage-replaced\)"):   # A3 F0.6
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+    assert "reason/stage-replaced" in _aborted(tmp_path)["reason"]
 
 
 def test_b3_a_prereg_not_yet_due_is_not_corruption(tmp_path):
@@ -149,7 +159,7 @@ def test_b3_a_prereg_not_yet_due_is_not_corruption(tmp_path):
     with pytest.raises(SystemExit, match="prereg"):
         _cp(tmp_path, st_["ledger"].path)
     assert not (tmp_path / "s1_out" / "aborted.json").exists()
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     assert (tmp_path / "s1_out" / "prereg.json").exists()
@@ -171,12 +181,15 @@ def test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid
         p.write_bytes(good + b"\n")
     else:
         p.unlink()
-    if rel.startswith("audit/"):
+    if rel != "plan.json":
         # A3 Task 9 (intended, F4 table CREATED row, F4.9 consistency): a member of the CREATED audit stage changed or
         # deleted is INVALID (stage-replaced) at the gate, before the B3.3 detector; restoring the bytes does not
-        # resume (the next command refuses: trial INVALID, and records the journal's INVALID as the local abort)
-        with pytest.raises(SystemExit, match=rf"stage audit: .*member {rel} missing or changed.*INVALID "
-                                             rf"\(stage-replaced\)"):
+        # resume (the next command refuses: trial INVALID, and records the journal's INVALID as the local abort).
+        # A3 Task 10 (intended, same rule): likewise a member or bound input of the CREATED opening, start_attest and
+        # prereg stages (the opening seal, opening_receipt.json, attest_start.json, opening_books.json, prereg.json);
+        # the B3.3 detector's finding is kept as the unit-level oracle
+        assert any(rel in x for x in c.registration_problems(tmp_path / "s1_out")), rel
+        with pytest.raises(SystemExit, match=s1_replaced(rel)):
             _cp(tmp_path, st_["ledger"].path)
         p.write_bytes(good)
         with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/stage-replaced\)"):
@@ -202,9 +215,16 @@ def test_b3_deleting_prereg_and_the_opening_together_cannot_erase_the_registrati
     (out / OPENING).unlink()
     if also_registry:
         shutil.rmtree(out / "registry")
-    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
+    # A3 Task 10 (intended, F4 table CREATED): both are CREATED stage members (opening is checked first); the B3.3
+    # detector's finding stays the unit-level oracle (fix round 1, M8: naming both deleted files)
+    probs = c.registration_problems(out)
+    assert any("prereg.json" in x for x in probs) and any(OPENING in x for x in probs), probs
+    with pytest.raises(SystemExit, match=s1_replaced(OPENING)):
         _cp(tmp_path, st_["ledger"].path)
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
+    assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/stage-replaced\)"):
+        _cp(tmp_path, st_["ledger"].path, minutes=47)
+    assert "reason/stage-replaced" in _aborted(tmp_path)["reason"]
 
 
 # ====================================================================== B3.3 re-entry / post-stop cannot bypass
@@ -229,11 +249,17 @@ def test_b3_opening_re_entry_cannot_bypass_persistence(tmp_path):
     p = tmp_path / "s1_out" / "prereg.json"
     p.write_bytes(p.read_bytes() + b"\n")
     sch = OPEN_CLOSE + timedelta(minutes=47)
-    with (_Clock(sch + timedelta(seconds=30)),
-          pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed")):
+    # A3 Task 10 (intended; plan Task 10 Step 6 names this test: N-2/R-3 -> F3 + F4): prereg.json is the prereg
+    # stage's committed member: INVALID (stage-replaced) at the opening re-entry's gate; persistent
+    assert any("prereg.json" in x for x in c.registration_problems(tmp_path / "s1_out"))
+    with (_Clock(sch + timedelta(seconds=30)), pytest.raises(SystemExit, match=s1_replaced("prereg.json"))):
         ck.run_opening_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
                                   tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
+    assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
+    with (_Clock(sch + timedelta(minutes=1)), pytest.raises(t.Refusal, match=r"trial INVALID \(reason/stage-replaced\)")):
+        ck.run_opening_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                                  tmp_path / "crash.log", now=lambda: sch + timedelta(minutes=1))
+    assert "reason/stage-replaced" in _aborted(tmp_path)["reason"]
 
 
 def test_b3_post_stop_integrity_of_frozen_artifacts_is_persistent(tmp_path):
@@ -286,8 +312,12 @@ def test_b3_an_earlier_bundle_abort_stays_first(tmp_path, monkeypatch):
     st_ = _registered(tmp_path)
     c.write_abort(tmp_path / "s1_out", {"reason": "bundle", "actual": START})
     (tmp_path / "s1_out" / "attest_start.json").unlink()
-    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
+    probs = c.registration_problems(tmp_path / "s1_out")             # (the B3.3 finding: unit level, fix round 1 M8)
+    assert any("attest_start.json" in x for x in probs), probs
+    with pytest.raises(SystemExit, match=s1_replaced("attest_start.json")):     # A3 Task 10 (intended, F4 CREATED)
         _cp(tmp_path, st_["ledger"].path)
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/stage-replaced\)"):     # (its abort: first-wins)
+        _cp(tmp_path, st_["ledger"].path, minutes=47)
     assert _aborted(tmp_path)["reason"] == "bundle"
 
 
@@ -312,14 +342,18 @@ def test_b3_a_registration_artifact_violation_at_the_score_is_persisted_and_pric
     p.write_bytes(good + b"\n")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"] + timedelta(days=1))
     s1_reack(tmp_path, "score-ack-b3", "S1-SCORE-ACK", st_["now"] + timedelta(hours=20))
-    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):
+    # A3 Task 10 (intended, F4 table CREATED): attest_start.json is the start_attest stage's committed member - the
+    # gate's stage table invalidates (stage-replaced) before the B3.3 detector; the score is refused with no work
+    assert any("attest_start.json" in x for x in c.registration_problems(tmp_path / "s1_out"))
+    with pytest.raises(SystemExit, match=s1_replaced("attest_start.json")):
         r.score(tmp_path, "score-ack-b3")
     assert called == [] and not (tmp_path / "s1_out" / "score").exists()
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
-    assert any(x.kind == "TRIAL-INVALID" and x.subject == "reason/registration-artifact"
+    assert any(x.kind == "TRIAL-INVALID" and x.subject == "reason/stage-replaced"
                for x in j.read_all(tmp_path / "mailbox.sqlite3"))
     p.write_bytes(good)
-    assert c.load_abort(tmp_path / "s1_out")["reason"] == "registration artifact"     # restoring resumes nothing
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/stage-replaced\)"):    # restoring resumes nothing
+        r.score(tmp_path, "score-ack-b3")
+    assert "reason/stage-replaced" in c.load_abort(tmp_path / "s1_out")["reason"] and called == []
 
 
 # ====================================================================== corrupt aborted.json fails closed
@@ -341,6 +375,6 @@ def test_b3_a_corrupt_aborted_json_fails_closed_at_prereg(tmp_path):
     """B3.4: prereg refuses with a corrupt aborted.json (it is an abort)."""
     s1_state(tmp_path, START)
     (tmp_path / "s1_out" / "aborted.json").write_text("{corrupt", encoding="utf-8")
-    with _Clock(START_DT - timedelta(days=1)), pytest.raises(SystemExit, match="ABORTED"):
+    with _Clock(s1_prereg_at(tmp_path)), pytest.raises(SystemExit, match="ABORTED"):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     assert not (tmp_path / "s1_out" / "prereg.json").exists()

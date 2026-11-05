@@ -13,6 +13,7 @@ import s1_checkpoint as ck
 import s1_common as c
 import s1_run as r
 import s1_seal as z
+from conftest import s1_prereg_at, s1_replaced  # A3 Task 10 (fixture instant, F4 CREATED)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_RECEIPT, S1_PROCESS, Ledger, _Clock, s1_opening_checkpoint, s1_plan_audit, s1_state
 from test_s1_t12_fix2_b3 import MON, Spies, _aborted, _cp
@@ -138,7 +139,7 @@ def test_r2_probe_moving_the_plans_opening_close_after_registration_aborts_and_r
     earliest possible first slot), and the RUN-ACK found by bundle_sha256 registers on its own and binds the plan hash
     (§21-§22)."""
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     out = tmp_path / "s1_out"
@@ -181,7 +182,7 @@ def test_r2_the_run_ack_alone_anchors_the_opening(tmp_path):
     and registers on its own (rule 1a); it no longer anchors the clock - the anchor comes only from the AUDIT-ACK
     (§21-§22)."""
     s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     out = tmp_path / "s1_out"
@@ -239,12 +240,25 @@ def test_r3_deleting_the_seal_and_its_sealing_slot_records_after_a_later_slot_bo
     assert _delete(out, [f"seals/{oc}.json", "registry", "witnesses", f"captures/{oc}/{sealing}.resolution.json",
                          f"captures/{oc}/{sealing}.report.json", "opening_receipt.json"])
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit, match=r"QUALIFIED tree differs .*INVALID \(registration-artifact\)"):
+    # A3 Task 10 (intended; plan Task 10 Step 6 names fix5: N-2/R-3 -> F3 + F4): the opening seal is the CREATED
+    # `opening` stage's member, and the stage table runs before the F3 table: INVALID (stage-replaced), zero
+    # callbacks, never a second opening seal. The F3 finding (the sealing slot's QUALIFIED tree) stays the unit-level
+    # oracle of the evidence table.
+    import s1_journal
+    import s1_slot
+    import s1_trial
+    tr = s1_trial.open_trial(tmp_path / "mailbox.sqlite3")
+    rows = s1_journal.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3")
+    assert any("QUALIFIED tree differs" in x for x in s1_slot.evidence_problems(
+        out, rows, z.calendar_rows(c.load_json(out / "audit" / "calendar.json"))))
+    with pytest.raises(SystemExit, match=s1_replaced(f"seals/{oc}.json")):
         _reopen(tmp_path, lg, oc, cal, 8, spies)
     assert not (out / "seals" / f"{oc}.json").exists(), "a second, different opening seal was written"
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
     assert spies.zero(), spies.n
-    assert _last_row(tmp_path).subject == "reason/registration-artifact"
+    assert _last_row(tmp_path).subject == "reason/stage-replaced"
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/stage-replaced\)"):
+        _reopen(tmp_path, lg, oc, cal, 9)
+    assert "reason/stage-replaced" in _aborted(tmp_path)["reason"]
 
 
 def test_r3_the_after_seal_claim_alone_still_binds_the_seal(tmp_path, monkeypatch):
@@ -261,13 +275,26 @@ def test_r3_the_after_seal_claim_alone_still_binds_the_seal(tmp_path, monkeypatc
     assert _delete(out, [f"seals/{oc}.json", "registry", "witnesses", f"captures/{oc}/*.resolution.json",
                          f"captures/{oc}/*.report.json", "opening_receipt.json"])
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit, match=r"QUALIFIED tree differs .*INVALID \(registration-artifact\)"):
+    # A3 Task 10 (intended; plan Task 10 Step 6 names fix5: N-2/R-3 -> F3 + F4): the opening seal is the CREATED
+    # `opening` stage's member, and the stage table runs before the F3 table: INVALID (stage-replaced), zero
+    # callbacks, never a second opening seal. The F3 finding (the sealing slot's QUALIFIED tree) stays the unit-level
+    # oracle of the evidence table.
+    import s1_journal
+    import s1_slot
+    import s1_trial
+    tr = s1_trial.open_trial(tmp_path / "mailbox.sqlite3")
+    rows = s1_journal.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3")
+    assert any("QUALIFIED tree differs" in x for x in s1_slot.evidence_problems(
+        out, rows, z.calendar_rows(c.load_json(out / "audit" / "calendar.json"))))
+    with pytest.raises(SystemExit, match=s1_replaced(f"seals/{oc}.json")):
         _reopen(tmp_path, lg, oc, cal, 8, spies)
     assert not (out / "seals" / f"{oc}.json").exists(), "a second, different opening seal was written"
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
     assert spies.zero(), spies.n
     assert not (out / "captures" / oc / f"{later}.attempt.json").exists()          # (no after-seal claim, E5.6)
-    assert _last_row(tmp_path).subject == "reason/registration-artifact"
+    assert _last_row(tmp_path).subject == "reason/stage-replaced"
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/stage-replaced\)"):
+        _reopen(tmp_path, lg, oc, cal, 9)
+    assert "reason/stage-replaced" in _aborted(tmp_path)["reason"]
 
 
 def test_r3_the_selection_never_writes_an_opening_seal_differing_from_a_recorded_opening_seal_hash(tmp_path):

@@ -187,13 +187,26 @@ def write_abort(out: Path, rec: dict) -> dict:
     return rec
 
 
-def publish_exclusive(path: Path, data: bytes) -> None:
+def publish_in_out(path: Path, data: bytes, where: str) -> None:
+    """A3 Task 10 fix round 1 (review M5, F6.6): publish_exclusive for a file whose parent is s1_out itself, written
+    after the gate and before a stage INTENT (opening_receipt.json, opening_books.json, blocked.json): never creates
+    the parent - if s1_out vanished after the gate, the write refuses with no row (its absence is the total-loss
+    evidence, which a recreated s1_out would destroy). FileExistsError passes through to the caller."""
+    try:
+        publish_exclusive(path, data, mkdir=False)
+    except FileNotFoundError:
+        raise SystemExit(f"{where}: s1_out is gone: {Path(path).name} not published, refused with no row "
+                         f"(F6.6)") from None
+
+
+def publish_exclusive(path: Path, data: bytes, *, mkdir: bool = True) -> None:
     """Task 12 fix round 2 (B1.2/B1.3): publish `data` at `path` atomically and exclusively: written and flushed to a
     unique temporary file first, then hard-linked into place (the link fails with FileExistsError when `path`
     exists), so a record is either absent or complete - never partial - and never replaced. Fix round 3 (C-1): the
     ONLY exclusive create in the bundle; every immutable artifact is published through it (or the text form)."""
     path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    if mkdir:                                         # (mkdir=False: publish_in_out - a missing parent is refused)
+        path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.parent / f".{path.name}.{uuid.uuid4().hex}.tmp"
     try:
         with tmp.open("xb") as f:
@@ -563,9 +576,9 @@ def _open_trial_rows(mailbox=None) -> list:
 
 
 def _report_seals(out: Path, rows=None, cal=None, *, mailbox=None) -> list:
-    """A3 Task 6 (OQ-11 ruling, E5.2; Erratum 1 E2.6 r3): (relpath, seal path, sha256) of every REQUIRED post-START
-    seal - exactly the CREATED `seal/<close>` stages of the trial's journal, each with its committed member hash
-    (s1_slot.required_seals). It never opens a capture report, a slot claim or any <slot>.after.json (display only).
+    """A3 Task 6 (OQ-11 ruling, E5.2; Erratum 1 E2.6 r3): (relpath, seal path, sha256) of every REQUIRED seal -
+    exactly the CREATED `seal/<close>` stages of the trial's journal and (A3 Task 10, review M6) the CREATED `opening`
+    stage's seals/<opening close>.json, each with its committed member hash (s1_slot.required_seals). It never opens a capture report, a slot claim or any <slot>.after.json (display only).
     `rows`: the caller's verified journal rows (the gate's gv.rows); None = the open trial's rows read here (mode=ro;
     fails closed, review M4). `cal` (the plan calendar) is accepted for the plan's signature; membership needs no
     calendar."""

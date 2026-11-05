@@ -10,6 +10,7 @@ from pathlib import Path
 import s1_checkpoint as ck
 import s1_receipt as rc
 import s1_run as r
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_BINDING, S1_RECEIPT, _Clock, s1_state
 
@@ -53,7 +54,7 @@ def _proc(binding):
 
 def _reg(tmp_path):
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")

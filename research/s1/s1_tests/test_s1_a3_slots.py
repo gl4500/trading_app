@@ -434,10 +434,10 @@ def test_a_held_stage_lock_never_blocks_the_slot_path_or_the_deadline_rows(tmp_p
         clock = [sch2 + timedelta(seconds=30)]
         real = c.publish_exclusive
 
-        def late(path, data):
+        def late(path, data, **kw):
             if Path(path).name == f"{sch2:%Y%m%dT%H%M%SZ}.report.json":
                 clock[0] = d2
-            return real(path, data)
+            return real(path, data, **kw)
         monkeypatch.setattr(c, "publish_exclusive", late)
         with _Clock(clock[0]):
             res = ck.run_checkpoint(tmp_path, st_["ledger"].path, sch2, lambda reference=None: S1_RECEIPT,
@@ -525,10 +525,10 @@ def _late_r_45(tmp_path, st_, monkeypatch, s45, d45):
     real_pub = c.publish_exclusive
     clock = [s45 + timedelta(seconds=30)]
 
-    def pub(path, data):
+    def pub(path, data, **kw):
         if Path(path).name == f"{s45:%Y%m%dT%H%M%SZ}.report.json":
             clock[0] = d45
-        return real_pub(path, data)
+        return real_pub(path, data, **kw)
     monkeypatch.setattr(c, "publish_exclusive", pub)
     with _Clock(clock[0]):
         rep = ck.run_checkpoint(tmp_path, st_["ledger"].path, s45, lambda reference=None: S1_RECEIPT,
@@ -575,10 +575,10 @@ def test_an_in_flight_earlier_slot_defers_the_seal_even_past_its_d(tmp_path, mon
     clock47 = [s47 + timedelta(seconds=30)]
     nested = {}
 
-    def pub47(path, data):
+    def pub47(path, data, **kw):
         if Path(path).name == f"{s47:%Y%m%dT%H%M%SZ}.report.json":
             clock47[0] = d45 + timedelta(seconds=30)
-        return real_pub(path, data)
+        return real_pub(path, data, **kw)
 
     def stalled(self, req):
         if req.kind == "SLOT-QUALIFIED" and req.subject == j.slot_subject(s45) and "done" not in nested:
@@ -594,10 +594,10 @@ def test_an_in_flight_earlier_slot_defers_the_seal_even_past_its_d(tmp_path, mon
     monkeypatch.setattr(sl.Worker, "_append", stalled)
     clock45 = [s45 + timedelta(seconds=30)]
 
-    def pub45(path, data):
+    def pub45(path, data, **kw):
         if Path(path).name == f"{s45:%Y%m%dT%H%M%SZ}.report.json":
             clock45[0] = d45 - timedelta(microseconds=1)
-        return real_pub(path, data)
+        return real_pub(path, data, **kw)
     monkeypatch.setattr(c, "publish_exclusive", pub45)
     with _Clock(clock45[0]):
         ck.run_checkpoint(tmp_path, st_["ledger"].path, s45, lambda reference=None: S1_RECEIPT,

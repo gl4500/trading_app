@@ -6,7 +6,7 @@ import re
 import shutil
 import sqlite3
 import sys
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -114,7 +114,10 @@ def _damage(root, case):
     m = mb(root)
     tr = t.open_trial(m)
     rows = j.read_trial(tr.trial_id, tr.genesis, m)
-    at = c.aware("2026-10-25T23:00:00+00:00")
+    # A3 Task 10 (fixture change, F7.2(b) literal): the fixture's ACKs now follow the opening close's last slot E,
+    # so the damage is posted after the trial's latest ACK (as before the shift: 2026-10-25T23:00 was after it)
+    at = max(c.aware("2026-10-25T23:00:00+00:00"), datetime.fromtimestamp(tr.latest.created, tz=timezone.utc)
+             + timedelta(minutes=1))
     if case == "zero-open":
         s1_ack(root, "close", "S1-CLOSE-ACK", at, reason="WITHDRAWN", evidence_sha256="e" * 64)
     elif case == "two-open":
@@ -257,16 +260,16 @@ def test_journal_state_governs_over_local_files(tmp_path):
 
 
 def test_closure_never_erases_invalidity_or_reuses_the_journal(tmp_path):
-    s1_state(tmp_path, START)
-    s1_jappend(tmp_path, "TRIAL-INVALID", "reason/LOST", at=c.aware(START) - timedelta(hours=10),
-               detail=j.detail_of({"synthetic": "lost"}))
+    st_ = s1_state(tmp_path, START)
+    at = st_["now"]                         # A3 Task 10 (fixture change): after the fixture's latest ACK (F7.2(b))
+    s1_jappend(tmp_path, "TRIAL-INVALID", "reason/LOST", at=at, detail=j.detail_of({"synthetic": "lost"}))
     first_invalid = journal(tmp_path)
-    s1_ack(tmp_path, "close", "S1-CLOSE-ACK", c.aware(START) - timedelta(hours=9), reason="INVALID",
+    s1_ack(tmp_path, "close", "S1-CLOSE-ACK", at + timedelta(minutes=1), reason="INVALID",
            evidence_sha256=[r_ for rows in first_invalid.values() for r_ in rows if r_.kind == "TRIAL-INVALID"][0].sha)
     second = tmp_path / "second"
     with _Clock(c.aware(START) - timedelta(days=20)):
         k.write_plan(second, c.aware(START) + timedelta(days=7), "2026-10-30", [], "2026-10-01", mailbox=mb(tmp_path))
-    s1_mailbox(tmp_path, "audit-2", c.audit_token(second / "s1_out"), c.aware(START) - timedelta(hours=8))
+    s1_mailbox(tmp_path, "audit-2", c.audit_token(second / "s1_out"), at + timedelta(minutes=2))
     tr = t.open_trial(mb(tmp_path))
     assert tr.trial_id == c.load_json(second / "s1_out" / "plan.json")["trial_id"]
     assert j.read_trial(tr.trial_id, tr.genesis, mb(tmp_path)) == [] and set(tr.acks) == set()
@@ -305,7 +308,7 @@ def test_product_context_fails_closed_without_a_slot_gate_or_stage_check(tmp_pat
         return lambda rows, con: (lambda x: (setattr(x, "slot_times", times), x)[1])(fn(rows, con))
     no_gate = _ctx_append(tmp_path, "SLOT-INTENT", slot, ctx(), at)
     assert (no_gate.outcome, no_gate.row) == ("REFUSE", None) and "fail closed" in no_gate.reason
-    stage = j.stage_subject("start_attest")
+    stage = j.stage_subject("prereg")          # A3 Task 10 (fixture change): start_attest is a CREATED stage now
     no_check = _ctx_append(tmp_path, "STAGE-INTENT", stage, ctx(stage_gate=lambda rows, g: None), at,
                            detail=j.detail_of({"x": 1}))
     assert (no_check.outcome, no_check.row) == ("REFUSE", None) and "fail closed" in no_check.reason
@@ -314,9 +317,9 @@ def test_product_context_fails_closed_without_a_slot_gate_or_stage_check(tmp_pat
 
 
 def test_product_context_reads_closed_inside_the_transaction(tmp_path):
-    s1_state(tmp_path, START)
+    st_ = s1_state(tmp_path, START)
     tr = t.open_trial(mb(tmp_path))
-    s1_ack(tmp_path, "close", "S1-CLOSE-ACK", c.aware("2026-10-25T23:00:00+00:00"), reason="WITHDRAWN",
+    s1_ack(tmp_path, "close", "S1-CLOSE-ACK", st_["now"], reason="WITHDRAWN",     # A3 Task 10: after the latest ACK
            evidence_sha256="e" * 64)
     res = j.append(tr.trial_id, tr.genesis, j.Request("TRIAL-INVALID", "reason/LOST", j.new_nonce(), j.new_nonce(),
                                                       detail=j.detail_of({"x": 1})),
@@ -367,9 +370,12 @@ def test_explicit_mailbox_is_used_for_token_and_ack(tmp_path, monkeypatch):
 
 def test_registration_violation_commits_trial_invalid_first(tmp_path):
     """OQ-19: a confirmed legacy registration-artifact violation first commits TRIAL-INVALID (registration-artifact),
-    then the local abort; the next command refuses at the gate with no work."""
+    then the local abort; the next command refuses at the gate with no work. A3 Task 10 (intended, F4 table CREATED:
+    prereg.json is now the prereg stage's committed member, so its deletion is the stage table's stage-replaced -
+    test_s1_a3_prestart / the Codex prereg probe): the legacy-only damage is prereg's registry record, which no stage
+    commits, so the legacy detector still decides it."""
     s1_register(tmp_path, START)
-    (tmp_path / "s1_out" / "prereg.json").unlink()                       # the TEST deletes its tmp artifact
+    (tmp_path / "s1_out" / "registry" / "prereg.json").unlink()          # the TEST deletes its tmp registry record
     with pytest.raises(SystemExit, match="registration artifact"):
         r.attest_stop(tmp_path, r.STOP_STATEMENT)
     assert ("TRIAL-INVALID", "reason/registration-artifact") in kinds(tmp_path)

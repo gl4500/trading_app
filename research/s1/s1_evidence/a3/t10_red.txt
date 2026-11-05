@@ -1,0 +1,429 @@
+.FFFFFF.FFFF.FFFFFFFFFFFFFF.FFF..FFFFFFFF.FFFFFFFFFFF...FF               [100%]
+================================== FAILURES ===================================
+_ test_opening_intent_only_after_the_first_qualified_slot_and_earlier_slots_terminal[failed-earlier] _
+research\s1\s1_tests\test_s1_a3_prestart.py:90: in test_opening_intent_only_after_the_first_qualified_slot_and_earlier_slots_terminal
+    assert stage_kinds(tmp_path, "opening") == want
+E   AssertionError: assert [] == ['STAGE-INTEN...TAGE-CREATED']
+E     
+E     Right contains 3 more items, first extra item: 'STAGE-INTENT'
+E     Use -v to get more diff
+_ test_opening_intent_only_after_the_first_qualified_slot_and_earlier_slots_terminal[first-qualified] _
+research\s1\s1_tests\test_s1_a3_prestart.py:90: in test_opening_intent_only_after_the_first_qualified_slot_and_earlier_slots_terminal
+    assert stage_kinds(tmp_path, "opening") == want
+E   AssertionError: assert [] == ['STAGE-INTEN...TAGE-CREATED']
+E     
+E     Right contains 3 more items, first extra item: 'STAGE-INTENT'
+E     Use -v to get more diff
+________________ test_opening_stage_envelope_and_single_member ________________
+research\s1\s1_tests\test_s1_a3_prestart.py:96: in test_opening_stage_envelope_and_single_member
+    e, cm = env(tmp_path, "opening"), com(tmp_path, "opening")
+research\s1\s1_tests\test_s1_a3_prestart.py:66: in env
+    return _staged(root, stage, "intent.json")
+research\s1\s1_tests\test_s1_a3_prestart.py:61: in _staged
+    assert p.is_file(), f"no staged {stage}/{name}"
+E   AssertionError: no staged opening/intent.json
+E   assert False
+E    +  where False = is_file()
+E    +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21170/test_opening_stage_envelope_an0/s1_staging/3645a996-6ae0-45da-bf8e-3872ad06d3eb/opening/intent.json').is_file
+________________ test_start_attest_envelope_and_single_member _________________
+research\s1\s1_tests\test_s1_a3_prestart.py:127: in test_start_attest_envelope_and_single_member
+    e, cm = env(tmp_path, "start_attest"), com(tmp_path, "start_attest")
+research\s1\s1_tests\test_s1_a3_prestart.py:66: in env
+    return _staged(root, stage, "intent.json")
+research\s1\s1_tests\test_s1_a3_prestart.py:61: in _staged
+    assert p.is_file(), f"no staged {stage}/{name}"
+E   AssertionError: no staged start_attest/intent.json
+E   assert False
+E    +  where False = is_file()
+E    +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21170/test_start_attest_envelope_and0/s1_staging/c6e8b98d-e8c4-4d8c-b007-5b95ee8f557e/start_attest/intent.json').is_file
+__________ test_opening_books_is_a_hash_bound_derived_input[changed] __________
+research\s1\s1_tests\test_s1_a3_prestart.py:149: in test_opening_books_is_a_hash_bound_derived_input
+    with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+__________ test_opening_books_is_a_hash_bound_derived_input[deleted] __________
+research\s1\s1_tests\test_s1_a3_prestart.py:149: in test_opening_books_is_a_hash_bound_derived_input
+    with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_____ test_start_attest_verifies_the_opening_ack_against_the_journal[ok] ______
+research\s1\s1_tests\test_s1_a3_prestart.py:184: in test_start_attest_verifies_the_opening_ack_against_the_journal
+    assert stage_kinds(tmp_path, "start_attest")[-1:] == ["STAGE-CREATED"]
+E   AssertionError: assert [] == ['STAGE-CREATED']
+E     
+E     Right contains one more item: 'STAGE-CREATED'
+E     Use -v to get more diff
+_ test_start_attest_verifies_the_opening_ack_against_the_journal[not-first-qualified] _
+research\s1\s1_tests\test_s1_a3_prestart.py:186: in test_start_attest_verifies_the_opening_ack_against_the_journal
+    with pytest.raises(SystemExit, match=VERIFY_REFUSAL[case]):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_ test_start_attest_verifies_the_opening_ack_against_the_journal[seal-differs] _
+research\s1\s1_tests\test_s1_a3_prestart.py:186: in test_start_attest_verifies_the_opening_ack_against_the_journal
+    with pytest.raises(SystemExit, match=VERIFY_REFUSAL[case]):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_ test_start_attest_verifies_the_opening_ack_against_the_journal[receipt-differs] _
+research\s1\s1_tests\test_s1_a3_prestart.py:186: in test_start_attest_verifies_the_opening_ack_against_the_journal
+    with pytest.raises(SystemExit, match=VERIFY_REFUSAL[case]):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_ test_start_attest_verifies_the_opening_ack_against_the_journal[a-slot-not-terminal] _
+research\s1\s1_tests\test_s1_a3_prestart.py:186: in test_start_attest_verifies_the_opening_ack_against_the_journal
+    with pytest.raises(SystemExit, match=VERIFY_REFUSAL[case]):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_ test_start_attest_requires_every_opening_close_slot_terminal_in_the_ack_prefix _
+research\s1\s1_tests\test_s1_a3_prestart.py:196: in test_start_attest_requires_every_opening_close_slot_terminal_in_the_ack_prefix
+    with _Clock(w + timedelta(minutes=2)), pytest.raises(SystemExit, match=r"F7\.2.*\(b\)"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_____ test_opening_slot_is_the_earliest_qualified_independent_of_issuance _____
+research\s1\s1_tests\test_s1_a3_prestart.py:209: in test_opening_slot_is_the_earliest_qualified_independent_of_issuance
+    with _Clock(w + timedelta(minutes=2)), pytest.raises(SystemExit, match="first QUALIFIED"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_____________ test_opening_issuance_helper[all-terminal-eligible] _____________
+research\s1\s1_tests\test_s1_a3_prestart.py:248: in test_opening_issuance_helper
+    assert got["opening_slot"] == j.slot_subject(s45 if case == "all-terminal-eligible" else s47)
+E   AssertionError: assert None == 'slot/20261023T204500Z'
+E    +  where 'slot/20261023T204500Z' = <function slot_subject at 0x00000248A27A2660>(datetime.datetime(2026, 10, 23, 20, 45, tzinfo=datetime.timezone.utc))
+E    +    where <function slot_subject at 0x00000248A27A2660> = j.slot_subject
+___ test_opening_issuance_helper[early-failed-then-qualified-all-terminal] ____
+research\s1\s1_tests\test_s1_a3_prestart.py:248: in test_opening_issuance_helper
+    assert got["opening_slot"] == j.slot_subject(s45 if case == "all-terminal-eligible" else s47)
+E   AssertionError: assert None == 'slot/20261023T204700Z'
+E    +  where 'slot/20261023T204700Z' = <function slot_subject at 0x00000248A27A2660>(datetime.datetime(2026, 10, 23, 20, 47, tzinfo=datetime.timezone.utc))
+E    +    where <function slot_subject at 0x00000248A27A2660> = j.slot_subject
+_________ test_opening_issuance_helper[later-slot-unfinalized-blocks] _________
+research\s1\s1_tests\test_s1_a3_prestart.py:246: in test_opening_issuance_helper
+    assert got["eligible"] == want, got
+E   AssertionError: {'eligible': True, 'evidence_manifest_sha256': None, 'journal_head_sha256': None, 'journal_seq': None, ...}
+E   assert True == False
+________________ test_opening_issuance_helper[pending-blocks] _________________
+research\s1\s1_tests\test_s1_a3_prestart.py:246: in test_opening_issuance_helper
+    assert got["eligible"] == want, got
+E   AssertionError: {'eligible': True, 'evidence_manifest_sha256': None, 'journal_head_sha256': None, 'journal_seq': None, ...}
+E   assert True == False
+______ test_opening_issuance_helper[missed-then-qualified-all-terminal] _______
+research\s1\s1_tests\test_s1_a3_prestart.py:248: in test_opening_issuance_helper
+    assert got["opening_slot"] == j.slot_subject(s45 if case == "all-terminal-eligible" else s47)
+E   AssertionError: assert None == 'slot/20261023T204700Z'
+E    +  where 'slot/20261023T204700Z' = <function slot_subject at 0x00000248A27A2660>(datetime.datetime(2026, 10, 23, 20, 47, tzinfo=datetime.timezone.utc))
+E    +    where <function slot_subject at 0x00000248A27A2660> = j.slot_subject
+___________ test_opening_ack_evidence_manifest_is_reconstructed[ok] ___________
+research\s1\s1_tests\test_s1_a3_prestart.py:257: in test_opening_ack_evidence_manifest_is_reconstructed
+    assert {"plan.json", "opening_receipt.json", "staging/audit/intent.json", "staging/audit/prepared.json",
+E   AssertionError: assert {'opening_rec...repared.json'} <= set()
+E     
+E     Extra items in the left set:
+E     'plan.json'
+E     'opening_receipt.json'
+E     'staging/audit/prepared.json'
+E     'staging/opening/prepared.json'
+E     'staging/audit/intent.json'
+E     'staging/opening/intent.json'
+_______ test_opening_ack_evidence_manifest_is_reconstructed[wrong-hash] _______
+research\s1\s1_tests\test_s1_a3_prestart.py:257: in test_opening_ack_evidence_manifest_is_reconstructed
+    assert {"plan.json", "opening_receipt.json", "staging/audit/intent.json", "staging/audit/prepared.json",
+E   AssertionError: assert {'opening_rec...repared.json'} <= set()
+E     
+E     Extra items in the left set:
+E     'plan.json'
+E     'opening_receipt.json'
+E     'staging/audit/prepared.json'
+E     'staging/opening/prepared.json'
+E     'staging/audit/intent.json'
+E     'staging/opening/intent.json'
+_ test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-receipt] _
+research\s1\s1_tests\test_s1_a3_prestart.py:257: in test_opening_ack_evidence_manifest_is_reconstructed
+    assert {"plan.json", "opening_receipt.json", "staging/audit/intent.json", "staging/audit/prepared.json",
+E   AssertionError: assert {'opening_rec...repared.json'} <= set()
+E     
+E     Extra items in the left set:
+E     'plan.json'
+E     'opening_receipt.json'
+E     'staging/audit/prepared.json'
+E     'staging/opening/prepared.json'
+E     'staging/audit/intent.json'
+E     'staging/opening/intent.json'
+_ test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-staging] _
+research\s1\s1_tests\test_s1_a3_prestart.py:257: in test_opening_ack_evidence_manifest_is_reconstructed
+    assert {"plan.json", "opening_receipt.json", "staging/audit/intent.json", "staging/audit/prepared.json",
+E   AssertionError: assert {'opening_rec...repared.json'} <= set()
+E     
+E     Extra items in the left set:
+E     'plan.json'
+E     'opening_receipt.json'
+E     'staging/audit/prepared.json'
+E     'staging/opening/prepared.json'
+E     'staging/audit/intent.json'
+E     'staging/opening/intent.json'
+_____________ test_opening_window_later_slots_refused_then_missed _____________
+research\s1\s1_tests\test_s1_a3_prestart.py:288: in test_opening_window_later_slots_refused_then_missed
+    assert stage_kinds(tmp_path, "opening")[:1] == ["STAGE-INTENT"]
+E   AssertionError: assert [] == ['STAGE-INTENT']
+E     
+E     Right contains one more item: 'STAGE-INTENT'
+E     Use -v to get more diff
+_ test_opening_ack_must_precede_the_attestation_and_the_attestation_start[ack-after-attest] _
+research\s1\s1_tests\test_s1_a3_prestart.py:317: in test_opening_ack_must_precede_the_attestation_and_the_attestation_start
+    with _Clock(at), pytest.raises(SystemExit, match=why):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+____ test_a_change_after_the_opening_ack_is_caught_by_the_live_file_check _____
+research\s1\s1_tests\test_s1_a3_prestart.py:328: in test_a_change_after_the_opening_ack_is_caught_by_the_live_file_check
+    r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+research\s1\s1_run.py:447: in attest_start
+    c.verify_bundle_first(out, "START attestation", mailbox=mailbox, need="audit")
+research\s1\s1_common.py:424: in verify_bundle_first
+    registration_gate(out, where, now, refuse=gate_refuses, mailbox=mailbox)       # B3.3
+research\s1\s1_common.py:1068: in registration_gate
+    raise SystemExit(f"{where} refused: registration artifact(s) missing or changed: {probs[:3]}: persistent "
+E   SystemExit: START attestation refused: registration artifact(s) missing or changed: ['opening_receipt.json changed since opening']: persistent ABORTED-INVALID (reason registration artifact)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_prestart.py:327: in test_a_change_after_the_opening_ack_is_caught_by_the_live_file_check
+    with _Clock(w + timedelta(minutes=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'INVALID \\(stage-replaced\\)'
+E    Input: "START attestation refused: registration artifact(s) missing or changed: ['opening_receipt.json changed since opening']: persistent ABORTED-INVALID (reason registration artifact)"
+_______________ test_missed_opening_ack_deadline_gives_no_start _______________
+research\s1\s1_tests\test_s1_a3_prestart.py:335: in test_missed_opening_ack_deadline_gives_no_start
+    with _Clock(w + timedelta(minutes=2)), pytest.raises(SystemExit, match="OPENING-ACK"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+___ test_prereg_requires_the_run_ack_with_trial_prev_and_journal_fields[ok] ___
+research\s1\s1_tests\test_s1_a3_prestart.py:367: in test_prereg_requires_the_run_ack_with_trial_prev_and_journal_fields
+    assert stage_kinds(tmp_path, "prereg")[-1:] == ["STAGE-CREATED"]
+E   AssertionError: assert [] == ['STAGE-CREATED']
+E     
+E     Right contains one more item: 'STAGE-CREATED'
+E     Use -v to get more diff
+_______________________ test_prereg_envelope_and_member _______________________
+research\s1\s1_tests\test_s1_a3_prestart.py:377: in test_prereg_envelope_and_member
+    e, cm = env(tmp_path, "prereg"), com(tmp_path, "prereg")
+research\s1\s1_tests\test_s1_a3_prestart.py:66: in env
+    return _staged(root, stage, "intent.json")
+research\s1\s1_tests\test_s1_a3_prestart.py:61: in _staged
+    assert p.is_file(), f"no staged {stage}/{name}"
+E   AssertionError: no staged prereg/intent.json
+E   assert False
+E    +  where False = is_file()
+E    +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21170/test_prereg_envelope_and_membe0/s1_staging/d56fe5a9-cd5e-4d58-b55d-be68ebf0ffb9/prereg/intent.json').is_file
+_____________ test_blocked_prereg_is_a_pre_intent_refusal_record ______________
+research\s1\s1_tests\test_s1_a3_prestart.py:398: in test_blocked_prereg_is_a_pre_intent_refusal_record
+    assert blocked["status"] == "BLOCKED" and blocked.get("trial_id") == t.open_trial(mb(tmp_path)).trial_id   # E5.4
+E   AssertionError: assert ('BLOCKED' == 'BLOCKED'
+E     
+E       BLOCKED and None == '88630efc-44ec-4ab7-90e0-bdb6a1b9176d')
+E    +  where None = <built-in method get of dict object at 0x00000248A2C9C940>('trial_id')
+E    +    where <built-in method get of dict object at 0x00000248A2C9C940> = {'reasons': ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)'], 'recorded_utc': '2026-10-26T12:04:00+00:00', 'status': 'BLOCKED'}.get
+E    +  and   '88630efc-44ec-4ab7-90e0-bdb6a1b9176d' = Trial(trial_id='88630efc-44ec-4ab7-90e0-bdb6a1b9176d', bundle='23d789e06cf50b9c7aedc1b0af5f30ba649d6494843b2877947451f...18c435c5c9be'})}, closed=None, problems=[], genesis='3d0a998205546b3d9768fac44bf5d606a8e9560167dbe199a29fa8a307ebc75f').trial_id
+E    +    where Trial(trial_id='88630efc-44ec-4ab7-90e0-bdb6a1b9176d', bundle='23d789e06cf50b9c7aedc1b0af5f30ba649d6494843b2877947451f...18c435c5c9be'})}, closed=None, problems=[], genesis='3d0a998205546b3d9768fac44bf5d606a8e9560167dbe199a29fa8a307ebc75f') = <function open_trial at 0x00000248A27B8860>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21170/test_blocked_prereg_is_a_pre_i0/mailbox.sqlite3'))
+E    +      where <function open_trial at 0x00000248A27B8860> = t.open_trial
+E    +      and   WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21170/test_blocked_prereg_is_a_pre_i0/mailbox.sqlite3') = mb(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21170/test_blocked_prereg_is_a_pre_i0'))
+__________ test_blocked_rerun_after_deletion_recomputes_identically ___________
+research\s1\s1_tests\test_s1_a3_prestart.py:415: in test_blocked_rerun_after_deletion_recomputes_identically
+    assert json.loads((out / "blocked.json").read_bytes())["reasons"] == rec2["reasons"]
+E   AssertionError: assert ['carry-in CI... 2026-10-01)'] == []
+E     
+E     Left contains one more item: 'carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)'
+E     Use -v to get more diff
+________________ test_blocked_close_evidence_helper_end_to_end ________________
+research\s1\s1_tests\test_s1_a3_prestart.py:435: in test_blocked_close_evidence_helper_end_to_end
+    assert r.blocked_close_evidence(out) == c.sha256_bytes(c.canonical({"trial_id": rec["trial_id"],
+E   AssertionError: assert '000000000000...0000000000000' == '549d0603b370...dc67586d40f24'
+E     
+E     - 549d0603b3703e0c26a31f8b2d64402c77a078dc1c71469c94adc67586d40f24
+E     + 0000000000000000000000000000000000000000000000000000000000000000
+__________ test_blocked_close_survives_delete_and_recreate[deleted] ___________
+research\s1\s1_tests\test_s1_a3_prestart.py:450: in test_blocked_close_survives_delete_and_recreate
+    assert h == c.sha256_bytes(c.canonical({"trial_id": blk.get("trial_id"), "reasons": blk["reasons"]}))
+E   AssertionError: assert '000000000000...0000000000000' == '62f4e60501c6...55d6918d2da5d'
+E     
+E     - 62f4e60501c6c32771c7ff70ad7efe8add0e5697153ae56890555d6918d2da5d
+E     + 0000000000000000000000000000000000000000000000000000000000000000
+___ test_blocked_close_survives_delete_and_recreate[deleted-and-recreated] ____
+research\s1\s1_tests\test_s1_a3_prestart.py:450: in test_blocked_close_survives_delete_and_recreate
+    assert h == c.sha256_bytes(c.canonical({"trial_id": blk.get("trial_id"), "reasons": blk["reasons"]}))
+E   AssertionError: assert '000000000000...0000000000000' == '62f4e60501c6...55d6918d2da5d'
+E     
+E     - 62f4e60501c6c32771c7ff70ad7efe8add0e5697153ae56890555d6918d2da5d
+E     + 0000000000000000000000000000000000000000000000000000000000000000
+____________________ test_non_blocked_prereg_is_unaffected ____________________
+research\s1\s1_tests\test_s1_a3_prestart.py:468: in test_non_blocked_prereg_is_unaffected
+    assert stage_kinds(tmp_path, "prereg")[-1:] == ["STAGE-CREATED"]
+E   AssertionError: assert [] == ['STAGE-CREATED']
+E     
+E     Right contains one more item: 'STAGE-CREATED'
+E     Use -v to get more diff
+________ test_a_second_opening_seal_is_caught_beyond_the_opening_gate _________
+research\s1\s1_tests\test_s1_a3_prestart.py:482: in test_a_second_opening_seal_is_caught_beyond_the_opening_gate
+    assert sl.required_seals(out, rows_).get(rel) == h
+E   AssertionError: assert None == 'd30cd82c52902dfe5390f0173bbfe249618ae731affc4ee87425d2f0a43ffd42'
+E    +  where None = <built-in method get of dict object at 0x00000248A43DF600>('seals/2026-10-23.json')
+E    +    where <built-in method get of dict object at 0x00000248A43DF600> = {}.get
+E    +      where {} = <function required_seals at 0x00000248A2670220>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21170/test_a_second_opening_seal_is_0/s1_out'), [Row(trial_id='ee12cda6-429b-4761-8418-cda0ce9e0cd8', seq=1, prev='d7aa319747e0c915a4cf60cc360487405161124fe062bf3bc5f...fb93aab at=2026-10-23T20:45:30.000000+00:00', mailbox_id='fd4fc31e-dd3f-4a19-8ba6-464413c9f940', created=1792788330.0)])
+E    +        where <function required_seals at 0x00000248A2670220> = sl.required_seals
+_ test_a_crashed_opening_worker_times_out_at_d_and_the_opening_is_sealed[finalizer-command] _
+research\s1\s1_tests\test_s1_a3_prestart.py:554: in test_a_crashed_opening_worker_times_out_at_d_and_the_opening_is_sealed
+    assert stage_kinds(tmp_path, "opening") == ["STAGE-INTENT", "STAGE-PREPARED", "STAGE-CREATED"]
+E   AssertionError: assert [] == ['STAGE-INTEN...TAGE-CREATED']
+E     
+E     Right contains 3 more items, first extra item: 'STAGE-INTENT'
+E     Use -v to get more diff
+_ test_a_crashed_opening_worker_times_out_at_d_and_the_opening_is_sealed[later-worker] _
+research\s1\s1_tests\test_s1_a3_prestart.py:553: in test_a_crashed_opening_worker_times_out_at_d_and_the_opening_is_sealed
+    assert [x.kind for x in j.subject_rows(jrows(tmp_path), j.slot_subject(s45))] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E   AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E     
+E     Right contains one more item: 'SLOT-TIMEOUT'
+E     Use -v to get more diff
+__ test_a_held_stage_lock_never_delays_the_opening_finalizers_deadline_rows ___
+research\s1\s1_tests\test_s1_a3_prestart.py:587: in test_a_held_stage_lock_never_delays_the_opening_finalizers_deadline_rows
+    assert stage_kinds(tmp_path, "opening")[-1:] == ["STAGE-CREATED"]
+E   AssertionError: assert [] == ['STAGE-CREATED']
+E     
+E     Right contains one more item: 'STAGE-CREATED'
+E     Use -v to get more diff
+_ test_the_gate_hook_order_plan_check_evaluate_evidence_check_then_the_manifest_check _
+research\s1\s1_tests\test_s1_a3_prestart.py:605: in test_the_gate_hook_order_plan_check_evaluate_evidence_check_then_the_manifest_check
+    assert calls == ["evaluate", "evidence_check", "opening_manifest_check"]
+E   AssertionError: assert ['evaluate', 'evidence_check'] == ['evaluate', ...nifest_check']
+E     
+E     Right contains one more item: 'opening_manifest_check'
+E     Use -v to get more diff
+_ test_a_foreign_root_cannot_invalidate_the_open_trial_through_the_manifest_hook _
+research\s1\s1_tests\test_s1_a3_prestart.py:626: in test_a_foreign_root_cannot_invalidate_the_open_trial_through_the_manifest_hook
+    assert seen == [tmp_path]
+E   AssertionError: assert [] == [WindowsPath(...cannot_inv0')]
+E     
+E     Right contains one more item: WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21170/test_a_foreign_root_cannot_inv0')
+E     Use -v to get more diff
+_____________ test_the_evidence_manifest_is_the_exact_e55_format ______________
+research\s1\s1_tests\test_s1_a3_prestart.py:648: in test_the_evidence_manifest_is_the_exact_e55_format
+    assert set(tree) <= set(man["files"]) and f"seals/{oc}.json" in man["files"]
+E   AssertionError: assert ({'captures/20...jection.json'} <= set()
+E     
+E     Extra items in the left set:
+E     'captures/2026-10-23/20261023T204500Z.report.json'
+E     'captures/2026-10-23/20261023T204500Z.resolution.json'
+E     'captures/2026-10-23/20261023T204500Z/projection.json'
+E     'captures/2026-10-23/20261023T204500Z/meta.json'
+E     'captures/2026-10-23/20261023T204500Z/backup.sqlite3')
+____________________ test_v1_selective_deletion_is_invalid ____________________
+research\s1\s1_tests\test_s1_a3_codex_probes.py:267: in test_v1_selective_deletion_is_invalid
+    ck_.run_opening_checkpoint(tmp_path, lg.path, later, sp.receipt(changed), sp.process(), tmp_path / "c.log",
+research\s1\s1_checkpoint.py:778: in run_opening_checkpoint
+    gv = s1_trial.gate(root, "opening checkpoint", mailbox=mailbox, now=now, defer_pending=True)   # A3 F0.6 (N2)
+research\s1\s1_trial.py:628: in gate
+    s1_slot.evidence_check(gv)                            # (Deviation 1, Task 8 D4: a foreign root is never judged)
+research\s1\s1_slot.py:828: in evidence_check
+    evidence_violation(gv, confirmed, "gate", gv.mailbox)
+research\s1\s1_slot.py:760: in evidence_violation
+    raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E   s1_trial.Refusal: gate: slot evidence violation ['slot/20261023T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)']: INVALID (registration-artifact)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_codex_probes.py:266: in test_v1_selective_deletion_is_invalid
+    with _Clock(later), pytest.raises(SystemExit, match=r"stage opening: .*INVALID \(stage-replaced\)"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'stage opening: .*INVALID \\(stage-replaced\\)'
+E    Input: "gate: slot evidence violation ['slot/20261023T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)']: INVALID (registration-artifact)"
+________ test_a_fully_deleted_then_b_is_invalid_or_never_ack_eligible _________
+research\s1\s1_tests\test_s1_a3_codex_probes.py:287: in test_a_fully_deleted_then_b_is_invalid_or_never_ack_eligible
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/LOST\)"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_______________ test_prereg_restoration_is_invalid_once_created _______________
+research\s1\s1_tests\test_s1_a3_codex_probes.py:300: in test_prereg_restoration_is_invalid_once_created
+    with _Clock(st_["prereg_at"] + timedelta(minutes=1)), pytest.raises(SystemExit,
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+____ test_prereg_before_created_follows_the_stage_table[intent-only-free] _____
+research\s1\s1_tests\test_s1_a3_codex_probes.py:333: in test_prereg_before_created_follows_the_stage_table
+    assert crashed == [stop_after]                                # (A3 Task 10: the crash happened, by assertion)
+E   AssertionError: assert [] == ['STAGE-INTENT']
+E     
+E     Right contains one more item: 'STAGE-INTENT'
+E     Use -v to get more diff
+______ test_prereg_before_created_follows_the_stage_table[prepared-free] ______
+research\s1\s1_tests\test_s1_a3_codex_probes.py:333: in test_prereg_before_created_follows_the_stage_table
+    assert crashed == [stop_after]                                # (A3 Task 10: the crash happened, by assertion)
+E   AssertionError: assert [] == ['STAGE-PREPARED']
+E     
+E     Right contains one more item: 'STAGE-PREPARED'
+E     Use -v to get more diff
+____ test_the_opening_close_seal_with_no_row_is_judged_by_the_stage_table _____
+research\s1\s1_tests\test_s1_a3_audit.py:518: in test_the_opening_close_seal_with_no_row_is_judged_by_the_stage_table
+    t.gate(tmp_path, "opening seal with no row")
+research\s1\s1_trial.py:628: in gate
+    s1_slot.evidence_check(gv)                            # (Deviation 1, Task 8 D4: a foreign root is never judged)
+research\s1\s1_tests\test_s1_a3_audit.py:514: in <lambda>
+    monkeypatch.setattr(sl, "evidence_check", lambda gv: hook.append(1) or real(gv))
+research\s1\s1_slot.py:817: in evidence_check
+    if not any(r_.kind in j.SLOT_KINDS for r_ in gv.rows) and not _judge_without_calendar(gv, out):
+research\s1\s1_slot.py:801: in _judge_without_calendar
+    evidence_violation(gv, [f"{p} exists with no slot row and no registered calendar (F3, F4)" for p in confirmed],
+research\s1\s1_slot.py:760: in evidence_violation
+    raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E   s1_trial.Refusal: gate: slot evidence violation ['seals/2026-10-23.json exists with no slot row and no registered calendar (F3, F4)']: INVALID (registration-artifact)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_audit.py:516: in test_the_opening_close_seal_with_no_row_is_judged_by_the_stage_table
+    with pytest.raises(SystemExit, match=r"stage opening: artifacts \['seals/2026-10-23\.json'\] with no INTENT: "
+E   AssertionError: Regex pattern did not match.
+E    Regex: "stage opening: artifacts \\['seals/2026-10-23\\.json'\\] with no INTENT: INVALID \\(registration-artifact\\)"
+E    Input: "gate: slot evidence violation ['seals/2026-10-23.json exists with no slot row and no registered calendar (F3, F4)']: INVALID (registration-artifact)"
+__ test_c2_retro_the_opening_report_and_resolution_witness_the_registration ___
+research\s1\s1_tests\test_s1_t12_fix3.py:607: in test_c2_retro_the_opening_report_and_resolution_witness_the_registration
+    r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+research\s1\s1_run.py:459: in attest_start
+    raise SystemExit(f"START attestation refused: {e}") from None
+E   SystemExit: START attestation refused: opening seal 2026-10-23 missing
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_t12_fix3.py:605: in test_c2_retro_the_opening_report_and_resolution_witness_the_registration
+    pytest.raises(SystemExit, match=rf"stage opening: .*member {OPENING} missing or changed.*"
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'stage opening: .*member seals/2026-10-23.json missing or changed.*INVALID \\(stage-replaced\\)'
+E    Input: 'START attestation refused: opening seal 2026-10-23 missing'
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_intent_only_after_the_first_qualified_slot_and_earlier_slots_terminal[failed-earlier]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_intent_only_after_the_first_qualified_slot_and_earlier_slots_terminal[first-qualified]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_stage_envelope_and_single_member
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_envelope_and_single_member
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_books_is_a_hash_bound_derived_input[changed]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_books_is_a_hash_bound_derived_input[deleted]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[ok]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[not-first-qualified]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[seal-differs]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[receipt-differs]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[a-slot-not-terminal]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_requires_every_opening_close_slot_terminal_in_the_ack_prefix
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_slot_is_the_earliest_qualified_independent_of_issuance
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_issuance_helper[all-terminal-eligible]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_issuance_helper[early-failed-then-qualified-all-terminal]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_issuance_helper[later-slot-unfinalized-blocks]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_issuance_helper[pending-blocks]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_issuance_helper[missed-then-qualified-all-terminal]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[ok]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[wrong-hash]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-receipt]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-staging]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_window_later_slots_refused_then_missed
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_must_precede_the_attestation_and_the_attestation_start[ack-after-attest]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_change_after_the_opening_ack_is_caught_by_the_live_file_check
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_missed_opening_ack_deadline_gives_no_start
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_prereg_requires_the_run_ack_with_trial_prev_and_journal_fields[ok]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_prereg_envelope_and_member
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_blocked_prereg_is_a_pre_intent_refusal_record
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_blocked_rerun_after_deletion_recomputes_identically
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_blocked_close_evidence_helper_end_to_end
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_blocked_close_survives_delete_and_recreate[deleted]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_blocked_close_survives_delete_and_recreate[deleted-and-recreated]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_non_blocked_prereg_is_unaffected
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_second_opening_seal_is_caught_beyond_the_opening_gate
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_crashed_opening_worker_times_out_at_d_and_the_opening_is_sealed[finalizer-command]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_crashed_opening_worker_times_out_at_d_and_the_opening_is_sealed[later-worker]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_held_stage_lock_never_delays_the_opening_finalizers_deadline_rows
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_the_gate_hook_order_plan_check_evaluate_evidence_check_then_the_manifest_check
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_foreign_root_cannot_invalidate_the_open_trial_through_the_manifest_hook
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_the_evidence_manifest_is_the_exact_e55_format
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_v1_selective_deletion_is_invalid
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_a_fully_deleted_then_b_is_invalid_or_never_ack_eligible
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_prereg_restoration_is_invalid_once_created
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_prereg_before_created_follows_the_stage_table[intent-only-free]
+FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_prereg_before_created_follows_the_stage_table[prepared-free]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_the_opening_close_seal_with_no_row_is_judged_by_the_stage_table
+FAILED research/s1/s1_tests/test_s1_t12_fix3.py::test_c2_retro_the_opening_report_and_resolution_witness_the_registration
+48 failed, 10 passed in 51.60s

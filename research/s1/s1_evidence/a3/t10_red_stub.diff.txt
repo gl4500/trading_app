@@ -1,0 +1,125 @@
+diff --git a/research/s1/s1_checkpoint.py b/research/s1/s1_checkpoint.py
+index 63593e0..f791236 100644
+--- a/research/s1/s1_checkpoint.py
++++ b/research/s1/s1_checkpoint.py
+@@ -756,6 +756,11 @@ def _before_opening_seal(out: Path, day_iso: str, seal_sha: str, t: datetime, ro
+                                    f"{c.REGISTRATION_ARTIFACT})")
+ 
+ 
++def _opening_stage(gv, out: Path, day, cal, now, mailbox) -> dict:
++    """STUB (A3 Task 10 Step 1): nothing (the legacy opening selection stays in place)."""
++    return {}
++
++
+ def run_opening_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, now=c.now_utc,
+                            mailbox=None) -> dict:
+     """Seal ONLY the opening close (§4/§6/§12), before the START attestation / RUN-ACK / prereg. Same capture,
+diff --git a/research/s1/s1_run.py b/research/s1/s1_run.py
+index a41a723..2bd600e 100644
+--- a/research/s1/s1_run.py
++++ b/research/s1/s1_run.py
+@@ -561,6 +561,16 @@ def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
+     return pr
+ 
+ 
++def blocked_reasons_record(out, cal) -> dict:
++    """STUB (A3 Task 10 Step 1)."""
++    return {"trial_id": None, "reasons": []}
++
++
++def blocked_close_evidence(out) -> str:
++    """STUB (A3 Task 10 Step 1)."""
++    return "0" * 64
++
++
+ def _blocked_reasons(plan: dict, held: dict, since: dict, actions, problems, start) -> list:
+     """§11/A4.1: the opening audit's BLOCKED reasons (prereg and the score's re-check): coverage, and unit/identity
+     actions on symbols held at START, effective before START (the explicit pre-START bound)."""
+diff --git a/research/s1/s1_stage.py b/research/s1/s1_stage.py
+index 549617f..b2b0b39 100644
+--- a/research/s1/s1_stage.py
++++ b/research/s1/s1_stage.py
+@@ -296,7 +296,7 @@ def _need(res, stage, kind):
+ 
+ 
+ def run(gv, stage, *, inputs: dict, acks: dict, work, policy_fn=None, mailbox=None, clock=None,
+-        before_publish=None, extra_gate=None, stage_check=None) -> dict:
++        before_publish=None, extra_gate=None, stage_check=None, publish_ctx=None) -> dict:
+     """F4.1-F4.4 for one stage; re-entry resolves the existing rows per the stage table instead (never a second
+     INTENT). A journal outage before the INTENT is a refusal with no request and no artifact (F4 failure 1).
+     `extra_gate(rows) -> reason | None` is AND-ed with `permitted` at F0.5 step 5 (revision 2: introduced here,
+diff --git a/research/s1/s1_trial.py b/research/s1/s1_trial.py
+index fa2cc16..8144c7c 100644
+--- a/research/s1/s1_trial.py
++++ b/research/s1/s1_trial.py
+@@ -384,6 +384,8 @@ def token(kind: str, root, *, mailbox=None, **given) -> str:
+     if stop is not None:
+         vals["stop_line_sha256"] = stop.sha
+     vals.update(artifact_fields(kind, out))
++    if kind == "S1-OPENING-ACK":
++        vals.update(_opening_derived(root, out, rows, given, mailbox))
+     vals.update({n: str(v) for n, v in given.items()})
+     missing = [n for n in ACK_FIELDS[kind] if n not in vals]
+     if missing:
+@@ -391,6 +393,61 @@ def token(kind: str, root, *, mailbox=None, **given) -> str:
+     return " ".join([kind] + [f"{n}={vals[n]}" for n in ACK_FIELDS[kind]])
+ 
+ 
++def _opening_derived(root, out, rows, given, mailbox) -> dict:
++    """A3 Task 10 (token, S1-OPENING-ACK): the issuer-side fields the journal determines, unless `given`: opening_slot
++    = the first QUALIFIED opening-close slot (F3, OQ-37 / row 270), and evidence_manifest_sha256 = the sha256 of the
++    E5.5 reconstruction at the journal head. A field that cannot be derived (no opening yet, a file missing) is left
++    out (token then raises ValueError naming it)."""
++    import s1_gates
++    import s1_slot
++    got = {}
++    if "opening_slot" not in given:
++        try:
++            cal = s1_gates.verified_audit(out, mailbox)["calendar"]
++            plan = c.load_json(out / "plan.json")
++            q = s1_slot.first_qualified(rows, next(d for d in cal if d["date"] == plan["opening_close"]), cal)
++            if q is not None:
++                got["opening_slot"] = q.subject
++        except (Exception, SystemExit):                  # noqa: BLE001 - not derivable: the field stays missing
++            pass
++    if "evidence_manifest_sha256" not in given and rows:
++        try:
++            got["evidence_manifest_sha256"] = c.sha256_bytes(c.canonical(evidence_manifest(root, rows,
++                                                                                           rows[-1].seq)))
++        except (OSError, ValueError, KeyError, TypeError):
++            pass
++    return got
++
++
++def verify_opening_ack(gv, cal) -> Ack:
++    """STUB (A3 Task 10 Step 1): the trial's OPENING-ACK; raises only when it is absent."""
++    a = gv.trial.acks.get("S1-OPENING-ACK")
++    if a is None:
++        raise Refusal("START attestation refused: no S1-OPENING-ACK (F7.4: no START without it)")
++    return a
++
++
++def opening_manifest_check(gv, a=None) -> None:
++    """STUB (A3 Task 10 Step 1): no check."""
++    return None
++
++
++def evidence_manifest(root, rows, journal_seq) -> dict:
++    """STUB (A3 Task 10 Step 1): the E5.5 shape with no files."""
++    out = Path(root) / "s1_out"
++    plan = c.load_json(out / "plan.json")
++    pre = rows[:journal_seq]
++    return {"trial_id": plan["trial_id"], "journal_seq": journal_seq,
++            "journal_head_sha256": pre[-1].sha if pre else None, "files": {}}
++
++
++def opening_issuance(root, mailbox=None) -> dict:
++    """STUB (A3 Task 10 Step 1): always eligible."""
++    return {"eligible": True, "reasons": [], "opening_slot": None, "evidence_manifest_sha256": None,
++            "journal_seq": None, "journal_head_sha256": None, "opening_seal_sha256": None,
++            "opening_receipt_sha256": None}
++
++
+ def verify_ack(trial: Trial, rows: list, kind: str, ack_id, expected: dict) -> Ack:
+     """The trial's one `kind` ACK: `ack_id` (when given) must be it (F6.5: another trial's or a stray ACK never
+     counts); its artifact-bound fields equal `expected`; its journal binding holds (F7.1); it is not in the

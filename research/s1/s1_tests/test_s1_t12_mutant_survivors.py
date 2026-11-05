@@ -16,6 +16,7 @@ import s1_gates as g
 import s1_run as r
 import s1_seal as z
 import s1_snapshot
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import (S1_PROCESS, S1_RECEIPT, Ledger, _Clock, _write_seal, s1_mailbox, s1_plan_audit, s1_reack,
                       s1_score_refused, s1_state)
 
@@ -31,7 +32,7 @@ def read(p):
 
 def _registered(tmp_path):
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     return st_
 
@@ -239,7 +240,7 @@ def test_ms_an_action_effective_on_the_start_day_does_not_block_the_registration
     """Mutant "_pre_start_day is START's day": the pre-START bound is the day BEFORE START's NY date."""
     st_ = s1_state(tmp_path, START, audit_actions=[{"type": "forward_splits", "id": "s", "symbol": "CI",
                                                     "ex_date": "2026-10-26", "old_rate": 1, "new_rate": 2}])
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         assert (r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)["trial_id"]
                 == json.loads((tmp_path / "s1_out" / "plan.json").read_text(encoding="utf-8"))["trial_id"])
     assert r._pre_start_day(START_DT) == "2026-10-25"

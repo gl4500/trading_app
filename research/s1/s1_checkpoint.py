@@ -130,10 +130,6 @@ def _safe(rep: dict, where: str, fn, *a, **kw):
 
 
 # ------------------------------------------------------------------ shared slot-capture steps (both seal modes)
-def _capture_dir(out: Path, day: str, scheduled: datetime) -> Path:
-    return out / "captures" / day / scheduled.strftime("%Y%m%dT%H%M%SZ")
-
-
 def _new_report(close: datetime, scheduled: datetime, actual: datetime, meta: dict, until: datetime) -> dict:
     """A counts-only capture report. Task 12 (A5.2): the measured capture start/end and the slot's eligibility end
     E; "late" = the capture does not satisfy s <= start <= end <= E (the same predicate the seal uses)."""
@@ -317,10 +313,6 @@ CANDIDATE_KEYS = ("projection_sha256", "dir", "max_id", "capture_start", "captur
                   "receipt_sha256", "receipt_provenance", "bridge", "bundle_sha256", "process_binding")
 
 
-def _res_path(cap_dir: Path) -> Path:
-    return cap_dir.parent / f"{cap_dir.name}.resolution.json"
-
-
 def _jsonable(obj):
     return json.loads(c.canonical(obj))
 
@@ -342,124 +334,43 @@ def _complete_success(ev) -> bool:
             and ev["snapshot"] == cand["projection_sha256"])
 
 
-def _read_resolution(p: Path):
-    """The slot's resolution record, None when absent; an unreadable one is corrupt evidence (ValueError)."""
-    if not p.exists():
-        return None
-    try:
-        rec = _load(p)
-    except (OSError, ValueError) as e:
-        raise ValueError(f"resolution record {p.name} unreadable ({type(e).__name__})") from None
-    if not isinstance(rec, dict) or rec.get("outcome") not in (SUCCESS, FAILURE, MISSED, TIMEOUT):
-        raise ValueError(f"resolution record {p.name} malformed")
-    return rec
-
-
-class _QualifiedEvidence(ValueError):
-    """F3 table, QUALIFIED: a required file of the slot's committed tree is missing, changed or unparseable (or its
-    resolution is not a SUCCESS): INVALIDATE (reason registration-artifact); the seal is never built from it."""
-
-
-def _journal_slot(rp: Path, slot, day, cal, t: datetime, rows) -> tuple:
-    """A3 Task 6 (F3, E1.2, E1.4), the journal mode of finalize_close: what slot `slot` is for the selection, from the
-    journal rows - ("select", its SUCCESS resolution) for a SLOT-QUALIFIED slot (its tree verified, F3); ("skip",
-    None) for a slot with any other terminal row, or a never-opened slot at/after its E (no SLOT-INTENT can commit at
-    now >= E, F0.5 step 6); ("defer", reason) while an earlier slot may still qualify - an INTENT-only slot defers
-    until it has a terminal row, whatever t is (fix round 1, review C2: E1.3/E1.7 - a J with R < D committed after D
-    wins when no TIMEOUT committed first; E2.2/B1.4 - every earlier slot must be terminal; the finalizer's TIMEOUT
-    row is Task 7's). It never writes, moves or reads a slot file other than a QUALIFIED slot's tree (the finalizer
-    never touches a live worker's files, E1.4)."""
-    import s1_journal as j
-    import s1_slot
-    mine = j.subject_rows(rows, j.slot_subject(slot))
-    q = j.first(mine, "SLOT-QUALIFIED")
-    if q is not None:
-        try:
-            tree = s1_slot.qualified_tree(Path(rp).parents[2], slot, day["date"])
-            rec = _read_resolution(rp)
-        except (OSError, ValueError) as e:
-            raise _QualifiedEvidence(f"{q.subject}: a file of its QUALIFIED tree is missing or unreadable "
-                                     f"({type(e).__name__})") from None
-        if j.detail_of(tree) != q.detail:
-            raise _QualifiedEvidence(f"{q.subject}: its QUALIFIED tree differs from the committed detail (F3)")
-        if rec is None or rec.get("outcome") != SUCCESS:
-            raise _QualifiedEvidence(f"{q.subject}: its resolution is not a SUCCESS (F3)")
-        return "select", rec
-    if j.first(mine, *j.TERMINAL) is not None:
-        return "skip", None
-    if j.first(mine, "SLOT-INTENT") is not None:
-        return "defer", (f"earlier slot {slot.isoformat()} is in flight (SLOT-INTENT, no terminal row; pending; its "
-                         f"TIMEOUT is due at {z.resolution_deadline(slot, day, cal).isoformat()}): the seal waits for "
-                         f"its terminal row, in slot order (F3, E1.3, E2.2)")
-    until = z.eligible_until(slot, day, cal)
-    if t < until:
-        return "defer", (f"earlier slot {slot.isoformat()} has no row and its window is open until "
-                         f"{until.isoformat()}: the seal waits for slot order (A5.2)")
-    return "skip", None
-
-
-def _opening_selection(out: Path, day, cal, t: datetime, rows, before_seal=None, before_build=None) -> dict:
-    """The OPENING close's serialized selection until Task 10 makes the opening a stage. Journal mode only (A3 Task
-    6): each slot's state is its rows (_journal_slot); only a SLOT-QUALIFIED slot is selectable, its tree verified
-    (F3); no resolution file is ever written (E1.4). `before_build(candidate)` runs before the seal is built and
-    `before_seal(candidate, seal_sha256)` just before it is written (the opening: receipt, then registry). A3 Task 7:
-    the legacy resolution-file branch (RESOLUTION-TIMEOUT / MISSED records, B1.3) is removed; post-START closes use the
-    journal finalizer and the seal/<close> stages (finalize_close). Returns {"written", "sha256", "from_slot",
-    "deferred", "refused"}."""
-    import s1_slot
-    out = Path(out)
-    res = {"written": False, "sha256": None, "from_slot": None, "deferred": None, "refused": None}
-    if c.load_abort(out) is not None or (out / "stop.json").exists():
-        return res
-    seal_p = out / "seals" / f"{day['date']}.json"
-    if seal_p.exists():
-        res["sha256"] = c.sha256_file(seal_p)
-        return res
-    close = z.close_of(day["date"], cal)
-    for slot in z.schedule(day, cal):
-        action, rec = _journal_slot(_res_path(_capture_dir(out, day["date"], slot)), slot, day, cal, t, rows)
-        if action == "defer":
-            res["deferred"] = rec
-            return res
-        if action == "skip":
-            continue
-        ev = rec.get("evidence")
-        if not _complete_success(ev):
-            raise ValueError(f"the resolution record of {slot.isoformat()} claims SUCCESS without complete evidence")
-        if before_build is not None:
-            before_build(ev["candidate"])
-        try:
-            data = s1_slot.seal_bytes(day, close, ev)
-        except ValueError as e:                            # the capture differs from its recorded projection
-            res["refused"] = f"seal refused: {e}"
-            return res
-        sha = c.sha256_bytes(data)
-        if before_seal is not None:
-            before_seal(ev["candidate"], sha)
-        try:                                               # fix round 3 (C-1): atomic, never a partial seal
-            c.publish_exclusive(seal_p, data)
-        except FileExistsError:                            # a concurrent finalizer: the same bytes, or corruption
-            if seal_p.read_bytes() != data:
-                raise ValueError(f"seal {seal_p.name} differs from the serialized selection") from None
-            res["sha256"] = sha
-            return res
-        res.update(written=True, sha256=sha, from_slot=ev["scheduled"])
-        return res
-    return res
-
-
 def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_build=None, *, mailbox=None) -> dict:
     """A3 Task 7: the finalizer command for one post-START close - the trial gate as a deadline path (ruling N2:
     defer_pending=True, so a stalled stage lock never delays a TIMEOUT at D or a MISSED at E; the gate also runs the
     F3 evidence table), then s1_slot.finalize_close (the journal finalizer: TIMEOUT / MISSED rows, the deferred
     leftover cleanup, the seal/<close> stage). It never writes a resolution file. `t`: the finalizer's clock.
     `before_seal` is the seal stage's before_publish hook; `before_build` is accepted for the legacy signature and
-    ignored (only the opening selection used it; the opening is Task 10's stage).
+    ignored. A3 Task 10 (Task 7 concern 7): for the OPENING close the same journal finalizer runs, then the `opening`
+    stage (_opening_stage) - so a crashed opening worker's SLOT-TIMEOUT at D determines the opening close and the
+    opening seal follows, even when no later opening slot is captured.
     Returns {"written", "sha256", "from_slot", "deferred", "refused", "cleanup"}."""
     import s1_slot
     gv = s1_trial.gate(Path(out).parent, "finalize", mailbox=mailbox, now=lambda: t, defer_pending=True)
-    return s1_slot.finalize_close(gv, day, cal, lambda: t, mailbox=mailbox, before_seal=before_seal,
-                                  before_build=before_build)
+    fin = s1_slot.finalize_close(gv, day, cal, lambda: t, mailbox=mailbox, before_seal=before_seal,
+                                 before_build=before_build)
+    if day["date"] == s1_slot._opening_date(Path(out)):            # A3 Task 10 (Task 7 concern 7): the opening close
+        try:
+            _apply_opening(fin, _opening_stage(gv, Path(out), day, cal, lambda: t, mailbox))
+        except s1_slot.QualifiedEvidence as e:                     # F3: a committed tree damaged (a race past the
+            s1_slot.evidence_violation(gv, [str(e)], "opening seal stage", mailbox, clock=lambda: t)   # re-check)
+        except SystemExit:
+            raise
+        except Exception as e:                  # noqa: BLE001 - F0.7 (fix round 1, M3): unexpected errors fail closed
+            raise SystemExit(f"finalizer (opening stage) refused with no row ({type(e).__name__}: {e}) "
+                             f"(F0.7)") from None
+    return fin
+
+
+def _apply_opening(fin: dict, got: dict) -> None:
+    """A3 Task 10: fold an _opening_stage result into a finalize_close result (the opening close's seal is the
+    `opening` stage, not run_seal_stage's seal/<close>)."""
+    if "seal" in got:
+        fin.update(written=True, sha256=got["seal"]["sha256"], from_slot=got["seal"]["from_slot"], deferred=None)
+    elif "opening" in got:
+        fin["deferred"] = None
+    else:
+        fin["deferred"] = got.get("deferred") or fin.get("deferred")
+        fin["refused"] = got.get("refused") or fin.get("refused")
 
 
 def _apply_finalize(rep: dict, fin: dict) -> None:
@@ -710,8 +621,8 @@ def _register_opening(out: Path, plan_day: str, receipt_p: Path, binding, seal_s
 def _store_opening_receipt(p: Path, receipt: dict) -> None:
     """Controller ruling 3: written BEFORE the opening seal (a receipt without a seal is harmless: attest_start needs
     both). Exclusive create; a stored receipt equal to this run's is kept as it is."""
-    try:                                                   # fix round 3 (C-1): atomic
-        c.publish_text_exclusive(p, json.dumps(receipt, indent=1, sort_keys=True))
+    try:                                                   # fix round 3 (C-1): atomic; A3 Task 10 fix round 1 (M5, F6.6)
+        c.publish_in_out(p, c.text_bytes(json.dumps(receipt, indent=1, sort_keys=True)), "opening")
     except FileExistsError:
         if _stored_receipt(p) != receipt:                   # a concurrent run stored one after the early check
             raise _ReceiptConflict(f"opening refused: stored {p.name} differs from this run's receipt") from None
@@ -719,21 +630,6 @@ def _store_opening_receipt(p: Path, receipt: dict) -> None:
 
 class _ReceiptConflict(SystemExit):
     """A stored opening receipt differs from this run's (fix round 1, M-2: the capture report is written first)."""
-
-
-class _OpeningEvidenceConflict(SystemExit):
-    """Fix round 4 (N-2): opening-close evidence of an earlier opening attempt exists without its records."""
-
-
-def _before_opening_build(out: Path, rp: Path, cand: dict) -> None:
-    """Fix round 4 (N-2): the opening seal is never created over evidence of an earlier opening attempt (opening-
-    close evidence left without its records, s1_common.opening_orphans - re-checked here, at seal creation, after the
-    gate); then ruling 3: the opening receipt is stored before the seal is built."""
-    orphans = c.opening_orphans(out)
-    if orphans:
-        raise _OpeningEvidenceConflict(f"opening refused: evidence of an earlier opening attempt {orphans[:3]}: no "
-                                       f"second opening seal is ever written")
-    _store_opening_receipt(rp, cand["receipt"])
 
 
 class _OpeningSealConflict(SystemExit):
@@ -744,7 +640,9 @@ def _before_opening_seal(out: Path, day_iso: str, seal_sha: str, t: datetime, ro
     """Fix round 5 (R-3): the serialized selection never writes an opening seal whose sha256 differs from a recorded
     opening-seal hash: the persistent "registration artifact" abort (a second, different opening seal). A3 Task 6
     (OQ-11, E2.6 r3): the recorded hashes are the REQUIRED seals of the journal (s1_common._report_seals), never a
-    capture report or after.json; the opening seal becomes the `opening` stage in Task 10."""
+    capture report or after.json. A3 Task 10 (Task 6 review M6): the opening seal is the `opening` stage, whose CREATED
+    member is one of those required seals (s1_slot.required_seals), so a second, different opening seal is refused
+    here and not only by the opening gate."""
     recorded = sorted({h for _, sp, h in c._report_seals(out, rows) if sp.name == f"{day_iso}.json"})
     if recorded and seal_sha not in recorded:
         probs = [f"seals/{day_iso}.json: the selected opening seal {seal_sha} differs from the recorded opening seal "
@@ -754,6 +652,107 @@ def _before_opening_seal(out: Path, day_iso: str, seal_sha: str, t: datetime, ro
                             "projection_sha256": None, "receipt_sha256": None})
         raise _OpeningSealConflict(f"opening refused: {probs[0]}: persistent ABORTED-INVALID (reason "
                                    f"{c.REGISTRATION_ARTIFACT})")
+
+
+def _opening_stage(gv, out: Path, day, cal, now, mailbox) -> dict:
+    """A3 Task 10 (F3, F4.8 'opening (seal)', E5.6): the opening seal as the F4 stage `opening` - kind single, member
+    seals/<opening close>.json = s1_slot.seal_bytes of the first QUALIFIED opening slot's committed evidence; envelope
+    inputs plan.json, audit/manifest.json, opening_receipt.json and that slot's QUALIFIED line + tree manifest;
+    request_policy null; recovery F4.7 (s1_stage). F3: the INTENT is requested only once the close is determined - its
+    first QUALIFIED slot committed and every earlier scheduled slot terminal (s1_slot.first_qualified) - and the
+    stage's extra_gate re-checks exactly that selection inside the INTENT transaction (else refused, no row).
+    Before the INTENT (pre-INTENT checks over committed inputs; no row on refusal): the opening close's F3 evidence,
+    confirmed on re-read (Task 7 I1: a confirmed problem is TRIAL-INVALID registration-artifact); the QUALIFIED tree
+    (s1_slot._resolution_evidence: QualifiedEvidence for the caller); opening_receipt.json published from that
+    evidence BEFORE the seal is built (controller ruling 3 / OQ-15: an identical existing one is kept, a different one
+    is _ReceiptConflict); the seal bytes buildable. before_publish: the R-3 second-seal guard (_before_opening_seal) and the legacy opening records
+    (OQ-19). Never calls the trial gate (ruling N1). Returns {"opening": "already decided"} | {"deferred": why} |
+    {"refused": why} | {"seal": {"written", "sha256", "from_slot"}}."""
+    import s1_journal as j
+    import s1_slot
+    import s1_stage
+    out = Path(out)
+    rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
+    if s1_stage.stage_rows(rows, "opening")["intent"] is not None:
+        return {"opening": "already decided"}
+    if c.load_abort(out) is not None:                       # F8.1: an observed violation - no further opening work
+        return {"refused": "s1_out/aborted.json exists (an observed violation, F8.1): no opening seal"}
+    q = s1_slot.first_qualified(rows, day, cal)
+    if q is None:
+        return {"deferred": "the opening close is not determined: an earlier opening slot is in flight or not yet "
+                            "terminal, or no slot qualified yet (F3)"}
+    probs = s1_slot.confirmed_close_problems(gv, out, rows, day, cal, mailbox)    # Task 7 I1: confirmed on re-read
+    if probs:
+        s1_slot.evidence_violation(gv, probs, "opening seal stage", mailbox, clock=now)
+    ev = s1_slot._resolution_evidence(out, q, day["date"])
+    close = z.close_of(day["date"], cal)
+    rel = f"seals/{day['date']}.json"
+    rp = out / "opening_receipt.json"
+    _store_opening_receipt(rp, ev["candidate"]["receipt"])  # controller ruling 3: the receipt BEFORE the seal is built
+    try:
+        s1_slot.seal_bytes(day, close, ev)                 # pre-INTENT: the capture must equal its recorded projection
+    except ValueError as e:
+        return {"refused": f"seal refused: {e}"}
+    inputs = {"plan.json": c.sha256_file(out / "plan.json"),
+              "audit/manifest.json": c.sha256_file(out / "audit" / "manifest.json"),
+              "opening_receipt.json": c.sha256_file(rp), "qualified_line": q.sha, "tree_manifest": q.detail}
+
+    def selected(rows_):                                   # F3, inside the INTENT transaction (step 5)
+        fq = s1_slot.first_qualified(rows_, day, cal)
+        return None if fq is not None and fq.sha == q.sha else \
+            "the opening close's first QUALIFIED slot with every earlier slot terminal is not this one (F3)"
+
+    def work(sw):
+        sw.put(rel, s1_slot.seal_bytes(day, close, ev))
+        return []
+
+    _, before = opening_publish_hooks(gv, inputs, now)    # (fix round 1, I1: the same path F4.7 recovery uses)
+    try:
+        com = s1_stage.run(gv, "opening", inputs=inputs, acks={}, work=work, mailbox=mailbox, clock=now,
+                           extra_gate=selected, before_publish=before)
+    except (_OpeningSealConflict, _ReceiptConflict):
+        raise
+    except SystemExit as e:                                # refusal / pending / lock error / INVALID: no seal here
+        return {"refused": str(e)}
+    return {"seal": {"written": True, "sha256": com["members"][rel], "from_slot": ev["scheduled"]}}
+
+
+def opening_publish_hooks(gv, inputs, clock=None) -> tuple:
+    """The `opening` stage's publication hooks (s1_stage.PUBLISH_HOOKS; the stage run and F4.7 recovery alike - A3
+    Task 10 fix round 1, review I1): no publish_ctx; before_publish = the R-3 second-opening-seal guard
+    (_before_opening_seal, Task 6 M6) over the trial's rows read through the GATE's mailbox (review M4), then the
+    legacy opening records (B3.1, OQ-19) with the process-binding reference read from the staged seal member itself
+    (the bytes the PREPARED commitment binds)."""
+    import s1_journal as j
+    import s1_stage
+    out = Path(gv.out)
+    clock = clock or c.now_utc
+    day_iso = c.load_json(out / "plan.json")["opening_close"]
+    rel = f"seals/{day_iso}.json"
+
+    def before(com):
+        rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox)
+        _before_opening_seal(out, day_iso, com["members"][rel], clock(), rows)                # fix5 (R-3), M6
+        seal = json.loads((s1_stage.staging_dir(gv.root, gv.trial.trial_id, "opening") / rel).read_bytes())
+        _register_opening(out, day_iso, out / "opening_receipt.json",
+                          (seal.get("process_binding") or {}).get("binding"), com["members"][rel])
+    return None, before
+
+
+def _opening_view(rep: dict, fin: dict, got: dict) -> dict:
+    """The legacy rep["seal"] / deferred / refused presentation of the opening close (display only, E5.2)."""
+    view = {"seal": dict(rep.get("seal") or {"written": False, "sha256": None})}
+    if "seal" in got:
+        view["seal"] = {"written": True, "sha256": got["seal"]["sha256"]}
+        if got["seal"]["from_slot"] != rep["scheduled"]:
+            view["seal"]["from_slot"] = got["seal"]["from_slot"]
+    for k_ in ("deferred", "refused"):
+        why = got.get(k_) or (fin.get(k_) if "seal" not in got and "opening" not in got else None)
+        if why and why != "the opening close is sealed by the opening stage (Task 10)":
+            view[k_] = why
+    if fin.get("cleanup"):
+        view["cleanup"] = fin["cleanup"]
+    return view
 
 
 def run_opening_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, now=c.now_utc,
@@ -767,7 +766,11 @@ def run_opening_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, cra
     its pinned calendar (A8.2/A6), the clock (A5.2), failures preserved (A9.1), slot-order seal.
     A3 Task 6: the same slot worker as run_checkpoint (slot lock, SLOT-INTENT, P, R, J) with the opening gate (F1:
     the audit stage CREATED; E5.6: once the opening is decided a later opening-close slot is refused with no row,
-    which replaces fix round 5's after-seal record); the seal is selected over QUALIFIED slots only."""
+    which replaces fix round 5's after-seal record); the seal is selected over QUALIFIED slots only.
+    A3 Task 10: after J, the journal finalizer on the opening close (s1_slot.finalize_close: TIMEOUT at D, MISSED at
+    E, never a file in a live or no-row slot, E1.4; the worker's gate is a slot path, defer_pending=True, N2) and then
+    the `opening` stage (_opening_stage). The legacy _opening_selection, its resolution-file reads and the N-2 orphan
+    re-check before the build are gone (F3 supersedes them)."""
     import s1_journal as j
     import s1_slot
     gv = s1_trial.gate(root, "opening checkpoint", mailbox=mailbox, now=now, defer_pending=True)   # A3 F0.6 (N2)
@@ -814,31 +817,19 @@ def run_opening_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, cra
     if result["outcome"] != "APPEND":
         return dict(rep, journal=result)
     after = {"journal": result}
-    rows = None
-
-    def before_seal(cand, seal_sha):                      # B3.1: registered just before the seal is written
-        _before_opening_seal(out, day["date"], seal_sha, now(), rows)                            # fix5 (R-3)
-        _register_opening(out, day["date"], rp, (cand.get("process_binding") or {}).get("binding"), seal_sha)
-    try:
-        t_fin = now()                                     # fix round 1 (M1): t first, then the rows
-        rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
-        probs = s1_slot.confirmed_close_problems(gv, out, rows, day, cal, mailbox)   # A3 Task 7: the F3 table
-        if probs:
-            s1_slot.evidence_violation(gv, probs, "opening seal selection", mailbox, clock=now)
-        after.update(_seal_view(rep, _opening_selection(out, day, cal, t_fin, rows, before_seal=before_seal,
-                                                        before_build=lambda cand: _before_opening_build(out, rp,
-                                                                                                         cand))))
-    except _ReceiptConflict as e:                         # fix round 1 (M-2): a concurrent run stored another
+    try:                                                  # A3 Task 10 (Task 7 concern 7): the journal finalizer on the
+        fin = s1_slot.finalize_close(gv, day, cal, now, mailbox=mailbox)       # opening close (TIMEOUT / MISSED rows;
+        after.update(_opening_view(rep, fin, _opening_stage(gv, out, day, cal, now, mailbox)))   # a slot path, N2),
+    except _ReceiptConflict as e:                         # then the `opening` stage (F3, F4.8)
         w.after(dict(after, receipt_match=False, refused=f"receipt conflict (concurrent): {e}"))
         raise
-    except (_OpeningEvidenceConflict, _OpeningSealConflict) as e:     # N-2 / R-3: never a second opening seal
+    except _OpeningSealConflict as e:                     # R-3 / M6: never a second opening seal
         w.after(dict(after, refused=str(e)))
         raise
-    except _QualifiedEvidence as e:                                    # F3: a committed tree damaged
+    except s1_slot.QualifiedEvidence as e:                # F3: a committed tree damaged
         _qualified_violation(gv, w, out, e, now)
     except j.JournalError as e:
-        raise SystemExit(f"opening seal selection refused: journal unreadable ({type(e).__name__}): no seal") \
-            from None
+        raise SystemExit(f"opening seal stage refused: journal unreadable ({type(e).__name__}): no seal") from None
     w.after(after)
     return dict(rep, **after)
 

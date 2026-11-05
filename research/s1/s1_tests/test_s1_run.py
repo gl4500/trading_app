@@ -96,7 +96,8 @@ import sqlite3                                                                  
 from datetime import timedelta                                                   # noqa: E402
 
 import s1_common                                                                 # noqa: E402
-from conftest import S1_RECEIPT, s1_bar, s1_mailbox, s1_receipt_with, s1_unattest  # noqa: E402
+from conftest import S1_RECEIPT, s1_bar, s1_mailbox, s1_receipt_with, s1_unattest  # noqa: E402,F401
+from conftest import s1_first_invalid, s1_prereg_at, s1_replaced  # noqa: E402 (A3 Task 10)
 from hypothesis import given, settings, strategies as st                        # noqa: E402
 
 START = "2026-10-26T13:30:00+00:00"
@@ -213,8 +214,17 @@ def test_carry_in_ignores_actions_before_holding_or_after_stop_and_flags_problem
 
 # ---------------------------------------------------------------- START attestation / prereg gates
 def test_attest_start_requires_exact_statement_once_and_before_start(tmp_path, monkeypatch):
-    s1_state(tmp_path, START)
+    # A3 Task 10 (fixture change): the attestation is the journal-committed start_attest stage, so the test starts
+    # from the pre-attestation state (s1_state(attest=False)) instead of deleting the attestation (s1_unattest)
+    st_ = s1_state(tmp_path, START, attest=False)
     out = tmp_path / "s1_out"
+    at(monkeypatch, START_DT)
+    with pytest.raises(SystemExit, match="planned START has passed"):
+        r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+    at(monkeypatch, st_["attest_at"])
+    with pytest.raises(SystemExit, match="the statement must be exactly START_STATEMENT"):
+        r.attest_start(tmp_path, r.START_STATEMENT + " ", S1_RECEIPT)
+    r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
     a = read(out / "attest_start.json")
     assert a["statement"] == r.START_STATEMENT and a["trial_id"] == read(out / "plan.json")["trial_id"]
     assert a["planned_start"] == START
@@ -222,28 +232,22 @@ def test_attest_start_requires_exact_statement_once_and_before_start(tmp_path, m
     assert a["audit_manifest_sha256"] == s1_common.sha256_file(out / "audit" / "manifest.json")
     assert a["opening_seal_sha256"] == s1_common.sha256_file(out / "seals" / "2026-10-23.json")
     assert a["receipt_sha256"] == s1_common.receipt_sha256(S1_RECEIPT)                 # Task 12 (A1)
-    at(monkeypatch, START_DT - timedelta(days=1))
-    with pytest.raises(SystemExit, match="the statement must be exactly START_STATEMENT"):
-        r.attest_start(tmp_path, r.START_STATEMENT + " ", S1_RECEIPT)
     with pytest.raises(SystemExit, match="START attestation already recorded"):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)                   # already recorded
-    s1_unattest(tmp_path, books=False)                    # (fix round 2 migration, B3: the pre-attestation state)
-    at(monkeypatch, START_DT)
-    with pytest.raises(SystemExit, match="START"):
-        r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
-    at(monkeypatch, START_DT - timedelta(days=1))
     (out / "seals" / "2026-10-23.json").unlink()
     # (fix round 2, B3.3: the registered opening seal deleted is the persistent "registration artifact" abort, not
-    # the old "opening seal" refusal)
-    with pytest.raises(SystemExit, match="registration artifact"):
+    # the old "opening seal" refusal. A3 Task 10 (intended, F4 table CREATED): it is the `opening` stage's committed
+    # member - INVALID (stage-replaced) at the gate; the B3.3 finding stays the unit-level oracle)
+    assert any("seals/2026-10-23.json" in x for x in s1_common.registration_problems(out))
+    with pytest.raises(SystemExit, match=s1_replaced("seals/2026-10-23.json")):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
-    assert not (out / "attest_start.json").exists() and read(out / "aborted.json")["reason"] == "registration artifact"
+    assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
 
 
 def test_prereg_writes_what_checkpoint_and_collectors_read_once(tmp_path, monkeypatch):
     st_ = s1_state(tmp_path, START)
     out = tmp_path / "s1_out"
-    at(monkeypatch, START_DT - timedelta(hours=2))
+    at(monkeypatch, s1_prereg_at(tmp_path))
     pr = r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     on_disk = read(out / "prereg.json")
     assert on_disk == pr
@@ -262,9 +266,9 @@ def test_prereg_writes_what_checkpoint_and_collectors_read_once(tmp_path, monkey
     ("receipt", "receipt"), ("ack", "'bad' is not the trial's S1-RUN-ACK"), ("audit", "audit"),
     ("attest", "START attestation")])
 def test_prereg_refusals_write_nothing(tmp_path, monkeypatch, breakage, match):
-    s1_state(tmp_path, START)
+    s1_state(tmp_path, START, attest=(breakage != "attest"))      # A3 Task 10: the pre-attestation state (fixture)
     out = tmp_path / "s1_out"
-    at(monkeypatch, START_DT - timedelta(hours=2))
+    at(monkeypatch, s1_prereg_at(tmp_path))
     receipt, ack = S1_RECEIPT, "run-ack"
     if breakage == "receipt":
         receipt = s1_receipt_with(S1_RECEIPT, files={"x.py": "other"})               # Task 12 (A1): fingerprint
@@ -274,8 +278,6 @@ def test_prereg_refusals_write_nothing(tmp_path, monkeypatch, breakage, match):
     elif breakage == "audit":
         m = read(out / "audit" / "manifest.json")
         (out / "audit" / "manifest.json").write_text(json.dumps(dict(m, outcome="ABORTED")), encoding="utf-8")
-    else:
-        s1_unattest(tmp_path)                             # (fix round 2 migration, B3: the pre-attestation state)
     with pytest.raises(SystemExit, match=match):
         r.do_prereg(tmp_path, ack, receipt)
     assert not (out / "prereg.json").exists()
@@ -283,7 +285,7 @@ def test_prereg_refusals_write_nothing(tmp_path, monkeypatch, breakage, match):
 
 def test_prereg_blocked_by_known_carry_in_split(tmp_path, monkeypatch):                  # example 12 (known)
     s1_state(tmp_path, START, audit_actions=[split("CI", "2026-10-05")])
-    at(monkeypatch, START_DT - timedelta(hours=2))
+    at(monkeypatch, s1_prereg_at(tmp_path))
     with pytest.raises(SystemExit, match="BLOCKED"):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     assert not (tmp_path / "s1_out" / "prereg.json").exists()
@@ -292,14 +294,14 @@ def test_prereg_blocked_by_known_carry_in_split(tmp_path, monkeypatch):         
 
 def test_prereg_not_blocked_by_split_before_holding(tmp_path, monkeypatch):
     s1_state(tmp_path, START, audit_actions=[split("CI", "2026-09-01")])          # CI bought 2026-10-01
-    at(monkeypatch, START_DT - timedelta(hours=2))
+    at(monkeypatch, s1_prereg_at(tmp_path))
     assert r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)["start"] == START
 
 
 # ---------------------------------------------------------------- stop attestation
 def test_attest_stop_requires_statement_and_a_recorded_stop(tmp_path, monkeypatch):
     s1_state(tmp_path, START)
-    at(monkeypatch, START_DT - timedelta(hours=2))
+    at(monkeypatch, s1_prereg_at(tmp_path))
     r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     at(monkeypatch, START_DT + timedelta(days=3))
     with pytest.raises(SystemExit, match="stop"):
@@ -596,17 +598,22 @@ def test_early_score_ack_while_running_is_refused_with_no_output(tmp_path, monke
 @pytest.mark.parametrize("offset", [timedelta(hours=-1), timedelta(0)])
 def test_run_ack_not_strictly_after_start_attestation_is_refused(tmp_path, monkeypatch, offset):
     """Retrospective (Task 7 review fix round 1), I-2: the RUN-ACK binds attest_start_sha256 and must be created
-    strictly after the START attestation was recorded."""
+    strictly after the START attestation was recorded.
+    A3 Task 10 (intended, F6.1/F7.1): the attestation is the start_attest stage, so the RUN-ACK (which names the
+    journal head after its CREATED row, and follows the OPENING-ACK) is refused by the gate's ACK-chain checks first:
+    created before the OPENING-ACK (offset -1 h), or not after the journal row it references (offset 0). prereg's own
+    causal check is implied by them (recorded_utc <= the INTENT <= CREATED); it is a unit-level oracle only."""
     s1_state(tmp_path, START)
     out = tmp_path / "s1_out"
     assert f"attest_start_sha256={s1_common.sha256_file(out / 'attest_start.json')}" in r.run_token(tmp_path)
     recorded = s1_common.aware(read(out / "attest_start.json")["recorded_utc"])
     s1_reack(tmp_path, "too-early", "S1-RUN-ACK", recorded + offset)
-    at(monkeypatch, START_DT - timedelta(hours=2))
-    with pytest.raises(SystemExit, match="START attestation"):
+    at(monkeypatch, recorded + timedelta(minutes=3))
+    why = "its predecessor" if offset < timedelta(0) else "the journal row it references"
+    with pytest.raises(SystemExit, match=rf"S1-RUN-ACK too-early: created not after {why} \(F6\.1\)"):
         r.do_prereg(tmp_path, "too-early", S1_RECEIPT)
     assert not (out / "prereg.json").exists()
-    s1_reack(tmp_path, "run-ack", "S1-RUN-ACK", START_DT - timedelta(days=1, hours=1))   # A3: one RUN-ACK per trial
+    s1_reack(tmp_path, "run-ack", "S1-RUN-ACK", recorded + timedelta(minutes=1))   # A3: one RUN-ACK per trial
     assert r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)["start"] == START          # the proper ACK still works
 
 
@@ -1008,29 +1015,30 @@ def test_cr_attest_start_statement_receipt_and_clock(tmp_path, monkeypatch):
     """Retrospective (Task 9 CR survivors s1_run:342/352/356): the statement must equal START_STATEMENT by value
     (shorter/longer refused, an equal copy accepted); an opening seal receipt hash sorting below the receipt's is
     still a mismatch; any time after planned START is refused."""
-    s1_state(tmp_path, START)
+    st_ = s1_state(tmp_path, START, attest=False)   # A3 Task 10 (fixture change): the pre-attestation state
     out = tmp_path / "s1_out"
-    s1_unattest(tmp_path, books=False)                    # (fix round 2 migration, B3: the pre-attestation state)
-    at(monkeypatch, START_DT - timedelta(days=1))
+    at(monkeypatch, st_["attest_at"])
     for bad in ("", "~" * 5):
         with pytest.raises(SystemExit, match="statement"):
             r.attest_start(tmp_path, bad, S1_RECEIPT)
     at(monkeypatch, START_DT + timedelta(hours=1))
     with pytest.raises(SystemExit, match="planned START has passed"):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
-    at(monkeypatch, START_DT - timedelta(days=1))
+    at(monkeypatch, st_["attest_at"])
     p = out / "seals" / "2026-10-23.json"
     good = p.read_text(encoding="utf-8")
     assert (r.attest_start(tmp_path, _fresh(r.START_STATEMENT), S1_RECEIPT)["trial_id"]
             == read(out / "plan.json")["trial_id"])
     # (fix round 2, B3.3: an edited registered opening seal is now the persistent "registration artifact" abort -
-    # observed first, before the attestation's own receipt-vs-seal comparison; restoring does not resume)
-    s1_unattest(tmp_path, books=False)
+    # observed first, before the attestation's own receipt-vs-seal comparison; restoring does not resume.
+    # A3 Task 10 (intended, F4 table CREATED): the opening seal is the `opening` stage's committed member - INVALID
+    # (stage-replaced) at the gate; the B3.3 finding stays the unit-level oracle)
     p.write_text(json.dumps(dict(json.loads(good), receipt_sha256="0" * 64)), encoding="utf-8")
-    with pytest.raises(SystemExit, match="registration artifact"):
+    assert any("seals/2026-10-23.json" in x for x in s1_common.registration_problems(out))
+    with pytest.raises(SystemExit, match=s1_replaced("seals/2026-10-23.json")):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
     p.write_text(good, encoding="utf-8")
-    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):     # A3 F0.6/F1
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/stage-replaced\)"):     # A3 F0.6/F1
         r.attest_start(tmp_path, _fresh(r.START_STATEMENT), S1_RECEIPT)
 
 
@@ -1051,7 +1059,7 @@ def test_cr_prereg_refusal_paths(tmp_path, monkeypatch):
     are refusals (SystemExit), and a second BLOCKED attempt is refused again (the record is written once)."""
     s1_state(tmp_path, START)
     out = tmp_path / "s1_out"
-    at(monkeypatch, START_DT - timedelta(hours=2))
+    at(monkeypatch, s1_prereg_at(tmp_path))
 
     def unreadable(*a, **kw):
         raise s1_books.BookError("corrupt row")
@@ -1076,7 +1084,7 @@ def test_cr_prereg_refusal_paths(tmp_path, monkeypatch):
 def test_cr_second_blocked_prereg_is_refused_again(tmp_path, monkeypatch):
     """Retrospective (Task 9 CR survivor s1_run:420)."""
     s1_state(tmp_path, START, audit_actions=[split("CI", "2026-10-05")])
-    at(monkeypatch, START_DT - timedelta(hours=2))
+    at(monkeypatch, s1_prereg_at(tmp_path))
     for _ in range(2):
         with pytest.raises(SystemExit, match="BLOCKED"):
             r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
@@ -1089,7 +1097,7 @@ def test_cr_attest_stop_statement_and_bad_seal(tmp_path, monkeypatch):
     for bad in ("", "~" * 5):
         with pytest.raises(SystemExit, match="statement"):
             r.attest_stop(tmp_path, bad)
-    at(monkeypatch, START_DT - timedelta(hours=2))
+    at(monkeypatch, s1_prereg_at(tmp_path))
     r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     seals = tmp_path / "s1_out" / "seals"
     (seals / "zz.json").write_bytes((seals / "2026-10-23.json").read_bytes())
@@ -1309,7 +1317,9 @@ def test_cr_each_prereg_binding_alone_is_checked(tmp_path, monkeypatch, field, v
     p = tmp_path / "s1_out" / "prereg.json"
     p.write_text(json.dumps(dict(read(p), **{field: value})), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    # A3 Task 10 (intended, F4 table CREATED): prereg.json is the prereg stage's committed member - the score's gate
+    # commits TRIAL-INVALID (stage-replaced); the unit-level record keeps the score's own reason (the killer)
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")
     assert "prereg bindings (plan / audit manifest / START attestation) changed" in rep["reasons"]
 
 
@@ -1326,7 +1336,9 @@ def test_cr_prereg_start_or_calendar_alone_is_checked(tmp_path, monkeypatch, edi
     edit(pr)
     p.write_text(json.dumps(pr), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    # A3 Task 10 (intended, F4 table CREATED): prereg.json is the prereg stage's committed member - the score's gate
+    # commits TRIAL-INVALID (stage-replaced); the unit-level record keeps the score's own reason (the killer)
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")
     assert "prereg START or calendar differs from the plan/audit" in rep["reasons"], rep["reasons"]
 
 
@@ -1472,11 +1484,14 @@ def test_cr_prereg_refuses_when_the_opening_seal_is_missing(tmp_path, monkeypatc
     crash."""
     s1_state(tmp_path, START)
     (tmp_path / "s1_out" / "seals" / "2026-10-23.json").unlink()
-    at(monkeypatch, START_DT - timedelta(hours=2))
-    # (fix round 2, B3.3: the registered opening seal missing is the persistent "registration artifact" abort)
-    with pytest.raises(SystemExit, match="prereg refused: registration artifact.*seals/2026-10-23.json missing"):
+    at(monkeypatch, s1_prereg_at(tmp_path))
+    # (fix round 2, B3.3: the registered opening seal missing is the persistent "registration artifact" abort.
+    # A3 Task 10 (intended, F4 table CREATED): the `opening` stage's committed member - INVALID (stage-replaced) at
+    # prereg's gate; the B3.3 finding stays the unit-level oracle)
+    assert any("seals/2026-10-23.json missing" in x for x in s1_common.registration_problems(tmp_path / "s1_out"))
+    with pytest.raises(SystemExit, match=s1_replaced("seals/2026-10-23.json")):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
-    assert read(tmp_path / "s1_out" / "aborted.json")["reason"] == "registration artifact"
+    assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
 
 
 def test_cr_stop_attestation_ledger_hash_above_the_real_one_differs(tmp_path):

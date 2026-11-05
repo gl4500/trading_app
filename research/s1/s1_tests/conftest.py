@@ -618,7 +618,7 @@ def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=
 def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.0, "2026-10-01T15:00:00+00:00"),),
              bridge=(), audit_actions=(), audit_problems=(), lots=None, bar_fn=None, final_actions=(),
              final_problems=(), bar_problems=(), seal_days=None, stop_attest=True, receipt=None,
-             final_snapshot=True, final=True):
+             final_snapshot=True, final=True, attest=True):
     """Build a synthetic s1_out/ under `root` through the REAL product gates (Task 7 test helper, not product code).
 
     Always: plan (s1_collect.write_plan), a COMPLETE audit attempt (calendar + corporate actions, manifest hashes),
@@ -688,21 +688,26 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     store_until(oc + timedelta(minutes=45))
     rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
     assert rep["seal"]["written"], rep
-    import s1_journal as j                                             # A3 Task 5: the OPENING-ACK (F7.2)
-    slot = j.slot_subject(z.close_of(opening_close, cal) + timedelta(minutes=45))
-    s1_ack(root, "opening-ack", "S1-OPENING-ACK", oc + timedelta(hours=1), opening_slot=slot,
-           evidence_manifest_sha256="e" * 64)
+    # A3 Task 10 (F7.2(b) literal, OQ-37 ruling; E5.6): the finalizer runs to the E of the opening close's last (W)
+    # slot, so every scheduled opening-close slot is terminal; only then the OPENING-ACK, with no opening_slot or
+    # evidence_manifest_sha256 override (s1_trial.token derives both from the journal). Every later fixture instant
+    # follows it: the START attestation, the RUN-ACK and prereg (Task 12 A8 causal order) fit before planned START.
+    import s1_journal as j
+    e_w = s1_close_out(root, cal, opening_close)
+    s1_ack(root, "opening-ack", "S1-OPENING-ACK", e_w + timedelta(minutes=1))
     store_until(None)                                                  # bridge + cohort rows, stored after it
-    # Task 12 (A8 causal order): the START attestation follows the opening seal, the RUN-ACK the attestation and
-    # prereg the RUN-ACK (unchanged instants for a Monday START; later ones when the opening close is the eve)
-    attest_t = max(start - timedelta(days=2), oc + timedelta(hours=2))
-    ack_t = max(start - timedelta(days=1, hours=1), oc + timedelta(hours=3))
-    prereg_t = max(start - timedelta(days=1), oc + timedelta(hours=4))
+    attest_t, ack_t, prereg_t = (e_w + timedelta(minutes=m) for m in (2, 3, 4))
+    assert prereg_t < start, (prereg_t, start)
+    if not attest:              # A3 Task 10: the state just before the START attestation (the start_attest stage is
+        return {"start": start, "calendar": cal, "sessions": sessions, "rows": rows, "stop": None,  # journal-bound now:
+                "ledger": ledger, "attest_at": attest_t, "opening_acked_at": e_w + timedelta(minutes=1)}  # no unattest)
     with _Clock(attest_t):
         r.attest_start(root, r.START_STATEMENT, receipt)
     s1_ack(root, "run-ack", "S1-RUN-ACK", ack_t)                       # A3 Task 5: s1_trial.token (F7.1)
     info = {"start": start, "calendar": cal, "sessions": sessions, "rows": rows, "stop": None, "ledger": ledger,
-            "now": start - timedelta(hours=12), "prereg_at": prereg_t}     # Task 12: a causal prereg instant
+            "now": max(start - timedelta(hours=12), prereg_t + timedelta(minutes=1)),   # (A3 Task 10: after prereg_t)
+            "prereg_at": prereg_t, "opening_acked_at": e_w + timedelta(minutes=1),   # Task 12: a causal prereg instant
+            "attest_at": attest_t}
     if not score_ready:
         return info
 
@@ -816,15 +821,64 @@ def s1_register(root, planned_start, *, calendar=None, receipt=None, carry_in_sy
     lg = ledger if ledger is not None else Ledger(root / "opening_ledger.sqlite3")   # caller keeps it consistent
     rep = s1_opening_checkpoint(root, lg, opening_close, raw_cal, receipt)
     assert rep["seal"]["written"], rep
-    oc = z.close_of(opening_close, raw_cal)
-    import s1_journal as j                                             # A3 Task 5: the OPENING-ACK (F7.2)
-    s1_ack(root, "opening-ack", "S1-OPENING-ACK", oc + timedelta(hours=1),
-           opening_slot=j.slot_subject(oc + timedelta(minutes=45)), evidence_manifest_sha256="e" * 64)
-    with _Clock(oc + timedelta(hours=2)):
+    # A3 Task 10 (F7.2(b) literal, OQ-37; E5.6): every opening-close slot terminal (the finalizer to the W slot's E),
+    # then the OPENING-ACK with derived fields; the attestation, RUN-ACK and prereg follow it, before planned START
+    e_w = s1_close_out(root, raw_cal, opening_close)
+    s1_ack(root, "opening-ack", "S1-OPENING-ACK", e_w + timedelta(minutes=1))
+    with _Clock(e_w + timedelta(minutes=2)):
         r.attest_start(root, r.START_STATEMENT, receipt)
-    s1_ack(root, "run-ack", "S1-RUN-ACK", oc + timedelta(hours=3))     # A3 Task 5: s1_trial.token (F7.1)
-    with _Clock(oc + timedelta(hours=4)):
+    s1_ack(root, "run-ack", "S1-RUN-ACK", e_w + timedelta(minutes=3))  # A3 Task 5: s1_trial.token (F7.1)
+    with _Clock(e_w + timedelta(minutes=4)):
         pr = r.do_prereg(root, "run-ack", receipt)
-    s1_ack(root, "prereg-ack", "S1-PREREG-ACK", oc + timedelta(hours=4, minutes=1))   # A3 Task 5 (F7.4)
-    assert oc + timedelta(hours=4) < start
-    return {"start": start, "calendar": raw_cal, "opening_close": opening_close, "prereg": pr}
+    s1_ack(root, "prereg-ack", "S1-PREREG-ACK", e_w + timedelta(minutes=5))   # A3 Task 5 (F7.4)
+    assert e_w + timedelta(minutes=4) < start
+    return {"start": start, "calendar": raw_cal, "opening_close": opening_close, "prereg": pr,
+            "opening_acked_at": e_w + timedelta(minutes=1)}
+
+
+def s1_replaced(rel):
+    """A3 Task 10 (intended, F4 table CREATED; Step 6 'N-2/R-3 -> F3 + F4'): the refusal of the gate that finds the
+    committed member or bound input `rel` of a CREATED stage (opening, start_attest, prereg, audit, seal/<c>) missing
+    or changed - INVALID (stage-replaced), naming that file (Task 9 review m4: the damaged member is pinned)."""
+    import re
+    return rf"stage [\w/-]+: .*(member|bound input) {re.escape(rel)} missing or changed.*INVALID \(stage-replaced\)"
+
+
+def s1_first_invalid(root):
+    """A3 Task 10 test helper: the subject of the open trial's first TRIAL-INVALID row (None when there is none),
+    read without the trial gate (the trial is still open in the mailbox while INVALID). Test-only."""
+    import s1_journal as j
+    import s1_trial as t
+    m = Path(root) / "mailbox.sqlite3"
+    (tid,) = [x for x, tr in t.trials(t.scan(m)).items() if tr.closed is None]
+    tr = t.trials(t.scan(m))[tid]
+    inv = j.first(j.read_trial(tid, tr.genesis, m), "TRIAL-INVALID")
+    return inv.subject if inv is not None else None
+
+
+def s1_prereg_at(root):
+    """A3 Task 10 (fixture change, F7.2(b) literal / E5.6): the fixtures' causal prereg instant - 1 min after the open
+    trial's RUN-ACK (else its latest chain ACK). It replaces the old fixture instant START - 1 day, which now precedes
+    the fixture's OPENING-ACK and RUN-ACK (both after the opening close's last slot E, on START's date). Test-only."""
+    from datetime import datetime, timedelta, timezone
+    import s1_trial as t
+    tr = t.open_trial(Path(root) / "mailbox.sqlite3")
+    a = tr.acks.get("S1-RUN-ACK") or tr.latest
+    return datetime.fromtimestamp(a.created, tz=timezone.utc) + timedelta(minutes=1)
+
+
+def s1_close_out(root, cal, opening_close):
+    """A3 Task 10 (F7.2(b) literal, OQ-37 ruling; E5.6) test helper: the journal finalizer (s1_slot.finalize_close,
+    a deadline-path gate) on the opening close at the E of its last scheduled (W) slot, so every scheduled
+    opening-close slot is terminal (later slots, refused with no row by the opening gate, end MISSED). Returns that
+    instant. Test-only."""
+    import s1_seal as z
+    import s1_slot as sl
+    import s1_trial as t
+    mb = Path(root) / "mailbox.sqlite3"
+    day = next(d for d in cal if d["date"] == opening_close)
+    e_w = z.eligible_until(z.schedule(day, cal)[-1], day, cal)
+    with _Clock(e_w):
+        gv = t.gate(root, "fixture: close out the opening close", mailbox=mb, now=lambda: e_w, defer_pending=True)
+        sl.finalize_close(gv, day, cal, lambda: e_w, mailbox=mb)
+    return e_w

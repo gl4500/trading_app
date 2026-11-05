@@ -84,17 +84,21 @@ def qualified_subjects(rows) -> frozenset:
 
 
 def required_seals(out, rows) -> dict:
-    """E2.6 (Erratum 1 r3): the required post-START seals are exactly the CREATED `seal/<close>` stages, each with
-    its committed member hash {member: sha256}. Nothing else makes a seal required (the r1/r2 `seals_checked` and
+    """E2.6 (Erratum 1 r3): the required seals are exactly the CREATED `seal/<close>` stages (post-START) and the
+    CREATED `opening` stage (below), each with its committed member hash {member: sha256}. Nothing else makes a seal
+    required (the r1/r2 `seals_checked` and
     published-committed set are removed, E2.7 r3). after.json is never read (E5.2). A CREATED stage whose committed
-    commitment cannot be read contributes nothing here: that is s1_stage.evaluate's stage-replaced violation."""
+    commitment cannot be read contributes nothing here: that is s1_stage.evaluate's stage-replaced violation.
+    A3 Task 10 (Task 6 review M6): the CREATED `opening` stage's member seals/<opening close>.json is required too,
+    so the R-3 second-opening-seal guard (s1_checkpoint._before_opening_seal, through s1_common._report_seals) and
+    the registration detector see the committed opening seal - not only the opening gate."""
     import s1_stage
     tids = {x.trial_id for x in rows}
     if len(tids) != 1:
         return {}
     tid = tids.pop()
     got = {}
-    for stage in s1_stage.seal_stages(rows):
+    for stage in ["opening"] + s1_stage.seal_stages(rows):
         if s1_stage.stage_rows(rows, stage)["created"] is None:
             continue
         try:
@@ -179,13 +183,13 @@ def post_start_gate(trial):
 
 def opening_gate(trial, out):
     """F1 'stage gates and ACKs apply' for an opening-close slot: the audit stage CREATED, and the opening not yet
-    decided (no opening STAGE-INTENT; before Task 10 also: no opening seal file). E5.6: once decided, a later
-    opening-close slot is refused with no row (it ends MISSED at its E)."""
+    decided. A3 Task 10: only the opening STAGE-INTENT decides "already decided" (the legacy seal-file clause is gone:
+    a seal file with no opening INTENT is the F4 stage table's violation). E5.6: once decided, a later opening-close
+    slot is refused with no row (it ends MISSED at its E). `out` is kept for the callers' signature."""
     def g(rows, subject):
         if j.first(j.subject_rows(rows, "stage/audit"), "STAGE-CREATED") is None:
             return "the audit stage is not CREATED: no opening capture"
-        if j.first(j.subject_rows(rows, "stage/opening"), "STAGE-INTENT") is not None or \
-                any((Path(out) / "seals").glob("*.json")):
+        if j.first(j.subject_rows(rows, "stage/opening"), "STAGE-INTENT") is not None:
             return "the opening is already decided: no further opening capture (E5.6)"
         return None
     return g
@@ -451,7 +455,9 @@ def finalize_close(gv, day, cal, now, *, mailbox=None, before_seal=None, before_
     leftover cleanup of each TIMEOUT slot runs only if its work lock is acquirable (E1.4), else it is deferred.
     E2 r3 (A3-PR1-1): once the close is determined, its seal is the F4 stage `seal/<close>` (run_seal_stage); every
     decision of that stage is taken inside the F0.1 transaction (INVALID, STOP and CLOSE read from the same sqlite
-    file). Any unexpected error refuses with no row (F0.7). `before_build` is unused (the opening is Task 10's)."""
+    file). Any unexpected error refuses with no row (F0.7). `before_build` is unused. The opening close runs the same
+    finalizer (A3 Task 10: s1_checkpoint.run_opening_checkpoint and the finalizer command), but its seal is the
+    `opening` stage (s1_checkpoint._opening_stage), never run_seal_stage."""
     res = _empty()
     mailbox = gv.mailbox if mailbox is None else mailbox
     try:
@@ -772,8 +778,9 @@ def _read_rows(gv) -> list:
 
 def _stray_files(out: Path) -> list:
     """The slot files a gate can see with no calendar to place them: every captures/<day>/* entry, and the opening
-    close's seal file (written only from a QUALIFIED opening slot, so with no slot row it is a stray; until Task 10 no
-    stage covers it). Every other seals/<date>.json is a seal stage's, judged by s1_stage.evaluate (E2.4/E2.6 r3)."""
+    close's seal file (written only from a QUALIFIED opening slot, so with no slot row it is a stray; since A3 Task 10
+    the `opening` stage covers it and s1_stage.evaluate, which runs first, decides it - kept here harmlessly). Every
+    other seals/<date>.json is a seal stage's, judged by s1_stage.evaluate (E2.4/E2.6 r3)."""
     out = Path(out)
     found = list((out / "captures").glob("*/*"))
     oday = _opening_date(out)

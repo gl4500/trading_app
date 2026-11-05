@@ -1,0 +1,38 @@
+test_s1_checkpoint_7b.py:207: with _Clock(START_DT - timedelta(hours=2)):
+test_s1_checkpoint_7b.py:217: with _Clock(START_DT - timedelta(hours=2)):
+test_s1_t12_a1.py:261: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_a1b.py:56: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_a2.py:41: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_a3_a8.py:81: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_a3_a8.py:232: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_a3_a8.py:351: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_a4.py:202: with __import__("conftest")._Clock(st_["start"] - td(days=1)):
+test_s1_t12_a5_a6.py:257: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_a9.py:32: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix1.py:37: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix2_b2.py:36: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix2_b3.py:73: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix2_b3.py:152: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix2_b3.py:344: with _Clock(START_DT - timedelta(days=1)), pytest.raises(SystemExit, match="ABORTED"):
+test_s1_t12_fix2_mutants.py:206: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix3.py:275: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix3.py:296: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix3.py:540: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix3.py:589: with _Clock(START_DT - timedelta(days=1)), pytest.raises(SystemExit, match="registration a
+test_s1_t12_fix3.py:670: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix4.py:140: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix5.py:141: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix5.py:184: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix6.py:121: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix7.py:19: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_fix8.py:31: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_mutant_followups.py:38: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_mutant_followups.py:156: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_mutant_survivors.py:34: with _Clock(START_DT - timedelta(days=1)):
+test_s1_t12_mutant_survivors.py:242: with _Clock(START_DT - timedelta(days=1)):
+test_s1_task11.py:115: with _Clock(START_DT - timedelta(days=1)):
+test_s1_task11.py:199: with _Clock(START_DT - timedelta(days=1)):
+test_s1_task11.py:212: with _Clock(START_DT - timedelta(days=1)):
+test_s1_task11.py:420: with _Clock(START_DT - timedelta(days=1)):
+test_s1_task11.py:595: with _Clock(START_DT - timedelta(days=1)):
+37 lines

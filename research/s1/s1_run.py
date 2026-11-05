@@ -423,14 +423,21 @@ def _books_record(seal_p: Path, seal: dict) -> dict:
 
 
 def _opening_books(out: Path, seal_p: Path, seal: dict) -> Path:
-    """Write s1_out/opening_books.json once (or verify an existing one equals the recomputation)."""
+    """A3 Task 10 (OQ-15, KEEP SINGLE): opening_books.json is a deterministic derived input of the start_attest stage,
+    published BEFORE its INTENT: recomputed from the committed opening seal (the exact bytes s1_collect._write_once
+    publishes); published exclusively if absent; if present it must equal the recomputation byte for byte, otherwise
+    the attestation refuses with no row. A change after CREATED is the envelope input check's stage-replaced."""
+    try:
+        data = c.text_bytes(k._json_text(_books_record(seal_p, seal)))
+    except b.BookError as e:
+        raise SystemExit(f"START attestation refused: opening ledger unreadable ({e})") from None
     p = out / "opening_books.json"
-    rec = _books_record(seal_p, seal)
-    if p.exists():
-        if _load(p) != json.loads(json.dumps(rec, sort_keys=True)):
-            raise SystemExit("START attestation refused: opening_books.json differs from the opening seal's books")
-        return p
-    k._write_once(p, rec)
+    try:
+        c.publish_in_out(p, data, "START attestation")             # F6.6 (fix round 1, M5): never recreates s1_out
+    except FileExistsError:
+        if p.read_bytes() != data:
+            raise SystemExit("START attestation refused: opening_books.json differs from its recomputation from the "
+                             "committed opening seal (OQ-15)") from None
     return p
 
 
@@ -439,7 +446,13 @@ def attest_start(root, statement: str, receipt, *, mailbox=None) -> dict:
     START, the semantic receipt, the plan, the COMPLETE audit and the opening seal. Task 12: the bundle is verified
     FIRST (A3.2; from the opening seal on a mismatch is the persistent "bundle" abort, R-1); the audit is the
     verified one (A8.2); the attestation follows the opening seal's capture (A8.1); it writes and binds the frozen
-    opening books (A8.1) and binds the bundle."""
+    opening books (A8.1) and binds the bundle.
+    A3 Task 10: the stage `start_attest` (F4.8; OQ-15: SINGLE member attest_start.json; opening_books.json a
+    deterministic hash-bound derived input published before the INTENT): after the legacy checks, the OPENING-ACK is
+    verified against the journal (s1_trial.verify_opening_ack: F7.2/F7.4, E5.3, E5.5); envelope inputs plan, audit
+    manifest, opening seal, opening receipt and opening books, acks the OPENING-ACK line; attest_start.json records
+    intent_at (F4.5); the legacy registry records are published inside the stage publication (stage.lock)."""
+    import s1_stage
     gv = s1_trial.gate(root, "START attestation", mailbox=mailbox)      # A3 F0.6: open trial, state, bundle first
     if statement != START_STATEMENT:
         raise SystemExit("START attestation refused: the statement must be exactly START_STATEMENT")
@@ -467,21 +480,50 @@ def attest_start(root, statement: str, receipt, *, mailbox=None) -> dict:
     if c.receipt_sha256(receipt) != _receipt_sha(opening_receipt):    # Task 12 (A1): fingerprints compared
         raise SystemExit("START attestation refused: the receipt differs from the opening receipt "
                          "(s1_out/opening_receipt.json)")
-    try:
-        books_p = _opening_books(out, seal_p, seal)
-    except b.BookError as e:
-        raise SystemExit(f"START attestation refused: opening ledger unreadable ({e})") from None
+    a = s1_trial.verify_opening_ack(gv, aud["calendar"])            # A3 Task 10: F7.2/F7.4, E5.3, E5.5
+    books_p = _opening_books(out, seal_p, seal)                       # OQ-15: write once / verify, before the INTENT
+    seal_rel = seal_p.relative_to(out).as_posix()
     rec = {"statement": statement, "trial_id": _trial_id_of(plan), "planned_start": plan["planned_start"],
            "receipt_sha256": _receipt_sha(opening_receipt), "plan_sha256": c.sha256_file(out / "plan.json"),
            "audit_manifest_sha256": c.sha256_file(out / "audit" / "manifest.json"),
            "opening_seal_sha256": c.sha256_file(seal_p), "opening_books_sha256": c.sha256_file(books_p),
            "process_binding_sha256": _binding_sha(binding),                         # fix round 2 (B2.1)
            "bundle_sha256": c.bundle_sha256(), "recorded_utc": c.now_utc().isoformat()}
-    with c.stage_publication(out, "attest_start"):   # fix rounds 3/4 (M-2/C-2/m-1): records BEFORE the artifact, locked
-        c.register_stage(out, "attest_start", {"attest_start.json": k.json_sha256(rec),                   # B3.1
-                                               "opening_books.json": c.sha256_file(books_p)})
-        _write_once(out / "attest_start.json", rec, "START attestation")
-    return rec
+
+    def work(sw):
+        sw.put_json("attest_start.json", dict(rec, intent_at=sw.intent_at))      # F4.5
+        return []
+
+    inputs = {"plan.json": rec["plan_sha256"], "audit/manifest.json": rec["audit_manifest_sha256"],
+              seal_rel: rec["opening_seal_sha256"],
+              "opening_receipt.json": c.sha256_file(out / "opening_receipt.json"),
+              "opening_books.json": rec["opening_books_sha256"]}
+    ctx, before = start_attest_publish_hooks(gv, inputs)             # (the same hooks F4.7 recovery uses)
+    s1_stage.run(gv, "start_attest", inputs=inputs, acks={"S1-OPENING-ACK": a.sha}, work=work, mailbox=mailbox,
+                 publish_ctx=ctx, before_publish=before)
+    return _load(out / "attest_start.json")
+
+
+def start_attest_publish_hooks(gv, inputs, clock=None) -> tuple:
+    """The start_attest stage's publication hooks (s1_stage.PUBLISH_HOOKS; the stage run and F4.7 recovery alike, A3
+    Task 10 fix round 1, review I1): inside stage.lock (fix rounds 3/4, M-2/C-2/m-1), BOTH legacy registration records
+    BEFORE the artifact (B3.1): attest_start.json's committed sha256 and the bound opening_books.json input."""
+    out = Path(gv.out)
+
+    def before(com):
+        c.register_stage(out, "attest_start", {"attest_start.json": com["members"]["attest_start.json"],
+                                               "opening_books.json": inputs["opening_books.json"]})
+    return (lambda: c.stage_publication(out, "attest_start")), before
+
+
+def prereg_publish_hooks(gv, inputs, clock=None) -> tuple:
+    """The prereg stage's publication hooks (s1_stage.PUBLISH_HOOKS; the stage run and F4.7 recovery alike): inside
+    stage.lock, BOTH legacy registration records of prereg.json's committed sha256 BEFORE the artifact (B3.1)."""
+    out = Path(gv.out)
+
+    def before(com):
+        c.register_stage(out, "prereg", {"prereg.json": com["members"]["prereg.json"]})
+    return (lambda: c.stage_publication(out, "prereg")), before
 
 
 def _start_attestation_problems(out: Path, att: dict, plan: dict, seal_p: Path, receipt) -> list:
@@ -504,7 +546,11 @@ def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
     """Prereg (§4/§15): strictly before planned START, after a COMPLETE audit and the START attestation, never with
     a BLOCKED carry-in, under the exact RUN-ACK. Writes s1_out/prereg.json once (start, calendar, receipt + bindings).
     Task 12: the bundle first (A3.2/A3.3, R-1); the verified audit (A8.2); the carry-in audit bounded to actions
-    effective before START (A4.1); prereg records the bundle, opening seal and opening books (A8.1)."""
+    effective before START (A4.1); prereg records the bundle, opening seal and opening books (A8.1).
+    A3 Task 10: the stage `prereg` (F4.8: single member prereg.json; envelope inputs attest_start.json and the
+    receipt, acks the RUN-ACK line, F7.4); BLOCKED is the E3 pre-INTENT refusal record (_blocked_refusal: no journal
+    row, never INVALID), evaluated at the same place as before, after the gates and before the INTENT."""
+    import s1_stage
     gv = s1_trial.gate(root, "prereg", mailbox=mailbox)                 # A3 F0.6: open trial, state, bundle first
     out = _out(root)
     c.verify_bundle_first(out, "prereg", mailbox=mailbox, need="audit")
@@ -520,7 +566,6 @@ def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
         aud = g.verified_audit(out, mailbox)
     except Invalid as e:
         raise SystemExit(f"prereg refused: audit not COMPLETE ({e})") from None
-    files = aud["files"]
     ap = out / "attest_start.json"
     if not ap.exists():
         raise SystemExit("prereg refused: no START attestation recorded")
@@ -532,19 +577,11 @@ def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
     bad = _start_attestation_problems(out, _load(ap), plan, seal_p, receipt)
     if bad:
         raise SystemExit(f"prereg refused: {bad} (receipt or bound artifacts changed since the START attestation)")
-    try:
-        held, since = _carry_in(z.split_bridge(seal["trades"], start)[0], start)
-    except b.BookError as e:
-        raise SystemExit(f"prereg refused: opening ledger unreadable ({e})") from None
-    reasons = _blocked_reasons(plan, held, since, files["corporate_actions.json"], files["ca_problems.json"], start)
-    if reasons:
-        try:
-            k._write_once(out / "blocked.json", {"status": "BLOCKED", "reasons": reasons,
-                                                 "recorded_utc": c.now_utc().isoformat()})
-        except FileExistsError:
-            pass
-        raise SystemExit(f"S1 BLOCKED (pre-START units): {reasons}; re-register")
-    ack = s1_trial.verify_current(gv, "S1-RUN-ACK", ack_id)            # A3: field by field (F6.1, F6.5, F7.1)
+    _blocked_refusal(out, cal)                                        # E3: before the INTENT, no journal row
+    a = s1_trial.verify_ack(gv.trial, gv.rows, "S1-RUN-ACK", ack_id,    # A3: field by field (F6.1, F6.5, F7.1)
+                            dict(s1_trial.artifact_fields("S1-RUN-ACK", out), trial_id=_trial_id_of(plan),
+                                 bundle_sha256=c.bundle_sha256()))
+    ack = s1_trial.ack_record(a)
     if c.aware(ack["created_utc"]) <= c.aware(_load(ap)["recorded_utc"]):         # §12 causal order (ruling I-2)
         raise SystemExit("prereg refused: the RUN-ACK is not strictly after the START attestation")
     pr = {"trial_id": _trial_id_of(plan), "start": plan["planned_start"], "calendar": cal, "receipt": receipt,
@@ -555,10 +592,70 @@ def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
           "opening_books_sha256": c.sha_or_absent(out / "opening_books.json"),
           "process_binding": _opening_binding(seal, "prereg"),                     # fix round 2 (B2.1)
           "ack": ack, "recorded_utc": c.now_utc().isoformat()}
-    with c.stage_publication(out, "prereg"):   # fix rounds 3/4 (M-2/C-2/m-1): records BEFORE the artifact, locked
-        c.register_stage(out, "prereg", {"prereg.json": k.json_sha256(pr)})                          # B3.1
-        _write_once(out / "prereg.json", pr, "prereg")
-    return pr
+
+    def work(sw):
+        sw.put_json("prereg.json", dict(pr, intent_at=sw.intent_at))             # F4.5
+        return []
+    inputs = {"attest_start.json": c.sha256_file(ap), "receipt": c.receipt_sha256(receipt)}
+    ctx, before = prereg_publish_hooks(gv, inputs)                   # (the same hooks F4.7 recovery uses)
+    s1_stage.run(gv, "prereg", inputs=inputs, acks={"S1-RUN-ACK": a.sha}, work=work, mailbox=mailbox,
+                 publish_ctx=ctx, before_publish=before)
+    return _load(out / "prereg.json")
+
+
+def blocked_reasons_record(out, cal) -> dict:
+    """E3.1 (adopted Erratum 1, de008b1): the BLOCKED reasons as a pure function of committed inputs only - the
+    CREATED audit tree (calendar `cal`, audit/corporate_actions.json, audit/ca_problems.json), the CREATED opening
+    seal (its rows: the carry-in at START) and plan.json - with the existing predicate (_blocked_reasons, unchanged).
+    Every re-run gives the same record (E3.2, E3.6b). Returns {"trial_id", "reasons"}."""
+    out = Path(out)
+    plan = _load(out / "plan.json")
+    cal = z.calendar_rows(cal)
+    start = c.aware(plan["planned_start"])
+    _, seal = _opening_seal(out, plan, cal)
+    held, since = _carry_in(z.split_bridge(seal["trades"], start)[0], start)
+    reasons = _blocked_reasons(plan, held, since, _load(out / "audit" / "corporate_actions.json"),
+                               _load(out / "audit" / "ca_problems.json"), start)
+    return {"trial_id": _trial_id_of(plan), "reasons": reasons}
+
+
+def _blocked_refusal(out, cal) -> None:
+    """E3.2: after the prereg gates and before the prereg STAGE-INTENT. With reasons: publish s1_out/blocked.json
+    exclusively ({status, trial_id (E5.4), reasons, recorded_utc = this observation's time}), or keep an existing one
+    whose reasons equal the recomputation (else refuse and escalate), and refuse with NO journal row and no INTENT.
+    blocked.json is a declared pre-INTENT refusal record (never a stage member); the state stays ACTIVE and BLOCKED is
+    never INVALID (E3.3): Codex closes the trial with reason=BLOCKED (E3.4)."""
+    try:
+        rec = blocked_reasons_record(out, cal)
+    except b.BookError as e:
+        raise SystemExit(f"prereg refused: opening ledger unreadable ({e})") from None
+    if not rec["reasons"]:
+        return
+    p = Path(out) / "blocked.json"
+    body = {"status": "BLOCKED", "trial_id": rec["trial_id"], "reasons": rec["reasons"],
+            "recorded_utc": c.now_utc().isoformat()}
+    try:
+        c.publish_in_out(p, c.text_bytes(k._json_text(body)), "prereg")   # F6.6 (fix round 1, M5)
+    except FileExistsError:
+        try:
+            same = _load(p).get("reasons") == rec["reasons"]
+        except (OSError, ValueError, AttributeError):
+            same = False
+        if not same:
+            raise SystemExit("prereg refused: blocked.json differs from the recomputed BLOCKED reasons: escalate "
+                             "(E3.2)") from None
+    raise SystemExit(f"S1 BLOCKED (pre-START units): {rec['reasons']}; re-register (prereg refused with no journal "
+                     f"row, E3; Codex closes the trial with reason=BLOCKED)")
+
+
+def blocked_close_evidence(out) -> str:
+    """E3.4 (Erratum 1 r3): the BLOCKED CLOSE evidence h = sha256(c.canonical({"trial_id", "reasons"})) of the
+    deterministic recomputation from THIS trial's committed inputs (never the blocked.json bytes, which carry
+    recorded_utc) - s1_trial.close_evidence("BLOCKED", ...). It is the helper Codex uses at issuance, against the
+    trial's own root. S1 never calls it when reading a CLOSE: closure is decided from the mailbox alone."""
+    out = Path(out)
+    rec = blocked_reasons_record(out, c.load_json(out / "audit" / "calendar.json"))
+    return s1_trial.close_evidence("BLOCKED", blocked_record=rec)
 
 
 def _blocked_reasons(plan: dict, held: dict, since: dict, actions, problems, start) -> list:
@@ -790,8 +887,8 @@ def _seal_chain_problems(out: Path, seals, receipt_sha: str, bundle: str) -> lis
 
 def _capture_seal_problems(out: Path, rows=None, cal=None) -> list:
     """Task 11 (controller-added), m-2, rewritten in A3 Task 6 (OQ-11 ruling, E5.2; Erratum 1 E2.6 r3): every
-    REQUIRED post-START seal - a CREATED `seal/<close>` stage of the trial's journal (s1_slot.required_seals) - must
-    exist with its committed sha256; a deleted or replaced one (stop shopping) is INVALID (stage-replaced, never
+    REQUIRED seal - a CREATED `seal/<close>` stage of the trial's journal and (A3 Task 10) the CREATED `opening` stage's
+    seals/<opening close>.json (s1_slot.required_seals) - must exist with its committed sha256; a deleted or replaced one (stop shopping) is INVALID (stage-replaced, never
     recreated). It never opens a capture report or any <slot>.after.json (display only). `rows`: the caller's
     verified journal rows (None = the open trial's rows, s1_common._report_seals); `cal`: the plan calendar (the
     plan's signature; unused)."""

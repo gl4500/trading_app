@@ -41,6 +41,7 @@ import s1_collect as k
 import s1_common
 import s1_run as r
 from conftest import S1_BINDING, Ledger, s1_ack, s1_jappend, s1_mailbox
+from conftest import s1_close_out  # A3 Task 10 (F7.2(b) literal: the opening close's slots all terminal first)
 
 UTC = timezone.utc
 NYZ = ZoneInfo("America/New_York")
@@ -354,8 +355,10 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     act = at(sch + timedelta(seconds=30))
     rep = ck.run_opening_checkpoint(root, ledger.path, sch, receipt_fn, process_fn, crash, now=lambda: act)
     assert rep["seal"]["written"] and rep["consistent"] and rep["entries"] == ck.NA
-    s1_ack(root, "opening-ack", "S1-OPENING-ACK", act + timedelta(hours=1), opening_slot=j.slot_subject(sch),
-           evidence_manifest_sha256="e" * 64)                                       # A3 Task 5 (F7.2)
+    # A3 Task 10 (fixture change, F7.2(b) literal / OQ-37, E5.6): the finalizer runs to the E of the opening close's
+    # last (08:00) slot; only then the OPENING-ACK, its opening_slot and evidence manifest derived from the journal
+    e_w = s1_close_out(root, cal, OPENING_CLOSE)
+    s1_ack(root, "opening-ack", "S1-OPENING-ACK", e_w + timedelta(minutes=1))       # A3 Task 5 (F7.2)
 
     # 4. pre-START bridge rows stored at 20:00 / 20:05 ET, after the opening seal
     bridge = [e for e in events if e["kind"] == "bridge"]
@@ -363,12 +366,14 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
         app.trade(e)
 
     # 5. START attestation, then RUN-ACK strictly after it, then prereg (all strictly before START)
-    at(START - timedelta(days=1, hours=2, minutes=30))
+    # (A3 Task 10: the instants follow the OPENING-ACK, all still strictly before START)
+    at(e_w + timedelta(minutes=2))
     r.attest_start(root, r.START_STATEMENT, receipt_fn())
-    s1_ack(root, "run-ack", "S1-RUN-ACK", START - timedelta(days=1, hours=1, minutes=30))   # A3 Task 5 (F7.1)
-    at(START - timedelta(hours=24))
+    s1_ack(root, "run-ack", "S1-RUN-ACK", e_w + timedelta(minutes=3))              # A3 Task 5 (F7.1)
+    at(e_w + timedelta(minutes=4))
     pr = r.do_prereg(root, "run-ack", receipt_fn())
-    s1_ack(root, "prereg-ack", "S1-PREREG-ACK", START - timedelta(hours=24) + timedelta(minutes=1))   # (F7.4)
+    s1_ack(root, "prereg-ack", "S1-PREREG-ACK", e_w + timedelta(minutes=5))        # (F7.4)
+    assert e_w + timedelta(minutes=5) < START
     assert pr["start"] == START.isoformat()
 
     # 6. sessions: trade commits then upserts; scheduled checkpoints

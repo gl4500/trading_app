@@ -1,0 +1,207 @@
+### A3 Task 10 fix round 1 - RED run 1 (product unchanged since t10_full.txt). The I1 cases stop at the precondition assertion (legacy records absent after recovery); run 2 restructures them to assert the next real command's outcome.
+FFF..FFFFFFFF                                                            [100%]
+================================== FAILURES ===================================
+_ test_a_recovered_pre_start_stage_never_invalidates_the_next_command[opening] _
+research\s1\s1_tests\test_s1_a3_prestart.py:707: in test_a_recovered_pre_start_stage_never_invalidates_the_next_command
+    assert all(p.is_file() for p in c.stage_records(out, LEGACY_RECORDS[stage]))
+E   assert False
+E    +  where False = all(<generator object test_a_recovered_pre_start_stage_never_invalidates_the_next_command.<locals>.<genexpr> at 0x0000015E42E328E0>)
+_ test_a_recovered_pre_start_stage_never_invalidates_the_next_command[start_attest] _
+research\s1\s1_tests\test_s1_a3_prestart.py:707: in test_a_recovered_pre_start_stage_never_invalidates_the_next_command
+    assert all(p.is_file() for p in c.stage_records(out, LEGACY_RECORDS[stage]))
+E   assert False
+E    +  where False = all(<generator object test_a_recovered_pre_start_stage_never_invalidates_the_next_command.<locals>.<genexpr> at 0x0000015E42E32810>)
+_ test_a_recovered_pre_start_stage_never_invalidates_the_next_command[prereg] _
+research\s1\s1_tests\test_s1_a3_prestart.py:707: in test_a_recovered_pre_start_stage_never_invalidates_the_next_command
+    assert all(p.is_file() for p in c.stage_records(out, LEGACY_RECORDS[stage]))
+E   assert False
+E    +  where False = all(<generator object test_a_recovered_pre_start_stage_never_invalidates_the_next_command.<locals>.<genexpr> at 0x0000015E42EED080>)
+_ test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate[io-error] _
+research\s1\s1_tests\test_s1_a3_prestart.py:793: in test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate
+    t.gate(tmp_path, "manifest member transiently unreadable")
+research\s1\s1_trial.py:757: in gate
+    opening_manifest_check(gv)                            # A3 Task 10: E5.5 / F7.3, after the stage and F3 tables
+research\s1\s1_trial.py:496: in opening_manifest_check
+    raise Refusal("OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID "
+E   s1_trial.Refusal: OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID (registration-artifact)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_prestart.py:792: in test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate
+    with pytest.raises(SystemExit, match=r"E5\.5 evidence manifest check: .*refused with no row"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'E5\\.5 evidence manifest check: .*refused with no row'
+E    Input: 'OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID (registration-artifact)'
+_ test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate[sharing-violation] _
+research\s1\s1_tests\test_s1_a3_prestart.py:793: in test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate
+    t.gate(tmp_path, "manifest member transiently unreadable")
+research\s1\s1_trial.py:757: in gate
+    opening_manifest_check(gv)                            # A3 Task 10: E5.5 / F7.3, after the stage and F3 tables
+research\s1\s1_trial.py:496: in opening_manifest_check
+    raise Refusal("OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID "
+E   s1_trial.Refusal: OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID (registration-artifact)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_prestart.py:792: in test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate
+    with pytest.raises(SystemExit, match=r"E5\.5 evidence manifest check: .*refused with no row"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'E5\\.5 evidence manifest check: .*refused with no row'
+E    Input: 'OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID (registration-artifact)'
+_ test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal[journal-outage] _
+research\s1\s1_tests\test_s1_a3_prestart.py:815: in test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal
+    assert isinstance(got, SystemExit) and "refused with no row" in str(got) and "F0.7" in str(got), repr(got)
+E   AssertionError: Outage('mailbox unreadable (OperationalError)')
+E   assert (False)
+E    +  where False = isinstance(Outage('mailbox unreadable (OperationalError)'), SystemExit)
+_ test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal[os-error] _
+research\s1\s1_tests\test_s1_a3_prestart.py:815: in test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal
+    assert isinstance(got, SystemExit) and "refused with no row" in str(got) and "F0.7" in str(got), repr(got)
+E   AssertionError: OSError(5, 'I/O error')
+E   assert (False)
+E    +  where False = isinstance(OSError(5, 'I/O error'), SystemExit)
+__ test_the_opening_registration_reads_the_journal_through_the_given_mailbox __
+research\s1\s1_tests\test_s1_a3_prestart.py:830: in test_the_opening_registration_reads_the_journal_through_the_given_mailbox
+    assert rep.get("seal", {}).get("written") is True, rep
+E   AssertionError: {'actual': '2026-10-23T20:45:30+00:00', 'candidate': {'bridge': None, 'bundle_sha256': '1e406001cfd26b6a451b378b59d547...capture_start': '2026-10-23T20:45:30+00:00', ...}, 'capture_end': '2026-10-23T20:45:30+00:00', 'capture_ok': True, ...}
+E   assert False is True
+E    +  where False = <built-in method get of dict object at 0x0000015E42D467C0>('written')
+E    +    where <built-in method get of dict object at 0x0000015E42D467C0> = {'sha256': None, 'written': False}.get
+E    +      where {'sha256': None, 'written': False} = <built-in method get of dict object at 0x0000015E41FEBC40>('seal', {})
+E    +        where <built-in method get of dict object at 0x0000015E41FEBC40> = {'actual': '2026-10-23T20:45:30+00:00', 'candidate': {'bridge': None, 'bundle_sha256': '1e406001cfd26b6a451b378b59d547...capture_start': '2026-10-23T20:45:30+00:00', ...}, 'capture_end': '2026-10-23T20:45:30+00:00', 'capture_ok': True, ...}.get
+_ test_a_pre_intent_write_never_recreates_a_vanished_s1_out[opening_receipt] __
+research\s1\s1_tests\test_s1_a3_prestart.py:874: in test_a_pre_intent_write_never_recreates_a_vanished_s1_out
+    assert isinstance(got, SystemExit) and re.search(r"s1_out is gone.*refused with no row \(F6\.6\)", str(got)), \
+E   AssertionError: None
+E   assert (False)
+E    +  where False = isinstance(None, SystemExit)
+__ test_a_pre_intent_write_never_recreates_a_vanished_s1_out[opening_books] ___
+research\s1\s1_tests\test_s1_a3_prestart.py:874: in test_a_pre_intent_write_never_recreates_a_vanished_s1_out
+    assert isinstance(got, SystemExit) and re.search(r"s1_out is gone.*refused with no row \(F6\.6\)", str(got)), \
+E   AssertionError: FileNotFoundError(2, 'No such file or directory')
+E   assert (False)
+E    +  where False = isinstance(FileNotFoundError(2, 'No such file or directory'), SystemExit)
+_____ test_a_pre_intent_write_never_recreates_a_vanished_s1_out[blocked] ______
+research\s1\s1_tests\test_s1_a3_prestart.py:874: in test_a_pre_intent_write_never_recreates_a_vanished_s1_out
+    assert isinstance(got, SystemExit) and re.search(r"s1_out is gone.*refused with no row \(F6\.6\)", str(got)), \
+E   AssertionError: SystemExit("S1 BLOCKED (pre-START units): ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)']; re-register (prereg refused with no journal row, E3; Codex closes the trial with reason=BLOCKED)")
+E   assert (True and None)
+E    +  where True = isinstance(SystemExit("S1 BLOCKED (pre-START units): ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)']; re-register (prereg refused with no journal row, E3; Codex closes the trial with reason=BLOCKED)"), SystemExit)
+E    +  and   None = <function search at 0x0000015E411872E0>('s1_out is gone.*refused with no row \\(F6\\.6\\)', "S1 BLOCKED (pre-START units): ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)']; re-register (prereg refused with no journal row, E3; Codex closes the trial with reason=BLOCKED)")
+E    +    where <function search at 0x0000015E411872E0> = re.search
+E    +    and   "S1 BLOCKED (pre-START units): ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)']; re-register (prereg refused with no journal row, E3; Codex closes the trial with reason=BLOCKED)" = str(SystemExit("S1 BLOCKED (pre-START units): ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)']; re-register (prereg refused with no journal row, E3; Codex closes the trial with reason=BLOCKED)"))
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_recovered_pre_start_stage_never_invalidates_the_next_command[opening]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_recovered_pre_start_stage_never_invalidates_the_next_command[start_attest]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_recovered_pre_start_stage_never_invalidates_the_next_command[prereg]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate[io-error]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate[sharing-violation]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal[journal-outage]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal[os-error]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_the_opening_registration_reads_the_journal_through_the_given_mailbox
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_pre_intent_write_never_recreates_a_vanished_s1_out[opening_receipt]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_pre_intent_write_never_recreates_a_vanished_s1_out[opening_books]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_pre_intent_write_never_recreates_a_vanished_s1_out[blocked]
+11 failed, 2 passed, 48 deselected in 12.08s
+
+### RED run 2 (same product; the I1 test now asserts the next real command is not refused: the reviewer's defect, reproduced for opening, start_attest and prereg)
+FFF..FFFFFFFF                                                            [100%]
+================================== FAILURES ===================================
+_ test_a_recovered_pre_start_stage_never_invalidates_the_next_command[opening] _
+research\s1\s1_tests\test_s1_a3_prestart.py:728: in test_a_recovered_pre_start_stage_never_invalidates_the_next_command
+    assert got is None, repr(got)                                       # the next real command is not refused
+E   AssertionError: SystemExit("START attestation refused: registration artifact(s) missing or changed: ['registry/opening.json missing (stage opening is registered)', 'witnesses/opening.json missing (stage opening is registered)']: persistent ABORTED-INVALID (reason registration artifact)")
+E   assert SystemExit("START attestation refused: registration artifact(s) missing or changed: ['registry/opening.json missing (s...esses/opening.json missing (stage opening is registered)']: persistent ABORTED-INVALID (reason registration artifact)") is None
+_ test_a_recovered_pre_start_stage_never_invalidates_the_next_command[start_attest] _
+research\s1\s1_tests\test_s1_a3_prestart.py:728: in test_a_recovered_pre_start_stage_never_invalidates_the_next_command
+    assert got is None, repr(got)                                       # the next real command is not refused
+E   AssertionError: SystemExit("prereg refused: registration artifact(s) missing or changed: ['registry/attest_start.json missing (stage attest_start is registered)', 'witnesses/attest_start.json missing (stage attest_start is registered)']: persistent ABORTED-INVALID (reason registration artifact)")
+E   assert SystemExit("prereg refused: registration artifact(s) missing or changed: ['registry/attest_start.json missing (stage a...st_start.json missing (stage attest_start is registered)']: persistent ABORTED-INVALID (reason registration artifact)") is None
+_ test_a_recovered_pre_start_stage_never_invalidates_the_next_command[prereg] _
+research\s1\s1_tests\test_s1_a3_prestart.py:728: in test_a_recovered_pre_start_stage_never_invalidates_the_next_command
+    assert got is None, repr(got)                                       # the next real command is not refused
+E   AssertionError: SystemExit("checkpoint refused: registration artifact(s) missing or changed: ['registry/prereg.json missing (stage prereg is registered)', 'witnesses/prereg.json missing (stage prereg is registered)']: persistent ABORTED-INVALID (reason registration artifact)")
+E   assert SystemExit("checkpoint refused: registration artifact(s) missing or changed: ['registry/prereg.json missing (stage pre...tnesses/prereg.json missing (stage prereg is registered)']: persistent ABORTED-INVALID (reason registration artifact)") is None
+_ test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate[io-error] _
+research\s1\s1_tests\test_s1_a3_prestart.py:800: in test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate
+    t.gate(tmp_path, "manifest member transiently unreadable")
+research\s1\s1_trial.py:757: in gate
+    opening_manifest_check(gv)                            # A3 Task 10: E5.5 / F7.3, after the stage and F3 tables
+research\s1\s1_trial.py:496: in opening_manifest_check
+    raise Refusal("OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID "
+E   s1_trial.Refusal: OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID (registration-artifact)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_prestart.py:799: in test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate
+    with pytest.raises(SystemExit, match=r"E5\.5 evidence manifest check: .*refused with no row"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'E5\\.5 evidence manifest check: .*refused with no row'
+E    Input: 'OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID (registration-artifact)'
+_ test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate[sharing-violation] _
+research\s1\s1_tests\test_s1_a3_prestart.py:800: in test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate
+    t.gate(tmp_path, "manifest member transiently unreadable")
+research\s1\s1_trial.py:757: in gate
+    opening_manifest_check(gv)                            # A3 Task 10: E5.5 / F7.3, after the stage and F3 tables
+research\s1\s1_trial.py:496: in opening_manifest_check
+    raise Refusal("OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID "
+E   s1_trial.Refusal: OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID (registration-artifact)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_prestart.py:799: in test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate
+    with pytest.raises(SystemExit, match=r"E5\.5 evidence manifest check: .*refused with no row"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'E5\\.5 evidence manifest check: .*refused with no row'
+E    Input: 'OPENING-ACK evidence manifest differs from the reconstruction (E5.5): INVALID (registration-artifact)'
+_ test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal[journal-outage] _
+research\s1\s1_tests\test_s1_a3_prestart.py:822: in test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal
+    assert isinstance(got, SystemExit) and "refused with no row" in str(got) and "F0.7" in str(got), repr(got)
+E   AssertionError: Outage('mailbox unreadable (OperationalError)')
+E   assert (False)
+E    +  where False = isinstance(Outage('mailbox unreadable (OperationalError)'), SystemExit)
+_ test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal[os-error] _
+research\s1\s1_tests\test_s1_a3_prestart.py:822: in test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal
+    assert isinstance(got, SystemExit) and "refused with no row" in str(got) and "F0.7" in str(got), repr(got)
+E   AssertionError: OSError(5, 'I/O error')
+E   assert (False)
+E    +  where False = isinstance(OSError(5, 'I/O error'), SystemExit)
+__ test_the_opening_registration_reads_the_journal_through_the_given_mailbox __
+research\s1\s1_tests\test_s1_a3_prestart.py:837: in test_the_opening_registration_reads_the_journal_through_the_given_mailbox
+    assert rep.get("seal", {}).get("written") is True, rep
+E   AssertionError: {'actual': '2026-10-23T20:45:30+00:00', 'candidate': {'bridge': None, 'bundle_sha256': '1e406001cfd26b6a451b378b59d547...capture_start': '2026-10-23T20:45:30+00:00', ...}, 'capture_end': '2026-10-23T20:45:30+00:00', 'capture_ok': True, ...}
+E   assert False is True
+E    +  where False = <built-in method get of dict object at 0x00000283F39FD580>('written')
+E    +    where <built-in method get of dict object at 0x00000283F39FD580> = {'sha256': None, 'written': False}.get
+E    +      where {'sha256': None, 'written': False} = <built-in method get of dict object at 0x00000283F39FC980>('seal', {})
+E    +        where <built-in method get of dict object at 0x00000283F39FC980> = {'actual': '2026-10-23T20:45:30+00:00', 'candidate': {'bridge': None, 'bundle_sha256': '1e406001cfd26b6a451b378b59d547...capture_start': '2026-10-23T20:45:30+00:00', ...}, 'capture_end': '2026-10-23T20:45:30+00:00', 'capture_ok': True, ...}.get
+_ test_a_pre_intent_write_never_recreates_a_vanished_s1_out[opening_receipt] __
+research\s1\s1_tests\test_s1_a3_prestart.py:881: in test_a_pre_intent_write_never_recreates_a_vanished_s1_out
+    assert isinstance(got, SystemExit) and re.search(r"s1_out is gone.*refused with no row \(F6\.6\)", str(got)), \
+E   AssertionError: None
+E   assert (False)
+E    +  where False = isinstance(None, SystemExit)
+__ test_a_pre_intent_write_never_recreates_a_vanished_s1_out[opening_books] ___
+research\s1\s1_tests\test_s1_a3_prestart.py:881: in test_a_pre_intent_write_never_recreates_a_vanished_s1_out
+    assert isinstance(got, SystemExit) and re.search(r"s1_out is gone.*refused with no row \(F6\.6\)", str(got)), \
+E   AssertionError: FileNotFoundError(2, 'No such file or directory')
+E   assert (False)
+E    +  where False = isinstance(FileNotFoundError(2, 'No such file or directory'), SystemExit)
+_____ test_a_pre_intent_write_never_recreates_a_vanished_s1_out[blocked] ______
+research\s1\s1_tests\test_s1_a3_prestart.py:881: in test_a_pre_intent_write_never_recreates_a_vanished_s1_out
+    assert isinstance(got, SystemExit) and re.search(r"s1_out is gone.*refused with no row \(F6\.6\)", str(got)), \
+E   AssertionError: SystemExit("S1 BLOCKED (pre-START units): ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)']; re-register (prereg refused with no journal row, E3; Codex closes the trial with reason=BLOCKED)")
+E   assert (True and None)
+E    +  where True = isinstance(SystemExit("S1 BLOCKED (pre-START units): ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)']; re-register (prereg refused with no journal row, E3; Codex closes the trial with reason=BLOCKED)"), SystemExit)
+E    +  and   None = <function search at 0x00000283F02A72E0>('s1_out is gone.*refused with no row \\(F6\\.6\\)', "S1 BLOCKED (pre-START units): ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)']; re-register (prereg refused with no journal row, E3; Codex closes the trial with reason=BLOCKED)")
+E    +    where <function search at 0x00000283F02A72E0> = re.search
+E    +    and   "S1 BLOCKED (pre-START units): ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)']; re-register (prereg refused with no journal row, E3; Codex closes the trial with reason=BLOCKED)" = str(SystemExit("S1 BLOCKED (pre-START units): ['carry-in CI: forward_splits ca-split-1 on 2026-10-05 (held since 2026-10-01)']; re-register (prereg refused with no journal row, E3; Codex closes the trial with reason=BLOCKED)"))
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_recovered_pre_start_stage_never_invalidates_the_next_command[opening]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_recovered_pre_start_stage_never_invalidates_the_next_command[start_attest]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_recovered_pre_start_stage_never_invalidates_the_next_command[prereg]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate[io-error]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_only_definite_absence_or_corruption_makes_the_manifest_check_invalidate[sharing-violation]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal[journal-outage]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal[os-error]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_the_opening_registration_reads_the_journal_through_the_given_mailbox
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_pre_intent_write_never_recreates_a_vanished_s1_out[opening_receipt]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_pre_intent_write_never_recreates_a_vanished_s1_out[opening_books]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_a_pre_intent_write_never_recreates_a_vanished_s1_out[blocked]
+11 failed, 2 passed, 48 deselected in 12.96s

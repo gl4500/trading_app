@@ -6,6 +6,7 @@ stage-state table (evaluate) run under the same lock. Staging keeps intent.json 
 life; both must hash to their rows (OQ-35). JSON members named in TRIAL_ID_MEMBERS record the trial_id (OQ-36).
 A post-START seal is the stage `seal/<close date>` (E2.1 r3: kind single, member seals/<close>.json, policy null).
 evaluate() runs inside the trial gate and never creates s1_out (F6.6); staging and locks live outside it."""
+import contextlib
 import json
 import re
 from pathlib import Path
@@ -36,11 +37,20 @@ TRIAL_ID_MEMBERS = {"audit": ("audit/attempt.json",), "start_attest": ("attest_s
                     "prereg": ("prereg.json",), "stop_attest": ("attest_stop.json",),
                     "final_plan": ("final_plan.json",), "final": ("final/attempt.json",),
                     "score": ("score/attempt.json", "score/s1.json")}
-ENFORCED = frozenset({"audit"})   # transitional (Task 8); Task 9 audit; Tasks 10-13 add theirs; Task 14: all of TABLE
+ENFORCED = frozenset({"audit", "opening", "start_attest", "prereg"})   # transitional (Task 8); Task 9 audit; Task 10
+# the pre-START stages (opening, start_attest, prereg); Tasks 11-13 add theirs; Task 14: all of TABLE
 # Transitional (Task 8; Task 14 deletes it with ENFORCED): seal files on disk with no seal-stage row are evaluated
 # (E2.4 r3) once the post-START seal writer is a stage - A3 Task 7 made it one (s1_slot.run_seal_stage), so it is True.
 # Seal stages that have journal rows are always evaluated.
 SEALS_ENFORCED = True
+# A3 Task 10 fix round 1 (review I1): the owner's publication hooks of a stage - (publish_ctx factory, before_publish)
+# built by `<module>.<function>(gv, inputs, clock)` from the INTENT envelope's inputs. The stage's command passes the
+# same pair to run(), and F4.7 recovery calls it too, so a recovered stage publishes exactly what a completed run
+# does (the legacy registry/witness records until Task 14 deletes them with ENFORCED). Imported lazily (owners import
+# this module).
+PUBLISH_HOOKS = {"opening": ("s1_checkpoint", "opening_publish_hooks"),
+                 "start_attest": ("s1_run", "start_attest_publish_hooks"),
+                 "prereg": ("s1_run", "prereg_publish_hooks")}
 SEAL_PREFIX = "seal/"                                                         # E2.1 r3: stage seal/<close date>
 SEAL_SPEC = {"kind": "single", "pred": None, "ack": None, "state": "ACTIVE"}
 _SEAL_NAME = re.compile(r"seal/\d{4}-\d{2}-\d{2}", re.ASCII)
@@ -240,6 +250,15 @@ def _holds(gv, stage) -> bool:
         return False
 
 
+def publish_hooks(gv, stage, inputs, clock=None) -> tuple:
+    """(publish_ctx factory | None, before_publish | None) of `stage`'s owner (PUBLISH_HOOKS), or (None, None)."""
+    import importlib
+    spec_ = PUBLISH_HOOKS.get(stage)
+    if spec_ is None:
+        return None, None
+    return getattr(importlib.import_module(spec_[0]), spec_[1])(gv, inputs, clock)
+
+
 def _require_out(gv, stage) -> None:
     """F6.6 (fix round 1, M3): publication never creates s1_out; if it is gone, its absence is the total-loss
     evidence: refuse with no row (the next gate decides LOST)."""
@@ -296,13 +315,15 @@ def _need(res, stage, kind):
 
 
 def run(gv, stage, *, inputs: dict, acks: dict, work, policy_fn=None, mailbox=None, clock=None,
-        before_publish=None, extra_gate=None, stage_check=None) -> dict:
+        before_publish=None, extra_gate=None, stage_check=None, publish_ctx=None) -> dict:
     """F4.1-F4.4 for one stage; re-entry resolves the existing rows per the stage table instead (never a second
     INTENT). A journal outage before the INTENT is a refusal with no request and no artifact (F4 failure 1).
     `extra_gate(rows) -> reason | None` is AND-ed with `permitted` at F0.5 step 5 (revision 2: introduced here,
     used by the seal stages and by Task 10); `stage_check(rows, subject, inputs) -> Decision | None` is evaluated
     at step 4a for the INTENT (E2.2 r3: a seal INTENT naming another QUALIFIED than the first one is INVALIDATE
-    contradictory-stage). Both run inside the F0.1 transaction. A seal stage requires both (fail closed)."""
+    contradictory-stage). Both run inside the F0.1 transaction. A seal stage requires both (fail closed).
+    A3 Task 10: publish_ctx() (a context-manager factory, e.g. s1_common.stage_publication) wraps before_publish
+    and the publication of the members; it is entered only once s1_out is known to exist (F6.6: never recreated)."""
     clock = clock or c.now_utc
     stage_gate, check = _gates(gv, stage, extra_gate, stage_check)
     lk = _lock(gv, stage)
@@ -344,11 +365,13 @@ def run(gv, stage, *, inputs: dict, acks: dict, work, policy_fn=None, mailbox=No
         try:
             _need(_append(gv, j.Request("STAGE-PREPARED", j.stage_subject(stage), op, actor, detail=detail),
                           mailbox, clock, stage_gate, check), stage, "STAGE-PREPARED")
-            if before_publish is not None:
-                before_publish(com)
-            _require_out(gv, stage)
-            for rel in sorted(members):
-                _publish_one(gv.out, rel, staging.files[rel], members[rel])
+            _require_out(gv, stage)                                           # (before publish_ctx: F6.6)
+            with (publish_ctx() if publish_ctx is not None else contextlib.nullcontext()):   # A3 Task 10
+                if before_publish is not None:
+                    before_publish(com)
+                _require_out(gv, stage)                                       # (M3: and after before_publish)
+                for rel in sorted(members):
+                    _publish_one(gv.out, rel, staging.files[rel], members[rel])
             _need(_append(gv, j.Request("STAGE-CREATED", j.stage_subject(stage), op, actor, detail=detail),
                           mailbox, clock, stage_gate, check), stage, "STAGE-CREATED")
         except j.Outage as e:
@@ -395,7 +418,9 @@ def recover(gv, stage, m, *, mailbox=None, clock=None) -> dict:
     bytes just verified); CREATED is appended with the stage's op and this actor. Any absent or mismatched byte is
     INVALID (stage-replaced). Never re-requests, recomputes or changes prepared bytes; any unexpected error refuses
     with no row (F0.7). Fix round 1 (M7): refuses with no row unless this process holds the stage lock (taken by
-    run() or evaluate() through _lock); it never takes the lock itself."""
+    run() or evaluate() through _lock); it never takes the lock itself. A3 Task 10 fix round 1 (review I1): the
+    missing members are published through the owner's publication hooks (publish_hooks: e.g. stage.lock and the
+    legacy registry/witness records), exactly as run() publishes them."""
     if not _holds(gv, stage):
         raise SystemExit(f"stage {stage}: recovery needs the stage lock and it is not held by this process: refused "
                          f"with no row (F4.7, F5.1)")
@@ -423,9 +448,18 @@ def recover(gv, stage, m, *, mailbox=None, clock=None) -> dict:
                                                                                           "different"},
                          mailbox, clock)
             todo[rel] = data
+        env = _load_committed(gv, stage, m["intent"], "intent.json")
+        ctx_fn, before = publish_hooks(gv, stage, (env or {}).get("inputs"), clock)
+        if (ctx_fn is not None or before is not None) and env is None:   # (the hooks read the committed envelope)
+            _invalid(gv, "stage-replaced", {"stage": stage, "problem": "intent.json missing or not the INTENT "
+                                                                       "detail"}, mailbox, clock)
         _require_out(gv, stage)                                                # M3: never recreate s1_out
-        for rel, data in todo.items():
-            c.publish_exclusive(gv.out / rel, data)
+        with (ctx_fn() if ctx_fn is not None else contextlib.nullcontext()):  # A3 Task 10 fix round 1 (I1): the
+            if before is not None:                                            # owner's publication path, as in run()
+                before(com)
+            _require_out(gv, stage)
+            for rel, data in todo.items():
+                c.publish_exclusive(gv.out / rel, data)
         stage_gate, check = _gates(gv, stage, None, _no_selection)       # (step 5 is INTENT-only; CREATED: 4a/4c)
         _need(_append(gv, j.Request("STAGE-CREATED", j.stage_subject(stage), m["intent"].op, j.new_nonce(),
                                     detail=m["prepared"].detail), mailbox, clock, stage_gate, check),

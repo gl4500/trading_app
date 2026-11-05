@@ -26,6 +26,7 @@ import s1_run as r
 import s1_seal as z
 import s1_slot as sl
 import s1_trial as t
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_reack, s1_receipt_with, s1_score_refused, s1_state
 
@@ -112,7 +113,7 @@ def test_c1_post_stop_fence_difference_is_reported_only(tmp_path, monkeypatch):
 def test_c1_checkpoint_after_an_abort_is_post_stop_and_never_seals(tmp_path, monkeypatch):
     """Task 11 (controller-added), C-1: once aborted.json exists every later capture is post_stop (no seal)."""
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     out = tmp_path / "s1_out"
@@ -195,8 +196,9 @@ def test_i1_prereg_and_run_ack_bind_the_toolchain(tmp_path):
     tok = r.run_token(tmp_path)
     assert f" bundle_sha256={c.bundle_sha256()} " in tok
     old = " ".join(x for x in tok.split(" ") if not x.startswith("bundle_sha256="))
-    s1_mailbox(tmp_path, "old-ack", old, START_DT - timedelta(days=1, hours=1))
-    with _Clock(START_DT - timedelta(days=1)):
+    when = s1_prereg_at(tmp_path)                       # (A3 Task 10: the fixture instant, read before the line)
+    s1_mailbox(tmp_path, "old-ack", old, when - timedelta(seconds=30))
+    with _Clock(when):
         with pytest.raises(t.Refusal, match="malformed official ACK line in old-ack names this trial"):   # A3 E4.3
             r.do_prereg(tmp_path, "old-ack", S1_RECEIPT)
         con = sqlite3.connect(tmp_path / "mailbox.sqlite3")       # (the TEST withdraws its malformed tmp message)
@@ -209,7 +211,7 @@ def test_i1_prereg_and_run_ack_bind_the_toolchain(tmp_path):
 
 def _prereg_state(tmp_path):
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     st_["ledger"].trade("A", "BUY", 10, 50.0, "2026-10-26T15:00:00+00:00")
@@ -417,7 +419,7 @@ def test_i4_final_plan_refused_while_running_aborted_or_unattested(tmp_path):
     """Task 11 (controller-added), I-4: no final plan while RUNNING, once aborted.json exists (nothing to acquire),
     or before the stop attestation."""
     s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     s1_prereg_ack(tmp_path)                    # A3 Task 6 (F7.4): the PREREG-ACK before captures
     with _Clock(START_DT + timedelta(days=2)):
@@ -590,9 +592,10 @@ def test_i5_lifecycle_gates_take_an_explicit_mailbox(tmp_path):
     """Task 11 (controller-added), I-5: do_prereg (and so every gate built on s1_collect._ack) reads the mailbox it
     is given."""
     s1_state(tmp_path, START)
+    when = s1_prereg_at(tmp_path)                       # (A3 Task 10: the fixture instant, read before the move)
     moved = tmp_path / "elsewhere.sqlite3"
     shutil.move(str(c.MAILBOX), str(moved))
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(when):
         with pytest.raises((SystemExit, sqlite3.Error)):
             r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
         assert r.do_prereg(tmp_path, "run-ack", S1_RECEIPT, mailbox=moved)["ack"]["ack_id"] == "run-ack"

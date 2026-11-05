@@ -11,6 +11,7 @@ import s1_checkpoint as ck
 import s1_common as c
 import s1_run as r
 import s1_seal as z
+from conftest import s1_first_invalid, s1_replaced  # A3 Task 10
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, s1_finalize, s1_mailbox, s1_reack, s1_score_refused, s1_state,
                       s1_sync_portfolio)
@@ -249,8 +250,12 @@ def test_opening_close_error_is_a_recorded_refusal_not_a_crash(tmp_path):
     pr["calendar"] = [d for d in pr["calendar"] if d["date"] >= "2026-10-27"]
     pp.write_text(json.dumps(pr), encoding="utf-8")
     # (fix round 2, B3.3: an edited registered prereg is first the persistent "registration artifact" abort)
-    with pytest.raises(SystemExit, match="registration artifact"):
+    # A3 Task 10 (intended, F4 table CREATED): prereg.json is the CREATED prereg stage's committed member - the gate's
+    # stage table commits TRIAL-INVALID (stage-replaced) before the B3.3 detector (its finding: the unit-level oracle)
+    assert any("prereg.json" in x for x in c.registration_problems(out))
+    with pytest.raises(SystemExit, match=s1_replaced("prereg.json")):
         _checkpoint(tmp_path, lg, datetime(2026, 10, 27, 20, 0, tzinfo=UTC))
+    assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
     assert not (out / "seals" / "2026-10-27.json").exists()
     assert not (out / "captures" / "2026-10-27").exists()
 

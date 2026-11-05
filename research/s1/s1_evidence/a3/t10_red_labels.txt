@@ -1,0 +1,66 @@
+A3 Task 10 RED labels (t10_red.txt: 48 failed, 10 passed against the Step 1 stub, t10_red_stub.diff.txt + the
+Step 1 conftest). Every failure ends in AssertionError (36) or pytest Failed (12: DID NOT RAISE / regex); the two
+"SystemExit:" lines are chained causes inside a pytest.raises whose regex did not match. No Import, Attribute, Key,
+Index, Type, Name or FileNotFound error.
+
+B (behavioural RED on the stub)
+- row 81   test_opening_intent_only_after_the_first_qualified_slot_and_earlier_slots_terminal[failed-earlier,first-qualified]
+           (the stub's legacy opening path writes the seal with no opening stage rows)
+- row 103  test_opening_stage_envelope_and_single_member (no staged opening intent.json)
+- rows 104/268 test_start_attest_envelope_and_single_member (start_attest is not a stage)
+- row 268  test_opening_books_is_a_hash_bound_derived_input[changed,deleted] (DID NOT RAISE: no binding)
+- row 151  test_start_attest_verifies_the_opening_ack_against_the_journal[ok,not-first-qualified,seal-differs,
+           receipt-differs,a-slot-not-terminal] (no OPENING-ACK verification; ok: no start_attest CREATED)
+- row 269  test_start_attest_requires_every_opening_close_slot_terminal_in_the_ack_prefix (no prefix check)
+- row 270  test_opening_slot_is_the_earliest_qualified_independent_of_issuance (any opening_slot accepted)
+- row 152  test_opening_issuance_helper[all-terminal-eligible, early-failed-then-qualified-all-terminal,
+           missed-then-qualified-all-terminal] (opening_slot None) and [later-slot-unfinalized-blocks, pending-blocks]
+           (the stub always says eligible)
+- rows 279/280 test_opening_ack_evidence_manifest_is_reconstructed[ok,wrong-hash,wrong-membership-receipt,
+           wrong-membership-staging] (the stub manifest has no files: E5.5 membership assertion)
+- row 333  test_opening_window_later_slots_refused_then_missed (no opening INTENT)
+- row 316  test_opening_ack_must_precede_the_attestation_and_the_attestation_start[ack-after-attest] (no causal check)
+- row 154  test_a_change_after_the_opening_ack_is_caught_by_the_live_file_check (legacy registration abort, not
+           stage-replaced)
+- rows 155/252 test_missed_opening_ack_deadline_gives_no_start (DID NOT RAISE)
+- row 156  test_prereg_requires_the_run_ack_with_trial_prev_and_journal_fields[ok] (prereg not a stage)
+- row 105  test_prereg_envelope_and_member (no staged prereg intent.json)
+- rows 121/271/326 test_blocked_prereg_is_a_pre_intent_refusal_record (blocked.json has no trial_id, E5.4)
+- rows 272/327 test_blocked_rerun_after_deletion_recomputes_identically (the stub record has no reasons)
+- row 273  test_blocked_close_evidence_helper_end_to_end (h != the canonical recomputation)
+- row 332  test_blocked_close_survives_delete_and_recreate[deleted,deleted-and-recreated] (h is not the
+           recomputation: the A3 Task 10 strengthening line asserts it before the deletion; the brief's h-equality
+           alone would pass on a constant stub)
+- row 180  test_s1_a3_codex_probes::test_prereg_before_created_follows_the_stage_table[intent-only-free,
+           prepared-free] (no prereg stage: no crash point)
+- carry-forward 1 (Task 6 M6) test_a_second_opening_seal_is_caught_beyond_the_opening_gate (no opening entry)
+- carry-forward 2 (Task 7 concern 7) test_a_crashed_opening_worker_times_out_at_d_and_the_opening_is_sealed[
+           finalizer-command, later-worker]; N2: test_a_held_stage_lock_never_delays_the_opening_finalizers_deadline_rows
+- carry-forward 4 test_s1_a3_audit::test_the_opening_close_seal_with_no_row_is_judged_by_the_stage_table (decided by
+           the F3 hook, not the stage table)
+- carry-forward 5 test_s1_t12_fix3::test_c2_retro_the_opening_report_and_resolution_witness_the_registration
+           (un-held; legacy refusal "opening seal missing", not stage-replaced)
+- carry-forward 7 test_the_gate_hook_order_plan_check_evaluate_evidence_check_then_the_manifest_check;
+           test_a_foreign_root_cannot_invalidate_the_open_trial_through_the_manifest_hook (hook absent)
+- carry-forward 8 test_the_evidence_manifest_is_the_exact_e55_format
+
+B-old (the c9b4322 observation is the frozen historical probe, s1_evidence/a3/codex_probes_historical/; the stub run
+also fails, by regex/DID NOT RAISE)
+- row 177  test_s1_a3_codex_probes::test_v1_selective_deletion_is_invalid
+- row 178  test_s1_a3_codex_probes::test_a_fully_deleted_then_b_is_invalid_or_never_ack_eligible
+- row 180  test_s1_a3_codex_probes::test_prereg_restoration_is_invalid_once_created
+
+ctrl
+- rows 274/329 test_non_blocked_prereg_is_unaffected - map label ctrl (no BLOCKED behaviour changes). It fails on the
+  stub only by its stage half (prereg is not a stage there); the "no blocked.json" half passes on the stub.
+
+retro (passes on the stub; an earlier task's or c9b4322's code already gives the outcome)
+- row 81   [pending-earlier]: Task 6 C2 (an INTENT-only earlier slot defers the seal)
+- row 151  [head-forked]: Task 5 gate (check_journal: a forked journal_head refuses every command)
+- row 268  test_opening_books_preexisting_different_refuses_the_attestation: c9b4322 _opening_books compare
+- row 316  [attest-at-start]: c9b4322 "planned START has passed"
+- row 156  [old-format, wrong-prev]: Task 4/5 (E4.3 unattributable malformed line; F7.1 broken prev)
+- carry-forward 2 test_the_opening_close_finalizer_never_writes_into_a_live_or_no_row_slot: Task 6 C1 / Task 7
+  (no resolution file written by any finalizer since Task 7)
+- carry-forward 3 (Task 9 m1) test_s1_a3_audit::test_the_n1_confirm_on_re_read_branches[legitimate-intent,
+  file-gone, stray-control]: Task 9 _judge_without_calendar (these are the missing suite killers m1 asked for)

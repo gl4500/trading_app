@@ -10,6 +10,7 @@ import pytest
 import s1_checkpoint as ck
 import s1_common as c
 import s1_seal as z
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import S1_RECEIPT, Ledger, _Clock, s1_plan_audit
 from test_s1_t12_fix2_b3 import Spies, _refusals
 from test_s1_t12_fix4 import START
@@ -118,7 +119,7 @@ def test_f1_retro_a_later_fallback_source_never_delays_the_anchor(tmp_path):
     from test_s1_t12_fix4 import START_DT
     from test_s1_t12_fix5 import _move_plan
     s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     out = tmp_path / "s1_out"
     _move_plan(out)

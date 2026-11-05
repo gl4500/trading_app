@@ -15,6 +15,7 @@ import s1_checkpoint as ck
 import s1_common as c
 import s1_run as r
 import s1_seal as z
+from conftest import s1_first_invalid, s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit, \
     s1_state, s1_unattest
 from test_s1_t12_fix2_b3 import MON, Spies, _aborted, _cp, _refusals
@@ -27,12 +28,14 @@ WAIT = 20                                            # seconds a synchronization
 
 # ====================================================================== N-1 the stage.lock race
 def _stage_run(tmp_path, stage):
-    """The state just before `stage` ("attest_start" | "prereg") and the call that publishes it."""
-    s1_state(tmp_path, START)
+    """The state just before `stage` ("attest_start" | "prereg"), the call that publishes it and its causal instant.
+    A3 Task 10 (fixture change): the START attestation is the journal-committed start_attest stage, so the state
+    before it is s1_state(attest=False) (s1_unattest's file deletion would now be stage-replaced), and the instants
+    follow the fixture's OPENING-ACK / RUN-ACK (F7.2(b) literal) instead of START - 1 day."""
+    st_ = s1_state(tmp_path, START, attest=(stage != "attest_start"))
     if stage == "attest_start":
-        s1_unattest(tmp_path, books=False)
-        return lambda: r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
-    return lambda: r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
+        return (lambda: r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)), st_["attest_at"]
+    return (lambda: r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)), s1_prereg_at(tmp_path)
 
 
 def _interleave(tmp_path, monkeypatch, stage, order):
@@ -42,7 +45,7 @@ def _interleave(tmp_path, monkeypatch, stage, order):
     first scan and before the gate continues; order "released-during-rescan" (added after GREEN, RETROSPECTIVE): the
     gate's second scan still sees the publication paused, and the publication completes (lock released) before the
     gate's last lock check. Returns (gate outcome, publication outcome)."""
-    run_stage = _stage_run(tmp_path, stage)
+    run_stage, at = _stage_run(tmp_path, stage)
     out = tmp_path / "s1_out"
     artifact = out / c.STAGE_ARTIFACT[stage]
     past_lock, records_in, scanned, release_gate = (threading.Event() for _ in range(4))
@@ -67,10 +70,10 @@ def _interleave(tmp_path, monkeypatch, stage, order):
             assert release_gate.wait(WAIT), "the gate was never released"
         return got
     monkeypatch.setattr(c, "registration_problems", probs)
-    real_pub = c.publish_text_exclusive
+    real_pub = c.publish_exclusive                # A3 Task 10: the stage engine publishes members via publish_exclusive
     gate_finished = threading.Event()
 
-    def pub(path, text):
+    def pub(path, data, **kw):
         if threading.current_thread().name == "stage" and Path(path) == artifact:
             records_in.set()
             assert scanned.wait(WAIT), "the gate never scanned"
@@ -78,9 +81,9 @@ def _interleave(tmp_path, monkeypatch, stage, order):
                 assert gate_finished.wait(WAIT), "the gate never finished"
             if order == "released-during-rescan":
                 assert rescanned.wait(WAIT), "the gate never re-scanned"
-        return real_pub(path, text)
-    monkeypatch.setattr(c, "publish_text_exclusive", pub)
-    monkeypatch.setattr(c, "now_utc", lambda: START_DT - timedelta(days=1))
+        return real_pub(path, data, **kw)
+    monkeypatch.setattr(c, "publish_exclusive", pub)
+    monkeypatch.setattr(c, "now_utc", lambda: at)
     box = {}
 
     def gate():
@@ -137,7 +140,7 @@ def test_n1_a_violation_present_on_both_scans_with_no_lock_is_still_the_persiste
     """N-1 guard: the confirming re-scan never hides a real deletion: prereg.json deleted after its publication (no
     lock at any check, the same problem on both scans) -> the gate records the persistent abort."""
     s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(days=1)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     out = tmp_path / "s1_out"
     (out / "prereg.json").unlink()
@@ -204,14 +207,19 @@ def test_n2_reopening_after_the_local_witnesses_are_deleted_never_writes_a_secon
     out, cal, oc, lg, first = _opening(tmp_path)
     assert _delete(out, DELETIONS[combo])
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit):
+    # A3 Task 10 (intended; plan Task 10 Step 6: N-2/R-3 -> F3 + F4): the opening seal is the CREATED `opening` stage's
+    # member - its deletion is INVALID (stage-replaced) at the re-opening's gate (no second seal, zero callbacks); the
+    # next opening slot refuses "trial INVALID" and records the local abort
+    with pytest.raises(SystemExit, match=r"stage opening: .*member seals/2026-10-23\.json missing or changed.*"
+                                         r"INVALID \(stage-replaced\)"):
         _reopen(tmp_path, lg, oc, cal, 8, spies)
     assert not (out / "seals" / f"{oc}.json").exists(), "a second, different opening seal was written"
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
+    assert s1_first_invalid(tmp_path) == "reason/stage-replaced"
     assert spies.zero(), spies.n
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/stage-replaced\)"):
         _reopen(tmp_path, lg, oc, cal, 9)
     assert not (out / "seals" / f"{oc}.json").exists()
+    assert "reason/stage-replaced" in _aborted(tmp_path)["reason"]
 
 
 def test_n2_opening_seal_creation_refuses_on_earlier_opening_evidence_without_its_record(tmp_path):
@@ -279,9 +287,23 @@ def test_n3_probe_two_handmade_later_stage_files_before_any_opening_are_a_refusa
     if pair[1] == "seals/2026-01-01.json":
         # A3 Task 7 (E2.4 r3, "in every state"): a seal file of a non-opening close with no seal-stage row is a
         # registration artifact once the trial exists: TRIAL-INVALID at the gate, zero live callbacks
-        with pytest.raises(SystemExit, match=r"seal/2026-01-01: artifacts .*INVALID \(registration-artifact\)"):
+        # A3 Task 10 (intended): prereg is ENFORCED too and the TABLE stages are evaluated before the seal stages, so
+        # the hand-made prereg.json is the violation named first (the same TRIAL-INVALID registration-artifact)
+        with pytest.raises(SystemExit, match=r"stage prereg: artifacts \['prereg\.json'\] .*INVALID "
+                                             r"\(registration-artifact\)"):
             _cp(tmp_path, Ledger(tmp_path / "l.sqlite3").path, spies)
         assert spies.zero(), spies.n
+        return
+    first = {"attest_start.json": "start_attest", "seals/2026-10-23.json": "opening"}.get(pair[1])
+    if first is not None:
+        # A3 Task 10 (intended, F4 table 'no INTENT: any artifact for g is a violation after the AUDIT-ACK'; the
+        # Task 7 concern-2 ruling - A3 supersedes A2 B3.2 after the AUDIT-ACK): start_attest / opening are ENFORCED
+        # and evaluated before prereg: TRIAL-INVALID (registration-artifact), zero live callbacks, no registration
+        with pytest.raises(SystemExit, match=rf"stage {first}: artifacts \['{pair[1]}'\] with no INTENT: INVALID "
+                                             r"\(registration-artifact\)"):
+            _cp(tmp_path, Ledger(tmp_path / "l.sqlite3").path, spies)
+        assert spies.zero(), spies.n
+        assert s1_first_invalid(tmp_path) == "reason/registration-artifact"
         return
     with pytest.raises(SystemExit):
         _cp(tmp_path, Ledger(tmp_path / "l.sqlite3").path, spies)
@@ -325,20 +347,19 @@ def test_minor_an_artifact_write_error_after_the_stage_records_keeps_the_lock_an
     """m-1: an OSError (disk full) publishing the stage artifact AFTER both stage records were published must not
     release stage.lock as clean: the lock stays, the next command refuses (preserved) and records no abort - never a
     false persistent abort of a legitimate trial."""
-    run_stage = _stage_run(tmp_path, stage)
+    run_stage, t = _stage_run(tmp_path, stage)
     out = tmp_path / "s1_out"
     artifact = out / c.STAGE_ARTIFACT[stage]
-    real = c.publish_text_exclusive
+    real = c.publish_exclusive                    # A3 Task 10: the stage engine publishes members via publish_exclusive
 
-    def disk_full(path, text):
+    def disk_full(path, data, **kw):
         if Path(path) == artifact:
             raise OSError(28, "No space left on device")
-        return real(path, text)
-    monkeypatch.setattr(c, "publish_text_exclusive", disk_full)
-    t = START_DT - timedelta(days=1)
-    with _Clock(t), pytest.raises(OSError):
+        return real(path, data, **kw)
+    monkeypatch.setattr(c, "publish_exclusive", disk_full)
+    with _Clock(t), pytest.raises(OSError, match="No space left on device"):
         run_stage()
-    monkeypatch.setattr(c, "publish_text_exclusive", real)
+    monkeypatch.setattr(c, "publish_exclusive", real)
     assert all(p.exists() for p in c.stage_records(out, stage)) and not artifact.exists()
     assert (out / c.STAGE_LOCK).exists(), "stage.lock was released as clean after the records were published"
     with pytest.raises(SystemExit, match="stage publication"):
@@ -408,17 +429,20 @@ def test_n3_retro_a_lone_handmade_seal_of_the_opening_close_is_a_refusal(tmp_pat
     (out / "seals" / f"{oc}.json").write_text(json.dumps({"close": close.isoformat(), "capture": {}}),
                                                encoding="utf-8")
     assert c.registration_witnesses(out, oc, False) == ["opening seal"]      # (fix round 8: the interface)
-    with pytest.raises(SystemExit, match="pre-registration"):
+    # A3 Task 10 (intended, F4 table 'no INTENT: any artifact for g is a violation after the AUDIT-ACK', `opening`
+    # ENFORCED; the Task 7 concern-2 ruling): a hand-made opening seal is TRIAL-INVALID (registration-artifact) - it
+    # still manufactures no registration (the witness count above) and records no local abort at the gate
+    with pytest.raises(SystemExit, match=r"stage opening: artifacts \['seals/2026-10-23\.json'\] with no INTENT: "
+                                         r"INVALID \(registration-artifact\)"):
         s1_opening_checkpoint(tmp_path, Ledger(tmp_path / "l.sqlite3"), oc, cal, S1_RECEIPT)
-    assert c.load_abort(out) is None
+    assert c.load_abort(out) is None and s1_first_invalid(tmp_path) == "reason/registration-artifact"
 
 
 def test_n3_retro_the_attestation_between_the_first_slot_and_the_capture_end_refuses(tmp_path):
     """RETROSPECTIVE. A8.1 with the clock anchor: before the opening close's first slot the gate already refuses, so
     the causal-order check is exercised in the interval it alone covers - after the first slot, at or before the
     opening seal's capture end: the attestation refuses with the causal-order reason."""
-    s1_state(tmp_path, START)
-    s1_unattest(tmp_path)
+    s1_state(tmp_path, START, attest=False)      # A3 Task 10 (fixture change): before the journal-bound attestation
     out = tmp_path / "s1_out"
     seal = json.loads((out / "seals" / "2026-10-23.json").read_text(encoding="utf-8"))
     end = c.aware(seal["capture"]["capture_end"])

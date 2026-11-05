@@ -12,6 +12,8 @@ import sqlite3
 import s1_seal
 import s1_snapshot
 import s1_trial as t
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
+from conftest import s1_ack, s1_close_out  # A3 Task 10 (F7.2(b) literal: the OPENING-ACK after the close-out)
 from conftest import (S1_BINDING, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_receipt_with, s1_state,
                       s1_sync_portfolio)
 
@@ -24,6 +26,15 @@ OPEN_DAY = "2026-10-23"                                          # the Friday se
 OPEN_CLOSE = datetime(2026, 10, 23, 20, 0, tzinfo=UTC)
 # (fix round 2 migration, Addendum 2 B2.1: the opening must observe the sanitized launcher binding)
 PROC = {"pid": 1, "process_start": "2026-10-01T09:00:00", "binding": dict(S1_BINDING)}
+
+
+def _opening_acked(tmp_path):
+    """A3 Task 10 (fixture change, F7.2/F7.4, E5.6): every opening-close slot terminal (the finalizer to the W slot's
+    E), then the OPENING-ACK; returns the attestation instant after it (the old START - 2 days precedes it)."""
+    raw = c.load_json(tmp_path / "s1_out" / "audit" / "calendar.json")
+    e_w = s1_close_out(tmp_path, raw, OPEN_DAY)
+    s1_ack(tmp_path, "opening-ack", "S1-OPENING-ACK", e_w + timedelta(minutes=1))
+    return e_w + timedelta(minutes=2)
 
 
 def read(p):
@@ -176,7 +187,7 @@ def test_attest_start_binds_the_opening_receipt_and_refuses_a_different_one(tmp_
     # (fix round 2, Addendum 2 B3.3: deleting opening_receipt.json after the opening seal is no longer a refusal but
     # the persistent "registration artifact" abort - moved to test_s1_t12_fix2_b3.py::
     # test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid[opening_receipt.json-deleted])
-    with _Clock(START_DT - timedelta(days=2)):
+    with _Clock(_opening_acked(tmp_path)):
         with pytest.raises(SystemExit, match="opening receipt"):
             r.attest_start(tmp_path, r.START_STATEMENT, OTHER)                     # Task 12 (A1): fingerprint
         assert not (out / "attest_start.json").exists()
@@ -204,7 +215,7 @@ def test_final_snapshot_refuses_without_prereg_and_while_running(tmp_path):
     out = tmp_path / "s1_out"
     with pytest.raises(SystemExit, match="prereg"):
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: START_DT - timedelta(hours=3))
-    with _Clock(START_DT - timedelta(hours=2)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     with pytest.raises(SystemExit, match="RUNNING"):
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: START_DT + timedelta(days=1))
@@ -214,7 +225,7 @@ def test_final_snapshot_refuses_without_prereg_and_while_running(tmp_path):
 def test_final_snapshot_after_a_recorded_abort_is_taken(tmp_path):
     """Task 7b (controller-added): an aborted trial has stopped too (aborted.json)."""
     st_ = s1_state(tmp_path, START)
-    with _Clock(START_DT - timedelta(hours=2)):
+    with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     (tmp_path / "s1_out" / "aborted.json").write_text(json.dumps(
         {"reason": "semantic receipt changed", "actual": (START_DT + timedelta(hours=8)).isoformat()}),
@@ -404,7 +415,7 @@ def test_opening_receipt_is_written_before_the_seal_and_attest_start_needs_both(
     assert not (out / "attest_start.json").exists()
     rep = opening(tmp_path, ledger, minutes=120)  # Task 12 (A5.2) input: an hourly slot after every earlier window
     assert rep["seal"]["written"] is True and (out / "opening_receipt.json").read_bytes() == kept
-    with _Clock(START_DT - timedelta(days=2)):
+    with _Clock(_opening_acked(tmp_path)):
         assert r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)["receipt_sha256"] == \
             c.receipt_sha256(S1_RECEIPT)                                                 # Task 12 (A1)
 

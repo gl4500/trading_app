@@ -8,6 +8,7 @@ import pytest
 
 import s1_common as c
 import s1_run as r
+from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_state
 
 UTC = timezone.utc
@@ -199,7 +200,7 @@ def test_a4_1_prereg_bounds_the_opening_audit_to_actions_effective_before_start(
     held-interval rule decide it later)."""
     from datetime import timedelta as td
     st_ = s1_state(tmp_path, START, audit_actions=[split("CI", D[2])])
-    with __import__("conftest")._Clock(st_["start"] - td(days=1)):
+    with __import__("conftest")._Clock(s1_prereg_at(tmp_path)):
         pr = r.do_prereg(tmp_path, "run-ack", __import__("conftest").S1_RECEIPT)
     assert pr["trial_id"] == __import__("json").loads((tmp_path / "s1_out" / "plan.json").read_text("utf-8"))["trial_id"]
 
