@@ -1,7 +1,26 @@
-# S1 Addendum 3 (external trial journal) Implementation Plan — revision 2
+# S1 Addendum 3 (external trial journal) Implementation Plan — revision 3
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+Revision 3 answers Codex final 1a3838f6 (FORUM-S1-A3-PLAN-R2: CHANGES_REQUIRED on revision 2, sha256 55ddbf40…,
+head 78b7dab, for the single finding PLAN-R2-1 in Task 15). Records:
+`C:\Users\gl450\.coordination\trading_app\s1_a3_plan_r2_codex_review_20261104\`. The same final is APPROVE-ERRATUM on
+Erratum 1 r4, which the operator adopted. It is frozen at `research/s1/docs/s1_design_v5_addendum3_erratum1.md`,
+sha256 `b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f`, in de008b1. That resolves BLK-1. Where
+the revision 2 text below names erratum draft r3, the governing text is the adopted copy; r4 differs from r3 only
+in what Codex approved. BLK-3 stays open.
+
+## Revision 3 changes
+| # | change | answers |
+|---|---|---|
+| R3-01 | The killer is matched by its exact pytest nodeid, including parameter IDs. The intended case set is the collect-only nodeid list of the same selection. It is mapped to xunit2 `(classname, name)` by a documented rule (`xunit2_key`), with `-o junit_family=xunit2` pinned on every child. xunit2 `file`/`line` attributes are not used, because it writes none. The revision 2 `_case`, which stripped parameter IDs and took the first match, is removed. | PLAN-R2-1 point 1 |
+| R3-02 | `control_valid` requires the whole unmutated selection to pass: exit 0, collect-only success, the JUnit case set equal to the collected set, and no failure, error or skip in any case. A failure in a later case makes the run invalid ("untested"), never killed. | PLAN-R2-1 point 2 |
+| R3-03 | `terminal_frame` takes the innermost `path:line: ExcType` line of the failure; caller frames print no exception type. `at_agreed` requires that frame to equal the agreed `path:line` (path-boundary suffix, exact line, AssertionError). `t15_agreed_assertions.json` now records `{nodeid, terminal}` per mutant. A helper oracle must be declared by the helper's own `file:line` and reviewed; a caller line gives "failed-elsewhere". | PLAN-R2-1 point 3 |
+| R3-04 | New self-tests use Codex's two r2 probes as fixtures, with their sources copied verbatim. The probe cases cover a later parameter (killed; agreed `[0]` gives survived), a later control failure (untested) and helper frames (agreed caller gives failed-elsewhere; agreed helper gives killed). Codex's `caller-frame.xml` text is used as a pure parse case. The existing self-tests are kept and now go through the same `run_child`/`classify`. | PLAN-R2-1 point 4 |
+| R3-05 | The session fixture `classifier_validated` executes every classifier self-test in a child pytest before any mutant label is computed. It requires exit 0 and exactly the expected passing cases, and keeps the JUnit file plus sha256 under `s1_evidence/a3/t15_selftests/`. Each mutant keeps its control and mutant JUnit, installed.json, plugin, pytest output and a `record.json` of sha256. | PLAN-R2-1 point 5 |
+| R3-06 | Rows 291–297 and 339–341 are rewritten; rows 342–345 are added. Task 15 Steps 3, 5 and 7 are updated. | PLAN-R2-1 |
+| R3-07 | Erratum 1 is adopted: every `ERRATUM1_SHA256` is replaced by b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f (de008b1). BLK-1 is resolved, with a note that the operator adopted the explicit E2 meaning. "Pending Codex acceptance of E3" now reads as accepted. The commit gates now cite BLK-3 and the plan's and exact-head Codex reviews. BLK-3 stays open. | coordinator instruction; Codex 1a3838f6 erratum ruling |
 
 Revision 2 answers Codex final 3ddf7d83 (FORUM-S1-A3-PLAN-R1, CHANGES_REQUIRED / NO_CONSENSUS on revision 1, sha256
 f67f739f…, head ce5b2cb). Its records are in
@@ -48,7 +67,7 @@ so numbering stays contiguous.
 | R2-07 | E1.3 oracle: after a committed TIMEOUT, a later QUALIFIED/FAILED from the authorized worker is LOST-RACE at 4c whatever R; REFUSE for late R only while no terminal exists. Row 257 test and text fixed (both cases LOST-RACE), rows 320–321 reworded; precedence cases added (row 338); the Hypothesis property gains the two boundary `@example`s. | Codex E1 oracle note, E1.3 r3 |
 | R2-08 | Hypothesis: `@settings(derandomize=True, database=None)` plus explicit `@example`s for every retained minimized failure (listed in `a3/t2_examples.md`); no example database. Row 298 is now an executed test that imports and runs the decorated property in the pinned testenv and inspects its settings object (no source-string check). Rows 48, 298, Global Constraints and Task 15 Step 4 rewritten. | A3-PR1-3 |
 | R2-09 | Mutation harness classifies from pytest JUnit XML plus a plugin installation record (anchor found, original/mutated source sha256 differ): "killed" only with a passing control, the killer collected and set up OK, and a `<failure>` at its reviewed agreed assertion `file:line`; error, untested, timeout, crash, not-installed, failed-elsewhere, survived and equivalent are separate labels. Cosmic Ray runs through `cr_guard` (errors never count as kills). Classifier self-tests for collection error, missing fixture, syntax error, plugin error, semantic regression, timeout, crash, not-installed, failing control, listed equivalent. Rows 291–297 rewritten; rows 339–341 added. Erratum mutants now cover CLOSE-blind seal decisions, the STOP fence and non-monotone BLOCKED closure. | A3-PR1-4 |
-| R2-10 | Controller note, Spec paragraph, Revision 2 table and self-review point to Erratum 1 draft r3 (777de174…). ERRATUM1_SHA256 is the adopted copy of r3 (or the revision actually adopted). | coordinator instruction |
+| R2-10 | Controller note, Spec paragraph, Revision 2 table and self-review point to Erratum 1 draft r3 (777de174…). The erratum pin is the adopted copy (revision 3 of the plan: b0346466…, = draft r4). | coordinator instruction |
 
 ## Revision 1 changes (history; where an R1 entry conflicts with an R2 entry above, R2 governs)
 Each line gives the change and the finding, ruling or erratum item it answers. "Row n" means a row of the
@@ -63,7 +82,7 @@ draft revision 1 (bee16ded…).
 | R1-04 | `backup.sqlite3` is in the QUALIFIED tree by its own sha256 (`CAPTURE_TREE`). Backup change and deletion are evidence-table cases. Rows 70 and 77 rewritten; row 267 added. | PLAN-4, E5.6, OQ-32 |
 | R1-05 | start_attest stays single (`attest_start.json`). `opening_books.json` is a deterministic derived input, published before the INTENT by the existing `_opening_books`, hash-bound in the envelope and in the record, and RUN-ACK-bound. Task 8 TABLE and Task 10 code rewritten. Rows 85 and 104 rewritten; row 268 added. | PLAN-3, OQ-15 |
 | R1-06 | F7.2(b) is literal: every scheduled slot of the opening close must have a terminal row within the OPENING-ACK's journal prefix. Earliest-success selection (F3) is tested separately. The conftest issues the OPENING-ACK only after the opening close's W slot is finalized. Rows 81 and 152 rewritten; rows 269–270 added. | PLAN-3, OQ-37 |
-| R1-07 | BLOCKED follows E3 r1: a pre-INTENT refusal record (a declared F4.1 exception), ACTIVE, no TRIAL-INVALID, CLOSE reason `BLOCKED`. blocked.json carries `status`, `reasons`, `recorded_utc` and `trial_id`. The CLOSE evidence is h = sha256(c.canonical({trial_id, reasons})) of the deterministic recomputation (`s1_run.blocked_close_evidence`), never the file bytes, so deleting or re-creating blocked.json never re-opens a closed trial. Marked "pending Codex acceptance of E3"; Task 10's BLOCKED step is not committed before adoption. Row 121 rewritten; rows 271–274 and 332 added; row 273 moved to Tasks 4 and 10. | PLAN-3, OQ-0, E3 r1 |
+| R1-07 | BLOCKED follows E3 r1: a pre-INTENT refusal record (a declared F4.1 exception), ACTIVE, no TRIAL-INVALID, CLOSE reason `BLOCKED`. blocked.json carries `status`, `reasons`, `recorded_utc` and `trial_id`. The CLOSE evidence is h = sha256(c.canonical({trial_id, reasons})) of the deterministic recomputation (`s1_run.blocked_close_evidence`), never the file bytes, so deleting or re-creating blocked.json never re-opens a closed trial. Marked "accepted in the adopted Erratum 1, de008b1"; Task 10's BLOCKED step is not committed before adoption. Row 121 rewritten; rows 271–274 and 332 added; row 273 moved to Tasks 4 and 10. | PLAN-3, OQ-0, E3 r1 |
 | R1-08 | ACK candidates come only from codex->claude `experiments-prereg` at line start. Other lines are ignored. A malformed candidate refuses its own trial when the trial_id parses (E4.3 r1 grammar: the second whitespace-separated token is exactly `trial_id=<canonical lowercase uuid4>`), otherwise all trials. A wrong-role/key CLOSE is ignored. Task 4 and Task 5 code and tests rewritten. Rows 158 and 238 rewritten; rows 275–278 added. | PLAN-5, E4, OQ-5, OQ-6 |
 | R1-09 | The OPENING-ACK `evidence_manifest_sha256` is compared with the reconstructed canonical prefix manifest in E5.5's exact format and membership (Erratum 1 r1; it includes the staging `intent.json`/`prepared.json` as `staging/<stage>/<name>`). A wrong hash or wrong membership is INVALIDATE (registration-artifact) per F7.3, checked in `verify_opening_ack` and by every gate after the OPENING-ACK. BLK-2 is resolved. Rows 151 and 154 rewritten; rows 279–280 added (INVALIDATE). | PLAN-4, OQ-17, E5.5 r1 |
 | R1-10 | The no-circularity oracle is now data independence: member bytes are identical across runs whose PREPARED/CREATED clocks differ, and same-tick clocks are allowed. It replaces the substring test. Rows 15 and 89 rewritten. | coverage 15/89 |
@@ -87,7 +106,7 @@ draft revision 1 (bee16ded…).
 | R1-28 | `opening_receipt_sha256` is the raw file hash and is tested as distinct from the fingerprint. Row 318 added. | OQ-30 |
 | R1-29 | Valid pagination and empty families stay non-anomalous (positive controls next to the Structural cases). Row 319 added. | Codex reply P-4 |
 | R1-30 | E1–E4 acceptance tests are added verbatim as map rows 320–330. | E1.7, E2.5, E3.6, E4.4 |
-| R1-31 | Erratum 1 is pinned in DOC_PINS and the bundle (Task 1) as `docs/s1_design_v5_addendum3_erratum1.md`. Its hash is ERRATUM1_SHA256, filled from the adopted byte-frozen copy of draft revision 1 (bee16ded…, which supersedes rev 0, 4dc7a3c5…). Task 1 cannot be committed before adoption. Row 1 rewritten. | erratum header, E6 |
+| R1-31 | Erratum 1 is pinned in DOC_PINS and the bundle (Task 1) as `docs/s1_design_v5_addendum3_erratum1.md`. Its hash (since plan revision 3: b0346466…, the adopted copy) was a placeholder filled from the adopted byte-frozen copy of draft revision 1 (bee16ded…, which supersedes rev 0, 4dc7a3c5…). Task 1 cannot be committed before adoption. Row 1 rewritten. | erratum header, E6 |
 | R1-32 | The OQ section now carries each ruling as a requirement; the revision-0 proposals are removed. Blockers are listed. | PLAN-3 (no default), all rulings |
 | R1-33 | Aligned with Erratum 1 r1 E5.5: BLK-2 is resolved; `evidence_manifest` implements the exact E5.5 format and membership (including the staging `intent.json`/`prepared.json` as `staging/<stage>/<name>`); a mismatch is INVALIDATE (registration-artifact) via `opening_manifest_check`, called by `verify_opening_ack` and by every gate after the OPENING-ACK. Rows 279–280 changed to INVALIDATE and a staging-membership case. | E5.5 r1, F7.3 |
 | R1-34 | Aligned with E2.4 r1: every PREPARED commitment carries `seals_checked` (Task 8 `commitment`); `required_seals` = the published-committed set (QUALIFIED trees' and committed PREPAREDs' `seals_checked`, plus the stop record); `committed_commitment` moves to Task 8. Row 331 added; rows 265–266 reworded. | E2.4 r1 |
@@ -128,12 +147,14 @@ journal (OQ-19).
 recorded in `C:\Users\gl450\.coordination\trading_app\s1_addendum3_r5_check_codex_20261102\REVIEW.txt`. The
 interpretations recorded there are conditions of this plan; see "Codex conditions".
 
-**Erratum 1 governs over Addendum 3 where they differ.** Its draft is revision 3, sha256
-`777de1743b3455b6d38a2c5008d51baf0d86cfbaf66215119e78c0f270d8e368` (revisions 0–2 are superseded). The adopted
-byte-frozen copy of revision 3 (or of whatever revision Codex and the operator adopt) will be
-`research/s1/docs/s1_design_v5_addendum3_erratum1.md`, with hash ERRATUM1_SHA256 filled from that copy. Erratum
-items E1–E5 are requirements of this plan, each marked "pending Codex acceptance of E1–E5". Under the erratum's E6,
-no task starts before the erratum is adopted.
+**Erratum 1 governs over Addendum 3 where they differ. It is ADOPTED** (revision 3 of this plan): the byte-frozen
+copy `research/s1/docs/s1_design_v5_addendum3_erratum1.md`, sha256
+`b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f`, identical to draft r4, committed de008b1.
+Codex's 1a3838f6 is APPROVE-ERRATUM on exactly that hash (design only). The operator expressly adopted the E2
+meaning Codex required: PREPARED commits the seal decision, CREATED plus matching bytes establishes authority, and a
+file materialized after a concurrent INVALID/CLOSE has no authority and is never read as a valid seal. Draft
+revisions 0–3 (4dc7a3c5…, bee16ded…, b03b760d…, 777de174…) are history. Erratum items E1–E5 are requirements of this
+plan.
 
 The spec builds on these documents, which stay byte-identical. Where they differ, Addendum 3 governs:
 - `s1_design_v5.md` (33c32840…) and `s1_spec.md` (4b882f52…);
@@ -174,12 +195,12 @@ together; the spec's clauses govern.
 - **Frozen pins:**
   - `e1_sim.py` 68f21ab1… and `e1_fetch.py` 401f17de…;
   - documents 33c32840… / 4b882f52… / 6cb89e36… / c7f0c3ff…, plus Addendum 3 d9dd3759…, plus Erratum 1
-    (ERRATUM1_SHA256, the adopted copy);
+    (b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f, the adopted copy, de008b1);
   - registered constants: `MAX_PAGES = 200`, `CA_FIXED = {"region": "us", "data_quality": "all", "sort": "asc",
     "limit": 1000}`, 50-symbol batches, `SCHEDULE_SLACK = 10 min`, `RESOLUTION_TIMEOUT = 30 min`.
 - **Prospective only:** no registration, audit, START, scheduler or live step until a later CONSENSUS. R-3 (live
   scheduler timing) stays OPEN.
-- **blocked.json** follows Erratum E3 (pending Codex acceptance of E3):
+- **blocked.json** follows Erratum E3 (accepted in the adopted Erratum 1, de008b1):
   - a pre-INTENT refusal record; the state stays ACTIVE; no TRIAL-INVALID; CLOSE reason `BLOCKED` with
     h = sha256(c.canonical({trial_id, reasons})); blocked.json carries `trial_id`.
   - Task 10's BLOCKED step is not committed before the erratum is adopted. No TRIAL-INVALID mapping exists.
@@ -264,7 +285,7 @@ together; the spec's clauses govern.
 - **C-d blocked.json.**
   - Revision 0 was DEFERRED. f045bd31 ruled OQ-0 HOLD: BLOCKED is distinct from INVALID, and no interim policy was
     approved.
-  - Erratum E3 now gives the requirement (pending Codex acceptance of E3).
+  - Erratum E3 now gives the requirement (accepted in the adopted Erratum 1, de008b1).
   - The TRIAL-INVALID `pre-start-blocked` mapping is not implemented.
 - **C-e Score-aborted and INTENT cutoff are prospective rules.** Each has a positive path and a failure path with
   isolated evidence (separate tests and separate evidence files):
@@ -272,12 +293,12 @@ together; the spec's clauses govern.
   - Task 13: `t13_score_positive.txt`, `t13_score_aborted.txt`.
 
 ## Blockers (items that still need a decision; the named tasks cannot start, or cannot be committed, until it is made)
-- **BLK-1: Erratum 1 adoption.**
-  - What is needed: a scoped Codex check of E1–E5 with this plan, operator adoption, and a byte-frozen copy at
-    `research/s1/docs/s1_design_v5_addendum3_erratum1.md` whose sha256 is ERRATUM1_SHA256.
-  - Effect: under E6, no task starts before adoption. Task 1 pins the hash, so Task 1, and with it every later
-    task, cannot be committed before adoption.
-  - Task 10's BLOCKED step (E3) and every E1/E2/E4 test depend on it.
+- **BLK-1: RESOLVED (Erratum 1 adopted).** Codex 1a3838f6 approved the erratum (APPROVE-ERRATUM, design only) on
+  sha256 `b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f` (= draft r4). The operator adopted it
+  and expressly adopted the explicit E2 meaning (PREPARED commits the decision; CREATED plus matching bytes is
+  authority; a file materialized after a concurrent INVALID/CLOSE has no authority and is never read). The
+  byte-frozen copy `research/s1/docs/s1_design_v5_addendum3_erratum1.md` was committed in de008b1. Task 1 pins this
+  hash; E3 is no longer "pending". The remaining gates are BLK-3 and the per-task/exact-head Codex code reviews.
 - **BLK-2: RESOLVED by Erratum 1 r1 E5.5.** The evidence-manifest byte format and membership are now fixed by
   E5.5 and implemented exactly in Task 10 (`s1_trial.evidence_manifest`). A wrong hash or wrong membership is
   INVALIDATE (registration-artifact), per F7.3 (rows 279–280). Nothing waits on BLK-2 any more. The number is kept
@@ -568,7 +589,7 @@ or rejected a proposal, the affected task code and map rows are rewritten (see "
 | `research/s1/s1_gates.py` | field-by-field ACK verification (replaces token-line equality) | 5 |
 | `research/s1/s1_tests/conftest.py` | MAILBOX_SCHEMA, `s1_mailbox_init`, network guard, `Spies`, trial and journal fixtures, migrated helpers | 1, 5, 6, 7, 9–13 |
 | `research/s1/s1_tests/test_s1_a3_*.py` (new) | journal, precedence, locks, trial, gate, slots, finalizer, stage, audit, prestart, stop, final, score, matrix, residual, codex_probes, mutants | each |
-| `research/s1/docs/s1_design_v5_addendum3_erratum1.md` (pending, BLK-1) | the adopted byte-frozen Erratum 1; pinned in DOC_PINS as ERRATUM1_SHA256 | 1 (precondition) |
+| `research/s1/docs/s1_design_v5_addendum3_erratum1.md` (adopted, de008b1) | the byte-frozen Erratum 1; pinned in DOC_PINS as b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f | 1 (precondition) |
 | `research/s1/s1_evidence/a3/` (new) | RED/GREEN/full outputs, old->new lists, hashes, historical probes, t11_dispositions.md (BLK-3), t2_examples.md (retained Hypothesis examples), t15 mutation reports with JUnit files and t15_agreed_assertions.json | each |
 | `research/s1/s1_evidence/cr_a3/<module>/cr.toml` (new) | Cosmic Ray 8.3.15 configs for the changed critical modules (test-command through `cr_guard`) | 15 |
 | `research/s1/s1_tests/cr_guard.py` (new, test tooling) | JUnit-based guard so Cosmic Ray never reports an error as a kill (A3-PR1-4) | 15 |
@@ -589,7 +610,7 @@ All test paths are under `research/s1/s1_tests/`. `[x]` names a parametrize id.
 
 | # | spec ref | requirement | test name | expected outcome | task | RED |
 |---|---|---|---|---|---|---|
-| 1 | A3.1, Erratum header | Addendum 3 sha256 d9dd3759… and Erratum 1 ERRATUM1_SHA256 join DOC_PINS; both byte copies hash to their pins | test_s1_a3_journal.py::test_bundle_pins_addendum3_and_lists_every_new_module | DOC_PINS["docs/s1_design_v5_addendum3.md"] == d9dd…; DOC_PINS["docs/s1_design_v5_addendum3_erratum1.md"] == sha256 of the adopted copy; bundle_problems == [] | T1 | B |
+| 1 | A3.1, Erratum header | Addendum 3 sha256 d9dd3759… and the adopted Erratum 1 b0346466… (de008b1) join DOC_PINS; both byte copies hash to their pins | test_s1_a3_journal.py::test_bundle_pins_addendum3_and_lists_every_new_module | DOC_PINS["docs/s1_design_v5_addendum3.md"] == d9dd…; DOC_PINS["docs/s1_design_v5_addendum3_erratum1.md"] == b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f; bundle_problems == [] | T1 | B |
 | 2 | A3.1 | every new s1_*.py is a listed bundle member | same test, extended in T3/T4/T6/T8; old->new test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes | BUNDLE_CODE lists s1_journal/s1_locks/s1_trial/s1_slot/s1_stage; `unexpected` == {} | T1,3,4,6,8 | B |
 | 3 | F0.1 | the only write is one INSERT inside BEGIN IMMEDIATE, s1->codex, key experiments-s1-journal | test_s1_a3_journal.py::test_append_is_one_insert_inside_begin_immediate | SQL trace: BEGIN IMMEDIATE, SELECT, one INSERT, COMMIT; stored sender/recipient/key exact; acknowledged NULL | T1 | B |
 | 4 | F0.1 | rows re-read inside the transaction; a concurrent appender is serialized, never forks | test_s1_a3_journal.py::test_concurrent_append_is_serialized_and_a_busy_mailbox_is_an_outage | the inner appender gets Outage during the outer transaction; final seq 1,2 chain verifies | T1 | B |
@@ -709,7 +730,7 @@ All test paths are under `research/s1/s1_tests/`. `[x]` names a parametrize id.
 | 118 | F4.9 | score abort: ABORTED s1.json stays in staging, no PREPARED, INVALID score-aborted | test_s1_a3_score.py::test_score_computation_error_is_invalid_score_aborted_with_no_numeric_score | as stated; evidence t13_score_aborted.txt | T13 | B |
 | 119 | F4.9, C-b | cutoff = INTENT's NY date, used as every CA end, recorded as publication_cutoff | test_s1_a3_audit.py::test_cutoff_is_the_intent_new_york_date_across_midnight[midnight,dst-fall-back]; test_s1_a3_final.py::test_cutoff_is_the_intent_new_york_date_across_midnight | publication_cutoff == INTENT NY date != reservation NY date | T9,T12 | B-old |
 | 120 | F4.9, C-e | cutoff positive same-day path, isolated | test_s1_a3_audit.py::test_cutoff_same_day_positive_path | equal dates; audit COMPLETE | T9 | ctrl |
-| 121 | F4.9 flagged, OQ-0, E3 (pending Codex acceptance of E3) | BLOCKED is a pre-INTENT refusal record, ACTIVE, never INVALID | rows 271–274 (E3.6) | as rows 271–274; not committed before adoption | T10 | B |
+| 121 | F4.9 flagged, OQ-0, E3 (accepted in the adopted Erratum 1, de008b1) | BLOCKED is a pre-INTENT refusal record, ACTIVE, never INVALID | rows 271–274 (E3.6) | as rows 271–274; not committed before adoption | T10 | B |
 | 122 | F4 table | no INTENT: an artifact for g is a violation after the AUDIT-ACK, a refusal before it | test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-after-audit-ack,no-intent-artifact-before-audit-ack] | INVALID registration-artifact / refusal | T8 | B |
 | 123 | F4 table | INTENT, no PREPARED, lock held -> pending; staging children tolerated | test_s1_a3_stage.py::test_stage_state_table[intent-lock-held] | refusal, no work | T8 | B |
 | 124 | F4 table | INTENT, no PREPARED, lock acquirable -> stage-incomplete | test_s1_a3_stage.py::test_stage_state_table[intent-lock-free] | INVALID stage-incomplete; no refetch | T8 | B |
@@ -879,13 +900,13 @@ All test paths are under `research/s1/s1_tests/`. `[x]` names a parametrize id.
 | 288 | PLAN-6 | Cosmic Ray on s1_stage.py | a3/t15_cr_s1_stage.txt | as row 284 | T15 | proc |
 | 289 | PLAN-6 | Cosmic Ray on the changed s1_seal.py functions (stop_record, decide_stop, stop_check, sampled_seals, sampled_history) | a3/t15_cr_s1_seal.txt | as row 284 | T15 | proc |
 | 290 | PLAN-6 | Cosmic Ray on the changed s1_collect.py functions (audit_policy, final_policy, _Authorizer, _get, _paged, do_audit, do_final) | a3/t15_cr_s1_collect.txt | as row 284 | T15 | proc |
-| 291 | PLAN-6, A3-PR1-4 | targeted mutant: deadline comparisons (`>=` -> `>`, `<` -> `<=`) in decide step 6, ×4 | test_s1_a3_mutants.py::test_targeted_mutant_is_killed[deadline-*] | label "killed" only per the JUnit classifier: mutation installed (anchor source hash differs; installed marker), unmutated control passes, the named killer test collected and set up OK and failed at its agreed assertion | T15 | B |
-| 292 | PLAN-6, A3-PR1-4 | targeted mutant: omitted commitments/ACKs (envelope input dropped, verify_ack field skipped, check_journal skipped, evidence-manifest check skipped) | …[omitted-*] | "killed" per the classifier (as row 291) | T15 | B |
-| 293 | PLAN-6, A3-PR1-4 | targeted mutant: STOP rules (STOP_N `>=` -> `>`, pending exclusion removed, prefix seq `<=` -> `<`, the E2.5 STOP fence removed) | …[stop-*] | "killed" per the classifier | T15 | B |
-| 294 | PLAN-6, A3-PR1-4 | targeted mutant: owner/takeover (4a actor check removed, TIMEOUT op check removed, recovery uses own op) | …[owner-*] | "killed" per the classifier | T15 | B |
-| 295 | PLAN-6, A3-PR1-4 | targeted mutant: wrong CA scope (window/full_history swapped; full_history start = window start) | …[scope-*] | "killed" per the classifier | T15 | B |
-| 296 | PLAN-6, A3-PR1-4 | targeted mutant: midnight cutoff from the reservation clock | …[cutoff-reservation-clock] | "killed" per the classifier | T15 | B |
-| 297 | PLAN-6, A3-PR1-4 | targeted mutants for the erratum: the finalizer takes the work lock; a seal stage's PREPARED ignores CLOSED/INVALID (closed_in skipped); a non-official CLOSE counts; the backup is dropped from the tree; a BLOCKED CLOSE is re-derived from a root (closure non-monotone) | …[erratum-*] | "killed" per the classifier | T15 | B |
+| 291 | PLAN-6, A3-PR1-4 | targeted mutant: deadline comparisons (`>=` -> `>`, `<` -> `<=`) in decide step 6, ×4 | test_s1_a3_mutants.py::test_targeted_mutant_is_killed[deadline-*] | label "killed" only per the revision-3 classifier (PLAN-R2-1): self-tests executed first (`classifier_validated`); the WHOLE unmutated selection passes (exit 0; every collect-only nodeid present with no failure/error/skip); mutation installed (anchor found, source sha256 differs); no `<error>` anywhere; the agreed killer, matched by its exact nodeid with parameter IDs through the documented xunit2 (classname, name) mapping, has a `<failure>` whose TERMINAL frame is the reviewed agreed `path:line` with AssertionError; JUnit, installation and output records kept with sha256 | T15 | B |
+| 292 | PLAN-6, A3-PR1-4 | targeted mutant: omitted commitments/ACKs (envelope input dropped, verify_ack field skipped, check_journal skipped, evidence-manifest check skipped) | …[omitted-*] | "killed" per the revision-3 classifier (exact nodeid, whole-selection control, terminal frame; see row 291) (as row 291) | T15 | B |
+| 293 | PLAN-6, A3-PR1-4 | targeted mutant: STOP rules (STOP_N `>=` -> `>`, pending exclusion removed, prefix seq `<=` -> `<`, the E2.5 STOP fence removed) | …[stop-*] | "killed" per the revision-3 classifier (exact nodeid, whole-selection control, terminal frame; see row 291) | T15 | B |
+| 294 | PLAN-6, A3-PR1-4 | targeted mutant: owner/takeover (4a actor check removed, TIMEOUT op check removed, recovery uses own op) | …[owner-*] | "killed" per the revision-3 classifier (exact nodeid, whole-selection control, terminal frame; see row 291) | T15 | B |
+| 295 | PLAN-6, A3-PR1-4 | targeted mutant: wrong CA scope (window/full_history swapped; full_history start = window start) | …[scope-*] | "killed" per the revision-3 classifier (exact nodeid, whole-selection control, terminal frame; see row 291) | T15 | B |
+| 296 | PLAN-6, A3-PR1-4 | targeted mutant: midnight cutoff from the reservation clock | …[cutoff-reservation-clock] | "killed" per the revision-3 classifier (exact nodeid, whole-selection control, terminal frame; see row 291) | T15 | B |
+| 297 | PLAN-6, A3-PR1-4 | targeted mutants for the erratum: the finalizer takes the work lock; a seal stage's PREPARED ignores CLOSED/INVALID (closed_in skipped); a non-official CLOSE counts; the backup is dropped from the tree; a BLOCKED CLOSE is re-derived from a root (closure non-monotone) | …[erratum-*] | "killed" per the revision-3 classifier (exact nodeid, whole-selection control, terminal frame; see row 291) | T15 | B |
 | 298 | PLAN-6, A3-PR1-3 | Hypothesis policy: `derandomize=True`, `database=None`, retained failures as `@example`; the decorated property is imported and EXECUTED in the pinned testenv (no settings or collection error), and its settings object is inspected | test_s1_a3_mutants.py::test_hypothesis_property_executes_with_the_pinned_settings | the property runs to completion; settings.derandomize is True and settings.database is None; every retained example is listed | T15 | B |
 | 299 | OQ-3 | op-reuse never hides a repeated opening subject | test_s1_a3_precedence.py::test_precedence_table[4b-si-repeat-with-reused-op,4b-gi-repeat-with-reused-op] | INVALIDATE repeat-attempt / repeat-stage | T2 | B |
 | 300 | OQ-8 (BLK-3) | lots: the earliest eligible close whose seal reaches 100 sold triggers | test_s1_a3_stop.py::test_stop_dispositions[lots-earliest] | STOPPED at that close; triggering slot = its first QUALIFIED | T11 | B |
@@ -927,11 +948,15 @@ All test paths are under `research/s1/s1_tests/`. `[x]` names a parametrize id.
 | 336 | E2.4 r3 (materialization) | "publication" is the committed PREPARED decision: a seal is authoritative only through its CREATED row; a QUALIFIED committed before the STOP whose close is determined after it gets no seal | test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified | INTENT refused; no file; no stop input | T7 | B |
 | 337 | E3.6 r3 (two-root lifecycle), A3-PR1-2 | root A BLOCKED, valid BLOCKED CLOSE, then root B write_plan + AUDIT-ACK: B is the unique open trial and A stays closed, rootless and from either root | test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone | open_trial == B (no root parameter exists); A.closed set, no problems | T4 | B |
 | 338 | E1.3 r3 oracle | after a committed TIMEOUT, a late-R (R >= D) QUALIFIED and a FAILED are LOST-RACE at 4c, before step 6 | test_s1_a3_precedence.py::test_precedence_table[4c-q-late-r-after-timeout,4c-f-after-timeout] | LOST-RACE | T2 | B |
-| 339 | A3-PR1-4 (harness self-test) | an injected collection ImportError, a missing fixture, a syntax error and a plugin error in the mutant run are labelled error/untested, never killed | test_s1_a3_mutants.py::test_classifier_self_tests[collection-error,missing-fixture,syntax-error,plugin-error] | label in {"error", "untested"} | T15 | B |
-| 340 | A3-PR1-4 (harness self-test) | an intended semantic regression produces the named failing assertion and is "killed"; a timeout is "timeout"; a hard crash is "crash"; an unchanged-source mutant is "not-installed" | test_s1_a3_mutants.py::test_classifier_self_tests[semantic-regression,timeout,crash,not-installed] | killed / timeout / crash / not-installed | T15 | B |
-| 341 | A3-PR1-4 (control) | a mutant whose unmutated control fails is "untested" (no claim); an "equivalent" label comes only from the reviewed equivalence list | test_s1_a3_mutants.py::test_classifier_self_tests[control-fails,equivalent-listed] | untested / equivalent | T15 | B |
+| 339 | A3-PR1-4, PLAN-R2-1 (harness self-test) | an injected collection ImportError, a missing fixture, a syntax error and a plugin error are labelled error/untested, never killed (run through the same run_child + classify as the product mutants) | test_s1_a3_mutants.py::test_classifier_self_tests[collection-error,missing-fixture,syntax-error,plugin-error] | label in {"error", "untested"} | T15 | B |
+| 340 | A3-PR1-4, PLAN-R2-1 (harness self-test) | an intended semantic regression failing at the agreed TERMINAL frame is "killed"; a timeout is "timeout"; a hard crash is "crash"; an unchanged-source mutant is "not-installed" | test_s1_a3_mutants.py::test_classifier_self_tests[semantic-regression,timeout,crash,not-installed] | killed / timeout / crash / not-installed | T15 | B |
+| 341 | A3-PR1-4, PLAN-R2-1 (control) | a mutant whose unmutated control fails is "untested" (no claim); an "equivalent" label comes only from the reviewed equivalence list | test_s1_a3_mutants.py::test_classifier_self_tests[control-fails,equivalent-listed] | untested / equivalent | T15 | B |
+| 342 | PLAN-R2-1 (1) exact killer nodeid / later parameter | Codex probe `synthetic-classifier` (verbatim): control `test_k[0]`,`test_k[1]` pass; mutant `[0]` passes and `[1]` fails at `test_synth.py:9`. With agreed nodeid `test_synth.py::test_k[1]` the label is KILLED; with agreed `[0]` it is SURVIVED (the agreed case itself passed); the collect-only nodeids map to xunit2 `(test_synth, test_k[0|1])` | test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[later-parameter-killed,later-parameter-agreed-case0-survived] | killed / survived (never the first-case shortcut of revision 2) | T15 | B |
+| 343 | PLAN-R2-1 (2) whole unmutated selection | a later control case failing (`test_k[1]` fails in the control) makes the run invalid: "untested", never killed | test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[later-control-failure] | untested | T15 | B |
+| 344 | PLAN-R2-1 (3) terminal assertion frame | Codex probe `synthetic-helper-frame` (verbatim): the failure's innermost frame is `helper_mod.py:4`; agreed `test_helper.py:3` (the caller) is FAILED-ELSEWHERE, agreed `helper_mod.py:4` (a reviewed helper oracle) is KILLED; Codex's `caller-frame.xml` text: terminal frame `helper.py:3`, a caller substring `test_synth.py:9` is not enough | test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[helper-frame-caller-agreed,helper-frame-helper-agreed,caller-frame-substring-xml] | failed-elsewhere / killed / not at agreed | T15 | B |
+| 345 | PLAN-R2-1 (5) self-tests executed first | the session fixture `classifier_validated` runs every classifier self-test (rows 339–344) in a child pytest with JUnit, requires exit 0 and exactly the expected number of passing cases (none missing, failed, errored or skipped), stores the JUnit file and its sha256 under `s1_evidence/a3/t15_selftests/`, and only then may any `test_targeted_mutant_is_killed` case compute a label; every mutant's control/mutant JUnit, installed.json, plugin and output are copied to `s1_evidence/a3/t15/<mutant>/` with a `record.json` of sha256 | test_s1_a3_mutants.py::test_targeted_mutant_is_killed[*] (fixture classifier_validated) | a failing self-test fails every mutant case with "no mutation outcome may be reported"; records present with hashes | T15 | B |
 
-Map rows: 341. Spec rules with no S1-testable counterpart are rows 153, 166 and 167 (`proc`) and row 176
+Map rows: 345. Spec rules with no S1-testable counterpart are rows 153, 166 and 167 (`proc`) and row 176
 (process evidence). Rows 284–290 are mutation-evidence rows (`proc`): a Cosmic Ray run is evidence, not a pass/fail
 test.
 
@@ -962,7 +987,7 @@ no longer depends on Task 6 or 7.)
     Needs 1–14.
 
 Start conditions (Blockers):
-- No task starts before BLK-1 (Erratum 1 adopted).
+- BLK-1 is resolved (Erratum 1 adopted, de008b1); tasks still wait for this plan's Codex sign-off.
 - Task 11 Steps 4–7 wait on BLK-3.
 
 ---
@@ -1002,16 +1027,14 @@ Start conditions (Blockers):
     `ctx_fn(rows, con) -> Context` runs inside the transaction;
   - `_connect_rw(mailbox, timeout)` and `_ro(mailbox)`: connection seams for the SQL-trace tests.
 - Produces (conftest): `MAILBOX_SCHEMA: str` (verbatim mailbox.py SCHEMA); `s1_mailbox_init(root) -> Path`.
-- Precondition (BLK-1): the adopted, byte-frozen Erratum 1 is at
-  `research/s1/docs/s1_design_v5_addendum3_erratum1.md`, committed by the controller as its own docs commit, the way
-  Addendum 3 was in 93f4c3e. Its sha256 is ERRATUM1_SHA256.
+- Precondition (BLK-1, resolved): the adopted, byte-frozen Erratum 1 is at
+  `research/s1/docs/s1_design_v5_addendum3_erratum1.md`, committed in de008b1, the way Addendum 3 was in 93f4c3e.
+  Its sha256 is `b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f`.
 
 - [ ] **Step 0: Erratum precondition.**
   - Run `sha256sum research/s1/docs/s1_design_v5_addendum3_erratum1.md > research/s1/s1_evidence/a3/t1_erratum_pin.txt`.
-  - If the file is absent, or the operator's adoption record names a different hash, STOP. Task 1 cannot be
-    committed before adoption.
-  - In the code and test below, replace the literal `ERRATUM1_SHA256` with the 64-hex value from
-    `t1_erratum_pin.txt`. That is the only permitted fill-in; nothing else in this plan is a placeholder.
+  - If the file is absent or its hash is not `b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f`,
+    STOP (a changed frozen copy is a new document needing its own adoption).
 
 - [ ] **Step 1: Interface stub.** Create `research/s1/s1_journal.py` with the final names and permissive bodies. It
   creates the file on read, has no grammar, no chain check, a deferred transaction, `seq` from a read made before
@@ -1276,7 +1299,7 @@ from conftest import s1_mailbox_init
 UTC = timezone.utc
 HERE = Path(__file__).resolve().parent.parent
 A3_SHA = "d9dd37595f0e0e73098ade1b8548e8cda2dc47fe49243f4d44735508029b9fb2"
-ERRATUM1 = "ERRATUM1_SHA256"        # Step 0: the 64-hex sha256 of the adopted byte-frozen Erratum 1 copy
+ERRATUM1 = "b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f"   # adopted Erratum 1 (de008b1)
 T0 = datetime(2026, 11, 2, 21, 45, 30, tzinfo=UTC)
 FAR = datetime(2030, 1, 1, tzinfo=UTC)
 TRIAL = "3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f"
@@ -1570,7 +1593,8 @@ DOC_PINS = {"docs/s1_design_v5.md": "33c3284072dc51392476f7cae596eab05f1fcbaccd6
             "docs/s1_design_v5_addendum1.md": "6cb89e36840975b8d949ec85debf9d2cedbe45bbeb9dcb374d91343dddc5e590",
             "docs/s1_design_v5_addendum2.md": "c7f0c3ffcd886b0f308c5f09bc0bfaca9977f8edae596bf51b30e28cb9ae3266",
             "docs/s1_design_v5_addendum3.md": "d9dd37595f0e0e73098ade1b8548e8cda2dc47fe49243f4d44735508029b9fb2",
-            "docs/s1_design_v5_addendum3_erratum1.md": "ERRATUM1_SHA256"}    # Step 0 fill-in (adopted copy)
+            "docs/s1_design_v5_addendum3_erratum1.md":
+                "b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f"}    # adopted copy (de008b1)
 ```
 
 The old->new edit to `test_s1_t12_a3_a8.py:28-29`:
@@ -1971,9 +1995,9 @@ gains `s1_journal.py`, and DOC_PINS gains the Addendum 3 and Erratum 1 pins. Rec
 into a tmp mailbox now fail on the PRIMARY KEY; that is a fixture incompatibility, fixed by giving them distinct ids.
 Then write `a3/t1_hashes.txt` (sha256 of every changed and evidence file).
 
-- [ ] **Step 8: Controller review and commit (only after BLK-1: Erratum 1 adopted and its byte-frozen copy
-  committed).**
-  - The controller confirms that `a3/t1_erratum_pin.txt` equals the adoption record's hash, reviews, asserts
+- [ ] **Step 8: Controller review and commit (BLK-1 is resolved: Erratum 1 adopted, frozen copy in de008b1).**
+  - The controller confirms that `a3/t1_erratum_pin.txt` equals
+    `b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f`, reviews, asserts
     `git rev-parse HEAD` before, then runs
     `git add research/s1/s1_journal.py research/s1/s1_common.py research/s1/s1_tests/conftest.py research/s1/s1_tests/test_s1_a3_journal.py research/s1/s1_tests/test_s1_t12_a3_a8.py research/s1/s1_evidence/a3/t1_*`.
   - Commit with the message `S1 A3 Task 1: journal primitive and Addendum 3 bundle pin`, a body that lists the map
@@ -3018,7 +3042,7 @@ ACK_FIELDS = {
 CHAIN = ("S1-AUDIT-ACK", "S1-OPENING-ACK", "S1-RUN-ACK", "S1-PREREG-ACK", "S1-ACQUIRE-ACK", "S1-SCORE-ACK")
 PRED = dict(zip(CHAIN[1:], CHAIN[:-1]))
 CLOSE_REASONS = ("SCORED", "ABORTED", "LOST", "OPENING-UNACKED", "INVALID", "WITHDRAWN",
-                 "BLOCKED")                                       # BLOCKED: E3.4, pending Codex acceptance of E3
+                 "BLOCKED")                                       # BLOCKED: E3.4, accepted in the adopted Erratum 1, de008b1
 
 
 class Refusal(SystemExit):
@@ -3918,8 +3942,8 @@ Add `"s1_trial.py"` to BUNDLE_CODE and to the test BUNDLE tuple.
   Save `a3/t4_full.txt`, `a3/t4_old_new.md` and `a3/t4_hashes.txt`.
 - [ ] **Step 7: Controller review and commit.** Message: `S1 A3 Task 4: trial identity, ACK grammar and chain, CLOSE,
   write_plan trial_id`, listing map rows 54, 138–143, 146, 148–150, 158, 159, 168, 170, 253, 273, 275–278, 318 and
-  337, with the Co-Authored-By line. Push and assert the HEAD SHA. (Row 273 implements E3.4 r3, pending Codex
-  acceptance of E3. The commit follows BLK-1 like every task.)
+  337, with the Co-Authored-By line. Push and assert the HEAD SHA. (Row 273 implements E3.4 of the adopted
+  Erratum 1, de008b1.)
 
 ---
 
@@ -8661,7 +8685,7 @@ comment:
   - start_attest stays SINGLE (OQ-15). `_opening_books` publishes `opening_books.json` before the start_attest
     INTENT: write once, or verify that an existing file equals the recomputation from the committed opening seal,
     otherwise refuse. Its sha256 is an envelope input and `attest_start.json`'s `opening_books_sha256`;
-  - the BLOCKED path follows E3, pending Codex acceptance of E3: a pre-INTENT refusal record over committed inputs
+  - the BLOCKED path follows E3, accepted in the adopted Erratum 1, de008b1: a pre-INTENT refusal record over committed inputs
     only, with no journal row; Step 4b.
 - Modify: `research/s1/s1_tests/conftest.py`. `s1_state` and `s1_register` issue the OPENING-ACK through `s1_ack`
   without `opening_slot` or `evidence_manifest_sha256` overrides (the token derives both). They issue it only after
@@ -8697,7 +8721,7 @@ comment:
 
     Relpaths are relative to s1_out; keys are sorted by `c.canonical`. Its sha256 is
     `c.sha256_bytes(c.canonical(...))`.
-  - `s1_run.blocked_reasons_record(out, cal) -> dict` (E3, pending Codex acceptance of E3): the pure recomputation
+  - `s1_run.blocked_reasons_record(out, cal) -> dict` (E3, accepted in the adopted Erratum 1, de008b1): the pure recomputation
     `{"trial_id", "reasons"}` from committed inputs only; and `s1_run.blocked_close_evidence(out) -> str`
     = `sha256(c.canonical({"trial_id", "reasons"}))` of it (E3.4 r1), which Task 4's CLOSE check calls.
 
@@ -9072,7 +9096,7 @@ SPLIT = {"id": "ca-split-1", "type": "forward_splits", "symbol": "CI", "ex_date"
 
 
 def test_blocked_prereg_is_a_pre_intent_refusal_record(tmp_path, monkeypatch):     # rows 121, 271, 326 (E3)
-    """E3 (pending Codex acceptance of E3): BLOCKED is a pre-INTENT refusal record - blocked.json, no journal row,
+    """E3 (accepted in the adopted Erratum 1, de008b1): BLOCKED is a pre-INTENT refusal record - blocked.json, no journal row,
     ACTIVE, never INVALID - with zero captures, provider requests and valuation calls."""
     st_ = s1_state(tmp_path, START, audit_actions=[SPLIT])
     n_rows = len(jrows(tmp_path))
@@ -9583,10 +9607,9 @@ def _opening_books(out, seal_p, seal) -> Path:
 
 Here `gv = s1_trial.gate(root, "prereg", mailbox=mailbox)` is the first statement of `do_prereg`.
 
-- [ ] **Step 4b: BLOCKED as a pre-INTENT refusal record (E3, pending Codex acceptance of E3).**
-  - Implement in the working tree with the rest of Task 10. This step's code must NOT be committed until Erratum 1
-    is adopted (BLK-1).
-  - If Codex amends E3 before adoption, rework this step and rows 271–274 to the amended text first.
+- [ ] **Step 4b: BLOCKED as a pre-INTENT refusal record (E3, accepted in the adopted Erratum 1, de008b1).**
+  - Implement with the rest of Task 10. BLK-1 is resolved (Erratum 1 adopted, de008b1), so it is committed with
+    Task 10 after the normal review.
 
 ```python
 def blocked_reasons_record(out, cal) -> dict:
@@ -9655,8 +9678,8 @@ def blocked_close_evidence(out) -> str:
 
   Record in `a3/t10_old_new.md` the Erratum 1 adoption state (and the adopted revision). Save `a3/t10_full.txt` and
   `a3/t10_hashes.txt`.
-- [ ] **Step 7: Controller review and commit.** This step waits for BLK-1 (Erratum 1 adopted, which also settles E3
-  and fixes E5.5). Message: `S1 A3 Task 10: opening seal, start_attest and prereg as stages; OPENING-ACK
+- [ ] **Step 7: Controller review and commit.** (BLK-1 is resolved: the adopted Erratum 1 settles E3 and fixes
+  E5.5.) Message: `S1 A3 Task 10: opening seal, start_attest and prereg as stages; OPENING-ACK
   verification and evidence manifest; E3 BLOCKED record`, listing map rows 81, 103–105, 121, 151, 152, 154–156,
   177, 178, 180, 249–252, 268–274, 279, 280, 316, 326–329, 332 and 333, with the Co-Authored-By line. Push and
   assert the HEAD SHA.
@@ -10313,7 +10336,7 @@ caller) also calls `decide_stop` after each `finalize_close`.
 - [ ] **Step 7: Controller review and commit.** Message: `S1 A3 Task 11: F2 stop record, TRIAL-STOP, stop.json gap
   recovery, stop_attest and final_plan stages`, listing map rows 55, 56, 62, 64–69, 106, 107, 131, 184, 185, 187,
   189–192, 262 (STOP-fence part), 300–305, 323 and 334, with the Co-Authored-By line. Push and assert the HEAD SHA.
-  This step waits for BLK-3 as well as BLK-1.
+  This step waits for BLK-3 (BLK-1 is resolved).
 
 ---
 
@@ -11447,6 +11470,7 @@ text, killer test). Never edits product files; tmp only."""
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -11456,7 +11480,7 @@ import pytest
 
 HERE = Path(__file__).resolve().parent.parent
 PY = sys.executable
-AGREED = HERE / "s1_evidence" / "a3" / "t15_agreed_assertions.json"   # {mutant: "test_file.py:LINE"} (reviewed)
+AGREED = HERE / "s1_evidence" / "a3" / "t15_agreed_assertions.json"   # {mutant: {"nodeid", "terminal"}} (reviewed)
 EQUIVALENT = {}                                                         # {mutant: reason} - reviewed list only
 MUTANTS = {
     # rows 291: deadline comparisons in decide step 6
@@ -11560,45 +11584,107 @@ with open(RECORD, "w", encoding="utf-8") as f:
 '''
 
 
-def run_child(tmp_path, test, plugin_text, *, timeout=1800, label="run"):
-    """One child pytest of exactly `test`, with JUnit XML; returns the raw facts (no interpretation)."""
-    d = tmp_path / label
-    d.mkdir()
-    (d / "s1_mutant_plugin.py").write_text(plugin_text, encoding="utf-8")
-    junit = d / "junit.xml"
-    env_pp = f"{d};{HERE};{HERE / 's1_tests'}"
-    try:
-        p = subprocess.run([PY, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-p", "conftest",
-                            "-p", "s1_mutant_plugin", f"--junitxml={junit}", test],
-                           cwd=HERE.parent.parent, env=dict(os.environ, PYTHONPATH=env_pp),
-                           capture_output=True, text=True, timeout=timeout)
-        rc, timed_out = p.returncode, False
-    except subprocess.TimeoutExpired:
-        rc, timed_out = None, True
-    return {"rc": rc, "timeout": timed_out, "junit": junit if junit.exists() else None,
-            "record": d / "installed.json"}
+# ---- revision 3 (PLAN-R2-1): exact nodeids, whole-selection control, TERMINAL assertion frame -----------------------
+JUNIT_OPTS = ["-o", "junit_family=xunit2", "-o", "junit_logging=no"]      # pinned explicitly, never the ini default
+TERMINAL = re.compile(r"^(?P<path>\S[^\n]*?):(?P<line>\d+): (?P<exc>[A-Za-z_][\w.]*)[ \t]*$", re.M)
 
 
-def _case(junit: Path, test: str):
-    """The killer testcase element (by its pytest nodeid's file and name), or None if not collected."""
-    file_, _, name = test.partition("::")
+def xunit2_key(nodeid: str) -> tuple:
+    """The documented xunit2 mapping (pytest's mangle_test_address): a nodeid `dir/test_m.py::Cls::test_f[ids]`
+    becomes classname `dir.test_m.Cls` (path relative to the run's rootdir, '/' -> '.', '.py' dropped, then every
+    class) and name `test_f[ids]` (parameter IDs kept verbatim). xunit2 writes no `file`/`line` attributes, so they
+    are never used; the testcase is identified only by this (classname, name) pair."""
+    path, _, rest = nodeid.partition("::")
+    parts = rest.split("::")
+    module = path[:-3] if path.endswith(".py") else path
+    return (".".join([module.replace("\\", "/").replace("/", ".")] + parts[:-1]), parts[-1])
+
+
+def junit_cases(junit: Path) -> dict:
+    """{(classname, name): <testcase>} for every testcase; a duplicate key is a structural error."""
+    got = {}
     for tc in ET.parse(junit).getroot().iter("testcase"):
-        if tc.get("name", "").split("[")[0] == name and tc.get("file", file_).endswith(Path(file_).name):
-            return tc
-    return None
+        key = (tc.get("classname", ""), tc.get("name", ""))
+        if key in got:
+            raise ValueError(f"duplicate JUnit testcase {key}")
+        got[key] = tc
+    return got
 
 
-def classify(name, control: dict, mutant: dict, test: str, agreed: str) -> str:
-    """A3-PR1-4 labels: killed | survived | error | untested | timeout | crash | not-installed | failed-elsewhere |
-    equivalent. 'killed' only with a passing control, a verified installation, the killer collected and set up OK,
-    and a <failure> at the agreed assertion file:line. Everything else is never a kill."""
+def terminal_frame(text: str):
+    """The innermost frame of a pytest long-repr failure: the LAST `path:line: ExcType` line (pytest prints that
+    reprcrash line for the frame that raised). Caller frames print `path:line: ` with no exception type and are
+    never matched. Returns (posix path, line, exception) or None."""
+    ms = list(TERMINAL.finditer(text or ""))
+    if not ms:
+        return None
+    m = ms[-1]
+    return (m.group("path").replace("\\", "/"), int(m.group("line")), m.group("exc"))
+
+
+def at_agreed(frame, agreed_terminal: str) -> bool:
+    """`agreed_terminal` is `path:line` (relative, posix). The frame's path must END with that path at a path
+    boundary and the line must be equal; the exception must be AssertionError."""
+    if frame is None:
+        return False
+    a_path, _, a_line = agreed_terminal.rpartition(":")
+    path, line, exc = frame
+    path_ok = path == a_path or path.endswith("/" + a_path)
+    return path_ok and line == int(a_line) and exc in ("AssertionError", "builtins.AssertionError")
+
+
+def run_child(cwd: Path, workdir: Path, selection: str, plugin_text: str, *, pythonpath: str, timeout=1800,
+              conftest=True) -> dict:
+    """One child pytest of exactly `selection` with JUnit XML (xunit2, pinned), preceded by a --collect-only run of
+    the same selection whose exact nodeids are the intended case set. Returns raw facts only."""
+    workdir.mkdir(parents=True, exist_ok=True)
+    (workdir / "s1_mutant_plugin.py").write_text(plugin_text, encoding="utf-8")
+    junit = workdir / "junit.xml"
+    env = dict(os.environ, PYTHONPATH=f"{workdir};{pythonpath}")
+    base = [PY, "-m", "pytest", "-q", "-p", "no:cacheprovider"] + (["-p", "conftest"] if conftest else [])
+    col = subprocess.run(base + ["--collect-only", "-q", selection], cwd=cwd, env=env, capture_output=True,
+                         text=True, timeout=600)
+    nodeids = [ln.strip() for ln in col.stdout.splitlines() if "::" in ln and not ln.startswith(" ")]
+    try:
+        p = subprocess.run(base + ["-p", "s1_mutant_plugin", f"--junitxml={junit}"] + JUNIT_OPTS + [selection],
+                           cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout)
+        rc, timed_out, out = p.returncode, False, p.stdout + p.stderr
+    except subprocess.TimeoutExpired:
+        rc, timed_out, out = None, True, ""
+    (workdir / "pytest-output.txt").write_text(out, encoding="utf-8")
+    return {"rc": rc, "timeout": timed_out, "junit": junit if junit.exists() else None,
+            "record": workdir / "installed.json", "nodeids": nodeids, "collect_rc": col.returncode}
+
+
+def control_valid(control: dict) -> bool:
+    """PLAN-R2-1 (2): the WHOLE unmutated selection passed - exit 0, the collect-only set non-empty, and every
+    intended nodeid present in the JUnit file with no failure, error or skipped child (not just the first case)."""
+    if control["timeout"] or control["rc"] != 0 or control["junit"] is None or control["collect_rc"] != 0:
+        return False
+    try:
+        cases = junit_cases(control["junit"])
+    except (ValueError, ET.ParseError):
+        return False
+    want = {xunit2_key(n) for n in control["nodeids"]}
+    return bool(want) and want == set(cases) and all(len(list(tc)) == 0 for tc in cases.values())
+
+
+def classify(name, control: dict, mutant: dict, agreed: dict) -> str:
+    """Labels: killed | survived | error | untested | timeout | crash | not-installed | failed-elsewhere |
+    equivalent. `agreed` = {"nodeid": the exact killer nodeid incl. parameter IDs, "terminal": "path:line" of the
+    TERMINAL assertion frame (a helper's own file:line when the oracle lives in a helper; reviewed)}.
+    'killed' only when: the whole control selection passed; the mutation is verified installed; the mutant run's
+    intended nodeid set equals the control's; no <error> anywhere (collection/setup/teardown); the agreed nodeid's
+    testcase has a <failure> whose innermost frame is the agreed path:line with AssertionError. Other cases of the
+    selection may pass or fail; only the agreed case decides. Nothing else is ever a kill."""
     if name in EQUIVALENT:
         return "equivalent"
-    if control["timeout"] or control["junit"] is None:
-        return "untested"
-    c_tc = _case(control["junit"], test)
-    if c_tc is None or list(c_tc):                                  # absent, or failure/error/skip in the control
-        return "untested"
+    if not control_valid(control):
+        return "untested"                                           # not a valid run: never killed
+    want = {xunit2_key(n) for n in control["nodeids"]}
+    key = xunit2_key(agreed["nodeid"])
+    if key not in want:
+        return "untested"                                           # the agreed case is not in the selection
     if mutant["timeout"]:
         return "timeout"
     if mutant["junit"] is None and mutant["rc"] in (2, 3, 4):
@@ -11611,37 +11697,103 @@ def classify(name, control: dict, mutant: dict, test: str, agreed: str) -> str:
         return "error"                                              # the plugin did not run (plugin/import error)
     if not (rec.get("anchor_found") and rec.get("installed")):
         return "not-installed"
-    tc = _case(mutant["junit"], test)
-    if tc is None:
-        return "untested" if not list(ET.parse(mutant["junit"]).getroot().iter("error")) else "error"
-    if tc.find("error") is not None:
-        return "error"                                              # collection / fixture / setup error
+    try:
+        cases = junit_cases(mutant["junit"])
+    except (ValueError, ET.ParseError):
+        return "error"
+    if any(tc.find("error") is not None for tc in cases.values()) or \
+            any(int(s.get("errors", "0")) for s in ET.parse(mutant["junit"]).getroot().iter("testsuite")):
+        return "error"                                              # collection / fixture / setup / teardown
+    if set(cases) != want:
+        return "untested"                                           # a case went missing or appeared
+    tc = cases[key]
     if tc.find("skipped") is not None:
         return "untested"
     fail = tc.find("failure")
     if fail is None:
         return "survived"
-    text = (fail.get("message") or "") + "\n" + (fail.text or "")
-    return "killed" if (agreed in text and "AssertionError" in text) else "failed-elsewhere"
+    frame = terminal_frame((fail.text or "") + "\n" + (fail.get("message") or ""))
+    return "killed" if at_agreed(frame, agreed["terminal"]) else "failed-elsewhere"
+
+
+def evidence_record(workdir: Path) -> dict:
+    """PLAN-R2-1 (5): keep the JUnit file, the installation record and the pytest output, with their sha256."""
+    got = {}
+    for n in ("junit.xml", "installed.json", "pytest-output.txt", "s1_mutant_plugin.py"):
+        p = workdir / n
+        got[n] = c_sha256(p) if p.exists() else None
+    return got
+
+
+def c_sha256(p: Path) -> str:
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+SELFTEST_EVIDENCE = HERE / "s1_evidence" / "a3" / "t15_selftests"
+
+
+@pytest.fixture(scope="session")
+def classifier_validated():
+    """PLAN-R2-1 (5): the classifier self-tests are EXECUTED (a child pytest of exactly them, JUnit kept with its
+    sha256 under s1_evidence/a3/t15_selftests/) before any mutation outcome is computed; any self-test failure,
+    error, skip or missing case aborts every mutant result."""
+    SELFTEST_EVIDENCE.mkdir(parents=True, exist_ok=True)
+    junit = SELFTEST_EVIDENCE / "junit.xml"
+    sel = ["research/s1/s1_tests/test_s1_a3_mutants.py", "-k",
+           "test_classifier_self_tests or test_classifier_terminal_frame_and_parameters"]
+    p = subprocess.run([PY, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-p", "conftest", f"--junitxml={junit}"]
+                       + JUNIT_OPTS + sel, cwd=HERE.parent.parent, capture_output=True, text=True, timeout=1800,
+                       env=dict(os.environ, PYTHONPATH=f"{HERE};{HERE / 's1_tests'}"))
+    (SELFTEST_EVIDENCE / "pytest-output.txt").write_text(p.stdout + p.stderr, encoding="utf-8")
+    cases = junit_cases(junit)
+    expected = len(SELF) + 2 + 6                     # every self-test case must have run (none missing or skipped)
+    ok = p.returncode == 0 and len(cases) == expected and all(len(list(tc)) == 0 for tc in cases.values())
+    (SELFTEST_EVIDENCE / "hashes.json").write_text(json.dumps(
+        {"junit.xml": c_sha256(junit), "cases": len(cases), "rc": p.returncode}, indent=1), encoding="utf-8")
+    assert ok, "classifier self-tests did not all pass: no mutation outcome may be reported"
+    return {"junit_sha256": c_sha256(junit), "cases": len(cases)}
 
 
 @pytest.mark.parametrize("name", sorted(MUTANTS))
-def test_targeted_mutant_is_killed(tmp_path, name):                                      # rows 291-297
+def test_targeted_mutant_is_killed(tmp_path, classifier_validated, name):               # rows 291-297
     target, old, new, test = MUTANTS[name]
-    test_path = f"research/s1/s1_tests/{test}"
-    agreed = json.loads(AGREED.read_text(encoding="utf-8"))[name]              # e.g. "test_s1_a3_x.py:123"
-    control = run_child(tmp_path, test_path, "", label="control")
+    agreed = json.loads(AGREED.read_text(encoding="utf-8"))[name]
+    # {"nodeid": "research/s1/s1_tests/<file>::<test>[<param ids>]", "terminal": "<path>:<line>"} (reviewed)
+    selection = f"research/s1/s1_tests/{test}"
+    pp = f"{HERE};{HERE / 's1_tests'}"
+    control = run_child(HERE.parent.parent, tmp_path / "control", selection, "", pythonpath=pp)
     plugin = PLUGIN.format(target=target, old=old, new=new, extra=EXTRA.get(name, ""),
                            record=str(tmp_path / "mutant" / "installed.json"))
-    mutant = run_child(tmp_path, test_path, plugin, label="mutant")
-    label = classify(name, control, mutant, test, agreed)
+    mutant = run_child(HERE.parent.parent, tmp_path / "mutant", selection, plugin, pythonpath=pp)
+    label = classify(name, control, mutant, agreed)
+    out = HERE / "s1_evidence" / "a3" / "t15" / name
+    out.mkdir(parents=True, exist_ok=True)
+    for side in ("control", "mutant"):
+        for f in (tmp_path / side).glob("*"):
+            (out / f"{side}-{f.name}").write_bytes(f.read_bytes())
+    (out / "record.json").write_text(json.dumps({
+        "label": label, "agreed": agreed, "selftests": classifier_validated,
+        "control": evidence_record(tmp_path / "control"), "mutant": evidence_record(tmp_path / "mutant"),
+        "nodeids": control["nodeids"]}, indent=1), encoding="utf-8")
     assert label == "killed", (name, label)
 ```
 
   The anchor strings are written against this plan's code. At Step 3 each one is checked against the final code: an
-  anchor that no longer occurs gives "not-installed", never a kill. Fix the anchor, not the classifier. The agreed
-  assertion `file:line` of each killer is recorded after its GREEN in `a3/t15_agreed_assertions.json` and reviewed;
-  a failure anywhere else is "failed-elsewhere". The mutated function is re-executed in the module's own namespace,
+  anchor that no longer occurs gives "not-installed", never a kill. Fix the anchor, not the classifier. For every
+  mutant, `a3/t15_agreed_assertions.json` records the exact killer nodeid, including parameter IDs, and the
+  TERMINAL assertion `path:line`. It is recorded after the killer's GREEN and reviewed by the controller. When the
+  oracle lives in a helper, the terminal entry names that helper's own `file:line`; a caller line never stands in
+  for it. A failure whose innermost frame is anywhere else is "failed-elsewhere".
+
+  The xunit2 mapping is fixed explicitly by `-o junit_family=xunit2`, whatever the ini says:
+  - classname = the nodeid path relative to rootdir, with `/` turned into `.` and `.py` dropped, followed by each
+    class;
+  - name = the function name with its `[param ids]`.
+
+  xunit2 has no `file` or `line` attributes, and none are read. Codex's two r2 probes, used as fixtures in rows
+  342–344, have exactly these shapes:
+  - `classname="test_synth" name="test_k[1]"`;
+  - `classname="test_helper" name="test_k"`. The mutated function is re-executed in the module's own namespace,
   so it replaces the original for every caller (a nested function is mutated by re-executing its enclosing
   factory, e.g. `stop_fence`). Methods are out of scope for this mechanism: their mutations are Cosmic Ray's.
 
@@ -11669,9 +11821,11 @@ SELF = {
 @pytest.mark.parametrize("kind", sorted(SELF) + ["control-fails", "equivalent-listed"])
 def test_classifier_self_tests(tmp_path, monkeypatch, kind):                             # rows 339-341
     """Codex's A3-PR1-4 examples: collection/fixture/syntax/plugin failures are error/untested, never killed; an
-    intended semantic regression failing at the agreed assertion is killed; timeout and crash are separate."""
+    intended semantic regression failing at the agreed terminal assertion is killed; timeout and crash are
+    separate. Revision 3: every child runs through the same run_child + classify the product mutants use."""
     proj = tmp_path / "proj"
     proj.mkdir()
+    (proj / "pytest.ini").write_text("[pytest]\n", encoding="utf-8")         # pins rootdir to proj
     (proj / "target_mod.py").write_text("def f():\n    return 1\n", encoding="utf-8")
     src, plug, want = SELF.get(kind, ("import target_mod\n\ndef test_k():\n    assert target_mod.f() == 1\n", "",
                                       None))
@@ -11680,16 +11834,17 @@ def test_classifier_self_tests(tmp_path, monkeypatch, kind):                    
     mutate = PLUGIN.format(target="target_mod.f", old="return 1", new="return 2", extra="", record=str(record))
     noanchor = PLUGIN.format(target="target_mod.f", old="return 99", new="return 2", extra="", record=str(record))
     plug_text = {"MUTATE": mutate, "NOANCHOR": noanchor}.get(plug, plug or mutate)
-    test = "test_synth.py::test_k"                                  # children run in proj only (run_child_in)
-    agreed = "test_synth.py:4"
+    agreed = {"nodeid": "test_synth.py::test_k", "terminal": "test_synth.py:4"}
     control_plugin = "" if kind != "control-fails" else "import target_mod\ntarget_mod.f = lambda: 0\n"
-    control = run_child_in(proj, tmp_path, test, control_plugin, "control", timeout=10)
-    mutant = run_child_in(proj, tmp_path, test, plug_text, "mutant", timeout=10)
+    control = run_child(proj, tmp_path / "control", "test_synth.py", control_plugin, pythonpath=str(proj),
+                        timeout=10, conftest=False)
+    mutant = run_child(proj, tmp_path / "mutant", "test_synth.py", plug_text, pythonpath=str(proj), timeout=10,
+                       conftest=False)
     if kind == "equivalent-listed":
         monkeypatch.setitem(EQUIVALENT, "synthetic", "listed for this self-test")
-        assert classify("synthetic", control, mutant, test, agreed) == "equivalent"
+        assert classify("synthetic", control, mutant, agreed) == "equivalent"
         return
-    got = classify("synthetic", control, mutant, test, agreed)
+    got = classify("synthetic", control, mutant, agreed)
     if kind == "control-fails":
         assert got == "untested"
     elif kind in ("collection-error", "missing-fixture", "syntax-error", "plugin-error"):
@@ -11698,23 +11853,74 @@ def test_classifier_self_tests(tmp_path, monkeypatch, kind):                    
         assert got == want
 
 
-def run_child_in(proj, tmp_path, test, plugin_text, label, timeout):
-    """run_child for a synthetic project directory (no conftest, no product code)."""
-    d = tmp_path / label
-    d.mkdir(exist_ok=True)
-    (d / "s1_mutant_plugin.py").write_text(plugin_text, encoding="utf-8")
-    junit = d / "junit.xml"
-    try:
-        p = subprocess.run([PY, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-p", "s1_mutant_plugin",
-                            f"--junitxml={junit}", test], cwd=proj,
-                           env=dict(os.environ, PYTHONPATH=f"{d};{proj}"), capture_output=True, text=True,
-                           timeout=timeout)
-        rc, timed_out = p.returncode, False
-    except subprocess.TimeoutExpired:
-        rc, timed_out = None, True
-    return {"rc": rc, "timeout": timed_out, "junit": junit if junit.exists() else None,
-            "record": d / "installed.json"}
+# ---- revision 3 self-tests (PLAN-R2-1 point 4): Codex's two r2 probes as fixtures, verbatim sources -------------
+PROBE_PARAM = (                      # s1_a3_plan_r2_codex_review_20261104/synthetic-classifier/test_synth.py
+    "import os\nimport pytest\n\ndef target(x):\n"
+    "    return -1 if os.environ.get(\"S1_CLASSIFIER_MUTATED\") == \"1\" and x == 1 else x\n\n"
+    "@pytest.mark.parametrize(\"x\", [0, 1])\ndef test_k(x):\n    assert target(x) == x\n")
+PROBE_HELPER_TEST = "from helper_mod import helper\ndef test_k():\n    assert helper() == 1\n"   # test_helper.py
+PROBE_HELPER_MOD = (                 # synthetic-helper-frame/helper_mod.py
+    "import os\ndef helper():\n    if os.environ.get(\"S1_CLASSIFIER_MUTATED\") == \"1\":\n"
+    "        assert False, \"unrelated helper invariant\"\n    return 1\n")
+FLAG_PLUGIN = (                      # the "mutation": an env flag, with a verified installation record
+    "import json, os\nos.environ['S1_CLASSIFIER_MUTATED'] = '1'\n"
+    "json.dump({{'anchor_found': True, 'installed': True, 'original_sha256': '1' * 64, "
+    "'mutated_sha256': '2' * 64}}, open({record!r}, 'w'))\n")          # (braces doubled for str.format)
+
+
+def _probe_project(tmp_path, files: dict) -> Path:
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    (proj / "pytest.ini").write_text("[pytest]\n", encoding="utf-8")
+    for n, src in files.items():
+        (proj / n).write_text(src, encoding="utf-8")
+    return proj
+
+
+@pytest.mark.parametrize("case", ["later-parameter-killed", "later-parameter-agreed-case0-survived",
+                                  "later-control-failure", "helper-frame-caller-agreed",
+                                  "helper-frame-helper-agreed", "caller-frame-substring-xml"])
+def test_classifier_terminal_frame_and_parameters(tmp_path, case):                      # rows 342-344
+    """PLAN-R2-1: exact nodeid with parameter IDs; the whole control selection; the TERMINAL frame."""
+    if case == "caller-frame-substring-xml":           # Codex's synthetic-classifier/caller-frame.xml, as text
+        text = ("test_synth.py:9: in test_k\n    assert helper()\nhelper.py:3: AssertionError: unrelated internal "
+                "assertion")
+        assert terminal_frame(text) == ("helper.py", 3, "AssertionError")
+        assert not at_agreed(terminal_frame(text), "test_synth.py:9")             # caller substring is not enough
+        return
+    helper = case.startswith("helper-frame")
+    proj = _probe_project(tmp_path, {"test_helper.py": PROBE_HELPER_TEST, "helper_mod.py": PROBE_HELPER_MOD}
+                          if helper else {"test_synth.py": PROBE_PARAM})
+    sel = "test_helper.py" if helper else "test_synth.py"
+    plug = FLAG_PLUGIN.format(record=str(tmp_path / "mutant" / "installed.json"))
+    control_plug = plug if case == "later-control-failure" else ""     # the control's case [1] fails too
+    control = run_child(proj, tmp_path / "control", sel, control_plug, pythonpath=str(proj), timeout=60,
+                        conftest=False)
+    mutant = run_child(proj, tmp_path / "mutant", sel, plug, pythonpath=str(proj), timeout=60, conftest=False)
+    agreed = {
+        "later-parameter-killed": {"nodeid": "test_synth.py::test_k[1]", "terminal": "test_synth.py:9"},
+        "later-parameter-agreed-case0-survived": {"nodeid": "test_synth.py::test_k[0]",
+                                                  "terminal": "test_synth.py:9"},
+        "later-control-failure": {"nodeid": "test_synth.py::test_k[1]", "terminal": "test_synth.py:9"},
+        "helper-frame-caller-agreed": {"nodeid": "test_helper.py::test_k", "terminal": "test_helper.py:3"},
+        "helper-frame-helper-agreed": {"nodeid": "test_helper.py::test_k", "terminal": "helper_mod.py:4"},
+    }[case]
+    want = {"later-parameter-killed": "killed",                        # case0 passes, case1 fails at agreed line
+            "later-parameter-agreed-case0-survived": "survived",       # the agreed case itself passed
+            "later-control-failure": "untested",                       # not a valid run: never killed
+            "helper-frame-caller-agreed": "failed-elsewhere",          # innermost frame is helper_mod.py:4
+            "helper-frame-helper-agreed": "killed"}[case]              # the reviewed helper oracle line
+    assert control["nodeids"] == ([f"{sel}::test_k"] if helper else [f"{sel}::test_k[0]", f"{sel}::test_k[1]"])
+    assert classify("probe", control, mutant, agreed) == want
 ```
+
+  The probe sources are copied verbatim from Codex's r2 records
+  (`synthetic-classifier/test_synth.py`, `synthetic-helper-frame/test_helper.py` and `helper_mod.py`). The mutation
+  is their `S1_CLASSIFIER_MUTATED=1` flag, set by the child plugin, with a verified installation record. The
+  expected JUnit shapes match Codex's `control.xml` and `mutant.xml`:
+  - two cases `test_k[0]` and `test_k[1]` under classname `test_synth`, where only `[1]` fails, with
+    `test_synth.py:9: AssertionError` as the terminal line;
+  - the helper failure ends at `helper_mod.py:4: AssertionError`, after the caller frame `test_helper.py:3: `.
 
   (For the semantic-regression self-test, the plugin writes `installed.json` into `mutant/`; `test_synth.py:4` is
   the `assert target_mod.f() == 1` line. The error kinds break the control too, so they classify as "untested" or
@@ -11754,15 +11960,18 @@ def test_hypothesis_property_executes_with_the_pinned_settings():
   database is used or kept (the `hypothesis_db/` evidence of revision 1 is dropped).
 - [ ] **Step 5: RED/GREEN record.** The behavioural RED of this task is the set of mutants: each must fail its killing
   test. A mutant that survives is a finding. Add a killing test to the owning task's file, then rerun. Save
-  `a3/t15_mutants.txt`, one line per mutant: the classifier label, the control outcome, the installation record
-  (anchor found, the original and mutated sha256), the killer test id and the agreed `file:line`, and the JUnit file
-  paths. Only "killed" counts as a kill. The classifier self-tests (rows 339–341) are run first; if any of them
-  fails, no mutant result is reported.
+  `a3/t15_mutants.txt`, one line per mutant: the classifier label, the control validity (exit code, nodeid set),
+  the installation record (anchor found, the original and mutated sha256), the agreed killer nodeid with
+  parameter IDs and the agreed TERMINAL `path:line`, the terminal frame actually found, and the evidence paths with
+  sha256 (from `s1_evidence/a3/t15/<mutant>/record.json`). Only "killed" counts as a kill. The classifier
+  self-tests (rows 339–344) are EXECUTED first by the `classifier_validated` fixture (row 345). Their JUnit file
+  and its sha256 are kept under `s1_evidence/a3/t15_selftests/`. If any of them fails, errors, skips or is
+  missing, every mutant case fails and no mutant result is reported.
 - [ ] **Step 6: Full suite and hashes.** Save `a3/t15_full.txt` and `a3/t15_hashes.txt`. Update `a3/old_new_all.md`
   with any killing test added in Step 2 or Step 5.
 - [ ] **Step 7: Controller review and commit.** Message: `S1 A3 Task 15: Cosmic Ray on the changed critical modules,
   targeted semantic mutants with the JUnit classifier, executed Hypothesis settings`, listing map rows 284–298 and
-  339–341, with the Co-Authored-By line. Push and assert the HEAD SHA.
+  339–345, with the Co-Authored-By line. Push and assert the HEAD SHA.
 
 ---
 
@@ -11781,12 +11990,11 @@ def test_hypothesis_property_executes_with_the_pinned_settings():
      `Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>`.
    - Push. Assert that HEAD moved by exactly one commit.
    - Blocker gates (no default reading exists any more):
-     - no task commits before BLK-1;
      - Task 11 Steps 4–7 do not start before BLK-3.
-     - (BLK-2 is resolved by Erratum 1 r1 E5.5.)
+     - (BLK-1 is resolved: Erratum 1 adopted, de008b1. BLK-2 is resolved by E5.5.)
+     - Code still waits for this plan's own Codex sign-off, then per-task and exact-head Codex code review.
 
-     A Codex ruling that amends E3 or E1–E5 before adoption reworks the affected task text first, through a new
-     plan revision.
+     Any later change to the adopted erratum is a new document needing its own adoption and a new plan revision.
 3. **Whole-branch review.**
    - After Task 15, one fresh reviewer reviews the whole branch from `93f4c3e` to the final head: the spec
      coverage (every map row has its test and evidence), the consolidated `a3/old_new_all.md`, and
@@ -11815,10 +12023,27 @@ def test_hypothesis_property_executes_with_the_pinned_settings():
    - No write to the real coordination mailbox by S1 code.
    - No provider request.
    - **R-3** (live scheduler timing) stays OPEN.
-   - **E3** (BLOCKED) is implemented but stays pending Codex acceptance of E3. It is settled only by Erratum 1's
-     adoption.
+   - **E3** (BLOCKED) is settled by the adopted Erratum 1 (de008b1); it adds no gate.
 
-## Plan self-review record (revision 2)
+## Plan self-review record (revision 3)
+- **Revision 3 coverage (Codex final 1a3838f6, PLAN-R2-1; adopted Erratum 1 b0346466…).**
+  - Point 1 (exact killer): `xunit2_key`, `junit_cases`, and the agreed `nodeid` with parameter IDs; the
+    collect-only set is the intended set; xunit2 is pinned and its mapping documented in Task 15 Step 3. Rows 291,
+    342.
+  - Point 2 (whole control): `control_valid` covers every case, not just the first. Rows 341, 343.
+  - Point 3 (terminal frame): `terminal_frame` and `at_agreed`; helper oracles are declared by the helper's own
+    `file:line`. Rows 291, 344.
+  - Point 4 (self-tests): Codex's two probes as fixtures (verbatim sources) plus the caller-frame XML text; the
+    revision 2 self-tests kept. Rows 339–344.
+  - Point 5 (executed first, records kept): the `classifier_validated` fixture and the evidence records with sha256.
+    Row 345, Step 5.
+  - BLK-1 resolved (R3-07); BLK-3 open; map rows 1–345, contiguous.
+  - Revision 3 limits: the classifier and self-tests are planned code and have not been executed here. Codex's
+    probes established the real xunit2 shapes they rely on: `classname="test_synth" name="test_k[1]"`, and a
+    terminal line `...test_synth.py:9: AssertionError` with a Windows backslash path, which `terminal_frame`
+    normalises.
+  - Revision 3 limits (continued): the collect-only nodeid form must use the same rootdir as the JUnit run. Both
+    children use the same cwd and ini, and the agreed nodeids are recorded in exactly the collect-only form.
 - **Revision 2 coverage (Codex final 3ddf7d83, Erratum 1 r3).**
   - A3-PR1-1: R2-01..R2-05; Tasks 2 (step-4a seal selection, step-5 STOP fence), 3 (seal lock names), 5
     (`product_context` passes `stage_check`/`stop_fence`), 6 (`required_seals` = CREATED seal stages), 7 (seal stage,
@@ -11840,9 +12065,9 @@ def test_hypothesis_property_executes_with_the_pinned_settings():
   - Rows 153, 166 and 167 are procedural (Codex's re-hash, Codex's issuance checks, R-3) and have no S1 test; the
     reason is stated in each row. Row 176 is a process-evidence row.
   - Rows 284–290 are mutation-evidence rows.
-  - Nothing is deliberately unimplemented. E3 is implemented, pending Codex acceptance of E3.
-- **Placeholders.** One permitted fill-in: `ERRATUM1_SHA256` (Task 1 Step 0, from the adopted copy of Erratum 1
-  revision 3, or of the revision actually adopted). Three pieces are explicitly not final:
+  - Nothing is deliberately unimplemented. E3 is implemented, accepted in the adopted Erratum 1, de008b1.
+- **Placeholders.** None for the erratum: revision 3 replaced every `ERRATUM1_SHA256` with the adopted hash
+  `b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f`. Three pieces are explicitly not final:
   - the BLK-3 stop dispositions (Task 11 `stop_record` and `a3_helpers.stop_history` expected values, fixed by
     Codex's acceptance of `t11_dispositions.md`);
   - the Task 15 mutant anchors, which are checked against the final code ("not-installed", never a kill);
