@@ -1,0 +1,78 @@
+..F.F                                                                    [100%]
+================================== FAILURES ===================================
+_____________ test_non_ascii_digits_are_not_grammar_digits[slot] ______________
+
+field = 'slot'
+
+    @pytest.mark.parametrize("field", ["seq", "at", "slot", "seal"])
+    def test_non_ascii_digits_are_not_grammar_digits(field):
+        """F0.2 bytes are ASCII: a Unicode digit (here ARABIC-INDIC DIGIT ONE, U+0661) is a deviation, never a digit."""
+        one = "\u0661"
+        ln = {"seq": base_line().replace(" seq=1 ", f" seq=1{one} "),
+              "at": base_line().replace(".000000+", f".00000{one}+"),
+              "slot": base_line().replace(SLOT, SLOT.replace("214500Z", f"21450{one}Z")),
+              "seal": base_line(kind="STAGE-INTENT", subject=f"stage/seal/2026-11-0{one}", detail="9" * 64)}[field]
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:154: Failed
+_________ test_mailbox_path_characters_cannot_change_the_file_or_mode _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20922/test_mailbox_path_characters_c0')
+
+    def test_mailbox_path_characters_cannot_change_the_file_or_mode(tmp_path):
+        """A `#` or `%` in the mailbox path must not truncate the sqlite URI (which would drop mode=ro and open, or
+        create, a different file)."""
+        d = tmp_path / "a#b%41"
+        d.mkdir()
+        with pytest.raises(j.Outage):
+            j.read_all(d / "mailbox.sqlite3")
+        before = sorted(p.name for p in tmp_path.rglob("*"))
+        mb = s1_mailbox_init(d)
+>       res = j.append(TRIAL, GEN, intent(), OPEN, mailbox=mb, clock=lambda: T0)
+
+research\s1\s1_tests\test_s1_a3_journal.py:167: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+trial_id = '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f'
+gen = '8a8e14ab7d8f1bf0d036f7a3adf875d5bdcc8a6d872ff27d98fba19702b11368'
+req = Request(kind='SLOT-INTENT', subject='slot/20261102T214500Z', op='11111111111111111111111111111111', actor='22222222222222222222222222222222', detail=None, detail_fn=None, r_at=None, inputs=None)
+ctx_fn = <function OPEN at 0x000001406F457BA0>
+
+    def append(trial_id: str, gen: str, req: Request, ctx_fn, *, mailbox=None, clock=None, timeout: float = 10.0) -> Result:
+        """F0.1/F0.5: validate, BEGIN IMMEDIATE, re-read and chain-verify the trial's rows, build the Context from that
+        state (`ctx_fn(rows, con)`), read the clock once (the row's `at`, OQ-7/26), decide, and INSERT at most one row
+        (the requested row on APPEND, the TRIAL-INVALID on INVALIDATE). Any exception rolls back: no row (F0.7)."""
+        validate_request(req)
+        clock = clock or c.now_utc
+        try:
+            con = _connect_rw(mailbox, timeout)
+        except sqlite3.Error as e:
+            raise Outage(f"mailbox not writable ({type(e).__name__}): no row") from None
+        try:
+            try:
+                con.execute("BEGIN IMMEDIATE")
+            except sqlite3.Error as e:
+                raise Outage(f"journal transaction not started ({type(e).__name__}): no row") from None
+            try:
+                rows = verify_chain(_rows_from(con), trial_id, gen)
+                ctx = ctx_fn(rows, con)
+                now = clock()
+                dec = decide(rows, req, ctx, now)
+                row = _insert(con, trial_id, gen, rows, req, dec, now) if dec.outcome in ("APPEND", "INVALIDATE") else None
+                con.execute("COMMIT")
+            except BaseException:
+                try:
+                    con.execute("ROLLBACK")
+                except sqlite3.Error:
+                    pass
+                raise
+        except sqlite3.Error as e:
+>           raise Outage(f"journal write failed ({type(e).__name__}): no row") from None
+E           s1_journal.Outage: journal write failed (OperationalError): no row
+
+research\s1\s1_journal.py:377: Outage
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_non_ascii_digits_are_not_grammar_digits[slot]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_mailbox_path_characters_cannot_change_the_file_or_mode
+2 failed, 3 passed, 50 deselected in 0.44s

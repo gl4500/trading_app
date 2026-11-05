@@ -1,0 +1,41 @@
+........................................................................ [  6%]
+........................................................................ [ 13%]
+........................................................................ [ 19%]
+........................................................................ [ 26%]
+........................................................................ [ 32%]
+........................................................................ [ 39%]
+........................................................................ [ 45%]
+........................................................................ [ 52%]
+........................................................................ [ 59%]
+........................................................................ [ 65%]
+........................................................................ [ 72%]
+........................................................................ [ 78%]
+........................................................................ [ 85%]
+........................................................................ [ 91%]
+........................................................................ [ 98%]
+............F...                                                         [100%]
+================================== FAILURES ===================================
+_______ test_m6_r_est_no_app_import_network_library_or_live_write_path ________
+
+    def test_m6_r_est_no_app_import_network_library_or_live_write_path():
+        """Task 11 (controller-added), m-6 - a static guard for R-EST (spec §2: offline, no live change, app import,
+        broker API or restart). It pins properties the code already has, so it passed before the fix round too (no RED).
+        - no product module imports the app (backend/agents/trading/...) or a network/async library;
+        - sqlite3.connect appears only in s1_snapshot (the online backup) and the mailbox reader, mode=ro (Task 12:
+          single-sourced as s1_common.mailbox_message, which s1_collect._ack now calls);
+        - only s1_checkpoint names the live DB path, and it never connects (it hands the path to s1_snapshot);
+        - requests are issued only by s1_collect, only through the injected `client`;
+        - subprocess only in s1_receipt (git / process table / runtime versions), no kill/restart command anywhere."""
+        assert {p.name for p in PRODUCT} >= {"s1_common.py", "s1_snapshot.py", "s1_books.py", "s1_seal.py",
+                                             "s1_receipt.py", "s1_checkpoint.py", "s1_collect.py", "s1_run.py"}
+        for p in PRODUCT:
+            t, src = _tree(p), p.read_text(encoding="utf-8")
+>           assert not _imports(t) & FORBIDDEN_TOP, (p.name, _imports(t) & FORBIDDEN_TOP)
+E           AssertionError: ('s1_journal.py', {'urllib'})
+E           assert not ({'dataclasses', 'datetime', 'pathlib', 're', 's1_common', 'sqlite3', ...} & {'agents', 'aiohttp', 'alpaca', 'alpaca_trade_api', 'asyncio', 'backend', ...})
+E            +  where {'dataclasses', 'datetime', 'pathlib', 're', 's1_common', 'sqlite3', ...} = _imports(<ast.Module object at 0x0000020B6B902010>)
+
+research\s1\s1_tests\test_s1_task11.py:685: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_task11.py::test_m6_r_est_no_app_import_network_library_or_live_write_path
+1 failed, 1095 passed in 922.15s (0:15:22)

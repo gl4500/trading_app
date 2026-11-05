@@ -22,6 +22,32 @@ SCHEMA = [
        pnl REAL DEFAULT 0)""",
 ]
 
+# Verbatim copy of mailbox.py SCHEMA (mailbox.py sha256 92b59ba92be9daddf593962460b904c95052d7d79f1f0914bd77239b00a3191b,
+# never imported by tests or product code; Task 1 evidence a3/t1_schema_parity.txt records the comparison).
+MAILBOX_SCHEMA = """
+CREATE TABLE IF NOT EXISTS messages (
+    id TEXT PRIMARY KEY,
+    sender TEXT NOT NULL,
+    recipient TEXT NOT NULL,
+    request_key TEXT,
+    body TEXT NOT NULL,
+    created REAL NOT NULL,
+    acknowledged REAL
+);
+CREATE INDEX IF NOT EXISTS ix_inbox ON messages(recipient, acknowledged, created);
+"""
+
+
+def s1_mailbox_init(root) -> Path:
+    """A3 test helper: <root>/mailbox.sqlite3 with the real mailbox schema (empty). Never the coordination mailbox."""
+    p = Path(root) / "mailbox.sqlite3"
+    con = sqlite3.connect(p)
+    try:
+        con.executescript(MAILBOX_SCHEMA)
+    finally:
+        con.close()
+    return p
+
 
 class Ledger:
     def __init__(self, path: Path):
@@ -70,6 +96,7 @@ def s1_tmp_mailbox(tmp_path):
     import s1_common
     had, old = hasattr(s1_common, "MAILBOX"), getattr(s1_common, "MAILBOX", None)
     s1_common.MAILBOX = tmp_path / "mailbox.sqlite3"
+    s1_mailbox_init(tmp_path)
     yield s1_common.MAILBOX
     if had:
         s1_common.MAILBOX = old
@@ -138,8 +165,7 @@ def _weekdays(first, last):
 
 def s1_mailbox(root, mid, body, created):
     con = sqlite3.connect(Path(root) / "mailbox.sqlite3")
-    con.execute("CREATE TABLE IF NOT EXISTS messages (id TEXT, sender TEXT, recipient TEXT, request_key TEXT, "
-                "body TEXT, created REAL, acknowledged REAL)")
+    con.executescript(MAILBOX_SCHEMA)
     con.execute("INSERT INTO messages VALUES (?,?,?,?,?,?,NULL)",
                 (mid, "codex", "claude", "experiments-prereg", body, created.timestamp()))
     con.commit()

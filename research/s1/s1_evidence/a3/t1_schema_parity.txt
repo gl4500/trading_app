@@ -1,0 +1,2 @@
+parity True
+92b59ba92be9daddf593962460b904c95052d7d79f1f0914bd77239b00a3191b *C:/Users/gl450/.coordination/trading_app/mailbox.py

@@ -1,0 +1,39 @@
+Task 1 RED labels (run against the Task 1 interface stub; raw output: t1_red.txt). 41 failed, 9 passed.
+No ImportError / AttributeError / NameError / collection error: every failure is behavioural.
+
+FAILED (behavioural RED, B):
+  test_line_rejects_every_grammar_deviation[*] (all 19 ids)      DID NOT RAISE ChainError (stub has no grammar)
+  test_malformed_seal_stage_subject_is_rejected[*] (9 ids)       DID NOT RAISE ChainError (B1, Erratum E2.1)
+  test_seal_subject_is_a_stage_subject_only                      DID NOT RAISE ChainError
+  test_genesis_is_the_sha256_of_the_audit_ack_line               AssertionError: genesis == "0"*64 != sha256
+  test_verify_chain_detects_gap_fork_duplicate_and_bad_prev      DID NOT RAISE ChainError (no chain check)
+  test_foreign_or_unparseable_row_..._chain_failure[*] (3 ids)   DID NOT RAISE ChainError (no OQ-4 check)
+  test_readers_are_mode_ro_and_never_create_the_mailbox          OperationalError, not Outage (file created)
+  test_append_is_one_insert_inside_begin_immediate               AssertionError: trace has no BEGIN IMMEDIATE
+  test_concurrent_append_is_serialized_and_a_busy_mailbox_...    AssertionError: inner append succeeded
+  test_at_is_the_in_transaction_clock_and_qualified_uses_r       AssertionError: clock read before BEGIN
+  test_detail_is_hashed_from_memory_not_reread_from_disk         AssertionError: detail_of not canonical
+  test_missing_mailbox_or_table_is_an_outage_with_no_row[*] (2)  OperationalError, not Outage
+
+PASSED on the stub (labelled):
+  test_bundle_pins_addendum3_and_lists_every_new_module          static (the s1_common pin edit is in place)
+  test_journal_module_never_updates_deletes_or_imports_mailbox   static (AST of the stub already satisfies it)
+  test_default_mailbox_is_the_tmp_redirect                       static (conftest redirect)
+  test_line_format_round_trip_exact_bytes                        ctrl (the stub's format_line is already exact)
+  test_seal_stage_subject_is_accepted_for_a_real_close_date[*]   ctrl (3 ids; the stub accepts every subject)
+  test_other_trials_rows_are_ignored_and_have_their_own_chain    ctrl (stub filters by trial_id)
+  test_acknowledged_column_never_changes_the_journal             ctrl (sequential append; stub ignores the column)
+
+Deviation tests (added after the plan draft; RED recorded against the plan's Step 4 draft with only the B1 seal
+grammar added, i.e. without re.ASCII and without URI escaping; raw output: t1_red_deviations.txt; 2 failed, 3 passed):
+  test_non_ascii_digits_are_not_grammar_digits[slot]             B: DID NOT RAISE ChainError (`\d` matched U+0661)
+  test_non_ascii_digits_are_not_grammar_digits[seq|at|seal]      ctrl (already rejected by [0-9] / fromisoformat)
+  test_mailbox_path_characters_cannot_change_the_file_or_mode    B: Outage on append (`#` truncated the URI)
+
+Existing-test RED (full suite run 1, raw output: t1_full_run1.txt; 1 failed, 1095 passed):
+  test_s1_task11.py::test_m6_r_est_no_app_import_network_library_or_live_write_path
+    run 1 failure: ('s1_journal.py', {'urllib'}) - my URI escaping used urllib (a forbidden import): regression,
+    fixed by escaping locally. After that fix it still failed on `assert not connects, "s1_journal.py"`: the guard
+    forbids sqlite3.connect outside s1_common/s1_snapshot. Classified: intended semantic change (Addendum 3 F0.1
+    makes s1_journal the one mailbox writer); the guard now admits s1_journal with exactly one mode=ro and one
+    mode=rw URI connect.

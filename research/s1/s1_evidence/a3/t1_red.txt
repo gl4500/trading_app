@@ -1,0 +1,591 @@
+..FFFFFFFFFFFFFFFFFFF...FFFFFFFFFFFF.FFF.FFFFFFF..                       [100%]
+================================== FAILURES ===================================
+_______ test_line_rejects_every_grammar_deviation[absent-on-qualified] ________
+
+case = 'absent-on-qualified'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+________ test_line_rejects_every_grammar_deviation[at-impossible-date] ________
+
+case = 'at-impossible-date'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+________ test_line_rejects_every_grammar_deviation[at-no-microseconds] ________
+
+case = 'at-no-microseconds'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+____________ test_line_rejects_every_grammar_deviation[at-not-utc] ____________
+
+case = 'at-not-utc'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+___________ test_line_rejects_every_grammar_deviation[at-z-suffix] ____________
+
+case = 'at-z-suffix'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+______ test_line_rejects_every_grammar_deviation[detail-on-slot-intent] _______
+
+case = 'detail-on-slot-intent'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+___________ test_line_rejects_every_grammar_deviation[double-space] ___________
+
+case = 'double-space'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+___________ test_line_rejects_every_grammar_deviation[extra-field] ____________
+
+case = 'extra-field'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+___________ test_line_rejects_every_grammar_deviation[field-order] ____________
+
+case = 'field-order'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+_________ test_line_rejects_every_grammar_deviation[seq-leading-zero] _________
+
+case = 'seq-leading-zero'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+_____________ test_line_rejects_every_grammar_deviation[seq-zero] _____________
+
+case = 'seq-zero'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+_____________ test_line_rejects_every_grammar_deviation[short-op] _____________
+
+case = 'short-op'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+____ test_line_rejects_every_grammar_deviation[slot-subject-on-stage-kind] ____
+
+case = 'slot-subject-on-stage-kind'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+_________ test_line_rejects_every_grammar_deviation[trailing-newline] _________
+
+case = 'trailing-newline'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+___________ test_line_rejects_every_grammar_deviation[unknown-kind] ___________
+
+case = 'unknown-kind'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+__________ test_line_rejects_every_grammar_deviation[unknown-reason] __________
+
+case = 'unknown-reason'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+__________ test_line_rejects_every_grammar_deviation[unknown-stage] ___________
+
+case = 'unknown-stage'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+__________ test_line_rejects_every_grammar_deviation[uppercase-hex] ___________
+
+case = 'uppercase-hex'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+___________ test_line_rejects_every_grammar_deviation[uuid-not-v4] ____________
+
+case = 'uuid-not-v4'
+
+    @pytest.mark.parametrize("case", sorted(BAD))
+    def test_line_rejects_every_grammar_deviation(case):
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:108: Failed
+_______ test_malformed_seal_stage_subject_is_rejected[seal/2026-13-40] ________
+
+stage = 'seal/2026-13-40'
+
+    @pytest.mark.parametrize("stage", BAD_SEAL)
+    def test_malformed_seal_stage_subject_is_rejected(stage):
+        """Erratum 1 E2.1 (controller ruling B1): anything but `seal/<real YYYY-MM-DD>` is not a seal stage."""
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:130: Failed
+____________ test_malformed_seal_stage_subject_is_rejected[seal/x] ____________
+
+stage = 'seal/x'
+
+    @pytest.mark.parametrize("stage", BAD_SEAL)
+    def test_malformed_seal_stage_subject_is_rejected(stage):
+        """Erratum 1 E2.1 (controller ruling B1): anything but `seal/<real YYYY-MM-DD>` is not a seal stage."""
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:130: Failed
+_______ test_malformed_seal_stage_subject_is_rejected[seal/2026-02-30] ________
+
+stage = 'seal/2026-02-30'
+
+    @pytest.mark.parametrize("stage", BAD_SEAL)
+    def test_malformed_seal_stage_subject_is_rejected(stage):
+        """Erratum 1 E2.1 (controller ruling B1): anything but `seal/<real YYYY-MM-DD>` is not a seal stage."""
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:130: Failed
+________ test_malformed_seal_stage_subject_is_rejected[seal/20261102] _________
+
+stage = 'seal/20261102'
+
+    @pytest.mark.parametrize("stage", BAD_SEAL)
+    def test_malformed_seal_stage_subject_is_rejected(stage):
+        """Erratum 1 E2.1 (controller ruling B1): anything but `seal/<real YYYY-MM-DD>` is not a seal stage."""
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:130: Failed
+________ test_malformed_seal_stage_subject_is_rejected[seal/2026-11-2] ________
+
+stage = 'seal/2026-11-2'
+
+    @pytest.mark.parametrize("stage", BAD_SEAL)
+    def test_malformed_seal_stage_subject_is_rejected(stage):
+        """Erratum 1 E2.1 (controller ruling B1): anything but `seal/<real YYYY-MM-DD>` is not a seal stage."""
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:130: Failed
+____________ test_malformed_seal_stage_subject_is_rejected[seal/] _____________
+
+stage = 'seal/'
+
+    @pytest.mark.parametrize("stage", BAD_SEAL)
+    def test_malformed_seal_stage_subject_is_rejected(stage):
+        """Erratum 1 E2.1 (controller ruling B1): anything but `seal/<real YYYY-MM-DD>` is not a seal stage."""
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:130: Failed
+_____________ test_malformed_seal_stage_subject_is_rejected[seal] _____________
+
+stage = 'seal'
+
+    @pytest.mark.parametrize("stage", BAD_SEAL)
+    def test_malformed_seal_stage_subject_is_rejected(stage):
+        """Erratum 1 E2.1 (controller ruling B1): anything but `seal/<real YYYY-MM-DD>` is not a seal stage."""
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:130: Failed
+______ test_malformed_seal_stage_subject_is_rejected[seal/2026-11-02/x] _______
+
+stage = 'seal/2026-11-02/x'
+
+    @pytest.mark.parametrize("stage", BAD_SEAL)
+    def test_malformed_seal_stage_subject_is_rejected(stage):
+        """Erratum 1 E2.1 (controller ruling B1): anything but `seal/<real YYYY-MM-DD>` is not a seal stage."""
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:130: Failed
+___ test_malformed_seal_stage_subject_is_rejected[seal/2026-11-02T00:00:00] ___
+
+stage = 'seal/2026-11-02T00:00:00'
+
+    @pytest.mark.parametrize("stage", BAD_SEAL)
+    def test_malformed_seal_stage_subject_is_rejected(stage):
+        """Erratum 1 E2.1 (controller ruling B1): anything but `seal/<real YYYY-MM-DD>` is not a seal stage."""
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:130: Failed
+__________________ test_seal_subject_is_a_stage_subject_only __________________
+
+    def test_seal_subject_is_a_stage_subject_only():
+        """A seal subject on a slot kind is rejected; a slot subject is never a seal stage."""
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:140: Failed
+______________ test_genesis_is_the_sha256_of_the_audit_ack_line _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_genesis_is_the_sha256_of_0')
+
+    def test_genesis_is_the_sha256_of_the_audit_ack_line(tmp_path):
+        mb = s1_mailbox_init(tmp_path)
+>       assert j.genesis(AUDIT_LINE) == GEN == j.line_sha256(AUDIT_LINE)
+E       AssertionError: assert '000000000000...0000000000000' == '8a8e14ab7d8f...ba19702b11368'
+E         
+E         - 8a8e14ab7d8f1bf0d036f7a3adf875d5bdcc8a6d872ff27d98fba19702b11368
+E         + 0000000000000000000000000000000000000000000000000000000000000000
+
+research\s1\s1_tests\test_s1_a3_journal.py:148: AssertionError
+__________ test_verify_chain_detects_gap_fork_duplicate_and_bad_prev __________
+
+    def test_verify_chain_detects_gap_fork_duplicate_and_bad_prev():
+        good = chained(3)
+        assert [r.seq for r in j.verify_chain(as_rows(good), TRIAL, GEN)] == [1, 2, 3]
+>       with pytest.raises(j.ChainError, match="gap"):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:170: Failed
+_ test_foreign_or_unparseable_row_under_the_journal_key_is_a_chain_failure[codex-codex-None] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_foreign_or_unparseable_ro0')
+sender = 'codex', recipient = 'codex', body = None
+
+    @pytest.mark.parametrize("sender,recipient,body", [("codex", "codex", None), ("s1", "claude", None),
+                                                        ("s1", "codex", "not a journal line")])
+    def test_foreign_or_unparseable_row_under_the_journal_key_is_a_chain_failure(tmp_path, sender, recipient, body):
+        """OQ-4: only s1->codex well-formed lines may sit under the journal key."""
+        mb = s1_mailbox_init(tmp_path)
+        put(mb, "m0", body or chained(1)[0], sender=sender, recipient=recipient)
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:197: Failed
+_ test_foreign_or_unparseable_row_under_the_journal_key_is_a_chain_failure[s1-claude-None] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_foreign_or_unparseable_ro1')
+sender = 's1', recipient = 'claude', body = None
+
+    @pytest.mark.parametrize("sender,recipient,body", [("codex", "codex", None), ("s1", "claude", None),
+                                                        ("s1", "codex", "not a journal line")])
+    def test_foreign_or_unparseable_row_under_the_journal_key_is_a_chain_failure(tmp_path, sender, recipient, body):
+        """OQ-4: only s1->codex well-formed lines may sit under the journal key."""
+        mb = s1_mailbox_init(tmp_path)
+        put(mb, "m0", body or chained(1)[0], sender=sender, recipient=recipient)
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:197: Failed
+_ test_foreign_or_unparseable_row_under_the_journal_key_is_a_chain_failure[s1-codex-not a journal line] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_foreign_or_unparseable_ro2')
+sender = 's1', recipient = 'codex', body = 'not a journal line'
+
+    @pytest.mark.parametrize("sender,recipient,body", [("codex", "codex", None), ("s1", "claude", None),
+                                                        ("s1", "codex", "not a journal line")])
+    def test_foreign_or_unparseable_row_under_the_journal_key_is_a_chain_failure(tmp_path, sender, recipient, body):
+        """OQ-4: only s1->codex well-formed lines may sit under the journal key."""
+        mb = s1_mailbox_init(tmp_path)
+        put(mb, "m0", body or chained(1)[0], sender=sender, recipient=recipient)
+>       with pytest.raises(j.ChainError):
+E       Failed: DID NOT RAISE <class 's1_journal.ChainError'>
+
+research\s1\s1_tests\test_s1_a3_journal.py:197: Failed
+____________ test_readers_are_mode_ro_and_never_create_the_mailbox ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_readers_are_mode_ro_and_n0')
+
+    def test_readers_are_mode_ro_and_never_create_the_mailbox(tmp_path):
+        missing = tmp_path / "absent.sqlite3"
+        with pytest.raises(j.Outage):
+>           j.read_all(missing)
+
+research\s1\s1_tests\test_s1_a3_journal.py:216: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_journal.py:169: in read_all
+    return _rows_from(con)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+con = <sqlite3.Connection object at 0x0000023D5EDF4A90>
+
+    def _rows_from(con) -> list:
+        out = []
+>       for mid, body, created in con.execute("SELECT id, body, created FROM messages WHERE request_key=?", (KEY,)):
+E       sqlite3.OperationalError: no such table: messages
+
+research\s1\s1_journal.py:161: OperationalError
+______________ test_append_is_one_insert_inside_begin_immediate _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_append_is_one_insert_insi0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000023D5F030170>
+
+    def test_append_is_one_insert_inside_begin_immediate(tmp_path, monkeypatch):
+        mb = s1_mailbox_init(tmp_path)
+        seen = []
+        real = j._connect_rw
+    
+        def traced(mailbox, timeout):
+            con = real(mailbox, timeout)
+            con.set_trace_callback(seen.append)
+            return con
+        monkeypatch.setattr(j, "_connect_rw", traced)
+        res = j.append(TRIAL, GEN, intent(), OPEN, mailbox=mb, clock=lambda: T0)
+>       assert res.outcome == "APPEND" and seen[0] == "BEGIN IMMEDIATE" and seen[-1] == "COMMIT"
+E       AssertionError: assert ('APPEND' == 'APPEND'
+E         
+E           APPEND and 'BEGIN ' == 'BEGIN IMMEDIATE'
+E         
+E         - BEGIN IMMEDIATE
+E         + BEGIN )
+
+research\s1\s1_tests\test_s1_a3_journal.py:239: AssertionError
+____ test_concurrent_append_is_serialized_and_a_busy_mailbox_is_an_outage _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_concurrent_append_is_seri0')
+
+    def test_concurrent_append_is_serialized_and_a_busy_mailbox_is_an_outage(tmp_path):
+        """F0.1 + Review Focus 1 + F8.3: a second writer while the first holds BEGIN IMMEDIATE is an Outage (no row), never
+        a fork; the chain stays contiguous."""
+        mb = s1_mailbox_init(tmp_path)
+        inner = {}
+    
+        def ctx_outer(rows, con):
+            try:
+                j.append(TRIAL, GEN, intent(SLOT2, op="3" * 32), OPEN, mailbox=mb, clock=lambda: T0, timeout=0.2)
+                inner["outcome"] = "appended"
+            except j.Outage as e:
+                inner["outcome"] = f"outage: {e}"
+            return OPEN(rows, con)
+        first = j.append(TRIAL, GEN, intent(), ctx_outer, mailbox=mb, clock=lambda: T0)
+>       assert inner["outcome"].startswith("outage") and first.row.seq == 1
+E       AssertionError: assert (False)
+E        +  where False = <built-in method startswith of str object at 0x0000023D5EEA6AB0>('outage')
+E        +    where <built-in method startswith of str object at 0x0000023D5EEA6AB0> = 'appended'.startswith
+
+research\s1\s1_tests\test_s1_a3_journal.py:260: AssertionError
+__________ test_at_is_the_in_transaction_clock_and_qualified_uses_r ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_at_is_the_in_transaction_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000023D5EEAA660>
+
+    def test_at_is_the_in_transaction_clock_and_qualified_uses_r(tmp_path, monkeypatch):
+        mb = s1_mailbox_init(tmp_path)
+        seen = []
+        real = j._connect_rw
+    
+        def traced(mailbox, timeout):
+            con = real(mailbox, timeout)
+            con.set_trace_callback(lambda s: seen.append(s.split(None, 1)[0].upper()))
+            return con
+        monkeypatch.setattr(j, "_connect_rw", traced)
+        reads = []
+    
+        def clock():
+            seen.append("CLOCK")
+            reads.append(T0 + timedelta(seconds=len(reads)))
+            return reads[-1]
+        a = j.append(TRIAL, GEN, intent(), OPEN, mailbox=mb, clock=clock)
+        r_ = T0 + timedelta(minutes=1, microseconds=7)
+        q = j.append(TRIAL, GEN, j.Request("SLOT-QUALIFIED", SLOT, OP, ACTOR, detail="9" * 64, r_at=r_), OPEN, mailbox=mb,
+                     clock=clock)
+        assert len(reads) == 2
+        first = seen[:seen.index("COMMIT") + 1]
+>       assert first.index("BEGIN") < first.index("CLOCK") < first.index("INSERT")
+E       AssertionError: assert 1 < 0
+E        +  where 1 = <built-in method index of list object at 0x0000023D5EF726C0>('BEGIN')
+E        +    where <built-in method index of list object at 0x0000023D5EF726C0> = ['CLOCK', 'BEGIN', 'INSERT', 'COMMIT'].index
+E        +  and   0 = <built-in method index of list object at 0x0000023D5EF726C0>('CLOCK')
+E        +    where <built-in method index of list object at 0x0000023D5EF726C0> = ['CLOCK', 'BEGIN', 'INSERT', 'COMMIT'].index
+
+research\s1\s1_tests\test_s1_a3_journal.py:288: AssertionError
+___________ test_detail_is_hashed_from_memory_not_reread_from_disk ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_detail_is_hashed_from_mem0')
+
+    def test_detail_is_hashed_from_memory_not_reread_from_disk(tmp_path):
+        obj = {"b": 1, "a": "x"}
+>       assert j.detail_of(obj) == c.sha256_bytes(c.canonical(obj)) == c.sha256_bytes(b'{"a":"x","b":1}')
+E       AssertionError: assert '8105addc5244...a5aa1f08cf84b' == 'cdab067e9f3b...4bb17f3864246'
+E         
+E         - cdab067e9f3beb32d1252cfd63e492592fecbf591b0d08cadb24bb17f3864246
+E         + 8105addc52445289c362743745eb9ebfe27266c211a49386197a5aa1f08cf84b
+
+research\s1\s1_tests\test_s1_a3_journal.py:295: AssertionError
+_______ test_missing_mailbox_or_table_is_an_outage_with_no_row[no-file] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_missing_mailbox_or_table_0')
+state = 'no-file'
+
+    @pytest.mark.parametrize("state", ["no-file", "no-table"])
+    def test_missing_mailbox_or_table_is_an_outage_with_no_row(tmp_path, state):
+        mb = tmp_path / "mb.sqlite3"
+        if state == "no-table":
+            sqlite3.connect(mb).close()
+        with pytest.raises(j.Outage):
+>           j.append(TRIAL, GEN, intent(), OPEN, mailbox=mb, clock=lambda: T0)
+
+research\s1\s1_tests\test_s1_a3_journal.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_journal.py:187: in append
+    rows = read_trial(trial_id, gen, mailbox)
+research\s1\s1_journal.py:179: in read_trial
+    return verify_chain(read_all(mailbox), trial_id, gen)
+research\s1\s1_journal.py:169: in read_all
+    return _rows_from(con)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+con = <sqlite3.Connection object at 0x0000023D5EF58F40>
+
+    def _rows_from(con) -> list:
+        out = []
+>       for mid, body, created in con.execute("SELECT id, body, created FROM messages WHERE request_key=?", (KEY,)):
+E       sqlite3.OperationalError: no such table: messages
+
+research\s1\s1_journal.py:161: OperationalError
+______ test_missing_mailbox_or_table_is_an_outage_with_no_row[no-table] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20917/test_missing_mailbox_or_table_1')
+state = 'no-table'
+
+    @pytest.mark.parametrize("state", ["no-file", "no-table"])
+    def test_missing_mailbox_or_table_is_an_outage_with_no_row(tmp_path, state):
+        mb = tmp_path / "mb.sqlite3"
+        if state == "no-table":
+            sqlite3.connect(mb).close()
+        with pytest.raises(j.Outage):
+>           j.append(TRIAL, GEN, intent(), OPEN, mailbox=mb, clock=lambda: T0)
+
+research\s1\s1_tests\test_s1_a3_journal.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_journal.py:187: in append
+    rows = read_trial(trial_id, gen, mailbox)
+research\s1\s1_journal.py:179: in read_trial
+    return verify_chain(read_all(mailbox), trial_id, gen)
+research\s1\s1_journal.py:169: in read_all
+    return _rows_from(con)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+con = <sqlite3.Connection object at 0x0000023D5EF597B0>
+
+    def _rows_from(con) -> list:
+        out = []
+>       for mid, body, created in con.execute("SELECT id, body, created FROM messages WHERE request_key=?", (KEY,)):
+E       sqlite3.OperationalError: no such table: messages
+
+research\s1\s1_journal.py:161: OperationalError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[absent-on-qualified]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[at-impossible-date]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[at-no-microseconds]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[at-not-utc]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[at-z-suffix]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[detail-on-slot-intent]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[double-space]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[extra-field]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[field-order]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[seq-leading-zero]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[seq-zero]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[short-op]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[slot-subject-on-stage-kind]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[trailing-newline]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[unknown-kind]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[unknown-reason]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[unknown-stage]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[uppercase-hex]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_line_rejects_every_grammar_deviation[uuid-not-v4]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_malformed_seal_stage_subject_is_rejected[seal/2026-13-40]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_malformed_seal_stage_subject_is_rejected[seal/x]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_malformed_seal_stage_subject_is_rejected[seal/2026-02-30]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_malformed_seal_stage_subject_is_rejected[seal/20261102]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_malformed_seal_stage_subject_is_rejected[seal/2026-11-2]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_malformed_seal_stage_subject_is_rejected[seal/]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_malformed_seal_stage_subject_is_rejected[seal]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_malformed_seal_stage_subject_is_rejected[seal/2026-11-02/x]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_malformed_seal_stage_subject_is_rejected[seal/2026-11-02T00:00:00]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_seal_subject_is_a_stage_subject_only
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_genesis_is_the_sha256_of_the_audit_ack_line
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_verify_chain_detects_gap_fork_duplicate_and_bad_prev
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_foreign_or_unparseable_row_under_the_journal_key_is_a_chain_failure[codex-codex-None]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_foreign_or_unparseable_row_under_the_journal_key_is_a_chain_failure[s1-claude-None]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_foreign_or_unparseable_row_under_the_journal_key_is_a_chain_failure[s1-codex-not a journal line]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_readers_are_mode_ro_and_never_create_the_mailbox
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_append_is_one_insert_inside_begin_immediate
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_concurrent_append_is_serialized_and_a_busy_mailbox_is_an_outage
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_at_is_the_in_transaction_clock_and_qualified_uses_r
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_detail_is_hashed_from_memory_not_reread_from_disk
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_missing_mailbox_or_table_is_an_outage_with_no_row[no-file]
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_missing_mailbox_or_table_is_an_outage_with_no_row[no-table]
+41 failed, 9 passed in 1.46s

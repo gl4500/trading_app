@@ -674,7 +674,9 @@ def test_m6_r_est_no_app_import_network_library_or_live_write_path():
     broker API or restart). It pins properties the code already has, so it passed before the fix round too (no RED).
     - no product module imports the app (backend/agents/trading/...) or a network/async library;
     - sqlite3.connect appears only in s1_snapshot (the online backup) and the mailbox reader, mode=ro (Task 12:
-      single-sourced as s1_common.mailbox_message, which s1_collect._ack now calls);
+      single-sourced as s1_common.mailbox_message, which s1_collect._ack now calls); Addendum 3 Task 1 (F0.1): plus
+      s1_journal, the one mailbox writer, with exactly one mode=ro reader and one mode=rw writer connect (a URI, so
+      the mailbox file is never created);
     - only s1_checkpoint names the live DB path, and it never connects (it hands the path to s1_snapshot);
     - requests are issued only by s1_collect, only through the injected `client`;
     - subprocess only in s1_receipt (git / process table / runtime versions), no kill/restart command anywhere."""
@@ -688,6 +690,10 @@ def test_m6_r_est_no_app_import_network_library_or_live_write_path():
         if p.name == "s1_common.py":
             assert len(connects) == 1 and "mode=ro" in ast.unparse(connects[0].args[0]) and \
                 any(kw.arg == "uri" and kw.value.value is True for kw in connects[0].keywords)
+        elif p.name == "s1_journal.py":                                  # Addendum 3 F0.1 (Task 1)
+            modes = sorted(ast.unparse(n.args[0]) for n in connects)
+            assert modes == ["_uri(mailbox, 'ro')", "_uri(mailbox, 'rw')"], modes
+            assert all(any(kw.arg == "uri" and kw.value.value is True for kw in n.keywords) for n in connects)
         elif p.name != "s1_snapshot.py":
             assert not connects, p.name
         if p.name != "s1_checkpoint.py":

@@ -26,7 +26,7 @@ OPEN_DAY = "2026-10-23"
 OPEN_CLOSE = datetime(2026, 10, 23, 20, 0, tzinfo=UTC)
 ADDENDUM_SHA = "6cb89e36840975b8d949ec85debf9d2cedbe45bbeb9dcb374d91343dddc5e590"
 BUNDLE = ("e1_fetch.py", "e1_sim.py", "s1_books.py", "s1_checkpoint.py", "s1_collect.py", "s1_common.py",
-          "s1_gates.py", "s1_receipt.py", "s1_run.py", "s1_seal.py", "s1_snapshot.py")
+          "s1_gates.py", "s1_journal.py", "s1_receipt.py", "s1_run.py", "s1_seal.py", "s1_snapshot.py")
 
 
 def read(p):
@@ -87,8 +87,8 @@ def break_bundle(monkeypatch, sha="f" * 64):
 # ====================================================================== A3.1 the bundle definition
 def test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes():
     """A3.1: the bundle = every research/s1 s1_*.py plus the pinned e1_sim.py/e1_fetch.py as an EXPLICIT expected
-    file list with sha256, plus the sha256 of the v5 design, the spec and this addendum (the addendum's own hash
-    included). Tests are not part of it."""
+    file list with sha256, plus the pinned document hashes (the v5 design, the spec, this addendum with its own hash,
+    and every later pinned addendum and erratum). Tests are not part of it."""
     assert tuple(sorted(c.BUNDLE_CODE)) == BUNDLE
     assert sorted(p.name for p in HERE.glob("s1_*.py")) == sorted(x for x in BUNDLE if x.startswith("s1_"))
     assert c.DOC_PINS["docs/s1_design_v5_addendum1.md"] == ADDENDUM_SHA
