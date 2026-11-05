@@ -4,6 +4,7 @@ Only the pure corporate-action functions of the hash-pinned E1 collector are reu
 the network helpers below are S1's own so nothing is written into E1's module-level folders or date span."""
 import json
 import sqlite3
+import uuid
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
@@ -16,7 +17,6 @@ CAL_URL = c.CAL_URL
 BARS_URL = "https://data.alpaca.markets/v2/stocks/bars"
 CA_URL = "https://data.alpaca.markets/v1/corporate-actions"
 AUDIT_ACK = c.AUDIT_ACK               # Task 12 (A3/A8): binds the bundle too; token texts single-sourced in s1_common
-ACQUIRE_ACK = c.ACQUIRE_ACK           # Task 11 I-4: binds attest_stop; Task 12 (A7.1): and the bundle
 ABSENT = c.ABSENT
 CA_FIXED = {"region": "us", "data_quality": "all", "sort": "asc", "limit": 1000}          # E1 CA_PARAMS
 LIMITS = ("Vendor coverage and publication lags are not guaranteed complete; corporate actions processed after "
@@ -66,7 +66,12 @@ def _ny_instant(day: str, hhmm: str) -> datetime:
     return datetime.combine(date.fromisoformat(day), time.fromisoformat(hhmm), tzinfo=c.NY).astimezone(timezone.utc)
 
 
-def write_plan(root, planned_start: datetime, opening_close: str, symbols, first_trade_date: str) -> Path:
+def write_plan(root, planned_start: datetime, opening_close: str, symbols, first_trade_date: str, *,
+               mailbox=None) -> Path:
+    """F9: the only command that runs without an open trial; it refuses once one is open (or the mailbox is
+    unreadable, OQ-20). No provider request, live callback, journal write or priced work. F6.2: the trial_id."""
+    import s1_trial                                    # late import: s1_trial imports s1_common only
+    s1_trial.require_no_open_trial(mailbox)
     if planned_start.tzinfo is None:
         raise ValueError("planned START must be an aware instant")
     now = c.now_utc()
@@ -75,6 +80,7 @@ def write_plan(root, planned_start: datetime, opening_close: str, symbols, first
     deadline = s1_seal.deadline(planned_start)                           # Task 12 (A5.1): an aware instant
     dl = (deadline.astimezone(c.NY).date() + timedelta(days=CAL_TAIL_DAYS)).isoformat()
     return _write_once(_out(root) / "plan.json", {
+        "trial_id": str(uuid.uuid4()),                               # F6.2: fixed here, carried by the AUDIT-ACK
         "planned_start": planned_start.isoformat(), "opening_close": opening_close, "created_utc": now.isoformat(),
         "deadline": deadline.isoformat(),
         "calendar_range": [_ny_date(now), dl], "ca_symbols": sorted(set(symbols)),

@@ -1,0 +1,160 @@
+FFF.......FFFFF..FFFFFFFFFFF.FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF......... [ 71%]
+.............................                                            [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:105: AssertionError: S1
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:121: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:121: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:146: Failed: DID NOT RAISE <class 'ValueError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:146: Failed: DID NOT RAISE <class 'ValueError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:146: Failed: DID NOT RAISE <class 'ValueError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:146: Failed: DID NOT RAISE <class 'ValueError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:146: Failed: DID NOT RAISE <class 'ValueError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:167: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_journal.py:264: sqlite3.OperationalError: unable to open database file
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:176: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:189: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:189: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:206: AssertionError: assert ('r1' == 'r1'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:211: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:211: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:211: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:224: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:229: assert False
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:248: AssertionError: []
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:248: AssertionError: []
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:248: AssertionError: []
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:274: AssertionError: assert (None is not None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:281: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:281: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:281: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:281: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:295: AssertionError: assert (None is not None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:306: AssertionError: assert '000000000000...0000000000000' == '81a362600625...23aaea3a5becb'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:306: AssertionError: assert '000000000000...0000000000000' == '5907689dd92e...b3db9e94d018b'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:306: AssertionError: assert '000000000000...0000000000000' == 'd7c7e7857b50...f93a86f8960bd'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:320: AssertionError: assert ('ea2dab64-8e3...-0cb63af2a77b' == 'a848e30d-77b...-b552580b68cc'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:342: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:360: AssertionError: assert False is True
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:375: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:412: AssertionError: assert ['a1', 'x1'] == ['a1']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:412: AssertionError: assert ['a1', 'x1'] == ['a1']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:412: AssertionError: assert ['a1', 'x1', 'x1', 'x1'] == ['a1']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:415: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:415: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:415: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:436: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:436: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:431: AssertionError: assert ('893edfa3-544...-22eafe183801' == '2b565421-e08...-69535d41228f'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:444: AssertionError: assert None == '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:462: AssertionError: assert '000000000000...0000000000000' == 'dc610ce48085...2efe6b9bb647f'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:462: AssertionError: assert '000000000000...0000000000000' == 'fffd670d7c69...74861b25d592a'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:462: AssertionError: assert '000000000000...0000000000000' == 'a8f21bff4ee2...6b0f209240f4c'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:495: AssertionError: assert None == 'S1'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:546: AssertionError: {}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_journal.py:68: AssertionError: assert 's1_trial.py' in ('e1_fetch.py', 'e1_sim.py', 's1_books.py', 's1_checkpoint.py', 's1_collect.py', 's1_common.py', ...)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_a3_a8.py:93: AssertionError: assert ('e1_fetch.py...mmon.py', ...) == ('e1_fetch.py...mmon.py', ...)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_a3_a8.py:123: AssertionError: assert ('3c4bb72e2504...3b4e8e4aa66f0' == '3c4bb72e2504...3b4e8e4aa66f0'
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-ACQUIRE-ACK]
+PASSED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-AUDIT-ACK]
+PASSED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-CLOSE-ACK]
+PASSED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-OPENING-ACK]
+PASSED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-PREREG-ACK]
+PASSED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-RUN-ACK]
+PASSED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-SCORE-ACK]
+PASSED research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[one]
+PASSED research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[zero]
+PASSED research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[ok]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_pinned_core_cache_is_keyed_by_resolved_path_and_approved_hash
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_opening_checkpoint_bundle_mismatch_refuses_with_zero_callbacks_and_no_abort
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[attest_start]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[do_prereg]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_score_bundle_mismatch_aborts_reserves_nothing_and_restoration_scores_aborted_invalid
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[seal]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[final_snapshot]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[final_manifest]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[prereg]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first[attest_stop]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first[write_final_plan]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first[final_snapshot]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_final_acquisition_verifies_the_bundle_before_any_request
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_audit_manifest_binds_the_plan_and_the_audit_ack_binds_the_bundle
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_attest_start_refuses_before_the_opening_seal_capture
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_hand_made_prereg_reaches_no_live_callback
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[plan_edited]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[attest_edited]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[books_edited]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_deleted]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_after_start]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_before_attestation]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[prereg_binding]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_valid_registration_reaches_the_capture
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[no_ack_recorded]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_missing_from_mailbox]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[plan_edited_after_audit]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_before_plan]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_after_reservation]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[manifest_plan_sha]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[raw_page_tampered]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[calendar_source_tampered]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_do_audit_checks_the_ack_is_after_the_plan
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_score_reverifies_the_run_ack_before_reserving
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_genuine_bootstrap_through_s1_register_then_checkpoint
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_write_plan_records_a_uuid4_trial_id_and_makes_no_request_callback_or_journal_write
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_write_plan_refuses_with_an_open_trial_or_an_unreadable_mailbox[open]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_write_plan_refuses_with_an_open_trial_or_an_unreadable_mailbox[outage]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[extra]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[missing]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[reordered]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[bad-hex]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[bad-uuid]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[two]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[outage]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_duplicate_trial_id_refuses_every_trial_with_that_id
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_second_ack_of_a_kind_refuses_even_byte_identical[distinct]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_second_ack_of_a_kind_refuses_even_byte_identical[identical]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[ok]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[prev-not-predecessor]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[wrong-bundle]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[no-predecessor]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_created_not_after_its_predecessor_or_referenced_row_refuses[equal-pred]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_ack_created_not_after_its_predecessor_or_referenced_row_refuses[before-row]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[seq-beyond]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[forked]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[valid]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[prev-not-latest]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[before-audit]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[wrong-bundle]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[duplicate]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_closed_is_layered_on_the_journal_state
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_evidence_hashes[SCORED]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_evidence_hashes[INVALID]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_evidence_hashes[WITHDRAWN]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_other_trials_acks_and_rows_never_count_even_with_the_same_bundle
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_verify_ack_binds_the_expected_fields_and_refuses_a_future_ack
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_closed_in_reads_the_closes_on_the_given_connection
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_token_builds_the_exact_line_and_refuses_without_a_predecessor
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-role-close]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-key-close]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[peer-draft]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[indented-line]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[quoted-line]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[historical-other-trial]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_malformed_candidate_refuses_its_own_trial_or_all[attributable]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_malformed_candidate_refuses_its_own_trial_or_all[unattributable]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_malformed_candidate_refuses_its_own_trial_or_all[names-another-trial]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_attribution_grammar_is_the_e43_grammar
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_blocked_is_validated_like_every_close[ok]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_blocked_is_validated_like_every_close[wrong-prev]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_close_blocked_is_validated_like_every_close[wrong-bundle]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_opening_receipt_sha256_is_the_raw_file_hash
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_bundle_pins_addendum3_and_lists_every_new_module
+FAILED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes
+FAILED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle
+53 failed, 48 passed in 34.07s

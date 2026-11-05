@@ -201,7 +201,7 @@ def test_a4_1_prereg_bounds_the_opening_audit_to_actions_effective_before_start(
     st_ = s1_state(tmp_path, START, audit_actions=[split("CI", D[2])])
     with __import__("conftest")._Clock(st_["start"] - td(days=1)):
         pr = r.do_prereg(tmp_path, "run-ack", __import__("conftest").S1_RECEIPT)
-    assert pr["trial_id"] == "S1"
+    assert pr["trial_id"] == __import__("json").loads((tmp_path / "s1_out" / "plan.json").read_text("utf-8"))["trial_id"]
 
 
 def test_a4_the_task7_c2_fifo_untrust_rule_is_replaced():

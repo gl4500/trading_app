@@ -13,7 +13,7 @@ import pytest
 
 import s1_common as c
 import s1_run as r
-from conftest import S1_RECEIPT, _Clock, s1_state
+from conftest import S1_RECEIPT, _Clock, s1_mailbox_init, s1_state
 from test_s1_t12_fix2_b3 import MON, _aborted, _cp
 from test_s1_t12_fix4 import START, START_DT
 
@@ -109,7 +109,7 @@ def template(tmp_path_factory):
     synthetic mailbox)."""
     root = tmp_path_factory.mktemp("fix8_template")
     old = c.MAILBOX
-    c.MAILBOX = root / "mailbox.sqlite3"
+    c.MAILBOX = s1_mailbox_init(root)      # Task 4: write_plan reads the mailbox (F9), so it must exist
     try:
         _registered(root)
     finally:

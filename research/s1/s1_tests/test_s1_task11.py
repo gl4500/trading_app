@@ -452,7 +452,8 @@ def test_i4_acquire_ack_binds_the_stop_attestation_and_do_final_records_the_plan
     st_ = _acquire_ready(tmp_path)
     out = tmp_path / "s1_out"
     tok = k.acquire_token(tmp_path)
-    assert f"attest_stop_sha256={sha(out / 'attest_stop.json')}" in tok and "{attest}" in k.ACQUIRE_ACK
+    assert (f"attest_stop_sha256={sha(out / 'attest_stop.json')}" in tok
+            and "attest_stop_sha256" in __import__("s1_trial").ACK_FIELDS["S1-ACQUIRE-ACK"])
     s1_mailbox(tmp_path, "acq", tok, st_["now"] - timedelta(hours=1))
     calls = []
     with _Clock(st_["now"]):

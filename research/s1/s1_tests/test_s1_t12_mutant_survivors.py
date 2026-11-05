@@ -225,7 +225,8 @@ def test_ms_an_action_effective_on_the_start_day_does_not_block_the_registration
     st_ = s1_state(tmp_path, START, audit_actions=[{"type": "forward_splits", "id": "s", "symbol": "CI",
                                                     "ex_date": "2026-10-26", "old_rate": 1, "new_rate": 2}])
     with _Clock(START_DT - timedelta(days=1)):
-        assert r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)["trial_id"] == "S1"
+        assert (r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)["trial_id"]
+                == json.loads((tmp_path / "s1_out" / "plan.json").read_text(encoding="utf-8"))["trial_id"])
     assert r._pre_start_day(START_DT) == "2026-10-25"
 
 

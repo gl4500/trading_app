@@ -51,7 +51,7 @@ _CACHE = {}
 # runtime dependencies: never listed.
 BUNDLE_CODE = ("e1_fetch.py", "e1_sim.py", "s1_books.py", "s1_checkpoint.py", "s1_collect.py", "s1_common.py",
                "s1_gates.py", "s1_journal.py", "s1_locks.py", "s1_receipt.py", "s1_run.py", "s1_seal.py",
-               "s1_snapshot.py")
+               "s1_snapshot.py", "s1_trial.py")
 DOC_PINS = {"docs/s1_design_v5.md": "33c3284072dc51392476f7cae596eab05f1fcbaccd622abbe05c6e6a198cbb9b",
             "docs/s1_spec.md": "4b882f52a448dbf2d30583828c5085a636009f6c8db7b18307bc6e9991529c98",
             "docs/s1_design_v5_addendum1.md": "6cb89e36840975b8d949ec85debf9d2cedbe45bbeb9dcb374d91343dddc5e590",
@@ -63,14 +63,10 @@ MISSING = "missing"
 ABSENT = "absent"                     # token placeholder for an artifact that does not exist
 
 # ---------------------------------------------------------------- A8: ACK token texts (one source)
-AUDIT_ACK = "S1-AUDIT-ACK collector_sha256={collector} plan_sha256={plan} bundle_sha256={bundle} start={start}"
-RUN_ACK = ("S1-RUN-ACK runner_sha256={runner} plan_sha256={plan} audit_manifest_sha256={audit} "
-           "attest_start_sha256={attest} opening_seal_sha256={opening_seal} opening_books_sha256={books} "
-           "bundle_sha256={bundle} start={start}")
-ACQUIRE_ACK = ("S1-ACQUIRE-ACK collector_sha256={collector} final_plan_sha256={plan} prereg_sha256={prereg} "
-               "attest_stop_sha256={attest} bundle_sha256={bundle}")
-SCORE_ACK = ("S1-SCORE-ACK runner_sha256={runner} final_manifest_sha256={final} stop_attest_sha256={attest} "
-             "final_snapshot_sha256={snap} stop_sha256={stop} bundle_sha256={bundle}")
+# Addendum 3 F6.1/F6.2 (OQ-5): the AUDIT-ACK carries the plan's trial_id first, in the s1_trial.ACK_FIELDS order.
+# The RUN/ACQUIRE/SCORE texts are s1_trial.ACK_FIELDS; their tokens come from s1_trial.token.
+AUDIT_ACK = ("S1-AUDIT-ACK trial_id={trial} bundle_sha256={bundle} collector_sha256={collector} plan_sha256={plan} "
+             "start={start}")
 
 
 def now_utc() -> datetime:
@@ -333,35 +329,25 @@ def opening_seal_path(out: Path, plan: dict) -> Path:
 def audit_token(out: Path) -> str:
     out = Path(out)
     plan = load_json(out / "plan.json")
-    return AUDIT_ACK.format(collector=sha256_file(HERE / "s1_collect.py"), plan=sha256_file(out / "plan.json"),
-                            bundle=bundle_sha256(), start=plan["planned_start"])
+    return AUDIT_ACK.format(trial=plan["trial_id"], collector=sha256_file(HERE / "s1_collect.py"),
+                            plan=sha256_file(out / "plan.json"), bundle=bundle_sha256(), start=plan["planned_start"])
 
 
-def run_token(out: Path) -> str:
-    out = Path(out)
-    plan = load_json(out / "plan.json")
-    return RUN_ACK.format(runner=sha256_file(HERE / "s1_run.py"), plan=sha256_file(out / "plan.json"),
-                          audit=sha256_file(out / "audit" / "manifest.json"),
-                          attest=sha_or_absent(out / "attest_start.json"),
-                          opening_seal=sha_or_absent(opening_seal_path(out, plan)),
-                          books=sha_or_absent(out / "opening_books.json"), bundle=bundle_sha256(),
-                          start=plan["planned_start"])
+def _trial_token(kind: str, out: Path, mailbox=None) -> str:
+    import s1_trial                                    # late import: s1_trial imports this module
+    return s1_trial.token(kind, Path(out).parent, mailbox=mailbox)
 
 
-def acquire_token(out: Path) -> str:
-    out = Path(out)
-    return ACQUIRE_ACK.format(collector=sha256_file(HERE / "s1_collect.py"),
-                              plan=sha256_file(out / "final_plan.json"), prereg=sha256_file(out / "prereg.json"),
-                              attest=sha_or_absent(out / "attest_stop.json"), bundle=bundle_sha256())
+def run_token(out: Path, mailbox=None) -> str:
+    return _trial_token("S1-RUN-ACK", out, mailbox)
 
 
-def score_token(out: Path) -> str:
-    out = Path(out)
-    return SCORE_ACK.format(runner=sha256_file(HERE / "s1_run.py"),
-                            final=sha_or_absent(out / "final" / "manifest.json"),
-                            attest=sha_or_absent(out / "attest_stop.json"),
-                            snap=sha_or_absent(out / "final_snapshot" / "report.json"),
-                            stop=sha_or_absent(out / "stop.json"), bundle=bundle_sha256())
+def acquire_token(out: Path, mailbox=None) -> str:
+    return _trial_token("S1-ACQUIRE-ACK", out, mailbox)
+
+
+def score_token(out: Path, mailbox=None) -> str:
+    return _trial_token("S1-SCORE-ACK", out, mailbox)
 
 
 def registration(out: Path, mailbox=None) -> dict:

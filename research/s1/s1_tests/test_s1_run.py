@@ -215,7 +215,8 @@ def test_attest_start_requires_exact_statement_once_and_before_start(tmp_path, m
     s1_state(tmp_path, START)
     out = tmp_path / "s1_out"
     a = read(out / "attest_start.json")
-    assert a["statement"] == r.START_STATEMENT and a["trial_id"] == "S1" and a["planned_start"] == START
+    assert a["statement"] == r.START_STATEMENT and a["trial_id"] == read(out / "plan.json")["trial_id"]
+    assert a["planned_start"] == START
     assert a["plan_sha256"] == s1_common.sha256_file(out / "plan.json")
     assert a["audit_manifest_sha256"] == s1_common.sha256_file(out / "audit" / "manifest.json")
     assert a["opening_seal_sha256"] == s1_common.sha256_file(out / "seals" / "2026-10-23.json")
@@ -1009,7 +1010,8 @@ def test_cr_attest_start_statement_receipt_and_clock(tmp_path, monkeypatch):
     at(monkeypatch, START_DT - timedelta(days=1))
     p = out / "seals" / "2026-10-23.json"
     good = p.read_text(encoding="utf-8")
-    assert r.attest_start(tmp_path, _fresh(r.START_STATEMENT), S1_RECEIPT)["trial_id"] == "S1"
+    assert (r.attest_start(tmp_path, _fresh(r.START_STATEMENT), S1_RECEIPT)["trial_id"]
+            == read(out / "plan.json")["trial_id"])
     # (fix round 2, B3.3: an edited registered opening seal is now the persistent "registration artifact" abort -
     # observed first, before the attestation's own receipt-vs-seal comparison; restoring does not resume)
     s1_unattest(tmp_path, books=False)
@@ -1502,7 +1504,7 @@ def test_fr1_gate_constants_compared_by_value(tmp_path):
     out = tmp_path / "s1_out"
     plan, seal_p = read(out / "plan.json"), out / "seals" / "2026-10-23.json"
     att = dict(read(out / "attest_start.json"), statement="".join(list(r.START_STATEMENT)),
-               trial_id="".join(list(r.TRIAL_ID)))
+               trial_id="".join(list(plan["trial_id"])))
     assert r._start_attestation_problems(out, att, plan, seal_p, S1_RECEIPT) == []
     assert r.final_verdict("".join(list("SHADOW PASS")), {"ok": True})["nomination"] is True
 

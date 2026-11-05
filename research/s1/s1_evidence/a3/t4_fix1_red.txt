@@ -1,0 +1,10 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:560: Failed: the closed trial re-opened: write_plan refused: trial 3c96ceb2-c86c-4b75-ac7a-d2d8114767e9 is open (F9)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:560: Failed: the closed trial re-opened: write_plan refused: trial af0a7537-0d37-4ff7-841d-c62275b07d19 is open (F9)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_trial.py:560: Failed: the closed trial re-opened: write_plan refused: trial 6641e104-5ad2-42de-ab9b-56f43da3f3a6 is open (F9)
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_a_valid_close_is_permanent_whatever_the_mailbox_adds_later[repost-identical-close]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_a_valid_close_is_permanent_whatever_the_mailbox_adds_later[later-chain-ack]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_a_valid_close_is_permanent_whatever_the_mailbox_adds_later[second-different-close]
+3 failed in 0.47s

@@ -1,0 +1,68 @@
+Task 4 RED labels (run against the Task 4 interface stub: brief Step 1 verbatim, plus write_plan's
+`"trial_id": "S1"` and its `mailbox=None` keyword; raw output: t4_red.txt).
+Command: PYTHONPATH="research/s1;research/s1/s1_tests" <testenv python> -m pytest -p conftest -p no:cacheprovider
+         research/s1/s1_tests/test_s1_a3_trial.py
+         research/s1/s1_tests/test_s1_a3_journal.py::test_bundle_pins_addendum3_and_lists_every_new_module
+         research/s1/s1_tests/test_s1_t12_a3_a8.py -q -rA --tb=line
+Result: 53 failed, 48 passed. test_s1_a3_trial.py: 50 failed, 10 passed. The other 38 passes are unchanged
+test_s1_t12_a3_a8.py tests.
+
+Missing-interface failures: none. The stub defines every name, and there is no ImportError, AttributeError,
+NameError or collection error. Every failure is the stub's behaviour:
+ - "DID NOT RAISE Refusal/ValueError" (permissive parser, no chain or CLOSE checks, require_no_open_trial no-op);
+ - AssertionError on a value (trial_id "S1" is not a uuid4, latest is always the AUDIT-ACK, closed always None,
+   evidence "0"*64, attributed_trial None, artifact_fields {}, candidates from non-official messages);
+ - open_trial[outage]: the stub raises sqlite3.OperationalError, not Refusal. This is the wrong class, so it is
+   behavioural: the requirement is the outage Refusal.
+Re-run once after two literal test defects were fixed before GREEN:
+ - historical-other-trial: the expected id list was not sorted;
+ - test_token...: `[1]["trial_id"]` became `.get("trial_id")`, so the RED is an assertion, not a KeyError.
+The file t4_red.txt is that re-run.
+
+== ctrl (passes on the stub) ==
+ctrl test_ack_lines_have_exactly_the_listed_fields_in_order[x7]        row 138 positive half. MAP SAYS B (C3 mismatch):
+     the stub's permissive parser returns the listed fields. The behavioural half of row 138 is
+     test_ack_line_deviation_refuses (B).
+ctrl test_open_trial_cases[one]                                        row 143 positive case (brief: ctrl)
+ctrl test_open_trial_cases[zero]                                       row 143. MAP SAYS B (C3 mismatch): the stub
+     already raises Refusal("zero open trials") when no AUDIT-ACK exists.
+ctrl test_journal_seq_and_head_must_be_extended_without_fork[ok]       row 150 positive case (brief: ctrl)
+
+== B (behavioural RED: fails on the stub) ==
+B  test_write_plan_records_a_uuid4_trial_id_and_makes_no_request_callback_or_journal_write   rows 140, 168*, 253*
+   (*rows 168 and 253 are labelled retro in the map: their no-journal-write and no-message half passes on the stub.
+   This test fails on the stub only on the uuid4 assertion, row 140.)
+B  test_write_plan_refuses_with_an_open_trial_or_an_unreadable_mailbox[open,outage]          row 170
+B  test_ack_line_deviation_refuses[extra,missing,reordered,bad-hex,bad-uuid]                 row 138
+B  test_open_trial_cases[two,outage]                                                         row 143
+B  test_duplicate_trial_id_refuses_every_trial_with_that_id                                  row 141
+B  test_second_ack_of_a_kind_refuses_even_byte_identical[distinct,identical]                 row 149
+B  test_ack_chain_prev_is_the_predecessor_mailbox_id[ok]                                     row 148
+   (brief: ctrl. It is B because the test also asserts Trial.latest is the RUN-ACK; the stub's latest is the AUDIT-ACK.)
+B  test_ack_chain_prev_is_the_predecessor_mailbox_id[prev-not-predecessor,wrong-bundle,no-predecessor]   row 148
+B  test_ack_created_not_after_its_predecessor_or_referenced_row_refuses[equal-pred,before-row]           row 139
+B  test_journal_seq_and_head_must_be_extended_without_fork[wrong-head,seq-beyond,forked]     row 150 (P35 killer)
+B  test_close_refused_cases[valid,prev-not-latest,before-audit,wrong-bundle,duplicate]       row 158
+B  test_closed_is_layered_on_the_journal_state                                               row 54 (T4 half)
+B  test_close_evidence_hashes[SCORED,INVALID,WITHDRAWN]                                      row 159
+B  test_other_trials_acks_and_rows_never_count_even_with_the_same_bundle                     row 146 (B7)
+B  test_verify_ack_binds_the_expected_fields_and_refuses_a_future_ack                        extra (F6.1/F7 binding)
+B  test_closed_in_reads_the_closes_on_the_given_connection                                   extra (E2.3 r3 reader)
+B  test_token_builds_the_exact_line_and_refuses_without_a_predecessor                        extra (Task 5 consumer)
+B  test_non_official_lines_are_never_candidates[wrong-role-close,wrong-key-close]            row 275
+B  test_non_official_lines_are_never_candidates[peer-draft]                                  row 276
+B  test_non_official_lines_are_never_candidates[indented-line,quoted-line]                   row 276
+B  test_non_official_lines_are_never_candidates[historical-other-trial]                      row 277
+   (brief: indented, quoted and historical are ctrl. They are B here because the test also asserts that the trial
+   stays open (require_no_open_trial refuses), and the stub's require_no_open_trial is a no-op. This agrees with the
+   map's B for rows 276-277.)
+B  test_malformed_candidate_refuses_its_own_trial_or_all[attributable,unattributable,names-another-trial]   row 278
+B  test_attribution_grammar_is_the_e43_grammar                                               row 278
+B  test_close_blocked_is_validated_like_every_close[ok,wrong-prev,wrong-bundle]              row 273
+B  test_two_root_blocked_lifecycle_closure_is_monotone                                       row 337
+B  test_opening_receipt_sha256_is_the_raw_file_hash                                          row 318
+B  test_s1_a3_journal.py::test_bundle_pins_addendum3_and_lists_every_new_module              row 2 (s1_trial.py listed)
+B  test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes   BUNDLE tuple
+B  test_s1_t12_a3_a8.py::test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle  BUNDLE tuple
+
+Counted behavioural REDs in test_s1_a3_trial.py: 50 of 60. ctrl: 10. Missing-interface: 0.
