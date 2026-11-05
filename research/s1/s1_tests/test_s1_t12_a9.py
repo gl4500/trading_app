@@ -13,7 +13,7 @@ import s1_common as c
 import s1_receipt as rc
 import s1_run as r
 import s1_snapshot
-from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_plan_audit, s1_receipt_with, s1_state
+from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_plan_audit, s1_reack, s1_receipt_with, s1_state
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"
@@ -190,7 +190,7 @@ def test_a9_every_non_numeric_disposition_makes_no_valuation_call(tmp_path, monk
     called = _spy(monkeypatch)
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"] + timedelta(days=1))
     from conftest import s1_mailbox
-    s1_mailbox(tmp_path, "score-ack-n", r.score_token(tmp_path), st_["now"] + timedelta(hours=20))
+    s1_reack(tmp_path, "score-ack-n", "S1-SCORE-ACK", st_["now"] + timedelta(hours=20))
     rep = r.score(tmp_path, "score-ack-n")
     want = {"INCONCLUSIVE-carry-in": "INCONCLUSIVE", "INCONCLUSIVE-contamination": "INCONCLUSIVE",
             "INCONCLUSIVE-cap": "INCONCLUSIVE"}.get(kind, kind)

@@ -17,6 +17,7 @@ import s1_common as c
 import s1_run as r
 import s1_seal as z
 import s1_snapshot
+import s1_trial as t
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, _weekdays, s1_mailbox, s1_state
 
 
@@ -432,7 +433,8 @@ def test_a6_special_and_early_closes_come_from_the_providers_listing():
 def test_a6_a_dropped_session_relative_to_the_pinned_listing_refuses(tmp_path, monkeypatch):
     """A6 (refusal path only): a calendar in use that drops a session of the pinned listing is refused - at the
     checkpoint (before any capture) and at the score (ABORTED-INVALID); the design claims no independent NYSE
-    calendar proof beyond the pinned listing."""
+    calendar proof beyond the pinned listing. A3 Task 5 (intended, F0.6/F1 + OQ-19): the checkpoint's detection
+    commits TRIAL-INVALID, so the score then refuses with no work (no ABORTED-INVALID record)."""
     st_ = s1_state(tmp_path, START, score_ready=True)
     out = tmp_path / "s1_out"
     pp = out / "prereg.json"
@@ -444,8 +446,9 @@ def test_a6_a_dropped_session_relative_to_the_pinned_listing_refuses(tmp_path, m
     with pytest.raises(SystemExit, match="registration artifact"):
         _run(tmp_path, st_, datetime(2026, 10, 29, 20, 45, tzinfo=UTC), datetime(2026, 10, 29, 20, 45, 30, tzinfo=UTC))
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = r.score(tmp_path, "score-ack")
-    assert rep["verdict"] == "ABORTED-INVALID" and any("calendar" in x for x in rep["reasons"]), rep["reasons"]
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):   # A3 F0.6/F1: no score
+        r.score(tmp_path, "score-ack")
+    assert not (out / "score").exists()
 
 
 def test_a6_the_disclosed_calendar_limitation_is_in_the_build_evidence():

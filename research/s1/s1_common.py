@@ -1042,6 +1042,9 @@ def registration_gate(out: Path, where: str, now=None, *, refuse: bool = True, m
         raise SystemExit(f"{where} refused: the registration state changed during the gate's scan (a concurrent "
                          f"stage publication): the violation was not confirmed - nothing is aborted")
     t = (now or now_utc)()
+    import s1_trial                                          # (late import) OQ-19: commit the violation first
+    s1_trial.invalidate_current(out, "registration-artifact", {"where": where, "problems": probs,
+                                                               "observed_utc": t.isoformat()}, mailbox, clock=lambda: t)
     write_abort(out, {"reason": REGISTRATION_ARTIFACT, "where": where, "problems": probs, "observed_utc": t.isoformat(),
                       "actual": None, "close": None, "scheduled": None, "projection_sha256": None,
                       "receipt_sha256": None})

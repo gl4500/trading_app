@@ -1,0 +1,19 @@
+{
+  "offset_microseconds": 1,
+  "resolution_deadline": "2026-10-26T21:25:00+00:00",
+  "injected_publication_time": [
+    "2026-10-26T21:25:00.000001+00:00"
+  ],
+  "resolution": {
+    "outcome": "SUCCESS",
+    "published_utc": "2026-10-26T20:45:30+00:00",
+    "linked_utc": "2026-10-26T21:25:00.000001+00:00",
+    "publication_overrun": true
+  },
+  "seal": {
+    "written": true,
+    "sha256": "359aa7ad055ee98571fe3e92e07862bf13ff216b5ff28e9337b9acb8c278b037"
+  },
+  "capture_end": "2026-10-26T20:45:30+00:00",
+  "abort": null
+}

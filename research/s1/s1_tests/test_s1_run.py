@@ -3,7 +3,8 @@ from fractions import Fraction
 
 import pytest
 import s1_run as r
-from conftest import s1_state
+import s1_trial as t
+from conftest import s1_finalize, s1_reack, s1_score_refused, s1_state
 
 UTC = timezone.utc
 SESS = ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"]
@@ -70,7 +71,7 @@ def test_prereg_after_planned_start_refused(tmp_path, monkeypatch):             
 
 def test_mismatched_or_duplicate_acks_make_no_request_no_output(tmp_path):              # example 18
     s1_state(tmp_path, planned_start="2026-10-26T13:30:00+00:00", score_ready=True)
-    with pytest.raises(SystemExit):
+    with pytest.raises(t.Refusal, match="'wrong-id' is not the trial's S1-SCORE-ACK"):   # (Task 5: exact reason)
         r.score(tmp_path, "wrong-id")
     assert not (tmp_path / "s1_out" / "score").exists()
 
@@ -222,9 +223,9 @@ def test_attest_start_requires_exact_statement_once_and_before_start(tmp_path, m
     assert a["opening_seal_sha256"] == s1_common.sha256_file(out / "seals" / "2026-10-23.json")
     assert a["receipt_sha256"] == s1_common.receipt_sha256(S1_RECEIPT)                 # Task 12 (A1)
     at(monkeypatch, START_DT - timedelta(days=1))
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="the statement must be exactly START_STATEMENT"):
         r.attest_start(tmp_path, r.START_STATEMENT + " ", S1_RECEIPT)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="START attestation already recorded"):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)                   # already recorded
     s1_unattest(tmp_path, books=False)                    # (fix round 2 migration, B3: the pre-attestation state)
     at(monkeypatch, START_DT)
@@ -252,13 +253,14 @@ def test_prereg_writes_what_checkpoint_and_collectors_read_once(tmp_path, monkey
     assert pr["attest_start_sha256"] == s1_common.sha256_file(out / "attest_start.json")
     assert pr["runner_sha256"] == r.runner_sha() and pr["ack"]["ack_id"] == "run-ack"
     before = s1_common.sha256_file(out / "prereg.json")
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="prereg already recorded"):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     assert s1_common.sha256_file(out / "prereg.json") == before
 
 
 @pytest.mark.parametrize("breakage,match", [
-    ("receipt", "receipt"), ("ack", "ack"), ("audit", "audit"), ("attest", "START attestation")])
+    ("receipt", "receipt"), ("ack", "'bad' is not the trial's S1-RUN-ACK"), ("audit", "audit"),
+    ("attest", "START attestation")])
 def test_prereg_refusals_write_nothing(tmp_path, monkeypatch, breakage, match):
     s1_state(tmp_path, START)
     out = tmp_path / "s1_out"
@@ -302,7 +304,7 @@ def test_attest_stop_requires_statement_and_a_recorded_stop(tmp_path, monkeypatc
     at(monkeypatch, START_DT + timedelta(days=3))
     with pytest.raises(SystemExit, match="stop"):
         r.attest_stop(tmp_path, r.STOP_STATEMENT)                                    # no seal, trial RUNNING
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="the statement must be exactly STOP_STATEMENT"):
         r.attest_stop(tmp_path, "I confirm.")
     assert not (tmp_path / "s1_out" / "attest_stop.json").exists()
 
@@ -357,7 +359,7 @@ def test_score_stop_attestation_with_wrong_binding_is_unverified(tmp_path, monke
     st_ = s1_state(tmp_path, START, score_ready=True)
     p = tmp_path / "s1_out" / "attest_stop.json"
     p.write_text(json.dumps(dict(read(p), sealed_final_ledger_sha256="0" * 64)), encoding="utf-8")
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
     rep = r.score(tmp_path, "score-ack-2")
     assert rep["provenance"] == "UNVERIFIED-PROVENANCE" and rep["nomination"] is False
@@ -366,7 +368,7 @@ def test_score_stop_attestation_with_wrong_binding_is_unverified(tmp_path, monke
 def test_second_score_refused_and_nothing_overwritten(tmp_path, monkeypatch):            # example 18
     scored(tmp_path, monkeypatch)
     before = all_hashes(tmp_path)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):   # (Task 5: exact reason)
         r.score(tmp_path, "score-ack")
     assert all_hashes(tmp_path) == before
 
@@ -413,7 +415,7 @@ def test_score_seal_or_receipt_violation_is_invalid(tmp_path, monkeypatch, tampe
         seal["capture"]["projection_sha256"] = "e" * 64
     p.write_text(json.dumps(seal), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    assert r.score(tmp_path, "score-ack")["verdict"] == "ABORTED-INVALID"
+    assert s1_score_refused(tmp_path, "score-ack")["verdict"] == "ABORTED-INVALID"
 
 
 def test_score_no_valid_seal_is_never_fail(tmp_path, monkeypatch):                       # Review Focus 5
@@ -478,7 +480,7 @@ def test_score_failure_inside_the_attempt_is_preserved_as_aborted(tmp_path, monk
         r.score(tmp_path, "score-ack")
     rec = read(tmp_path / "s1_out" / "score" / "s1.json")
     assert rec["outcome"] == "ABORTED" and rec["verdict"] == "ABORTED-INVALID" and rec["nomination"] is False
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):   # (Task 5: exact reason)
         r.score(tmp_path, "score-ack")
 
 
@@ -565,7 +567,7 @@ def test_score_runner_changed_since_prereg_is_invalid(tmp_path, monkeypatch):
     verdict ABORTED-INVALID, even under a SCORE-ACK that binds the new runner."""
     st_ = s1_state(tmp_path, START, score_ready=True)
     monkeypatch.setattr(r, "runner_sha", lambda: "0" * 64)
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
     rep = r.score(tmp_path, "score-ack-2")
     assert rep["verdict"] == "ABORTED-INVALID" and "runner changed since prereg" in rep["reasons"]
@@ -580,13 +582,14 @@ def test_early_score_ack_while_running_is_refused_with_no_output(tmp_path, monke
     the second step uses s1_state's "score-ack", created after the window end."""
     st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
     at(monkeypatch, START_DT + timedelta(days=2))
-    s1_mailbox(tmp_path, "early", r.score_token(tmp_path), START_DT + timedelta(days=1))
+    s1_reack(tmp_path, "early", "S1-SCORE-ACK", START_DT + timedelta(days=1))
     # Task 12 (A2.1) input note: s1_state's final snapshot already persisted the NO-VALID-SEAL stop, so the early
     # ACK is refused for preceding the persisted end (the refusal and "nothing written" are unchanged)
-    with pytest.raises(SystemExit, match="RUNNING|not strictly after"):
+    with pytest.raises(t.Refusal, match="S1-SCORE-ACK early: created not after its predecessor"):   # A3 F6.1/F7.1
         r.score(tmp_path, "early")
     assert not (tmp_path / "s1_out" / "score").exists()
     at(monkeypatch, st_["now"])
+    s1_reack(tmp_path, "score-ack", "S1-SCORE-ACK", st_["now"] - timedelta(days=1))   # (Codex re-issues the ACK)
     assert r.score(tmp_path, "score-ack")["verdict"] == "NO-VALID-SEAL"
 
 
@@ -598,11 +601,12 @@ def test_run_ack_not_strictly_after_start_attestation_is_refused(tmp_path, monke
     out = tmp_path / "s1_out"
     assert f"attest_start_sha256={s1_common.sha256_file(out / 'attest_start.json')}" in r.run_token(tmp_path)
     recorded = s1_common.aware(read(out / "attest_start.json")["recorded_utc"])
-    s1_mailbox(tmp_path, "too-early", r.run_token(tmp_path), recorded + offset)
+    s1_reack(tmp_path, "too-early", "S1-RUN-ACK", recorded + offset)
     at(monkeypatch, START_DT - timedelta(hours=2))
     with pytest.raises(SystemExit, match="START attestation"):
         r.do_prereg(tmp_path, "too-early", S1_RECEIPT)
     assert not (out / "prereg.json").exists()
+    s1_reack(tmp_path, "run-ack", "S1-RUN-ACK", START_DT - timedelta(days=1, hours=1))   # A3: one RUN-ACK per trial
     assert r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)["start"] == START          # the proper ACK still works
 
 
@@ -685,7 +689,8 @@ def test_score_ack_with_stale_hash_is_refused_with_no_output(tmp_path, monkeypat
     p = tmp_path / "s1_out" / edit
     p.write_text(json.dumps(dict(read(p), edited=True)), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    with pytest.raises(SystemExit):
+    field = {"attest_stop.json": "stop_attest_sha256", "final/manifest.json": "final_manifest_sha256"}[edit]
+    with pytest.raises(t.Refusal, match=rf"S1-SCORE-ACK score-ack: \['{field}'\] differ"):   # (Task 5: A3 F6.1)
         r.score(tmp_path, "score-ack")
     assert not (tmp_path / "s1_out" / "score").exists()
 
@@ -722,10 +727,13 @@ def test_score_ack_created_while_running_is_refused_after_the_stop(tmp_path, mon
     is still refused once the trial has stopped; nothing is written."""
     st_ = s1_state(tmp_path, START, score_ready=True)
     drop_final_and_attestation(tmp_path)
-    s1_mailbox(tmp_path, "early", r.score_token(tmp_path), START_DT + timedelta(hours=6))
+    s1_reack(tmp_path, "early", "S1-SCORE-ACK", START_DT + timedelta(hours=6))
     at(monkeypatch, st_["now"])
-    with pytest.raises(SystemExit, match="SCORE-ACK"):
+    with pytest.raises(t.Refusal, match="S1-SCORE-ACK early: created not after its predecessor"):     # A3 F6.1/F7.1
         r.score(tmp_path, "early")
+    with pytest.raises(SystemExit, match="is not strictly after the trial's end"):   # the legacy check (unit)
+        r._pre_reserve_gate(tmp_path / "s1_out",
+                            {"ack_id": "x", "created_utc": (START_DT + timedelta(hours=6)).isoformat()})
     assert not (tmp_path / "s1_out" / "score").exists()
 
 
@@ -733,7 +741,7 @@ def test_score_ack_after_the_stop_but_before_any_final_manifest_is_refused(tmp_p
     """Retrospective (Task 7 review fix round 2), R-1: STOPPED/TIMEOUT need s1_out/final/manifest.json first."""
     st_ = s1_state(tmp_path, START, score_ready=True)
     drop_final_and_attestation(tmp_path)
-    s1_mailbox(tmp_path, "post-stop", r.score_token(tmp_path), STOP_CLOSE + timedelta(hours=1))
+    s1_reack(tmp_path, "post-stop", "S1-SCORE-ACK", st_["now"] - timedelta(days=1))   # A3: after its ACQUIRE-ACK
     at(monkeypatch, st_["now"])
     with pytest.raises(SystemExit, match="final"):
         r.score(tmp_path, "post-stop")
@@ -744,12 +752,15 @@ def test_score_ack_strictly_after_the_stop_with_a_final_manifest_scores(tmp_path
     """Retrospective (Task 7 review fix round 2), R-1: an ACK at exactly the stop close is refused; one minute later
     (final manifest present) it scores."""
     st_ = s1_state(tmp_path, START, score_ready=True)
-    s1_mailbox(tmp_path, "at-stop", r.score_token(tmp_path), STOP_CLOSE)
-    s1_mailbox(tmp_path, "after-stop", r.score_token(tmp_path), STOP_CLOSE + timedelta(minutes=1))
+    s1_reack(tmp_path, "at-stop", "S1-SCORE-ACK", STOP_CLOSE)
     at(monkeypatch, st_["now"])
-    with pytest.raises(SystemExit, match="SCORE-ACK"):
+    with pytest.raises(t.Refusal, match="S1-SCORE-ACK at-stop: created not after its predecessor"):   # A3 F6.1/F7.1
         r.score(tmp_path, "at-stop")
+    with pytest.raises(SystemExit, match="is not strictly after the trial's end"):   # the legacy check (unit)
+        r._pre_reserve_gate(tmp_path / "s1_out",
+                            {"ack_id": "x", "created_utc": (STOP_CLOSE).isoformat()})
     assert not (tmp_path / "s1_out" / "score").exists()
+    s1_reack(tmp_path, "after-stop", "S1-SCORE-ACK", st_["now"] - timedelta(days=1))
     assert r.score(tmp_path, "after-stop")["verdict"] == "SHADOW PASS"
 
 
@@ -757,11 +768,15 @@ def test_score_ack_before_the_no_valid_seal_window_end_is_refused(tmp_path, monk
     """Retrospective (Task 7 review fix round 2), R-1: for NO-VALID-SEAL the end instant is the last eligible
     session's seal window end."""
     st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
-    s1_mailbox(tmp_path, "before-end", r.score_token(tmp_path), st_["now"] - timedelta(days=5))
+    s1_reack(tmp_path, "before-end", "S1-SCORE-ACK", st_["now"] - timedelta(days=5))
     at(monkeypatch, st_["now"])
-    with pytest.raises(SystemExit, match="SCORE-ACK"):
+    with pytest.raises(t.Refusal, match="S1-SCORE-ACK before-end: created not after its predecessor"):   # A3 F6.1/F7.1
         r.score(tmp_path, "before-end")
+    with pytest.raises(SystemExit, match="is not strictly after the trial's end"):   # the legacy check (unit)
+        r._pre_reserve_gate(tmp_path / "s1_out",
+                            {"ack_id": "x", "created_utc": (st_["now"] - timedelta(days=5)).isoformat()})
     assert not (tmp_path / "s1_out" / "score").exists()
+    s1_reack(tmp_path, "score-ack", "S1-SCORE-ACK", st_["now"] - timedelta(days=1))
     assert r.score(tmp_path, "score-ack")["verdict"] == "NO-VALID-SEAL"
 
 
@@ -776,7 +791,7 @@ def test_score_ack_before_the_recorded_abort_is_refused(tmp_path, monkeypatch):
     with pytest.raises(SystemExit, match="SCORE-ACK"):
         r.score(tmp_path, "score-ack")                                           # created before the abort
     assert not (tmp_path / "s1_out" / "score").exists()
-    s1_mailbox(tmp_path, "after-abort", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
+    s1_reack(tmp_path, "after-abort", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
     assert r.score(tmp_path, "after-abort")["verdict"] == "ABORTED-INVALID"
 
 
@@ -789,12 +804,8 @@ def test_malformed_seal_is_recorded_as_aborted_invalid_not_refused_forever(tmp_p
     del seal["close"]
     p.write_text(json.dumps(seal), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    try:
-        rep = r.score(tmp_path, "score-ack")
-    except SystemExit:
-        rep = None
-    rec = read(tmp_path / "s1_out" / "score" / "s1.json")
-    assert rec["verdict"] == "ABORTED-INVALID" and (rep is None or rep == rec)
+    rec = s1_score_refused(tmp_path, "score-ack")             # A3 F0.6/F1: refused; the unit-level record
+    assert rec["verdict"] == "ABORTED-INVALID"
 
 
 def test_pinned_core_hash_mismatch_is_refused_before_reservation(tmp_path, monkeypatch):
@@ -1019,7 +1030,7 @@ def test_cr_attest_start_statement_receipt_and_clock(tmp_path, monkeypatch):
     with pytest.raises(SystemExit, match="registration artifact"):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
     p.write_text(good, encoding="utf-8")
-    with pytest.raises(SystemExit, match="ABORTED-INVALID"):
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):     # A3 F0.6/F1
         r.attest_start(tmp_path, _fresh(r.START_STATEMENT), S1_RECEIPT)
 
 
@@ -1070,10 +1081,10 @@ def test_cr_second_blocked_prereg_is_refused_again(tmp_path, monkeypatch):
 def test_cr_attest_stop_statement_and_bad_seal(tmp_path, monkeypatch):
     """Retrospective (Task 9 CR survivors s1_run:441/454): the stop statement must equal STOP_STATEMENT (the
     refusal names the statement); two seals for one close are a refusal, not a crash."""
+    s1_state(tmp_path, START)                  # A3 F0.6: the trial gate comes first, so a trial exists here
     for bad in ("", "~" * 5):
         with pytest.raises(SystemExit, match="statement"):
             r.attest_stop(tmp_path, bad)
-    s1_state(tmp_path, START)
     at(monkeypatch, START_DT - timedelta(hours=2))
     r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     seals = tmp_path / "s1_out" / "seals"
@@ -1090,10 +1101,13 @@ def test_cr_no_valid_seal_end_when_the_deadline_is_not_a_session(tmp_path, monke
     st_ = s1_state(tmp_path, start, score_ready=True, lots=[], seal_days=[])
     assert s1_common.sim().ny_date(s1_common.aware(start)) and r.z.deadline(s1_common.aware(start)).astimezone(
         s1_common.NY).date().isoformat() == "2027-05-02"                  # Task 12 (A5.1) interface: an instant
-    s1_mailbox(tmp_path, "before-end", r.score_token(tmp_path), st_["now"] - timedelta(days=5))
+    s1_reack(tmp_path, "before-end", "S1-SCORE-ACK", st_["now"] - timedelta(days=5))
     at(monkeypatch, st_["now"])
-    with pytest.raises(SystemExit, match="SCORE-ACK"):
+    with pytest.raises(t.Refusal, match="S1-SCORE-ACK before-end: created not after its predecessor"):   # A3 F6.1
         r.score(tmp_path, "before-end")
+    with pytest.raises(SystemExit, match="is not strictly after the trial's end"):   # the legacy check (unit)
+        r._pre_reserve_gate(tmp_path / "s1_out",
+                            {"ack_id": "x", "created_utc": (st_["now"] - timedelta(days=5)).isoformat()})
 
 
 def test_cr_malformed_seal_without_final_manifest_is_still_scored_invalid(tmp_path, monkeypatch):
@@ -1106,13 +1120,12 @@ def test_cr_malformed_seal_without_final_manifest_is_still_scored_invalid(tmp_pa
     seal = read(p)
     del seal["close"]
     p.write_text(json.dumps(seal), encoding="utf-8")
-    s1_mailbox(tmp_path, "ack-nf", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    s1_reack(tmp_path, "ack-nf", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
-    try:
-        r.score(tmp_path, "ack-nf")
-    except SystemExit:
-        pass
-    assert read(out / "score" / "s1.json")["verdict"] == "ABORTED-INVALID"
+    rec = s1_score_refused(tmp_path, "ack-nf")                # A3 F0.6/F1: refused; the unit-level record
+    assert rec["verdict"] == "ABORTED-INVALID"
+    r._pre_reserve_gate(out, {"ack_id": "ack-nf",                # unit level: no final manifest is demanded
+                              "created_utc": (st_["now"] - timedelta(hours=1)).isoformat()})
 
 
 def test_cr_runner_ok_attempts_counts_only_a_literal_true(tmp_path):
@@ -1277,7 +1290,7 @@ def test_cr_runner_hash_differing_upward_is_invalid(tmp_path, monkeypatch):
     """Retrospective (Task 9 CR survivor s1_run:704)."""
     st_ = s1_state(tmp_path, START, score_ready=True)
     monkeypatch.setattr(r, "runner_sha", lambda: "f" * 64)
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
     assert "runner changed since prereg" in r.score(tmp_path, "score-ack-2")["reasons"]
 
@@ -1290,7 +1303,7 @@ def test_cr_each_prereg_binding_alone_is_checked(tmp_path, monkeypatch, field, v
     p = tmp_path / "s1_out" / "prereg.json"
     p.write_text(json.dumps(dict(read(p), **{field: value})), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rep = r.score(tmp_path, "score-ack")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert "prereg bindings (plan / audit manifest / START attestation) changed" in rep["reasons"]
 
 
@@ -1307,10 +1320,7 @@ def test_cr_prereg_start_or_calendar_alone_is_checked(tmp_path, monkeypatch, edi
     edit(pr)
     p.write_text(json.dumps(pr), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    try:
-        rep = r.score(tmp_path, "score-ack")
-    except SystemExit:
-        rep = read(tmp_path / "s1_out" / "score" / "s1.json")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert "prereg START or calendar differs from the plan/audit" in rep["reasons"], rep["reasons"]
 
 
@@ -1322,10 +1332,7 @@ def test_cr_incomplete_audit_is_a_recorded_reason_not_a_score_error(tmp_path, mo
     mp = out / "audit" / "manifest.json"
     mp.write_text(json.dumps(dict(read(mp), outcome="ABORTED")), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    try:
-        rep = r.score(tmp_path, "score-ack")
-    except SystemExit:
-        rep = read(out / "score" / "s1.json")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert any(x.startswith("Invalid: audit attempt outcome is 'ABORTED'") for x in rep["reasons"]), rep["reasons"]
     assert not any(x.startswith("score error") for x in rep["reasons"])
 
@@ -1338,7 +1345,7 @@ def test_cr_plan_key_error_is_a_recorded_reason(tmp_path, monkeypatch):
     del plan["planned_start"]
     pp.write_text(json.dumps(plan), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rep = r.score(tmp_path, "score-ack")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert "KeyError: 'planned_start'" in rep["reasons"], rep["reasons"]
 
 
@@ -1348,10 +1355,7 @@ def test_cr_duplicate_seal_is_a_bad_seal_record_reason(tmp_path, monkeypatch):
     out = tmp_path / "s1_out"
     (out / "seals" / "zz.json").write_bytes((out / "seals" / "2026-10-26.json").read_bytes())
     at(monkeypatch, st_["now"])
-    try:
-        rep = r.score(tmp_path, "score-ack")
-    except SystemExit:
-        rep = read(out / "score" / "s1.json")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     # Task 12 (A2.1/A2.3, A10.1) REPLACEMENT of the reason: the stop is the persisted one (never recomputed, so no
     # "two seals" ValueError); the duplicate is a seal outside the persisted stop's frozen slices -> ABORTED-INVALID
     assert rep["verdict"] == "ABORTED-INVALID"
@@ -1379,7 +1383,7 @@ def test_cr_final_acquisition_binding_checks(tmp_path, monkeypatch, what):
         mp.write_text(json.dumps(dict(read(mp), outcome="ABORTED")))
     else:
         fp.unlink()
-    s1_mailbox(tmp_path, "ack-f", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    s1_reack(tmp_path, "ack-f", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
     rep = r.score(tmp_path, "ack-f")
     assert any(want in x for x in rep["reasons"]), rep["reasons"]
@@ -1557,8 +1561,10 @@ def test_fr1_running_status_compared_by_value_at_the_score_gate(tmp_path, monkey
     assert not (tmp_path / "s1_out" / "stop.json").exists()
     monkeypatch.setattr(r.z, "stop_decision", lambda *a, **kw: {"status": "".join(list("RUNNING")),
                                                                 "stop_close": None, "missed": []})
-    at(monkeypatch, st_["now"])
-    s1_mailbox(tmp_path, "score-ack-r", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))   # binds stop.json
+    now = st_["stop_attested_at"] + timedelta(days=1)                # A3: after the fixture's TRIAL-STOP row (F6.1)
+    at(monkeypatch, now)
+    s1_finalize(tmp_path, now - timedelta(hours=2))                 # A3: the chain a SCORE-ACK needs (F7.1)
+    s1_reack(tmp_path, "score-ack-r", "S1-SCORE-ACK", now - timedelta(hours=1))   # binds stop.json
     with pytest.raises(SystemExit, match="still RUNNING"):
         r.score(tmp_path, "score-ack-r")
     assert not (tmp_path / "s1_out" / "score").exists()
@@ -1582,10 +1588,7 @@ def test_fr1_unreadable_seal_rows_are_a_bad_seal_record_reason(tmp_path, monkeyp
     seal["trades"][-1]["action"] = "HOLD"
     p.write_text(json.dumps(seal), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    try:
-        rep = r.score(tmp_path, "score-ack")
-    except SystemExit:
-        rep = read(tmp_path / "s1_out" / "score" / "s1.json")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["outcome"] == "SCORED" and rep["verdict"] == "ABORTED-INVALID"
     # Task 12 (A2.3, A10.1) REPLACEMENT of the reason: the seal is a frozen slice of the persisted stop, so its
     # change is reported as such (the persisted stop is never recomputed from the changed rows)

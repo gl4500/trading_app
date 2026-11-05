@@ -1,0 +1,41 @@
+Task 5 RED labels (t5_red.txt: 21 failed, 24 passed, against the Step 1 stub: permissive gate = open_trial + read_trial,
+invalidate/invalidate_current no-ops, product_context passing the gates through; conftest migrated; token helpers take
+mailbox=). missing-interface failures: 0 (none counted).
+
+FAILED on the stub (behavioural, B):
+  test_gate_invalid_rows_use_a_fresh_operation_identity               B   DID NOT RAISE (no LOST check, no row)    row 313
+  test_identity_refusals_have_zero_callbacks[closed-trial-same-bundle-ack]  B  wrong reason ("ack lacks the standalone
+                                                                          line", token-line equality)            row 244
+  test_identity_refusals_have_zero_callbacks[journal-fork]           B   wrong class: ChainError escapes the gate   row 245
+  test_identity_refusals_have_zero_callbacks[journal-gap]            B   wrong class: ChainError                    row 246
+  test_identity_refusals_have_zero_callbacks[duplicate-seq]          B   wrong class: ChainError                    row 247
+  test_identity_refusals_have_zero_callbacks[plan-trial-id-differs]  B   wrong reason ("no verified prereg")        row 248
+  test_bundle_mismatch_before_any_journal_row_is_a_refusal           B   DID NOT RAISE                              row 144
+  test_bundle_mismatch_after_any_journal_row_is_invalid_bundle       B   DID NOT RAISE                              row 145
+  test_total_loss_is_invalid_lost_and_restoring_stays_invalid        B   DID NOT RAISE                              rows 147, 227
+  test_invalid_is_irreversible                                       B   wrong reason ("no verified prereg")        rows 53, 57
+  test_journal_state_governs_over_local_files                        B   DID NOT RAISE                              row 51
+  test_product_context_fails_closed_without_a_slot_gate_or_stage_check  B  APPEND (fail-open)          Task 2 carry-forward
+  test_product_context_reads_closed_inside_the_transaction           B   APPEND on a CLOSED trial                   F7.5/E2.3
+  test_a_plan_without_trial_id_refuses[attest_start|prereg|attest_stop|score]  B  wrong reason (legacy registration
+                                                                          abort / "no prereg")          Task 4 review M2
+  test_explicit_mailbox_is_used_for_token_and_ack                    B   Refusal "mailbox unreadable" from the default
+                                                                          mailbox (s1_run.do_prereg -> run_token)  Task 4 review M1
+  test_registration_violation_commits_trial_invalid_first           B   no TRIAL-INVALID row (OQ-19)
+  test_combined_damage_is_invalid_bundle_after_any_journal_row[missing|unparseable]  B  DID NOT RAISE           row 179
+
+PASSED on the stub:
+  test_every_command_reads_trial_state_and_bundle_before_any_callback[x10]  retro (Task 4 reader)   row 52 (brief: retro)
+  test_one_valid_open_trial_authorizes_a_stage                       ctrl                                       row 234
+  test_wrong_role_close_is_ignored_and_the_trial_stays_open          retro (Task 4 reader; its RED is row 275)  rows 238, 330
+  test_identity_refusals_have_zero_callbacks[zero-open, two-open, duplicate-trial-id, wrong-bundle-close,
+      close-before-audit, two-opening-acks, identical-duplicate-ack, broken-prev]
+                                                                     retro (Task 4 reader: the stub gate IS open_trial,
+                                                                     which refuses each with the asserted reason)
+                                                                     MISMATCH: the map says B (rows 235-243)
+  test_closure_never_erases_invalidity_or_reuses_the_journal         retro (Task 4 reader + Task 2 decide)
+                                                                     MISMATCH: the map says B (row 160)
+  test_before_the_audit_ack_the_opening_and_start_are_blocked        retro (Task 4 reader via the stub wiring)
+                                                                     MISMATCH: the map says B (row 254)
+  test_historical_probe_copies_are_frozen                            static                                     row 171
+  test_historical_probe_copies_are_never_collected                   static (conftest pytest_ignore_collect hook)

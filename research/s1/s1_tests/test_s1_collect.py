@@ -7,6 +7,8 @@ import httpx
 import pytest
 import s1_collect as k
 import s1_common
+import s1_trial
+from conftest import s1_reack
 
 UTC = timezone.utc
 START = datetime(2026, 11, 2, 14, 30, tzinfo=UTC)   # Mon 09:30 EST open; >= now + 7 days (I-5)
@@ -82,7 +84,7 @@ def test_audit_refuses_without_exact_ack_and_makes_no_request(tmp_path):
     _plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
     mailbox(tmp_path, "m1", "approve, roughly")
     calls = []
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="zero open trials"):
         k.do_audit(tmp_path, "m1", client(calls), ("id", "secret"))
     assert calls == [] and not (tmp_path / "s1_out" / "audit").exists()
 
@@ -93,7 +95,7 @@ def test_audit_once_metadata_only(tmp_path):
     calls = []
     m = k.do_audit(tmp_path, "m2", client(calls), ("id", "secret"))
     assert m["outcome"] == "COMPLETE" and not any("/bars" in u for u in calls)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):
         k.do_audit(tmp_path, "m2", client(calls), ("id", "secret"))
     assert "secret" not in json.dumps(m)
 
@@ -124,7 +126,7 @@ def test_audit_refuses_when_planned_start_has_passed(tmp_path, monkeypatch):
     monkeypatch.setattr(s1_common, "now_utc", lambda: FIXED_NOW)
     mailbox(tmp_path, "m4", k.audit_token(tmp_path))
     calls = []
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="planned START has passed"):
         k.do_audit(tmp_path, "m4", client(calls), KEYS)
     assert calls == []
 
@@ -133,15 +135,15 @@ def test_ack_future_missing_or_embedded_token_is_refused(tmp_path, monkeypatch):
     _plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
     mailbox(tmp_path, "m5", k.audit_token(tmp_path))
     monkeypatch.setattr(s1_common, "now_utc", lambda: datetime(2026, 10, 19, tzinfo=UTC))
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="ack is in the future"):
         k._ack(mailbox=tmp_path / "mailbox.sqlite3", ack_id="m5", token=k.audit_token(tmp_path))
     monkeypatch.setattr(s1_common, "now_utc", lambda: FIXED_NOW)
     assert k._ack(mailbox=tmp_path / "mailbox.sqlite3", ack_id="m5",
                   token=k.audit_token(tmp_path))["ack_id"] == "m5"
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="is not a codex->claude experiments-prereg message"):
         k._ack(mailbox=tmp_path / "mailbox.sqlite3", ack_id="nope", token=k.audit_token(tmp_path))
     mailbox(tmp_path, "m6", "please " + k.audit_token(tmp_path) + " ok")
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="ack lacks the standalone line"):
         k._ack(mailbox=tmp_path / "mailbox.sqlite3", ack_id="m6", token=k.audit_token(tmp_path))
 
 
@@ -279,7 +281,7 @@ def test_final_requests_every_symbol_bars_and_full_history(tmp_path, monkeypatch
     assert set(bars) == {"A", "B", "NEW"} and set(bars["A"]) == set(SESS)
     assert json.loads((tmp_path / "s1_out" / "final" / "bar_problems.json").read_text()) == []
     n = len(calls)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):   # (Task 5: exact reason)
         k.do_final(tmp_path, "f1", cl, KEYS)
     assert len(calls) == n
     no_key_text_written(tmp_path)
@@ -289,7 +291,7 @@ def test_final_refused_ack_makes_no_request(tmp_path, monkeypatch):
     final_setup(tmp_path, monkeypatch, "f2")
     mailbox(tmp_path, "f3", "nothing")
     calls = []
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="'f3' is not the trial's S1-ACQUIRE-ACK"):
         k.do_final(tmp_path, "f3", client(calls), KEYS)
     assert calls == [] and not (tmp_path / "s1_out" / "final").exists()
 
@@ -356,11 +358,12 @@ def test_write_plan_requires_aware_start_a_week_ahead_and_records_deadline(tmp_p
 def test_audit_aborts_on_bad_calendar(tmp_path, mutate, why):
     """Retrospective (Task 6 review fix round 1): I-5 + I-1 (ABORTED manifest, pages kept)."""
     cl = audit_with_calendar(tmp_path, mutate(full_calendar()))
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"audit: ABORTED \(Structural\)"):
         k.do_audit(tmp_path, "a1", cl, KEYS)
     m = manifest_of(tmp_path, "audit")
     assert m["outcome"] == "ABORTED" and m["error_type"] == "Structural" and m["pages"], why
-    with pytest.raises(SystemExit):                                   # still one attempt
+    # still one attempt
+    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):
         k.do_audit(tmp_path, "a1", cl, KEYS)
     no_key_text_written(tmp_path)
 
@@ -381,7 +384,7 @@ def test_audit_midrun_http_failure_writes_aborted_manifest(tmp_path):
         if "calendar" in str(req.url):
             return httpx.Response(200, json=full_calendar())
         return httpx.Response(429, text="slow down " + KEYS[1])
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"audit: ABORTED \(Structural\)"):
         k.do_audit(tmp_path, "a1", httpx.Client(transport=httpx.MockTransport(handler)), KEYS)
     m = manifest_of(tmp_path, "audit")
     assert m["outcome"] == "ABORTED" and m["error_type"] == "Structural" and "HTTP 429" in m["error"]
@@ -400,7 +403,7 @@ def test_foreign_exception_records_type_name_only(tmp_path, monkeypatch):
     def boom(*a, **kw):
         raise RuntimeError(KEYS[1])
     monkeypatch.setattr(k, "_corporate_actions", boom)
-    with pytest.raises(SystemExit) as e:
+    with pytest.raises(SystemExit, match=r"audit: ABORTED \(RuntimeError\)") as e:
         k.do_audit(tmp_path, "a1", client([]), KEYS)
     assert KEYS[1] not in str(e.value) and e.value.__cause__ is None and e.value.__suppress_context__
     m = manifest_of(tmp_path, "audit")
@@ -416,7 +419,7 @@ def test_e1_structural_from_ca_validation_is_recorded(tmp_path):
         if "calendar" in str(req.url):
             return httpx.Response(200, json=full_calendar())
         return httpx.Response(200, json={"corporate_actions": []})
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"audit: ABORTED \(Structural\)"):
         k.do_audit(tmp_path, "a1", httpx.Client(transport=httpx.MockTransport(handler)), KEYS)
     m = manifest_of(tmp_path, "audit")
     assert m["outcome"] == "ABORTED" and "corporate-actions root malformed" in m["error"]
@@ -450,7 +453,7 @@ def test_final_lag_refused_before_reserving(tmp_path, monkeypatch):
     """Retrospective (Task 6 review fix round 1): I-2 - 3rd session after the stop closes 2026-10-30 20:00Z."""
     final_setup(tmp_path, monkeypatch, now=datetime(2026, 10, 30, 19, 59, tzinfo=UTC))
     calls = []
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="acquisition lag not met"):                       # (Task 5: exact reason)
         k.do_final(tmp_path, "f1", client(calls), KEYS)
     assert calls == [] and not (tmp_path / "s1_out" / "final").exists()
     monkeypatch.setattr(s1_common, "now_utc", lambda: datetime(2026, 10, 30, 20, 0, tzinfo=UTC))   # exactly the close
@@ -466,11 +469,16 @@ def test_final_lag_refused_when_calendar_lacks_three_later_sessions(tmp_path, mo
     pr.write_text(json.dumps(dict(json.loads(pr.read_text()), calendar=weekdays("2026-10-26", "2026-10-29"))))
     # Task 12 (A8.2): a prereg calendar differing from the audit's is now refused at the registration check, before
     # the lag computation; the expectation (refusal, no request, no reservation) is unchanged
-    mailbox(tmp_path, "f9", k.acquire_token(tmp_path), created=datetime(2026, 10, 29, 13, tzinfo=UTC))
+    s1_reack(tmp_path, "f9", "S1-ACQUIRE-ACK", datetime(2026, 10, 29, 13, tzinfo=UTC))   # A3: one ACK per kind
     calls = []
-    with pytest.raises(SystemExit):
+    # (Task 5 fix round 1, review I-3: the edited prereg is a registered artifact, so the command refuses with the
+    # registration-artifact abort - asserted - and the calendar/lag rule itself is asserted at unit level below)
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed: \['prereg.json changed"):
         k.do_final(tmp_path, "f9", client(calls), KEYS)
     assert calls == [] and not (tmp_path / "s1_out" / "final").exists()
+    stop_day = json.loads((tmp_path / "s1_out" / "final_plan.json").read_text())["stop_date"]
+    with pytest.raises(SystemExit, match="cannot place the 3rd session after the stop"):
+        k._earliest_acquire(weekdays("2026-10-26", "2026-10-29"), stop_day)
 
 
 def test_final_request_params_windows_and_manifest(tmp_path, monkeypatch):
@@ -501,9 +509,14 @@ def test_final_ack_binds_prereg(tmp_path, monkeypatch):
     pr = tmp_path / "s1_out" / "prereg.json"
     pr.write_text(pr.read_text() + " ")
     calls = []
-    with pytest.raises(SystemExit):
+    # (Task 5 fix round 1, review I-3: the edited prereg is a registered artifact, so the command refuses with the
+    # registration-artifact abort first; the ACK's own prereg binding is asserted at unit level below)
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         k.do_final(tmp_path, "f1", client(calls), KEYS)
     assert calls == [] and not (tmp_path / "s1_out" / "final").exists()
+    ack = s1_trial.open_trial(tmp_path / "mailbox.sqlite3").acks["S1-ACQUIRE-ACK"]
+    now_fields = s1_trial.artifact_fields("S1-ACQUIRE-ACK", tmp_path / "s1_out")
+    assert ack.fields["prereg_sha256"] != now_fields["prereg_sha256"]
 
 
 @pytest.mark.parametrize("mutate", [
@@ -516,7 +529,7 @@ def test_final_ack_binds_prereg(tmp_path, monkeypatch):
 def test_final_aborts_on_structurally_bad_bars_page(tmp_path, monkeypatch, mutate):
     """Retrospective (Task 6 review fix round 1): I-6 + I-1."""
     calls, cl = run_final(tmp_path, monkeypatch, lambda calls: bars_handler(calls, mutate))
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"final: ABORTED \(Structural\)"):
         k.do_final(tmp_path, "f1", cl, KEYS)
     assert manifest_of(tmp_path, "final")["outcome"] == "ABORTED"
 

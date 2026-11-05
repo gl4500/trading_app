@@ -14,11 +14,13 @@ import pytest
 import s1_checkpoint as ck
 import s1_collect as k
 import s1_common as c
+import s1_journal as j
 import s1_run as r
 import s1_seal as z
 import s1_snapshot
+import s1_trial as t
 from conftest import S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit, \
-    s1_state
+    s1_reack, s1_state
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"
@@ -113,7 +115,7 @@ def test_b3_an_invalid_handmade_prereg_before_the_opening_is_a_preserved_refusal
                                                  "ack": {"ack_id": "forged", "created_utc": START}}),
                                      encoding="utf-8")
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="inconsistent pre-registration state"):
         _cp(tmp_path, Ledger(tmp_path / "l.sqlite3").path, spies)
     assert spies.zero() and not (out / "captures").exists() and not (out / "aborted.json").exists()
     assert any(x["where"] == "checkpoint" for x in _refusals(tmp_path)), _refusals(tmp_path)
@@ -130,11 +132,11 @@ def test_b3_the_opening_changed_after_the_opening_but_before_the_run_ack_is_a_pe
     good = p.read_bytes()
     p.write_bytes(good + b" ")
     at = OPEN_CLOSE + timedelta(hours=2)
-    with _Clock(at), pytest.raises(SystemExit):
+    with _Clock(at), pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
     assert _aborted(tmp_path)["reason"] == "registration artifact"
     p.write_bytes(good)
-    with _Clock(at), pytest.raises(SystemExit, match="ABORTED"):
+    with _Clock(at), pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):   # A3 F0.6
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
 
 
@@ -166,13 +168,13 @@ def test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid
         p.write_bytes(good + b"\n")
     else:
         p.unlink()
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         _cp(tmp_path, st_["ledger"].path)
     ab = _aborted(tmp_path)
     assert ab["reason"] == "registration artifact" and any(rel in x for x in ab["problems"]), ab
     p.write_bytes(good)
-    rep = _cp(tmp_path, st_["ledger"].path, minutes=47)
-    assert rep["seal"]["written"] is False and rep["stop"]["status"] == "ABORTED-INVALID"
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):   # A3 F0.6/F1
+        _cp(tmp_path, st_["ledger"].path, minutes=47)
 
 
 @pytest.mark.parametrize("also_registry", [False, True])
@@ -185,7 +187,7 @@ def test_b3_deleting_prereg_and_the_opening_together_cannot_erase_the_registrati
     (out / OPENING).unlink()
     if also_registry:
         shutil.rmtree(out / "registry")
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         _cp(tmp_path, st_["ledger"].path)
     assert _aborted(tmp_path)["reason"] == "registration artifact"
 
@@ -200,7 +202,8 @@ def test_b3_audit_re_entry_cannot_bypass_persistence(tmp_path):
                           follow_redirects=False)
     p = tmp_path / "s1_out" / "plan.json"
     p.write_bytes(p.read_bytes() + b"\n")
-    with _Clock(START_DT - timedelta(hours=3)), pytest.raises(SystemExit):
+    with (_Clock(START_DT - timedelta(hours=3)),
+          pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed")):
         k.do_audit(tmp_path, "audit-ack", client, {"key": "k", "secret": "s"})
     assert calls == [] and _aborted(tmp_path)["reason"] == "registration artifact"
 
@@ -211,7 +214,8 @@ def test_b3_opening_re_entry_cannot_bypass_persistence(tmp_path):
     p = tmp_path / "s1_out" / "prereg.json"
     p.write_bytes(p.read_bytes() + b"\n")
     sch = OPEN_CLOSE + timedelta(minutes=47)
-    with _Clock(sch + timedelta(seconds=30)), pytest.raises(SystemExit):
+    with (_Clock(sch + timedelta(seconds=30)),
+          pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed")):
         ck.run_opening_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
                                   tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
     assert _aborted(tmp_path)["reason"] == "registration artifact"
@@ -225,7 +229,8 @@ def test_b3_post_stop_integrity_of_frozen_artifacts_is_persistent(tmp_path):
     sl = out / "seals" / f"{st_['sessions'][0]}.json"
     sl.write_bytes(sl.read_bytes() + b" ")
     sch = z.close_of(st_["sessions"][5], st_["calendar"]) + timedelta(minutes=45)
-    with _Clock(sch + timedelta(seconds=30)), pytest.raises(SystemExit):
+    with (_Clock(sch + timedelta(seconds=30)),
+          pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed")):
         ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
                           tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
     assert _aborted(tmp_path)["reason"] == "registration artifact"
@@ -237,7 +242,7 @@ def test_b3_a_mailbox_outage_is_a_refusal_not_proof_of_tampering(tmp_path, monke
     st_ = _registered(tmp_path)
     (tmp_path / "mailbox.sqlite3").rename(tmp_path / "mailbox.away")
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="mailbox unreadable"):
         _cp(tmp_path, st_["ledger"].path, spies)
     assert spies.zero() and not (tmp_path / "s1_out" / "aborted.json").exists()
     assert _refusals(tmp_path)
@@ -250,7 +255,7 @@ def test_b3_a_mailbox_outage_cannot_downgrade_an_established_violation(tmp_path,
     (tmp_path / "mailbox.sqlite3").rename(tmp_path / "mailbox.away")
     (tmp_path / "s1_out" / "prereg.json").unlink()
     spies = Spies(monkeypatch)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         _cp(tmp_path, st_["ledger"].path, spies)
     assert spies.zero() and _aborted(tmp_path)["reason"] == "registration artifact"
 
@@ -260,7 +265,7 @@ def test_b3_an_earlier_bundle_abort_stays_first(tmp_path, monkeypatch):
     st_ = _registered(tmp_path)
     c.write_abort(tmp_path / "s1_out", {"reason": "bundle", "actual": START})
     (tmp_path / "s1_out" / "attest_start.json").unlink()
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         _cp(tmp_path, st_["ledger"].path)
     assert _aborted(tmp_path)["reason"] == "bundle"
 
@@ -272,7 +277,10 @@ VALUATION = ("simulate_lot", "lot_economics", "baseline_economics", "compare", "
 def test_b3_a_registration_artifact_violation_at_the_score_is_persisted_and_prices_nothing(tmp_path, monkeypatch):
     """B3.3/B3.5: the score observing a changed START attestation records the persistent abort and is the preserved
     ABORTED-INVALID record (corrected after RED, before GREEN: the score - like the final snapshot - is a recording
-    command, A2.3: it does not refuse, it records). No valuation call (spies); restoring changes nothing."""
+    command, A2.3: it does not refuse, it records). No valuation call (spies); restoring changes nothing.
+    A3 Task 5 (intended, F0.6/F1 + OQ-19): old = "ABORTED-INVALID report, zero prices"; new = "TRIAL-INVALID
+    committed, score refused, zero prices" (the detector commits the violation first; the score then re-reads the
+    trial state and does no work: no reservation, no record)."""
     st_ = s1_state(tmp_path, START, score_ready=True)
     sim = c.sim()
     called = []
@@ -282,11 +290,13 @@ def test_b3_a_registration_artifact_violation_at_the_score_is_persisted_and_pric
     good = p.read_bytes()
     p.write_bytes(good + b"\n")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"] + timedelta(days=1))
-    s1_mailbox(tmp_path, "score-ack-b3", r.score_token(tmp_path), st_["now"] + timedelta(hours=20))
-    rep = r.score(tmp_path, "score-ack-b3")
-    assert rep["verdict"] == "ABORTED-INVALID" and called == [] and "levels" not in rep
+    s1_reack(tmp_path, "score-ack-b3", "S1-SCORE-ACK", st_["now"] + timedelta(hours=20))
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):
+        r.score(tmp_path, "score-ack-b3")
+    assert called == [] and not (tmp_path / "s1_out" / "score").exists()
     assert _aborted(tmp_path)["reason"] == "registration artifact"
-    assert any("registration artifact" in x for x in rep["reasons"]), rep["reasons"]
+    assert any(x.kind == "TRIAL-INVALID" and x.subject == "reason/registration-artifact"
+               for x in j.read_all(tmp_path / "mailbox.sqlite3"))
     p.write_bytes(good)
     assert c.load_abort(tmp_path / "s1_out")["reason"] == "registration artifact"     # restoring resumes nothing
 

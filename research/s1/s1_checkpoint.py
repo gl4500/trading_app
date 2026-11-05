@@ -32,6 +32,7 @@ import s1_gates as g
 import s1_receipt as r
 import s1_seal as z
 import s1_snapshot as s
+import s1_trial
 
 LIVE_DB = Path("C:/Users/gl450/trading_app/backend/trading.db")
 REPO = Path("C:/Users/gl450/trading_app")
@@ -599,6 +600,7 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
     the persisted stop / invalidity (A2); the slot claim and the pre-capture clock check (A5.2); the capture
     (A9.1); receipt, process, fences; the persistent abort on an established violation (A9.2); the measured
     eligibility; the slot-order seal (A5.2); the stop decision, persisted when it ends the trial (A2.1)."""
+    gv = s1_trial.gate(root, "checkpoint", mailbox=mailbox, now=now)   # A3 F0.6: open trial, state, bundle first
     out = Path(root) / "s1_out"
     pr = g.verified_registration(out, "checkpoint", mailbox, now)     # Task 12: A3.2 bundle first, then A8.2
     start, cal = c.aware(pr["start"]), pr["calendar"]
@@ -820,6 +822,7 @@ def run_opening_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, cra
     before sealing is kept if it equals this run's receipt; if it differs, this run refuses (no seal, the stored
     receipt is left untouched for the operator). Task 12: bundle first (A3.2), the verified AUDIT-ACK'd audit and
     its pinned calendar (A8.2/A6), the slot claim and clock (A5.2), failures preserved (A9.1), slot-order seal."""
+    gv = s1_trial.gate(root, "opening checkpoint", mailbox=mailbox, now=now)      # A3 F0.6: the gate first
     out = Path(root) / "s1_out"
     c.verify_bundle_first(out, "opening checkpoint", mailbox=mailbox, now=now, need="audit")    # Task 12: A3.2
     day, cal = _opening_day(out, scheduled, mailbox)                                             # A8.2
@@ -927,12 +930,20 @@ def run_final_snapshot(root, live_db, now=c.now_utc, mailbox=None) -> dict:
     locked DB) leaves no report.json, so a later run may try again. Fix round 1 (I-1): the refusal is decided by the
     attempts (any attempt-NN/meta.json with ok=True), so a lost or deleted report.json never re-opens the capture.
     Task 12: bundle first and the verified registration (A3.2/A8.2); the stop is the persisted one (A2.1)."""
+    gv = s1_trial.gate(root, "final snapshot", mailbox=mailbox, now=now)          # A3 F0.6: the gate first
     out = Path(root) / "s1_out"
     c.verify_bundle_first(out, "final snapshot", mailbox=mailbox, now=now,          # fix round 2 (B3): the gate
                           gate_refuses=False)                                         # first; it records (A2.3)
     if not (out / "prereg.json").exists():
         raise SystemExit("final snapshot refused: no prereg (the trial never started)")
     g.verified_registration(out, "final snapshot", mailbox, now, gate_refuses=False)   # A3.2 bundle, then A8.2
+    gv = s1_trial.gate(root, "final snapshot", mailbox=mailbox, now=now)   # A3 (F1, F8.1, OQ-19; review I-2): a
+    return _final_snapshot_capture(out, live_db, now)      # violation the legacy detector just committed: no capture
+
+
+def _final_snapshot_capture(out: Path, live_db, now) -> dict:
+    """The final snapshot's capture and fence check, after every gate of run_final_snapshot (split out in Task 5 fix
+    round 1 so the fence logic is reachable at unit level; run_final_snapshot is its only product caller)."""
     t = now()
     status, stop_close = _trial_state(out, _load(out / "prereg.json"), t)
     d = out / "final_snapshot"

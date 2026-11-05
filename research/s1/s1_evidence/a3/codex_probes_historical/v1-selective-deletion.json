@@ -1,0 +1,40 @@
+{
+  "source": "c9b4322",
+  "deleted": [
+    "seals\\2026-10-23.json",
+    "registry\\opening.json",
+    "witnesses\\opening.json",
+    "opening_receipt.json",
+    "captures\\2026-10-23\\20261023T204500Z.resolution.json",
+    "captures\\2026-10-23\\20261023T204500Z.report.json"
+  ],
+  "original_seal_hash": "36fcdc9d151bdd7d8d08875bc30d5e095baefeeafc1b53400d76cd5c0cb38cc0",
+  "replacement_seal_hash": "32ba1ead18d30364107ee4d36ba8df3c562bc17ab4f6c8c3533aa96292ffc8eb",
+  "receipt_changed": true,
+  "registration_before_reopen": {
+    "outage": false,
+    "audited": true,
+    "plan_bound": true,
+    "audit_acks": [
+      {
+        "collector_sha256": "e00df0f9a7d3db5d57f0e088777abe672784d60b371c5b0180c62151fbc6aa2f",
+        "plan_sha256": "508fa75c26a4d0bb1f2fd0fcc75777865b5a663cdaa6ca3e22f735d15840da8c",
+        "bundle_sha256": "c8463320b7ccf668584b102e776ef520363d7bf8967843a3e0658a0f36234c6c",
+        "start": "2026-10-26T13:30:00+00:00"
+      }
+    ],
+    "run_acks": [],
+    "oday": "2026-10-23",
+    "anchor": "2026-10-23 17:45:00+00:00",
+    "local": true,
+    "external": false,
+    "witnesses": [
+      "opening capture"
+    ],
+    "registered": false
+  },
+  "abort": null,
+  "attestation_and_prereg_accept_replacement": true,
+  "retained_claim": true,
+  "retained_capture": true
+}

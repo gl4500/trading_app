@@ -16,7 +16,8 @@ import s1_gates as g
 import s1_run as r
 import s1_seal as z
 import s1_snapshot
-from conftest import S1_PROCESS, S1_RECEIPT, Ledger, _Clock, _write_seal, s1_mailbox, s1_plan_audit, s1_state
+from conftest import (S1_PROCESS, S1_RECEIPT, Ledger, _Clock, _write_seal, s1_mailbox, s1_plan_audit, s1_reack,
+                      s1_score_refused, s1_state)
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"
@@ -91,8 +92,10 @@ def test_ms_verify_bundle_first_needs_a_prereg_when_asked(tmp_path):
 
 # ---------------------------------------------------------------------- s1_gates
 def test_ms_an_audit_ack_message_without_the_exact_audit_token_refuses(tmp_path, ledger):
-    """Mutant "verify_audit_ack skips the token check": the ACK names the right bundle but another START."""
-    s1_plan_audit(tmp_path, START)
+    """Mutant "verify_audit_ack skips the token check": the ACK names the right bundle but another START.
+    (A3 Task 5 fixture note: journal=False - the TEST rewrites the AUDIT-ACK body, which is every journal row's
+    genesis, F0.2; with the audit stage's synthetic rows the chain itself would refuse first.)"""
+    s1_plan_audit(tmp_path, START, journal=False)
     tok = c.audit_token(tmp_path / "s1_out").replace(f"start={START}", "start=2027-01-04T14:30:00+00:00")
     con = sqlite3.connect(c.MAILBOX)
     con.execute("UPDATE messages SET body=? WHERE id='audit-ack'", (tok,))
@@ -141,7 +144,7 @@ def test_ms_a_run_ack_message_not_carrying_the_exact_run_token_refuses(tmp_path)
     _msg("other-ack", "codex", bad, c.aware(pr["ack"]["created_utc"]))
     (out / "prereg.json").write_text(json.dumps(dict(pr, ack=dict(pr["ack"], ack_id="other-ack"))), encoding="utf-8")
     probs = g.run_ack_problems(out, read(out / "prereg.json"))
-    assert probs == ["the RUN-ACK does not carry the RUN token of the current artifacts"], probs
+    assert probs == ["RUN-ACK runner_sha256 does not match"], probs        # A3: field by field (F6.1, OQ-5)
 
 
 def test_ms_a_run_ack_after_planned_start_is_reported_on_its_own(tmp_path):
@@ -236,6 +239,6 @@ def test_ms_stop_json_changed_after_the_attestation_is_named(tmp_path, monkeypat
     p = tmp_path / "s1_out" / "stop.json"
     p.write_text(json.dumps(dict(read(p), decided_by="edited")), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
-    rep = r.score(tmp_path, "score-ack-2")
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
+    rep = s1_score_refused(tmp_path, "score-ack-2")   # A3 F0.6/F1: refused; the unit-level record
     assert "persisted stop (stop.json) changed after the stop attestation" in rep["reasons"], rep["reasons"]

@@ -105,7 +105,9 @@ class Context:
     None (F1 permission, predecessor, ACKs, the seal stage's determined close); stage_check(rows, subject, inputs)
     -> Decision | None at step 4a for a STAGE-INTENT (E2.2 r3: a seal stage selecting another QUALIFIED than the
     first one is INVALIDATE contradictory-stage); stop_fence(rows) -> a refusal reason or None at step 5 for
-    TRIAL-STOP (E2.5 r3: every close determined by these rows must have a CREATED seal stage)."""
+    TRIAL-STOP (E2.5 r3: every close determined by these rows must have a CREATED seal stage). A missing
+    slot_gate, stage_gate or stage_check (and slot_times, stop_detail, stop_fence) fails closed at step 5/6 (Task 5
+    fix round 1, review M-6); steps 2-4 never depend on them."""
     closed: bool = False
     slot_times: Optional[Callable[[str], tuple]] = None
     stop_detail: Optional[Callable[[list], Optional[str]]] = None
@@ -378,7 +380,8 @@ def _slot(rows, mine, req, ctx, now, state, reused=False) -> Decision:
     if k == "SLOT-INTENT":
         if state == "STOPPED":
             return Decision("LOST-RACE", "STOPPED: no capture after the stop (not invalid)")
-        why = ctx.slot_gate(rows, req.subject) if ctx.slot_gate is not None else None
+        why = (ctx.slot_gate(rows, req.subject) if ctx.slot_gate is not None     # review M-6: fail closed
+               else "no slot gate supplied (fail closed)")
         if why:
             return Decision("REFUSE", why)
     if k in ("SLOT-QUALIFIED", "SLOT-FAILED") and state == "STOPPED":
@@ -431,6 +434,8 @@ def _stage(rows, mine, req, ctx, reused=False) -> Decision:
                else "no stage gate supplied (fail closed)")
         if why:
             return Decision("REFUSE", why)
+        if ctx.stage_check is None:                       # review M-6: the seal-selection check (4a) never skipped
+            return Decision("REFUSE", "no stage check supplied (fail closed)")
     return Decision("APPEND")
 
 

@@ -28,7 +28,7 @@ SLOT, SLOT2 = "slot/20261102T214500Z", "slot/20261102T214700Z"
 def OPEN(rows, con):
     """A context every Task-2 rule accepts for these requests (E and D far ahead, gates open)."""
     return j.Context(slot_times=lambda s: (FAR, FAR + timedelta(minutes=30)), stage_gate=lambda rows, g: None,
-                     slot_gate=lambda rows, s: None)
+                     slot_gate=lambda rows, s: None, stage_check=lambda rows, s, i: None)   # (T5 fix 1, M-6)
 
 
 def base_line(**kw):

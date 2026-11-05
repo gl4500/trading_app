@@ -11,7 +11,9 @@ import sqlite3
 
 import s1_seal
 import s1_snapshot
-from conftest import S1_BINDING, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_receipt_with, s1_state, s1_sync_portfolio
+import s1_trial as t
+from conftest import (S1_BINDING, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_receipt_with, s1_state,
+                      s1_sync_portfolio)
 
 OTHER = s1_receipt_with(S1_RECEIPT, files={"agents/mean_reversion_agent.py": "other"})   # Task 12 (A1): fingerprint
 
@@ -243,7 +245,7 @@ def test_final_snapshot_records_a_backdated_row_and_score_is_aborted_invalid(tmp
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
     # Input adjusted for the controller rulings (SCORE_ACK binds final_snapshot_sha256): the snapshot was taken after
     # s1_state's "score-ack" ("absent"), so the operator issues a fresh ACK binding the recorded report.
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     out = r.score(tmp_path, "score-ack-2")
     assert out["verdict"] == "ABORTED-INVALID" and out["nomination"] is False and "levels" not in out
     assert any("final snapshot" in x and "backdated" in x for x in out["reasons"])
@@ -300,7 +302,7 @@ def test_cli_takes_exactly_one_mode():
     assert ck.parse_mode(["--opening", "--scheduled", t]) == ("opening", c.aware(t))
     assert ck.parse_mode(["--final-snapshot"]) == ("final-snapshot", None)
     for bad in ([], ["--opening"], ["--final-snapshot", "--scheduled", t], ["--final-snapshot", "--opening"]):
-        with pytest.raises(SystemExit):
+        with pytest.raises(SystemExit, match=r"^2$"):
             ck.parse_mode(bad)
 
 
@@ -312,7 +314,7 @@ def test_score_ack_binds_the_final_snapshot_report_and_an_edit_after_the_ack_is_
     assert f"final_snapshot_sha256={c.sha256_file(p)}" in r.score_token(tmp_path)
     p.write_text(json.dumps(dict(read(p), edited=True)), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    with pytest.raises(SystemExit, match="ack lacks the standalone line"):   # fix round 1 (M-3): the ACK binding
+    with pytest.raises(t.Refusal, match=r"S1-SCORE-ACK score-ack: \['final_snapshot_sha256'\] differ"):   # (M-3)
         r.score(tmp_path, "score-ack")
     assert not (tmp_path / "s1_out" / "score").exists()
 
@@ -424,7 +426,7 @@ def _backdated_final_attempt(tmp_path):
 
 
 def _fresh_score_ack(tmp_path, st_, ack_id):
-    s1_mailbox(tmp_path, ack_id, r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    s1_reack(tmp_path, ack_id, "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
 
 
 def test_deleted_report_after_a_successful_attempt_refuses_a_new_attempt(tmp_path):
@@ -648,15 +650,19 @@ def test_cr_final_snapshot_refuses_on_a_bad_seal_record(tmp_path, bad):
     seals = tmp_path / "s1_out" / "seals"
     last = sorted(seals.glob("*.json"))[-1]
     (seals / "zz.json").write_text(last.read_text() if bad == "dup" else bad, encoding="utf-8")
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):   # A3 fix 1 (I-2)
+        ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+    assert not (tmp_path / "s1_out" / "final_snapshot").exists()   # the command captures nothing; the
+    # fence logic is then reached at unit level (_final_snapshot_capture, after every gate)
     if bad == "dup":
         # Task 12 (A2.1/A2.3, A10.1) REPLACEMENT for the duplicate: the stop is the PERSISTED one (never recomputed,
         # so no "two seals" ValueError); the extra seal is a frozen-slice integrity failure RECORDED by the
         # successful capture (the score is then ABORTED-INVALID), not a refusal that leaves no outcome
-        rep = ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+        rep = ck._final_snapshot_capture(tmp_path / "s1_out", st_["ledger"].path, lambda: st_["snapshot_at"])
         assert any("zz.json" in v and "frozen slices" in v for v in rep["fence_violations"]), rep
         return
     with pytest.raises(SystemExit, match="bad seal record"):
-        ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+        ck._final_snapshot_capture(tmp_path / "s1_out", st_["ledger"].path, lambda: st_["snapshot_at"])
     assert not (tmp_path / "s1_out" / "final_snapshot").exists()
 
 
@@ -704,7 +710,11 @@ def test_cr_final_snapshot_records_a_malformed_seal_fence_as_a_violation(tmp_pat
     s = read(p)
     edit(s)
     p.write_text(json.dumps(s), encoding="utf-8")
-    rep = ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):   # A3 fix 1 (I-2)
+        ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
+    assert not (tmp_path / "s1_out" / "final_snapshot").exists()   # the command captures nothing; the
+    # fence logic is then reached at unit level (_final_snapshot_capture, after every gate)
+    rep = ck._final_snapshot_capture(tmp_path / "s1_out", st_["ledger"].path, lambda: st_["snapshot_at"])
     assert rep["fence_checked"] is True and rep["fence_violations"][0].startswith(f"bad seal record: {kind}")
 
 

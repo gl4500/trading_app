@@ -17,8 +17,9 @@ import s1_receipt as rc
 import s1_run as r
 import s1_seal as z
 import s1_snapshot
-from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_state, s1_sync_portfolio,
-                      s1_unattest)
+import s1_trial as t
+from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_score_refused,
+                      s1_state, s1_sync_portfolio, s1_unattest)
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"
@@ -341,7 +342,7 @@ def test_mf_the_score_reverifies_the_run_token_bindings(tmp_path, monkeypatch):
     pr["recorded_utc"] = (c.aware(pr["ack"]["created_utc"]) - timedelta(minutes=1)).isoformat()
     p.write_text(json.dumps(pr), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = r.score(tmp_path, "score-ack")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["verdict"] == "ABORTED-INVALID" and any("registration not verified" in x for x in rep["reasons"])
 
 
@@ -351,7 +352,7 @@ def test_mf_an_edited_opening_books_file_is_aborted_invalid_at_score(tmp_path, m
     p = tmp_path / "s1_out" / "opening_books.json"
     p.write_text(json.dumps(dict(read(p), note="x")), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = r.score(tmp_path, "score-ack")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert "START attestation opening_books_sha256 does not match" in rep["reasons"], rep["reasons"]
 
 
@@ -361,7 +362,7 @@ def test_mf_an_attestation_binding_another_stop_json_is_unverified(tmp_path, mon
     p = tmp_path / "s1_out" / "attest_stop.json"
     p.write_text(json.dumps(dict(read(p), stop_sha256="0" * 64)), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
     rep = r.score(tmp_path, "score-ack-2")
     assert "persisted stop (stop.json) hash differs" in rep["stop_attestation"]["problems"]
 
@@ -379,6 +380,6 @@ def test_mf_the_score_ack_binds_the_persisted_stop(tmp_path, monkeypatch):
     p = tmp_path / "s1_out" / "stop.json"
     p.write_text(json.dumps(dict(read(p), decided_by="edited")), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    with pytest.raises(SystemExit, match="ack lacks the standalone line"):
-        r.score(tmp_path, "score-ack")
-    assert not (tmp_path / "s1_out" / "score").exists()
+    s1_score_refused(tmp_path, "score-ack")      # A3: stop.json is a registration artifact (TRIAL-INVALID, refused)
+    ack = t.open_trial(tmp_path / "mailbox.sqlite3").acks["S1-SCORE-ACK"]          # and the SCORE-ACK binds it:
+    assert ack.fields["stop_sha256"] != t.artifact_fields("S1-SCORE-ACK", tmp_path / "s1_out")["stop_sha256"]

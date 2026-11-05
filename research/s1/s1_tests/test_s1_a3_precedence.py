@@ -57,7 +57,8 @@ def rq(kind, subject=S, op=AO, actor=AA, detail=None, r_at=None, inputs=None):
 
 def ctx(**kw):
     base = dict(slot_times=lambda s: (E, D), stop_detail=lambda rows: H1, stage_gate=lambda rows, g: None,
-                slot_gate=lambda rows, s: None, stop_fence=lambda rows: None)      # revision 2: E2.5 r3 fence
+                slot_gate=lambda rows, s: None, stop_fence=lambda rows: None,      # revision 2: E2.5 r3 fence
+                stage_check=lambda rows, s, i: None)          # (Task 5 fix round 1, M-6: supplied explicitly)
     base.update(kw)
     return j.Context(**base)
 

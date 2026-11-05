@@ -12,6 +12,7 @@ import s1_books
 import s1_common as c
 import s1_gates as g
 import s1_seal
+import s1_trial
 
 CAL_URL = c.CAL_URL
 BARS_URL = "https://data.alpaca.markets/v2/stocks/bars"
@@ -70,7 +71,6 @@ def write_plan(root, planned_start: datetime, opening_close: str, symbols, first
                mailbox=None) -> Path:
     """F9: the only command that runs without an open trial; it refuses once one is open (or the mailbox is
     unreadable, OQ-20). No provider request, live callback, journal write or priced work. F6.2: the trial_id."""
-    import s1_trial                                    # late import: s1_trial imports s1_common only
     s1_trial.require_no_open_trial(mailbox)
     if planned_start.tzinfo is None:
         raise ValueError("planned START must be an aware instant")
@@ -325,13 +325,14 @@ def do_audit(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
     registration exists yet, so a mismatch is a refusal); the ACK must follow the plan it binds and precede planned
     START (A8.2); the manifest binds plan_sha256 and the bundle (A8.1); the calendar is pinned with its source,
     request parameters and retrieval time (A6)."""
+    gv = s1_trial.gate(root, "audit", mailbox=mailbox)                  # A3 F0.6: open trial, state, bundle first
     _require_no_redirects(client)
     out = _out(root)
     c.bundle_gate(out, _approved_bundle(ack_id, "S1-AUDIT-ACK", mailbox),          # fix round 1 (m-1): persisted
                   registered=c.is_registered(out, mailbox), where="audit")          # once registered (B3.1)
     c.registration_gate(out, "audit", mailbox=mailbox)                  # fix round 2 (B3.3): re-entry is gated
     plan = json.loads((out / "plan.json").read_text(encoding="utf-8"))
-    ack = _ack(ack_id, audit_token(root), mailbox)
+    ack = s1_trial.verify_current(gv, "S1-AUDIT-ACK", ack_id)          # A3: field by field (F6.1, F6.5)
     if not c.aware(ack["created_utc"]) > c.aware(plan["created_utc"]):
         raise SystemExit("audit refused: the AUDIT-ACK is not after the plan it binds")
     if c.aware(plan["planned_start"]) <= c.now_utc():
@@ -437,14 +438,16 @@ def _stop_attestation(out: Path, plan: dict) -> dict:
 def write_final_plan(root, *, mailbox=None) -> Path:
     """Task 11 (controller-added), I-4: write-once final plan, derived (final_plan_record), only after the stop
     attestation."""
+    gv = s1_trial.gate(root, "final plan", mailbox=mailbox)             # A3 F0.6: open trial, state, bundle first
     rec = final_plan_record(root, mailbox=mailbox)
     _stop_attestation(_out(root), rec)
     return _write_once(_out(root) / "final_plan.json", rec)
 
 
-def acquire_token(root) -> str:
-    """Binds collector, final plan, prereg, the stop attestation and (Task 12, A7.1) the bundle."""
-    return c.acquire_token(_out(root))
+def acquire_token(root, mailbox=None) -> str:
+    """Binds collector, final plan, prereg, the stop attestation and (Task 12, A7.1) the bundle; A3: the trial and
+    journal fields from `mailbox` (s1_trial.token)."""
+    return c.acquire_token(_out(root), mailbox)
 
 
 def _earliest_acquire(calendar, stop_day: str) -> datetime:
@@ -465,12 +468,13 @@ def do_final(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
     """One final acquisition under the exact ACQUIRE-ACK. Task 11 (controller-added), I-4: before reserving it
     re-derives the final plan from the stop seal (STOPPED/TIMEOUT, no aborted.json) and requires the stored plan to
     equal it, the stop attestation to bind that stop, and the ACK to be strictly after the stop attestation."""
+    gv = s1_trial.gate(root, "final acquisition", mailbox=mailbox)      # A3 F0.6: open trial, state, bundle first
     _require_no_redirects(client)
     out = _out(root)
     g.verified_registration(out, "final acquisition", mailbox)        # Task 12: A3.2 bundle first, then A8.2
     fp, prp = out / "final_plan.json", out / "prereg.json"
     plan = json.loads(fp.read_text(encoding="utf-8"))
-    ack = _ack(ack_id, acquire_token(root), mailbox)
+    ack = s1_trial.verify_current(gv, "S1-ACQUIRE-ACK", ack_id)        # A3: field by field (F6.1, F6.5, F7.1)
     rec = final_plan_record(root, mailbox=mailbox)
     if plan != rec:
         raise SystemExit("final refused: final_plan.json is not the plan derived from the stop seal")

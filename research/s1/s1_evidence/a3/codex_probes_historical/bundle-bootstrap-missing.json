@@ -1,0 +1,13 @@
+{
+  "head": "c9b4322",
+  "bundle_original": "c8463320b7ccf668584b102e776ef520363d7bf8967843a3e0658a0f36234c6c",
+  "auth_damage": "missing",
+  "artifacts": [
+    "prereg.json",
+    "audit\\manifest.json"
+  ],
+  "refusal": "Codex combined-damage probe refused: inconsistent pre-registration state ['registry/opening.json', 'witnesses/opening.json', 'registry/attest_start.json', 'witnesses/attest_start.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)",
+  "abort": null,
+  "restoration_resumes": true,
+  "source_changed_only_in": "isolated bundle-copy; original source unchanged"
+}

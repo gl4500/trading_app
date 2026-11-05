@@ -88,7 +88,8 @@ def stage_row(trial, mb, at):
     """One real journal row for `trial` (STAGE-INTENT stage/audit), appended through s1_journal.append."""
     return j.append(trial.trial_id, trial.genesis,
                     j.Request("STAGE-INTENT", "stage/audit", "1" * 32, "2" * 32, detail=H),
-                    lambda rows, con: j.Context(stage_gate=lambda r_, g: None), mailbox=mb,
+                    lambda rows, con: j.Context(stage_gate=lambda r_, g: None, stage_check=lambda r_, s, i: None),
+                    mailbox=mb,
                     clock=lambda: at).row
 
 

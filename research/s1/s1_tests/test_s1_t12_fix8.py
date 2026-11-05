@@ -13,6 +13,7 @@ import pytest
 
 import s1_common as c
 import s1_run as r
+import s1_trial as t
 from conftest import S1_RECEIPT, _Clock, s1_mailbox_init, s1_state
 from test_s1_t12_fix2_b3 import MON, _aborted, _cp
 from test_s1_t12_fix4 import START, START_DT
@@ -49,7 +50,7 @@ def test_h1_probe_an_edited_plan_with_an_unreadable_manifest_aborts_and_restorin
         mp.unlink()
     else:
         mp.write_text("{x" if mode == "corrupt" else "[]", encoding="utf-8")
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         _cp(tmp_path, st_["ledger"].path)
     assert _aborted(tmp_path)["reason"] == "registration artifact"
     p.write_bytes(gp)
@@ -89,7 +90,7 @@ def test_h2_probe_a_six_file_coordinated_edit_aborts_through_the_ack_found_by_it
         x["plan_sha256"] = c.sha256_file(out / "plan.json")
         x["audit_manifest_sha256"] = c.sha256_file(out / "audit/manifest.json")
         (out / n).write_text(json.dumps(x), encoding="utf-8")
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         _cp(tmp_path, st_["ledger"].path)
     assert _aborted(tmp_path)["reason"] == "registration artifact"
     for n, b in good.items():
@@ -145,14 +146,14 @@ def test_h_every_subset_of_the_editable_registration_files_tampered_is_the_persi
     good = {rel: (out / rel).read_bytes() for rel in subset}
     for rel in subset:
         _tamper(out, rel, mode)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         c.verify_bundle_first(out, "checkpoint", now=lambda: T, need="prereg")
     assert (c.load_abort(out) or {}).get("reason") == "registration artifact", (subset, mode, c.load_abort(out))
     first = (out / "aborted.json").read_bytes()
     for rel, b in good.items():
         (out / rel).write_bytes(b)
-    rep = _cp(tmp_path, tmp_path / "s1_ledger.sqlite3", minutes=47)     # fix round 9 (item 3): asserted, not swallowed
-    assert rep["stop"]["status"] == "ABORTED-INVALID" and rep["stop"]["reason"] == "registration artifact", rep["stop"]
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):   # A3 F0.6/F1
+        _cp(tmp_path, tmp_path / "s1_ledger.sqlite3", minutes=47)
     assert (out / "aborted.json").read_bytes() == first
 
 
@@ -161,7 +162,10 @@ def test_h_a_run_ack_carrying_the_bundle_is_a_registration_even_before_the_openi
     """RETROSPECTIVE (written after the restructure). Fix round 8 rule 1a/2/5 (replaces fix4::test_n3_clock_anchor_nothing_is_registered_before_the_first_opening_
     slot): with plan + audit, a codex S1-RUN-ACK carrying the registered bundle exists BEFORE the opening's first slot
     (the anchor never cancels an external ACK; an ACK with this bundle is this registered bundle - fail closed), plus a
-    prereg naming it: the gate records the persistent "registration artifact" abort with zero live callbacks."""
+    prereg naming it: the gate records the persistent "registration artifact" abort with zero live callbacks.
+    A3 Task 5 (intended, E4.3/F6.1): that forged line is in the official channel but has no trial_id - an
+    unattributable malformed official ACK candidate - so the trial gate refuses EVERY trial-bound command first, with
+    zero live callbacks; the forged line registers nothing and records nothing."""
     import s1_checkpoint as ck
     import s1_seal as z
     from conftest import Ledger, s1_mailbox, s1_plan_audit
@@ -178,10 +182,9 @@ def test_h_a_run_ack_carrying_the_bundle_is_a_registration_even_before_the_openi
     s1_mailbox(tmp_path, "forged-run", f"S1-RUN-ACK plan_sha256={c.sha256_file(out / 'plan.json')} "
                                        f"bundle_sha256={c.bundle_sha256()} start={START}", before - timedelta(minutes=5))
     spies = Spies(monkeypatch)
-    with _Clock(before), pytest.raises(SystemExit):
+    with _Clock(before), pytest.raises(t.Refusal, match="unattributable malformed official ACK line"):
         ck.run_opening_checkpoint(tmp_path, Ledger(tmp_path / "l.sqlite3").path, slot0, spies.receipt, spies.process,
                                   tmp_path / "crash.log", now=lambda: before)
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
     assert spies.zero(), spies.n
 
 
@@ -202,7 +205,7 @@ def test_h_guard_without_any_audit_ack_and_no_opening_evidence_is_a_refusal(tmp_
     con.commit()
     con.close()
     _fabricate(tmp_path, ["prereg.json"], cal)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="inconsistent pre-registration state"):
         c.registration_gate(tmp_path / "s1_out", "checkpoint", now=lambda: T)
     assert c.load_abort(tmp_path / "s1_out") is None
 
@@ -229,7 +232,7 @@ def test_h_retro_only_the_external_acks_bind_a_coordinated_attestation_edit(tmp_
         rec = json.loads((out / n).read_text(encoding="utf-8"))
         rec["artifacts"]["prereg.json"] = c.sha256_file(out / "prereg.json")
         (out / n).write_text(json.dumps(rec), encoding="utf-8")
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         c.registration_gate(out, "checkpoint", now=lambda: T)
     ab = _aborted(tmp_path)
     assert ab["reason"] == "registration artifact" and any("external ACK" in x for x in ab["problems"]), ab

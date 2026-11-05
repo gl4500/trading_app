@@ -13,6 +13,7 @@ import s1_common as c
 import s1_gates as g
 import s1_receipt as rc
 import s1_seal as z
+import s1_trial
 
 START_STATEMENT = "I confirm the trading_app backend runs from the recorded checkout, started after the S1 receipt."
 STOP_STATEMENT = ("I confirm that between START and the stop no MeanReversion code, config or package changed "
@@ -268,12 +269,22 @@ def _load(p: Path):
     return json.loads(Path(p).read_text(encoding="utf-8"))
 
 
-def _plan_trial_id(out: Path):
-    """F6.2: the plan's trial_id for a preserved score-abort record (best effort: None when plan.json is unreadable)."""
+def _trial_id_of(plan) -> str:
+    """F6.2 (Task 4 review M2): the plan's trial_id; a plan without one is a refusal (never a KeyError, never None)."""
+    tid = plan.get("trial_id") if isinstance(plan, dict) else None
+    if not isinstance(tid, str) or not tid:
+        raise s1_trial.Refusal("plan.json has no trial_id: refuse (F6.2)")
+    return tid
+
+
+def _plan_trial_id(out: Path) -> str:
+    """F6.2: the trial_id recorded in s1_out/plan.json (an unreadable plan or one without a trial_id refuses)."""
     try:
-        return _load(out / "plan.json").get("trial_id")
-    except (OSError, ValueError, AttributeError):
-        return None
+        plan = _load(out / "plan.json")
+    except (OSError, ValueError) as e:
+        raise s1_trial.Refusal(f"plan.json unreadable ({type(e).__name__}): plan.json has no trial_id: refuse "
+                               f"(F6.2)") from None
+    return _trial_id_of(plan)
 
 
 def _sha_or_absent(p: Path) -> str:
@@ -294,15 +305,16 @@ def _ack(ack_id: str, token: str, mailbox=None) -> dict:
         raise SystemExit(f"mailbox unreadable ({type(e).__name__}): refusing") from None
 
 
-def run_token(root) -> str:
+def run_token(root, mailbox=None) -> str:
     """Task 12 (A8.1): binds the opening seal, the frozen opening books, the audit, the attestation and the bundle
-    (s1_common.run_token)."""
-    return c.run_token(_out(root))
+    (s1_common.run_token); A3: the trial and journal fields from `mailbox` (s1_trial.token)."""
+    return c.run_token(_out(root), mailbox)
 
 
-def score_token(root) -> str:
-    """Task 12 (A2/A3): also binds the persisted stop (stop.json) and the bundle (s1_common.score_token)."""
-    return c.score_token(_out(root))
+def score_token(root, mailbox=None) -> str:
+    """Task 12 (A2/A3): also binds the persisted stop (stop.json) and the bundle (s1_common.score_token); A3: the
+    trial and journal fields from `mailbox` (s1_trial.token)."""
+    return c.score_token(_out(root), mailbox)
 
 
 def _attempt(d: Path, names) -> tuple:
@@ -428,6 +440,7 @@ def attest_start(root, statement: str, receipt, *, mailbox=None) -> dict:
     FIRST (A3.2; from the opening seal on a mismatch is the persistent "bundle" abort, R-1); the audit is the
     verified one (A8.2); the attestation follows the opening seal's capture (A8.1); it writes and binds the frozen
     opening books (A8.1) and binds the bundle."""
+    gv = s1_trial.gate(root, "START attestation", mailbox=mailbox)      # A3 F0.6: open trial, state, bundle first
     if statement != START_STATEMENT:
         raise SystemExit("START attestation refused: the statement must be exactly START_STATEMENT")
     out = _out(root)
@@ -458,7 +471,7 @@ def attest_start(root, statement: str, receipt, *, mailbox=None) -> dict:
         books_p = _opening_books(out, seal_p, seal)
     except b.BookError as e:
         raise SystemExit(f"START attestation refused: opening ledger unreadable ({e})") from None
-    rec = {"statement": statement, "trial_id": plan["trial_id"], "planned_start": plan["planned_start"],
+    rec = {"statement": statement, "trial_id": _trial_id_of(plan), "planned_start": plan["planned_start"],
            "receipt_sha256": _receipt_sha(opening_receipt), "plan_sha256": c.sha256_file(out / "plan.json"),
            "audit_manifest_sha256": c.sha256_file(out / "audit" / "manifest.json"),
            "opening_seal_sha256": c.sha256_file(seal_p), "opening_books_sha256": c.sha256_file(books_p),
@@ -472,7 +485,7 @@ def attest_start(root, statement: str, receipt, *, mailbox=None) -> dict:
 
 
 def _start_attestation_problems(out: Path, att: dict, plan: dict, seal_p: Path, receipt) -> list:
-    want = {"statement": START_STATEMENT, "trial_id": plan["trial_id"], "planned_start": plan["planned_start"],
+    want = {"statement": START_STATEMENT, "trial_id": _trial_id_of(plan), "planned_start": plan["planned_start"],
             "plan_sha256": c.sha256_file(out / "plan.json"),
             "audit_manifest_sha256": c.sha256_file(out / "audit" / "manifest.json"),
             "opening_seal_sha256": c.sha256_file(seal_p), "receipt_sha256": _receipt_sha(receipt),
@@ -492,6 +505,7 @@ def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
     a BLOCKED carry-in, under the exact RUN-ACK. Writes s1_out/prereg.json once (start, calendar, receipt + bindings).
     Task 12: the bundle first (A3.2/A3.3, R-1); the verified audit (A8.2); the carry-in audit bounded to actions
     effective before START (A4.1); prereg records the bundle, opening seal and opening books (A8.1)."""
+    gv = s1_trial.gate(root, "prereg", mailbox=mailbox)                 # A3 F0.6: open trial, state, bundle first
     out = _out(root)
     c.verify_bundle_first(out, "prereg", mailbox=mailbox, need="audit")
     if c.load_abort(out) is not None:                                 # Task 12 (A3.3): persistent, never resumed
@@ -530,10 +544,10 @@ def do_prereg(root, ack_id: str, receipt, *, mailbox=None) -> dict:
         except FileExistsError:
             pass
         raise SystemExit(f"S1 BLOCKED (pre-START units): {reasons}; re-register")
-    ack = _ack(ack_id, run_token(root), mailbox)
+    ack = s1_trial.verify_current(gv, "S1-RUN-ACK", ack_id)            # A3: field by field (F6.1, F6.5, F7.1)
     if c.aware(ack["created_utc"]) <= c.aware(_load(ap)["recorded_utc"]):         # §12 causal order (ruling I-2)
         raise SystemExit("prereg refused: the RUN-ACK is not strictly after the START attestation")
-    pr = {"trial_id": plan["trial_id"], "start": plan["planned_start"], "calendar": cal, "receipt": receipt,
+    pr = {"trial_id": _trial_id_of(plan), "start": plan["planned_start"], "calendar": cal, "receipt": receipt,
           "runner_sha256": runner_sha(), "bundle_sha256": c.bundle_sha256(),           # Task 12 (A3.1)
           "plan_sha256": c.sha256_file(out / "plan.json"),
           "audit_manifest_sha256": c.sha256_file(out / "audit" / "manifest.json"),
@@ -568,6 +582,7 @@ def _seals(out: Path) -> list:
 def attest_stop(root, statement: str, *, mailbox=None) -> dict:
     """Stop attestations (§12): after a recorded stop (STOPPED/TIMEOUT from the seals), before the final acquisition
     and any score; binds the START attestation, the actual START and stop and the sealed final ledger (stop seal)."""
+    gv = s1_trial.gate(root, "stop attestation", mailbox=mailbox)       # A3 F0.6: open trial, state, bundle first
     if statement != STOP_STATEMENT:
         raise SystemExit("stop attestation refused: the statement must be exactly STOP_STATEMENT")
     out = _out(root)
@@ -592,7 +607,7 @@ def attest_stop(root, statement: str, *, mailbox=None) -> dict:
     if probs:
         raise SystemExit(f"stop attestation refused: the persisted stop does not verify ({probs})")
     stop_p = out / z.load_stop(out)["stop_seal"]
-    rec = {"statement": statement, "trial_id": _load(out / "plan.json")["trial_id"],
+    rec = {"statement": statement, "trial_id": _plan_trial_id(out),
            "attest_start_sha256": c.sha256_file(out / "attest_start.json"), "start": pr["start"],
            "stop_close": stop["stop_close"], "stop_status": stop["status"],
            "sealed_final_ledger_sha256": c.sha256_file(stop_p),
@@ -619,19 +634,22 @@ def _clean(obj):
 def score(root, ack_id: str, *, mailbox=None) -> dict:
     """One exclusive score (§15): exact SCORE-ACK, then the reservation (exclusive), then computation; the report
     s1_out/score/s1.json is written once. A refused ACK or a second attempt writes nothing."""
+    gv = s1_trial.gate(root, "score", mailbox=mailbox)                  # A3 F0.6: open trial, state, bundle first
     out = _out(root)
     c.verify_bundle_first(out, "score", mailbox=mailbox, gate_refuses=False)   # fix round 2 (B3): gate first;
     if not (out / "prereg.json").exists():                                     # the score records (A2.3)
         raise SystemExit("no prereg: the trial never started; nothing to score")
     c.verify_bundle_first(out, "score", mailbox=mailbox, need="prereg",           # Task 12: A3.2 bundle first
                           gate_refuses=False)
-    ack = _ack(ack_id, score_token(root), mailbox)
+    gv = s1_trial.gate(root, "score", mailbox=mailbox)     # A3 (F1, F8.1, OQ-19): a violation the legacy detector
+    #                                                        just committed refuses here: no score, no record
+    ack = s1_trial.verify_current(gv, "S1-SCORE-ACK", ack_id)          # A3: field by field (F6.1, F6.5, F7.1)
     _pre_reserve_gate(out, ack)
     k._reserve(out / "score", ack)
     try:
         text = _serialise(_score(out, mailbox))           # ruling M-6: serialise before opening the output file
     except (Exception, SystemExit) as e:                  # one attempt: the failure itself is the preserved record
-        rep = {"trial_id": _plan_trial_id(out), "outcome": "ABORTED", "verdict": "ABORTED-INVALID", "provenance": None,
+        rep = {"trial_id": gv.trial.trial_id, "outcome": "ABORTED", "verdict": "ABORTED-INVALID", "provenance": None,
                "nomination": False, "reasons": [f"score error: {type(e).__name__}: {e}"]}
         _write_text_once(out / "score" / "s1.json", _serialise(rep))
         raise SystemExit(f"score ABORTED ({type(e).__name__}); attempt preserved, see s1_out/score/s1.json") from None
@@ -932,10 +950,11 @@ def _median(xs):
 
 
 def _score(out: Path, mailbox=None) -> dict:
+    tid = _plan_trial_id(out)                              # F6.2 (M2): refuse first, never a silent None
     sim = c.sim()
     pr, plan = _load(out / "prereg.json"), _load(out / "plan.json")
     start, cal = c.aware(pr["start"]), pr["calendar"]
-    rep = {"trial_id": plan.get("trial_id"), "outcome": "SCORED", "runner_sha256": runner_sha(), "start": pr["start"],
+    rep = {"trial_id": tid, "outcome": "SCORED", "runner_sha256": runner_sha(), "start": pr["start"],
            "bundle_sha256": c.bundle_sha256(), "reasons": [], "protocol_notes": [],
            "scored_utc": c.now_utc().isoformat()}
     invalid = rep["reasons"]

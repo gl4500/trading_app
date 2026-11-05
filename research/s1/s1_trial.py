@@ -5,6 +5,7 @@ OQ-5). No function here takes an output root for the trial lookup: closure is mo
 (E3.4 r3), and S1 never recomputes a historical CLOSE's evidence."""
 import re
 import sqlite3
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -48,6 +49,10 @@ _SCAN = "SELECT id, sender, recipient, request_key, body, created FROM messages"
 
 class Refusal(SystemExit):
     """A trial-bound command refuses (identity, chain, CLOSE, outage): zero callbacks, no row."""
+
+
+class MailboxOutage(Refusal):
+    """The mailbox could not be read for the trial lookup (F6.3 outage refusal)."""
 
 
 @dataclass(frozen=True)
@@ -257,7 +262,7 @@ def open_trial(mailbox=None) -> Trial:
     try:
         acks = scan(mailbox)
     except sqlite3.Error as e:
-        raise Refusal(f"mailbox unreadable ({type(e).__name__}): outage refusal (F6.3)") from None
+        raise MailboxOutage(f"mailbox unreadable ({type(e).__name__}): outage refusal (F6.3)") from None
     bad = [a.mailbox_id for a in acks if a.kind is None and a.fields.get("trial_id") is None]
     if bad:
         raise Refusal(f"unattributable malformed official ACK line(s) in {bad[:3]}: every trial-bound command "
@@ -409,6 +414,176 @@ def verify_ack(trial: Trial, rows: list, kind: str, ack_id, expected: dict) -> A
 
 def ack_record(a: Ack) -> dict:
     return {"ack_id": a.mailbox_id, "created_utc": datetime.fromtimestamp(a.created, tz=timezone.utc).isoformat()}
+
+
+@dataclass
+class Gate:
+    """What gate() read, for the command that called it (F0.6)."""
+    root: Path
+    out: Path
+    trial: Trial
+    rows: list
+    state: str
+    mailbox: object = None
+
+
+def _record(out: Path, where: str, msg, now=None) -> None:
+    """Review I-1 (F6.6): the gate NEVER creates or writes into a missing s1_out. A refusal is preserved in
+    s1_out/refusals.jsonl only when that tree exists; otherwise it goes to stderr (the total-loss evidence is the
+    tree's absence, which a recreated s1_out would destroy)."""
+    if Path(out).is_dir():
+        c.record_refusal(Path(out), where, msg, now)
+    else:
+        print(f"S1 {where} refused (s1_out absent; not recorded there): {msg}", file=sys.stderr)
+
+
+def _refuse(out: Path, where: str, msg: str, now=None):
+    _record(out, where, msg, now)
+    raise Refusal(f"{where} refused: {msg}")
+
+
+def invalidate(trial: Trial, reason: str, record: dict, *, root, mailbox=None, clock=None) -> j.Result:
+    """Commit TRIAL-INVALID(reason) for a gate-found violation (detail = the observation record; a fresh op and
+    actor, OQ-2); best-effort evidence copy s1_out/invalid/<seq>.json with the same canonical bytes (never for LOST:
+    s1_out is not recreated). If the journal cannot be written, the observation is the F8.1 residual: a local
+    aborted.json is attempted and the command refuses (no further work); nothing claims the violation was recorded
+    externally."""
+    req = j.Request("TRIAL-INVALID", j.invalid_subject(reason), j.new_nonce(), j.new_nonce(),
+                    detail=j.detail_of(record))
+    out = Path(root) / "s1_out"
+    try:
+        res = j.append(trial.trial_id, trial.genesis, req,
+                       lambda rows, con: j.Context(closed=closed_in(con, trial)), mailbox=mailbox, clock=clock)
+    except j.JournalError as e:
+        if reason != "LOST" and out.is_dir():
+            try:
+                c.write_abort(out, {"reason": f"uncommitted {reason}", "record": record, "journal_error": str(e),
+                                    "actual": None, "close": None, "scheduled": None, "projection_sha256": None,
+                                    "receipt_sha256": None})
+            except OSError:
+                pass
+        raise Refusal(f"violation ({reason}) observed but the journal could not be written ({type(e).__name__}): "
+                      f"refused; F8.1 residual (lost detection if it never commits)") from None
+    if res.row is not None and reason != "LOST" and out.is_dir():
+        try:
+            c.publish_exclusive(out / "invalid" / f"{res.row.seq}.json", c.canonical(record))
+        except OSError:                                  # (FileExistsError included) best effort evidence copy
+            pass
+    return res
+
+
+def invalidate_current(out: Path, reason: str, record: dict, mailbox=None, *, clock=None) -> None:
+    """For legacy detectors (OQ-19): commit TRIAL-INVALID for the open trial; any failure is the F8.1 residual
+    (the caller still writes its local aborted.json). `clock`: the detector's observation clock (the row's `at`)."""
+    try:
+        tr = open_trial(mailbox)
+        invalidate(tr, reason, record, root=Path(out).parent, mailbox=mailbox, clock=clock)
+    except (Refusal, j.JournalError):
+        pass
+
+
+def product_context(trial: Trial, cal=None, *, slot_gate=None, stage_gate=None, stop_detail=None,
+                    stage_check=None, stop_fence=None):
+    """The Context every product append uses: CLOSED read inside the transaction from the CLOSE rows of the same
+    sqlite file (`con`, the BEGIN IMMEDIATE connection; E2.3 r3: atomic with CLOSE); slot timing from the pinned
+    calendar (Task 6 supplies slot_times through s1_slot); stage/slot gates, the seal selection check, the stop rule
+    and the STOP fence from their owners. A missing slot_gate, stage_check, stage_gate, stop_detail, stop_fence or slot
+    timing fails closed in decide() itself (Task 2 carry-forward; review M-6: also for a raw j.Context)."""
+
+    def build(rows, con):
+        st_ = None
+        if cal is not None:
+            import s1_slot                                   # (Task 6 module; absent before Task 6, cal is None)
+            st_ = s1_slot.slot_times(cal)
+        return j.Context(closed=closed_in(con, trial), slot_times=st_, stop_detail=stop_detail,
+                         stage_gate=stage_gate, slot_gate=slot_gate, stage_check=stage_check,
+                         stop_fence=stop_fence)
+    return build
+
+
+def gate(root, where: str, *, mailbox=None, now=None) -> Gate:
+    """F0.6: the first step of every trial-bound command, before any callback, capture, provider request or pricing:
+    the open trial (F6.3) and its ACK chain (F7.1) from the mailbox; the journal (chain, F0.5 step 1); the trial
+    state (F1: INVALID refuses with no work, F0.6 - checked before the bundle so re-entry adds no repeat row); total
+    loss (F6.6: INVALID (LOST)); the bundle against the AUDIT-ACK's (F6.4: refusal before any row, INVALID (bundle) +
+    local abort after); the plan's trial_id (F6.2). The gate never creates or writes into a missing s1_out (review
+    I-1). `now`: the command's clock callable (refusal records, the INVALID row's `at`)."""
+    root = Path(root)
+    out = root / "s1_out"
+    try:
+        tr = open_trial(mailbox)                                        # mailbox only: closure is monotone (E3.4 r3)
+        rows = j.read_trial(tr.trial_id, tr.genesis, mailbox)
+    except (Refusal, j.JournalError) as e:
+        if isinstance(e, (MailboxOutage, j.Outage)):
+            _legacy_detectors(out, where, now, mailbox)                 # B3.4: an outage never downgrades a violation
+        _refuse(out, where, str(e), now)
+    probs = check_journal(tr, rows)
+    if probs:
+        _refuse(out, where, f"ACK journal binding {probs[:3]} (F7.1): escalate", now)
+    st_ = state(tr, rows)
+    if st_ == "INVALID":                                  # review M-3: before the bundle - no repeat INVALID rows
+        bad = j.first(rows, "TRIAL-INVALID")
+        if out.is_dir():                                  # (never recreates a lost s1_out)
+            try:
+                c.write_abort(out, {"reason": f"journal INVALID ({bad.subject})", "first_invalid_line_sha256": bad.sha,
+                                    "actual": None, "close": None, "scheduled": None, "projection_sha256": None,
+                                    "receipt_sha256": None})
+            except OSError:
+                pass
+        raise Refusal(f"{where} refused: trial INVALID ({bad.subject}): no work (F0.6, F1)")
+    if rows and not out.is_dir():                         # review I-1: total loss before the bundle (F6.6)
+        invalidate(tr, "LOST", {"where": where, "missing": "s1_out"}, root=root, mailbox=mailbox, clock=now)
+        raise Refusal(f"{where} refused: s1_out is gone under an open trial with journal rows: INVALID (LOST)")
+    observed = c.bundle_sha256()
+    if observed != tr.bundle:
+        if not rows:
+            _refuse(out, where, f"S1 bundle {observed[:12]} differs from the AUDIT-ACK's {tr.bundle[:12]} "
+                                f"(no journal row yet)", now)
+        rec = {"where": where, "expected_bundle_sha256": tr.bundle, "observed_bundle_sha256": observed,
+               "problems": c.bundle_problems(c.bundle_manifest())}
+        invalidate(tr, "bundle", rec, root=root, mailbox=mailbox, clock=now)
+        c.write_abort(out, dict(rec, reason="bundle", actual=None, close=None, scheduled=None,   # (s1_out exists:
+                                projection_sha256=None, receipt_sha256=None))                     # loss checked)
+        raise Refusal(f"{where} refused: S1 bundle differs from the trial's AUDIT-ACK bundle after journal rows: "
+                      f"INVALID (bundle)")
+    try:
+        plan_tid = c.load_json(out / "plan.json").get("trial_id")
+    except (OSError, ValueError, AttributeError):
+        plan_tid = None
+    if plan_tid != tr.trial_id:
+        if rows:                                          # OQ-19: after any row a lost/changed plan is a detected
+            _legacy_detectors(out, where, now, mailbox)   # registration-artifact violation, never only a refusal
+        _refuse(out, where, f"plan.json trial_id {plan_tid!r} differs from the AUDIT-ACK's {tr.trial_id} (F6.2)", now)
+    return Gate(root, out, tr, rows, st_, mailbox)
+
+
+def _legacy_detectors(out: Path, where: str, now, mailbox) -> None:
+    """OQ-19: the legacy registration-artifact detector (s1_common.registration_gate: additional detector only, never
+    an identity or authorization root), run where the gate refuses for a reason that could otherwise mask an
+    established violation: a mailbox outage (B3.4; the TRIAL-INVALID then cannot commit, F8.1 residual, and the local
+    aborted.json is written) and a plan.json that no longer names the trial after journal rows. A confirmed violation
+    raises its own refusal (TRIAL-INVALID first, then aborted.json); otherwise the gate's refusal follows. Only for a
+    tree that exists (a total loss is F6.6, and the detector never recreates s1_out)."""
+    if Path(out).is_dir():
+        try:
+            c.registration_gate(Path(out), where, now, mailbox=mailbox)
+        except SystemExit as e:                           # the gate's contract: every refusal is a Refusal, preserved
+            c.record_refusal(Path(out), where, e, now)    # in refusals.jsonl (B3.2)
+            if isinstance(e, Refusal):
+                raise
+            raise Refusal(str(e)) from None
+
+
+def verify_current(gv: Gate, kind: str, ack_id) -> dict:
+    """Field-by-field ACK verification for a command (replaces token-line equality): the trial's one `kind` ACK is
+    `ack_id`, its artifact fields equal the current artifacts (artifact_fields), its trial_id is the plan's and its
+    bundle the bundle on disk; its journal binding holds (verify_ack). Returns the ack record {ack_id, created_utc}."""
+    try:
+        tid = c.load_json(gv.out / "plan.json").get("trial_id")
+    except (OSError, ValueError, AttributeError):
+        tid = None
+    expected = dict(artifact_fields(kind, gv.out), trial_id=tid, bundle_sha256=c.bundle_sha256())
+    return ack_record(verify_ack(gv.trial, gv.rows, kind, ack_id, expected))
 
 
 def close_evidence(kind: str, *, score_record: bytes = None, rows=None, withdrawal: str = None,

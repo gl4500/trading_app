@@ -24,7 +24,8 @@ import s1_common as c
 import s1_receipt as rc
 import s1_run as r
 import s1_seal as z
-from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_receipt_with, s1_state
+import s1_trial as t
+from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_reack, s1_receipt_with, s1_score_refused, s1_state
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"                        # Mon; opening close Fri 2026-10-23 (EDT)
@@ -130,7 +131,7 @@ def test_c1_final_snapshot_and_score_check_fences_only_against_seals_up_to_the_s
     with _Clock(snap_at):
         rep = ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: snap_at)
     assert rep["fence_violations"] == [] and "2026-10-29.json" not in {x["file"] for x in rep["seals_checked"]}
-    s1_mailbox(tmp_path, "ack-c1", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    s1_reack(tmp_path, "ack-c1", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     rep = score(tmp_path, monkeypatch, st_, "ack-c1")
     assert not any("final snapshot" in x for x in rep["reasons"]), rep["reasons"]
 
@@ -183,8 +184,12 @@ def test_i1_prereg_and_run_ack_bind_the_toolchain(tmp_path):
     old = " ".join(x for x in tok.split(" ") if not x.startswith("bundle_sha256="))
     s1_mailbox(tmp_path, "old-ack", old, START_DT - timedelta(days=1, hours=1))
     with _Clock(START_DT - timedelta(days=1)):
-        with pytest.raises(SystemExit):
+        with pytest.raises(t.Refusal, match="malformed official ACK line in old-ack names this trial"):   # A3 E4.3
             r.do_prereg(tmp_path, "old-ack", S1_RECEIPT)
+        con = sqlite3.connect(tmp_path / "mailbox.sqlite3")       # (the TEST withdraws its malformed tmp message)
+        con.execute("DELETE FROM messages WHERE id='old-ack'")
+        con.commit()
+        con.close()
         pr = r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     assert pr["bundle_sha256"] == c.bundle_sha256() and "toolchain_sha256" not in pr
 
@@ -230,7 +235,8 @@ def test_i1_score_requires_every_seal_and_itself_to_match_the_prereg_toolchain(t
     s = read(p)
     s["bundle_sha256"] = "0" * 64
     p.write_text(json.dumps(s), encoding="utf-8")
-    rep = score(tmp_path, monkeypatch, st_)
+    at(monkeypatch, st_["now"])
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["verdict"] == "ABORTED-INVALID" and any("bundle" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -443,6 +449,10 @@ def _bars_client(calls):
 def _acquire_ready(tmp_path, **kw):
     st_ = s1_state(tmp_path, START, score_ready=True, **kw)
     shutil.rmtree(tmp_path / "s1_out" / "final")                    # the fixture's hand-made attempt
+    con = sqlite3.connect(tmp_path / "mailbox.sqlite3")             # A3 (F7.1): before the acquisition there is no
+    con.execute("DELETE FROM messages WHERE id='score-ack'")        # SCORE-ACK; the test may re-issue the ACQUIRE
+    con.commit()
+    con.close()
     return st_
 
 
@@ -454,7 +464,7 @@ def test_i4_acquire_ack_binds_the_stop_attestation_and_do_final_records_the_plan
     tok = k.acquire_token(tmp_path)
     assert (f"attest_stop_sha256={sha(out / 'attest_stop.json')}" in tok
             and "attest_stop_sha256" in __import__("s1_trial").ACK_FIELDS["S1-ACQUIRE-ACK"])
-    s1_mailbox(tmp_path, "acq", tok, st_["now"] - timedelta(hours=1))
+    assert s1_reack(tmp_path, "acq", "S1-ACQUIRE-ACK", st_["now"] - timedelta(hours=1)) == tok   # A3: one ACK/kind
     calls = []
     with _Clock(st_["now"]):
         m = k.do_final(tmp_path, "acq", _bars_client(calls), ("K", "S"))
@@ -463,8 +473,10 @@ def test_i4_acquire_ack_binds_the_stop_attestation_and_do_final_records_the_plan
     assert m["attest_stop_sha256"] == sha(out / "attest_stop.json")
 
 
-@pytest.mark.parametrize("breakage", ["aborted", "hand-typed plan", "ack before attestation"])
-def test_i4_do_final_rechecks_the_stop_before_reserving(tmp_path, breakage):
+@pytest.mark.parametrize("breakage,why", [("aborted", "ABORTED-INVALID"),
+                                          ("hand-typed plan", "not the plan derived from the stop seal"),
+                                          ("ack before attestation", "not strictly after the stop attestation")])
+def test_i4_do_final_rechecks_the_stop_before_reserving(tmp_path, breakage, why):
     """Task 11 (controller-added), I-4: do_final re-derives the plan from the stop seal and re-checks the state, the
     abort marker and the attestation order before reserving: on any failure no request and no final/ attempt."""
     st_ = _acquire_ready(tmp_path)
@@ -476,13 +488,14 @@ def test_i4_do_final_rechecks_the_stop_before_reserving(tmp_path, breakage):
         plan["ca_symbols_full_history"] = []                                       # CI omitted by hand
         fp.write_text(json.dumps(plan, indent=1, sort_keys=True), encoding="utf-8")
     if breakage == "ack before attestation":
-        created = c.aware(read(out / "attest_stop.json")["recorded_utc"]) - timedelta(minutes=1)
-    s1_mailbox(tmp_path, "acq", k.acquire_token(tmp_path), created)
+        created = c.aware(read(out / "attest_stop.json")["recorded_utc"]) - timedelta(milliseconds=500)   # A3: still
+        # after the TRIAL-STOP row it references (F6.1), so the attestation order is what refuses
+    s1_reack(tmp_path, "acq", "S1-ACQUIRE-ACK", created)
     if breakage == "aborted":
         (out / "aborted.json").write_text(json.dumps({"reason": "x"}), encoding="utf-8")
     calls = []
     with _Clock(st_["now"]):
-        with pytest.raises(SystemExit):
+        with pytest.raises(SystemExit, match=why):                 # (Task 5: the intended reason, B3)
             k.do_final(tmp_path, "acq", _bars_client(calls), ("K", "S"))
     assert calls == [] and not (out / "final").exists()
 
@@ -550,7 +563,7 @@ def test_i5_ack_reads_the_given_mailbox_read_only_never_the_output_root(tmp_path
     root = tmp_path / "root"
     root.mkdir()
     _msg(root / "mailbox.sqlite3", "m2", "TOKEN", datetime(2026, 10, 20, tzinfo=UTC))
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="is not a codex->claude experiments-prereg message"):
         k._ack("m2", "TOKEN")
     missing = tmp_path / "nowhere" / "mailbox.sqlite3"
     with pytest.raises(sqlite3.Error):
@@ -627,7 +640,8 @@ def test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid(
         assert rp["seal"]["written"] is True
         rp["seal"]["sha256"] = "cd" * 32
         p.write_text(json.dumps(rp), encoding="utf-8")
-    rep = score(tmp_path, monkeypatch, st_)
+    at(monkeypatch, st_["now"])
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["verdict"] == "ABORTED-INVALID" and any("seal missing" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -636,12 +650,18 @@ def test_m2_capture_report_naming_a_seal_that_is_not_on_disk_is_aborted_invalid(
     lambda req: httpx.Response(200, json=[]))), lambda: object()])
 def test_m4_collectors_refuse_a_client_that_may_follow_redirects(tmp_path, cl):
     """Task 11 (controller-added), m-4: do_audit and do_final refuse (before any ACK, reservation or request) a
-    client whose follow_redirects is not False."""
+    client whose follow_redirects is not False.
+    A3 Task 5 (intended, F0.6): the trial gate is now the first step of every command (with no open trial both
+    refuse "zero open trials" first), so the client check is exercised under an open trial; it still comes before any
+    ACK, reservation or request: nothing under s1_out changes."""
+    s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    before = {p: p.read_bytes() for p in out.rglob("*") if p.is_file()}
     with pytest.raises(SystemExit, match="follow_redirects"):
-        k.do_audit(tmp_path, "a", cl(), ("K", "S"))
+        k.do_audit(tmp_path, "audit-ack", cl(), ("K", "S"))
     with pytest.raises(SystemExit, match="follow_redirects"):
-        k.do_final(tmp_path, "f", cl(), ("K", "S"))
-    assert not (tmp_path / "s1_out").exists()
+        k.do_final(tmp_path, "acq-ack", cl(), ("K", "S"))
+    assert {p: p.read_bytes() for p in out.rglob("*") if p.is_file()} == before
 
 
 # ====================================================================== m-6 R-EST static guard

@@ -96,25 +96,30 @@ def verified_audit(out: Path, mailbox=None) -> dict:
 
 
 def run_ack_problems(out: Path, pr: dict, mailbox=None) -> list:
-    """A8.2: problems of the RUN-ACK registration (empty = verified): the codex message carries the RUN token
-    rebuilt from the current artifacts; it was created after the START attestation, before planned START and no
-    later than prereg; prereg's bindings equal the current files and bundle."""
+    """A8.2: problems of the RUN-ACK registration (empty = verified): the codex message's one S1-RUN-ACK line binds
+    the current artifacts field by field (A3 Task 5: s1_trial.artifact_fields, plus the plan's trial_id and the bundle
+    on disk; this replaces token-line equality, whose journal fields move on with the journal); it was created after
+    the START attestation, before planned START and no later than prereg; prereg's bindings equal the current files
+    and bundle."""
+    import s1_trial as t                                     # (late import, as the brief places it)
     out = Path(out)
     probs = []
     try:
         a = pr["ack"]
         msg = c.mailbox_message(a["ack_id"], mailbox)
-        if c.run_token(out) not in msg["lines"]:
-            probs.append("the RUN-ACK does not carry the RUN token of the current artifacts")
-        t = c.aware(msg["created_utc"])
-        if c.aware(a["created_utc"]) != t:
+        _, f = t.parse_ack_line(c.ack_line(msg, "S1-RUN-ACK"))         # F6.1 grammar; ValueError -> unverifiable
+        bound = dict(t.artifact_fields("S1-RUN-ACK", out), trial_id=c.load_json(out / "plan.json").get("trial_id"),
+                     bundle_sha256=c.bundle_sha256())
+        probs += [f"RUN-ACK {n} does not match" for n, v in bound.items() if f.get(n) != v]
+        created = c.aware(msg["created_utc"])
+        if c.aware(a["created_utc"]) != created:
             probs.append("prereg's RUN-ACK time differs from the mailbox")
         att = c.load_json(out / "attest_start.json")
-        if not t > c.aware(att["recorded_utc"]):
+        if not created > c.aware(att["recorded_utc"]):
             probs.append("the RUN-ACK is not after the START attestation")
-        if not t < c.aware(pr["start"]):
+        if not created < c.aware(pr["start"]):
             probs.append("the RUN-ACK is not before planned START")
-        if not t <= c.aware(pr["recorded_utc"]):
+        if not created <= c.aware(pr["recorded_utc"]):
             probs.append("prereg was recorded before its RUN-ACK")
         plan = c.load_json(out / "plan.json")
         want = {"plan_sha256": c.sha256_file(out / "plan.json"),

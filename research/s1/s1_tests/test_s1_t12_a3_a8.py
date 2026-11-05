@@ -15,8 +15,9 @@ import s1_common as c
 import s1_run as r
 import s1_seal as z
 import s1_snapshot
+import s1_trial as t
 from conftest import (Ledger, S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit,
-                      s1_register, s1_state, s1_unattest)
+                      s1_reack, s1_register, s1_state, s1_unattest)
 
 UTC = timezone.utc
 HERE = Path(__file__).resolve().parent.parent
@@ -186,24 +187,25 @@ def test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_o
     assert ab["observed_bundle_sha256"] == "f" * 64
     monkeypatch.undo()                                                   # files "restored"
     calls = Calls(monkeypatch)
-    rep = checkpoint(tmp_path, st_["ledger"], st_["calendar"], "2026-10-26", calls, minutes=47)
-    assert rep["post_stop"] is True and rep["seal"]["written"] is False
-    assert rep["stop"]["status"] == "ABORTED-INVALID" and read(out / "aborted.json") == ab
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/bundle\)"):      # A3 F6.4/F0.6: no work at all
+        checkpoint(tmp_path, st_["ledger"], st_["calendar"], "2026-10-26", calls, minutes=47)
+    assert calls.zero() and read(out / "aborted.json") == ab
 
 
 def test_a3_opening_checkpoint_bundle_mismatch_refuses_with_zero_callbacks_and_no_abort(tmp_path, ledger,
                                                                                         monkeypatch):
-    """A3.2 + A8.2: the opening mode's expected bundle is the externally approved one (the AUDIT-ACK's); before any
-    registration (no opening seal yet) a mismatch is a refusal with zero live callbacks, not an abort."""
+    """A3.2 + A8.2: the opening mode's expected bundle is the externally approved one (the AUDIT-ACK's). A3 F6.4
+    (intended change): the audit stage's journal rows exist before the opening, so a mismatch is INVALID (bundle)
+    plus the local abort, still with zero live callbacks and no capture (the no-row refusal: test_s1_a3_gate)."""
     s1_plan_audit(tmp_path, START)
     calls = Calls(monkeypatch)
     break_bundle(monkeypatch)
     sch = OPEN_CLOSE + timedelta(minutes=45)
     with _Clock(sch + timedelta(seconds=30)):
-        with pytest.raises(SystemExit, match="bundle"):
+        with pytest.raises(t.Refusal, match=r"INVALID \(bundle\)"):
             ck.run_opening_checkpoint(tmp_path, ledger.path, sch, calls.receipt(), calls.process(),
                                       tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
-    assert calls.zero() and not (tmp_path / "s1_out" / "aborted.json").exists()
+    assert calls.zero() and read(tmp_path / "s1_out" / "aborted.json")["reason"] == "bundle"
     assert not (tmp_path / "s1_out" / "captures").exists()
 
 
@@ -226,7 +228,7 @@ def test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_openin
     assert read(out / "aborted.json")["reason"] == "bundle" and not (out / "prereg.json").exists()
     monkeypatch.undo()
     with _Clock(START_DT - timedelta(days=1)):
-        with pytest.raises(SystemExit):
+        with pytest.raises(SystemExit, match=r"trial INVALID \(reason/bundle\)"):
             r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)            # never resumes after restoration
     assert not (out / "prereg.json").exists()
 
@@ -245,10 +247,10 @@ def test_a3_score_bundle_mismatch_aborts_reserves_nothing_and_restoration_scores
     assert not (out / "score").exists() and read(out / "aborted.json")["reason"] == "bundle"
     later = st_["now"] + timedelta(hours=2)          # the SCORE-ACK must follow the trial's end (here: the abort)
     monkeypatch.setattr(c, "now_utc", lambda: later)
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), later - timedelta(minutes=30))
-    rep = r.score(tmp_path, "score-ack-2")
-    assert rep["verdict"] == "ABORTED-INVALID" and any("bundle" in x for x in rep["reasons"]), rep["reasons"]
-    assert "levels" not in rep
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", later - timedelta(minutes=30))
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/bundle\)"):      # A3 F0.6/F1: INVALID, no score
+        r.score(tmp_path, "score-ack-2")
+    assert not (out / "score").exists()
 
 
 @pytest.mark.parametrize("where", ["seal", "final_snapshot", "final_manifest", "prereg"])
@@ -263,13 +265,17 @@ def test_a3_score_checks_bundle_consistency_across_every_artifact(tmp_path, monk
     obj["bundle_sha256"] = "0" * 64
     p.write_text(json.dumps(obj), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
     try:
         rep = r.score(tmp_path, "score-ack-2")
     except SystemExit as e:                                  # prereg: the registration itself no longer verifies
-        assert where == "prereg" and ("bundle" in str(e) or "RUN-ACK" in str(e)), e
         assert not (out / "score").exists()
-        return
+        if where == "seal":                                  # A3 (F0.6/F1, OQ-19): an edited seal is a registration
+            assert isinstance(e, t.Refusal) and "trial INVALID (reason/registration-artifact)" in str(e), e
+            rep = json.loads(r._serialise(r._score(out)))    # artifact: TRIAL-INVALID, refused; the unit-level record
+        else:
+            assert where == "prereg" and ("bundle" in str(e) or "RUN-ACK" in str(e)), e
+            return
     assert rep["verdict"] == "ABORTED-INVALID" and any("bundle" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -304,11 +310,10 @@ def test_a3_final_acquisition_verifies_the_bundle_before_any_request(tmp_path, m
     seen = []
     cl = httpx.Client(transport=httpx.MockTransport(lambda req: seen.append(req) or httpx.Response(500)),
                       follow_redirects=False)
-    s1_mailbox(tmp_path, "acq", k.acquire_token(tmp_path), st_["now"] - timedelta(hours=1))
-    break_bundle(monkeypatch)
+    break_bundle(monkeypatch)                        # (A3: the fixture's one ACQUIRE-ACK "acq-ack", F7.1)
     with _Clock(st_["now"]):
-        with pytest.raises(SystemExit, match="bundle"):
-            k.do_final(tmp_path, "acq", cl, ("K", "S"))
+        with pytest.raises(t.Refusal, match=r"INVALID \(bundle\)"):
+            k.do_final(tmp_path, "acq-ack", cl, ("K", "S"))
     assert seen == [] and not (out / "final").exists() and read(out / "aborted.json")["reason"] == "bundle"
 
 
@@ -378,6 +383,21 @@ def test_a8_hand_made_prereg_reaches_no_live_callback(tmp_path, ledger, monkeypa
     assert calls.zero() and sorted(p.name for p in out.iterdir()) == ["prereg.json", "refusals.jsonl"]
 
 
+# Task 5 fix round 1 (review I-3): the intended refusal of each breakage (B3: no bare SystemExit)
+_REG = r"registration artifact\(s\) missing or changed"
+WHY420 = {"plan_edited": _REG, "attest_edited": _REG, "books_edited": _REG, "prereg_binding": _REG,
+          "ack_deleted": "RUN-ACK not verified", "ack_after_start": "registration not verified",
+          "ack_before_attestation": "registration not verified"}
+WHY478 = {"no_ack_recorded": "the audit manifest names no AUDIT-ACK",
+          "ack_missing_from_mailbox": "zero open trials",                       # A3 F6.3: no AUDIT-ACK = no trial
+          "plan_edited_after_audit": "audit is not bound to the current plan",
+          "ack_before_plan": "the audit manifest's ACK time differs from the mailbox",          # (see report: the
+          "ack_after_reservation": "the audit manifest's ACK time differs from the mailbox",    # causal order is
+          "manifest_plan_sha": "audit is not bound to the current plan",                          # tested in
+          "raw_page_tampered": "raw page audit/pages/calendar.json missing or differs",          # mutant_survivors)
+          "calendar_source_tampered": "calendar_source.json missing or differs from its manifest hash"}
+
+
 @pytest.mark.parametrize("breakage", ["plan_edited", "attest_edited", "books_edited", "ack_deleted",
                                       "ack_after_start", "ack_before_attestation", "prereg_binding"])
 def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture(tmp_path, monkeypatch,
@@ -412,7 +432,7 @@ def test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_
         p = out / "prereg.json"
         p.write_text(json.dumps(dict(read(p), plan_sha256="0" * 64)), encoding="utf-8")
     calls = Calls(monkeypatch)
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=WHY420[breakage]):
         checkpoint(tmp_path, st_["ledger"], st_["calendar"], "2026-10-26", calls)
     assert calls.zero() and not (out / "captures" / "2026-10-26").exists()
     if breakage in ("plan_edited", "attest_edited", "books_edited", "prereg_binding"):
@@ -470,7 +490,7 @@ def test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_binding
     calls = Calls(monkeypatch)
     sch = OPEN_CLOSE + timedelta(minutes=45)
     with _Clock(sch + timedelta(seconds=30)):
-        with pytest.raises(SystemExit):
+        with pytest.raises(SystemExit, match=WHY478[breakage]):
             ck.run_opening_checkpoint(tmp_path, ledger.path, sch, calls.receipt(), calls.process(),
                                       tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
     assert calls.zero() and not (out / "captures").exists()

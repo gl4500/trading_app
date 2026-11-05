@@ -40,7 +40,7 @@ import s1_checkpoint as ck
 import s1_collect as k
 import s1_common
 import s1_run as r
-from conftest import S1_BINDING, Ledger, s1_mailbox
+from conftest import S1_BINDING, Ledger, s1_ack, s1_jappend, s1_mailbox
 
 UTC = timezone.utc
 NYZ = ZoneInfo("America/New_York")
@@ -344,12 +344,20 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     at(START - timedelta(days=13))
     m = k.do_audit(root, "audit-ack", httpx.Client(transport=httpx.MockTransport(audit_handler)), KEYS)
     assert m["outcome"] == "COMPLETE" and calls and not any("/bars" in u for u in calls)
+    import s1_journal as j                    # A3 Task 5: the audit stage's synthetic rows (Task 9: the real stage)
+    g_, op_, ac_ = j.stage_subject("audit"), j.new_nonce(), j.new_nonce()
+    for i_, kind_ in enumerate(("STAGE-INTENT", "STAGE-PREPARED", "STAGE-CREATED")):
+        s1_jappend(root, kind_, g_, at=START - timedelta(days=13) + timedelta(minutes=i_ + 1), op=op_, actor=ac_,
+                   detail=j.detail_of({"synthetic": "audit", "manifest": s1_common.sha256_file(out / "audit" /
+                                                                                              "manifest.json")}))
 
     # 3. the OPENING SEAL (the close immediately before START), by the real opening checkpoint
     sch = close_of(OPENING_CLOSE) + timedelta(minutes=45)
     act = at(sch + timedelta(seconds=30))
     rep = ck.run_opening_checkpoint(root, ledger.path, sch, receipt_fn, process_fn, crash, now=lambda: act)
     assert rep["seal"]["written"] and rep["consistent"] and rep["entries"] == ck.NA
+    s1_ack(root, "opening-ack", "S1-OPENING-ACK", act + timedelta(hours=1), opening_slot=j.slot_subject(sch),
+           evidence_manifest_sha256="e" * 64)                                       # A3 Task 5 (F7.2)
 
     # 4. pre-START bridge rows stored at 20:00 / 20:05 ET, after the opening seal
     bridge = [e for e in events if e["kind"] == "bridge"]
@@ -359,9 +367,10 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     # 5. START attestation, then RUN-ACK strictly after it, then prereg (all strictly before START)
     at(START - timedelta(days=1, hours=2, minutes=30))
     r.attest_start(root, r.START_STATEMENT, receipt_fn())
-    s1_mailbox(root, "run-ack", r.run_token(root), START - timedelta(days=1, hours=1, minutes=30))
+    s1_ack(root, "run-ack", "S1-RUN-ACK", START - timedelta(days=1, hours=1, minutes=30))   # A3 Task 5 (F7.1)
     at(START - timedelta(hours=24))
     pr = r.do_prereg(root, "run-ack", receipt_fn())
+    s1_ack(root, "prereg-ack", "S1-PREREG-ACK", START - timedelta(hours=24) + timedelta(minutes=1))   # (F7.4)
     assert pr["start"] == START.isoformat()
 
     # 6. sessions: trade commits then upserts; scheduled checkpoints
@@ -421,6 +430,8 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     app.trade(next(e for e in events if e["kind"] == "post"))
 
     # 8. stop attestation, then the final plan (carry-in incl. the bridge ticker)
+    s1_jappend(root, "TRIAL-STOP", "trial", at=stop_close + timedelta(hours=15) - timedelta(seconds=1),
+               detail=j.detail_of({"synthetic": "stop", "stop_close": stop_close.isoformat()}))   # A3 Task 5
     at(stop_close + timedelta(hours=15))
     att = r.attest_stop(root, r.STOP_STATEMENT)
     assert att["stop_close"] == stop_close.isoformat()
@@ -450,12 +461,7 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
         found = {"spin_offs": [spin]} if "SPN" in p["symbols"].split(",") and p["start"] == START_DAY else {}
         return httpx.Response(200, json={"corporate_actions": found, "next_page_token": None})
     acq_at = ny(sessions[N_DAYS + 3], "07:00")                 # after the close of the 3rd session after the stop
-    s1_mailbox(root, "acq-ack", k.ACQUIRE_ACK.format(collector=k.collector_sha(),
-                                                     plan=s1_common.sha256_file(out / "final_plan.json"),
-                                                     prereg=s1_common.sha256_file(out / "prereg.json"),
-                                                     attest=s1_common.sha256_file(out / "attest_stop.json"),
-                                                     bundle=s1_common.bundle_sha256()),     # Task 12 (A7.1)
-               acq_at - timedelta(hours=1))
+    s1_ack(root, "acq-ack", "S1-ACQUIRE-ACK", acq_at - timedelta(hours=1))   # A3 Task 5: s1_trial.token (OQ-5)
     at(acq_at)
     fm = k.do_final(root, "acq-ack", httpx.Client(transport=httpx.MockTransport(final_handler)), KEYS)
     assert fm["outcome"] == "COMPLETE"
@@ -481,7 +487,7 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
         assert not (out / "aborted.json").exists() and not (out / "seals" / f"{pd}.json").exists()
 
     # 11. SCORE-ACK and the one score
-    s1_mailbox(root, "score-ack", r.score_token(root), acq_at + timedelta(days=1))
+    s1_ack(root, "score-ack", "S1-SCORE-ACK", acq_at + timedelta(days=1))    # A3 Task 5: s1_trial.token (OQ-5)
     at(acq_at + timedelta(days=1, hours=2))
     rep = r.score(root, "score-ack")
 

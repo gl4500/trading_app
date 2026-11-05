@@ -305,6 +305,8 @@ def test_mt_attest_stop_reverifies_the_run_ack(tmp_path):
     st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final=False, final_snapshot=False)
     con = sqlite3.connect(c.MAILBOX)
     con.execute("UPDATE messages SET created=? WHERE id=?", ((START_DT + timedelta(minutes=1)).timestamp(), "run-ack"))
+    con.execute("UPDATE messages SET created=? WHERE id=?",          # A3 (F6.1): its successor stays after it, so
+                ((START_DT + timedelta(minutes=2)).timestamp(), "prereg-ack"))   # the ACK chain itself is intact
     con.commit()
     con.close()
     with _Clock(st_["stop_attested_at"]), pytest.raises(SystemExit, match="registration not verified"):

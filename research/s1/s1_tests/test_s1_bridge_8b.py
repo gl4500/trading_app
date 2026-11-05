@@ -11,7 +11,8 @@ import s1_checkpoint as ck
 import s1_common as c
 import s1_run as r
 import s1_seal as z
-from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_state, s1_sync_portfolio
+from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, s1_finalize, s1_mailbox, s1_reack, s1_score_refused, s1_state,
+                      s1_sync_portfolio)
 
 UTC = timezone.utc
 START = "2026-10-27T13:30:00+00:00"                     # Tue 09:30 EDT
@@ -153,7 +154,7 @@ def test_bridge_row_edited_before_the_final_snapshot_is_aborted_invalid(tmp_path
     snap = ck.run_final_snapshot(tmp_path, lg.path, now=lambda: st_["snapshot_at"])
     assert any("bridge" in v for v in snap["fence_violations"]), snap["fence_violations"]
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(hours=1))
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     rep = r.score(tmp_path, "score-ack-2")
     assert rep["verdict"] == "ABORTED-INVALID" and any("bridge" in x for x in rep["reasons"]), rep["reasons"]
 
@@ -170,7 +171,7 @@ def test_score_with_a_seal_missing_its_bridge_record_is_aborted_invalid(tmp_path
     st_ = s1_state(tmp_path, START, score_ready=True, bridge=BRIDGE)
     _edit_first_seal(tmp_path, lambda s: s.pop("bridge"))
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = r.score(tmp_path, "score-ack")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["verdict"] == "ABORTED-INVALID" and any("bridge" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -180,7 +181,7 @@ def test_score_with_a_bridge_hash_differing_from_the_final_ledger_is_aborted_inv
     st_ = s1_state(tmp_path, START, score_ready=True, bridge=BRIDGE)
     _edit_first_seal(tmp_path, lambda s: s["bridge"].update(bridge_sha256="0" * 64))
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = r.score(tmp_path, "score-ack")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["verdict"] == "ABORTED-INVALID" and any("bridge" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -203,7 +204,8 @@ def test_bridge_row_edited_then_scored_is_aborted_invalid(tmp_path, monkeypatch)
     ck.run_final_snapshot(tmp_path, lg.path, now=lambda: snap_at)
     now = snap_at + timedelta(hours=2)
     monkeypatch.setattr(c, "now_utc", lambda: now)
-    s1_mailbox(tmp_path, "score-ack-a", r.score_token(tmp_path), now - timedelta(hours=1))
+    s1_finalize(tmp_path, now - timedelta(hours=2))              # A3 (F7.1): the chain a SCORE-ACK needs
+    s1_reack(tmp_path, "score-ack-a", "S1-SCORE-ACK", now - timedelta(hours=1))
     sc = r.score(tmp_path, "score-ack-a")
     assert sc["verdict"] == "ABORTED-INVALID" and sc["nomination"] is False, sc
     assert any("ABORTED-INVALID" in x and "bridge" in x for x in sc["reasons"]), sc["reasons"]
@@ -256,6 +258,6 @@ def test_score_with_a_bridge_record_not_matching_its_rows_is_aborted_invalid(tmp
     st_ = s1_state(tmp_path, START, score_ready=True, bridge=BRIDGE)
     _edit_first_seal(tmp_path, lambda s: s["bridge"].update(bridge_row_ids=s["bridge"]["bridge_row_ids"][1:]))
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    rep = r.score(tmp_path, "score-ack")
+    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["verdict"] == "ABORTED-INVALID", rep["reasons"]
     assert any("bridge record does not match its rows" in x for x in rep["reasons"]), rep["reasons"]

@@ -119,6 +119,26 @@ def s1_tmp_hmac_key(tmp_path):
         del s1_receipt.HMAC_KEY
 
 
+@pytest.fixture(autouse=True)
+def s1_no_network(monkeypatch):
+    """A3 (F10, plan Global Constraints): no test can reach a network; injected MockTransport clients only."""
+    import socket
+    import httpx
+
+    def refuse(*a, **kw):
+        raise AssertionError("A3 network guard: a real network call was attempted")
+    monkeypatch.setattr(httpx.HTTPTransport, "handle_request", refuse)
+    monkeypatch.setattr(socket, "create_connection", refuse)
+
+
+def pytest_ignore_collect(collection_path, config):
+    """A3 Task 5: the frozen historical Codex probes (s1_evidence/a3/codex_probes_historical/) are evidence, never
+    collected (this conftest is loaded as a plugin by `-p conftest`, so the hook applies to every collected path)."""
+    if "codex_probes_historical" in Path(collection_path).parts:
+        return True
+    return None
+
+
 # ---------------------------------------------------------------- Task 7: synthetic s1_out/ lifecycle (test-only)
 # Task 12 (A1) interface: a receipt is {"fingerprint": compared, "provenance": recorded only}.
 S1_RECEIPT = {"fingerprint": {"closure": {"agents/mean_reversion_agent.py": "1"}, "resources": {}, "config": {},
@@ -170,6 +190,137 @@ def s1_mailbox(root, mid, body, created):
                 (mid, "codex", "claude", "experiments-prereg", body, created.timestamp()))
     con.commit()
     con.close()
+
+
+class Spies:
+    """A3 F10 spies: live callbacks (receipt, process), captures (s1_snapshot.take_snapshot), provider requests (every
+    request an injected MockTransport client sees) and valuation calls (pinned-core economics + s1_run
+    candidate_economics)."""
+
+    def __init__(self, monkeypatch):
+        import s1_common as c
+        import s1_run
+        import s1_snapshot
+        self.n = {"receipt": 0, "process": 0, "capture": 0, "request": 0, "valuation": 0}
+        self.requests = []
+        monkeypatch.setattr(s1_snapshot, "take_snapshot", self._count("capture", s1_snapshot.take_snapshot))
+        sim = c.sim()
+        for name in ("simulate_lot", "baseline_economics", "lot_economics"):
+            monkeypatch.setattr(sim, name, self._count("valuation", getattr(sim, name)))
+        monkeypatch.setattr(s1_run, "candidate_economics", self._count("valuation", s1_run.candidate_economics))
+
+    def _count(self, key, fn):
+        def f(*a, **kw):
+            self.n[key] += 1
+            return fn(*a, **kw)
+        return f
+
+    def receipt(self, rec=None):
+        rec = S1_RECEIPT if rec is None else rec
+        return self._count("receipt", lambda reference=None: json.loads(json.dumps(rec)))
+
+    def process(self):
+        return self._count("process", lambda: dict(S1_PROCESS))
+
+    def client(self, handler=None):
+        import httpx
+
+        def h(req):
+            self.n["request"] += 1
+            self.requests.append(req)
+            if handler is None:
+                return httpx.Response(500)
+            return handler(req)
+        return httpx.Client(transport=httpx.MockTransport(h), follow_redirects=False)
+
+    def assert_zero(self):
+        assert self.n == dict.fromkeys(self.n, 0), self.n
+
+
+def s1_jappend(root, kind, subject, *, at, detail=None, op=None, actor=None, r_at=None):
+    """A3 synthetic journal fixture (F10 'synthetic journal fixtures'): append one row through the real
+    s1_journal.append with a context that accepts it. Test-only."""
+    from datetime import timedelta
+    import s1_journal as j
+    import s1_trial as t
+    mb = Path(root) / "mailbox.sqlite3"
+    tr = t.open_trial(mb)
+    far = at + timedelta(days=3650)
+    ctx = j.Context(slot_times=lambda s: (far, far), stop_detail=lambda rows: detail,
+                    stage_gate=lambda rows, g: None, slot_gate=lambda rows, s: None,
+                    stage_check=lambda rows, s, i: None,                # (fix round 1, M-6: supplied explicitly)
+                    stop_fence=lambda rows: None)                      # synthetic: no E2.5 fence (test-only)
+    res = j.append(tr.trial_id, tr.genesis, j.Request(kind, subject, op or j.new_nonce(), actor or j.new_nonce(),
+                                                       detail=detail, r_at=r_at),
+                   lambda rows, con: ctx, mailbox=mb, clock=lambda: at)
+    assert res.outcome == "APPEND", res
+    return res.row
+
+
+def s1_ack(root, mid, kind, at, **given):
+    """Post the exact ACK line s1_trial.token builds (codex->claude experiments-prereg, created `at`)."""
+    import s1_trial as t
+    ln = t.token(kind, root, mailbox=Path(root) / "mailbox.sqlite3", **given)
+    s1_mailbox(root, mid, ln, at)
+    return ln
+
+
+def s1_reack(root, mid, kind, at, **given):
+    """A3 Task 5 (F7.1: at most one ACK of each kind per trial): Codex re-issues the open trial's `kind` ACK - the
+    existing official `kind` ACK message(s) of that trial are removed from the TEST's tmp mailbox, then the exact
+    s1_trial.token line is posted as `mid`, created `at` (for tests that re-ACK after changing a bound artifact, or
+    that post an early/late ACK of a kind the fixture already issued). Test-only."""
+    import s1_trial as t
+    m = Path(root) / "mailbox.sqlite3"
+    acks = t.scan(m)
+    (tid,) = [x for x, tr in t.trials(acks).items() if tr.closed is None]     # (read even while the trial refuses)
+    con = sqlite3.connect(m)
+    for a in acks:
+        if a.kind == kind and a.fields.get("trial_id") == tid:
+            con.execute("DELETE FROM messages WHERE id=?", (a.mailbox_id,))
+    con.commit()
+    con.close()
+    return s1_ack(root, mid, kind, at, **given)
+
+
+def s1_finalize(root, at):
+    """A3 Task 5 test helper for flows that end the trial outside s1_state(score_ready=True) (a test's own prereg, a
+    checkpoint abort, ...): the finalization chain a SCORE-ACK needs (F1 graph, F7.1) - the PREREG-ACK (1 min after
+    prereg.json's recorded time) if missing, a synthetic TRIAL-STOP (Task 11 replaces it) at `at` - 1 min if none, and
+    the ACQUIRE-ACK at `at` if missing. Test-only."""
+    from datetime import timedelta
+    import s1_common as c
+    import s1_journal as j
+    import s1_trial as t
+    m = Path(root) / "mailbox.sqlite3"
+    tr = t.open_trial(m)
+    if "S1-PREREG-ACK" not in tr.acks:
+        pr = c.load_json(Path(root) / "s1_out" / "prereg.json")
+        s1_ack(root, "prereg-ack", "S1-PREREG-ACK", c.aware(pr["recorded_utc"]) + timedelta(minutes=1))
+    if j.first(j.read_trial(tr.trial_id, tr.genesis, m), "TRIAL-STOP") is None:
+        s1_jappend(root, "TRIAL-STOP", "trial", at=at - timedelta(minutes=1),
+                   detail=j.detail_of({"synthetic": "stop", "at": at.isoformat()}))
+    if "S1-ACQUIRE-ACK" not in t.open_trial(m).acks:
+        s1_ack(root, "acq-ack", "S1-ACQUIRE-ACK", at)
+
+
+def s1_score_refused(root, ack_id, reason="registration-artifact"):
+    """A3 Task 5 (intended, F0.6/F1 + OQ-19): the score command observing a registration-artifact violation (or
+    finding the trial already INVALID) commits / reads TRIAL-INVALID and refuses with no work - no reservation, no
+    score record. Asserts that refusal, then returns what the one attempt WOULD have recorded: s1_run._score run
+    directly at the unit level, wrapped exactly like s1_run.score's attempt handler - so a test's assertions on the
+    score's own integrity reasons (its mutation kills) still run. Test-only."""
+    import s1_run as r
+    import s1_trial as t
+    out = Path(root) / "s1_out"
+    with pytest.raises(t.Refusal, match=rf"trial INVALID \(reason/{reason}\)"):
+        r.score(root, ack_id)
+    assert not (out / "score").exists()
+    try:
+        return json.loads(r._serialise(r._score(out)))
+    except (Exception, SystemExit) as e:
+        return {"trial_id": None, "outcome": "ABORTED", "verdict": "ABORTED-INVALID", "provenance": None,
+                "nomination": False, "reasons": [f"score error: {type(e).__name__}: {e}"]}
 
 
 def s1_bar(d, o=100, h=101, l=99, c=100):
@@ -235,7 +386,7 @@ S1_PROCESS = {"pid": 1, "process_start": "2026-10-01T09:00:00", "binding": dict(
 
 
 def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audit_actions=(), audit_problems=(),
-                  calendar=None, ack_id="audit-ack", opening_close=None):
+                  calendar=None, ack_id="audit-ack", opening_close=None, journal=True):
     """Task 7b (controller-added) helper, extracted from s1_state: the plan (s1_collect.write_plan, under a fixed
     clock 14 days before START) and a COMPLETE audit attempt (calendar + corporate actions, manifest hashes).
     Returns (start, raw calendar, opening close date, plan creation instant).
@@ -243,7 +394,10 @@ def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audi
     reservation) carrying the real audit token; the manifest records that ACK, plan_sha256 and bundle_sha256; the
     calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
     time). `calendar` overrides the synthetic weekday calendar; `opening_close` the plan's opening close (to test a
-    wrong one: since A8.1 a plan edited after its audit is refused for that reason first)."""
+    wrong one: since A8.1 a plan edited after its audit is refused for that reason first).
+    A3 Task 5: with `journal` (default) the audit stage's synthetic STAGE-INTENT / PREPARED / CREATED rows are appended
+    (Task 9 replaces them with the real audit stage); journal=False leaves the trial with NO journal row (the only
+    state in which a bundle mismatch is a plain refusal, F6.4)."""
     from datetime import timedelta
     import s1_collect as k
     import s1_common as c
@@ -285,6 +439,15 @@ def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audi
                                     "files": {n: c.sha256_file(audit / n) for n in
                                               ("attempt.json", "calendar.json", "calendar_source.json",
                                                "corporate_actions.json", "ca_problems.json")}})
+    if journal:
+        import s1_journal as j
+        g = j.stage_subject("audit")
+        op, actor = j.new_nonce(), j.new_nonce()
+        s1_jappend(root, "STAGE-INTENT", g, at=reserved - timedelta(seconds=1), op=op, actor=actor,
+                   detail=j.detail_of({"synthetic": "audit-intent"}))
+        d = j.detail_of({"synthetic": "audit-prepared", "manifest": c.sha256_file(audit / "manifest.json")})
+        s1_jappend(root, "STAGE-PREPARED", g, at=reserved + timedelta(minutes=2), op=op, actor=actor, detail=d)
+        s1_jappend(root, "STAGE-CREATED", g, at=reserved + timedelta(minutes=3), op=op, actor=actor, detail=d)
     return start, raw_cal, opening_close, created
 
 
@@ -386,6 +549,10 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     store_until(oc + timedelta(minutes=45))
     rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
     assert rep["seal"]["written"], rep
+    import s1_journal as j                                             # A3 Task 5: the OPENING-ACK (F7.2)
+    slot = j.slot_subject(z.close_of(opening_close, cal) + timedelta(minutes=45))
+    s1_ack(root, "opening-ack", "S1-OPENING-ACK", oc + timedelta(hours=1), opening_slot=slot,
+           evidence_manifest_sha256="e" * 64)
     store_until(None)                                                  # bridge + cohort rows, stored after it
     # Task 12 (A8 causal order): the START attestation follows the opening seal, the RUN-ACK the attestation and
     # prereg the RUN-ACK (unchanged instants for a Monday START; later ones when the opening close is the eve)
@@ -394,7 +561,7 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     prereg_t = max(start - timedelta(days=1), oc + timedelta(hours=4))
     with _Clock(attest_t):
         r.attest_start(root, r.START_STATEMENT, receipt)
-    s1_mailbox(root, "run-ack", r.run_token(root), ack_t)
+    s1_ack(root, "run-ack", "S1-RUN-ACK", ack_t)                       # A3 Task 5: s1_trial.token (F7.1)
     info = {"start": start, "calendar": cal, "sessions": sessions, "rows": rows, "stop": None, "ledger": ledger,
             "now": start - timedelta(hours=12), "prereg_at": prereg_t}     # Task 12: a causal prereg instant
     if not score_ready:
@@ -402,6 +569,7 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
 
     with _Clock(prereg_t):
         r.do_prereg(root, "run-ack", receipt)
+    s1_ack(root, "prereg-ack", "S1-PREREG-ACK", prereg_t + timedelta(minutes=1))      # A3 Task 5 (F7.4)
     if seal_days is None:
         used = [L["buy_day"] for L in lots] + [L["sell"][0] for L in lots if L.get("sell")]
         seal_days = range(0, max(used, default=-1) + 1)
@@ -419,6 +587,10 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
         t = z.window_end(last_eligible, cal) + timedelta(days=1)
         stop = z.stop_decision(seals, start, cal, today=t)
     info["stop"] = stop
+    # A3 Task 5: synthetic TRIAL-STOP (Task 11 replaces it): the trial has ended - STOPPED, TIMEOUT or NO-VALID-SEAL
+    # (every disposition of the Task 11 stop record, OQ-8) - so the finalization chain (ACQUIRE-, SCORE-ACK) can follow
+    s1_jappend(root, "TRIAL-STOP", "trial", at=t - timedelta(seconds=1),
+               detail=j.detail_of({"synthetic": "stop", "stop": stop}))
     if stop_attest and stop["status"] in ("STOPPED", "TIMEOUT"):
         with _Clock(t):
             r.attest_stop(root, r.STOP_STATEMENT)
@@ -458,11 +630,13 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
                                       "files": {n: c.sha256_file(fin / n) for n in
                                                 ("attempt.json", "bars.json", "bar_problems.json",
                                                  "corporate_actions.json", "ca_problems.json")}})
+    # A3 Task 5 (F1 graph 4): the ACQUIRE-ACK after the final plan (NO-VALID-SEAL: no final plan, its fields absent)
+    s1_ack(root, "acq-ack", "S1-ACQUIRE-ACK", t + timedelta(hours=2))
     info["snapshot_at"] = t + timedelta(days=2, minutes=5)          # the acquisition-time snapshot (§6)
     if final_snapshot:
         with _Clock(info["snapshot_at"]):
             ck.run_final_snapshot(root, ledger.path, now=lambda: info["snapshot_at"])
-    s1_mailbox(root, "score-ack", r.score_token(root), t + timedelta(days=3))
+    s1_ack(root, "score-ack", "S1-SCORE-ACK", t + timedelta(days=3))                 # A3 Task 5 (F1 graph 6)
     info["now"] = t + timedelta(days=4)
     return info
 
@@ -504,10 +678,14 @@ def s1_register(root, planned_start, *, calendar=None, receipt=None, carry_in_sy
     rep = s1_opening_checkpoint(root, lg, opening_close, raw_cal, receipt)
     assert rep["seal"]["written"], rep
     oc = z.close_of(opening_close, raw_cal)
+    import s1_journal as j                                             # A3 Task 5: the OPENING-ACK (F7.2)
+    s1_ack(root, "opening-ack", "S1-OPENING-ACK", oc + timedelta(hours=1),
+           opening_slot=j.slot_subject(oc + timedelta(minutes=45)), evidence_manifest_sha256="e" * 64)
     with _Clock(oc + timedelta(hours=2)):
         r.attest_start(root, r.START_STATEMENT, receipt)
-    s1_mailbox(root, "run-ack", r.run_token(root), oc + timedelta(hours=3))
+    s1_ack(root, "run-ack", "S1-RUN-ACK", oc + timedelta(hours=3))     # A3 Task 5: s1_trial.token (F7.1)
     with _Clock(oc + timedelta(hours=4)):
         pr = r.do_prereg(root, "run-ack", receipt)
+    s1_ack(root, "prereg-ack", "S1-PREREG-ACK", oc + timedelta(hours=4, minutes=1))   # A3 Task 5 (F7.4)
     assert oc + timedelta(hours=4) < start
     return {"start": start, "calendar": raw_cal, "opening_close": opening_close, "prereg": pr}

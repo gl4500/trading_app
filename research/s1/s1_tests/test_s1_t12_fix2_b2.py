@@ -11,7 +11,7 @@ import conftest
 import s1_checkpoint as ck
 import s1_common as c
 import s1_run as r
-from conftest import S1_BINDING, S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_plan_audit, s1_state
+from conftest import S1_BINDING, S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_state
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"
@@ -178,7 +178,7 @@ def test_b2_a_corrupt_bound_reference_fails_closed(tmp_path):
     st_ = _reg(tmp_path)
     p = tmp_path / "s1_out" / "prereg.json"
     p.write_text(json.dumps(dict(read(p), process_binding={"garbage": True})), encoding="utf-8")
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         _cp(tmp_path, st_, proc())
     assert not (tmp_path / "s1_out" / "seals" / "2026-10-26.json").exists()
 
@@ -220,7 +220,7 @@ def _scored_state(tmp_path, monkeypatch, dispositions):
 
 def _score(tmp_path, monkeypatch, st_):
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"] + timedelta(days=1))
-    s1_mailbox(tmp_path, "score-ack-b2", r.score_token(tmp_path), st_["now"] + timedelta(hours=20))
+    s1_reack(tmp_path, "score-ack-b2", "S1-SCORE-ACK", st_["now"] + timedelta(hours=20))
     return r.score(tmp_path, "score-ack-b2")
 
 

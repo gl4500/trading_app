@@ -1,0 +1,33 @@
+FFFFFFF..........FF                                                      [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_trial.py:431: s1_trial.Refusal: outage refused: mailbox unreadable (OperationalError): outage refusal (F6.3)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_gate.py:409: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_gate.py:432: AssertionError: assert not True
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_gate.py:432: AssertionError: assert not True
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_gate.py:432: AssertionError: assert not True
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_gate.py:432: AssertionError: assert not True
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_gate.py:443: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_gate.py:487: AssertionError: assert ('APPEND' == 'REFUSE'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_gate.py:512: Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[do_audit]
+PASSED research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[opening]
+PASSED research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[attest_start]
+PASSED research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[prereg]
+PASSED research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[checkpoint]
+PASSED research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[attest_stop]
+PASSED research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[final_plan]
+PASSED research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[final]
+PASSED research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[final_snapshot]
+PASSED research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[score]
+FAILED research/s1/s1_tests/test_s1_a3_gate.py::test_total_loss_then_outage_then_mailbox_back_never_resumes
+FAILED research/s1/s1_tests/test_s1_a3_gate.py::test_total_loss_with_a_bundle_mismatch_is_lost_and_never_recreates_s1_out
+FAILED research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[zero-open]
+FAILED research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[outage]
+FAILED research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[bundle-no-row]
+FAILED research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[plan-gone]
+FAILED research/s1/s1_tests/test_s1_a3_gate.py::test_an_invalid_trial_adds_no_repeat_invalid_rows_on_re_entry
+FAILED research/s1/s1_tests/test_s1_a3_gate.py::test_a_raw_context_without_slot_gate_or_stage_check_fails_closed
+FAILED research/s1/s1_tests/test_s1_a3_gate.py::test_final_snapshot_after_its_own_detection_captures_nothing
+9 failed, 10 passed, 41 deselected in 3.12s

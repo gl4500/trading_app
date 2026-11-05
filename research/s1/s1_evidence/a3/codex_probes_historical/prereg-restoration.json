@@ -1,0 +1,10 @@
+{
+  "missing": [
+    "prereg.json",
+    "registry\\prereg.json",
+    "witnesses\\prereg.json"
+  ],
+  "observed_refusal": "Codex synthetic probe refused: no verified prereg (RUN-ACK registration)",
+  "abort": null,
+  "restoration_resumes": true
+}

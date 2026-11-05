@@ -7,7 +7,7 @@ from pathlib import Path
 import s1_checkpoint as ck
 import s1_common as c
 import s1_run as r
-from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_receipt_with, s1_state
+from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_reack, s1_receipt_with, s1_state
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"
@@ -31,7 +31,7 @@ def test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_
                           lambda: {"pid": None, "binding": {"unavailable": "nothing listening"}},
                           tmp_path / "crash.log", now=lambda: sch2 + timedelta(seconds=30))
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
     rep = r.score(tmp_path, "score-ack-2")
     assert rep["verdict"] == "SHADOW PASS"
     assert any(x["scheduled"] == sch.isoformat() and "clock" in x["refused"] for x in rep["refused_captures"])

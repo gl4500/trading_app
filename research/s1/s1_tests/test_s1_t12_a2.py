@@ -12,7 +12,8 @@ import s1_collect as k
 import s1_common as c
 import s1_run as r
 import s1_seal as z
-from conftest import S1_PROCESS, S1_RECEIPT, _Clock, _write_seal, s1_mailbox, s1_state, s1_sync_portfolio
+from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, _write_seal, s1_mailbox, s1_reack, s1_score_refused, s1_state,
+                      s1_sync_portfolio)
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"                     # Mon 09:30 EDT; opening close Fri 2026-10-23
@@ -99,8 +100,8 @@ def test_a2_attest_stop_binds_the_persisted_stop(tmp_path, monkeypatch):
     p = out / "stop.json"
     p.write_text(json.dumps(dict(read(p), decided_by="edited")), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
-    rep = r.score(tmp_path, "score-ack-2")
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
+    rep = s1_score_refused(tmp_path, "score-ack-2")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["verdict"] == "ABORTED-INVALID" and any("stop" in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -115,8 +116,8 @@ def test_a2_no_valid_seal_is_terminal_persisted_and_never_rescued_by_a_late_seal
     _write_seal(out, "2026-10-26", datetime(2026, 10, 26, 20, 0, tzinfo=UTC), st_["rows"], S1_RECEIPT,
                 start=START_DT, opening_close=datetime(2026, 10, 23, 20, 0, tzinfo=UTC))
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
-    rep = r.score(tmp_path, "score-ack-2")
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
+    rep = s1_score_refused(tmp_path, "score-ack-2")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["verdict"] in ("NO-VALID-SEAL", "ABORTED-INVALID") and "levels" not in rep, rep
     assert any("seal" in x for x in rep["reasons"]) or rep["verdict"] == "NO-VALID-SEAL"
     assert (out / "stop.json").read_bytes() == before
@@ -165,8 +166,8 @@ def test_a2_integrity_of_the_frozen_slices_is_enforced_at_score(tmp_path, monkey
     else:
         _write_seal(out, "2026-10-22", datetime(2026, 10, 22, 20, 0, tzinfo=UTC), [], S1_RECEIPT)
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
-    rep = r.score(tmp_path, "score-ack-2")
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
+    rep = s1_score_refused(tmp_path, "score-ack-2")   # A3 F0.6/F1: refused; the unit-level record
     assert rep["verdict"] == "ABORTED-INVALID" and any("stop" in x or "seal" in x for x in rep["reasons"]), \
         rep["reasons"]
 
@@ -183,6 +184,6 @@ def test_a2_rows_stored_after_the_stop_close_are_irrelevant_to_the_frozen_experi
         snap = ck.run_final_snapshot(tmp_path, lg.path, now=lambda: st_["snapshot_at"])
     assert snap["fence_violations"] == [] and c.aware(snap["stop_close"]) == STOP_CLOSE
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    s1_mailbox(tmp_path, "score-ack-2", r.score_token(tmp_path), st_["now"] - timedelta(minutes=30))
+    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
     rep = r.score(tmp_path, "score-ack-2")
     assert rep["verdict"] == "SHADOW PASS" and rep["reasons"] == [], rep["reasons"]
