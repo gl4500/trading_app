@@ -64,6 +64,7 @@ def test_bundle_pins_addendum3_and_lists_every_new_module():
     assert c.DOC_PINS["docs/s1_design_v5_addendum3_erratum1.md"] == ERRATUM1
     assert c.sha256_file(HERE / "docs" / "s1_design_v5_addendum3_erratum1.md") == ERRATUM1   # the adopted copy
     assert "s1_journal.py" in c.BUNDLE_CODE
+    assert "s1_locks.py" in c.BUNDLE_CODE
     m = c.bundle_manifest()
     assert m["unexpected"] == {} and c.bundle_problems(m) == []
 

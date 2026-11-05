@@ -1,0 +1,55 @@
+Task 3 RED labels (run against the Task 3 interface stub, brief Step 1 verbatim; raw output: t3_red.txt).
+Command: PYTHONPATH="research/s1;research/s1/s1_tests" <testenv python> -m pytest -p conftest -p no:cacheprovider
+         research/s1/s1_tests/test_s1_a3_locks.py
+         research/s1/s1_tests/test_s1_a3_journal.py::test_bundle_pins_addendum3_and_lists_every_new_module
+         research/s1/s1_tests/test_s1_t12_a3_a8.py -q -rA --tb=line
+Result: 48 failed, 40 passed (test_s1_a3_locks.py: 46 failed, 1 passed; the other 39 passes are the unchanged
+test_s1_t12_a3_a8.py tests).
+
+No ImportError / AttributeError / NameError / collection error: the stub defines every name, so there is no
+missing-interface failure. Every failure is the stub's behaviour:
+ - AssertionError on a path (lock under s1_out),
+ - "DID NOT RAISE LockHeld / PermissionError / LockError",
+ - ['acquired', 'acquired'] != ['acquired', 'held'],
+ - lock_acquirable True while a child holds the lock,
+ - two cases where the stub raises the WRONG class rather than LockError: trailing-newline (OSError Errno 22 from
+   touch on 'stop\n.lock') and slot_lock_name('slot') (IndexError). Both are behavioural (the requirement is the
+   LockError class), not missing-interface.
+
+== B (behavioural RED: fails on the stub) ==
+B  test_s1_a3_locks.py::test_lock_lives_outside_s1_out                                   row 132
+B  test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[x10]               OQ-23 positive control
+B  test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process
+B  test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead
+B  test_s1_a3_locks.py::test_held_lock_cannot_be_deleted_renamed_or_replaced              rows 133, 232
+B  test_s1_a3_locks.py::test_killed_owner_frees_the_lock                                  rows 134, 231 (Deviation D2)
+B  test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness                 row 233 (Deviation D2)
+B  test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence           row 135 (Deviation D2)
+B  test_s1_a3_locks.py::test_concurrent_recovery_exactly_one_acquires                     row 136
+B  test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held                    row 137
+B  test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]   row 137
+B  test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]        row 137
+B  test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[x19]                  row 309 (4 plan ids + 15 added)
+B  test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[x5]                OQ-23 (added)
+B  test_s1_a3_locks.py::test_lock_acquirable_probe                                        E1.4 seam (rows 257, 259)
+B  test_s1_a3_journal.py::test_bundle_pins_addendum3_and_lists_every_new_module           A3.1 ('s1_locks.py' not in BUNDLE_CODE)
+B  test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes
+       (the glob sees s1_locks.py, the BUNDLE tuple does not list it; fixed by the old->new BUNDLE edit)
+
+== ctrl (passes on the stub; meaning comes from the other tests) ==
+ctrl test_s1_a3_locks.py::test_held_and_error_are_distinct_results   (F5.5 class disjointness; the stub already
+       declares two unrelated classes)
+
+Brief-vs-observed notes:
+ - The brief expected test_killed_owner / test_leftover / test_deleted to pass on the stub (ctrl). They fail here
+   because each now asserts the acquisition is real (LockHeld for a competing acquire while held / before the
+   kill): Deviation D2. This makes them B, matching the map's "B" label for rows 134, 135 and 233.
+ - The brief said a directory at the lock path makes the stub's touch raise PermissionError. Observed: on this
+   machine Path.touch on a directory succeeds (os.utime), so the stub raised nothing ("DID NOT RAISE LockError").
+   Still a behavioural RED with the same expected outcome.
+
+Supplementary RED (t3_red_validation_rev.txt): after the GREEN-phase fix of the plan test's rglob assertion
+(Deviation D3), the revised test_lock_names_and_trial_ids_are_validated[x19] and test_lock_lives_outside_s1_out were
+re-run against the verbatim stub (loaded from the scratchpad through a -p plugin ahead of conftest, so the stub and
+not the implementation was imported): 20 failed (18 DID NOT RAISE LockError, 1 OSError on trailing-newline, 1 path
+assertion). So the revised assertion is still RED on the stub.

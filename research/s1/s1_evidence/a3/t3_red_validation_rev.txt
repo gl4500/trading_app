@@ -1,0 +1,44 @@
+FFFFFFFFFFFFFFFFFFFF                                                     [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1303: OSError: [Errno 22] Invalid argument: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-20953\\test_lock_names_and_trial_ids_10\\root\\s1_out\\stop\n.lock'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:216: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:73: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20953/test_lock_lives_outside_s1_out0/s1_out/stage-audit.lock') == (((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20953/test_lock_lives_outside_s1_out0') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f') / 'stage-audit.lock')
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[dotdot-name]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[slash-name]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[unknown-stage]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bad-trial]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-not-a-date]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-month-13]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-feb-30]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bare-dotdot]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[backslash-name]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[embedded-traversal]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trailing-newline]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[upper-case]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[empty]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[fullwidth-digits]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[non-str-name]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-traversal]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-upper]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-trailing-newline]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-uuid1]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_lives_outside_s1_out
+20 failed in 0.52s

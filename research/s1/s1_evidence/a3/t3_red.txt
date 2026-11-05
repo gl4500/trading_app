@@ -1,0 +1,142 @@
+FFFFFFFFFFFFFFFFFFF.FFFFFFFFFFFFFFFFFFFFFFFFFFFFF....................... [ 81%]
+................                                                         [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:73: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_lock_lives_outside_s1_out0/s1_out/stage-audit.lock') == (((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_lock_lives_outside_s1_out0') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f') / 'stage-audit.lock')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:82: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a0/s1_out') == ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a0') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:82: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a1/s1_out') == ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a1') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:82: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a2/s1_out') == ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a2') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:82: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a3/s1_out') == ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a3') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:82: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a4/s1_out') == ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a4') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:82: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a5/s1_out') == ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a5') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:82: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a6/s1_out') == ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a6') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:82: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a7/s1_out') == ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a7') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:82: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a8/s1_out') == ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a8') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:82: AssertionError: assert WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a9/s1_out') == ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-20945/test_every_journal_stage_has_a9') / 's1_locks') / '3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:88: Failed: DID NOT RAISE <class 's1_locks.LockHeld'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:100: Failed: DID NOT RAISE <class 's1_locks.LockHeld'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:113: Failed: DID NOT RAISE <class 'PermissionError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:128: Failed: DID NOT RAISE <class 's1_locks.LockHeld'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:141: Failed: DID NOT RAISE <class 's1_locks.LockHeld'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:151: Failed: DID NOT RAISE <class 's1_locks.LockHeld'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:161: AssertionError: assert ['acquired', 'acquired'] == ['acquired', 'held']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:175: Failed: DID NOT RAISE <class 's1_locks.LockHeld'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:191: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:191: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1303: OSError: [Errno 22] Invalid argument: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-20945\\test_lock_names_and_trial_ids_10\\s1_out\\stop\n.lock'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:213: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:222: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_locks.py:20: IndexError: list index out of range
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:222: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:222: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:222: Failed: DID NOT RAISE <class 's1_locks.LockError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_locks.py:231: AssertionError: assert ('acquired' == 'acquired'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_journal.py:67: AssertionError: assert 's1_locks.py' in ('e1_fetch.py', 'e1_sim.py', 's1_books.py', 's1_checkpoint.py', 's1_collect.py', 's1_common.py', ...)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_t12_a3_a8.py:93: AssertionError: assert ['s1_books.py...rnal.py', ...] == ['s1_books.py...rnal.py', ...]
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_held_and_error_are_distinct_results
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_any_changed_missing_or_extra_bundle_file_or_document_changes_the_bundle
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_pinned_core_cache_is_keyed_by_resolved_path_and_approved_hash
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_run_acquire_score_tokens_prereg_and_every_seal_bind_the_bundle
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_checkpoint_bundle_mismatch_is_a_persistent_abort_before_any_helper_or_capture
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_opening_checkpoint_bundle_mismatch_refuses_with_zero_callbacks_and_no_abort
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[attest_start]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_r1_attest_start_and_prereg_refuse_a_bundle_differing_from_the_opening_seal[do_prereg]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_score_bundle_mismatch_aborts_reserves_nothing_and_restoration_scores_aborted_invalid
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[seal]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[final_snapshot]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[final_manifest]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_score_checks_bundle_consistency_across_every_artifact[prereg]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first[attest_stop]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first[write_final_plan]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_post_stop_commands_verify_the_bundle_first[final_snapshot]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_final_acquisition_verifies_the_bundle_before_any_request
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_audit_manifest_binds_the_plan_and_the_audit_ack_binds_the_bundle
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_run_ack_binds_opening_seal_frozen_opening_books_audit_attestation_and_bundle
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_attest_start_refuses_before_the_opening_seal_capture
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_hand_made_prereg_reaches_no_live_callback
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[plan_edited]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[attest_edited]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[books_edited]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_deleted]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_after_start]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[ack_before_attestation]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_checkpoint_verifies_the_run_ack_identity_bindings_and_timing_before_capture[prereg_binding]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_valid_registration_reaches_the_capture
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[no_ack_recorded]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_missing_from_mailbox]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[plan_edited_after_audit]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_before_plan]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[ack_after_reservation]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[manifest_plan_sha]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[raw_page_tampered]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_bindings_before_capture[calendar_source_tampered]
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_do_audit_checks_the_ack_is_after_the_plan
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_score_reverifies_the_run_ack_before_reserving
+PASSED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a8_genuine_bootstrap_through_s1_register_then_checkpoint
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_lives_outside_s1_out
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[audit]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[opening]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[start_attest]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[prereg]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[stop_attest]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final_plan]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[score]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2026-10-27]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2028-02-29]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_held_lock_cannot_be_deleted_renamed_or_replaced
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_concurrent_recovery_exactly_one_acquires
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[dotdot-name]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[slash-name]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[unknown-stage]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bad-trial]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-not-a-date]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-month-13]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-feb-30]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bare-dotdot]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[backslash-name]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[embedded-traversal]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trailing-newline]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[upper-case]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[empty]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[fullwidth-digits]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[non-str-name]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-traversal]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-upper]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-trailing-newline]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-uuid1]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[stage/audit]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/../x]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/20261102T214500Z/x]
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe
+FAILED research/s1/s1_tests/test_s1_a3_journal.py::test_bundle_pins_addendum3_and_lists_every_new_module
+FAILED research/s1/s1_tests/test_s1_t12_a3_a8.py::test_a3_bundle_is_the_explicit_file_list_plus_the_three_document_hashes
+48 failed, 40 passed in 33.02s
