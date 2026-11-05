@@ -51,7 +51,7 @@ _CACHE = {}
 # runtime dependencies: never listed.
 BUNDLE_CODE = ("e1_fetch.py", "e1_sim.py", "s1_books.py", "s1_checkpoint.py", "s1_collect.py", "s1_common.py",
                "s1_gates.py", "s1_journal.py", "s1_locks.py", "s1_receipt.py", "s1_run.py", "s1_seal.py",
-               "s1_snapshot.py", "s1_trial.py")
+               "s1_snapshot.py", "s1_stage.py", "s1_trial.py")
 DOC_PINS = {"docs/s1_design_v5.md": "33c3284072dc51392476f7cae596eab05f1fcbaccd622abbe05c6e6a198cbb9b",
             "docs/s1_spec.md": "4b882f52a448dbf2d30583828c5085a636009f6c8db7b18307bc6e9991529c98",
             "docs/s1_design_v5_addendum1.md": "6cb89e36840975b8d949ec85debf9d2cedbe45bbeb9dcb374d91343dddc5e590",

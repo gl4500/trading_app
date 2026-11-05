@@ -1,0 +1,127 @@
+"""S1 stage engine - Task 8 INTERFACE STUB (permissive; replaced in Step 4)."""
+import json
+from pathlib import Path
+
+import s1_common as c
+
+TABLE = {"audit": {"kind": "tree", "pred": None, "ack": "S1-AUDIT-ACK", "state": "ACTIVE"},
+         "opening": {"kind": "single", "pred": "audit", "ack": None, "state": "ACTIVE"},
+         "start_attest": {"kind": "single", "pred": "opening", "ack": "S1-OPENING-ACK", "state": "ACTIVE"},  # OQ-15
+         "prereg": {"kind": "single", "pred": "start_attest", "ack": "S1-RUN-ACK", "state": "ACTIVE"},
+         "stop_attest": {"kind": "single", "pred": "TRIAL-STOP", "ack": None, "state": "STOPPED"},
+         "final_plan": {"kind": "single", "pred": "stop_attest", "ack": None, "state": "STOPPED"},
+         "final": {"kind": "tree", "pred": "final_plan", "ack": "S1-ACQUIRE-ACK", "state": "STOPPED"},
+         "score": {"kind": "tree", "pred": "final", "ack": "S1-SCORE-ACK", "state": "STOPPED"}}
+FIXED_TREE = {"audit": ("audit/attempt.json", "audit/calendar_source.json", "audit/calendar.json",
+                        "audit/corporate_actions.json", "audit/ca_problems.json", "audit/manifest.json"),
+              "final": ("final/attempt.json", "final/bars.json", "final/bar_problems.json",
+                        "final/corporate_actions.json", "final/ca_problems.json", "final/manifest.json"),
+              "score": ("score/attempt.json", "score/s1.json")}
+SINGLE = {"opening": lambda out: f"seals/{c.load_json(Path(out) / 'plan.json')['opening_close']}.json",
+          "start_attest": lambda out: "attest_start.json",                     # OQ-15: KEEP SINGLE
+          "prereg": lambda out: "prereg.json", "stop_attest": lambda out: "attest_stop.json",
+          "final_plan": lambda out: "final_plan.json"}
+MANIFEST_STAGES = ("audit", "final")
+TRIAL_ID_MEMBERS = {"audit": ("audit/attempt.json",), "start_attest": ("attest_start.json",),
+                    "prereg": ("prereg.json",), "stop_attest": ("attest_stop.json",),
+                    "final_plan": ("final_plan.json",), "final": ("final/attempt.json",),
+                    "score": ("score/attempt.json", "score/s1.json")}
+ENFORCED = frozenset()
+SEALS_ENFORCED = False
+SEAL_PREFIX = "seal/"
+SEAL_SPEC = {"kind": "single", "pred": None, "ack": None, "state": "ACTIVE"}
+
+
+class StageAbort(Exception):
+    def __init__(self, reason, record):
+        super().__init__(reason)
+        self.reason, self.record = reason, record
+
+
+class _Flat:
+    def __init__(self, d):
+        self.dir = d
+
+
+class StageWork:
+    def __init__(self, gv, stage, staging, intent, policy, op, actor, mailbox, clock):
+        self.gv, self.stage, self.staging, self.intent, self.policy = gv, stage, staging, intent, policy
+        self.op, self.actor, self.mailbox, self.clock = op, actor, mailbox, clock
+        self.files = {}
+
+    @property
+    def intent_at(self):
+        return c.now_utc().isoformat()
+
+    @property
+    def trial_id(self):
+        return self.gv.trial.trial_id
+
+    def put(self, rel, data):
+        p = self.gv.out / rel
+        c.publish_exclusive(p, data)
+        self.files[rel] = data
+        return p
+
+    def put_json(self, rel, obj):
+        return self.put(rel, c.text_bytes(json.dumps(obj, indent=1, sort_keys=True)))
+
+
+def envelope(trial_id, stage, inputs, acks, policy):
+    return {}
+
+
+def commitment(trial_id, stage, op, kind, members, provenance):
+    return {}
+
+
+def spec(stage):
+    return SEAL_SPEC if stage.startswith(SEAL_PREFIX) else TABLE[stage]
+
+
+def single_member(out, stage):
+    return f"seals/{stage[len(SEAL_PREFIX):]}.json" if stage.startswith(SEAL_PREFIX) else SINGLE[stage](out)
+
+
+def seal_stages(rows):
+    return []
+
+
+def staging_dir(root, trial_id, stage):
+    return Path(root) / "s1_out"
+
+
+def stage_rows(rows, stage):
+    return {"intent": None, "prepared": None, "created": None}
+
+
+def committed_commitment(root, trial_id, stage, rows):
+    return {}
+
+
+def permitted(trial, rows, stage):
+    return None
+
+
+def manifest_projection(stage, manifest):
+    return dict(manifest.get("files") or {})
+
+
+def run(gv, stage, *, inputs, acks, work, policy_fn=None, mailbox=None, clock=None, before_publish=None,
+        extra_gate=None, stage_check=None):
+    sw = StageWork(gv, stage, _Flat(gv.out), None, policy_fn(c.now_utc()) if policy_fn else None, "0" * 32, "0" * 32,
+                   mailbox, clock)
+    prov = work(sw) or []
+    return {"trial_id": None, "stage": stage, "op": None, "kind": None, "members": {}, "provenance": prov}
+
+
+def recover(gv, stage, m, *, mailbox=None, clock=None):
+    return {}
+
+
+def created_problems(gv, stage, m):
+    return []
+
+
+def evaluate(gv):
+    return None

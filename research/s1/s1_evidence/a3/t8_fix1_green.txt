@@ -1,0 +1,8 @@
+=== run 1: test_s1_a3_stage.py ===
+73 passed in 7.10s
+=== run 2: test_s1_a3_stage.py ===
+73 passed in 7.10s
+=== run 3: test_s1_a3_stage.py ===
+73 passed in 7.33s
+=== all A3 suites (+ test_s1_t12_a3_a8) ===
+447 passed in 57.10s

@@ -554,7 +554,10 @@ def gate(root, where: str, *, mailbox=None, now=None) -> Gate:
         if rows:                                          # OQ-19: after any row a lost/changed plan is a detected
             _legacy_detectors(out, where, now, mailbox)   # registration-artifact violation, never only a refusal
         _refuse(out, where, f"plan.json trial_id {plan_tid!r} differs from the AUDIT-ACK's {tr.trial_id} (F6.2)", now)
-    return Gate(root, out, tr, rows, st_, mailbox)
+    gv = Gate(root, out, tr, rows, st_, mailbox)
+    import s1_stage                                       # A3 Task 8: the F4 stage-state table (never creates s1_out)
+    s1_stage.evaluate(gv)
+    return gv
 
 
 def _legacy_detectors(out: Path, where: str, now, mailbox) -> None:

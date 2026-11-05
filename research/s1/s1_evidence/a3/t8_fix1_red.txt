@@ -1,0 +1,41 @@
+..FFFFFFF..F                                                             [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:689: Failed: evaluate on the stale snapshot refused: stage final_plan: artifacts ['final_plan.json'] with no INTENT: INVALID (registration-artifact)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:720: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:689: Failed: evaluate on the stale snapshot refused: stage seal/2026-10-27: seal file with no PREPARED: INVALID (registration-artifact)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:753: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:689: Failed: evaluate on the stale snapshot refused: stage seal/2026-10-27: artifacts ['seals/2026-10-27.json'] with no INTENT: INVALID (registration-artifact)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:784: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:795: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:824: Failed: DID NOT RAISE <class 'SystemExit'>
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_publishes_only_missing_members_and_never_overwrites
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_concurrent_recovery_appends_exactly_one_created
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_run_publication_never_overwrites_an_existing_member[other-bytes-refused]
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_run_publication_never_overwrites_an_existing_member[same-bytes-accepted]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_no_intent_in_a_stale_snapshot_is_re_read_under_the_lock_before_invalid
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_no_intent_in_a_stale_snapshot_with_a_live_owner_is_pending
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_seal_intent_without_prepared_in_a_stale_snapshot_is_re_read_under_the_lock
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_seal_intent_without_prepared_in_a_stale_snapshot_with_a_live_owner_is_pending
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_completed_after_a_rowless_snapshot_is_not_an_artifact
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_never_creates_s1_out
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_run_never_creates_s1_out
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_recover_refuses_unless_this_process_holds_the_stage_lock
+8 failed, 4 passed, 61 deselected in 2.37s
+
+=== Labels (fix round 1 RED, run against the round-0 implementation) ===
+B (8): test_no_intent_in_a_stale_snapshot_is_re_read_under_the_lock_before_invalid (I1, table stage, completed);
+  test_no_intent_in_a_stale_snapshot_with_a_live_owner_is_pending (I1, table stage, held lock);
+  test_seal_intent_without_prepared_in_a_stale_snapshot_is_re_read_under_the_lock (I1, seal stage, completed);
+  test_seal_intent_without_prepared_in_a_stale_snapshot_with_a_live_owner_is_pending (I1, seal stage, held lock);
+  test_a_seal_completed_after_a_rowless_snapshot_is_not_an_artifact (I1, seal, SEALS_ENFORCED on);
+  test_recovery_never_creates_s1_out, test_run_never_creates_s1_out (M3);
+  test_recover_refuses_unless_this_process_holds_the_stage_lock (M7).
+  All fail by assertion (pytest.fail / Failed DID NOT RAISE / regex AssertionError): the old evaluate committed
+  TRIAL-INVALID (registration-artifact) on the stale snapshot.
+retro (4, behaviour already present; tests strengthened): test_concurrent_recovery_appends_exactly_one_created (M1:
+  pipe barrier + exit codes); test_run_publication_never_overwrites_an_existing_member[other-bytes-refused,
+  same-bytes-accepted] (M4); test_recovery_publishes_only_missing_members_and_never_overwrites (selected by -k,
+  unchanged). M4 mutant check: _publish_one overwriting on FileExistsError -> [other-bytes-refused] FAILS
+  (DID NOT RAISE); reverted.

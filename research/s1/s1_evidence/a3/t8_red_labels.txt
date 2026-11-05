@@ -1,0 +1,31 @@
+Task 8 RED labels (t8_red.txt: test_s1_a3_stage.py against the Step 1 interface stub, kept as t8_red_stub.py.txt)
+Result: 54 failed, 8 passed. Every failure is an assertion (AssertionError, or pytest's Failed "DID NOT RAISE");
+0 ImportError / AttributeError / KeyError / FileNotFoundError failures.
+
+B (behavioural RED, 54): every test not listed below. Classes seen:
+- rows / staging absent on the stub (no INTENT/PREPARED/CREATED rows, staging = s1_out, no prepared.json);
+- no refusal / INVALID raised (DID NOT RAISE SystemExit) - the stub gate hook evaluate() is a no-op;
+- child processes exit 0 instead of being killed after INTENT/PREPARED (the stub appends no row to die on), and the
+  hold modes never print "held";
+- the stub permits every stage (permitted -> None), the projection is unprojected, spec("seal/../x") does not raise.
+
+Passing on the stub (8):
+- static: test_stage_kinds_are_the_frozen_f48_kinds (the stub carries the final TABLE; kept as the guard that
+  revision 0's start_attest `tree` cannot return).
+- retro (Task 2, journal precedence): test_recovery_failures_are_invalid[foreign-op],
+  test_recovery_failures_are_invalid[missing-prepared], test_recovery_never_appends_prepared_for_another_actors_op
+  (journal half; the source half - "STAGE-PREPARED" absent from recover - also holds for the stub's empty recover),
+  test_repeat_stage_intent_is_invalid.
+- retro (Task 4/5 gate): test_stage_state_table[no-intent-artifact-before-audit-ack] (the gate already refuses
+  "zero open trials" before the AUDIT-ACK).
+- retro (positive control): test_stage_intent_refused_until_predecessor_created_and_ack[audit] (audit is the one
+  stage permitted on a fresh trial; the stub permits everything, so this case agrees).
+- control (transitional; not retro - no earlier task provides it, it passes on any no-op evaluate): test_seal_files_on_disk_are_not_evaluated_while_the_seal_family_is_not_enforced
+  (the stub's evaluate is a no-op; the real evaluate must also leave rowless seal files alone while
+  SEALS_ENFORCED is False).
+
+Added after the RED run (not in t8_red.txt):
+- test_a_foreign_root_is_refused_by_the_plan_check_before_the_stage_table (Deviation: hook placement after the
+  F6.2 plan check). Behavioural check instead of a stub RED: with evaluate() moved before the plan check (the plan's
+  "between the total-loss check and the plan check" text) the test FAILS (1 failed; the open trial was invalidated
+  by a foreign root's final_plan.json); with the implemented placement it passes. The mutant was reverted.

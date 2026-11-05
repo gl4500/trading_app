@@ -1,0 +1,8 @@
+=== run 1: test_s1_a3_stage.py ===
+63 passed in 5.76s
+=== run 2: test_s1_a3_stage.py ===
+63 passed in 5.78s
+=== run 3: test_s1_a3_stage.py ===
+63 passed in 5.69s
+=== all A3 suites (+ test_s1_t12_a3_a8 BUNDLE tuple) ===
+437 passed in 51.97s

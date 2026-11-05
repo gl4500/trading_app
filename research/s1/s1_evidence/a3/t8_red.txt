@@ -1,0 +1,121 @@
+FFFFFFFFFFFFFFFF.FFFFFFFFF...FFFF.FFFFFFFFF.FFFFFFF.FFFFFFFFF.           [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:73: AssertionError: assert [] == ['STAGE-INTENT']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:91: AssertionError: assert ['audit/attem...st.json', ...] == ['plan.json']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:104: AssertionError: assert (None, [], []) == ('single', ['...an.json'], [])
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:100: AssertionError: assert (None == 'tree')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:110: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:129: AssertionError: assert None is True
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:140: AssertionError: assert [('publish', ...l_plan.json')] == [('append', '...AGE-CREATED')]
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:154: assert 0 == 3
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:193: AssertionError: assert {'intent_at':...ial_id': None} == {'intent_at':...ial_id': None}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:193: AssertionError: assert {'intent_at':...ial_id': None} == {'intent_at':...ial_id': None}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:208: Failed: DID NOT RAISE <class 'KeyError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:208: Failed: DID NOT RAISE <class 'KeyError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:208: Failed: DID NOT RAISE <class 'KeyError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:240: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:240: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:259: AssertionError: assert [] == [('STAGE-INTE..., True, True)]
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:272: AssertionError: assert (False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:272: AssertionError: assert (False)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:285: Failed: DID NOT RAISE <class 'ValueError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:310: Failed: DID NOT RAISE <class 'KeyboardInterrupt'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:320: AssertionError:
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:334: AssertionError: assert 0 == 9
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:369: AssertionError: assert 0 == 9
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:369: AssertionError: assert 0 == 9
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:369: AssertionError: assert 0 == 9
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:392: AssertionError: assert 0 == 9
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:405: AssertionError: assert 0 == 9
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:415: AssertionError: assert 0 == 9
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:442: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:55: AssertionError:
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:454: AssertionError: assert 0 == 9
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:55: AssertionError:
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:458: AssertionError: assert 0 == 9
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:473: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:473: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:473: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:487: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:501: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:513: AssertionError: ('opening', None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:513: AssertionError: ('start_attest', None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:513: AssertionError: ('prereg', None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:513: AssertionError: ('stop_attest', None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:513: AssertionError: ('final_plan', None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:513: AssertionError: ('final', None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:513: AssertionError: ('score', None)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:530: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:55: AssertionError:
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:560: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:572: AssertionError: assert 0 == 9
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:592: AssertionError: [('read',)]
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:600: AssertionError: assert {'attempt.jso...ar.json': 'b'} == {'audit/attem...ar.json': 'c'}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:611: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:622: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stage.py:635: Failed: DID NOT RAISE <class 'SystemExit'>
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_kinds_are_the_frozen_f48_kinds
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[foreign-op]
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[missing-prepared]
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_never_appends_prepared_for_another_actors_op
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-before-audit-ack]
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[audit]
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_repeat_stage_intent_is_invalid
+PASSED research/s1/s1_tests/test_s1_a3_stage.py::test_seal_files_on_disk_are_not_evaluated_while_the_seal_family_is_not_enforced
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_intent_precedes_any_work_and_the_envelope_is_exact
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_work_writes_only_to_staging_outside_s1_out
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_commitment_format[single]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_commitment_format[tree]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_commitment_format[single-with-two-members-refused]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_json_is_written_before_prepared_and_never_trusted_alone
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_publication_is_exclusive_then_created_repeats_the_prepared_detail
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_intent_at_field_equals_the_intent_row
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_member_bytes_do_not_depend_on_the_prepared_or_created_clock[distinct-ticks]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_member_bytes_do_not_depend_on_the_prepared_or_created_clock[same-tick]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_seal_stage_family_in_the_engine[created]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_seal_stage_family_in_the_engine[gate-refuses]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_seal_stage_family_in_the_engine[selection-invalid]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_stage_without_its_gate_or_selection_check_fails_closed[extra_gate]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_stage_without_its_gate_or_selection_check_fails_closed[stage_check]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_every_stage_append_hands_real_gate_callables_to_the_context
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_intent_or_prepared_json_lost_after_created_is_invalid[intent-deleted]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_intent_or_prepared_json_lost_after_created_is_invalid[prepared-changed]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_committed_commitment_is_verified_against_its_prepared_row
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_detail_comes_from_memory_even_if_prepared_json_is_altered
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_crash_after_prepared_recovery_by_b_appends_created_without_recompute
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_appends_created_with_a_op_and_b_actor_under_the_lock
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[member-absent]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[member-changed]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[prepared-json-mismatch]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_publishes_only_missing_members_and_never_overwrites
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_unexpected_error_appends_nothing
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_concurrent_recovery_appends_exactly_one_created
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-after-audit-ack]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[intent-lock-held]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[intent-lock-free]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-held]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_created_member_missing_changed_or_unparseable_is_invalid[missing]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_created_member_missing_changed_or_unparseable_is_invalid[changed]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_created_member_missing_changed_or_unparseable_is_invalid[unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_pre_intent_outage_makes_no_request_and_no_artifact
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_completion_append_failure_keeps_evidence_and_no_next_stage_runs
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[opening]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[start_attest]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[prereg]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[stop_attest]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[final_plan]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[final]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[score]
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_commit_delete_detect_restore_is_still_invalid_with_zero_callbacks
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_pause_after_intent_with_a_live_owner_is_pending
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_created_failure_then_restart_recovers_without_recreation
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_lock_io_error_refuses_with_no_row_and_no_liveness_verdict
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_lock_is_taken_before_the_journal_read
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_manifest_projection_rule
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_every_stage_artifact_records_and_is_validated_against_the_trial_id
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_file_with_no_prepared_row_is_a_registration_artifact
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_a_created_seal_deleted_is_stage_replaced_and_never_recreated
+54 failed, 8 passed in 4.95s
