@@ -95,8 +95,10 @@ def test_audit_once_metadata_only(tmp_path):
     calls = []
     m = k.do_audit(tmp_path, "m2", client(calls), ("id", "secret"))
     assert m["outcome"] == "COMPLETE" and not any("/bars" in u for u in calls)
-    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):
+    n = len(calls)                                                    # A3 Task 9 (F1, F4): the stage runs once
+    with pytest.raises(SystemExit, match=r"stage audit is already CREATED: re-entry refused \(F1\)"):
         k.do_audit(tmp_path, "m2", client(calls), ("id", "secret"))
+    assert len(calls) == n
     assert "secret" not in json.dumps(m)
 
 
@@ -182,12 +184,33 @@ def test_parse_bars_clean_and_flags():
     assert any(p["symbol"] == "Z" for p in pr)
 
 
+class _Staged:
+    """A3 Task 9 (fixture): the StageWork surface _get/_paged write through (put + files), staging under `d`."""
+
+    def __init__(self, d):
+        self.d, self.files = Path(d), {}
+
+    def put(self, rel, data):
+        p = self.d / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(data)
+        self.files[rel] = bytes(data)
+        return p
+
+
+def _auth(url, paged=False, base=None):
+    """A3 Task 9 (fixture): an authorizer for one family at `url` (the F4.6 request path needs a committed policy)."""
+    return k._Authorizer({"redirects": False, "max_pages": k.MAX_PAGES, "cutoff": "2026-10-21", "families": [
+        {"name": "f", "url": url, "scope": "t", "batches": None, "base_params": base or {}, "paged": paged,
+         "page_template": "t/pages/p_page{n:03d}.json"}]})
+
+
 def test_paged_refuses_repeated_token(tmp_path):
     def handler(req):
         return httpx.Response(200, json={"bars": {}, "next_page_token": "same"})
     cl = httpx.Client(transport=httpx.MockTransport(handler))
     with pytest.raises(k.Structural, match="repeated"):
-        k._paged(cl, "http://x/bars", {}, {}, tmp_path / "p", None, [])
+        k._paged(cl, _auth("http://x/bars", paged=True), "f", "t", "http://x/bars", {}, {}, _Staged(tmp_path), None)
 
 
 def test_transport_error_message_has_no_key_text(tmp_path):
@@ -195,17 +218,17 @@ def test_transport_error_message_has_no_key_text(tmp_path):
         raise httpx.ConnectError("boom " + KEYS[1] + " " + KEYS[0])
     cl = httpx.Client(transport=httpx.MockTransport(handler))
     with pytest.raises(k.Structural) as e:
-        k._get(cl, "http://x", {}, k._headers(KEYS), tmp_path / "pg.json", [])
+        k._get(cl, _auth("http://x"), "f", "t", "http://x", {}, k._headers(KEYS), _Staged(tmp_path))
     assert KEYS[0] not in str(e.value) and KEYS[1] not in str(e.value)
 
 
 def test_get_http_error_and_non_json(tmp_path):
     cl = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(500, text="x")))
     with pytest.raises(k.Structural, match="HTTP 500"):
-        k._get(cl, "http://x", {}, {}, tmp_path / "a.json", [])
+        k._get(cl, _auth("http://x"), "f", "t", "http://x", {}, {}, _Staged(tmp_path / "a"))
     cl = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="not json")))
     with pytest.raises(k.Structural, match="not JSON"):
-        k._get(cl, "http://x", {}, {}, tmp_path / "b.json", [])
+        k._get(cl, _auth("http://x"), "f", "t", "http://x", {}, {}, _Staged(tmp_path / "b"))
 
 
 def test_ca_pages_classified_and_problems_recorded(tmp_path):
@@ -319,6 +342,16 @@ def manifest_of(tmp_path, which):
     return json.loads((tmp_path / "s1_out" / which / "manifest.json").read_text(encoding="utf-8"))
 
 
+def aborted_of(tmp_path, stage="audit"):
+    """A3 Task 9 (F4.6): a provider anomaly's ABORTED record stays in the stage's staging (outside s1_out), with the
+    provenance of every request sent; nothing of the stage is published under s1_out."""
+    tr = s1_trial.open_trial(tmp_path / "mailbox.sqlite3")
+    d = tmp_path / "s1_staging" / tr.trial_id / stage
+    assert (d / "ABORTED.json").is_file() and not (d / "prepared.json").exists()
+    assert not (tmp_path / "s1_out" / stage).exists()
+    return json.loads((d / "ABORTED.json").read_bytes()), d
+
+
 def planned(tmp_path, start=START):
     _plan(tmp_path, start, "2026-10-30", ["A"], "2026-03-17")
     mailbox(tmp_path, "a1", k.audit_token(tmp_path))
@@ -358,12 +391,13 @@ def test_write_plan_requires_aware_start_a_week_ahead_and_records_deadline(tmp_p
 def test_audit_aborts_on_bad_calendar(tmp_path, mutate, why):
     """Retrospective (Task 6 review fix round 1): I-5 + I-1 (ABORTED manifest, pages kept)."""
     cl = audit_with_calendar(tmp_path, mutate(full_calendar()))
-    with pytest.raises(SystemExit, match=r"audit: ABORTED \(Structural\)"):
+    with pytest.raises(SystemExit, match=r"stage audit: INVALID \(provider-structural\)"):      # A3 Task 9 (F4.6)
         k.do_audit(tmp_path, "a1", cl, KEYS)
-    m = manifest_of(tmp_path, "audit")
-    assert m["outcome"] == "ABORTED" and m["error_type"] == "Structural" and m["pages"], why
-    # still one attempt
-    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):
+    m, d = aborted_of(tmp_path)
+    assert m["outcome"] == "ABORTED" and m["error_type"] == "Structural" and m["provenance"], why
+    assert all((d / p["page_relpath"]).is_file() for p in m["provenance"])                      # pages kept
+    # still one attempt (F4.6/F8.5: no retry - the trial is INVALID)
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/provider-structural\)"):
         k.do_audit(tmp_path, "a1", cl, KEYS)
     no_key_text_written(tmp_path)
 
@@ -384,14 +418,15 @@ def test_audit_midrun_http_failure_writes_aborted_manifest(tmp_path):
         if "calendar" in str(req.url):
             return httpx.Response(200, json=full_calendar())
         return httpx.Response(429, text="slow down " + KEYS[1])
-    with pytest.raises(SystemExit, match=r"audit: ABORTED \(Structural\)"):
+    with pytest.raises(SystemExit, match=r"stage audit: INVALID \(provider-structural\)"):      # A3 Task 9 (F4.6)
         k.do_audit(tmp_path, "a1", httpx.Client(transport=httpx.MockTransport(handler)), KEYS)
-    m = manifest_of(tmp_path, "audit")
+    m, d = aborted_of(tmp_path)
     assert m["outcome"] == "ABORTED" and m["error_type"] == "Structural" and "HTTP 429" in m["error"]
-    assert all(len(h) == 64 for h in m["pages"].values()) and len(m["pages"]) == 2
+    assert all(len(p["page_sha256"]) == 64 for p in m["provenance"]) and len(m["provenance"]) == 2
+    assert all(s1_common.sha256_file(d / p["page_relpath"]) == p["page_sha256"] for p in m["provenance"])
     # the raw 429 body is preserved verbatim as a page (vendor text), but key text must be in no file
     # except the raw page the vendor echoed; this mock echoes the key, so only check non-page files:
-    for f in (tmp_path / "s1_out").rglob("*.json"):
+    for f in list((tmp_path / "s1_out").rglob("*.json")) + list((tmp_path / "s1_staging").rglob("*.json")):
         if "pages" not in f.parts:
             assert KEYS[1] not in f.read_text(encoding="utf-8")
 
@@ -403,10 +438,10 @@ def test_foreign_exception_records_type_name_only(tmp_path, monkeypatch):
     def boom(*a, **kw):
         raise RuntimeError(KEYS[1])
     monkeypatch.setattr(k, "_corporate_actions", boom)
-    with pytest.raises(SystemExit, match=r"audit: ABORTED \(RuntimeError\)") as e:
+    with pytest.raises(SystemExit, match=r"stage audit: INVALID \(provider-structural\)") as e:   # A3 Task 9
         k.do_audit(tmp_path, "a1", client([]), KEYS)
     assert KEYS[1] not in str(e.value) and e.value.__cause__ is None and e.value.__suppress_context__
-    m = manifest_of(tmp_path, "audit")
+    m, _ = aborted_of(tmp_path)
     assert m["error_type"] == "RuntimeError" and m["error"] == "RuntimeError"
     no_key_text_written(tmp_path)
 
@@ -419,9 +454,9 @@ def test_e1_structural_from_ca_validation_is_recorded(tmp_path):
         if "calendar" in str(req.url):
             return httpx.Response(200, json=full_calendar())
         return httpx.Response(200, json={"corporate_actions": []})
-    with pytest.raises(SystemExit, match=r"audit: ABORTED \(Structural\)"):
+    with pytest.raises(SystemExit, match=r"stage audit: INVALID \(provider-structural\)"):      # A3 Task 9 (F4.6)
         k.do_audit(tmp_path, "a1", httpx.Client(transport=httpx.MockTransport(handler)), KEYS)
-    m = manifest_of(tmp_path, "audit")
+    m, _ = aborted_of(tmp_path)
     assert m["outcome"] == "ABORTED" and "corporate-actions root malformed" in m["error"]
 
 

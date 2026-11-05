@@ -171,6 +171,18 @@ def test_b3_a_registered_artifact_changed_or_deleted_then_restored_stays_invalid
         p.write_bytes(good + b"\n")
     else:
         p.unlink()
+    if rel.startswith("audit/"):
+        # A3 Task 9 (intended, F4 table CREATED row, F4.9 consistency): a member of the CREATED audit stage changed or
+        # deleted is INVALID (stage-replaced) at the gate, before the B3.3 detector; restoring the bytes does not
+        # resume (the next command refuses: trial INVALID, and records the journal's INVALID as the local abort)
+        with pytest.raises(SystemExit, match=rf"stage audit: .*member {rel} missing or changed.*INVALID "
+                                             rf"\(stage-replaced\)"):
+            _cp(tmp_path, st_["ledger"].path)
+        p.write_bytes(good)
+        with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/stage-replaced\)"):
+            _cp(tmp_path, st_["ledger"].path, minutes=47)
+        assert "reason/stage-replaced" in _aborted(tmp_path)["reason"]
+        return
     with pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
         _cp(tmp_path, st_["ledger"].path)
     ab = _aborted(tmp_path)

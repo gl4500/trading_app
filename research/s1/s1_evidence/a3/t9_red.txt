@@ -1,0 +1,1379 @@
+FFFFFFFFFFFFFFFF.F..FFFFFFFFFFFFFFFFFFFFFF                               [100%]
+================================== FAILURES ===================================
+_______________ test_audit_policy_is_exactly_the_f49_audit_rows _______________
+
+    def test_audit_policy_is_exactly_the_f49_audit_rows():
+        syms = [f"S{i:03d}" for i in range(120)]
+        plan = {"calendar_range": ["2026-10-13", "2027-05-10"], "ca_symbols": syms, "ca_range": ["2026-03-17", "2026-10-26"]}
+        fixed = {"region": "us", "data_quality": "all", "sort": "asc", "limit": 1000}
+        batches = [syms[0:50], syms[50:100], syms[100:120]]
+>       assert k.audit_policy(plan, "2026-10-13") == {
+            "redirects": False, "max_pages": 200, "cutoff": "2026-10-13",
+            "families": [
+                {"name": "calendar", "url": "https://paper-api.alpaca.markets/v2/calendar", "scope": "audit",
+                 "batches": None, "base_params": {"start": "2026-10-13", "end": "2027-05-10", "date_type": "TRADING"},
+                 "paged": False, "page_template": "audit/pages/calendar.json"},
+                {"name": "corporate_actions", "url": "https://data.alpaca.markets/v1/corporate-actions", "scope": "audit",
+                 "batches": batches,
+                 "base_params": [dict(fixed, symbols=",".join(b), start="2026-03-17", end="2026-10-13") for b in batches],
+                 "paged": True, "page_template": "audit/pages/ca_{i:03d}_page{n:03d}.json"}]}
+E       AssertionError: assert {'families': []} == {'cutoff': '2...rects': False}
+E         
+E         Differing items:
+E         {'families': []} != {'families': [{'base_params': {'date_type': 'TRADING', 'end': '2027-05-10', 'start': '2026-10-13'}, 'batches': None, '... 'S104', 'S105', ...]], 'name': 'corporate_actions', 'page_template': 'audit/pages/ca_{i:03d}_page{n:03d}.json', ...}]}
+E         Right contains 3 more items:
+E         {'cutoff': '2026-10-13', 'max_pages': 200, 'redirects': False}
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_audit.py:99: AssertionError
+_ test_normal_audit_authorizes_calendar_and_ca_batches_and_commits_every_member _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_normal_audit_authorizes_c0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FF91C3B0>
+
+    def test_normal_audit_authorizes_calendar_and_ca_batches_and_commits_every_member(tmp_path, monkeypatch):
+        syms = [f"S{i:03d}" for i in range(120)]
+        setup(tmp_path, syms)
+        prov = Provider(pages_per_batch={",".join(syms[0:50]): 2})
+        m, sp = audit(tmp_path, monkeypatch, prov)
+>       com = commitment(tmp_path)
+
+research\s1\s1_tests\test_s1_a3_audit.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:74: in commitment
+    return json.loads(_staged(root, "prepared.json").read_bytes())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_normal_audit_authorizes_c0')
+name = 'prepared.json'
+
+    def _staged(root, name):
+        """A staging file of the audit stage; asserted present (B3: the RED is an assertion, never a FileNotFoundError)."""
+        tr = t.open_trial(Path(root) / "mailbox.sqlite3")
+        p = sg.staging_dir(root, tr.trial_id, "audit") / name
+>       assert p.is_file(), f"no staged {name} for the audit stage"
+E       AssertionError: no staged prepared.json for the audit stage
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_normal_audit_authorizes_c0/s1_staging/9bbc549b-da9c-40e6-8b3a-ce5bd95dad3b/audit/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_audit.py:69: AssertionError
+___ test_unpredictable_tokens_and_page_counts_complete_with_full_provenance ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_unpredictable_tokens_and_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FF92B050>
+
+    def test_unpredictable_tokens_and_page_counts_complete_with_full_provenance(tmp_path, monkeypatch):
+        syms = [f"S{i:03d}" for i in range(140)]
+        setup(tmp_path, syms)
+        rnd = random.Random(20261103)
+        per = {",".join(syms[i:i + 50]): rnd.randint(1, 4) for i in range(0, 140, 50)}
+        prov = Provider(pages_per_batch=per, tokens=lambda n: f"{rnd.getrandbits(64):016x}")
+        audit(tmp_path, monkeypatch, prov)
+>       pv = commitment(tmp_path)["provenance"]
+
+research\s1\s1_tests\test_s1_a3_audit.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:74: in commitment
+    return json.loads(_staged(root, "prepared.json").read_bytes())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_unpredictable_tokens_and_0')
+name = 'prepared.json'
+
+    def _staged(root, name):
+        """A staging file of the audit stage; asserted present (B3: the RED is an assertion, never a FileNotFoundError)."""
+        tr = t.open_trial(Path(root) / "mailbox.sqlite3")
+        p = sg.staging_dir(root, tr.trial_id, "audit") / name
+>       assert p.is_file(), f"no staged {name} for the audit stage"
+E       AssertionError: no staged prepared.json for the audit stage
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_unpredictable_tokens_and_0/s1_staging/b17d0662-b8c6-4828-adec-18cc3a43a075/audit/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_audit.py:69: AssertionError
+_ test_structural_refusals_send_no_further_request_then_invalid[repeated-token] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFA1F1A0>
+case = 'repeated-token'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+        with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+>           audit(tmp_path, monkeypatch, prov)
+
+research\s1\s1_tests\test_s1_a3_audit.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:61: in audit
+    m = k.do_audit(root, "audit-ack", sp.client(provider), KEYS, mailbox=mailbox)
+research\s1\s1_collect.py:385: in do_audit
+    return _run_attempt(d, out, ack, created, body, {"publication_cutoff": cutoff,
+research\s1\s1_collect.py:321: in _run_attempt
+    _abort(d, out, ack, created, e)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+d = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_0/s1_out/audit')
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_0/s1_out')
+ack = {'ack_id': 'audit-ack', 'created_utc': '2026-10-13T14:30:00+00:00'}
+created = [WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_0/s1_out/au...pData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_0/s1_out/audit/pages/ca_000_page001.json')]
+e = Structural('ca_000: repeated next_page_token')
+
+    def _abort(d: Path, out: Path, ack: dict, created, e: Exception):
+        """ABORTED manifest (exclusive). Only an S1/E1 Structural's text is recorded (key-free by construction);
+        anything else records the exception TYPE NAME only. All pages stay, hashed."""
+        structural = isinstance(e, (Structural, c.fetch().Structural))
+        _write_once(d / "manifest.json", {
+            "outcome": "ABORTED", "error_type": type(e).__name__, "error": str(e) if structural else type(e).__name__,
+            "ack": ack, "pages": _page_hashes(out, created)})
+>       raise SystemExit(f"{d.name}: ABORTED ({type(e).__name__}); attempt preserved, see manifest.json") from None
+E       SystemExit: audit: ABORTED (Structural); attempt preserved, see manifest.json
+
+research\s1\s1_collect.py:314: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFA1F1A0>
+case = 'repeated-token'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+>       with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(provider-structural\\)'
+E        Input: 'audit: ABORTED (Structural); attempt preserved, see manifest.json'
+
+research\s1\s1_tests\test_s1_a3_audit.py:169: AssertionError
+_ test_structural_refusals_send_no_further_request_then_invalid[over-max-pages] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FF92B170>
+case = 'over-max-pages'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+        with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+>           audit(tmp_path, monkeypatch, prov)
+
+research\s1\s1_tests\test_s1_a3_audit.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:61: in audit
+    m = k.do_audit(root, "audit-ack", sp.client(provider), KEYS, mailbox=mailbox)
+research\s1\s1_collect.py:385: in do_audit
+    return _run_attempt(d, out, ack, created, body, {"publication_cutoff": cutoff,
+research\s1\s1_collect.py:321: in _run_attempt
+    _abort(d, out, ack, created, e)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+d = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_1/s1_out/audit')
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_1/s1_out')
+ack = {'ack_id': 'audit-ack', 'created_utc': '2026-10-13T14:30:00+00:00'}
+created = [WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_1/s1_out/au.../Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_1/s1_out/audit/pages/ca_000_page004.json'), ...]
+e = Structural('ca_000: more than 200 pages')
+
+    def _abort(d: Path, out: Path, ack: dict, created, e: Exception):
+        """ABORTED manifest (exclusive). Only an S1/E1 Structural's text is recorded (key-free by construction);
+        anything else records the exception TYPE NAME only. All pages stay, hashed."""
+        structural = isinstance(e, (Structural, c.fetch().Structural))
+        _write_once(d / "manifest.json", {
+            "outcome": "ABORTED", "error_type": type(e).__name__, "error": str(e) if structural else type(e).__name__,
+            "ack": ack, "pages": _page_hashes(out, created)})
+>       raise SystemExit(f"{d.name}: ABORTED ({type(e).__name__}); attempt preserved, see manifest.json") from None
+E       SystemExit: audit: ABORTED (Structural); attempt preserved, see manifest.json
+
+research\s1\s1_collect.py:314: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FF92B170>
+case = 'over-max-pages'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+>       with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(provider-structural\\)'
+E        Input: 'audit: ABORTED (Structural); attempt preserved, see manifest.json'
+
+research\s1\s1_tests\test_s1_a3_audit.py:169: AssertionError
+___ test_structural_refusals_send_no_further_request_then_invalid[redirect] ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFA20AA0>
+case = 'redirect'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+        with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+>           audit(tmp_path, monkeypatch, prov)
+
+research\s1\s1_tests\test_s1_a3_audit.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:61: in audit
+    m = k.do_audit(root, "audit-ack", sp.client(provider), KEYS, mailbox=mailbox)
+research\s1\s1_collect.py:385: in do_audit
+    return _run_attempt(d, out, ack, created, body, {"publication_cutoff": cutoff,
+research\s1\s1_collect.py:321: in _run_attempt
+    _abort(d, out, ack, created, e)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+d = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_2/s1_out/audit')
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_2/s1_out')
+ack = {'ack_id': 'audit-ack', 'created_utc': '2026-10-13T14:30:00+00:00'}
+created = [WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_2/s1_out/au...pData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_2/s1_out/audit/pages/ca_000_page000.json')]
+e = Structural('ca_000_page000.json: HTTP 302')
+
+    def _abort(d: Path, out: Path, ack: dict, created, e: Exception):
+        """ABORTED manifest (exclusive). Only an S1/E1 Structural's text is recorded (key-free by construction);
+        anything else records the exception TYPE NAME only. All pages stay, hashed."""
+        structural = isinstance(e, (Structural, c.fetch().Structural))
+        _write_once(d / "manifest.json", {
+            "outcome": "ABORTED", "error_type": type(e).__name__, "error": str(e) if structural else type(e).__name__,
+            "ack": ack, "pages": _page_hashes(out, created)})
+>       raise SystemExit(f"{d.name}: ABORTED ({type(e).__name__}); attempt preserved, see manifest.json") from None
+E       SystemExit: audit: ABORTED (Structural); attempt preserved, see manifest.json
+
+research\s1\s1_collect.py:314: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFA20AA0>
+case = 'redirect'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+>       with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(provider-structural\\)'
+E        Input: 'audit: ABORTED (Structural); attempt preserved, see manifest.json'
+
+research\s1\s1_tests\test_s1_a3_audit.py:169: AssertionError
+__ test_structural_refusals_send_no_further_request_then_invalid[other-host] __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB56C60>
+case = 'other-host'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+>       with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:169: Failed
+_ test_structural_refusals_send_no_further_request_then_invalid[wrong-endpoint] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB5E1B0>
+case = 'wrong-endpoint'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+>       with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:169: Failed
+_ test_structural_refusals_send_no_further_request_then_invalid[changed-base] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFAE09B0>
+case = 'changed-base'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+>       with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:169: Failed
+_ test_structural_refusals_send_no_further_request_then_invalid[outside-batch] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFAE3830>
+case = 'outside-batch'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+>       with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:169: Failed
+_ test_structural_refusals_send_no_further_request_then_invalid[other-paper-path] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_structural_refusals_send_7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFAE1EB0>
+case = 'other-paper-path'
+
+    @pytest.mark.parametrize("case", CASES)
+    def test_structural_refusals_send_no_further_request_then_invalid(tmp_path, monkeypatch, case):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        frozen = k.audit_policy
+        prov = Provider()
+        if case == "repeated-token":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 5}, tokens=lambda n: "same-token")
+        elif case == "over-max-pages":
+            prov = Provider(pages_per_batch={",".join(syms[:50]): 10_000})
+        elif case == "redirect":
+            prov = Provider(status={k.CA_URL: 302})
+        else:                                                                 # the code deviates from the committed policy
+            if case == "other-host":
+                monkeypatch.setattr(k, "CA_URL", "https://evil.example.com/v1/corporate-actions")
+            elif case == "wrong-endpoint":
+                monkeypatch.setattr(k, "CA_URL", "https://data.alpaca.markets/v1beta1/corporate-actions")
+            elif case == "changed-base":
+                monkeypatch.setattr(k, "CA_FIXED", dict(k.CA_FIXED, limit=500))
+            elif case == "outside-batch":
+                monkeypatch.setattr(k, "CA_BATCH", 40)
+            elif case == "other-paper-path":
+                monkeypatch.setattr(k, "CAL_URL", "https://paper-api.alpaca.markets/v2/orders")
+            monkeypatch.setattr(k, "audit_policy", lambda plan, cutoff, f=frozen: _policy_with_original_constants(
+                f, plan, cutoff))
+>       with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:169: Failed
+__ test_authorizer_refuses_a_second_calendar_request_and_an_unlisted_family ___
+
+    def test_authorizer_refuses_a_second_calendar_request_and_an_unlisted_family():
+        plan = {"calendar_range": ["2026-10-13", "2027-05-10"], "ca_symbols": [], "ca_range": ["2026-03-17", "2026-10-26"]}
+        pol = k.audit_policy(plan, "2026-10-13")
+>       assert pol.get("families"), "the policy has no families"
+E       AssertionError: the policy has no families
+E       assert []
+E        +  where [] = <built-in method get of dict object at 0x00000137FFD54700>('families')
+E        +    where <built-in method get of dict object at 0x00000137FFD54700> = {'families': []}.get
+
+research\s1\s1_tests\test_s1_a3_audit.py:202: AssertionError
+__________________ test_every_sent_request_is_in_provenance ___________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_every_sent_request_is_in_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB97110>
+
+    def test_every_sent_request_is_in_provenance(tmp_path, monkeypatch):
+        syms = [f"S{i:03d}" for i in range(55)]
+        setup(tmp_path, syms)
+        prov = Provider(pages_per_batch={",".join(syms[:50]): 3})
+        audit(tmp_path, monkeypatch, prov)
+>       pv = commitment(tmp_path)["provenance"]
+
+research\s1\s1_tests\test_s1_a3_audit.py:220: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:74: in commitment
+    return json.loads(_staged(root, "prepared.json").read_bytes())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_every_sent_request_is_in_0')
+name = 'prepared.json'
+
+    def _staged(root, name):
+        """A staging file of the audit stage; asserted present (B3: the RED is an assertion, never a FileNotFoundError)."""
+        tr = t.open_trial(Path(root) / "mailbox.sqlite3")
+        p = sg.staging_dir(root, tr.trial_id, "audit") / name
+>       assert p.is_file(), f"no staged {name} for the audit stage"
+E       AssertionError: no staged prepared.json for the audit stage
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_every_sent_request_is_in_0/s1_staging/73d1af53-6311-4f01-b22c-521925c5bcdf/audit/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_audit.py:69: AssertionError
+____________ test_retrieved_utc_is_the_actual_observation_instant _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_retrieved_utc_is_the_actu0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFC398B0>
+
+    def test_retrieved_utc_is_the_actual_observation_instant(tmp_path, monkeypatch):
+        setup(tmp_path)
+        ticks = itertools.count()
+        clock = lambda: NOW + timedelta(seconds=next(ticks))                   # noqa: E731
+        sp = Spies(monkeypatch)
+        prov = Provider()
+        seen = []
+    
+        def handler(req):
+            seen.append(clock())                                              # the provider's own clock reading
+            return prov(req)
+        with _clock(clock):
+            k.do_audit(tmp_path, "audit-ack", sp.client(handler), KEYS)
+        src = json.loads((tmp_path / "s1_out" / "audit" / "calendar_source.json").read_bytes())
+>       pv = commitment(tmp_path)["provenance"]
+
+research\s1\s1_tests\test_s1_a3_audit.py:243: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:74: in commitment
+    return json.loads(_staged(root, "prepared.json").read_bytes())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_retrieved_utc_is_the_actu0')
+name = 'prepared.json'
+
+    def _staged(root, name):
+        """A staging file of the audit stage; asserted present (B3: the RED is an assertion, never a FileNotFoundError)."""
+        tr = t.open_trial(Path(root) / "mailbox.sqlite3")
+        p = sg.staging_dir(root, tr.trial_id, "audit") / name
+>       assert p.is_file(), f"no staged {name} for the audit stage"
+E       AssertionError: no staged prepared.json for the audit stage
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_retrieved_utc_is_the_actu0/s1_staging/a5dca434-5e61-4a30-af75-2e935d5844f0/audit/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_audit.py:69: AssertionError
+______ test_cutoff_is_the_intent_new_york_date_across_midnight[midnight] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_cutoff_is_the_intent_new_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFAE1310>
+pre = datetime.datetime(2026, 10, 13, 3, 59, 59, 999999, tzinfo=datetime.timezone.utc)
+date_ = '2026-10-12'
+start = datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc)
+oc = '2026-10-23'
+
+    @pytest.mark.parametrize("pre,date_,start,oc", [
+        (datetime(2026, 10, 13, 3, 59, 59, 999999, tzinfo=UTC), "2026-10-12", START, "2026-10-23"),
+        (datetime(2026, 11, 1, 3, 59, 59, 999999, tzinfo=UTC), "2026-10-31", datetime(2026, 11, 16, 14, 30, tzinfo=UTC),
+         "2026-11-13")], ids=["midnight", "dst-fall-back"])
+    def test_cutoff_is_the_intent_new_york_date_across_midnight(tmp_path, monkeypatch, pre, date_, start, oc):
+        setup(tmp_path, ("A",), now=pre - timedelta(minutes=1), start=start, opening_close=oc)
+        post = pre + timedelta(microseconds=2)
+        now = [pre - timedelta(seconds=10)]
+        real = j.append
+    
+        def at_intent(trial_id, gen, req, ctx_fn, **kw):
+            if req.kind == "STAGE-INTENT":
+                kw["clock"] = lambda: pre
+                res = real(trial_id, gen, req, ctx_fn, **kw)
+                now[0] = post                                                 # reservation and requests after midnight
+                return res
+            return real(trial_id, gen, req, ctx_fn, **kw)
+        monkeypatch.setattr(j, "append", at_intent)
+        prov = Provider()
+        sp = Spies(monkeypatch)
+        with _clock(lambda: now[0]):
+            m = k.do_audit(tmp_path, "audit-ack", sp.client(prov), KEYS)
+        reserved = json.loads((tmp_path / "s1_out" / "audit" / "attempt.json").read_bytes())["reserved_utc"]
+>       assert m["publication_cutoff"] == date_ != c.aware(reserved).astimezone(c.NY).date().isoformat()
+E       AssertionError: assert '2026-10-12' != '2026-10-12'
+E        +  where '2026-10-12' = <built-in method isoformat of datetime.date object at 0x00000137FF881910>()
+E        +    where <built-in method isoformat of datetime.date object at 0x00000137FF881910> = datetime.date(2026, 10, 12).isoformat
+E        +      where datetime.date(2026, 10, 12) = <built-in method date of datetime.datetime object at 0x00000137FFA6D500>()
+E        +        where <built-in method date of datetime.datetime object at 0x00000137FFA6D500> = datetime.datetime(2026, 10, 12, 23, 59, 49, 999999, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')).date
+E        +          where datetime.datetime(2026, 10, 12, 23, 59, 49, 999999, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) = <built-in method astimezone of datetime.datetime object at 0x00000137FFA6C7E0>(zoneinfo.ZoneInfo(key='America/New_York'))
+E        +            where <built-in method astimezone of datetime.datetime object at 0x00000137FFA6C7E0> = datetime.datetime(2026, 10, 13, 3, 59, 49, 999999, tzinfo=datetime.timezone.utc).astimezone
+E        +              where datetime.datetime(2026, 10, 13, 3, 59, 49, 999999, tzinfo=datetime.timezone.utc) = <function aware at 0x00000137FF902FC0>('2026-10-13T03:59:49.999999+00:00')
+E        +                where <function aware at 0x00000137FF902FC0> = c.aware
+E        +            and   zoneinfo.ZoneInfo(key='America/New_York') = c.NY
+
+research\s1\s1_tests\test_s1_a3_audit.py:270: AssertionError
+___ test_cutoff_is_the_intent_new_york_date_across_midnight[dst-fall-back] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_cutoff_is_the_intent_new_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FF9E2240>
+pre = datetime.datetime(2026, 11, 1, 3, 59, 59, 999999, tzinfo=datetime.timezone.utc)
+date_ = '2026-10-31'
+start = datetime.datetime(2026, 11, 16, 14, 30, tzinfo=datetime.timezone.utc)
+oc = '2026-11-13'
+
+    @pytest.mark.parametrize("pre,date_,start,oc", [
+        (datetime(2026, 10, 13, 3, 59, 59, 999999, tzinfo=UTC), "2026-10-12", START, "2026-10-23"),
+        (datetime(2026, 11, 1, 3, 59, 59, 999999, tzinfo=UTC), "2026-10-31", datetime(2026, 11, 16, 14, 30, tzinfo=UTC),
+         "2026-11-13")], ids=["midnight", "dst-fall-back"])
+    def test_cutoff_is_the_intent_new_york_date_across_midnight(tmp_path, monkeypatch, pre, date_, start, oc):
+        setup(tmp_path, ("A",), now=pre - timedelta(minutes=1), start=start, opening_close=oc)
+        post = pre + timedelta(microseconds=2)
+        now = [pre - timedelta(seconds=10)]
+        real = j.append
+    
+        def at_intent(trial_id, gen, req, ctx_fn, **kw):
+            if req.kind == "STAGE-INTENT":
+                kw["clock"] = lambda: pre
+                res = real(trial_id, gen, req, ctx_fn, **kw)
+                now[0] = post                                                 # reservation and requests after midnight
+                return res
+            return real(trial_id, gen, req, ctx_fn, **kw)
+        monkeypatch.setattr(j, "append", at_intent)
+        prov = Provider()
+        sp = Spies(monkeypatch)
+        with _clock(lambda: now[0]):
+            m = k.do_audit(tmp_path, "audit-ack", sp.client(prov), KEYS)
+        reserved = json.loads((tmp_path / "s1_out" / "audit" / "attempt.json").read_bytes())["reserved_utc"]
+>       assert m["publication_cutoff"] == date_ != c.aware(reserved).astimezone(c.NY).date().isoformat()
+E       AssertionError: assert '2026-10-31' != '2026-10-31'
+E        +  where '2026-10-31' = <built-in method isoformat of datetime.date object at 0x00000137FFD14D90>()
+E        +    where <built-in method isoformat of datetime.date object at 0x00000137FFD14D90> = datetime.date(2026, 10, 31).isoformat
+E        +      where datetime.date(2026, 10, 31) = <built-in method date of datetime.datetime object at 0x00000137FFAE7DE0>()
+E        +        where <built-in method date of datetime.datetime object at 0x00000137FFAE7DE0> = datetime.datetime(2026, 10, 31, 23, 59, 49, 999999, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')).date
+E        +          where datetime.datetime(2026, 10, 31, 23, 59, 49, 999999, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) = <built-in method astimezone of datetime.datetime object at 0x00000137FFA1B6C0>(zoneinfo.ZoneInfo(key='America/New_York'))
+E        +            where <built-in method astimezone of datetime.datetime object at 0x00000137FFA1B6C0> = datetime.datetime(2026, 11, 1, 3, 59, 49, 999999, tzinfo=datetime.timezone.utc).astimezone
+E        +              where datetime.datetime(2026, 11, 1, 3, 59, 49, 999999, tzinfo=datetime.timezone.utc) = <function aware at 0x00000137FF902FC0>('2026-11-01T03:59:49.999999+00:00')
+E        +                where <function aware at 0x00000137FF902FC0> = c.aware
+E        +            and   zoneinfo.ZoneInfo(key='America/New_York') = c.NY
+
+research\s1\s1_tests\test_s1_a3_audit.py:270: AssertionError
+___ test_manifest_shape_is_preserved_and_its_projection_equals_the_members ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_manifest_shape_is_preserv0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FF9E0A40>
+
+    def test_manifest_shape_is_preserved_and_its_projection_equals_the_members(tmp_path, monkeypatch):
+        setup(tmp_path, ("A", "B"))
+        m, _ = audit(tmp_path, monkeypatch, Provider())
+        assert set(m) == LEGACY_MANIFEST_KEYS
+        assert set(m["files"]) == {"attempt.json", "calendar_source.json", "calendar.json", "corporate_actions.json",
+                                   "ca_problems.json"}
+>       com = commitment(tmp_path)
+
+research\s1\s1_tests\test_s1_a3_audit.py:290: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:74: in commitment
+    return json.loads(_staged(root, "prepared.json").read_bytes())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_manifest_shape_is_preserv0')
+name = 'prepared.json'
+
+    def _staged(root, name):
+        """A staging file of the audit stage; asserted present (B3: the RED is an assertion, never a FileNotFoundError)."""
+        tr = t.open_trial(Path(root) / "mailbox.sqlite3")
+        p = sg.staging_dir(root, tr.trial_id, "audit") / name
+>       assert p.is_file(), f"no staged {name} for the audit stage"
+E       AssertionError: no staged prepared.json for the audit stage
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_manifest_shape_is_preserv0/s1_staging/166a2cdf-56ae-48b7-a725-4cd64e7a3f02/audit/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_audit.py:69: AssertionError
+___ test_provider_anomaly_keeps_aborted_staging_no_prepared_and_invalidates ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_provider_anomaly_keeps_ab0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFA822A0>
+
+    def test_provider_anomaly_keeps_aborted_staging_no_prepared_and_invalidates(tmp_path, monkeypatch):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        prov = Provider()
+        real = prov.__call__
+    
+        def flaky(req):
+            if req.url.params.get("symbols", "").startswith("S050"):
+                prov.sent.append(req)
+                return httpx.Response(500, content=b"server error")
+            return real(req)
+        with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+>           audit(tmp_path, monkeypatch, flaky)
+
+research\s1\s1_tests\test_s1_a3_audit.py:323: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:61: in audit
+    m = k.do_audit(root, "audit-ack", sp.client(provider), KEYS, mailbox=mailbox)
+research\s1\s1_collect.py:385: in do_audit
+    return _run_attempt(d, out, ack, created, body, {"publication_cutoff": cutoff,
+research\s1\s1_collect.py:321: in _run_attempt
+    _abort(d, out, ack, created, e)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+d = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_provider_anomaly_keeps_ab0/s1_out/audit')
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_provider_anomaly_keeps_ab0/s1_out')
+ack = {'ack_id': 'audit-ack', 'created_utc': '2026-10-13T14:30:00+00:00'}
+created = [WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_provider_anomaly_keeps_ab0/s1_out/au...pData/Local/Temp/pytest-of-gl450/pytest-21154/test_provider_anomaly_keeps_ab0/s1_out/audit/pages/ca_001_page000.json')]
+e = Structural('ca_001_page000.json: HTTP 500')
+
+    def _abort(d: Path, out: Path, ack: dict, created, e: Exception):
+        """ABORTED manifest (exclusive). Only an S1/E1 Structural's text is recorded (key-free by construction);
+        anything else records the exception TYPE NAME only. All pages stay, hashed."""
+        structural = isinstance(e, (Structural, c.fetch().Structural))
+        _write_once(d / "manifest.json", {
+            "outcome": "ABORTED", "error_type": type(e).__name__, "error": str(e) if structural else type(e).__name__,
+            "ack": ack, "pages": _page_hashes(out, created)})
+>       raise SystemExit(f"{d.name}: ABORTED ({type(e).__name__}); attempt preserved, see manifest.json") from None
+E       SystemExit: audit: ABORTED (Structural); attempt preserved, see manifest.json
+
+research\s1\s1_collect.py:314: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_provider_anomaly_keeps_ab0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFA822A0>
+
+    def test_provider_anomaly_keeps_aborted_staging_no_prepared_and_invalidates(tmp_path, monkeypatch):
+        syms = [f"S{i:03d}" for i in range(60)]
+        setup(tmp_path, syms)
+        prov = Provider()
+        real = prov.__call__
+    
+        def flaky(req):
+            if req.url.params.get("symbols", "").startswith("S050"):
+                prov.sent.append(req)
+                return httpx.Response(500, content=b"server error")
+            return real(req)
+>       with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(provider-structural\\)'
+E        Input: 'audit: ABORTED (Structural); attempt preserved, see manifest.json'
+
+research\s1\s1_tests\test_s1_a3_audit.py:322: AssertionError
+_____________ test_audit_runs_as_a_stage_only_after_the_audit_ack _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_audit_runs_as_a_stage_onl0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFAE7020>
+
+    def test_audit_runs_as_a_stage_only_after_the_audit_ack(tmp_path, monkeypatch):
+        with _clock(NOW - timedelta(hours=1)):
+            k.write_plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
+        prov = Provider()
+        with pytest.raises(SystemExit, match="zero open trials"):
+            audit(tmp_path, monkeypatch, prov)
+        assert prov.sent == []
+        s1_mailbox(tmp_path, "audit-ack", c.audit_token(tmp_path / "s1_out"), NOW - timedelta(minutes=30))
+        audit(tmp_path, monkeypatch, prov)
+        intent = j.first(j.subject_rows(j.read_trial(*_tg(tmp_path)), "stage/audit"), "STAGE-INTENT")
+>       assert intent is not None, "no STAGE-INTENT row for the audit"
+E       AssertionError: no STAGE-INTENT row for the audit
+E       assert None is not None
+
+research\s1\s1_tests\test_s1_a3_audit.py:343: AssertionError
+___________________ test_audit_envelope_inputs_and_members ____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_audit_envelope_inputs_and0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB97140>
+
+    def test_audit_envelope_inputs_and_members(tmp_path, monkeypatch):
+        setup(tmp_path)
+        audit(tmp_path, monkeypatch, Provider())
+        tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+>       env = json.loads(_staged(tmp_path, "intent.json").read_bytes())
+
+research\s1\s1_tests\test_s1_a3_audit.py:357: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_audit_envelope_inputs_and0')
+name = 'intent.json'
+
+    def _staged(root, name):
+        """A staging file of the audit stage; asserted present (B3: the RED is an assertion, never a FileNotFoundError)."""
+        tr = t.open_trial(Path(root) / "mailbox.sqlite3")
+        p = sg.staging_dir(root, tr.trial_id, "audit") / name
+>       assert p.is_file(), f"no staged {name} for the audit stage"
+E       AssertionError: no staged intent.json for the audit stage
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_audit_envelope_inputs_and0/s1_staging/367a75db-bf2b-4c40-8c31-09893e04f1fd/audit/intent.json').is_file
+
+research\s1\s1_tests\test_s1_a3_audit.py:69: AssertionError
+_________ test_members_are_the_fixed_names_plus_one_page_per_request __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_members_are_the_fixed_nam0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB96030>
+
+    def test_members_are_the_fixed_names_plus_one_page_per_request(tmp_path, monkeypatch):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider(pages_per_batch={"A": 3}))
+>       com = commitment(tmp_path)
+
+research\s1\s1_tests\test_s1_a3_audit.py:365: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:74: in commitment
+    return json.loads(_staged(root, "prepared.json").read_bytes())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_members_are_the_fixed_nam0')
+name = 'prepared.json'
+
+    def _staged(root, name):
+        """A staging file of the audit stage; asserted present (B3: the RED is an assertion, never a FileNotFoundError)."""
+        tr = t.open_trial(Path(root) / "mailbox.sqlite3")
+        p = sg.staging_dir(root, tr.trial_id, "audit") / name
+>       assert p.is_file(), f"no staged {name} for the audit stage"
+E       AssertionError: no staged prepared.json for the audit stage
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_members_are_the_fixed_nam0/s1_staging/4667b827-249a-49db-8f65-91ec34f1dc2d/audit/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_audit.py:69: AssertionError
+_ test_damaged_audit_member_is_invalid_before_use[changed-audit/calendar.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_damaged_audit_member_is_i0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB56270>
+victim = 'audit/calendar.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["audit/calendar.json", "audit/pages/calendar.json", "audit/manifest.json",
+                                        "audit/pages/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_audit_member_is_invalid_before_use(tmp_path, monkeypatch, victim, damage):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider())
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:382: Failed
+_ test_damaged_audit_member_is_invalid_before_use[changed-audit/pages/calendar.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_damaged_audit_member_is_i1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB56330>
+victim = 'audit/pages/calendar.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["audit/calendar.json", "audit/pages/calendar.json", "audit/manifest.json",
+                                        "audit/pages/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_audit_member_is_invalid_before_use(tmp_path, monkeypatch, victim, damage):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider())
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:382: Failed
+_ test_damaged_audit_member_is_invalid_before_use[changed-audit/manifest.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_damaged_audit_member_is_i2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFACBBC0>
+victim = 'audit/manifest.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["audit/calendar.json", "audit/pages/calendar.json", "audit/manifest.json",
+                                        "audit/pages/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_audit_member_is_invalid_before_use(tmp_path, monkeypatch, victim, damage):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider())
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:382: Failed
+_ test_damaged_audit_member_is_invalid_before_use[changed-audit/pages/ca_000_page000.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_damaged_audit_member_is_i3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFAA72C0>
+victim = 'audit/pages/ca_000_page000.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["audit/calendar.json", "audit/pages/calendar.json", "audit/manifest.json",
+                                        "audit/pages/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_audit_member_is_invalid_before_use(tmp_path, monkeypatch, victim, damage):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider())
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:382: Failed
+_ test_damaged_audit_member_is_invalid_before_use[deleted-audit/calendar.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_damaged_audit_member_is_i4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFA999A0>
+victim = 'audit/calendar.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["audit/calendar.json", "audit/pages/calendar.json", "audit/manifest.json",
+                                        "audit/pages/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_audit_member_is_invalid_before_use(tmp_path, monkeypatch, victim, damage):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider())
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:382: Failed
+_ test_damaged_audit_member_is_invalid_before_use[deleted-audit/pages/calendar.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_damaged_audit_member_is_i5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFACAAE0>
+victim = 'audit/pages/calendar.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["audit/calendar.json", "audit/pages/calendar.json", "audit/manifest.json",
+                                        "audit/pages/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_audit_member_is_invalid_before_use(tmp_path, monkeypatch, victim, damage):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider())
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:382: Failed
+_ test_damaged_audit_member_is_invalid_before_use[deleted-audit/manifest.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_damaged_audit_member_is_i6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFAFA420>
+victim = 'audit/manifest.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["audit/calendar.json", "audit/pages/calendar.json", "audit/manifest.json",
+                                        "audit/pages/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_audit_member_is_invalid_before_use(tmp_path, monkeypatch, victim, damage):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider())
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:382: Failed
+_ test_damaged_audit_member_is_invalid_before_use[deleted-audit/pages/ca_000_page000.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_damaged_audit_member_is_i7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFA98140>
+victim = 'audit/pages/ca_000_page000.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["audit/calendar.json", "audit/pages/calendar.json", "audit/manifest.json",
+                                        "audit/pages/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_audit_member_is_invalid_before_use(tmp_path, monkeypatch, victim, damage):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider())
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:382: Failed
+_________ test_extra_page_or_orphan_provenance_is_invalid[extra-page] _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_extra_page_or_orphan_prov0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFAC97C0>
+case = 'extra-page'
+
+    @pytest.mark.parametrize("case", ["extra-page", "missing-page"])
+    def test_extra_page_or_orphan_provenance_is_invalid(tmp_path, monkeypatch, case):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider())
+        if case == "extra-page":
+            (tmp_path / "s1_out" / "audit" / "pages" / "ca_000_page001.json").write_text("{}", encoding="utf-8")
+        else:
+            (tmp_path / "s1_out" / "audit" / "pages" / "ca_000_page000.json").unlink()
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:395: Failed
+________ test_extra_page_or_orphan_provenance_is_invalid[missing-page] ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_extra_page_or_orphan_prov1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB85040>
+case = 'missing-page'
+
+    @pytest.mark.parametrize("case", ["extra-page", "missing-page"])
+    def test_extra_page_or_orphan_provenance_is_invalid(tmp_path, monkeypatch, case):
+        setup(tmp_path, ("A",))
+        audit(tmp_path, monkeypatch, Provider())
+        if case == "extra-page":
+            (tmp_path / "s1_out" / "audit" / "pages" / "ca_000_page001.json").write_text("{}", encoding="utf-8")
+        else:
+            (tmp_path / "s1_out" / "audit" / "pages" / "ca_000_page000.json").unlink()
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:395: Failed
+____________ test_cross_trial_substitution_is_invalid[commitment] _____________
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x00000137FE7269F0>, _basetemp=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154'), _retention_count=3, _retention_policy='all')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFC3A240>
+case = 'commitment'
+
+    @pytest.mark.parametrize("case", ["commitment", "attempt", "page"])
+    def test_cross_trial_substitution_is_invalid(tmp_path_factory, monkeypatch, case):    # row 312 (OQ-36, E5.4)
+        mine, other = tmp_path_factory.mktemp("mine"), tmp_path_factory.mktemp("other")
+        mb = {r: Path(r) / "mailbox.sqlite3" for r in (mine, other)}            # each root's own tmp mailbox (B4)
+        setup(mine, ("A",))
+        setup(other, ("A",))
+        audit(mine, monkeypatch, Provider(), mailbox=mb[mine])
+        audit(other, monkeypatch, Provider(pages_per_batch={"A": 2}), mailbox=mb[other])   # different page bytes
+        tm, to = (t.open_trial(mb[r]).trial_id for r in (mine, other))
+        assert tm != to
+        if case == "commitment":
+            src = sg.staging_dir(other, to, "audit") / "prepared.json"
+            dst = sg.staging_dir(mine, tm, "audit") / "prepared.json"
+>           assert src.is_file() and dst.is_file(), "no staged commitment to substitute"
+E           AssertionError: no staged commitment to substitute
+E           assert (False)
+E            +  where False = is_file()
+E            +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/other0/s1_staging/2b804f07-90af-411a-b2a6-150a059a8441/audit/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_audit.py:412: AssertionError
+______________ test_cross_trial_substitution_is_invalid[attempt] ______________
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x00000137FE7269F0>, _basetemp=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154'), _retention_count=3, _retention_policy='all')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFC3A570>
+case = 'attempt'
+
+    @pytest.mark.parametrize("case", ["commitment", "attempt", "page"])
+    def test_cross_trial_substitution_is_invalid(tmp_path_factory, monkeypatch, case):    # row 312 (OQ-36, E5.4)
+        mine, other = tmp_path_factory.mktemp("mine"), tmp_path_factory.mktemp("other")
+        mb = {r: Path(r) / "mailbox.sqlite3" for r in (mine, other)}            # each root's own tmp mailbox (B4)
+        setup(mine, ("A",))
+        setup(other, ("A",))
+        audit(mine, monkeypatch, Provider(), mailbox=mb[mine])
+        audit(other, monkeypatch, Provider(pages_per_batch={"A": 2}), mailbox=mb[other])   # different page bytes
+        tm, to = (t.open_trial(mb[r]).trial_id for r in (mine, other))
+        assert tm != to
+        if case == "commitment":
+            src = sg.staging_dir(other, to, "audit") / "prepared.json"
+            dst = sg.staging_dir(mine, tm, "audit") / "prepared.json"
+            assert src.is_file() and dst.is_file(), "no staged commitment to substitute"
+        elif case == "attempt":
+            src, dst = other / "s1_out" / "audit" / "attempt.json", mine / "s1_out" / "audit" / "attempt.json"
+        else:
+            src = other / "s1_out" / "audit" / "pages" / "ca_000_page000.json"
+            dst = mine / "s1_out" / "audit" / "pages" / "ca_000_page000.json"
+            assert src.read_bytes() != dst.read_bytes()
+        shutil.copyfile(src, dst)                                               # the TEST substitutes tmp files
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:420: Failed
+_______________ test_cross_trial_substitution_is_invalid[page] ________________
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x00000137FE7269F0>, _basetemp=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154'), _retention_count=3, _retention_policy='all')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFC3A7B0>
+case = 'page'
+
+    @pytest.mark.parametrize("case", ["commitment", "attempt", "page"])
+    def test_cross_trial_substitution_is_invalid(tmp_path_factory, monkeypatch, case):    # row 312 (OQ-36, E5.4)
+        mine, other = tmp_path_factory.mktemp("mine"), tmp_path_factory.mktemp("other")
+        mb = {r: Path(r) / "mailbox.sqlite3" for r in (mine, other)}            # each root's own tmp mailbox (B4)
+        setup(mine, ("A",))
+        setup(other, ("A",))
+        audit(mine, monkeypatch, Provider(), mailbox=mb[mine])
+        audit(other, monkeypatch, Provider(pages_per_batch={"A": 2}), mailbox=mb[other])   # different page bytes
+        tm, to = (t.open_trial(mb[r]).trial_id for r in (mine, other))
+        assert tm != to
+        if case == "commitment":
+            src = sg.staging_dir(other, to, "audit") / "prepared.json"
+            dst = sg.staging_dir(mine, tm, "audit") / "prepared.json"
+            assert src.is_file() and dst.is_file(), "no staged commitment to substitute"
+        elif case == "attempt":
+            src, dst = other / "s1_out" / "audit" / "attempt.json", mine / "s1_out" / "audit" / "attempt.json"
+        else:
+            src = other / "s1_out" / "audit" / "pages" / "ca_000_page000.json"
+            dst = mine / "s1_out" / "audit" / "pages" / "ca_000_page000.json"
+            assert src.read_bytes() != dst.read_bytes()
+        shutil.copyfile(src, dst)                                               # the TEST substitutes tmp files
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:420: Failed
+___ test_valid_pagination_and_empty_families_are_not_anomalous[multi-page] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_valid_pagination_and_empt0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFA6D9D0>
+case = 'multi-page'
+
+    @pytest.mark.parametrize("case", ["multi-page", "empty-families"])
+    def test_valid_pagination_and_empty_families_are_not_anomalous(tmp_path, monkeypatch, case):   # row 319 (P-4)
+        syms = ("A", "B") if case == "multi-page" else ()
+        setup(tmp_path, syms)
+        prov = Provider(pages_per_batch={"A,B": 3}) if case == "multi-page" else Provider()
+        audit(tmp_path, monkeypatch, prov)
+>       assert kinds(tmp_path)[-1:] == [("STAGE-CREATED", "stage/audit")]
+E       AssertionError: assert [] == [('STAGE-CREA...stage/audit')]
+E         
+E         Right contains one more item: ('STAGE-CREATED', 'stage/audit')
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_audit.py:430: AssertionError
+_ test_valid_pagination_and_empty_families_are_not_anomalous[empty-families] __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_valid_pagination_and_empt1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB17B00>
+case = 'empty-families'
+
+    @pytest.mark.parametrize("case", ["multi-page", "empty-families"])
+    def test_valid_pagination_and_empty_families_are_not_anomalous(tmp_path, monkeypatch, case):   # row 319 (P-4)
+        syms = ("A", "B") if case == "multi-page" else ()
+        setup(tmp_path, syms)
+        prov = Provider(pages_per_batch={"A,B": 3}) if case == "multi-page" else Provider()
+        audit(tmp_path, monkeypatch, prov)
+>       assert kinds(tmp_path)[-1:] == [("STAGE-CREATED", "stage/audit")]
+E       AssertionError: assert [] == [('STAGE-CREA...stage/audit')]
+E         
+E         Right contains one more item: ('STAGE-CREATED', 'stage/audit')
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_audit.py:430: AssertionError
+__ test_stray_slot_files_before_the_audit_calendar_are_judged_invalid[claim] __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_stray_slot_files_before_t0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB16480>
+stray = 'claim'
+
+    @pytest.mark.parametrize("stray", ["claim", "report", "opening-seal"])
+    def test_stray_slot_files_before_the_audit_calendar_are_judged_invalid(tmp_path, monkeypatch, stray):
+        """After the AUDIT-ACK and before any audit calendar exists, a claim/report of a slot with no slot row, or an
+        opening-close seal file, is a violation (F3 'no row: any claim, capture, report or resolution'; F4 'no INTENT:
+        any artifact is a violation after the AUDIT-ACK'): TRIAL-INVALID (registration-artifact), zero callbacks."""
+        setup(tmp_path, ("A",))
+        out = tmp_path / "s1_out"
+        t.gate(tmp_path, "N1 control: no stray file")                          # control: nothing to judge, passes
+        if stray == "opening-seal":
+            p = out / "seals" / "2026-10-23.json"
+        else:
+            p = out / "captures" / "2026-10-23" / f"20261023T204500Z.{'attempt' if stray == 'claim' else 'report'}.json"
+        p.parent.mkdir(parents=True)
+        p.write_text("{}", encoding="utf-8")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:451: Failed
+_ test_stray_slot_files_before_the_audit_calendar_are_judged_invalid[report] __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_stray_slot_files_before_t1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFC3A1B0>
+stray = 'report'
+
+    @pytest.mark.parametrize("stray", ["claim", "report", "opening-seal"])
+    def test_stray_slot_files_before_the_audit_calendar_are_judged_invalid(tmp_path, monkeypatch, stray):
+        """After the AUDIT-ACK and before any audit calendar exists, a claim/report of a slot with no slot row, or an
+        opening-close seal file, is a violation (F3 'no row: any claim, capture, report or resolution'; F4 'no INTENT:
+        any artifact is a violation after the AUDIT-ACK'): TRIAL-INVALID (registration-artifact), zero callbacks."""
+        setup(tmp_path, ("A",))
+        out = tmp_path / "s1_out"
+        t.gate(tmp_path, "N1 control: no stray file")                          # control: nothing to judge, passes
+        if stray == "opening-seal":
+            p = out / "seals" / "2026-10-23.json"
+        else:
+            p = out / "captures" / "2026-10-23" / f"20261023T204500Z.{'attempt' if stray == 'claim' else 'report'}.json"
+        p.parent.mkdir(parents=True)
+        p.write_text("{}", encoding="utf-8")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:451: Failed
+_ test_stray_slot_files_before_the_audit_calendar_are_judged_invalid[opening-seal] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21154/test_stray_slot_files_before_t2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000137FFB85F40>
+stray = 'opening-seal'
+
+    @pytest.mark.parametrize("stray", ["claim", "report", "opening-seal"])
+    def test_stray_slot_files_before_the_audit_calendar_are_judged_invalid(tmp_path, monkeypatch, stray):
+        """After the AUDIT-ACK and before any audit calendar exists, a claim/report of a slot with no slot row, or an
+        opening-close seal file, is a violation (F3 'no row: any claim, capture, report or resolution'; F4 'no INTENT:
+        any artifact is a violation after the AUDIT-ACK'): TRIAL-INVALID (registration-artifact), zero callbacks."""
+        setup(tmp_path, ("A",))
+        out = tmp_path / "s1_out"
+        t.gate(tmp_path, "N1 control: no stray file")                          # control: nothing to judge, passes
+        if stray == "opening-seal":
+            p = out / "seals" / "2026-10-23.json"
+        else:
+            p = out / "captures" / "2026-10-23" / f"20261023T204500Z.{'attempt' if stray == 'claim' else 'report'}.json"
+        p.parent.mkdir(parents=True)
+        p.write_text("{}", encoding="utf-8")
+        sp = Spies(monkeypatch)
+>       with pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_audit.py:451: Failed
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_audit.py::test_cutoff_same_day_positive_path
+PASSED research/s1/s1_tests/test_s1_a3_audit.py::test_empty_ca_symbols_send_no_ca_request_and_the_audit_completes
+PASSED research/s1/s1_tests/test_s1_a3_audit.py::test_request_order_is_the_collector_order
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_audit_policy_is_exactly_the_f49_audit_rows
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_normal_audit_authorizes_calendar_and_ca_batches_and_commits_every_member
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_unpredictable_tokens_and_page_counts_complete_with_full_provenance
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[repeated-token]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[over-max-pages]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[redirect]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[other-host]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[wrong-endpoint]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[changed-base]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[outside-batch]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[other-paper-path]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_authorizer_refuses_a_second_calendar_request_and_an_unlisted_family
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_every_sent_request_is_in_provenance
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_retrieved_utc_is_the_actual_observation_instant
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_cutoff_is_the_intent_new_york_date_across_midnight[midnight]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_cutoff_is_the_intent_new_york_date_across_midnight[dst-fall-back]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_manifest_shape_is_preserved_and_its_projection_equals_the_members
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_provider_anomaly_keeps_aborted_staging_no_prepared_and_invalidates
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_audit_runs_as_a_stage_only_after_the_audit_ack
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_audit_envelope_inputs_and_members
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_members_are_the_fixed_names_plus_one_page_per_request
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[changed-audit/calendar.json]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[changed-audit/pages/calendar.json]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[changed-audit/manifest.json]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[changed-audit/pages/ca_000_page000.json]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/calendar.json]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/pages/calendar.json]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/manifest.json]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/pages/ca_000_page000.json]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_extra_page_or_orphan_provenance_is_invalid[extra-page]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_extra_page_or_orphan_provenance_is_invalid[missing-page]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_cross_trial_substitution_is_invalid[commitment]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_cross_trial_substitution_is_invalid[attempt]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_cross_trial_substitution_is_invalid[page]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_valid_pagination_and_empty_families_are_not_anomalous[multi-page]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_valid_pagination_and_empty_families_are_not_anomalous[empty-families]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_stray_slot_files_before_the_audit_calendar_are_judged_invalid[claim]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_stray_slot_files_before_the_audit_calendar_are_judged_invalid[report]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_stray_slot_files_before_the_audit_calendar_are_judged_invalid[opening-seal]
+39 failed, 3 passed in 7.38s

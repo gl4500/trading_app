@@ -343,6 +343,25 @@ def s1_score_refused(root, ack_id, reason="registration-artifact"):
                 "nomination": False, "reasons": [f"score error: {type(e).__name__}: {e}"]}
 
 
+S1_AUDIT_ABORTED = r"stage audit: INVALID \(provider-structural\)"          # A3 Task 9: the audit anomaly refusal
+
+
+def s1_audit_aborted(root):
+    """A3 Task 9 (F4.6): after a provider anomaly in the audit stage - its ABORTED record (kept in the stage's staging,
+    outside s1_out, with the provenance of every request sent), asserted with no PREPARED commitment, nothing of the
+    audit published under s1_out, and a TRIAL-INVALID (provider-structural) row. Returns the record. Test-only."""
+    import s1_journal as j
+    import s1_trial as t
+    m = Path(root) / "mailbox.sqlite3"
+    tr = t.open_trial(m)
+    d = Path(root) / "s1_staging" / tr.trial_id / "audit"
+    assert (d / "ABORTED.json").is_file() and not (d / "prepared.json").exists()
+    assert not (Path(root) / "s1_out" / "audit").exists()
+    inv = j.first(j.read_trial(tr.trial_id, tr.genesis, m), "TRIAL-INVALID")
+    assert inv is not None and inv.subject == "reason/provider-structural", inv
+    return json.loads((d / "ABORTED.json").read_bytes())
+
+
 def s1_bar(d, o=100, h=101, l=99, c=100):
     return {"date": d, "o": o, "h": h, "l": l, "c": c}
 
@@ -468,9 +487,14 @@ def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audi
     calendar is pinned with its raw page (hashed under `pages`) and calendar_source.json (source, params, retrieval
     time). `calendar` overrides the synthetic weekday calendar; `opening_close` the plan's opening close (to test a
     wrong one: since A8.1 a plan edited after its audit is refused for that reason first).
-    A3 Task 5: with `journal` (default) the audit stage's synthetic STAGE-INTENT / PREPARED / CREATED rows are appended
-    (Task 9 replaces them with the real audit stage); journal=False leaves the trial with NO journal row (the only
-    state in which a bundle mismatch is a plain refusal, F6.4)."""
+    A3 Task 5: with `journal` (default) the audit is a real stage; journal=False leaves the trial with NO journal row
+    (the only state in which a bundle mismatch is a plain refusal, F6.4) and hand-writes the same files.
+    A3 Task 9: with `journal` the REAL audit stage runs (s1_stage.run(gv, "audit", ...), policy_fn = the real
+    s1_collect.audit_policy, INTENT at reserved - 1 s, PREPARED at + 2 min, CREATED at + 3 min: the old synthetic rows'
+    times), with a fixture work that stages the same objects with the same bytes; attempt.json gains trial_id and
+    intent_at (OQ-36, F4.5). Synthetic shortcut: the fixture makes NO corporate-action request and its provenance is the
+    one calendar entry - the stage engine does not compare provenance with the policy (the real collector enforces
+    completeness itself with auth.finished(), tested by test_s1_a3_audit.py)."""
     from datetime import timedelta
     import s1_collect as k
     import s1_common as c
@@ -491,8 +515,11 @@ def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audi
     ack_t = created + timedelta(hours=12)
     s1_mailbox(root, ack_id, c.audit_token(out), ack_t)
     ack = {"ack_id": ack_id, "created_utc": ack_t.isoformat()}
-    audit = out / "audit"
     reserved = created + timedelta(days=1)
+    if journal:
+        _audit_stage(root, plan, raw_cal, ack, reserved, audit_actions, audit_problems)
+        return start, raw_cal, opening_close, created
+    audit = out / "audit"
     _dump(audit / "attempt.json", {"reserved_utc": reserved.isoformat(), "ack": ack})
     page = audit / "pages" / "calendar.json"
     page.parent.mkdir(parents=True, exist_ok=True)
@@ -512,16 +539,55 @@ def s1_plan_audit(root, planned_start, *, carry_in_syms=(), first_day=None, audi
                                     "files": {n: c.sha256_file(audit / n) for n in
                                               ("attempt.json", "calendar.json", "calendar_source.json",
                                                "corporate_actions.json", "ca_problems.json")}})
-    if journal:
-        import s1_journal as j
-        g = j.stage_subject("audit")
-        op, actor = j.new_nonce(), j.new_nonce()
-        s1_jappend(root, "STAGE-INTENT", g, at=reserved - timedelta(seconds=1), op=op, actor=actor,
-                   detail=j.detail_of({"synthetic": "audit-intent"}))
-        d = j.detail_of({"synthetic": "audit-prepared", "manifest": c.sha256_file(audit / "manifest.json")})
-        s1_jappend(root, "STAGE-PREPARED", g, at=reserved + timedelta(minutes=2), op=op, actor=actor, detail=d)
-        s1_jappend(root, "STAGE-CREATED", g, at=reserved + timedelta(minutes=3), op=op, actor=actor, detail=d)
     return start, raw_cal, opening_close, created
+
+
+def _audit_stage(root, plan, raw_cal, ack, reserved, audit_actions, audit_problems):
+    """A3 Task 9: s1_plan_audit's audit as the REAL stage `audit` (see s1_plan_audit). The staged objects and their
+    bytes are the ones the journal=False branch hand-writes (sw.put_json = the _dump bytes), except attempt.json's
+    trial_id and intent_at (and so the manifest's hash of attempt.json). Test-only."""
+    from datetime import timedelta
+    import s1_collect as k
+    import s1_common as c
+    import s1_stage as sg
+    import s1_trial as t
+
+    out = Path(root) / "s1_out"
+    page = "audit/pages/calendar.json"
+    params = {"start": plan["calendar_range"][0], "end": plan["calendar_range"][1], "date_type": "TRADING"}
+    retrieved = (reserved + timedelta(minutes=1)).isoformat()
+
+    def work(sw):
+        sw.put_json("audit/attempt.json", {"reserved_utc": reserved.isoformat(), "ack": ack,
+                                           "trial_id": sw.trial_id, "intent_at": sw.intent_at})
+        sw.put(page, json.dumps(raw_cal).encode("utf-8"))
+        page_sha = c.sha256_bytes(sw.files[page])
+        sw.put_json("audit/calendar.json", raw_cal)
+        sw.put_json("audit/calendar_source.json", {"source": k.CAL_URL, "params": params, "retrieved_utc": retrieved,
+                                                   "page": page, "page_sha256": page_sha})
+        sw.put_json("audit/corporate_actions.json", list(audit_actions))
+        sw.put_json("audit/ca_problems.json", list(audit_problems))
+        sw.put_json("audit/manifest.json", {
+            "outcome": "COMPLETE", "ack": ack, "pages": {page: page_sha}, "coverage": {},
+            "plan_sha256": c.sha256_file(out / "plan.json"), "bundle_sha256": c.bundle_sha256(),
+            "files": {n: c.sha256_bytes(sw.files[f"audit/{n}"]) for n in
+                      ("attempt.json", "calendar.json", "calendar_source.json", "corporate_actions.json",
+                       "ca_problems.json")}})
+        return [{"family": "calendar", "scope": "audit", "n": 0, "url": k.CAL_URL, "params": params,
+                 "page_token_from": None, "retrieved_utc": retrieved, "status": 200, "page_relpath": page,
+                 "page_sha256": page_sha}]
+
+    times = iter((reserved - timedelta(seconds=1), reserved + timedelta(minutes=2), reserved + timedelta(minutes=3)))
+    last = [None]
+
+    def clock():                                                  # INTENT, PREPARED, CREATED: the old rows' times
+        last[0] = next(times, last[0])
+        return last[0]
+    mb = Path(root) / "mailbox.sqlite3"
+    gv = t.gate(root, "fixture audit", mailbox=mb)
+    sg.run(gv, "audit", inputs={"plan.json": c.sha256_file(out / "plan.json"), "bundle": c.bundle_sha256()},
+           acks={"S1-AUDIT-ACK": gv.trial.audit.sha}, work=work, mailbox=mb, clock=clock,
+           policy_fn=lambda at: k.audit_policy(plan, k._ny_date(at)))
 
 
 def s1_sync_portfolio(ledger, trades):

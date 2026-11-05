@@ -1,0 +1,15 @@
+A3 Task 9 - conftest.s1_plan_audit byte equality: base 880c45b conftest (synthetic audit rows, hand-written files) vs Task 9 (the real audit stage).
+Script: s1_evidence/a3/t9_conftest_bytes.py.txt (run with the testenv interpreter, PYTHONPATH as the suite; base conftest = git show HEAD:research/s1/s1_tests/conftest.py).
+
+plan.json identical: True
+audit files (base): ['audit/attempt.json', 'audit/ca_problems.json', 'audit/calendar.json', 'audit/calendar_source.json', 'audit/corporate_actions.json', 'audit/manifest.json', 'audit/pages/calendar.json']
+audit files (Task 9): ['audit/attempt.json', 'audit/ca_problems.json', 'audit/calendar.json', 'audit/calendar_source.json', 'audit/corporate_actions.json', 'audit/manifest.json', 'audit/pages/calendar.json']
+same file set: True
+audit/attempt.json: differs only by ['intent_at', 'trial_id'] (bytes == base + those keys): True; intent_at=2026-10-13T13:29:59.000000+00:00
+audit/ca_problems.json: byte-identical: True (sha256 1982b3097267aff67954a2e95c8abdb2cfe14c14f9337a436bcacdf27881fe31)
+audit/calendar.json: byte-identical: True (sha256 e7d27e6d67899c3831606d0b6cb45c25d9fabc53b9f36c2e0b7c4f93c2c3ebd2)
+audit/calendar_source.json: byte-identical: True (sha256 b0c26e6a4eebc12ebadd7c73432659df957a970764d06cb991d9050a4c0c8dd1)
+audit/corporate_actions.json: byte-identical: True (sha256 2390f4c1319e6d12c21964bad110610b15702eed3191851ea59835d7ffe71e47)
+audit/manifest.json: differs only by the attempt.json hash 9a2763a06e21 -> 090265035fd2: True
+audit/pages/calendar.json: byte-identical: True (sha256 66306107a4c9908525ae0b042ac84ea87828b500583c0fcf0cde8303d0bc65a7)
+RESULT: PASS

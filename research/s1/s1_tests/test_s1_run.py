@@ -1064,9 +1064,13 @@ def test_cr_prereg_refusal_paths(tmp_path, monkeypatch):
     # persistent "registration artifact" abort, observed before prereg's own audit check)
     mp = out / "audit" / "manifest.json"
     mp.write_text(json.dumps(dict(json.loads(mp.read_text(encoding="utf-8")), outcome="ABORTED")), encoding="utf-8")
-    with pytest.raises(SystemExit, match="prereg refused: registration artifact"):
+    # A3 Task 9 (intended, F4 table CREATED row): the edited CREATED audit manifest is INVALID (stage-replaced) at
+    # prereg's gate, before the B3.3 detector; the detector's own reason is kept at unit level
+    with pytest.raises(SystemExit, match=r"stage audit: .*audit/manifest\.json.*INVALID \(stage-replaced\)"):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     assert not (out / "prereg.json").exists()
+    with pytest.raises(SystemExit, match=r"prereg refused: registration artifact\(s\) missing or changed"):
+        s1_common.registration_gate(out, "prereg")
 
 
 def test_cr_second_blocked_prereg_is_refused_again(tmp_path, monkeypatch):
@@ -1334,7 +1338,7 @@ def test_cr_incomplete_audit_is_a_recorded_reason_not_a_score_error(tmp_path, mo
     mp = out / "audit" / "manifest.json"
     mp.write_text(json.dumps(dict(read(mp), outcome="ABORTED")), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rep = s1_score_refused(tmp_path, "score-ack")   # A3 F0.6/F1: refused; the unit-level record
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")   # A3 Task 9: F4 CREATED row
     assert any(x.startswith("Invalid: audit attempt outcome is 'ABORTED'") for x in rep["reasons"]), rep["reasons"]
     assert not any(x.startswith("score error") for x in rep["reasons"])
 

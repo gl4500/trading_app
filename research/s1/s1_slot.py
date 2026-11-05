@@ -770,6 +770,39 @@ def _read_rows(gv) -> list:
                                f"row (F0.7)") from None
 
 
+def _stray_files(out: Path) -> list:
+    """The slot files a gate can see with no calendar to place them: every captures/<day>/* entry, and the opening
+    close's seal file (written only from a QUALIFIED opening slot, so with no slot row it is a stray; until Task 10 no
+    stage covers it). Every other seals/<date>.json is a seal stage's, judged by s1_stage.evaluate (E2.4/E2.6 r3)."""
+    out = Path(out)
+    found = list((out / "captures").glob("*/*"))
+    oday = _opening_date(out)
+    if oday and (out / "seals" / f"{oday}.json").exists():
+        found.append(out / "seals" / f"{oday}.json")
+    return sorted(_rel(out, p) for p in found)
+
+
+def _judge_without_calendar(gv, out) -> bool:
+    """A3 Task 9 (Task 7 carry-forward N1; F3 'no row: any claim, capture, report or resolution', F4 'no INTENT: any
+    artifact is a violation after the AUDIT-ACK', E2.4): no registered calendar is readable and the gate's rows have no
+    slot row, yet slot/seal files exist. Every gate runs under an open trial, i.e. after the AUDIT-ACK, so such a file
+    is a violation, never a silent pass. Confirmed on re-read (as evidence_check): rows read AFTER the files were
+    first seen; the files still present on a second scan are the violation (TRIAL-INVALID registration-artifact, then
+    the local abort, refused with no work). Returns True when the re-read now shows slot rows (the caller's fail-closed
+    M3 refusal applies), False when nothing is left to judge."""
+    first = _stray_files(out)
+    if not first:
+        return False
+    if any(r_.kind in j.SLOT_KINDS for r_ in _read_rows(gv)):
+        return True
+    confirmed = [p for p in _stray_files(out) if p in first]
+    if not confirmed:
+        return False
+    evidence_violation(gv, [f"{p} exists with no slot row and no registered calendar (F3, F4)" for p in confirmed],
+                       "gate", gv.mailbox)
+    return False                                                    # (unreachable: evidence_violation raises)
+
+
 def evidence_check(gv) -> None:
     """Gate hook (F3 table), after the F6.2 plan check: a violation commits TRIAL-INVALID (registration-artifact) and
     refuses with no work. The rows are read here (not the gate's snapshot), and a problem is confirmed on rows re-read
@@ -781,12 +814,12 @@ def evidence_check(gv) -> None:
         return
     cal = _calendar(gv)
     if cal is None:
-        if any(r_.kind in j.SLOT_KINDS for r_ in gv.rows):          # fix round 1 (review M3): fail closed - an
-            import s1_trial                                           # unreadable registered calendar is first the
-            s1_trial._legacy_detectors(out, "F3 evidence table", None, gv.mailbox)   # legacy detector's (OQ-19)
-            raise s1_trial.Refusal("slot rows exist but no registered calendar is readable (the F3 evidence table "
-                                   "cannot run): refused with no row (fail closed)")
-        return
+        if not any(r_.kind in j.SLOT_KINDS for r_ in gv.rows) and not _judge_without_calendar(gv, out):
+            return                                                    # A3 Task 9 (N1): nothing left to judge
+        import s1_trial                                               # fix round 1 (review M3): fail closed - an
+        s1_trial._legacy_detectors(out, "F3 evidence table", None, gv.mailbox)       # unreadable registered calendar
+        raise s1_trial.Refusal("slot rows exist but no registered calendar is readable (the F3 evidence table "  # is
+                               "cannot run): refused with no row (fail closed)")      # first the legacy detector's
     first = evidence_problems(out, _read_rows(gv), cal)
     if not first:
         return

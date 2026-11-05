@@ -653,8 +653,8 @@ def test_a_created_seal_deleted_is_stage_replaced_and_never_recreated(tmp_path, 
 def test_seal_files_on_disk_are_evaluated_once_the_seal_family_is_enforced(tmp_path, trial):
     """Transitional (Task 8) switch, flipped by A3 Task 7 (Task 8 D5 condition (a)): the post-START seal writer is now
     the seal/<close> stage, so SEALS_ENFORCED is True and a seal file with no rows is a registration artifact (E2.4 r3)
-    on the module default; ENFORCED (the TABLE stages) is still empty (Tasks 9-14)."""
-    assert sg.ENFORCED == frozenset() and sg.SEALS_ENFORCED is True
+    on the module default; ENFORCED (the TABLE stages) is {"audit"} since A3 Task 9 (Tasks 10-14 add theirs)."""
+    assert sg.ENFORCED == frozenset({"audit"}) and sg.SEALS_ENFORCED is True
     (tmp_path / "s1_out" / "seals").mkdir()
     (tmp_path / "s1_out" / "seals" / "2026-10-27.json").write_text("{}", encoding="utf-8")
     with pytest.raises(SystemExit, match=r"seal/2026-10-27: artifacts .* with no INTENT: INVALID \(registration-artifact\)"):

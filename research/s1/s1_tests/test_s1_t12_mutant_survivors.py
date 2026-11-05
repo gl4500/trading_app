@@ -101,8 +101,13 @@ def test_ms_an_audit_ack_message_without_the_exact_audit_token_refuses(tmp_path,
     con.execute("UPDATE messages SET body=? WHERE id='audit-ack'", (tok,))
     con.commit()
     con.close()
-    with pytest.raises(SystemExit, match="audit token"):
+    # A3 Task 9 (intended, F4 table): audit files with no audit rows (journal=False) are INVALID (registration-artifact)
+    # at the opening's gate, before the A6/A8.2 check runs; the check's own reason (this mutant's killer) is
+    # asserted at unit level
+    with pytest.raises(SystemExit, match=r"stage audit: artifacts .* with no INTENT: INVALID \(registration-artifact\)"):
         _opening(tmp_path, ledger)
+    with pytest.raises(g.Invalid, match="audit token"):
+        g.verified_audit(tmp_path / "s1_out", c.MAILBOX)
 
 
 @pytest.mark.parametrize("when", ["before_plan", "after_reservation"])
@@ -118,8 +123,12 @@ def test_ms_audit_ack_causal_timing_is_checked_on_its_own(tmp_path, ledger, when
     m = read(mp)
     m["ack"]["created_utc"] = t.isoformat()
     mp.write_text(json.dumps(m), encoding="utf-8")
-    with pytest.raises(SystemExit, match="before the plan|not after the plan|before the audit reservation"):
+    # A3 Task 9 (intended, F4 table): the tampered audit member is INVALID (stage-replaced) at the opening's gate, before
+    # the A6/A8.2 check runs; the check's own reason (this mutant's killer) is asserted at unit level
+    with pytest.raises(SystemExit, match=r"stage audit: .*audit/manifest\.json.*INVALID \(stage-replaced\)"):
         _opening(tmp_path, ledger)
+    with pytest.raises(g.Invalid, match="before the plan|not after the plan|before the audit reservation"):
+        g.verified_audit(out, c.MAILBOX)
 
 
 def test_ms_an_out_of_order_pinned_listing_refuses_the_opening(tmp_path, ledger):
@@ -203,9 +212,10 @@ def test_ms_four_sessions_after_the_audit_ack_abort(tmp_path, monkeypatch):
     from test_s1_t12_a5_a6 import _audit_client, _plan_and_ack, cal_rows
     _plan_and_ack(tmp_path, monkeypatch, datetime(2026, 10, 21, 12, tzinfo=UTC),
                   datetime(2026, 10, 26, 18, tzinfo=UTC))             # opens 10-27 .. 10-30 = 4
-    with pytest.raises(SystemExit, match="ABORTED"):
+    from conftest import S1_AUDIT_ABORTED, s1_audit_aborted     # A3 Task 9
+    with pytest.raises(SystemExit, match=S1_AUDIT_ABORTED):          # A3 Task 9 (F4.6): staged ABORTED + INVALID
         k.do_audit(tmp_path, "a1", _audit_client(cal_rows("2026-10-21", "2027-05-31")), ("K", "S"))
-    assert "fewer than 5 sessions" in read(tmp_path / "s1_out" / "audit" / "manifest.json")["error"]
+    assert "fewer than 5 sessions" in s1_audit_aborted(tmp_path)["error"]
 
 
 # ---------------------------------------------------------------------- s1_run

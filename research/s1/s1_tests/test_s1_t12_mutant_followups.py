@@ -118,10 +118,15 @@ def test_mf_a_calendar_json_differing_from_its_pinned_raw_page_refuses(tmp_path,
     (audit / "calendar.json").write_text(json.dumps([d for d in cal if d["date"] != "2026-10-21"]), encoding="utf-8")
     _rehash(audit, "calendar.json")
     sch = OPEN_CLOSE + timedelta(minutes=45)
+    # A3 Task 9 (intended, F4 table): the tampered audit member is INVALID (stage-replaced) at the opening's gate, before
+    # the A6/A8.2 check runs; the check's own reason (this mutant's killer) is asserted at unit level
     with _Clock(sch + timedelta(seconds=30)):
-        with pytest.raises(SystemExit, match="pinned raw page"):
+        with pytest.raises(SystemExit, match=r"stage audit: .*INVALID \(stage-replaced\)"):
             ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
                                       tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
+    import s1_gates as g_
+    with pytest.raises(g_.Invalid, match="pinned raw page"):
+        g_.verified_audit(tmp_path / "s1_out", c.MAILBOX)
 
 
 def test_mf_a_calendar_pinned_with_other_request_parameters_refuses(tmp_path, ledger):
@@ -133,10 +138,15 @@ def test_mf_a_calendar_pinned_with_other_request_parameters_refuses(tmp_path, le
     (audit / "calendar_source.json").write_text(json.dumps(src), encoding="utf-8")
     _rehash(audit, "calendar_source.json")
     sch = OPEN_CLOSE + timedelta(minutes=45)
+    # A3 Task 9 (intended, F4 table): the tampered audit member is INVALID (stage-replaced) at the opening's gate, before
+    # the A6/A8.2 check runs; the check's own reason (this mutant's killer) is asserted at unit level
     with _Clock(sch + timedelta(seconds=30)):
-        with pytest.raises(SystemExit, match="request parameters"):
+        with pytest.raises(SystemExit, match=r"stage audit: .*INVALID \(stage-replaced\)"):
             ck.run_opening_checkpoint(tmp_path, ledger.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
                                       tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
+    import s1_gates as g_
+    with pytest.raises(g_.Invalid, match="request parameters"):
+        g_.verified_audit(tmp_path / "s1_out", c.MAILBOX)
 
 
 def test_mf_cohort_ids_are_the_stop_seals_cohort_through_the_stop_close(tmp_path):

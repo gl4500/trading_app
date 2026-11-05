@@ -5,6 +5,7 @@ import pytest
 
 import s1_collect as k
 from test_s1_collect import KEYS, audit_with_calendar, fixed_clock, full_calendar, manifest_of  # noqa: F401
+from conftest import S1_AUDIT_ABORTED, s1_audit_aborted  # A3 Task 9
 
 
 def _with_close(day, close):
@@ -18,9 +19,9 @@ def test_m1_a_session_closing_before_the_earliest_early_close_refuses_the_audit(
     opening close, a mid-trial day and the last week of calendar_range) makes the audit fail closed: the attempt is preserved as
     ABORTED (Structural, the reason recorded), no COMPLETE manifest exists, so nothing ACK-dependent can follow."""
     cl = audit_with_calendar(tmp_path, _with_close(day, "12:59"))
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match=S1_AUDIT_ABORTED):          # A3 Task 9 (F4.6): staged ABORTED + INVALID
         k.do_audit(tmp_path, "a1", cl, KEYS)
-    m = manifest_of(tmp_path, "audit")
+    m = s1_audit_aborted(tmp_path)
     assert m["outcome"] == "ABORTED" and m["error_type"] == "Structural", m
     assert "earliest" in m["error"] and day in m["error"], m["error"]
 

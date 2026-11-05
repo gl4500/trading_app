@@ -44,14 +44,16 @@ def test_h3_probe_a_session_inserted_into_the_calendar_after_the_opening_seal_ab
     cp.write_text(json.dumps(rows), encoding="utf-8")
     sch = z.schedule(next(d for d in cal if d["date"] == oc), cal)[8]
     act = sch + timedelta(seconds=30)
-    with _Clock(act), pytest.raises(SystemExit):
+    # A3 Task 9 (intended, F4 table CREATED row, F4.9 consistency): calendar.json is a member of the CREATED audit
+    # stage, so the edit is INVALID (stage-replaced) at the next gate, before the B3.3 detector; restoring it does not
+    # resume: the START attestation is refused (trial INVALID) and the journal's INVALID is the local abort
+    with _Clock(act), pytest.raises(SystemExit, match=r"stage audit: .*audit/calendar\.json.*INVALID \(stage-replaced\)"):
         ck.run_opening_checkpoint(tmp_path, lg.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
                                   tmp_path / "crash.log", now=lambda: act)
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
     cp.write_bytes(good)
-    with _Clock(act + timedelta(minutes=30)), pytest.raises(SystemExit):
+    with _Clock(act + timedelta(minutes=30)), pytest.raises(SystemExit, match=r"trial INVALID \(reason/stage-replaced\)"):
         r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
-    assert c.load_abort(out)["reason"] == "registration artifact"
+    assert "reason/stage-replaced" in c.load_abort(out)["reason"]
     assert not (out / "attest_start.json").exists()
 
 

@@ -1,0 +1,73 @@
+"""A3 Task 9 evidence: conftest.s1_plan_audit byte equality, base (880c45b conftest, synthetic audit rows, files
+hand-written) vs Task 9 (the real audit stage). Same planned START, same clock, the same plan trial_id (uuid4 pinned
+in both runs), each in its own fresh tmp root with its own tmp mailbox. Expected: identical audit file set; every file
+byte-identical except attempt.json (+ trial_id, intent_at) and manifest.json (the attempt.json hash only)."""
+import importlib.util
+import json
+import shutil
+import sys
+import tempfile
+import uuid
+from pathlib import Path
+
+SCRATCH = Path(__file__).resolve().parent
+WT = Path("C:/Users/gl450/trading_app-s1/research/s1")
+sys.path[:0] = [str(WT), str(WT / "s1_tests")]
+
+import s1_collect as k        # noqa: E402
+import s1_common as c         # noqa: E402
+
+FIXED = uuid.UUID("12345678-1234-4123-8123-123456789abc")
+k.uuid = type("PinnedUuid", (), {"uuid4": staticmethod(lambda: FIXED)})   # s1_collect only (write_plan)
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+old = load("conftest_old", SCRATCH / "conftest_old.py")
+new = load("conftest_new", WT / "s1_tests" / "conftest.py")
+
+
+def build(mod, root):
+    c.MAILBOX = root / "mailbox.sqlite3"
+    mod.s1_mailbox_init(root)
+    mod.s1_plan_audit(root, "2026-10-26T13:30:00+00:00", carry_in_syms=("B", "A"),
+                      audit_actions=[{"id": "x", "symbol": "A"}], audit_problems=[{"problem": "p"}])
+    out = root / "s1_out"
+    return {p.relative_to(out).as_posix(): p.read_bytes() for p in sorted((out / "audit").rglob("*")) if p.is_file()}, \
+        (out / "plan.json").read_bytes()
+
+
+tmp = Path(tempfile.mkdtemp(dir=SCRATCH))
+try:
+    (tmp / "old").mkdir()
+    (tmp / "new").mkdir()
+    a, plan_a = build(old, tmp / "old")
+    b, plan_b = build(new, tmp / "new")
+    lines = [f"plan.json identical: {plan_a == plan_b}", f"audit files (base): {sorted(a)}",
+             f"audit files (Task 9): {sorted(b)}", f"same file set: {sorted(a) == sorted(b)}"]
+    ok = plan_a == plan_b and sorted(a) == sorted(b)
+    for rel in sorted(a):
+        if rel == "audit/attempt.json":
+            oa, nb = json.loads(a[rel]), json.loads(b[rel])
+            extra = {n: nb[n] for n in nb if n not in oa}
+            want = c.text_bytes(json.dumps(dict(oa, **extra), indent=1, sort_keys=True))
+            same = set(extra) == {"trial_id", "intent_at"} and b[rel] == want and extra["trial_id"] == str(FIXED)
+            lines.append(f"{rel}: differs only by {sorted(extra)} (bytes == base + those keys): {same}; "
+                         f"intent_at={extra.get('intent_at')}")
+        elif rel == "audit/manifest.json":
+            ha, hb = c.sha256_bytes(a["audit/attempt.json"]), c.sha256_bytes(b["audit/attempt.json"])
+            same = b[rel] == a[rel].replace(ha.encode(), hb.encode()) and a[rel] != b[rel]
+            lines.append(f"{rel}: differs only by the attempt.json hash {ha[:12]} -> {hb[:12]}: {same}")
+        else:
+            same = a[rel] == b[rel]
+            lines.append(f"{rel}: byte-identical: {same} (sha256 {c.sha256_bytes(a[rel])})")
+        ok = ok and same
+    lines.append(f"RESULT: {'PASS' if ok else 'FAIL'}")
+    print("\n".join(lines))
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)

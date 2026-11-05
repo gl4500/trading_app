@@ -501,14 +501,22 @@ def test_an_opening_slot_after_the_opening_is_decided_is_refused_with_no_row(tmp
 
 
 def test_an_opening_slot_needs_the_created_audit_stage(tmp_path, monkeypatch):
-    """F1: the opening capture needs the audit stage CREATED in the journal (no audit rows: refused, no row)."""
+    """F1: the opening capture needs the audit stage CREATED in the journal (no audit rows: refused, no row).
+    A3 Task 9 (intended, F4 table 'no INTENT: any artifact is a violation after the AUDIT-ACK'): with audit ENFORCED,
+    audit files with no audit rows are INVALID (registration-artifact) at the gate, before the slot gate is reached;
+    the slot gate's own refusal is kept at unit level (its rows have no audit CREATED)."""
     start, cal, oc, _ = s1_plan_audit(tmp_path, START, journal=False)
     sp = Spies(monkeypatch)
-    with pytest.raises(SystemExit, match="the audit stage is not CREATED"):
+    with pytest.raises(SystemExit, match=r"stage audit: artifacts .* with no INTENT: INVALID \(registration-artifact\)"):
         s1_opening_checkpoint(tmp_path, Ledger(tmp_path / "opening_ledger.sqlite3"), oc, cal, S1_RECEIPT)
     sp.assert_zero()
     sch = z.close_of(oc, cal) + timedelta(minutes=45)
     assert slot_rows(tmp_path, sch) == [] and not sl.names(tmp_path / "s1_out", sch, oc)["claim"].exists()
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    rows_ = j.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3")
+    assert [r_.kind for r_ in rows_] == ["TRIAL-INVALID"]
+    assert sl.opening_gate(tr, tmp_path / "s1_out")(rows_, j.slot_subject(sch)) == \
+        "the audit stage is not CREATED: no opening capture"
 
 
 # ---------------------------------------------------------------- Task 6 fix round 1 (review C1, C2, I1)

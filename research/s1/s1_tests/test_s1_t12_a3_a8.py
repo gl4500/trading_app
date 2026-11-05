@@ -494,10 +494,27 @@ def test_a8_opening_mode_verifies_the_audit_ack_plan_calendar_and_source_binding
     calls = Calls(monkeypatch)
     sch = OPEN_CLOSE + timedelta(minutes=45)
     with _Clock(sch + timedelta(seconds=30)):
-        with pytest.raises(SystemExit, match=WHY478[breakage]):
+        # A3 Task 9 (intended, F4 table CREATED row + F4.9 consistency): a changed member or bound input of the
+        # CREATED audit stage is INVALID (stage-replaced) at the gate, before the A8.2 checks run; those checks'
+        # own reasons are kept at unit level below (the same tampered files)
+        with pytest.raises(SystemExit, match=(r"stage audit: .*INVALID \(stage-replaced\)" if breakage in A3_T9_STAGE
+                                              else WHY478[breakage])):
             ck.run_opening_checkpoint(tmp_path, ledger.path, sch, calls.receipt(), calls.process(),
                                       tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
+        if breakage == "no_ack_recorded":
+            with pytest.raises(SystemExit, match=WHY478[breakage]):
+                c.registration(out, c.MAILBOX)
+        elif breakage in A3_T9_STAGE:
+            import s1_gates as g
+            with pytest.raises(g.Invalid, match=WHY478[breakage]):
+                g.verified_audit(out, c.MAILBOX)
     assert calls.zero() and not (out / "captures").exists()
+
+
+# A3 Task 9: the breakages that change a CREATED audit member (manifest, raw page, calendar_source) or its bound input
+# (plan.json) - the gate's stage table (F4) sees them first
+A3_T9_STAGE = ("no_ack_recorded", "plan_edited_after_audit", "manifest_plan_sha", "raw_page_tampered",
+               "calendar_source_tampered")
 
 
 def test_a8_do_audit_checks_the_ack_is_after_the_plan(tmp_path, monkeypatch):

@@ -36,7 +36,7 @@ TRIAL_ID_MEMBERS = {"audit": ("audit/attempt.json",), "start_attest": ("attest_s
                     "prereg": ("prereg.json",), "stop_attest": ("attest_stop.json",),
                     "final_plan": ("final_plan.json",), "final": ("final/attempt.json",),
                     "score": ("score/attempt.json", "score/s1.json")}
-ENFORCED = frozenset()      # transitional (Task 8); Tasks 9-13 add their stage; Task 14 requires all of TABLE
+ENFORCED = frozenset({"audit"})   # transitional (Task 8); Task 9 audit; Tasks 10-13 add theirs; Task 14: all of TABLE
 # Transitional (Task 8; Task 14 deletes it with ENFORCED): seal files on disk with no seal-stage row are evaluated
 # (E2.4 r3) once the post-START seal writer is a stage - A3 Task 7 made it one (s1_slot.run_seal_stage), so it is True.
 # Seal stages that have journal rows are always evaluated.
@@ -284,7 +284,7 @@ def _gates(gv, stage, extra_gate, stage_check):
 def _invalid(gv, reason, record, mailbox, clock):
     import s1_trial
     s1_trial.invalidate(gv.trial, reason, record, root=gv.root, mailbox=mailbox, clock=clock)
-    raise SystemExit(f"stage {record.get('stage')}: INVALID ({reason})")
+    raise SystemExit(f"stage {record.get('stage')}: INVALID ({reason})") from None   # (A3 Task 9: no chained text)
 
 
 def _need(res, stage, kind):

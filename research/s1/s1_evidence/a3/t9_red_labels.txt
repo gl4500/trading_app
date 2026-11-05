@@ -1,0 +1,52 @@
+A3 Task 9 - labels for t9_red.txt (39 failed, 3 passed)
+RED run: the Step 1 interface stub (s1_collect: CA_BATCH, CA_FAMILY, audit_policy -> {"families": []}, a no-op
+_Authorizer that refuses nothing and records nothing; do_audit kept as its c9b4322 body behind s1_trial.gate, writing
+straight into s1_out with cutoff = _ny_date(c.now_utc()) after the reservation; s1_stage.ENFORCED empty; the gate hook
+without the N1 branch). The stub source is kept as t9_red_stub_s1_collect.py.txt.
+Every failure in t9_red.txt is an AssertionError or pytest's Failed (DID NOT RAISE / regex did not match). The four
+"SystemExit: audit: ABORTED (Structural) ..." lines are the chained cause inside a pytest.raises whose regex did not
+match (terminal frame: AssertionError at test line 169). No Import/Attribute/Key/Type/Index/FileNotFound error: the
+helpers that read staging files assert the file first (report Deviation 3).
+Row numbers are the plan's requirement map (s1_plan_addendum3.md).
+
+B (behavioural RED, 39): every FAILED line of t9_red.txt.
+  rows 91, 110, 111: test_audit_policy_is_exactly_the_f49_audit_rows ({"families": []});
+    test_authorizer_refuses_a_second_calendar_request_and_an_unlisted_family (no families; no Structural refusal;
+    row 214 "second calendar request");
+  rows 93, 97, 210, 214: test_structural_refusals_send_no_further_request_then_invalid[8] - the stub sends what the
+    code builds (DID NOT RAISE for other-host / wrong-endpoint / changed-base / outside-batch / other-paper-path) or
+    aborts the legacy way ("audit: ABORTED (Structural)", no INTENT, no INVALID: regex mismatch) for repeated-token /
+    over-max-pages / redirect;
+  rows 96, 209, 219: test_unpredictable_tokens_and_page_counts_complete_with_full_provenance (no provenance);
+  rows 98, 211: test_every_sent_request_is_in_provenance (no staged commitment);
+  rows 99, 165: test_provider_anomaly_keeps_aborted_staging_no_prepared_and_invalidates (legacy ABORTED manifest in
+    s1_out, no staging, no INVALID: regex mismatch);
+  row 102: test_audit_envelope_inputs_and_members (no staged intent.json);
+  rows 111, 213: test_normal_audit_authorizes_calendar_and_ca_batches_and_commits_every_member;
+  row 115: test_members_are_the_fixed_names_plus_one_page_per_request;
+  row 116: test_manifest_shape_is_preserved_and_its_projection_equals_the_members (legacy shape equal; no PREPARED
+    members to project against);
+  rows 117, 215 (audit half): test_damaged_audit_member_is_invalid_before_use[8] - DID NOT RAISE (audit not ENFORCED);
+  row 216: test_extra_page_or_orphan_provenance_is_invalid[extra-page, missing-page] - DID NOT RAISE;
+  row 119 (C-b): test_cutoff_is_the_intent_new_york_date_across_midnight[midnight, dst-fall-back] fail as B-old: with
+    no STAGE-INTENT the clock never moves past midnight before the reservation, so the cutoff equals the reservation's
+    New York date (the c9b4322 behaviour) and the "!=" half fails;
+  row 169: test_audit_runs_as_a_stage_only_after_the_audit_ack (the refusal half passes; no STAGE-INTENT row after);
+  rows 90, 222: test_retrieved_utc_is_the_actual_observation_instant (no provenance to compare);
+  row 312: test_cross_trial_substitution_is_invalid[commitment, attempt, page] (no stage, no INVALID; the commitment
+    case asserts a staged prepared.json first);
+  row 319 (map label ctrl; plan Revision 1): test_valid_pagination_and_empty_families_are_not_anomalous[multi-page,
+    empty-families] fails on the stub at its assertion of a STAGE-CREATED row; its no-TRIAL-INVALID half is the ctrl
+    (Codex reply P-4);
+  Task 7 carry-forward N1 (no map row; ruling in progress.md): test_stray_slot_files_before_the_audit_calendar_are_
+    judged_invalid[claim, report, opening-seal] - DID NOT RAISE (the hook returned without judging: no slot row, no
+    readable calendar).
+
+retro (pass on the stub; their oracle is already met by the c9b4322 path; map label retro):
+  row 94: test_request_order_is_the_collector_order
+  row 95: test_empty_ca_symbols_send_no_ca_request_and_the_audit_completes
+
+ctrl (map label ctrl; passes on the stub by construction):
+  row 120 (C-e): test_cutoff_same_day_positive_path - with no midnight between INTENT and reservation both readings
+    give the same date; isolated run t9_cutoff_positive.txt
+  halves: row 319's no-TRIAL-INVALID half; the N1 test's leading "no stray file -> the gate passes" call

@@ -344,12 +344,10 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     at(START - timedelta(days=13))
     m = k.do_audit(root, "audit-ack", httpx.Client(transport=httpx.MockTransport(audit_handler)), KEYS)
     assert m["outcome"] == "COMPLETE" and calls and not any("/bars" in u for u in calls)
-    import s1_journal as j                    # A3 Task 5: the audit stage's synthetic rows (Task 9: the real stage)
-    g_, op_, ac_ = j.stage_subject("audit"), j.new_nonce(), j.new_nonce()
-    for i_, kind_ in enumerate(("STAGE-INTENT", "STAGE-PREPARED", "STAGE-CREATED")):
-        s1_jappend(root, kind_, g_, at=START - timedelta(days=13) + timedelta(minutes=i_ + 1), op=op_, actor=ac_,
-                   detail=j.detail_of({"synthetic": "audit", "manifest": s1_common.sha256_file(out / "audit" /
-                                                                                              "manifest.json")}))
+    import s1_journal as j                    # A3 Task 9: do_audit is the real stage `audit` (its own rows)
+    assert [(r_.kind, r_.subject) for r_ in j.read_trial(*(lambda tr: (tr.trial_id, tr.genesis))(
+        __import__("s1_trial").open_trial(root / "mailbox.sqlite3")), root / "mailbox.sqlite3")] == [
+        ("STAGE-INTENT", "stage/audit"), ("STAGE-PREPARED", "stage/audit"), ("STAGE-CREATED", "stage/audit")]
 
     # 3. the OPENING SEAL (the close immediately before START), by the real opening checkpoint
     sch = close_of(OPENING_CLOSE) + timedelta(minutes=45)

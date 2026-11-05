@@ -20,6 +20,7 @@ import s1_snapshot
 import s1_trial as t
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, _weekdays, s1_mailbox, s1_state
+from conftest import S1_AUDIT_ABORTED, s1_audit_aborted  # A3 Task 9
 
 
 def tr(i, sym, act, sh, ts):
@@ -383,9 +384,9 @@ def test_a5_five_sessions_are_counted_from_the_audit_acks_recorded_time(tmp_path
     creation: a plan 12 days ahead whose ACK arrives 3 sessions before START aborts the audit."""
     cal = cal_rows("2026-10-21", "2027-05-31")
     _plan_and_ack(tmp_path, monkeypatch, datetime(2026, 10, 21, 12, tzinfo=UTC), datetime(2026, 10, 28, 12, tzinfo=UTC))
-    with pytest.raises(SystemExit, match="ABORTED"):
+    with pytest.raises(SystemExit, match=S1_AUDIT_ABORTED):          # A3 Task 9 (F4.6): staged ABORTED + INVALID
         k.do_audit(tmp_path, "a1", _audit_client(cal), ("K", "S"))
-    m = read(tmp_path / "s1_out" / "audit" / "manifest.json")
+    m = s1_audit_aborted(tmp_path)
     assert m["outcome"] == "ABORTED" and "AUDIT-ACK" in m["error"], m
 
 
@@ -427,9 +428,9 @@ def test_a6_completeness_is_checked_against_the_pinned_listing(tmp_path, monkeyp
     the deadline + the final lag; any listed gap or inconsistency aborts the audit attempt."""
     cal = mutate(cal_rows("2026-10-21", "2027-05-31"))
     _plan_and_ack(tmp_path, monkeypatch, datetime(2026, 10, 21, 12, tzinfo=UTC), datetime(2026, 10, 21, 13, tzinfo=UTC))
-    with pytest.raises(SystemExit, match="ABORTED"):
+    with pytest.raises(SystemExit, match=S1_AUDIT_ABORTED):          # A3 Task 9 (F4.6): staged ABORTED + INVALID
         k.do_audit(tmp_path, "a1", _audit_client(cal), ("K", "S"))
-    m = read(tmp_path / "s1_out" / "audit" / "manifest.json")
+    m = s1_audit_aborted(tmp_path)
     assert m["outcome"] == "ABORTED" and why in m["error"], m["error"]
 
 

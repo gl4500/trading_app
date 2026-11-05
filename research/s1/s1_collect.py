@@ -12,6 +12,7 @@ import s1_books
 import s1_common as c
 import s1_gates as g
 import s1_seal
+import s1_stage
 import s1_trial
 
 CAL_URL = c.CAL_URL
@@ -28,10 +29,91 @@ LAG_SESSIONS = s1_seal.FINAL_LAG_SESSIONS   # §13: no earlier than the close of
 CAL_TAIL_DAYS = 14                # A5.1/mapping 4.5: calendar request = plan date .. deadline date + 14 calendar days
                                   # (room for the final lag; completeness is CHECKED on the pinned listing, A6)
 MAX_PAGES = 200
+CA_BATCH = 50                     # F4.9: batch i = symbols[50i : 50i+50] (single-sourced)
+CA_FAMILY = "corporate_actions"
 
 
 class Structural(Exception):
     pass
+
+
+# ------------------------------------------------------------------ A3 F4.6 request policy (Task 9)
+def audit_policy(plan: dict, cutoff: str) -> dict:
+    """F4.6/F4.9: the audit's deterministic request policy (committed by its INTENT; no request list, no host list:
+    a request is authorized only by its family's exact URL)."""
+    syms = list(plan["ca_symbols"])
+    batches = [syms[i:i + CA_BATCH] for i in range(0, len(syms), CA_BATCH)]
+    return {"redirects": False, "max_pages": MAX_PAGES, "cutoff": cutoff, "families": [
+        {"name": "calendar", "url": CAL_URL, "scope": "audit", "batches": None,
+         "base_params": {"start": plan["calendar_range"][0], "end": plan["calendar_range"][1],
+                         "date_type": "TRADING"},
+         "paged": False, "page_template": "audit/pages/calendar.json"},
+        {"name": CA_FAMILY, "url": CA_URL, "scope": "audit", "batches": batches,
+         "base_params": [dict(CA_FIXED, symbols=",".join(b), start=plan["ca_range"][0], end=cutoff) for b in batches],
+         "paged": True, "page_template": "audit/pages/ca_{i:03d}_page{n:03d}.json"}]}
+
+
+class _Authorizer:
+    """F4.6 request path: each request must be the next one the committed policy allows (family and scope in
+    order; the exact family URL; the exact base parameters of the current batch; page n+1 adds only the page_token of
+    the immediately preceding validated page; at most max_pages pages; one request for an unpaged family) - checked
+    BEFORE it is sent. Every request sent is recorded in provenance (credential-free)."""
+
+    def __init__(self, policy: dict):
+        self.policy, self.provenance = policy, []
+        self.slots = []
+        for fi, fam in enumerate(policy["families"]):
+            self.slots += [(fi, None)] if fam["batches"] is None else [(fi, bi) for bi in range(len(fam["batches"]))]
+        self.pos, self.n, self.token, self.seen, self.last_rel = 0, 0, None, set(), None
+
+    def _current(self):
+        if self.pos >= len(self.slots):
+            raise Structural("a request with no family left in the policy (F4.6)")
+        fi, bi = self.slots[self.pos]
+        fam = self.policy["families"][fi]
+        return fam, bi, (fam["base_params"][bi] if bi is not None else fam["base_params"])
+
+    def authorize(self, family: str, scope: str, url: str, params: dict) -> tuple:
+        fam, bi, base = self._current()
+        if (family, scope) != (fam["name"], fam["scope"]):
+            raise Structural(f"request {family}/{scope} is not the next family in the policy "
+                             f"({fam['name']}/{fam['scope']})")
+        if url != fam["url"]:
+            raise Structural(f"{family}: URL outside the policy (only {fam['url']} is authorized)")
+        if {n: v for n, v in params.items() if n != "page_token"} != base:
+            raise Structural(f"{family}: base parameters or batch outside the policy")
+        if self.n == 0 and "page_token" in params:
+            raise Structural(f"{family}: page 0 carries a page_token")
+        if self.n > 0 and (not fam["paged"] or params.get("page_token") != self.token):
+            raise Structural(f"{family}: page_token is not the preceding page's next_page_token")
+        if self.n >= self.policy["max_pages"]:
+            raise Structural(f"{family}: more than {self.policy['max_pages']} pages")
+        return self.n, fam["page_template"].format(i=bi if bi is not None else 0, n=self.n)
+
+    def record(self, family, scope, n, url, params, retrieved_utc, status, page_relpath, page_sha256) -> None:
+        self.provenance.append({"family": family, "scope": scope, "n": n, "url": url, "params": dict(params),
+                                "page_token_from": self.last_rel if n > 0 else None, "retrieved_utc": retrieved_utc,
+                                "status": status, "page_relpath": page_relpath, "page_sha256": page_sha256})
+        self.last_rel = page_relpath
+
+    def page_done(self, data):
+        """After the page passed validation: the next page_token of this family/batch, or None (the family/batch
+        ends; the next one starts at page 0). A repeated token or a page beyond max_pages is Structural."""
+        fam, bi, base = self._current()
+        token = data.get("next_page_token") if fam["paged"] and isinstance(data, dict) else None
+        if not token:
+            self.pos, self.n, self.token, self.seen, self.last_rel = self.pos + 1, 0, None, set(), None
+            return None
+        if token in self.seen:
+            raise Structural(f"{fam['name']}: repeated next_page_token")
+        self.seen.add(token)
+        self.token, self.n = token, self.n + 1
+        if self.n >= self.policy["max_pages"]:
+            raise Structural(f"{fam['name']}: more than {self.policy['max_pages']} pages")
+        return token
+
+    def finished(self) -> bool:
+        return self.pos >= len(self.slots)
 
 
 def _out(root):
@@ -133,7 +215,59 @@ def _write_page(path: Path, data: bytes, created: list) -> None:
     created.append(path)
 
 
-def _get(client, url, params, headers, page_path: Path, created):
+def _get(client, auth, family, scope, url, params, headers, sw):
+    """F4.6: one authorized request (refused BEFORE sending if outside the policy); its raw page is staged and
+    recorded in provenance (credential-free: the headers are never recorded)."""
+    n, rel = auth.authorize(family, scope, url, params)
+    try:
+        resp = client.get(url, params=params, headers=headers)
+    except Exception as e:                                                # transport failure: no secrets in text
+        auth.record(family, scope, n, url, params, c.now_utc().isoformat(), None, None, None)
+        raise Structural(f"{rel}: transport error {type(e).__name__}") from None
+    retrieved = c.now_utc()                                               # F4.5: the actual observation instant
+    sw.put(rel, resp.content)
+    auth.record(family, scope, n, url, params, retrieved.isoformat(), resp.status_code, rel,
+                c.sha256_bytes(resp.content))
+    if resp.status_code != 200:
+        raise Structural(f"{rel}: HTTP {resp.status_code}" + (" (redirect, not followed)"
+                                                               if 300 <= resp.status_code < 400 else ""))
+    try:
+        return json.loads(resp.content), retrieved
+    except ValueError:
+        raise Structural(f"{rel}: body is not JSON") from None
+
+
+def _paged(client, auth, family, scope, url, base, headers, sw, validate) -> list:
+    """F4.6 pagination: page n+1 adds only the page_token of page n (validated first); the authorizer refuses a
+    repeated token and a page beyond max_pages before any further request."""
+    pages, token = [], None
+    while True:
+        data, _ = _get(client, auth, family, scope, url, dict(base, **({"page_token": token} if token else {})),
+                       headers, sw)
+        if validate:
+            validate(data, Path(auth.provenance[-1]["page_relpath"]).stem)
+        pages.append(data)
+        token = auth.page_done(data)
+        if token is None:
+            return pages
+
+
+def _corporate_actions(client, auth, keys, scope, symbols, start, end, sw):
+    """F4.9: the CA batches of `symbols` (batch i = symbols[50i : 50i+50]) in ascending batch index, each paged."""
+    f = c.fetch()
+    batched = []
+    for i in range(0, len(symbols), CA_BATCH):
+        batch = symbols[i:i + CA_BATCH]
+        base = dict(CA_FIXED, symbols=",".join(batch), start=start, end=end)
+        for page in _paged(client, auth, CA_FAMILY, scope, CA_URL, base, _headers(keys), sw, f.validate_ca_page):
+            batched.append((batch, page))
+    return f.classify_ca(batched)
+
+
+# ------------------------------------------------------------------ legacy (c9b4322) request path: do_final only
+# A3 Task 9 (Deviation): do_final keeps the frozen collector's direct-to-s1_out path until Task 12 makes it a stage
+# with final_policy; these three are removed there with _reserve/_abort/_run_attempt.
+def _legacy_get(client, url, params, headers, page_path: Path, created):
     try:
         resp = client.get(url, params=params, headers=headers)
     except Exception as e:                                                # transport failure: no secrets in text
@@ -147,11 +281,12 @@ def _get(client, url, params, headers, page_path: Path, created):
         raise Structural(f"{page_path.name}: body is not JSON") from None
 
 
-def _paged(client, url, base, headers, prefix: Path, validate, created) -> list:
+def _legacy_paged(client, url, base, headers, prefix: Path, validate, created) -> list:
     pages, token, seen = [], None, set()
     for n in range(MAX_PAGES):
         params = dict(base, **({"page_token": token} if token else {}))
-        data = _get(client, url, params, headers, prefix.with_name(f"{prefix.name}_page{n:03d}.json"), created)
+        data = _legacy_get(client, url, params, headers, prefix.with_name(f"{prefix.name}_page{n:03d}.json"),
+                           created)
         if validate:
             validate(data, f"{prefix.name}_page{n:03d}")
         pages.append(data)
@@ -221,14 +356,14 @@ def _parse_bars(symbols, pages, sessions):
     return out, problems
 
 
-def _corporate_actions(client, keys, symbols, start, end, pages_dir, created):
+def _legacy_corporate_actions(client, keys, symbols, start, end, pages_dir, created):
     f = c.fetch()
     batched = []
     for i in range(0, len(symbols), 50):
         batch = symbols[i:i + 50]
         base = dict(CA_FIXED, symbols=",".join(batch), start=start, end=end)
-        for page in _paged(client, CA_URL, base, _headers(keys), pages_dir / f"ca_{i // 50:03d}",
-                           f.validate_ca_page, created):
+        for page in _legacy_paged(client, CA_URL, base, _headers(keys), pages_dir / f"ca_{i // 50:03d}",
+                                  f.validate_ca_page, created):
             batched.append((batch, page))
     return f.classify_ca(batched)
 
@@ -320,48 +455,82 @@ def _validate_calendar(cal, plan, ack) -> list:
     return sessions
 
 
+def _attempt_files(sw, stage: str) -> tuple:
+    """The legacy manifest maps: `files` keyed by basename (every <stage>/*.json except manifest.json), `pages` keyed by
+    s1_out-relative path (C-a: the projection of these equals the PREPARED members minus the manifest)."""
+    files = {Path(r).name: c.sha256_bytes(b) for r, b in sw.files.items()
+             if r.count("/") == 1 and r.startswith(stage + "/") and r != f"{stage}/manifest.json"}
+    pages = {r: c.sha256_bytes(b) for r, b in sw.files.items() if r.count("/") >= 2}
+    return dict(sorted(files.items())), dict(sorted(pages.items()))
+
+
+def _provider_abort(auth, e):
+    """F4.6 provider anomaly: the staged pages stay, the ABORTED record (written by the stage engine into staging)
+    carries the provenance of every request sent; only an S1/E1 Structural's text is recorded (key-free by
+    construction), anything else its type name only."""
+    structural = isinstance(e, (Structural, c.fetch().Structural))
+    raise s1_stage.StageAbort("provider-structural", {
+        "outcome": "ABORTED", "error_type": type(e).__name__, "error": str(e) if structural else type(e).__name__,
+        "provenance": auth.provenance}) from None            # (no chained foreign text: c9b4322 _abort's rule)
+
+
 def do_audit(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
-    """One audit attempt under the exact AUDIT-ACK. Task 12: the bundle the ACK approves is compared FIRST (A3.2; no
-    registration exists yet, so a mismatch is a refusal); the ACK must follow the plan it binds and precede planned
-    START (A8.2); the manifest binds plan_sha256 and the bundle (A8.1); the calendar is pinned with its source,
-    request parameters and retrieval time (A6)."""
+    """F9: stage `audit` after the AUDIT-ACK. The INTENT commits the audit request policy (F4.6) with the cutoff = the
+    New York date of the INTENT row's `at` (F4.9, C-b; disclosed change from c9b4322's post-reservation clock read).
+    Work in staging; Structural/validation failure -> ABORTED staging + INVALID (provider-structural), no retry.
+    Kept from c9b4322/Task 12: the ACK must follow the plan it binds and precede planned START (A8.2); the manifest
+    binds plan_sha256 and the bundle (A8.1); the calendar is pinned with its source, request parameters and retrieval
+    time (A6). The bundle is the gate's (F6.4) and the ACK's field-by-field check (verify_ack)."""
     gv = s1_trial.gate(root, "audit", mailbox=mailbox)                  # A3 F0.6: open trial, state, bundle first
     _require_no_redirects(client)
     out = _out(root)
-    c.bundle_gate(out, _approved_bundle(ack_id, "S1-AUDIT-ACK", mailbox),          # fix round 1 (m-1): persisted
-                  registered=c.is_registered(out, mailbox), where="audit")          # once registered (B3.1)
     c.registration_gate(out, "audit", mailbox=mailbox)                  # fix round 2 (B3.3): re-entry is gated
     plan = json.loads((out / "plan.json").read_text(encoding="utf-8"))
-    ack = s1_trial.verify_current(gv, "S1-AUDIT-ACK", ack_id)          # A3: field by field (F6.1, F6.5)
+    a = s1_trial.verify_ack(gv.trial, gv.rows, "S1-AUDIT-ACK", ack_id,
+                            dict(s1_trial.artifact_fields("S1-AUDIT-ACK", out), trial_id=plan.get("trial_id"),
+                                 bundle_sha256=c.bundle_sha256()))
+    ack = s1_trial.ack_record(a)
     if not c.aware(ack["created_utc"]) > c.aware(plan["created_utc"]):
         raise SystemExit("audit refused: the AUDIT-ACK is not after the plan it binds")
     if c.aware(plan["planned_start"]) <= c.now_utc():
         raise SystemExit("planned START has passed: re-register")
-    d = out / "audit"
-    _reserve(d, ack)
-    created = []
-    cutoff = _ny_date(c.now_utc())
 
-    def body():
-        params = {"start": plan["calendar_range"][0], "end": plan["calendar_range"][1], "date_type": "TRADING"}
-        cal = _get(client, CAL_URL, params, _headers(keys), d / "pages" / "calendar.json", created)
-        retrieved = c.now_utc()
-        sessions = _validate_calendar(cal, plan, ack)
-        page = d / "pages" / "calendar.json"
-        _write_once(d / "calendar_source.json", {"source": CAL_URL, "params": params,              # A6 pin
-                                                 "retrieved_utc": retrieved.isoformat(),
-                                                 "page": page.relative_to(out).as_posix(),
-                                                 "page_sha256": c.sha256_file(page)})
-        actions, problems = _corporate_actions(client, keys, plan["ca_symbols"], plan["ca_range"][0], cutoff,
-                                               d / "pages", created)
-        _write_once(d / "calendar.json", cal)
-        _write_once(d / "corporate_actions.json", actions)
-        _write_once(d / "ca_problems.json", problems)
-        return {"calendar_sessions": len(sessions), "ca_records": len(actions), "ca_problems": len(problems)}
-    return _run_attempt(d, out, ack, created, body, {"publication_cutoff": cutoff,
-                                                      "ca_window": [plan["ca_range"][0], cutoff],
-                                                      "plan_sha256": c.sha256_file(out / "plan.json"),   # A8.1
-                                                      "bundle_sha256": c.bundle_sha256()})            # A3.1
+    def work(sw):
+        auth = _Authorizer(sw.policy)
+        cutoff = sw.policy["cutoff"]
+        sw.put_json("audit/attempt.json", {"reserved_utc": c.now_utc().isoformat(), "ack": ack,
+                                           "trial_id": sw.trial_id, "intent_at": sw.intent_at})
+        try:
+            params = {"start": plan["calendar_range"][0], "end": plan["calendar_range"][1], "date_type": "TRADING"}
+            cal, retrieved = _get(client, auth, "calendar", "audit", CAL_URL, params, _headers(keys), sw)
+            auth.page_done(cal)
+            sessions = _validate_calendar(cal, plan, ack)
+            page = "audit/pages/calendar.json"
+            sw.put_json("audit/calendar_source.json", {"source": CAL_URL, "params": params,       # A6 pin
+                                                       "retrieved_utc": retrieved.isoformat(), "page": page,
+                                                       "page_sha256": c.sha256_bytes(sw.files[page])})
+            actions, problems = _corporate_actions(client, auth, keys, "audit", plan["ca_symbols"],
+                                                   plan["ca_range"][0], cutoff, sw)
+            if not auth.finished():
+                raise Structural("audit: the policy's families were not all requested")
+        except Exception as e:                                         # noqa: BLE001 - recorded type/Structural text
+            _provider_abort(auth, e)
+        sw.put_json("audit/calendar.json", cal)
+        sw.put_json("audit/corporate_actions.json", actions)
+        sw.put_json("audit/ca_problems.json", problems)
+        files, pages = _attempt_files(sw, "audit")
+        sw.put_json("audit/manifest.json", {
+            "publication_cutoff": cutoff, "ca_window": [plan["ca_range"][0], cutoff],
+            "plan_sha256": c.sha256_file(out / "plan.json"), "bundle_sha256": c.bundle_sha256(),        # A8.1, A3.1
+            "outcome": "COMPLETE", "ack": ack, "files": files, "pages": pages,
+            "coverage": {"calendar_sessions": len(sessions), "ca_records": len(actions),
+                         "ca_problems": len(problems)}, "limits": LIMITS})
+        return auth.provenance
+
+    s1_stage.run(gv, "audit", inputs={"plan.json": c.sha256_file(out / "plan.json"), "bundle": c.bundle_sha256()},
+                 acks={"S1-AUDIT-ACK": a.sha}, policy_fn=lambda at: audit_policy(plan, _ny_date(at)), work=work,
+                 mailbox=mailbox)
+    return json.loads((out / "audit" / "manifest.json").read_text(encoding="utf-8"))
 
 
 # ------------------------------------------------------------------ final
@@ -496,15 +665,15 @@ def do_final(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
                            "00:00") - timedelta(microseconds=1)
 
     def body():
-        bar_pages = _paged(client, BARS_URL, {"symbols": ",".join(plan["bar_symbols"]), "timeframe": "1Day",
-                                              "start": _utc_z(bars_start), "end": _utc_z(bars_end, micro=True),
-                                              "adjustment": "raw", "feed": "sip", "limit": 10000},
-                           _headers(keys), d / "pages" / "bars", _validate_bars_page, created)
+        bar_pages = _legacy_paged(client, BARS_URL, {"symbols": ",".join(plan["bar_symbols"]), "timeframe": "1Day",
+                                                     "start": _utc_z(bars_start), "end": _utc_z(bars_end, micro=True),
+                                                     "adjustment": "raw", "feed": "sip", "limit": 10000},
+                                  _headers(keys), d / "pages" / "bars", _validate_bars_page, created)
         bars, bar_problems = _parse_bars(plan["bar_symbols"], bar_pages, sessions)
-        ca_win, p1 = _corporate_actions(client, keys, plan["ca_symbols_window"], start_day, cutoff,
-                                        d / "pages", created)
-        ca_full, p2 = _corporate_actions(client, keys, plan["ca_symbols_full_history"], plan["full_history_start"],
-                                         cutoff, d / "pages_full", created)
+        ca_win, p1 = _legacy_corporate_actions(client, keys, plan["ca_symbols_window"], start_day, cutoff,
+                                               d / "pages", created)
+        ca_full, p2 = _legacy_corporate_actions(client, keys, plan["ca_symbols_full_history"],
+                                                plan["full_history_start"], cutoff, d / "pages_full", created)
         actions, conflicts = reconcile_actions(ca_win, ca_full)          # Task 12 (A7.2): one global set
         for name, obj in (("bars.json", bars), ("bar_problems.json", bar_problems),
                           ("corporate_actions.json", actions), ("ca_problems.json", p1 + p2 + conflicts)):
