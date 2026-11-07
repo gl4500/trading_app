@@ -72,11 +72,22 @@ def test_a2_the_stop_is_persisted_once_at_the_seal_with_its_identity(tmp_path):
     assert s["stop_seal_sha256"] == c.sha256_file(out / "seals" / "2026-10-27.json")
     cohort = sorted(t["id"] for t in rows if t["action"] == "BUY" and START_DT <= c.aware(t["ts"]) <= STOP_CLOSE)
     assert s["cohort_row_ids"] == cohort and len(cohort) == 100
-    assert c.aware(s["decided_utc"]) == STOP_CLOSE + timedelta(minutes=45, seconds=30)
+    # A3 Task 11 (intended, F2.1 / OQ-8 r1): no wall-clock decision fields; the record is the journal's TRIAL-STOP
+    # detail; determined_utc = the trigger row's `at` (provenance: the stop close's first QUALIFIED, R = the
+    # checkpoint's clock); the frozen seals are the ELIGIBLE sampled ones (r1 A4: the opening seal is not listed)
+    import s1_journal as j
+    import s1_trial as t
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    jr = j.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3")
+    stop, trig = j.first(jr, "TRIAL-STOP"), j.first(j.subject_rows(jr, "slot/20261027T204500Z"), "SLOT-QUALIFIED")
+    assert "decided_utc" not in s and "decided_by" not in s and j.detail_of(s) == stop.detail
+    assert (s["rule"], s["triggering_slot"], s["terminal_seq"], s["determined_utc"]) == (
+        "lots", trig.subject, trig.seq, trig.at)
+    assert c.aware(s["determined_utc"]) == STOP_CLOSE + timedelta(minutes=45, seconds=30)
     assert s["bundle_sha256"] == c.bundle_sha256()
-    assert set(s["seals"]) == {"seals/2026-10-23.json", "seals/2026-10-26.json", "seals/2026-10-27.json"}
+    assert set(s["seals"]) == {"seals/2026-10-26.json", "seals/2026-10-27.json"}
     before = (out / "stop.json").read_bytes()
-    with pytest.raises(FileExistsError):
+    with pytest.raises(FileExistsError, match="stop.json"):
         z.persist_stop(out, dict(s, status="TIMEOUT"))
     assert (out / "stop.json").read_bytes() == before
 
@@ -137,11 +148,12 @@ def test_a2_post_stop_checkpoints_follow_the_persisted_stop(tmp_path, monkeypatc
     monkeypatch.setattr(z, "stop_decision", lambda *a, **kw: {"status": "RUNNING", "stop_close": None,
                                                                  "missed": []})
     rep = _cp(tmp_path, lg, datetime(2026, 10, 28, 20, 0, tzinfo=UTC))
-    # A3 Task 6: the legacy `post_stop` report flag is gone (the post-STOP state is the journal's, F1; with no
-    # TRIAL-STOP row yet - Task 11 appends it - this slot still commits); the persisted stop is still followed and
-    # nothing seals after it
-    assert rep["journal"]["outcome"] == "APPEND" and rep["seal"]["written"] is False
-    assert rep["stop"]["status"] == "STOPPED" and c.aware(rep["stop"]["stop_close"]) == STOP_CLOSE
+    # A3 Task 6: the legacy `post_stop` report flag is gone (the post-STOP state is the journal's, F1).
+    # A3 Task 11 (intended, F1 table): the stop close's checkpoint committed the TRIAL-STOP, so this later slot's
+    # INTENT is LOST-RACE with no capture; the persisted stop is unchanged and nothing seals after it
+    assert rep["outcome"] == "LOST-RACE", rep
+    assert read(out / "stop.json")["status"] == "STOPPED" and c.aware(read(out / "stop.json")["stop_close"]) == \
+        STOP_CLOSE
     assert not (out / "seals" / "2026-10-28.json").exists()
 
 

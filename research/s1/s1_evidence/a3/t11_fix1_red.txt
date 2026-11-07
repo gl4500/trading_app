@@ -1,0 +1,151 @@
+# A3 Task 11 fix round 1 - behavioural RED (against the Steps 4-6 tree, before any fix-round-1 product change)
+
+FFFFFFFFFF.FF                                                            [100%]
+================================== FAILURES ===================================
+__ test_sealed_last_close_reaches_its_timeout_through_the_finalizer_command ___
+research\s1\s1_tests\test_s1_a3_stop.py:544: in test_sealed_last_close_reaches_its_timeout_through_the_finalizer_command
+    assert hasattr(ck, "run_finalizer"), "no product finalizer command (review C1)"
+E   AssertionError: no product finalizer command (review C1)
+E   assert False
+E    +  where False = hasattr(<module 's1_checkpoint' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_checkpoint.py'>, 'run_finalizer')
+____ test_sealed_last_close_reaches_its_timeout_through_a_later_checkpoint ____
+research\s1\s1_tests\test_s1_a3_stop.py:564: in test_sealed_last_close_reaches_its_timeout_through_a_later_checkpoint
+    _assert_timeout_at_the_sealed_last_close(tmp_path, before)
+research\s1\s1_tests\test_s1_a3_stop.py:525: in _assert_timeout_at_the_sealed_last_close
+    assert stop is not None, "no TRIAL-STOP: the timeout is unreachable (review C1)"
+E   AssertionError: no TRIAL-STOP: the timeout is unreachable (review C1)
+E   assert None is not None
+_________ test_the_finalize_mode_dispatches_to_the_finalizer_command __________
+research\s1\s1_tests\test_s1_a3_stop.py:571: in test_the_finalize_mode_dispatches_to_the_finalizer_command
+    mode = ck.parse_mode(["--finalize"])
+research\s1\s1_checkpoint.py:957: in parse_mode
+    a = ap.parse_args(argv)
+..\trading_app\runtime\python\Lib\argparse.py:1908: in parse_args
+    self.error(msg)
+..\trading_app\runtime\python\Lib\argparse.py:2650: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+..\trading_app\runtime\python\Lib\argparse.py:2637: in exit
+    _sys.exit(status)
+E   SystemExit: 2
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_stop.py:573: in test_the_finalize_mode_dispatches_to_the_finalizer_command
+    pytest.fail(f"--finalize is not a checkpoint mode (argparse exit {e})")
+E   Failed: --finalize is not a checkpoint mode (argparse exit 2)
+---------------------------- Captured stderr call -----------------------------
+usage: __main__.py [-h] [--scheduled SCHEDULED] [--opening] [--final-snapshot]
+__main__.py: error: unrecognized arguments: --finalize
+_ test_the_finalizer_command_decides_on_the_append_clock_not_its_start_instant[pre<W<=txn] _
+research\s1\s1_tests\test_s1_a3_stop.py:609: in test_the_finalizer_command_decides_on_the_append_clock_not_its_start_instant
+    assert hasattr(ck, "run_finalizer"), "no product finalizer command (review C1)"
+E   AssertionError: no product finalizer command (review C1)
+E   assert False
+E    +  where False = hasattr(<module 's1_checkpoint' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_checkpoint.py'>, 'run_finalizer')
+_ test_the_finalizer_command_decides_on_the_append_clock_not_its_start_instant[txn<W<=pre] _
+research\s1\s1_tests\test_s1_a3_stop.py:609: in test_the_finalizer_command_decides_on_the_append_clock_not_its_start_instant
+    assert hasattr(ck, "run_finalizer"), "no product finalizer command (review C1)"
+E   AssertionError: no product finalizer command (review C1)
+E   assert False
+E    +  where False = hasattr(<module 's1_checkpoint' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_checkpoint.py'>, 'run_finalizer')
+__ test_a_stop_json_read_error_is_confirmed_and_never_invalidates[transient] __
+research\s1\s1_tests\test_s1_a3_stop.py:634: in test_a_stop_json_read_error_is_confirmed_and_never_invalidates
+    t.gate(tmp_path, "transient")
+research\s1\s1_trial.py:760: in gate
+    s1_seal.stop_check(gv)                                # (the publication gap recovers here), before the F4 table
+research\s1\s1_seal.py:707: in stop_check
+    raise SystemExit(f"stop.json {'missing' if ok is None else 'changed or unparseable'}: INVALID ({reason}) "
+E   SystemExit: stop.json changed or unparseable: INVALID (stop-conflict) (F2.3/F2.4)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_stop.py:636: in test_a_stop_json_read_error_is_confirmed_and_never_invalidates
+    pytest.fail(f"a transient stop.json read error was not confirmed by a re-read: {e}")
+E   Failed: a transient stop.json read error was not confirmed by a re-read: stop.json changed or unparseable: INVALID (stop-conflict) (F2.3/F2.4)
+_ test_a_stop_json_read_error_is_confirmed_and_never_invalidates[persistent] __
+research\s1\s1_tests\test_s1_a3_stop.py:639: in test_a_stop_json_read_error_is_confirmed_and_never_invalidates
+    t.gate(tmp_path, "persistent")
+research\s1\s1_trial.py:760: in gate
+    s1_seal.stop_check(gv)                                # (the publication gap recovers here), before the F4 table
+research\s1\s1_seal.py:707: in stop_check
+    raise SystemExit(f"stop.json {'missing' if ok is None else 'changed or unparseable'}: INVALID ({reason}) "
+E   SystemExit: stop.json changed or unparseable: INVALID (stop-conflict) (F2.3/F2.4)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_stop.py:638: in test_a_stop_json_read_error_is_confirmed_and_never_invalidates
+    with pytest.raises(SystemExit, match=r"stop\.json unreadable .*refused with no row"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'stop\\.json unreadable .*refused with no row'
+E    Input: 'stop.json changed or unparseable: INVALID (stop-conflict) (F2.3/F2.4)'
+____________ test_the_score_threads_its_mailbox_into_the_stop_read ____________
+research\s1\s1_tests\test_s1_a3_stop.py:651: in test_the_score_threads_its_mailbox_into_the_stop_read
+    assert seen and all(x == mb(tmp_path) for x in seen), seen
+E   AssertionError: [None, WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21237/test_the_score_threads_its_mai0/mailbox.sqlite3')]
+E   assert ([None, WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21237/test_the_score_threads_its_mai0/mailbox.sqlite3')] and False)
+E    +  where False = all(<generator object test_the_score_threads_its_mailbox_into_the_stop_read.<locals>.<genexpr> at 0x0000021DBD1CA180>)
+____ test_a_publication_failure_after_the_stop_row_is_reported_truthfully _____
+research\s1\s1_tests\test_s1_a3_stop.py:665: in test_a_publication_failure_after_the_stop_row_is_reported_truthfully
+    z.decide_stop(t.gate(tmp_path, "decide"), st_["calendar"], st_["start"], lambda: st_["now"],
+research\s1\s1_seal.py:677: in decide_stop
+    raise SystemExit(f"stop decision refused with no row ({type(e).__name__}: {e}) (F0.7)") from None
+E   SystemExit: stop decision refused with no row (OSError: disk full (simulated)) (F0.7)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_stop.py:664: in test_a_publication_failure_after_the_stop_row_is_reported_truthfully
+    with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"TRIAL-STOP committed .*publication pending"):
+E   AssertionError: Regex pattern did not match.
+E    Regex: 'TRIAL-STOP committed .*publication pending'
+E    Input: 'stop decision refused with no row (OSError: disk full (simulated)) (F0.7)'
+___________ test_a_gap_whose_recompute_raises_is_never_left_silent ____________
+research\s1\s1_tests\test_s1_a3_stop.py:681: in test_a_gap_whose_recompute_raises_is_never_left_silent
+    with pytest.raises(SystemExit, match=r"publication gap: .*cannot be recomputed.*refused with no row"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+______ test_a_busy_stop_lock_defers_but_another_lock_error_is_a_refusal _______
+research\s1\s1_tests\test_s1_a3_stop.py:720: in test_a_busy_stop_lock_defers_but_another_lock_error_is_a_refusal
+    with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"stop decision refused with no row .*LockHeld"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_______________ test_persist_stop_never_recreates_a_lost_s1_out _______________
+research\s1\s1_tests\test_s1_a3_stop.py:728: in test_persist_stop_never_recreates_a_lost_s1_out
+    with pytest.raises(SystemExit, match=r"s1_out is gone"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_damaged_slot_tree_in_the_gap_is_judged_by_the_evidence_table
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_sealed_last_close_reaches_its_timeout_through_the_finalizer_command
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_sealed_last_close_reaches_its_timeout_through_a_later_checkpoint
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_the_finalize_mode_dispatches_to_the_finalizer_command
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_the_finalizer_command_decides_on_the_append_clock_not_its_start_instant[pre<W<=txn]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_the_finalizer_command_decides_on_the_append_clock_not_its_start_instant[txn<W<=pre]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_a_stop_json_read_error_is_confirmed_and_never_invalidates[transient]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_a_stop_json_read_error_is_confirmed_and_never_invalidates[persistent]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_the_score_threads_its_mailbox_into_the_stop_read
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_a_publication_failure_after_the_stop_row_is_reported_truthfully
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_a_gap_whose_recompute_raises_is_never_left_silent
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_a_busy_stop_lock_defers_but_another_lock_error_is_a_refusal
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_persist_stop_never_recreates_a_lost_s1_out
+12 failed, 1 passed, 52 deselected in 50.94s
+
+# I2 tests (fix3 i1 x2, fix2_b1 b1_a) re-pointed at the product finalizer command
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+______ test_i1_the_stop_attestation_finalizes_before_it_freezes_the_stop ______
+research\s1\s1_tests\test_s1_t12_fix3.py:472: in test_i1_the_stop_attestation_finalizes_before_it_freezes_the_stop
+    assert hasattr(ck, "run_finalizer"), "no product finalizer command (review C1/I2)"
+E   AssertionError: no product finalizer command (review C1/I2)
+E   assert False
+E    +  where False = hasattr(ck, 'run_finalizer')
+_________ test_i1_the_final_plan_finalizes_before_it_freezes_the_stop _________
+research\s1\s1_tests\test_s1_t12_fix3.py:488: in test_i1_the_final_plan_finalizes_before_it_freezes_the_stop
+    assert hasattr(ck, "run_finalizer"), "no product finalizer command (review C1/I2)"
+E   AssertionError: no product finalizer command (review C1/I2)
+E   assert False
+E    +  where False = hasattr(ck, 'run_finalizer')
+_ test_b1_a_pending_resolution_cannot_cause_an_early_terminal_stop_followed_by_rescue _
+research\s1\s1_tests\test_s1_t12_fix2_b1.py:432: in test_b1_a_pending_resolution_cannot_cause_an_early_terminal_stop_followed_by_rescue
+    assert hasattr(ck, "run_finalizer"), "no product finalizer command (review C1/I2)"
+E   AssertionError: no product finalizer command (review C1/I2)
+E   assert False
+E    +  where False = hasattr(<module 's1_checkpoint' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_checkpoint.py'>, 'run_finalizer')
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_t12_fix3.py::test_i1_the_stop_attestation_finalizes_before_it_freezes_the_stop
+FAILED research/s1/s1_tests/test_s1_t12_fix3.py::test_i1_the_final_plan_finalizes_before_it_freezes_the_stop
+FAILED research/s1/s1_tests/test_s1_t12_fix2_b1.py::test_b1_a_pending_resolution_cannot_cause_an_early_terminal_stop_followed_by_rescue
+3 failed in 6.52s

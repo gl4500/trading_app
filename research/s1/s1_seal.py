@@ -381,45 +381,30 @@ def stop_decision(seals, start: datetime, calendar, *, today: datetime, pending=
     return {"status": "TIMEOUT", "stop_close": max(sealed).isoformat(), "missed": missed}
 
 
-# ------------------------------------------------------------------ A2: the persisted stop (s1_out/stop.json)
+# ------------------------------------------------------------------ A2 / A3 F2: the persisted stop (s1_out/stop.json)
+# A3 Task 11 (Steps 4-6; dispositions r1 9153062b, ACCEPTED by Codex 28e08272): the stop is the journal's TRIAL-STOP
+# row; stop.json publishes its record (F2.2). The record is a pure function of committed rows (stop_record); the
+# permission to commit it is the TRIAL-STOP transaction's own clock (stop_ready, BLK3-C1). Nothing here decides a stop
+# from seal files or a wall clock outside that transaction.
 def _seal_index(out: Path) -> list:
     out = Path(out)
     return [(p, json.loads(p.read_text(encoding="utf-8"))) for p in sorted((out / "seals").glob("*.json"))]
 
 
-def stop_record(out: Path, decision: dict, start: datetime, decided_utc: datetime, by: str) -> dict:
-    """A2.1: the stop identity persisted once - status, stop close, the authoritative stop seal file and sha256, the
-    cohort row ids (START <= stored entry <= stop close, from the stop seal's rows), the decision time - plus the
-    frozen slices (every seal of a close <= the stop close; NO-VALID-SEAL: every seal) with their sha256, and the
-    bundle that decided it."""
-    out = Path(out)
-    idx = _seal_index(out)
-    stop_close = decision.get("stop_close")
-    rec = {"status": decision["status"], "stop_close": stop_close, "missed": decision.get("missed", []),
-           "decided_utc": decided_utc.isoformat(), "decided_by": by, "bundle_sha256": c.bundle_sha256(),
-           "stop_seal": None, "stop_seal_sha256": None, "cohort_row_ids": []}
-    if stop_close is not None:
-        sc = c.aware(stop_close)
-        sp = out / "seals" / f"{sc.astimezone(c.NY).date().isoformat()}.json"
-        seal = json.loads(sp.read_text(encoding="utf-8"))
-        rec.update(stop_seal=sp.relative_to(out).as_posix(), stop_seal_sha256=c.sha256_file(sp),
-                   cohort_row_ids=sorted(t["id"] for t in cohort(
-                       [t for t in seal["trades"] if c.aware(t["ts"]) <= sc], start, sc)))
-        rec["seals"] = {p.relative_to(out).as_posix(): c.sha256_file(p) for p, x in idx
-                        if c.aware(x["close"]) <= sc}
-    else:
-        rec["seals"] = {p.relative_to(out).as_posix(): c.sha256_file(p) for p, _ in idx}
-    return rec
-
-
 def persist_stop(out: Path, rec: dict) -> dict:
-    """A2.1: write s1_out/stop.json exclusively (never recomputed, never replaced). FileExistsError if it exists.
-    Addendum 2 B3.1/B3.3: the persisted stop is then recorded in the registry (registry/stop.json and, fix round 3
-    C-2, witnesses/stop.json: its sha256) - a frozen trial artifact. Fix round 3 (C-1): published atomically, so a
-    concurrent decider never reads a partial stop.json; stop.json is published FIRST (the first decider wins, its
-    records follow), so its records are optional to the registration gate but must agree."""
+    """F2.2/F2.3: publish s1_out/stop.json = json.dumps(record, indent=1, sort_keys=True), exclusively, after the
+    TRIAL-STOP row; an existing file with exactly these bytes is accepted (a concurrent publisher of the same record,
+    or the completion of an interrupted one); any other existing file is FileExistsError. Then (OQ-19, legacy detector
+    only) the two registry records. Called only by decide_stop and stop_check."""
     p = Path(out) / "stop.json"
-    c.publish_text_exclusive(p, json.dumps(rec, indent=1, sort_keys=True))
+    text = json.dumps(rec, indent=1, sort_keys=True)
+    if not Path(out).is_dir():                           # fix round 1 (review M7, F6.6): never recreate a lost s1_out
+        raise SystemExit("stop.json: s1_out is gone: not published, refused (F6.6)")
+    try:
+        c.publish_text_exclusive(p, text)
+    except FileExistsError:
+        if p.read_bytes() != c.text_bytes(text):
+            raise
     c.register_stage(out, "stop", {"stop.json": c.sha256_file(p)})
     return rec
 
@@ -449,32 +434,361 @@ def stop_was_persisted(out: Path) -> bool:
     return False
 
 
-def current_stop(out: Path, start: datetime, calendar, now: datetime, by: str) -> dict:
-    """A2.1: the trial state: the persisted stop if it exists; otherwise the stop decision over the seals (today =
-    now) - persisted once if it has ended (STOPPED / TIMEOUT / NO-VALID-SEAL; a concurrent first writer wins).
-    Returns a stop_decision-shaped dict ({"status", "stop_close", "missed"}, plus "persisted")."""
-    st_ = load_stop(out)
-    if st_ is None and stop_was_persisted(out):            # fix round 1 (m-4): never a silent recompute
-        raise ValueError("persisted stop (stop.json) missing after it was persisted")
-    if st_ is None:
-        dec = stop_decision([s for _, s in _seal_index(out)], start, calendar, today=now,
-                            pending=pending_closes(out))                    # fix round 2 (B1.5)
-        if dec["status"] not in ENDED:
-            return dict(dec, persisted=False)
+def _journal(mailbox=None, out=None) -> tuple:
+    """(trial, its verified rows) - read only. With `out`, the trial plan.json names (open or CLOSED: the stop is a
+    fact of that trial's journal even after a CLOSE); else, or when that trial is not in the mailbox, the open trial."""
+    import s1_journal as j
+    import s1_trial
+    tr = None
+    if out is not None:
         try:
-            st_ = persist_stop(out, stop_record(out, dec, start, now, by))
-        except FileExistsError:
-            st_ = load_stop(out)
+            tid = c.load_json(Path(out) / "plan.json").get("trial_id")
+        except (OSError, ValueError, AttributeError):
+            tid = None
+        tr = s1_trial.trials(s1_trial.scan(mailbox)).get(tid) if tid else None
+    tr = tr or s1_trial.open_trial(mailbox)
+    return tr, j.read_trial(tr.trial_id, tr.genesis, mailbox)
+
+
+def current_stop(out: Path, start: datetime, calendar, now: datetime, by: str, *, mailbox=None) -> dict:
+    """A3 F1/F2 (Task 11): the trial's stop as the journal records it - with a TRIAL-STOP row, stop.json's
+    {"status", "stop_close", "missed"} and persisted=True (a missing stop.json is a ValueError: the publication gap
+    is the gate's to recover, F2.3); otherwise RUNNING with persisted=False. It never decides and never persists
+    (only decide_stop does, F2.2). `start`, `calendar`, `now` and `by` are kept for the callers' signature."""
+    import s1_journal as j
+    tr, rows = _journal(mailbox, out)
+    stop = j.first(rows, "TRIAL-STOP")
+    if stop is None:
+        return {"status": "RUNNING", "stop_close": None, "missed": [], "persisted": False}
+    st_ = load_stop(out)
+    if st_ is None:                                      # F2.3 publication gap (a concurrent decide_stop between its
+        rec = stop_record(out, [x for x in rows if x.seq < stop.seq], start, calendar, tr.bundle)   # STOP and its
+        if rec is None or j.detail_of(rec) != stop.detail:                                          # stop.json):
+            raise ValueError("TRIAL-STOP is committed, stop.json is missing and committed history gives another "
+                             "record (F2.3: stop-conflict, the gate's to decide)")
+        return {"status": rec["status"], "stop_close": rec["stop_close"], "missed": rec["missed"],
+                "persisted": False}                      # the STOP's own record - read, never published here
     return {"status": st_["status"], "stop_close": st_["stop_close"], "missed": st_.get("missed", []),
             "persisted": True}
 
 
-def stop_problems(out: Path, start: datetime, calendar, *, recheck: bool = True) -> list:
-    """A2.3: integrity of the frozen experiment through the persisted stop: stop.json's stop seal and every frozen
-    slice it lists still exist with their sha256, no seal of a close <= the stop close (NO-VALID-SEAL: no seal at
-    all) was added, its cohort ids are the stop seal's, and (`recheck`, used by the score) the same registered
-    helpers over the frozen slices at the decision time give the same stop - a consistency check that can only
-    refuse, never move the stop (the stop used is always stop.json's)."""
+# ------------------------------------------------------------------ the stop record (F2.1, OQ-8 r1)
+def _by_subject(rows) -> dict:
+    got = {}
+    for r_ in rows:
+        got.setdefault(r_.subject, []).append(r_)
+    return got
+
+
+def _first(rows_of, *kinds):
+    return next((r_ for r_ in rows_of if r_.kind in kinds), None)
+
+
+def _close_state(index, d, cal) -> tuple:
+    """r1 §1.1 from committed rows only: ("sealed", deps, first QUALIFIED) - the determined sampled candidate (E2.2;
+    deps = the terminal rows of its slots up to and including the first QUALIFIED); ("pending", ...) - a slot with an
+    INTENT and no terminal before any determined QUALIFIED (B1.2/B1.5); ("unresolved", ...) - a QUALIFIED exists but
+    an earlier slot has no terminal row (A2); ("none", deps, None) - no QUALIFIED and no PENDING slot (deps = the
+    terminal rows of its slots that have an INTENT). Whether a "none" close counts missed needs the clock (stop_ready,
+    A6 r1), never these rows."""
+    import s1_journal as j
+    slots = schedule(d, cal)
+    deps, seen_gap = [], False
+    for s in slots:
+        mine = index.get(j.slot_subject(s), [])
+        term = _first(mine, *j.TERMINAL)
+        if term is None:
+            if _first(mine, "SLOT-INTENT") is not None:
+                return "pending", None, None
+            seen_gap = True
+            continue
+        if term.kind == "SLOT-QUALIFIED":
+            if seen_gap:
+                return "unresolved", None, None
+            return "sealed", deps + [term], term
+        if not seen_gap:
+            deps.append(term)
+    # no QUALIFIED at all: every INTENT-bearing slot is terminal (a pending one returned above)
+    inten = [_first(index.get(j.slot_subject(s), []), *j.TERMINAL) for s in slots
+             if _first(index.get(j.slot_subject(s), []), "SLOT-INTENT") is not None]
+    return "none", [x for x in inten if x is not None], None
+
+
+def sampled_seals(out, rows, cal, start, upto_seq=None) -> dict:
+    """F1 STOP prefix / OQ-14: {day: (first QUALIFIED row, recomputed seal bytes)} for every eligible post-START close
+    determined (E2.2) by the rows committed at or before `upto_seq` (all rows when None)."""
+    import s1_journal as j
+    import s1_slot
+    if upto_seq is None:                                 # F1 STOP prefix: terminals after a STOP never enter it
+        stop = j.first(rows, "TRIAL-STOP")
+        upto_seq = None if stop is None else stop.seq
+    rows = [x for x in rows if upto_seq is None or x.seq <= upto_seq]
+    index = _by_subject(rows)
+    got = {}
+    for d in eligible_sessions(start, cal):
+        stt, _deps, q = _close_state(index, d, cal)
+        if stt == "sealed":
+            ev = s1_slot._resolution_evidence(out, q, d["date"])
+            got[d["date"]] = (q, s1_slot.seal_bytes(d, _close(d), ev))
+    return got
+
+
+def stop_record(out, rows, start, cal, bundle):
+    """F2.1 / OQ-8 r1 (t11_dispositions.md 9153062b, ACCEPTED): the stop CANDIDATE, a pure function of the committed
+    rows (and the files they commit), or None.
+    Lots: walk the eligible closes in order; a PENDING or UNRESOLVED close before the first qualifying determined
+    close -> None; else the first determined close C whose sampled seal sells >= STOP_N cohort lots by C; the "none"
+    closes before C are `missed`. Timeout (no lots candidate): no PENDING/UNRESOLVED eligible close and the W slot of
+    the last eligible close terminal (the F2.1 trigger anchor, P2 - never a time witness); TIMEOUT = the last
+    determined eligible close, NO-VALID-SEAL = none. Trigger (b): the greatest-seq terminal row among the necessary
+    dependencies; determined_utc = that row's `at` verbatim (provenance only, BLK3-C2)."""
+    import s1_journal as j
+    import s1_slot
+    rows = list(rows)
+    tids = {x.trial_id for x in rows}
+    if len(tids) != 1:
+        return None
+    index = _by_subject(rows)
+    eligible = eligible_sessions(start, cal)
+    if not eligible:
+        return None
+    missed, deps, sealed, stop_day = [], [], [], None
+    for d in eligible:
+        stt, dd, q = _close_state(index, d, cal)
+        if stt in ("pending", "unresolved"):
+            return None
+        deps += dd
+        if stt == "none":
+            missed.append(d["date"])
+            continue
+        ev = s1_slot._resolution_evidence(out, q, d["date"])
+        data = s1_slot.seal_bytes(d, _close(d), ev)
+        sealed.append((d, data))
+        if count_sold(json.loads(data)["trades"], start, _close(d)) >= STOP_N:
+            stop_day = d
+            break
+    if stop_day is not None:
+        status, rule = "STOPPED", "lots"
+    else:
+        w_term = _first(index.get(j.slot_subject(schedule(eligible[-1], cal)[-1]), []), *j.TERMINAL)
+        if w_term is None:
+            return None
+        deps.append(w_term)
+        status, rule = ("TIMEOUT", "timeout") if sealed else ("NO-VALID-SEAL", "timeout")
+        stop_day = sealed[-1][0] if sealed else None
+    trig = max(deps, key=lambda r_: r_.seq)
+    rec = {"trial_id": tids.pop(), "rule": rule, "status": status, "triggering_slot": trig.subject,
+           "terminal_seq": trig.seq, "terminal_line_sha256": trig.sha, "determined_utc": trig.at,
+           "missed": missed, "bundle_sha256": bundle, "stop_close": None, "stop_seal": None,
+           "stop_seal_sha256": None, "cohort_row_ids": [], "lots": None, "seals": {}}
+    if stop_day is None:
+        return rec
+    sc = _close(stop_day)
+    data = dict((d["date"], x) for d, x in sealed)[stop_day["date"]]
+    trades = [x for x in json.loads(data)["trades"] if c.aware(x["ts"]) <= sc]
+    ids = sorted(x["id"] for x in cohort(trades, start, sc))
+    rec.update(stop_close=sc.isoformat(), stop_seal=f"seals/{stop_day['date']}.json",
+               stop_seal_sha256=c.sha256_bytes(data), cohort_row_ids=ids,
+               lots={"sold": count_sold(trades, start, sc), "cohort": len(ids)},
+               seals={f"seals/{d['date']}.json": c.sha256_bytes(x) for d, x in sealed if _close(d) <= sc})
+    return rec
+
+
+def stop_ready(out, rows, start, cal, bundle, now):
+    """r1 §1.3 (BLK3-C1, P1; ACCEPTED): permission to COMMIT the candidate, given `now` = the clock sampled INSIDE the
+    TRIAL-STOP journal transaction (j.append passes it to Context.stop_ready): None = permitted, else the reason.
+    Requires a candidate; now >= W of every close it counts missed; for TIMEOUT / NO-VALID-SEAL now >= W of the last
+    eligible close (every eligible window E has expired). No terminal row or `at` stands in for this clock."""
+    rec = stop_record(out, rows, start, cal, bundle)
+    if rec is None:
+        return "no stop candidate in committed history"
+    by_date = {d["date"]: d for d in eligible_sessions(start, cal)}
+    need = [window_end(by_date[x], cal) for x in rec["missed"]]
+    if rec["rule"] == "timeout":
+        need.append(window_end(list(by_date.values())[-1], cal))
+    w = max(need, default=None)
+    if w is not None and now < w:
+        return (f"not ready: transaction clock {now.isoformat()} < {w.isoformat()} (an eligible window counted by "
+                f"the stop is still open, BLK3-C1)")
+    return None
+
+
+STOP_FENCE_RETRIES = 3                                            # E2.5 r3: bounded seal-then-STOP retry
+
+
+def _stop_context(gv, cal, start):
+    import s1_journal as j
+    import s1_slot
+    import s1_trial
+    out, bundle = gv.out, gv.trial.bundle
+
+    def detail(rows_):
+        x = stop_record(out, rows_, start, cal, bundle)
+        return None if x is None else j.detail_of(x)
+    return s1_trial.product_context(gv.trial, cal, stop_detail=detail, stop_fence=s1_slot.stop_fence(cal, start),
+                                    stop_ready=lambda rows_, now_: stop_ready(out, rows_, start, cal, bundle, now_))
+
+
+def decide_stop(gv, cal, start, now, *, mailbox=None):
+    """F2.2 + E2.5 r3 + r1 §1.3: under the stop lock (F5.1, taken before the journal read), when committed history
+    gives a stop candidate: run every pending seal stage (a determined eligible close without a CREATED seal stage),
+    then append TRIAL-STOP (detail = sha256 of the record, recomputed inside the transaction; OQ-9) with the F0.5
+    step-5 checks inside that same transaction - the record, the E2.5 fence, and the readiness on the transaction's own
+    clock (`now` is the append's clock: no preflight time decides). On APPEND (or LOST-RACE to the same record) publish
+    stop.json. Returns the record, or None (no candidate / not ready / still unsealed after the bounded retries: no
+    row, decide later). INVALIDATE (a different STOP exists) raises SystemExit. A failed publication AFTER the row
+    committed says so (review M3: the F2.3 gap, recovered by the next gate)."""
+    import s1_locks as L
+    import s1_slot
+    mailbox = gv.mailbox if mailbox is None else mailbox
+    lock = L.OwnershipLock(gv.root, gv.trial.trial_id, L.STOP_LOCK)
+    try:                                                 # fix round 1 (review M5): only THIS lock's LockHeld means
+        lock.acquire()                                   # "another stop operation is deciding: decide later"
+    except L.LockHeld:
+        return None
+    except L.LockError as e:
+        raise SystemExit(f"stop decision refused with no row: stop lock error ({e}) (F5.5)") from None
+    try:
+        return _decide_locked(gv, cal, start, now, mailbox)
+    except (s1_slot.QualifiedEvidence, ValueError, OSError, KeyError, TypeError, b.BookError, L.LockHeld,
+            L.LockError) as e:                           # (any other lock inside the operation is a refusal)
+        raise SystemExit(f"stop decision refused with no row ({type(e).__name__}: {e}) (F0.7)") from None
+    finally:
+        lock.release()
+
+
+def _decide_locked(gv, cal, start, now, mailbox):
+    """decide_stop's body, under the stop lock: read, the pending seal stages (E2.5), re-read, the TRIAL-STOP append
+    (record, fence and readiness inside its transaction), then the publication."""
+    import s1_journal as j
+    import s1_slot
+    import s1_stage
+    for _attempt in range(STOP_FENCE_RETRIES):
+        rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
+        if j.first(rows, "TRIAL-STOP") is not None:
+            return None
+        if stop_record(gv.out, rows, start, cal, gv.trial.bundle) is None:
+            return None
+        index = _by_subject(rows)
+        for d in eligible_sessions(start, cal):                    # E2.5: the pending seal stages first
+            if _close_state(index, d, cal)[0] == "sealed" and \
+                    s1_stage.stage_rows(rows, s1_slot.seal_stage_name(d["date"]))["created"] is None:
+                s1_slot.run_seal_stage(gv, d, cal, mailbox=mailbox, clock=now)
+        rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
+        rec = stop_record(gv.out, rows, start, cal, gv.trial.bundle)
+        if rec is None:
+            return None
+        res = j.append(gv.trial.trial_id, gv.trial.genesis,
+                       j.Request("TRIAL-STOP", "trial", j.new_nonce(), j.new_nonce(), detail=j.detail_of(rec)),
+                       _stop_context(gv, cal, start), mailbox=mailbox, clock=now)
+        if res.outcome == "INVALIDATE":
+            raise SystemExit(f"TRIAL-STOP -> INVALID ({res.reason})")
+        if res.outcome == "APPEND" or (res.outcome == "LOST-RACE" and "already STOPPED" in res.reason):
+            try:
+                persist_stop(gv.out, rec)
+            except (OSError, SystemExit) as e:           # fix round 1 (review M3): the row EXISTS - say so
+                seq = res.row.seq if res.row is not None else "existing"
+                raise SystemExit(f"TRIAL-STOP committed (seq {seq}); stop.json publication pending "
+                                 f"({type(e).__name__}: {e}): the next gate recovers or judges it (F2.3/F2.4)") \
+                    from None
+            return rec
+        if "not sealed" not in res.reason:                          # rule not met / differs / not ready
+            return None
+    return None
+
+
+FINALIZATION = ("stop_attest", "final_plan", "final", "score")
+
+
+def _read_stop_json(p: Path) -> tuple:
+    """("ok", record) | ("missing", None) | ("corrupt", None) | ("error", OSError)."""
+    try:
+        if not p.exists():
+            return "missing", None
+        return "ok", json.loads(p.read_text(encoding="utf-8"))
+    except OSError as e:
+        return "error", e
+    except ValueError:
+        return "corrupt", None
+
+
+def stop_check(gv) -> None:
+    """Gate hook (F2.3/F2.4), before the stage table: with a TRIAL-STOP, stop.json must parse to the record its
+    detail commits. Changed or unparseable before any finalization INTENT: INVALID (stop-conflict); absent, changed or
+    unparseable after one: INVALID (registration-artifact) - restoring never resumes. Absent before any finalization
+    INTENT is the publication gap, recovered by stop_gap_recover AFTER the F4/F3 tables (fix round 1, review M4).
+    Fix round 1 (review I1, Task 7 confirm-on-re-read): any non-matching read is confirmed by a second read before a
+    decision; a read error (OSError) on the second read refuses with no row and never invalidates."""
+    import s1_journal as j
+    import s1_stage
+    import s1_trial
+    stop = j.first(gv.rows, "TRIAL-STOP")
+    if stop is None:
+        return
+    p = gv.out / "stop.json"
+    state, obj = _read_stop_json(p)
+    if state == "ok" and j.detail_of(obj) == stop.detail:
+        return
+    state, obj = _read_stop_json(p)                      # confirm on a re-read before any decision
+    if state == "ok" and j.detail_of(obj) == stop.detail:
+        return
+    if state == "error":
+        raise SystemExit(f"stop.json unreadable ({type(obj).__name__}: {obj}): refused with no row (a read error never "
+                         f"invalidates, F2.3/F2.4)")
+    fin = any(s1_stage.stage_rows(gv.rows, s)["intent"] is not None for s in FINALIZATION)
+    if state == "missing" and not fin:
+        return                                           # the publication gap: stop_gap_recover, after F4/F3
+    reason = "registration-artifact" if fin else "stop-conflict"
+    what = "missing" if state == "missing" else "changed or unparseable"
+    s1_trial.invalidate(gv.trial, reason, {"stop.json": what, "stop_line_sha256": stop.sha}, root=gv.root,
+                        mailbox=gv.mailbox)
+    raise SystemExit(f"stop.json {what}: INVALID ({reason}) (F2.3/F2.4)")
+
+
+def stop_gap_recover(gv) -> None:
+    """Gate hook (F2.3), AFTER the F4 stage table and the F3 evidence table (fix round 1, review M4: a damaged stage
+    member or slot tree is judged by its own table first): a TRIAL-STOP whose stop.json is absent before any
+    finalization INTENT is the publication gap - the record recomputed from the rows before the STOP is published
+    when it matches the STOP's detail (same bytes), else INVALID (stop-conflict). A recompute that raises (an
+    evidence error the tables did not judge) or a publication error refuses with no row - never a silent gap."""
+    import s1_journal as j
+    import s1_stage
+    import s1_trial
+    stop = j.first(gv.rows, "TRIAL-STOP")
+    if stop is None or (gv.out / "stop.json").exists():
+        return
+    if any(s1_stage.stage_rows(gv.rows, s)["intent"] is not None for s in FINALIZATION):
+        return                                           # (stop_check already decided that case)
+    pre = [x for x in gv.rows if x.seq < stop.seq]
+    if s1_stage.stage_rows(pre, "prereg")["created"] is None:
+        rec = None                                       # no registered start: no committed history gives a stop
+    else:
+        try:
+            pr = c.load_json(gv.out / "prereg.json")
+            rec = stop_record(gv.out, pre, c.aware(pr["start"]), pr["calendar"], gv.trial.bundle)
+        except (OSError, ValueError, KeyError, TypeError, b.BookError) as e:
+            raise SystemExit(f"publication gap: the stop record cannot be recomputed ({type(e).__name__}: {e}): "
+                             f"refused with no row (F2.3)") from None
+    if rec is None or j.detail_of(rec) != stop.detail:
+        s1_trial.invalidate(gv.trial, "stop-conflict", {"recomputed": None if rec is None else j.detail_of(rec),
+                                                        "stop_line_sha256": stop.sha},
+                            root=gv.root, mailbox=gv.mailbox)
+        raise SystemExit("publication gap: the recomputed stop record differs: INVALID (stop-conflict) (F2.3)")
+    try:
+        persist_stop(gv.out, rec)
+    except (OSError, SystemExit) as e:
+        raise SystemExit(f"publication gap: stop.json not published ({type(e).__name__}: {e}): refused with no row "
+                         f"(F2.3)") from None
+
+
+def stop_problems(out: Path, start: datetime, calendar, *, recheck: bool = True, mailbox=None) -> list:
+    """A2.3 (kept) + A3 F2: integrity of the frozen experiment through the persisted stop: stop.json's stop seal and
+    every frozen slice it lists still exist with their sha256; no seal of an ELIGIBLE close <= the stop close (NO-
+    VALID-SEAL: no eligible seal) is missing from its slices (r1 A4: ineligible and later seals are not sampled stop
+    inputs - their integrity is the E2.6 / F4-table CREATED check, which stays); the recorded hashes agree. `recheck`
+    (OQ-8): stop.json equals stop_record over the rows before the TRIAL-STOP and its detail is the STOP's. It can only
+    refuse, never move the stop."""
+    import s1_journal as j
     out = Path(out)
     st_ = load_stop(out)
     if st_ is None:
@@ -498,10 +812,20 @@ def stop_problems(out: Path, start: datetime, calendar, *, recheck: bool = True)
             probs.append(f"frozen slice {rel} missing (persisted stop)")
         elif c.sha256_file(p) != h:
             probs.append(f"frozen slice {rel} changed since the persisted stop")
+    if start is None or calendar is None:
+        try:
+            pr = c.load_json(out / "prereg.json")
+            start, calendar = c.aware(pr["start"]), pr["calendar"]
+        except (OSError, ValueError, KeyError, TypeError):
+            start = calendar = None
+    eligible = ({d["date"] for d in eligible_sessions(start, calendar)} if start is not None else None)
+    ineligible = ({d["date"] for d in calendar} - eligible) if eligible is not None else set()
     sc = c.aware(st_["stop_close"]) if st_.get("stop_close") else None
     for p, x in _seal_index(out):
         rel = p.relative_to(out).as_posix()
-        if rel not in listed and (sc is None or c.aware(x["close"]) <= sc):
+        if rel in listed or p.stem in ineligible:        # r1 A4: an ineligible close's seal (opening, post-deadline)
+            continue                                     # is required evidence via E2.6/F4, never a frozen slice
+        if sc is None or c.aware(x["close"]) <= sc:
             probs.append(f"seal {rel} is not among the persisted stop's frozen slices")
     if sc is not None:
         sp = out / str(st_.get("stop_seal"))
@@ -510,16 +834,13 @@ def stop_problems(out: Path, start: datetime, calendar, *, recheck: bool = True)
     if probs or not recheck:
         return probs
     try:
-        frozen = [json.loads((out / rel).read_text(encoding="utf-8")) for rel in sorted(listed)]
-        again = stop_decision(frozen, start, calendar, today=c.aware(st_["decided_utc"]))
-        if (again["status"], again["stop_close"]) != (st_["status"], st_["stop_close"]):
-            probs.append(f"persisted stop {st_['status']} {st_['stop_close']} is not the frozen slices' stop "
-                         f"{again['status']} {again['stop_close']}")
-        if sc is not None:
-            seal = json.loads((out / st_["stop_seal"]).read_text(encoding="utf-8"))
-            ids = sorted(t["id"] for t in cohort([t for t in seal["trades"] if c.aware(t["ts"]) <= sc], start, sc))
-            if ids != st_.get("cohort_row_ids"):
-                probs.append("persisted stop cohort ids differ from the stop seal's cohort")
-    except (OSError, ValueError, KeyError, TypeError, b.BookError) as e:
+        tr, rows = _journal(mailbox, out)
+        stop = j.first(rows, "TRIAL-STOP")
+        if stop is None:
+            return ["stop.json exists with no TRIAL-STOP row (F2.2)"]
+        again = stop_record(out, [x for x in rows if x.seq < stop.seq], start, calendar, tr.bundle)
+        if again != st_ or j.detail_of(st_) != stop.detail:
+            probs.append("persisted stop is not the record committed history gives before its TRIAL-STOP (OQ-8)")
+    except (OSError, ValueError, KeyError, TypeError, b.BookError, SystemExit) as e:
         probs.append(f"persisted stop unverifiable: {type(e).__name__}: {e}")
     return probs

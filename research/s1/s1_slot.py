@@ -539,10 +539,6 @@ def run_seal_stage(gv, day, cal, res=None, *, mailbox=None, clock=None, before_p
     if day["date"] == _opening_date(out):
         res["deferred"] = res["deferred"] or "the opening close is sealed by the opening stage (Task 10)"
         return res
-    if (out / "stop.json").exists():                          # transitional (until Task 11's TRIAL-STOP): the legacy
-        res["refused"] = ("a persisted stop exists (A2.1): no seal stage after the stop (legacy guard until the "   # A2.1
-                          "TRIAL-STOP of Task 11)")                                                          # stop
-        return res
     rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
     q = determined(rows, day, cal)
     if q is None:

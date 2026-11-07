@@ -144,13 +144,18 @@ def test_c1_a_concurrent_finalizer_and_a_reader_never_observe_a_partial_seal(tmp
 def test_c1_a_concurrent_stop_decision_never_observes_a_partial_stop_json(tmp_path, monkeypatch):
     """C-1 (A2.1): the trial has ended; command A is preempted halfway through persisting stop.json. Command B's
     stop decision in that window must not read a partial stop.json (a JSONDecodeError = ValueError, which callers
-    turn into an abort): it returns the same terminal stop, and the stored stop is registered consistently."""
-    st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final=False)
-    out, t = tmp_path / "s1_out", st_["stop_attested_at"]
+    turn into an abort): it returns the same terminal stop, and the stored stop is registered consistently.
+    A3 Task 11 (intended, F2.2/F2.3): command A is now the stop decision itself (decide_stop: TRIAL-STOP, then the
+    exclusive publication of stop.json); command B reads the stop in that publication gap (current_stop: the
+    TRIAL-STOP's own record, recomputed from the rows before it - never a partial file, never published by B)."""
+    import s1_trial as tt
+    st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final=False, stop=False)
+    out, t = tmp_path / "s1_out", st_["now"]
     assert not (out / "stop.json").exists()
     paused, resume = pause_first_exclusive_write(monkeypatch, lambda p: "stop.json" in p.name
                                                  and p.parent.name == "s1_out")
-    th, box = bg(lambda: z.current_stop(out, st_["start"], st_["calendar"], t, "command A"))
+    gv = tt.gate(tmp_path, "command A")
+    th, box = bg(lambda: z.decide_stop(gv, st_["calendar"], st_["start"], lambda: t))
     assert paused.wait(WAIT), "command A never wrote stop.json"
     try:
         mine, err = z.current_stop(out, st_["start"], st_["calendar"], t, "command B"), None
@@ -160,7 +165,7 @@ def test_c1_a_concurrent_stop_decision_never_observes_a_partial_stop_json(tmp_pa
     th.join(WAIT)
     assert err is None, f"command B observed a partial stop.json: {err!r}"
     assert "err" not in box, box
-    assert mine["status"] == box["rep"]["status"] == st_["stop"]["status"] == z.load_stop(out)["status"]
+    assert mine["status"] == box["rep"]["status"] == "STOPPED" == z.load_stop(out)["status"]
     assert c.registration_problems(out) == []
 
 
@@ -375,20 +380,24 @@ def test_c2_residual_every_local_witness_gone_and_the_mailbox_unreadable_is_a_re
 
 
 def test_c2_deleting_the_persisted_stop_and_its_registry_record_is_a_gate_abort(tmp_path):
-    """C-2 (B3.3, post-stop): stop.json and registry/stop.json deleted -> the registration gate itself (before any
-    capture) records the persistent "registration artifact" abort; stop.json is never recomputed."""
+    """C-2 (B3.3, post-stop): stop.json and registry/stop.json deleted.
+    A3 Task 11 (intended, F2.3): the journal's TRIAL-STOP detail is the stop's authority. Before any finalization
+    INTENT this is the publication gap: the next command's gate recomputes the record from the rows before the STOP
+    and publishes the SAME bytes (and its records); the STOPPED trial's checkpoint is LOST-RACE with no capture and
+    no abort. (After a finalization INTENT the deletion is INVALID: test_s1_a3_stop.py.)"""
     from test_s1_t12_a2 import _live_stop
     st_, lg, rows = _live_stop(tmp_path)
     out = tmp_path / "s1_out"
+    before = (out / "stop.json").read_bytes()
     (out / "stop.json").unlink()
     (out / "registry" / "stop.json").unlink()
     sch = datetime(2026, 10, 28, 20, 45, tzinfo=UTC)
-    with (_Clock(sch + timedelta(seconds=30)),
-          pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed")):
-        ck.run_checkpoint(tmp_path, lg.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
-                          tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
-    assert _aborted(tmp_path)["reason"] == "registration artifact"
-    assert not (out / "stop.json").exists() and not (out / "captures" / "2026-10-28").exists()
+    with _Clock(sch + timedelta(seconds=30)):
+        rep = ck.run_checkpoint(tmp_path, lg.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                                tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
+    assert rep["outcome"] == "LOST-RACE", rep
+    assert (out / "stop.json").read_bytes() == before and (out / "registry" / "stop.json").exists()
+    assert c.load_abort(out) is None and not (out / "captures" / "2026-10-28").exists()
 
 
 def test_c2_a_registered_stage_whose_registry_record_alone_is_deleted_is_detected(tmp_path):
@@ -451,37 +460,50 @@ def test_i1_probe_a_success_without_its_seal_is_pending_so_no_stop_is_frozen(tmp
 
 def test_i1_the_stop_attestation_finalizes_before_it_freezes_the_stop(tmp_path, monkeypatch):
     """I-1: the stop attestation in the crash window finalizes the serialized selection first: the close is sealed
-    and the attested, persisted stop is TIMEOUT at that close (never NO-VALID-SEAL with the seal lost)."""
+    and the attested, persisted stop is TIMEOUT at that close (never NO-VALID-SEAL with the seal lost).
+    A3 Task 11 (F1/F2.2; fix round 1, review I2 ruling): the attestation binds the journal's TRIAL-STOP and never
+    decides - in the crash window (the close UNRESOLVED) it refuses. The operator's product finalizer command
+    (s1_checkpoint --finalize -> run_finalizer) then finalizes the close (MISSED rows, its seal stage) and decides the
+    stop, end to end; the attested, persisted stop is TIMEOUT at that close, never NO-VALID-SEAL with the seal lost."""
     st_, last, s8, clock, real = _success_without_seal(tmp_path, monkeypatch)
     out = tmp_path / "s1_out"
-    try:                                                  # (strengthened after GREEN: a refusal is the failure)
-        rec = r.attest_stop(tmp_path, r.STOP_STATEMENT)
-    except SystemExit as e:
-        pytest.fail(f"the stop attestation refused instead of finalizing first: {e}")
+    with pytest.raises(SystemExit, match=r"no stop recorded \(status RUNNING\)"):
+        r.attest_stop(tmp_path, r.STOP_STATEMENT)
+    assert hasattr(ck, "run_finalizer"), "no product finalizer command (review C1/I2)"
+    ck.run_finalizer(tmp_path, now=clock)
+    rec = r.attest_stop(tmp_path, r.STOP_STATEMENT)
     assert rec["stop_status"] == "TIMEOUT" and c.aware(rec["stop_close"]) == z.close_of(last["date"],
                                                                                         st_["calendar"])
     assert (out / "seals" / f"{last['date']}.json").exists() and read(out / "stop.json")["status"] == "TIMEOUT"
 
 
 def test_i1_the_final_plan_finalizes_before_it_freezes_the_stop(tmp_path, monkeypatch):
-    """I-1: the final plan in the crash window finalizes first: its stop is the TIMEOUT at the sealed close."""
+    """I-1: the final plan in the crash window finalizes first: its stop is the TIMEOUT at the sealed close.
+    A3 Task 11 (F1/F2.2; fix round 1, review I2 ruling): the final plan never decides a stop - it refuses in the crash
+    window; after the product finalizer command (run_finalizer: finalize, seal, decide) its stop is the TIMEOUT at
+    the sealed close."""
     st_, last, s8, clock, real = _success_without_seal(tmp_path, monkeypatch)
-    try:                                                  # (strengthened after GREEN: a refusal is the failure)
-        rec = k.final_plan_record(tmp_path)
-    except SystemExit as e:
-        pytest.fail(f"the final plan refused instead of finalizing first: {e}")
+    with pytest.raises(SystemExit, match="the trial is RUNNING"):
+        k.final_plan_record(tmp_path)
+    assert hasattr(ck, "run_finalizer"), "no product finalizer command (review C1/I2)"
+    ck.run_finalizer(tmp_path, now=clock)
+    rec = k.final_plan_record(tmp_path)
     assert rec["stop_status"] == "TIMEOUT" and rec["stop_date"] == last["date"], rec
 
 
 def test_i1_the_score_refuses_while_a_success_lacks_its_seal(tmp_path, monkeypatch):
     """I-1: the score (which does not finalize) refuses in the crash window - the trial is still RUNNING at the close
-    level - and freezes nothing (no stop.json, no score reservation)."""
+    level - and freezes nothing (no stop.json, no score reservation).
+    A3 Task 11 (intended, F1): the score never decides a stop; in the crash window there is no TRIAL-STOP (the close is
+    UNRESOLVED), so no SCORE-ACK chain can exist and the score refuses with no work - nothing frozen."""
+    import s1_journal as j
+    import s1_trial as tt
     st_, last, s8, clock, real = _success_without_seal(tmp_path, monkeypatch)
     out = tmp_path / "s1_out"
-    s1_finalize(tmp_path, s8)                        # A3 (F7.1): the chain a SCORE-ACK needs (synthetic, test-only)
-    s1_reack(tmp_path, "score-early", "S1-SCORE-ACK", s8 + timedelta(minutes=1))
-    with pytest.raises(SystemExit, match="RUNNING"):
+    with pytest.raises(SystemExit, match="S1-SCORE-ACK"):
         r.score(tmp_path, "score-early")
+    trl = tt.open_trial(tmp_path / "mailbox.sqlite3")
+    assert j.first(j.read_trial(trl.trial_id, trl.genesis, tmp_path / "mailbox.sqlite3"), "TRIAL-STOP") is None
     assert not (out / "stop.json").exists() and not (out / "score").exists()
 
 
@@ -762,14 +784,18 @@ def test_c2_retro_every_stage_is_recorded_twice(tmp_path):
 def test_c2_retro_the_stop_records_witness_a_stop_no_report_recorded(tmp_path):
     """RETROSPECTIVE. C-2: a stop persisted by a command that writes no capture report (here the stop decision
     itself), then stop.json deleted: its two records still witness it -> the stop attestation records the persistent
-    abort and stop.json is never silently recomputed."""
+    abort and stop.json is never silently recomputed.
+    A3 Task 11 (intended, F2.3): the stop's authority is the journal's TRIAL-STOP. stop.json deleted before any
+    finalization INTENT is the publication gap: the attestation's gate republishes the SAME bytes from committed
+    history (not a silent recompute from files) and the attestation then binds it; no abort."""
     st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final=False)
     out, t = tmp_path / "s1_out", st_["stop_attested_at"]
-    z.current_stop(out, st_["start"], st_["calendar"], t, "decision")
+    before = (out / "stop.json").read_bytes()
     (out / "stop.json").unlink()
-    with _Clock(t), pytest.raises(SystemExit, match=r"registration artifact\(s\) missing or changed"):
-        r.attest_stop(tmp_path, r.STOP_STATEMENT)
-    assert _aborted(tmp_path)["reason"] == "registration artifact" and not (out / "stop.json").exists()
+    with _Clock(t):
+        att = r.attest_stop(tmp_path, r.STOP_STATEMENT)
+    assert (out / "stop.json").read_bytes() == before and att["stop_sha256"] == c.sha256_file(out / "stop.json")
+    assert c.load_abort(out) is None
 
 
 def test_c1_retro_an_unreadable_seal_stops_the_checkpoint_before_any_seal(tmp_path, monkeypatch):
@@ -791,7 +817,10 @@ def test_c1_retro_an_unreadable_seal_stops_the_checkpoint_before_any_seal(tmp_pa
 
 def test_c1_retro_a_bad_seal_record_stops_the_checkpoint_before_any_seal(tmp_path):
     """RETROSPECTIVE. I-4b/m-4: a readable but bad seal record no report binds (a seal for a close after the
-    capture instant: the stop decision refuses it) - the checkpoint aborts on it BEFORE its own close is sealed."""
+    capture instant: the stop decision refuses it) - the checkpoint aborts on it BEFORE its own close is sealed.
+    A3 Task 11 (intended): the checkpoint no longer decides a stop over the seal files (the stop is the journal's), so
+    the future seal is caught by the row fence instead (its rows are 'backdated' against a seal of a later close) -
+    the same abort BEFORE the own close is sealed; only the recorded reason changes."""
     from conftest import _write_seal
     st_ = _registered_b3(tmp_path)
     out = tmp_path / "s1_out"
@@ -801,7 +830,7 @@ def test_c1_retro_a_bad_seal_record_stops_the_checkpoint_before_any_seal(tmp_pat
     rep = _cp(tmp_path, st_["ledger"].path, day=1)
     assert rep["stop"]["status"] == "ABORTED-INVALID" and rep["seal"]["written"] is False
     assert not (out / "seals" / "2026-10-27.json").exists()
-    assert "bad seal record" in str(_aborted(tmp_path)["reason"])
+    assert "backdated to <= sealed close 2026-10-28" in str(_aborted(tmp_path)["reason"])
 
 
 def test_c2_retro_the_opening_is_recorded_twice(tmp_path):

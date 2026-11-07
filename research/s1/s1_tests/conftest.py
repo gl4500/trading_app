@@ -250,12 +250,33 @@ def s1_jappend(root, kind, subject, *, at, detail=None, op=None, actor=None, r_a
     ctx = j.Context(slot_times=lambda s: (far, far), stop_detail=lambda rows: detail,
                     stage_gate=lambda rows, g: None, slot_gate=lambda rows, s: None,
                     stage_check=lambda rows, s, i: None,                # (fix round 1, M-6: supplied explicitly)
-                    stop_fence=lambda rows: None)                      # synthetic: no E2.5 fence (test-only)
+                    stop_fence=lambda rows: None,                      # synthetic: no E2.5 fence (test-only)
+                    stop_ready=lambda rows, now: None)                 # synthetic: no readiness (A3 Task 11)
     res = j.append(tr.trial_id, tr.genesis, j.Request(kind, subject, op or j.new_nonce(), actor or j.new_nonce(),
                                                        detail=detail, r_at=r_at),
                    lambda rows, con: ctx, mailbox=mb, clock=lambda: at)
     assert res.outcome == "APPEND", res
     return res.row
+
+
+def s1_synthetic_stop(root, at, record=None):
+    """A3 Task 11 (F2.2/F2.3): a SYNTHETIC stop for tests of the STOPPED state that do not exercise the stop
+    decision: stop.json = `record` (default a synthetic marker) published exactly as persist_stop publishes it, then a
+    TRIAL-STOP row whose detail is its canonical sha256 - so the gate's stop_check sees a consistent stop (no
+    publication gap to recompute). A TRIAL-STOP whose stop.json is absent is a publication gap that the gate
+    recomputes from committed history (F2.3). Test-only."""
+    import s1_common as c
+    import s1_journal as j
+    out = Path(root) / "s1_out"
+    if record is None:                    # consistent with the legacy integrity checks (bundle, every seal listed)
+        rec = {"synthetic": "stop", "at": at.isoformat(), "status": "NO-VALID-SEAL", "stop_close": None,
+               "missed": [], "bundle_sha256": c.bundle_sha256(),
+               "seals": {p.relative_to(out).as_posix(): c.sha256_file(p) for p in sorted((out / "seals").glob("*.json"))
+                         if p.stem > (c.load_json(out / "plan.json").get("opening_close") or "")}}
+    else:
+        rec = record
+    c.publish_text_exclusive(out / "stop.json", json.dumps(rec, indent=1, sort_keys=True))
+    return s1_jappend(root, "TRIAL-STOP", "trial", at=at, detail=j.detail_of(rec))
 
 
 def s1_ack(root, mid, kind, at, **given):
@@ -287,11 +308,13 @@ def s1_reack(root, mid, kind, at, **given):
 def s1_finalize(root, at):
     """A3 Task 5 test helper for flows that end the trial outside s1_state(score_ready=True) (a test's own prereg, a
     checkpoint abort, ...): the finalization chain a SCORE-ACK needs (F1 graph, F7.1) - the PREREG-ACK (1 min after
-    prereg.json's recorded time) if missing, a synthetic TRIAL-STOP (Task 11 replaces it) at `at` - 1 min if none, and
-    the ACQUIRE-ACK at `at` if missing. Test-only."""
+    prereg.json's recorded time) if missing, a TRIAL-STOP at `at` - 1 min if none, and the ACQUIRE-ACK at `at` if
+    missing. A3 Task 11: the TRIAL-STOP is the real decide_stop when committed history gives a stop at that instant,
+    else a consistent synthetic stop (s1_synthetic_stop: stop.json + matching detail, F2.3). Test-only."""
     from datetime import timedelta
     import s1_common as c
     import s1_journal as j
+    import s1_seal as z
     import s1_trial as t
     m = Path(root) / "mailbox.sqlite3"
     tr = t.open_trial(m)
@@ -299,8 +322,13 @@ def s1_finalize(root, at):
         pr = c.load_json(Path(root) / "s1_out" / "prereg.json")
         s1_ack(root, "prereg-ack", "S1-PREREG-ACK", c.aware(pr["recorded_utc"]) + timedelta(minutes=1))
     if j.first(j.read_trial(tr.trial_id, tr.genesis, m), "TRIAL-STOP") is None:
-        s1_jappend(root, "TRIAL-STOP", "trial", at=at - timedelta(minutes=1),
-                   detail=j.detail_of({"synthetic": "stop", "at": at.isoformat()}))
+        st_at = at - timedelta(minutes=1)
+        pr = c.load_json(Path(root) / "s1_out" / "prereg.json")
+        with _Clock(st_at):
+            z.decide_stop(t.gate(root, "fixture: finalize", mailbox=m, now=lambda: st_at), pr["calendar"],
+                          c.aware(pr["start"]), lambda: st_at, mailbox=m)
+        if j.first(j.read_trial(tr.trial_id, tr.genesis, m), "TRIAL-STOP") is None:
+            s1_synthetic_stop(root, st_at)
     if "S1-ACQUIRE-ACK" not in t.open_trial(m).acks:
         s1_ack(root, "acq-ack", "S1-ACQUIRE-ACK", at)
 
@@ -375,7 +403,7 @@ _MATCH = object()
 
 
 def _write_seal(out: Path, day: str, close_dt, trades, receipt, *, start=None, opening_close=None, with_stage=True,
-                process_binding=_MATCH):
+                process_binding=_MATCH, minutes=45, r_at=None, q_at=None, before_qualified=None, stage_at=None):
     """A seal exactly as s1_checkpoint writes it, plus its preserved capture projection. Task 8b (controller-added):
     a post-START seal (`start` given, close >= start) carries the bridge record s1_seal.bridge_record. Task 12
     interface: the capture records its measured start/end (A5), the seal the registered bundle (A3) and the receipt
@@ -389,7 +417,10 @@ def _write_seal(out: Path, day: str, close_dt, trades, receipt, *, start=None, o
     now a registration artifact, E2.4). with_stage=False stops after the QUALIFIED row: the close is determined but
     has no seal stage. `process_binding`: the capture's recorded binding disposition (default MATCH of
     S1_BINDING; a test of the score's binding recheck injects another one here, so the sealed bytes stay the
-    stage's). Test-only."""
+    stage's). A3 Task 11 r1 (BLK-3 cases): `minutes` - the slot is close + `minutes` (default 45, the first slot);
+    `r_at` - the QUALIFIED's R (default slot + 31 s); `q_at` - the QUALIFIED's commit clock (default R);
+    `before_qualified()` - called just before the QUALIFIED append; `stage_at` - the seal stage's clock (default
+    slot + 32 s). Test-only."""
     from datetime import timedelta
     import s1_common as c
     import s1_journal as j
@@ -399,7 +430,7 @@ def _write_seal(out: Path, day: str, close_dt, trades, receipt, *, start=None, o
     out = Path(out)
     root = out.parent
     proj = {"agent_id": 2, "trades": trades, "portfolios": {}, "schema": {}}
-    sch = close_dt + timedelta(minutes=45)
+    sch = close_dt + timedelta(minutes=minutes)
     n = sl.names(out, sch, day)
     cap_dir = n["capture"]
     cap_dir.mkdir(parents=True)
@@ -439,9 +470,11 @@ def _write_seal(out: Path, day: str, close_dt, trades, receipt, *, start=None, o
     n["report"].write_text(json.dumps(dict(who, close=close_dt.isoformat(), scheduled=sch.isoformat(), actual=ts,
                                            capture_ok=True, consistent=True, receipt_match=True, late=False,
                                            seal={"written": False, "sha256": None}), indent=1), encoding="utf-8")
-    r_at = sch + timedelta(seconds=31)
-    s1_jappend(root, "SLOT-QUALIFIED", sub, at=r_at, op=intent.op, actor=intent.actor, r_at=r_at,
-               detail=j.detail_of(sl.qualified_tree(out, sch, day)))
+    r_at = sch + timedelta(seconds=31) if r_at is None else r_at
+    if before_qualified is not None:
+        before_qualified()
+    s1_jappend(root, "SLOT-QUALIFIED", sub, at=r_at if q_at is None else q_at, op=intent.op, actor=intent.actor,
+               r_at=r_at, detail=j.detail_of(sl.qualified_tree(out, sch, day)))
     if not with_stage:
         return
     try:
@@ -450,8 +483,8 @@ def _write_seal(out: Path, day: str, close_dt, trades, receipt, *, start=None, o
         cal = c.load_json(out / "audit" / "calendar.json")
     day_row = next(d for d in cal if d["date"] == day)
     gv = t.gate(root, "fixture seal")
-    res = sl.run_seal_stage(gv, day_row, cal, mailbox=root / "mailbox.sqlite3",
-                            clock=lambda: sch + timedelta(seconds=32))
+    st_at = sch + timedelta(seconds=32) if stage_at is None else stage_at
+    res = sl.run_seal_stage(gv, day_row, cal, mailbox=root / "mailbox.sqlite3", clock=lambda: st_at)
     assert res["written"], res
 
 
@@ -618,7 +651,7 @@ def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=
 def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.0, "2026-10-01T15:00:00+00:00"),),
              bridge=(), audit_actions=(), audit_problems=(), lots=None, bar_fn=None, final_actions=(),
              final_problems=(), bar_problems=(), seal_days=None, stop_attest=True, receipt=None,
-             final_snapshot=True, final=True, attest=True):
+             final_snapshot=True, final=True, attest=True, stop=True, score_ack=True, seal_stage=True):
     """Build a synthetic s1_out/ under `root` through the REAL product gates (Task 7 test helper, not product code).
 
     Always: plan (s1_collect.write_plan), a COMPLETE audit attempt (calendar + corporate actions, manifest hashes),
@@ -636,7 +669,15 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     Task 7b (controller-added): the rows live in a synthetic SQLite ledger (root/s1_ledger.sqlite3, inserted in
     stored-time order so ids increase with time); the opening seal is produced by
     s1_checkpoint.run_opening_checkpoint (no hand-written opening seal) and the final snapshot by
-    s1_checkpoint.run_final_snapshot. Post-START seals are still written in the checkpoint's seal format."""
+    s1_checkpoint.run_final_snapshot. Post-START seals are still written in the checkpoint's seal format.
+    A3 Task 11 (Step 1/2 conftest change): the stop is reached through s1_seal.decide_stop at the decision instant
+    (for a timeout, after s1_slot.finalize_close closes out the last eligible close at its window end W, so its W slot
+    is terminal). `stop=False`: the seals are written but decide_stop is not run and no attestation, final step or ACK
+    follows (info["now"] is still the decision instant). `score_ack=False` (Task 13): no SCORE-ACK message.
+    `seal_stage=False`: post-START seals stop after their QUALIFIED row (`_write_seal(..., with_stage=False)`: the
+    closes are determined, with no seal stage). The info dict carries `opening_close` (the opening close date, Task 14).
+    Task 11 Step 4: the TRIAL-STOP is the real one (decide_stop: the record, the E2.5 fence and the readiness on the
+    append's clock); the Task 5 synthetic TRIAL-STOP is gone. The post-stop chain is _s1_finish (also s1_finish)."""
     from datetime import timedelta
     import s1_checkpoint as ck
     import s1_collect as k
@@ -700,14 +741,15 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     assert prereg_t < start, (prereg_t, start)
     if not attest:              # A3 Task 10: the state just before the START attestation (the start_attest stage is
         return {"start": start, "calendar": cal, "sessions": sessions, "rows": rows, "stop": None,  # journal-bound now:
-                "ledger": ledger, "attest_at": attest_t, "opening_acked_at": e_w + timedelta(minutes=1)}  # no unattest)
+                "ledger": ledger, "attest_at": attest_t, "opening_acked_at": e_w + timedelta(minutes=1),  # no unattest)
+                "opening_close": opening_close}
     with _Clock(attest_t):
         r.attest_start(root, r.START_STATEMENT, receipt)
     s1_ack(root, "run-ack", "S1-RUN-ACK", ack_t)                       # A3 Task 5: s1_trial.token (F7.1)
     info = {"start": start, "calendar": cal, "sessions": sessions, "rows": rows, "stop": None, "ledger": ledger,
             "now": max(start - timedelta(hours=12), prereg_t + timedelta(minutes=1)),   # (A3 Task 10: after prereg_t)
             "prereg_at": prereg_t, "opening_acked_at": e_w + timedelta(minutes=1),   # Task 12: a causal prereg instant
-            "attest_at": attest_t}
+            "attest_at": attest_t, "opening_close": opening_close}
     if not score_ready:
         return info
 
@@ -721,20 +763,65 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     for i in seal_days:
         cl = z.close_of(sessions[i], cal)
         _write_seal(out, sessions[i], cl, [t for t in rows if c.aware(t["ts"]) <= cl + timedelta(minutes=45)],
-                    receipt, start=start, opening_close=oc)
+                    receipt, start=start, opening_close=oc, with_stage=seal_stage)
         last_close = max(last_close, cl)
     seals = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((out / "seals").glob("*.json"))]
     t = last_close + timedelta(days=1)
-    stop = z.stop_decision(seals, start, cal, today=t)
-    if stop["status"] != "STOPPED":                      # let the timeout window close
+    stop_ = z.stop_decision(seals, start, cal, today=t)
+    last_eligible = None
+    if stop_["status"] != "STOPPED":                     # let the timeout window close
         last_eligible = [d for d in cal if z.open_instant(d) >= start and _dl_ok(z, d, cal, dl)][-1]
         t = z.window_end(last_eligible, cal) + timedelta(days=1)
-        stop = z.stop_decision(seals, start, cal, today=t)
-    info["stop"] = stop
-    # A3 Task 5: synthetic TRIAL-STOP (Task 11 replaces it): the trial has ended - STOPPED, TIMEOUT or NO-VALID-SEAL
-    # (every disposition of the Task 11 stop record, OQ-8) - so the finalization chain (ACQUIRE-, SCORE-ACK) can follow
-    s1_jappend(root, "TRIAL-STOP", "trial", at=t - timedelta(seconds=1),
-               detail=j.detail_of({"synthetic": "stop", "stop": stop}))
+        stop_ = z.stop_decision(seals, start, cal, today=t)
+    if not stop:                                         # A3 Task 11: seals only - no decision, no finalization
+        info["now"] = t                                  # (the decision instant the stop=True path would use)
+        return info
+    info["stop"] = stop_
+    mb = root / "mailbox.sqlite3"
+    import s1_trial as tr_
+    if last_eligible is not None:                        # A3 Task 11: a timeout - the last eligible close's W slot
+        s1_close_out(root, cal, last_eligible["date"])   # is terminal (finalize_close at its window end)
+    with _Clock(t):
+        gv = tr_.gate(root, "fixture: stop decision", mailbox=mb, now=lambda: t)
+        z.decide_stop(gv, cal, start, lambda: t, mailbox=mb)
+    assert j.first(j.read_trial(gv.trial.trial_id, gv.trial.genesis, mb), "TRIAL-STOP") is not None, \
+        "fixture: decide_stop committed no TRIAL-STOP"     # (A3 Task 11 Step 4: the synthetic fallback is deleted)
+    return _s1_finish(root, info, t, stop_, lots=lots, held_syms=held_syms, stop_attest=stop_attest, final=final,
+                      bar_fn=bar_fn, bar_problems=bar_problems, final_actions=final_actions,
+                      final_problems=final_problems, final_snapshot=final_snapshot, score_ack=score_ack)
+
+
+def s1_unattest(root, *, books=True):
+    """Fix round 2 (Addendum 2 B3) test helper: the state BEFORE the START attestation, for tests that used to delete
+    attest_start.json to re-attest: the attestation (and, with `books`, the opening books it wrote) AND its registry
+    record are removed - exactly the files the attestation stage creates (deleting only the attestation now is the
+    persistent "registration artifact" abort, B3.3).
+    Fix round 3 (C-2): the attestation stage is now witnessed redundantly, so the pre-attestation state also lacks
+    the attestation's second registration record (witnesses/attest_start.json) and the RUN-ACK message "run-ack"
+    (a RUN-ACK binds an attestation: it cannot exist before one)."""
+    out = Path(root) / "s1_out"
+    for rel in ["attest_start.json", "registry/attest_start.json", "witnesses/attest_start.json"] + (
+            ["opening_books.json"] if books else []):
+        (out / rel).unlink()
+    con = sqlite3.connect(Path(root) / "mailbox.sqlite3")
+    con.execute("DELETE FROM messages WHERE id=?", ("run-ack",))
+    con.commit()
+    con.close()
+
+
+def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=True, bar_fn=None,
+               bar_problems=(), final_actions=(), final_problems=(), final_snapshot=True, score_ack=True):
+    """A3 Task 11 (extracted unchanged from s1_state): the chain after the TRIAL-STOP at the fixture's decision
+    instant `t` - the stop attestation, the final plan + a COMPLETE final attempt, the ACQUIRE-ACK, the final
+    snapshot and the SCORE-ACK. Test-only."""
+    from datetime import timedelta
+    import s1_checkpoint as ck
+    import s1_collect as k
+    import s1_common as c
+    import s1_run as r
+    root = Path(root)
+    out = root / "s1_out"
+    sessions, ledger = info["sessions"], info["ledger"]
     if stop_attest and stop["status"] in ("STOPPED", "TIMEOUT"):
         with _Clock(t):
             r.attest_stop(root, r.STOP_STATEMENT)
@@ -780,27 +867,22 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     if final_snapshot:
         with _Clock(info["snapshot_at"]):
             ck.run_final_snapshot(root, ledger.path, now=lambda: info["snapshot_at"])
-    s1_ack(root, "score-ack", "S1-SCORE-ACK", t + timedelta(days=3))                 # A3 Task 5 (F1 graph 6)
+    if score_ack:                                                                    # (A3 Task 11: Task 13 keyword)
+        s1_ack(root, "score-ack", "S1-SCORE-ACK", t + timedelta(days=3))             # A3 Task 5 (F1 graph 6)
     info["now"] = t + timedelta(days=4)
     return info
 
 
-def s1_unattest(root, *, books=True):
-    """Fix round 2 (Addendum 2 B3) test helper: the state BEFORE the START attestation, for tests that used to delete
-    attest_start.json to re-attest: the attestation (and, with `books`, the opening books it wrote) AND its registry
-    record are removed - exactly the files the attestation stage creates (deleting only the attestation now is the
-    persistent "registration artifact" abort, B3.3).
-    Fix round 3 (C-2): the attestation stage is now witnessed redundantly, so the pre-attestation state also lacks
-    the attestation's second registration record (witnesses/attest_start.json) and the RUN-ACK message "run-ack"
-    (a RUN-ACK binds an attestation: it cannot exist before one)."""
-    out = Path(root) / "s1_out"
-    for rel in ["attest_start.json", "registry/attest_start.json", "witnesses/attest_start.json"] + (
-            ["opening_books.json"] if books else []):
-        (out / rel).unlink()
-    con = sqlite3.connect(Path(root) / "mailbox.sqlite3")
-    con.execute("DELETE FROM messages WHERE id=?", ("run-ack",))
-    con.commit()
-    con.close()
+def s1_finish(root, info, t, *, lots=None, held_syms=("CI",), **kw):
+    """A3 Task 11: for a test whose TRIAL-STOP was committed by its own checkpoints (s1_state(stop=False), then
+    the captures it needs BEFORE the stop): the same post-stop chain as s1_state, at instant `t` (after the
+    STOP), on the journal's stop (stop.json). Test-only."""
+    import s1_seal as z
+    st_ = z.load_stop(Path(root) / "s1_out")
+    assert st_ is not None, "s1_finish: no persisted stop"
+    info["stop"] = {"status": st_["status"], "stop_close": st_["stop_close"], "missed": st_["missed"]}
+    return _s1_finish(root, info, t, info["stop"], lots=_default_lots() if lots is None else lots,
+                      held_syms=held_syms, **kw)
 
 
 def s1_register(root, planned_start, *, calendar=None, receipt=None, carry_in_syms=(), first_day=None,

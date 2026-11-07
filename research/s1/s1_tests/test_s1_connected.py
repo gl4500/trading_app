@@ -433,8 +433,13 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     app.trade(next(e for e in events if e["kind"] == "post"))
 
     # 8. stop attestation, then the final plan (carry-in incl. the bridge ticker)
-    s1_jappend(root, "TRIAL-STOP", "trial", at=stop_close + timedelta(hours=15) - timedelta(seconds=1),
-               detail=j.detail_of({"synthetic": "stop", "stop_close": stop_close.isoformat()}))   # A3 Task 5
+    # A3 Task 11 (intended, F2.2): the stop close's own checkpoint committed the REAL TRIAL-STOP (decide_stop after
+    # its QUALIFIED) and published stop.json; the Task 5 synthetic STOP is gone
+    import s1_trial as tt
+    trl = tt.open_trial(root / "mailbox.sqlite3")
+    real_stop = j.first(j.read_trial(trl.trial_id, trl.genesis, root / "mailbox.sqlite3"), "TRIAL-STOP")
+    assert real_stop is not None and json.loads((out / "stop.json").read_text(encoding="utf-8"))["stop_close"] == \
+        stop_close.isoformat()
     at(stop_close + timedelta(hours=15))
     att = r.attest_stop(root, r.STOP_STATEMENT)
     assert att["stop_close"] == stop_close.isoformat()

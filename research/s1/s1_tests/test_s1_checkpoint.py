@@ -453,8 +453,10 @@ def test_fr1_main_and_trial_state_compare_modes_and_status_by_value(tmp_path, mo
     monkeypatch.setattr(s1_common, "_open_trial_rows", lambda mailbox=None: [])
     # A3 Task 7: finalize_pending is the journal finalizer behind its own trial gate; this unit test has no trial
     monkeypatch.setattr(k, "finalize_pending", lambda *a, **kw: None)
-    monkeypatch.setattr(k.z, "stop_decision", lambda *a, **kw: {"status": "".join(list("RUNNING")),
-                                                                "stop_close": None})
+    # A3 Task 11 (intended): _trial_state reads the journal's stop (s1_seal.current_stop, F1/F2), no longer
+    # stop_decision over the seal files - the equal-but-distinct "RUNNING" is injected there
+    monkeypatch.setattr(k.z, "current_stop", lambda *a, **kw: {"status": "".join(list("RUNNING")),
+                                                               "stop_close": None, "missed": [], "persisted": False})
     with pytest.raises(SystemExit, match="RUNNING"):
         k._trial_state(tmp_path / "s1_out", {"start": START.isoformat(), "calendar": CAL},
                        datetime(2026, 10, 20, tzinfo=UTC))

@@ -424,7 +424,17 @@ def test_b1_a_pending_resolution_cannot_cause_an_early_terminal_stop_followed_by
         run(tmp_path, st_, s8, clock)
     assert spy.calls == 0 and kinds(tmp_path, s8) == []
     out = tmp_path / "s1_out"
-    st1 = z.current_stop(out, start, cal, s8 + timedelta(minutes=10), "test")
-    st2 = z.current_stop(out, start, cal, s8 + timedelta(minutes=25), "test")
+    # A3 Task 11 (intended, F2.2 / r1 §1.3; fix round 1, review I2 ruling): the stop is decided only by decide_stop,
+    # reached end to end through the PRODUCT finalizer command (s1_checkpoint --finalize -> run_finalizer: the last
+    # eligible close's slots MISSED at E, then the stop decision on the transaction clock >= W), never by reading
+    # the files at some time; decided once - a second finalizer run 15 min later finds the same stop
+    import s1_checkpoint as ck
+    assert hasattr(ck, "run_finalizer"), "no product finalizer command (review C1/I2)"
+    sts = []
+    for t_ in (s8 + timedelta(minutes=10), s8 + timedelta(minutes=25)):
+        clock.t = t_
+        ck.run_finalizer(tmp_path, now=clock)
+        sts.append(z.current_stop(out, start, cal, t_, "test"))
+    st1, st2 = sts
     assert (st1["status"], st1["stop_close"]) == (st2["status"], st2["stop_close"]), (st1, st2)
     assert st1["status"] != "RUNNING" and read(out / "stop.json")["status"] == st1["status"]

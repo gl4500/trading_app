@@ -230,7 +230,10 @@ def test_timeout_cleanup_waits_for_the_work_lock(tmp_path):                     
 
 # ---------------------------------------------------------------- E2 r3 (rows 55, 260-266, 323-325, 331, 334-336)
 def _stop_row(tmp_path, at):
-    return s1_jappend(tmp_path, "TRIAL-STOP", "trial", detail="5" * 64, at=at)
+    """A3 Task 11 (fixture, F2.3): a consistent synthetic stop (stop.json + matching detail), so the gate's stop_check
+    finds no publication gap to recompute; the tests here are about the STOPPED state, not the stop decision."""
+    from conftest import s1_synthetic_stop
+    return s1_synthetic_stop(tmp_path, at)
 
 
 def seal_kinds(tmp_path, day_iso):
@@ -316,7 +319,8 @@ def test_stop_fence_refuses_a_determined_close_without_a_created_seal(tmp_path, 
     tr = t.open_trial(tmp_path / "mailbox.sqlite3")
     req = j.Request("TRIAL-STOP", "trial", j.new_nonce(), j.new_nonce(), detail="5" * 64)
     ctx = t.product_context(tr, st_["calendar"], stop_detail=lambda rows_: "5" * 64,
-                            stop_fence=sl.stop_fence(st_["calendar"], c.aware(START)))
+                            stop_fence=sl.stop_fence(st_["calendar"], c.aware(START)),
+                            stop_ready=lambda rows_, now_: None)       # A3 Task 11: readiness is not under test here
     at = sch + timedelta(minutes=2)
     res = j.append(tr.trial_id, tr.genesis, req, ctx, mailbox=tmp_path / "mailbox.sqlite3", clock=lambda: at)
     assert res.outcome == "REFUSE" and "not sealed" in res.reason

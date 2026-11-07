@@ -516,7 +516,11 @@ def test_final_snapshot_after_its_own_detection_captures_nothing(tmp_path, monke
     p.write_text(json.dumps(dict(json.loads(p.read_text(encoding="utf-8")), edited=True)),
                  encoding="utf-8")                                          # the TEST edits its tmp artifact
     sp = Spies(monkeypatch)
-    with _Clock(st_["snapshot_at"]), pytest.raises(t.Refusal, match=r"trial INVALID \(reason/registration-artifact\)"):
+    # A3 Task 11 (intended, F2.4): the gate's stop_check now detects the changed stop.json itself (after the
+    # stop_attest INTENT) and commits TRIAL-INVALID (registration-artifact) before any work - the same reason and the
+    # same zero captures; the refusal is the gate's own, not the old re-read Refusal
+    with _Clock(st_["snapshot_at"]), pytest.raises(SystemExit, match=r"stop\.json changed or unparseable: INVALID "
+                                                                      r"\(registration-artifact\)"):
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
     sp.assert_zero()
     assert not (tmp_path / "s1_out" / "final_snapshot").exists()

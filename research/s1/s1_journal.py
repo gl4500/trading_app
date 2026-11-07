@@ -106,9 +106,12 @@ class Context:
     None (F1 permission, predecessor, ACKs, the seal stage's determined close); stage_check(rows, subject, inputs)
     -> Decision | None at step 4a for a STAGE-INTENT (E2.2 r3: a seal stage selecting another QUALIFIED than the
     first one is INVALIDATE contradictory-stage); stop_fence(rows) -> a refusal reason or None at step 5 for
-    TRIAL-STOP (E2.5 r3: every close determined by these rows must have a CREATED seal stage). A missing
-    slot_gate, stage_gate or stage_check (and slot_times, stop_detail, stop_fence) fails closed at step 5/6 (Task 5
-    fix round 1, review M-6); steps 2-4 never depend on them."""
+    TRIAL-STOP (E2.5 r3: every close determined by these rows must have a CREATED seal stage); stop_ready(rows, now)
+    -> a refusal reason or None at step 5 for TRIAL-STOP, after the fence (A3 Task 11, BLK3-C1 / Codex 28e08272
+    checkpoint: `now` is the clock append() sampled inside THIS transaction - the same instant that becomes the row's
+    `at` - never a preflight time). A missing slot_gate, stage_gate or stage_check (and slot_times, stop_detail,
+    stop_fence, stop_ready) fails closed at step 5/6 (Task 5 fix round 1, review M-6); steps 2-4 never depend on
+    them."""
     closed: bool = False
     slot_times: Optional[Callable[[str], tuple]] = None
     stop_detail: Optional[Callable[[list], Optional[str]]] = None
@@ -116,6 +119,7 @@ class Context:
     slot_gate: Optional[Callable[[list, str], Optional[str]]] = None
     stage_check: Optional[Callable[[list, str, dict], Optional["Decision"]]] = None
     stop_fence: Optional[Callable[[list], Optional[str]]] = None
+    stop_ready: Optional[Callable[[list, datetime], Optional[str]]] = None
 
 
 @dataclass(frozen=True)
@@ -352,7 +356,7 @@ def decide(rows, req, ctx, now) -> Decision:
         return _slot(rows, mine, req, ctx, now, state, reused)
     if req.kind in STAGE_KINDS:
         return _stage(rows, mine, req, ctx, reused)
-    return _stop(rows, req, ctx, reused)
+    return _stop(rows, req, ctx, now, reused)
 
 
 _REUSED = Decision("REFUSE", "an opening row must open a new op; this op is already used (OQ-3: malformed)")
@@ -440,7 +444,7 @@ def _stage(rows, mine, req, ctx, reused=False) -> Decision:
     return Decision("APPEND")
 
 
-def _stop(rows, req, ctx, reused=False) -> Decision:
+def _stop(rows, req, ctx, now, reused=False) -> Decision:
     stop = first(rows, "TRIAL-STOP")
     if stop is not None:                                                                                   # 4c
         if req.detail == stop.detail:
@@ -456,6 +460,10 @@ def _stop(rows, req, ctx, reused=False) -> Decision:
     fence = ctx.stop_fence(rows) if ctx.stop_fence is not None else "no stop fence supplied (fail closed)"
     if fence:                                                                 # E2.5 r3: the frozen prefix
         return Decision("REFUSE", f"STOP prefix not sealed: {fence} (run the missing seal stages and retry)")
+    why = (ctx.stop_ready(rows, now) if ctx.stop_ready is not None                # BLK3-C1: the transaction clock
+           else "no stop readiness supplied (fail closed)")
+    if why:
+        return Decision("REFUSE", f"STOP not ready: {why}")
     return Decision("APPEND")
 
 

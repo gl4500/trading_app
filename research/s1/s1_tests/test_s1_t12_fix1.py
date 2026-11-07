@@ -126,14 +126,17 @@ def test_fix1_m4_a_deleted_persisted_stop_is_an_integrity_failure_not_a_recomput
     is never silently recomputed: the next checkpoint records the persistent abort; stop.json stays absent."""
     st_, lg, rows = _live_stop(tmp_path)
     out = tmp_path / "s1_out"
+    before = (out / "stop.json").read_bytes()
     (out / "stop.json").unlink()
-    # (fix round 2, Addendum 2 B3.1/B3.3: stop.json is a registered frozen artifact - registry/stop.json - so the
-    # registration gate observes the deletion first: persistent abort, a clean refusal, never a recompute)
-    with pytest.raises(SystemExit, match="registration artifact"):
-        _cp(tmp_path, st_, MON + timedelta(days=2))
-    assert not (out / "stop.json").exists() and not (out / "seals" / "2026-10-28.json").exists()
-    ab = read(out / "aborted.json")
-    assert ab["reason"] == "registration artifact" and any("stop.json" in x for x in ab["problems"])
+    # A3 Task 11 (intended, F2.3): the stop's authority is the journal's TRIAL-STOP detail. Before any finalization
+    # INTENT a missing stop.json is the publication gap: the next command's gate recomputes the record from the rows
+    # before the STOP and publishes the SAME bytes (never a different stop, never a silent recompute from files);
+    # the STOPPED trial's later checkpoint is LOST-RACE with no capture and no seal. (After a finalization INTENT the
+    # same deletion is INVALID: test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid.)
+    rep = _cp(tmp_path, st_, MON + timedelta(days=2))
+    assert rep["outcome"] == "LOST-RACE", rep
+    assert (out / "stop.json").read_bytes() == before and not (out / "seals" / "2026-10-28.json").exists()
+    assert c.load_abort(out) is None
 
 
 def test_fix1_m4_a_changed_persisted_stop_before_the_attestation_is_detected(tmp_path):

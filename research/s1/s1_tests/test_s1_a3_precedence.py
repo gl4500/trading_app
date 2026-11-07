@@ -58,7 +58,8 @@ def rq(kind, subject=S, op=AO, actor=AA, detail=None, r_at=None, inputs=None):
 def ctx(**kw):
     base = dict(slot_times=lambda s: (E, D), stop_detail=lambda rows: H1, stage_gate=lambda rows, g: None,
                 slot_gate=lambda rows, s: None, stop_fence=lambda rows: None,      # revision 2: E2.5 r3 fence
-                stage_check=lambda rows, s, i: None)          # (Task 5 fix round 1, M-6: supplied explicitly)
+                stage_check=lambda rows, s, i: None,          # (Task 5 fix round 1, M-6: supplied explicitly)
+                stop_ready=lambda rows, now: None)            # A3 Task 11 (BLK3-C1): the readiness, supplied explicitly
     base.update(kw)
     return j.Context(**base)
 
@@ -138,6 +139,14 @@ CASES = [
      {"stop_fence": lambda rows: "determined close 2026-10-27 has no CREATED seal stage (E2.5)"}, "REFUSE", None),
     ("5-stop-fence-ok", [], rq("TRIAL-STOP", "trial", op=N1, actor=FA, detail=H1), E,
      {"stop_fence": lambda rows: None}, "APPEND", None),
+    # A3 Task 11 (BLK3-C1): readiness is evaluated after the fence, on the transaction's own `now`; a missing
+    # readiness callable fails closed (M-6)
+    ("5-stop-not-ready", [], rq("TRIAL-STOP", "trial", op=N1, actor=FA, detail=H1), E,
+     {"stop_ready": lambda rows, now: None if now >= D else "window open"}, "REFUSE", None),
+    ("5-stop-ready-at-txn-now", [], rq("TRIAL-STOP", "trial", op=N1, actor=FA, detail=H1), D,
+     {"stop_ready": lambda rows, now: None if now >= D else "window open"}, "APPEND", None),
+    ("5-stop-no-readiness-supplied", [], rq("TRIAL-STOP", "trial", op=N1, actor=FA, detail=H1), E,
+     {"stop_ready": None}, "REFUSE", None),
     ("5-stop-rule-not-met", [], rq("TRIAL-STOP", "trial", op=N1, actor=FA, detail=H1), E,
      {"stop_detail": lambda rows: None}, "REFUSE", None),
     ("5-stop-differs-from-recomputed", [], rq("TRIAL-STOP", "trial", op=N1, actor=FA, detail=H2), E, {}, "REFUSE",

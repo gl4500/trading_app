@@ -22,6 +22,7 @@ from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_score_refused,
                       s1_state, s1_sync_portfolio, s1_unattest)
+from conftest import s1_replaced  # A3 Task 11
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"
@@ -201,7 +202,9 @@ def test_mf_a_stop_json_naming_a_non_qualifying_close_is_aborted_invalid(tmp_pat
              seals={k_: v for k_, v in s["seals"].items() if k_ != "seals/2026-10-27.json"})
     (out / "stop.json").write_text(json.dumps(s), encoding="utf-8")
     probs = z.stop_problems(out, START_DT, st_["calendar"])
-    assert any("is not the frozen slices' stop" in p for p in probs), probs
+    # A3 Task 11 (intended, OQ-8): the re-check is now "stop.json equals stop_record over the rows before the
+    # TRIAL-STOP" (no re-decision over the frozen slices at a decision time)
+    assert any("is not the record committed history gives before its TRIAL-STOP" in p for p in probs), probs
 
 
 # ---------------------------------------------------------------------- s1_collect
@@ -279,10 +282,15 @@ def test_mf_the_final_plan_binds_the_persisted_stop(tmp_path):
     st_ = s1_state(tmp_path, START, score_ready=True, final=False, final_snapshot=False)
     out = tmp_path / "s1_out"
     with _Clock(st_["stop_attested_at"] + timedelta(hours=1)):
-        assert k.final_plan_record(tmp_path)["stop_sha256"] == c.sha256_file(out / "stop.json")
+        rec = k.final_plan_record(tmp_path)
+        assert rec["stop_sha256"] == c.sha256_file(out / "stop.json")
         p = out / "attest_stop.json"
         p.write_text(json.dumps(dict(read(p), stop_sha256="0" * 64)), encoding="utf-8")
+        # A3 Task 11 (intended, F4 table CREATED): attest_stop.json is the stop_attest stage's committed member - the
+        # command's gate refuses INVALID (stage-replaced); the binding check itself (the killer) is at unit level
         with pytest.raises(SystemExit, match="does not bind"):
+            k._stop_attestation(out, rec)
+        with pytest.raises(SystemExit, match=s1_replaced("attest_stop.json")):
             k.write_final_plan(tmp_path)
 
 
@@ -390,8 +398,9 @@ def test_mf_an_attestation_binding_another_stop_json_is_unverified(tmp_path, mon
     p = tmp_path / "s1_out" / "attest_stop.json"
     p.write_text(json.dumps(dict(read(p), stop_sha256="0" * 64)), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
-    rep = r.score(tmp_path, "score-ack-2")
+    # A3 Task 11 (intended, F4 table CREATED): the edited attest_stop.json is INVALID (stage-replaced) at the score's
+    # gate; the unit-level record keeps the score's binding check (the killer)
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")
     assert "persisted stop (stop.json) hash differs" in rep["stop_attestation"]["problems"]
 
 

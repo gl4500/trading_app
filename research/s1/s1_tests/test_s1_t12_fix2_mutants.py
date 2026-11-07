@@ -313,32 +313,47 @@ def test_mt_an_unbound_corrupt_seal_is_a_preserved_abort_not_a_crash(tmp_path, m
     assert not (out / "seals" / "2026-10-27.json").exists()
 
 
-@pytest.mark.skip(reason="HELD with Task 11 (A3 Task 6, OQ-11/E5.2): the capture report is final before J and no "
-                         "longer records the stop hash (display-only after.json never is authority), so with stop.json "
-                         "and both stop records deleted nothing witnesses the legacy stop; Task 11's TRIAL-STOP detail "
-                         "is the stop's authority (F2)")
-def test_mt_a_deleted_stop_and_its_registry_record_is_never_recomputed_or_sealed_past(tmp_path):
-    """Mutants "stop_was_persisted always false" / "run_checkpoint: a corrupt seal is not an abort" (m-4): with
-    stop.json AND registry/stop.json deleted (the B3 gate then has no stop to check), the capture reports' recorded
-    stop hash still witnesses the persisted stop: the next checkpoint aborts and neither recomputes stop.json nor
-    seals the next close.
-    (Fix round 3 migration, C-2: both stop records - registry/ and witnesses/ - are deleted to reach the same state,
-    and the reports' recorded stop hash now makes the registration gate itself record the persistent abort before
-    any capture: a refusal-with-abort, stronger than the former in-command abort; the asserted properties - no
-    recompute, no later seal, a persistent abort - are unchanged.)"""
+@pytest.mark.parametrize("attested", [False, True], ids=["publication-gap", "after-stop-attest"])
+def test_mt_a_deleted_stop_and_its_registry_record_is_never_recomputed_or_sealed_past(tmp_path, attested):
+    """Mutants "stop_was_persisted always false" / "run_checkpoint: a corrupt seal is not an abort" (m-4): stop.json
+    AND both stop records deleted.
+    A3 Task 11 (un-held; intended F2.3/F2.4 - the journal's TRIAL-STOP detail is the stop's authority, never the
+    files): before any finalization INTENT this is the publication gap - the next command's gate recomputes the record
+    from the rows before the STOP and publishes bytes whose canonical hash IS the STOP detail (never a different stop),
+    and the STOPPED trial seals no later close (its checkpoint is LOST-RACE, no capture, no abort). After the stop
+    attestation's INTENT the same deletion is INVALID (registration-artifact): nothing is recomputed, and no later
+    close is sealed. (The old oracle - an abort and NO recompute - was the pre-A3 file authority.)"""
+    import s1_journal as j
+    import s1_trial as t
     from test_s1_t12_a2 import _live_stop
     st_, lg, rows = _live_stop(tmp_path)
     out = tmp_path / "s1_out"
+    mbx = tmp_path / "mailbox.sqlite3"
+    tr = t.open_trial(mbx)
+    stop = j.first(j.read_trial(tr.trial_id, tr.genesis, mbx), "TRIAL-STOP")
+    assert stop is not None
+    before = (out / "stop.json").read_bytes()
+    if attested:
+        with _Clock(stop.instant + timedelta(hours=1)):
+            r.attest_stop(tmp_path, r.STOP_STATEMENT)
     (out / "stop.json").unlink()
     (out / "registry" / "stop.json").unlink()
     (out / "witnesses" / "stop.json").unlink()
     sch = datetime(2026, 10, 28, 20, 45, tzinfo=UTC)
-    with _Clock(sch + timedelta(seconds=30)), pytest.raises(SystemExit, match="ABORTED-INVALID"):
-        ck.run_checkpoint(tmp_path, lg.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
-                          tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
-    assert not (out / "stop.json").exists(), "the persisted stop was silently recomputed"
+    with _Clock(sch + timedelta(seconds=30)):
+        if attested:
+            with pytest.raises(SystemExit, match=r"stop\.json missing: INVALID \(registration-artifact\)"):
+                ck.run_checkpoint(tmp_path, lg.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                                  tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
+            assert not (out / "stop.json").exists(), "a stop was recomputed after a finalization INTENT"
+        else:
+            rep = ck.run_checkpoint(tmp_path, lg.path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
+                                    tmp_path / "crash.log", now=lambda: sch + timedelta(seconds=30))
+            assert rep["outcome"] == "LOST-RACE", rep
+            assert (out / "stop.json").read_bytes() == before                  # the same record, from the journal
+            assert j.detail_of(json.loads(before.decode("utf-8"))) == stop.detail
+            assert c.load_abort(out) is None
     assert not (out / "seals" / "2026-10-28.json").exists()
-    assert c.load_abort(out) is not None
 
 
 def test_mt_attest_stop_reverifies_the_run_ack(tmp_path):

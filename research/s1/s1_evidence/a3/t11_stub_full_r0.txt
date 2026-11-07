@@ -1,0 +1,196 @@
+........................................................................ [  4%]
+........................................................................ [  8%]
+........................................................................ [ 12%]
+........................................................................ [ 17%]
+........................................................................ [ 21%]
+........................................................................ [ 25%]
+........................................................................ [ 29%]
+......................................................FFFFFFF.F..FFF.F.F [ 34%]
+.sFFFFFFFF.F............................................................ [ 38%]
+........................................................................ [ 42%]
+........................................................................ [ 46%]
+........................................................................ [ 51%]
+........................................................................ [ 55%]
+........................................................................ [ 59%]
+....F................................................................... [ 63%]
+........................................................................ [ 68%]
+........................................................................ [ 72%]
+........................................................................ [ 76%]
+.................s.....F................................................ [ 80%]
+........................................................................ [ 85%]
+........................................................................ [ 89%]
+........................................................................ [ 93%]
+..................................................................s..... [ 97%]
+.....................................                                    [100%]
+================================== FAILURES ===================================
+__________ test_stop_record_is_a_pure_function_of_committed_history ___________
+research\s1\s1_tests\test_s1_a3_stop.py:50: in test_stop_record_is_a_pure_function_of_committed_history
+    assert a == b and j.detail_of(a) == stop.detail
+E   AssertionError: assert (None == None and '74234e98afe7...19892f982b90b' == 'f5c7e35de7c5...266387cecec42'
+E     
+E     - f5c7e35de7c5e2ce7fbde8daf2850092caf5dde34547b22e12c266387cecec42
+E     + 74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b)
+__________ test_trial_stop_is_appended_before_stop_json_is_published __________
+research\s1\s1_tests\test_s1_a3_stop.py:68: in test_trial_stop_is_appended_before_stop_json_is_published
+    assert "TRIAL-STOP" in seen["rows"]
+E   AssertionError: assert 'TRIAL-STOP' in ['STAGE-INTENT', 'STAGE-PREPARED', 'STAGE-CREATED', 'SLOT-INTENT', 'SLOT-QUALIFIED', 'STAGE-INTENT', ...]
+________________ test_publication_gap_recovers_matching_bytes _________________
+research\s1\s1_tests\test_s1_a3_stop.py:86: in test_publication_gap_recovers_matching_bytes
+    assert not (tmp_path / "s1_out" / "stop.json").exists() and j.first(jrows(tmp_path), "TRIAL-STOP")
+E   AssertionError: assert (not False and None)
+E    +  where False = exists()
+E    +    where exists = ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21201/test_publication_gap_recovers_0') / 's1_out') / 'stop.json').exists
+E    +  and   None = <function first at 0x000001546678DDA0>([Row(trial_id='002e1f03-ab69-480b-98b0-9f56d3874a07', seq=1, prev='166c8b85f78771065fcd89ce6c2983a631542ef75104c1adc35...ab at=2026-10-23T20:45:30.000000+00:00', mailbox_id='440ae523-4785-477a-a0fd-c5f94a6a89d1', created=1792788330.0), ...], 'TRIAL-STOP')
+E    +    where <function first at 0x000001546678DDA0> = j.first
+E    +    and   [Row(trial_id='002e1f03-ab69-480b-98b0-9f56d3874a07', seq=1, prev='166c8b85f78771065fcd89ce6c2983a631542ef75104c1adc35...ab at=2026-10-23T20:45:30.000000+00:00', mailbox_id='440ae523-4785-477a-a0fd-c5f94a6a89d1', created=1792788330.0), ...] = jrows(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21201/test_publication_gap_recovers_0'))
+________ test_publication_gap_with_different_history_is_stop_conflict _________
+research\s1\s1_tests\test_s1_a3_stop.py:96: in test_publication_gap_with_different_history_is_stop_conflict
+    with pytest.raises(SystemExit, match=r"INVALID \(stop-conflict\)"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+___ test_stop_json_damaged_after_a_finalization_intent_is_invalid[deleted] ____
+research\s1\s1_tests\test_s1_a3_stop.py:109: in test_stop_json_damaged_after_a_finalization_intent_is_invalid
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+___ test_stop_json_damaged_after_a_finalization_intent_is_invalid[changed] ____
+research\s1\s1_tests\test_s1_a3_stop.py:109: in test_stop_json_damaged_after_a_finalization_intent_is_invalid
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_ test_stop_json_damaged_after_a_finalization_intent_is_invalid[unparseable] __
+research\s1\s1_tests\test_s1_a3_stop.py:109: in test_stop_json_damaged_after_a_finalization_intent_is_invalid
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+________ test_a_stop_with_a_different_detail_is_invalid_stop_conflict _________
+research\s1\s1_tests\test_s1_a3_stop.py:139: in test_a_stop_with_a_different_detail_is_invalid_stop_conflict
+    with pytest.raises(SystemExit, match=r"INVALID \(stop-conflict\)"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_______________ test_stop_lock_is_taken_before_the_journal_read _______________
+research\s1\s1_tests\test_s1_a3_stop.py:172: in test_stop_lock_is_taken_before_the_journal_read
+    assert ("lock", "stop.lock") in order and ("append", "TRIAL-STOP") in order      # (Deviation 3: assert, not
+E   AssertionError: assert (('lock', 'stop.lock') in [('read',), ('lock', 'stage-audit.lock'), ('read',), ('append', 'STAGE-INTENT'), ('append', 'STAGE-PREPARED'), ('append', 'STAGE-CREATED'), ...])
+____________________ test_stop_attest_envelope_and_member _____________________
+research\s1\s1_tests\test_s1_a3_stop.py:186: in test_stop_attest_envelope_and_member
+    e = _envelope(tmp_path, "stop_attest")
+research\s1\s1_tests\test_s1_a3_stop.py:180: in _envelope
+    assert p.is_file(), f"no {stage} STAGE-INTENT envelope"                 # (Deviation 4: assert, not an OSError)
+E   AssertionError: no stop_attest STAGE-INTENT envelope
+E   assert False
+E    +  where False = is_file()
+E    +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21201/test_stop_attest_envelope_and_0/s1_staging/3783d069-0efc-490e-a31d-19a4ff493042/stop_attest/intent.json').is_file
+_____________________ test_final_plan_envelope_and_member _____________________
+research\s1\s1_tests\test_s1_a3_stop.py:197: in test_final_plan_envelope_and_member
+    e = _envelope(tmp_path, "final_plan")
+research\s1\s1_tests\test_s1_a3_stop.py:180: in _envelope
+    assert p.is_file(), f"no {stage} STAGE-INTENT envelope"                 # (Deviation 4: assert, not an OSError)
+E   AssertionError: no final_plan STAGE-INTENT envelope
+E   assert False
+E    +  where False = is_file()
+E    +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21201/test_final_plan_envelope_and_m0/s1_staging/da248c2b-7b65-4847-9563-fb92aab72511/final_plan/intent.json').is_file
+_______ test_finalization_stages_are_refused_while_active[stop_attest] ________
+research\s1\s1_tests\test_s1_a3_stop.py:236: in test_finalization_stages_are_refused_while_active
+    with _Clock(st_["now"]), pytest.raises(SystemExit, match=ACTIVE_REFUSAL[stage]):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+__________ test_finalization_stages_are_refused_while_active[final] ___________
+research\s1\s1_tests\test_s1_a3_stop.py:225: in _refused
+    fn()
+research\s1\s1_tests\test_s1_a3_stop.py:239: in <lambda>
+    "final": lambda: k.do_final(tmp_path, "acq-ack", sp.client(), ("k", "s")),
+research\s1\s1_collect.py:645: in do_final
+    plan = json.loads(fp.read_text(encoding="utf-8"))
+..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+..\trading_app\runtime\python\Lib\pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+E   FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21201\\test_finalization_stages_are_r2\\s1_out\\final_plan.json'
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_stop.py:237: in test_finalization_stages_are_refused_while_active
+    _refused({"stop_attest": lambda: r.attest_stop(tmp_path, r.STOP_STATEMENT),
+research\s1\s1_tests\test_s1_a3_stop.py:229: in _refused
+    pytest.fail(f"not a refusal: {type(e).__name__}: {e}")
+E   Failed: not a refusal: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21201\\test_finalization_stages_are_r2\\s1_out\\final_plan.json'
+______ test_post_stop_sampled_slot_is_excluded_from_the_sampled_history _______
+research\s1\s1_tests\test_s1_a3_stop.py:285: in test_post_stop_sampled_slot_is_excluded_from_the_sampled_history
+    assert stop is not None, "no TRIAL-STOP row"                            # (Deviation 3: assert, not AttributeError)
+E   AssertionError: no TRIAL-STOP row
+E   assert None is not None
+_______________________ test_no_new_seal_after_the_stop _______________________
+research\s1\s1_tests\test_s1_a3_stop.py:293: in test_no_new_seal_after_the_stop
+    assert "outside ACTIVE" in (rep.get("refused") or "")                       # E2.1 wording (Task 7)
+E   AssertionError: assert 'outside ACTIVE' in (('a persisted stop exists (A2.1): no seal stage after the stop (legacy guard until the TRIAL-STOP of Task 11)'))
+E    +  where 'a persisted stop exists (A2.1): no seal stage after the stop (legacy guard until the TRIAL-STOP of Task 11)' = <built-in method get of dict object at 0x0000015468770900>('refused')
+E    +    where <built-in method get of dict object at 0x0000015468770900> = {'actual': '2026-10-28T20:45:30+00:00', 'candidate': {'bridge': {'bridge_row_ids': [1], 'bridge_sha256': '93087f86d7b7...capture_start': '2026-10-28T20:45:30+00:00', ...}, 'capture_end': '2026-10-28T20:45:30+00:00', 'capture_ok': True, ...}.get
+_______ test_stop_operation_runs_pending_seal_stages_before_trial_stop ________
+research\s1\s1_tests\test_s1_a3_stop.py:307: in test_stop_operation_runs_pending_seal_stages_before_trial_stop
+    assert rec is not None
+E   assert None is not None
+___ test_later_close_qualified_before_stop_with_unchanged_record_is_fenced ____
+research\s1\s1_tests\test_s1_a3_stop.py:338: in test_later_close_qualified_before_stop_with_unchanged_record_is_fenced
+    assert seen, "no TRIAL-STOP request"                               # (Deviation 3: assert, not an IndexError)
+E   AssertionError: no TRIAL-STOP request
+E   assert []
+____________________ test_stop_dispositions[lots-earliest] ____________________
+research\s1\s1_tests\test_s1_a3_stop.py:361: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+________________ test_stop_dispositions[lots-later-not-chosen] ________________
+research\s1\s1_tests\test_s1_a3_stop.py:361: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+_________________ test_stop_dispositions[timeout-last-sealed] _________________
+research\s1\s1_tests\test_s1_a3_stop.py:361: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+____________________ test_stop_dispositions[no-valid-seal] ____________________
+research\s1\s1_tests\test_s1_a3_stop.py:361: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+____________ test_stop_dispositions[deadline-instant-eligibility] _____________
+research\s1\s1_tests\test_s1_a3_stop.py:361: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+_________ test_fr1_running_status_compared_by_value_at_the_score_gate _________
+research\s1\s1_tests\test_s1_run.py:1582: in test_fr1_running_status_compared_by_value_at_the_score_gate
+    assert not (tmp_path / "s1_out" / "stop.json").exists()
+E   AssertionError: assert not True
+E    +  where True = exists()
+E    +    where exists = ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21201/test_fr1_running_status_compar0') / 's1_out') / 'stop.json').exists
+____ test_c1_a_concurrent_stop_decision_never_observes_a_partial_stop_json ____
+research\s1\s1_tests\test_s1_t12_fix3.py:150: in test_c1_a_concurrent_stop_decision_never_observes_a_partial_stop_json
+    assert not (out / "stop.json").exists()
+E   AssertionError: assert not True
+E    +  where True = exists()
+E    +    where exists = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21201/test_c1_a_concurrent_stop_deci0/s1_out') / 'stop.json').exists
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_record_is_a_pure_function_of_committed_history
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_trial_stop_is_appended_before_stop_json_is_published
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_publication_gap_recovers_matching_bytes
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_publication_gap_with_different_history_is_stop_conflict
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[deleted]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[changed]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_a_stop_with_a_different_detail_is_invalid_stop_conflict
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_lock_is_taken_before_the_journal_read
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_attest_envelope_and_member
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_final_plan_envelope_and_member
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[stop_attest]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[final]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_post_stop_sampled_slot_is_excluded_from_the_sampled_history
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_no_new_seal_after_the_stop
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_operation_runs_pending_seal_stages_before_trial_stop
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_later_close_qualified_before_stop_with_unchanged_record_is_fenced
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-later-not-chosen]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[timeout-last-sealed]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[deadline-instant-eligibility]
+FAILED research/s1/s1_tests/test_s1_run.py::test_fr1_running_status_compared_by_value_at_the_score_gate
+FAILED research/s1/s1_tests/test_s1_t12_fix3.py::test_c1_a_concurrent_stop_decision_never_observes_a_partial_stop_json
+SKIPPED [1] research\s1\s1_tests\test_s1_a3_stop.py:271: held with Task 13: needs s1_seal.sampled_history (progress.md ruling B11/B12/B16)
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_fix2_mutants.py:316: HELD with Task 11 (A3 Task 6, OQ-11/E5.2): the capture report is final before J and no longer records the stop hash (display-only after.json never is authority), so with stop.json and both stop records deleted nothing witnesses the legacy stop; Task 11's TRIAL-STOP detail is the stop's authority (F2)
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_reporting.py:19: HELD with Task 11 (A3 Task 6, F1/OQ-25): the fixture's synthetic TRIAL-STOP precedes these checkpoints, so they are LOST-RACE with no capture (and a late invocation is now refused with no row, F0.5 step 6); the R-6/A9.3 listings need a refused capture and a binding gap committed BEFORE the STOP - Task 11's real TRIAL-STOP flow
+24 failed, 1666 passed, 3 skipped in 2248.17s (0:37:28)

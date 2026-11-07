@@ -2,9 +2,10 @@ from datetime import datetime, timezone
 from fractions import Fraction
 
 import pytest
+import s1_journal as j
 import s1_run as r
 import s1_trial as t
-from conftest import s1_finalize, s1_reack, s1_score_refused, s1_state
+from conftest import s1_finalize, s1_reack, s1_replaced, s1_score_refused, s1_state
 
 UTC = timezone.utc
 SESS = ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"]
@@ -319,10 +320,31 @@ def test_attest_stop_binds_start_attestation_stop_and_sealed_ledger(tmp_path, mo
     assert a["stop_close"] == st_["stop"]["stop_close"] == "2026-10-27T20:00:00+00:00"
     assert a["attest_start_sha256"] == s1_common.sha256_file(out / "attest_start.json")
     assert a["sealed_final_ledger_sha256"] == s1_common.sha256_file(out / "seals" / "2026-10-27.json")
+    assert a["stop_line_sha256"] == j.first(_jrows(tmp_path), "TRIAL-STOP").sha       # A3 Task 11 (F1 graph 2)
+    # A3 Task 11 (intended, F4 table CREATED): attest_stop.json is the stop_attest stage's committed member - deleting
+    # it is INVALID (stage-replaced) at the next gate, never a re-attestation (the old "final already exists" refusal
+    # is kept in test_attest_stop_refused_once_a_final_acquisition_exists)
     (out / "attest_stop.json").unlink()
     at(monkeypatch, st_["now"])
-    with pytest.raises(SystemExit, match="acquisition"):                             # final already exists
+    with pytest.raises(SystemExit, match=s1_replaced("attest_stop.json")):
         r.attest_stop(tmp_path, r.STOP_STATEMENT)
+
+
+def test_attest_stop_refused_once_a_final_acquisition_exists(tmp_path, monkeypatch):
+    """The stop attestation must precede the final acquisition (s1_run.attest_stop's own check, reached with a
+    final/ directory present and no stop_attest INTENT yet)."""
+    st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final=False)
+    (tmp_path / "s1_out" / "final").mkdir()
+    at(monkeypatch, st_["stop_attested_at"])
+    with pytest.raises(SystemExit, match="it must precede the final acquisition and the score"):
+        r.attest_stop(tmp_path, r.STOP_STATEMENT)
+    assert not (tmp_path / "s1_out" / "attest_stop.json").exists()
+
+
+def _jrows(root):
+    import s1_trial as tt
+    tr = tt.open_trial(root / "mailbox.sqlite3")
+    return j.read_trial(tr.trial_id, tr.genesis, root / "mailbox.sqlite3")
 
 
 # ---------------------------------------------------------------- score: lifecycle, verdicts, outputs
@@ -352,7 +374,13 @@ def test_score_fail_when_baseline_better(tmp_path, monkeypatch):
 
 
 def test_score_without_stop_attestation_is_unverified_not_nominated(tmp_path, monkeypatch):    # example 9
-    _, rep, _ = scored(tmp_path, monkeypatch, stop_attest=False)
+    # A3 Task 11 (intended, F1 graph 2-3 + F4.8): an unattested acquisition can no longer exist (final_plan's stage
+    # needs stop_attest CREATED); the attestation removed after its CREATED row is INVALID (stage-replaced) at the
+    # score's gate - the unit-level record keeps the score's provenance rule (the killer)
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    (tmp_path / "s1_out" / "attest_stop.json").unlink()
+    at(monkeypatch, st_["now"])
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")
     assert rep["verdict"] == "SHADOW PASS" and rep["provenance"] == "UNVERIFIED-PROVENANCE"
     assert rep["nomination"] is False
 
@@ -361,9 +389,10 @@ def test_score_stop_attestation_with_wrong_binding_is_unverified(tmp_path, monke
     st_ = s1_state(tmp_path, START, score_ready=True)
     p = tmp_path / "s1_out" / "attest_stop.json"
     p.write_text(json.dumps(dict(read(p), sealed_final_ledger_sha256="0" * 64)), encoding="utf-8")
-    s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
-    rep = r.score(tmp_path, "score-ack-2")
+    # A3 Task 11 (intended, F4 table CREATED): attest_stop.json is the stop_attest stage's committed member - the
+    # gate commits TRIAL-INVALID (stage-replaced); the unit-level record keeps the provenance rule (the killer)
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")
     assert rep["provenance"] == "UNVERIFIED-PROVENANCE" and rep["nomination"] is False
 
 
@@ -697,7 +726,11 @@ def test_score_ack_with_stale_hash_is_refused_with_no_output(tmp_path, monkeypat
     p.write_text(json.dumps(dict(read(p), edited=True)), encoding="utf-8")
     at(monkeypatch, st_["now"])
     field = {"attest_stop.json": "stop_attest_sha256", "final/manifest.json": "final_manifest_sha256"}[edit]
-    with pytest.raises(t.Refusal, match=rf"S1-SCORE-ACK score-ack: \['{field}'\] differ"):   # (Task 5: A3 F6.1)
+    # A3 Task 11 (intended, F4 table CREATED): attest_stop.json is now a committed stage member - the gate's stage
+    # table refuses (INVALID stage-replaced) before the ACK field check; final/ is not a stage until Task 12
+    want = (s1_replaced("attest_stop.json") if edit == "attest_stop.json"
+            else rf"S1-SCORE-ACK score-ack: \['{field}'\] differ")                    # (Task 5: A3 F6.1)
+    with pytest.raises(SystemExit, match=want):
         r.score(tmp_path, "score-ack")
     assert not (tmp_path / "s1_out" / "score").exists()
 
@@ -747,9 +780,9 @@ def test_score_ack_created_while_running_is_refused_after_the_stop(tmp_path, mon
 def test_score_ack_after_the_stop_but_before_any_final_manifest_is_refused(tmp_path, monkeypatch):
     """Retrospective (Task 7 review fix round 2), R-1: STOPPED/TIMEOUT need s1_out/final/manifest.json first."""
     st_ = s1_state(tmp_path, START, score_ready=True)
-    drop_final_and_attestation(tmp_path)
-    s1_reack(tmp_path, "post-stop", "S1-SCORE-ACK", st_["now"] - timedelta(days=1))   # A3: after its ACQUIRE-ACK
-    at(monkeypatch, st_["now"])
+    shutil.rmtree(tmp_path / "s1_out" / "final")       # A3 Task 11 (fixture): attest_stop.json / final_plan.json are
+    s1_reack(tmp_path, "post-stop", "S1-SCORE-ACK", st_["now"] - timedelta(days=1))   # CREATED stage members now:
+    at(monkeypatch, st_["now"])                         # only the (non-stage, Task 12) final/ attempt is removed
     with pytest.raises(SystemExit, match="final"):
         r.score(tmp_path, "post-stop")
     assert not (tmp_path / "s1_out" / "score").exists()
@@ -1296,7 +1329,13 @@ def test_cr_unverified_numeric_pass_note_only_on_a_pass(tmp_path, monkeypatch, a
     if lots_kw:
         lots = [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, lots_kw["sell_px"])}
                 for i in range(100)]
-    _, rep, _ = scored(tmp_path, monkeypatch, stop_attest=attest, lots=lots)
+    if attest:
+        _, rep, _ = scored(tmp_path, monkeypatch, lots=lots)
+    else:                       # A3 Task 11 (intended, F1 graph + F4): no unattested acquisition; the attestation
+        st_ = s1_state(tmp_path, START, score_ready=True, lots=lots)    # removed after CREATED is INVALID at the gate;
+        (tmp_path / "s1_out" / "attest_stop.json").unlink()            # the unit-level record keeps the note rule
+        at(monkeypatch, st_["now"])
+        rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")
     assert ("note" in rep) is note, rep["verdict"]
 
 
@@ -1403,7 +1442,12 @@ def test_cr_final_acquisition_binding_checks(tmp_path, monkeypatch, what):
         fp.unlink()
     s1_reack(tmp_path, "ack-f", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
-    rep = r.score(tmp_path, "ack-f")
+    # A3 Task 11 (intended, F4 table CREATED): final_plan.json is the final_plan stage's member - edited or deleted
+    # it is INVALID (stage-replaced) at the gate; the unit-level record keeps the score's reason (the killer)
+    if what.startswith("plan") or what == "noplan":
+        rep = s1_score_refused(tmp_path, "ack-f", reason="stage-replaced")
+    else:
+        rep = r.score(tmp_path, "ack-f")
     assert any(want in x for x in rep["reasons"]), rep["reasons"]
 
 
@@ -1512,11 +1556,10 @@ def test_fr1_attest_stop_accepts_an_equal_but_distinct_statement(tmp_path, monke
     """Retrospective (Task 9 fix round 1, review I-1: CR timeout survivor s1_run:441 NotEq_IsNot): the operator's
     statement is compared by value; an equal str that is a different object (as typed or read from a file) is
     accepted."""
-    st_ = s1_state(tmp_path, START, score_ready=True)
-    out = tmp_path / "s1_out"
-    (out / "attest_stop.json").unlink()
-    shutil.rmtree(out / "final")
-    at(monkeypatch, st_["now"])
+    # A3 Task 11 (fixture): attest_stop.json is a CREATED stage member now (deleting it is stage-replaced); the trial
+    # is built without the attestation and the final step instead, attested at the fixture's decision instant
+    st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final=False)
+    at(monkeypatch, st_["stop_attested_at"])
     stmt = "".join(list(r.STOP_STATEMENT))
     assert stmt is not r.STOP_STATEMENT
     assert r.attest_stop(tmp_path, stmt)["statement"] == r.STOP_STATEMENT
@@ -1578,14 +1621,19 @@ def test_fr1_running_status_compared_by_value_at_the_score_gate(tmp_path, monkey
     distinct str still refuses the score with nothing written."""
     # Task 12 (A2.1) input: no persisted stop yet - the trial is built without stop attestation, final plan or final
     # snapshot (fix round 1, m-4: DELETING a persisted stop.json is now itself an integrity failure)
-    st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final=False, final_snapshot=False)
+    # A3 Task 11 (fixture): stop=False - s1_state's stop decision (decide_stop) would persist stop.json; st_["now"]
+    # is the instant the old `stop_attested_at` was (the fixture's decision instant)
+    st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final=False, final_snapshot=False,
+                   stop=False)
     assert not (tmp_path / "s1_out" / "stop.json").exists()
-    monkeypatch.setattr(r.z, "stop_decision", lambda *a, **kw: {"status": "".join(list("RUNNING")),
-                                                                "stop_close": None, "missed": []})
-    now = st_["stop_attested_at"] + timedelta(days=1)                # A3: after the fixture's TRIAL-STOP row (F6.1)
+    now = st_["now"] + timedelta(days=1)                             # A3: after the fixture's TRIAL-STOP row (F6.1)
     at(monkeypatch, now)
     s1_finalize(tmp_path, now - timedelta(hours=2))                 # A3: the chain a SCORE-ACK needs (F7.1)
     s1_reack(tmp_path, "score-ack-r", "S1-SCORE-ACK", now - timedelta(hours=1))   # binds stop.json
+    # A3 Task 11 (intended): the score's RUNNING check reads the journal's stop (s1_seal.current_stop, F1/F2), no
+    # longer stop_decision over the seal files - the equal-but-distinct "RUNNING" is injected there
+    monkeypatch.setattr(r.z, "current_stop", lambda *a, **kw: {"status": "".join(list("RUNNING")),
+                                                               "stop_close": None, "missed": [], "persisted": False})
     with pytest.raises(SystemExit, match="still RUNNING"):
         r.score(tmp_path, "score-ack-r")
     assert not (tmp_path / "s1_out" / "score").exists()

@@ -673,7 +673,7 @@ def invalidate_current(out: Path, reason: str, record: dict, mailbox=None, *, cl
 
 
 def product_context(trial: Trial, cal=None, *, slot_gate=None, stage_gate=None, stop_detail=None,
-                    stage_check=None, stop_fence=None):
+                    stage_check=None, stop_fence=None, stop_ready=None):
     """The Context every product append uses: CLOSED read inside the transaction from the CLOSE rows of the same
     sqlite file (`con`, the BEGIN IMMEDIATE connection; E2.3 r3: atomic with CLOSE); slot timing from the pinned
     calendar (Task 6 supplies slot_times through s1_slot); stage/slot gates, the seal selection check, the stop rule
@@ -687,7 +687,7 @@ def product_context(trial: Trial, cal=None, *, slot_gate=None, stage_gate=None, 
             st_ = s1_slot.slot_times(cal)
         return j.Context(closed=closed_in(con, trial), slot_times=st_, stop_detail=stop_detail,
                          stage_gate=stage_gate, slot_gate=slot_gate, stage_check=stage_check,
-                         stop_fence=stop_fence)
+                         stop_fence=stop_fence, stop_ready=stop_ready)    # A3 Task 11: (rows, txn now)
     return build
 
 
@@ -756,10 +756,13 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
         # registration the detector finds nothing and the command's own A8.1 check refuses (no opening seal exists)
         _legacy_detectors(out, where, now, mailbox)
     gv = Gate(root, out, tr, rows, st_, mailbox)
+    import s1_seal                                        # A3 Task 11 (F2.3/F2.4): stop.json against the TRIAL-STOP
+    s1_seal.stop_check(gv)                                # (the publication gap recovers here), before the F4 table
     import s1_stage                                       # A3 Task 8: the F4 stage-state table (never creates s1_out)
     s1_stage.evaluate(gv, defer_pending=defer_pending)    # A3 Task 6 (N2): the slot paths defer a held stage lock
     import s1_slot                                        # A3 Task 7: the F3 evidence table, after the plan check
     s1_slot.evidence_check(gv)                            # (Deviation 1, Task 8 D4: a foreign root is never judged)
+    s1_seal.stop_gap_recover(gv)                          # A3 Task 11 fix round 1 (M4): the F2.3 gap, after F4/F3
     opening_manifest_check(gv)                            # A3 Task 10: E5.5 / F7.3, after the stage and F3 tables
     return gv
 

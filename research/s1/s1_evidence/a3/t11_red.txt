@@ -1,0 +1,242 @@
+FFFFFFF.F..FFF.F.F.sFFFFFFFF.FFF.FFFF.F.F.FF....                         [100%]
+================================== FAILURES ===================================
+__________ test_stop_record_is_a_pure_function_of_committed_history ___________
+research\s1\s1_tests\test_s1_a3_stop.py:52: in test_stop_record_is_a_pure_function_of_committed_history
+    assert a == b and j.detail_of(a) == stop.detail
+E   AssertionError: assert (None == None and '74234e98afe7...19892f982b90b' == 'f5c7e35de7c5...266387cecec42'
+E     
+E     - f5c7e35de7c5e2ce7fbde8daf2850092caf5dde34547b22e12c266387cecec42
+E     + 74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b)
+__________ test_trial_stop_is_appended_before_stop_json_is_published __________
+research\s1\s1_tests\test_s1_a3_stop.py:70: in test_trial_stop_is_appended_before_stop_json_is_published
+    assert "TRIAL-STOP" in seen["rows"]
+E   AssertionError: assert 'TRIAL-STOP' in ['STAGE-INTENT', 'STAGE-PREPARED', 'STAGE-CREATED', 'SLOT-INTENT', 'SLOT-QUALIFIED', 'STAGE-INTENT', ...]
+________________ test_publication_gap_recovers_matching_bytes _________________
+research\s1\s1_tests\test_s1_a3_stop.py:88: in test_publication_gap_recovers_matching_bytes
+    assert not (tmp_path / "s1_out" / "stop.json").exists() and j.first(jrows(tmp_path), "TRIAL-STOP")
+E   AssertionError: assert (not False and None)
+E    +  where False = exists()
+E    +    where exists = ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21207/test_publication_gap_recovers_0') / 's1_out') / 'stop.json').exists
+E    +  and   None = <function first at 0x000001AD87F7B6A0>([Row(trial_id='65ca9696-5334-41ff-a3f2-babf378001fa', seq=1, prev='e6617f15ba5d90cf128dceae8845d1312755e4d54f38fdec0ef...26 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='3d95d82a-bda5-44ad-b91e-2c0c5e20c917', created=1792788330.0), ...], 'TRIAL-STOP')
+E    +    where <function first at 0x000001AD87F7B6A0> = j.first
+E    +    and   [Row(trial_id='65ca9696-5334-41ff-a3f2-babf378001fa', seq=1, prev='e6617f15ba5d90cf128dceae8845d1312755e4d54f38fdec0ef...26 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='3d95d82a-bda5-44ad-b91e-2c0c5e20c917', created=1792788330.0), ...] = jrows(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21207/test_publication_gap_recovers_0'))
+________ test_publication_gap_with_different_history_is_stop_conflict _________
+research\s1\s1_tests\test_s1_a3_stop.py:98: in test_publication_gap_with_different_history_is_stop_conflict
+    with pytest.raises(SystemExit, match=r"INVALID \(stop-conflict\)"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+___ test_stop_json_damaged_after_a_finalization_intent_is_invalid[deleted] ____
+research\s1\s1_tests\test_s1_a3_stop.py:111: in test_stop_json_damaged_after_a_finalization_intent_is_invalid
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+___ test_stop_json_damaged_after_a_finalization_intent_is_invalid[changed] ____
+research\s1\s1_tests\test_s1_a3_stop.py:111: in test_stop_json_damaged_after_a_finalization_intent_is_invalid
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_ test_stop_json_damaged_after_a_finalization_intent_is_invalid[unparseable] __
+research\s1\s1_tests\test_s1_a3_stop.py:111: in test_stop_json_damaged_after_a_finalization_intent_is_invalid
+    with pytest.raises(SystemExit, match="INVALID"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+________ test_a_stop_with_a_different_detail_is_invalid_stop_conflict _________
+research\s1\s1_tests\test_s1_a3_stop.py:141: in test_a_stop_with_a_different_detail_is_invalid_stop_conflict
+    with pytest.raises(SystemExit, match=r"INVALID \(stop-conflict\)"):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+_______________ test_stop_lock_is_taken_before_the_journal_read _______________
+research\s1\s1_tests\test_s1_a3_stop.py:174: in test_stop_lock_is_taken_before_the_journal_read
+    assert ("lock", "stop.lock") in order and ("append", "TRIAL-STOP") in order      # (Deviation 3: assert, not
+E   AssertionError: assert (('lock', 'stop.lock') in [('read',), ('lock', 'stage-audit.lock'), ('read',), ('append', 'STAGE-INTENT'), ('append', 'STAGE-PREPARED'), ('append', 'STAGE-CREATED'), ...])
+____________________ test_stop_attest_envelope_and_member _____________________
+research\s1\s1_tests\test_s1_a3_stop.py:188: in test_stop_attest_envelope_and_member
+    e = _envelope(tmp_path, "stop_attest")
+research\s1\s1_tests\test_s1_a3_stop.py:182: in _envelope
+    assert p.is_file(), f"no {stage} STAGE-INTENT envelope"                 # (Deviation 4: assert, not an OSError)
+E   AssertionError: no stop_attest STAGE-INTENT envelope
+E   assert False
+E    +  where False = is_file()
+E    +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21207/test_stop_attest_envelope_and_0/s1_staging/1c364a35-eeda-4bcf-b5cc-93b0af3d0bfb/stop_attest/intent.json').is_file
+_____________________ test_final_plan_envelope_and_member _____________________
+research\s1\s1_tests\test_s1_a3_stop.py:199: in test_final_plan_envelope_and_member
+    e = _envelope(tmp_path, "final_plan")
+research\s1\s1_tests\test_s1_a3_stop.py:182: in _envelope
+    assert p.is_file(), f"no {stage} STAGE-INTENT envelope"                 # (Deviation 4: assert, not an OSError)
+E   AssertionError: no final_plan STAGE-INTENT envelope
+E   assert False
+E    +  where False = is_file()
+E    +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21207/test_final_plan_envelope_and_m0/s1_staging/7c1b6193-25e3-4b94-afc6-2d1d523164e0/final_plan/intent.json').is_file
+_______ test_finalization_stages_are_refused_while_active[stop_attest] ________
+research\s1\s1_tests\test_s1_a3_stop.py:238: in test_finalization_stages_are_refused_while_active
+    with _Clock(st_["now"]), pytest.raises(SystemExit, match=ACTIVE_REFUSAL[stage]):
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+__________ test_finalization_stages_are_refused_while_active[final] ___________
+research\s1\s1_tests\test_s1_a3_stop.py:227: in _refused
+    fn()
+research\s1\s1_tests\test_s1_a3_stop.py:241: in <lambda>
+    "final": lambda: k.do_final(tmp_path, "acq-ack", sp.client(), ("k", "s")),
+research\s1\s1_collect.py:645: in do_final
+    plan = json.loads(fp.read_text(encoding="utf-8"))
+..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+..\trading_app\runtime\python\Lib\pathlib.py:1013: in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+E   FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21207\\test_finalization_stages_are_r2\\s1_out\\final_plan.json'
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_stop.py:239: in test_finalization_stages_are_refused_while_active
+    _refused({"stop_attest": lambda: r.attest_stop(tmp_path, r.STOP_STATEMENT),
+research\s1\s1_tests\test_s1_a3_stop.py:231: in _refused
+    pytest.fail(f"not a refusal: {type(e).__name__}: {e}")
+E   Failed: not a refusal: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21207\\test_finalization_stages_are_r2\\s1_out\\final_plan.json'
+______ test_post_stop_sampled_slot_is_excluded_from_the_sampled_history _______
+research\s1\s1_tests\test_s1_a3_stop.py:287: in test_post_stop_sampled_slot_is_excluded_from_the_sampled_history
+    assert stop is not None, "no TRIAL-STOP row"                            # (Deviation 3: assert, not AttributeError)
+E   AssertionError: no TRIAL-STOP row
+E   assert None is not None
+_______________________ test_no_new_seal_after_the_stop _______________________
+research\s1\s1_tests\test_s1_a3_stop.py:295: in test_no_new_seal_after_the_stop
+    assert "outside ACTIVE" in (rep.get("refused") or "")                       # E2.1 wording (Task 7)
+E   AssertionError: assert 'outside ACTIVE' in (('a persisted stop exists (A2.1): no seal stage after the stop (legacy guard until the TRIAL-STOP of Task 11)'))
+E    +  where 'a persisted stop exists (A2.1): no seal stage after the stop (legacy guard until the TRIAL-STOP of Task 11)' = <built-in method get of dict object at 0x000001AD886FDEC0>('refused')
+E    +    where <built-in method get of dict object at 0x000001AD886FDEC0> = {'actual': '2026-10-28T20:45:30+00:00', 'candidate': {'bridge': {'bridge_row_ids': [1], 'bridge_sha256': '93087f86d7b7...capture_start': '2026-10-28T20:45:30+00:00', ...}, 'capture_end': '2026-10-28T20:45:30+00:00', 'capture_ok': True, ...}.get
+_______ test_stop_operation_runs_pending_seal_stages_before_trial_stop ________
+research\s1\s1_tests\test_s1_a3_stop.py:309: in test_stop_operation_runs_pending_seal_stages_before_trial_stop
+    assert rec is not None
+E   assert None is not None
+___ test_later_close_qualified_before_stop_with_unchanged_record_is_fenced ____
+research\s1\s1_tests\test_s1_a3_stop.py:340: in test_later_close_qualified_before_stop_with_unchanged_record_is_fenced
+    assert seen, "no TRIAL-STOP request"                               # (Deviation 3: assert, not an IndexError)
+E   AssertionError: no TRIAL-STOP request
+E   assert []
+____________________ test_stop_dispositions[lots-earliest] ____________________
+research\s1\s1_tests\test_s1_a3_stop.py:368: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+________________ test_stop_dispositions[lots-later-not-chosen] ________________
+research\s1\s1_tests\test_s1_a3_stop.py:368: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+_________________ test_stop_dispositions[timeout-last-sealed] _________________
+research\s1\s1_tests\test_s1_a3_stop.py:368: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+____________________ test_stop_dispositions[no-valid-seal] ____________________
+research\s1\s1_tests\test_s1_a3_stop.py:368: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+____________ test_stop_dispositions[deadline-instant-eligibility] _____________
+research\s1\s1_tests\test_s1_a3_stop.py:368: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+___________________ test_stop_dispositions[early-w-failed] ____________________
+research\s1\s1_tests\test_s1_a3_stop.py:368: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+________________ test_stop_dispositions[pending-after-timeout] ________________
+research\s1\s1_tests\test_s1_a3_stop.py:368: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+____________ test_stop_dispositions[unresolved-resolved-by-missed] ____________
+research\s1\s1_tests\test_s1_a3_stop.py:368: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+_______________ test_stop_dispositions[delayed-qualified-clock] _______________
+research\s1\s1_tests\test_s1_a3_stop.py:368: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+____________ test_stop_dispositions[no-valid-seal-ineligible-seal] ____________
+research\s1\s1_tests\test_s1_a3_stop.py:368: in test_stop_dispositions
+    assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E   AssertionError: no stop record
+E   assert None is not None
+_ test_stop_readiness_is_the_transaction_clock[early-w-failed@2027-04-23T20:47:00] _
+research\s1\s1_tests\test_s1_a3_stop.py:393: in test_stop_readiness_is_the_transaction_clock
+    assert isinstance(why, str) and why, "TRIAL-STOP permitted before every counted window expired (BLK3-C1)"
+E   AssertionError: TRIAL-STOP permitted before every counted window expired (BLK3-C1)
+E   assert (False)
+E    +  where False = isinstance(None, str)
+_ test_stop_readiness_is_the_transaction_clock[timeout-last-sealed@2027-04-26T11:59:59] _
+research\s1\s1_tests\test_s1_a3_stop.py:393: in test_stop_readiness_is_the_transaction_clock
+    assert isinstance(why, str) and why, "TRIAL-STOP permitted before every counted window expired (BLK3-C1)"
+E   AssertionError: TRIAL-STOP permitted before every counted window expired (BLK3-C1)
+E   assert (False)
+E    +  where False = isinstance(None, str)
+_ test_stop_readiness_is_the_transaction_clock[lots-later-not-chosen@2026-10-27T11:59:59] _
+research\s1\s1_tests\test_s1_a3_stop.py:393: in test_stop_readiness_is_the_transaction_clock
+    assert isinstance(why, str) and why, "TRIAL-STOP permitted before every counted window expired (BLK3-C1)"
+E   AssertionError: TRIAL-STOP permitted before every counted window expired (BLK3-C1)
+E   assert (False)
+E    +  where False = isinstance(None, str)
+_____________________ test_early_w_failed_commits_no_stop _____________________
+research\s1\s1_tests\test_s1_a3_stop.py:402: in test_early_w_failed_commits_no_stop
+    assert z.stop_ready(tmp_path / "s1_out", jrows(tmp_path), c.aware(START), hist["calendar"], tr.bundle, at) \
+E   AssertionError: permitted before W
+E   assert None is not None
+E    +  where None = <function stop_ready at 0x000001AD880189A0>((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21207/test_early_w_failed_commits_no0') / 's1_out'), [Row(trial_id='14d6d40f-a94a-4b9c-bb61-efb82913b9e3', seq=1, prev='84d91bdb0acf8357869723bc421b11ddfae6c88700f27f1a9de...b2 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='0deb4902-71b9-4405-aaf9-71b20c96d80d', created=1792788330.0), ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc), [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...], 'e6a2ff3e48386179bd20c7faf6b0cf07ac62eccdbf1d9c9678203b0a533e203b', datetime.datetime(2027, 4, 23, 20, 47, tzinfo=datetime.timezone.utc))
+E    +    where <function stop_ready at 0x000001AD880189A0> = z.stop_ready
+E    +    and   [Row(trial_id='14d6d40f-a94a-4b9c-bb61-efb82913b9e3', seq=1, prev='84d91bdb0acf8357869723bc421b11ddfae6c88700f27f1a9de...b2 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='0deb4902-71b9-4405-aaf9-71b20c96d80d', created=1792788330.0), ...] = jrows(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21207/test_early_w_failed_commits_no0'))
+E    +    and   datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc) = <function aware at 0x000001AD87F660C0>('2026-10-26T13:30:00+00:00')
+E    +      where <function aware at 0x000001AD87F660C0> = c.aware
+E    +    and   'e6a2ff3e48386179bd20c7faf6b0cf07ac62eccdbf1d9c9678203b0a533e203b' = Trial(trial_id='14d6d40f-a94a-4b9c-bb61-efb82913b9e3', bundle='e6a2ff3e48386179bd20c7faf6b0cf07ac62eccdbf1d9c9678203b0...895f368b180f'})}, closed=None, problems=[], genesis='84d91bdb0acf8357869723bc421b11ddfae6c88700f27f1a9de26cd2916158a2').bundle
+____________ test_completing_row_at_is_provenance_not_commit_time _____________
+research\s1\s1_tests\test_s1_a3_stop.py:416: in test_completing_row_at_is_provenance_not_commit_time
+    assert rec is not None, "no stop record"
+E   AssertionError: no stop record
+E   assert None is not None
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_outcome_is_fixed_by_the_journal
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_rule_not_met_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_final_plan_before_stop_attest_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[final_plan]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[score]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-excluded]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-blocks]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[early-w-failed@2027-04-26T12:00:00]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[timeout-last-sealed@2027-04-26T12:00:00]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[lots-later-not-chosen@2026-10-27T12:00:00]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_damaged_ineligible_seal_is_invalid[deadline-instant-eligibility-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_damaged_ineligible_seal_is_invalid[deadline-instant-eligibility-corrupt]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_damaged_ineligible_seal_is_invalid[no-valid-seal-ineligible-seal-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_damaged_ineligible_seal_is_invalid[no-valid-seal-ineligible-seal-corrupt]
+SKIPPED [1] research\s1\s1_tests\test_s1_a3_stop.py:273: held with Task 13: needs s1_seal.sampled_history (progress.md ruling B11/B12/B16)
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_record_is_a_pure_function_of_committed_history
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_trial_stop_is_appended_before_stop_json_is_published
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_publication_gap_recovers_matching_bytes
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_publication_gap_with_different_history_is_stop_conflict
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[deleted]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[changed]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_a_stop_with_a_different_detail_is_invalid_stop_conflict
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_lock_is_taken_before_the_journal_read
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_attest_envelope_and_member
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_final_plan_envelope_and_member
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[stop_attest]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[final]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_post_stop_sampled_slot_is_excluded_from_the_sampled_history
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_no_new_seal_after_the_stop
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_operation_runs_pending_seal_stages_before_trial_stop
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_later_close_qualified_before_stop_with_unchanged_record_is_fenced
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-later-not-chosen]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[timeout-last-sealed]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[deadline-instant-eligibility]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[early-w-failed]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-after-timeout]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-resolved-by-missed]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[delayed-qualified-clock]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal-ineligible-seal]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[early-w-failed@2027-04-23T20:47:00]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[timeout-last-sealed@2027-04-26T11:59:59]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[lots-later-not-chosen@2026-10-27T11:59:59]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_early_w_failed_commits_no_stop
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_completing_row_at_is_provenance_not_commit_time
+32 failed, 15 passed, 1 skipped in 196.62s (0:03:16)

@@ -547,15 +547,14 @@ def _stop_state(out: Path, now: datetime, mailbox=None) -> tuple:
     if c.load_abort(out) is not None:
         raise SystemExit("final plan refused: the trial is ABORTED-INVALID (nothing to acquire)")
     pr = _load(out / "prereg.json")
-    try:                                                   # Task 12 (A2.1/A7.1): the PERSISTED stop
-        import s1_checkpoint                               # fix round 3 (I-1): finalize BEFORE freezing the stop
-        s1_checkpoint.finalize_pending(out, pr["calendar"], c.aware(pr["start"]), now, mailbox=mailbox)
-        st = s1_seal.current_stop(out, c.aware(pr["start"]), pr["calendar"], now, "final plan")
+    try:                                                   # A3 Task 11 (F1/F2): the journal's TRIAL-STOP + stop.json
+        st = s1_seal.current_stop(out, c.aware(pr["start"]), pr["calendar"], now, "final plan",
+                                  mailbox=mailbox)         # (never decides a stop: only decide_stop does, F2.2)
     except (ValueError, KeyError, TypeError) as e:
-        raise SystemExit(f"final plan refused: bad seal record ({type(e).__name__}: {e})") from None
+        raise SystemExit(f"final plan refused: bad stop record ({type(e).__name__}: {e})") from None
     if st["status"] not in ("STOPPED", "TIMEOUT"):
         raise SystemExit(f"final plan refused: the trial is {st['status']} (RUNNING = no stop yet)")
-    probs = s1_seal.stop_problems(out, c.aware(pr["start"]), pr["calendar"], recheck=False)
+    probs = s1_seal.stop_problems(out, c.aware(pr["start"]), pr["calendar"], recheck=False, mailbox=mailbox)
     if probs:
         raise SystemExit(f"final plan refused: the persisted stop does not verify ({probs})")
     stop_p = out / s1_seal.load_stop(out)["stop_seal"]
@@ -578,7 +577,12 @@ def final_plan_record(root, now: datetime = None, mailbox=None) -> dict:
         carry = sorted(s1_books.held_symbols(s1_seal.split_bridge(asof, start)[0], start))
     except (s1_books.BookError, KeyError, ValueError, TypeError) as e:
         raise SystemExit(f"final plan refused: stop seal ledger unreadable ({type(e).__name__}: {e})") from None
-    return {"stop_close": st["stop_close"], "stop_status": st["status"], "stop_date": _ny_date(stop),
+    try:
+        trial_id = c.load_json(out / "plan.json").get("trial_id")          # A3 Task 11: final_plan binds the trial
+    except (OSError, ValueError, AttributeError):
+        trial_id = None
+    return {"trial_id": trial_id,
+            "stop_close": st["stop_close"], "stop_status": st["status"], "stop_date": _ny_date(stop),
             "stop_seal_sha256": c.sha256_file(stop_p), "stop_sha256": c.sha256_file(out / "stop.json"),
             "bar_symbols": sorted(set(cohort) | set(carry)),
             "ca_symbols_window": cohort, "ca_symbols_full_history": carry,
@@ -606,11 +610,22 @@ def _stop_attestation(out: Path, plan: dict) -> dict:
 
 def write_final_plan(root, *, mailbox=None) -> Path:
     """Task 11 (controller-added), I-4: write-once final plan, derived (final_plan_record), only after the stop
-    attestation."""
+    attestation. A3 Task 11: the stage `final_plan` (F1 step 3; F4.8): after stop_attest's CREATED row
+    (s1_stage.permitted refuses the INTENT with no row otherwise); the member is the derived record (with trial_id)
+    plus the INTENT's intent_at; inputs stop.json, attest_stop.json, prereg.json and plan.json."""
+    import s1_stage
     gv = s1_trial.gate(root, "final plan", mailbox=mailbox)             # A3 F0.6: open trial, state, bundle first
+    out = _out(root)
     rec = final_plan_record(root, mailbox=mailbox)
-    _stop_attestation(_out(root), rec)
-    return _write_once(_out(root) / "final_plan.json", rec)
+    _stop_attestation(out, rec)
+
+    def work(sw):
+        sw.put_json("final_plan.json", dict(rec, intent_at=sw.intent_at))
+        return []
+    s1_stage.run(gv, "final_plan", inputs={n: c.sha256_file(out / n) for n in ("stop.json", "attest_stop.json",
+                                                                              "prereg.json", "plan.json")},
+                 acks={}, work=work, mailbox=mailbox)
+    return out / "final_plan.json"
 
 
 def acquire_token(root, mailbox=None) -> str:
@@ -642,10 +657,12 @@ def do_final(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
     out = _out(root)
     g.verified_registration(out, "final acquisition", mailbox)        # Task 12: A3.2 bundle first, then A8.2
     fp, prp = out / "final_plan.json", out / "prereg.json"
+    if not fp.is_file():                                   # A3 Task 11 (F1 graph 3 -> 5; row 56): a refusal, not
+        raise SystemExit("final refused: no final plan (final_plan comes first, F1)")   # a FileNotFoundError
     plan = json.loads(fp.read_text(encoding="utf-8"))
     ack = s1_trial.verify_current(gv, "S1-ACQUIRE-ACK", ack_id)        # A3: field by field (F6.1, F6.5, F7.1)
     rec = final_plan_record(root, mailbox=mailbox)
-    if plan != rec:
+    if {k_: v for k_, v in plan.items() if k_ != "intent_at"} != rec:     # A3 Task 11: the stage adds intent_at
         raise SystemExit("final refused: final_plan.json is not the plan derived from the stop seal")
     att = _stop_attestation(out, rec)
     if c.aware(ack["created_utc"]) <= c.aware(att["recorded_utc"]):

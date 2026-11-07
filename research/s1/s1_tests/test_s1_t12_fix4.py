@@ -294,7 +294,8 @@ def test_n3_probe_two_handmade_later_stage_files_before_any_opening_are_a_refusa
             _cp(tmp_path, Ledger(tmp_path / "l.sqlite3").path, spies)
         assert spies.zero(), spies.n
         return
-    first = {"attest_start.json": "start_attest", "seals/2026-10-23.json": "opening"}.get(pair[1])
+    first = {"attest_start.json": "start_attest", "seals/2026-10-23.json": "opening",
+             "attest_stop.json": "stop_attest"}.get(pair[1])        # A3 Task 11: stop_attest/final_plan ENFORCED
     if first is not None:
         # A3 Task 10 (intended, F4 table 'no INTENT: any artifact for g is a violation after the AUDIT-ACK'; the
         # Task 7 concern-2 ruling - A3 supersedes A2 B3.2 after the AUDIT-ACK): start_attest / opening are ENFORCED

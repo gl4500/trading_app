@@ -254,7 +254,8 @@ def test_restart_after_a_worker_crash_never_appends_qualified(tmp_path):
 
 
 def _stop(tmp_path, at):
-    s1_jappend(tmp_path, "TRIAL-STOP", "trial", at=at, detail=j.detail_of({"synthetic": "stop"}))
+    from conftest import s1_synthetic_stop             # A3 Task 11 (fixture, F2.3): stop.json + matching detail
+    s1_synthetic_stop(tmp_path, at)
 
 
 def test_post_stop_new_slot_intent_is_lost_race_with_no_capture(tmp_path, monkeypatch):

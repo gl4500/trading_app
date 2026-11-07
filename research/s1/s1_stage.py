@@ -37,7 +37,8 @@ TRIAL_ID_MEMBERS = {"audit": ("audit/attempt.json",), "start_attest": ("attest_s
                     "prereg": ("prereg.json",), "stop_attest": ("attest_stop.json",),
                     "final_plan": ("final_plan.json",), "final": ("final/attempt.json",),
                     "score": ("score/attempt.json", "score/s1.json")}
-ENFORCED = frozenset({"audit", "opening", "start_attest", "prereg"})   # transitional (Task 8); Task 9 audit; Task 10
+ENFORCED = frozenset({"audit", "opening", "start_attest", "prereg",      # transitional (Task 8); Task 9 audit; Task 10
+                      "stop_attest", "final_plan"})                      # A3 Task 11 (F1 graph 2-3, F4.8)
 # the pre-START stages (opening, start_attest, prereg); Tasks 11-13 add theirs; Task 14: all of TABLE
 # Transitional (Task 8; Task 14 deletes it with ENFORCED): seal files on disk with no seal-stage row are evaluated
 # (E2.4 r3) once the post-START seal writer is a stage - A3 Task 7 made it one (s1_slot.run_seal_stage), so it is True.

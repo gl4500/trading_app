@@ -1,0 +1,33 @@
+# A3 Task 11 fix round 1 - GREEN (the same tests as t11_fix1_red.txt, after the fix-round-1 changes)
+
+.............                                                            [100%]
+=================================== PASSES ====================================
+_________ test_the_finalize_mode_dispatches_to_the_finalizer_command __________
+---------------------------- Captured stderr call -----------------------------
+usage: __main__.py [-h] [--scheduled SCHEDULED] [--opening] [--final-snapshot]
+                   [--finalize]
+__main__.py: error: --finalize takes no other mode (exactly one mode per call)
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_sealed_last_close_reaches_its_timeout_through_the_finalizer_command
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_sealed_last_close_reaches_its_timeout_through_a_later_checkpoint
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_the_finalize_mode_dispatches_to_the_finalizer_command
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_the_finalizer_command_decides_on_the_append_clock_not_its_start_instant[pre<W<=txn]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_the_finalizer_command_decides_on_the_append_clock_not_its_start_instant[txn<W<=pre]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_stop_json_read_error_is_confirmed_and_never_invalidates[transient]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_stop_json_read_error_is_confirmed_and_never_invalidates[persistent]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_the_score_threads_its_mailbox_into_the_stop_read
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_publication_failure_after_the_stop_row_is_reported_truthfully
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_gap_whose_recompute_raises_is_never_left_silent
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_damaged_slot_tree_in_the_gap_is_judged_by_the_evidence_table
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_busy_stop_lock_defers_but_another_lock_error_is_a_refusal
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_persist_stop_never_recreates_a_lost_s1_out
+13 passed, 52 deselected in 61.39s (0:01:01)
+
+# I2 tests (fix3 i1 x2, fix2_b1 b1_a) through the product finalizer command
+...                                                                      [100%]
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_t12_fix3.py::test_i1_the_stop_attestation_finalizes_before_it_freezes_the_stop
+PASSED research/s1/s1_tests/test_s1_t12_fix3.py::test_i1_the_final_plan_finalizes_before_it_freezes_the_stop
+PASSED research/s1/s1_tests/test_s1_t12_fix2_b1.py::test_b1_a_pending_resolution_cannot_cause_an_early_terminal_stop_followed_by_rescue
+3 passed in 15.78s

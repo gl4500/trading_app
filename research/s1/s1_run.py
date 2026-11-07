@@ -692,25 +692,33 @@ def attest_stop(root, statement: str, *, mailbox=None) -> dict:
     if (out / "final").exists() or (out / "score").exists():
         raise SystemExit("stop attestation refused: it must precede the final acquisition and the score")
     pr = _load(out / "prereg.json")
-    try:                                                   # Task 12 (A2.1): the persisted stop (stop.json)
-        import s1_checkpoint                               # fix round 3 (I-1): finalize BEFORE freezing the stop
-        s1_checkpoint.finalize_pending(out, pr["calendar"], c.aware(pr["start"]), c.now_utc(), mailbox=mailbox)
-        stop = z.current_stop(out, c.aware(pr["start"]), pr["calendar"], c.now_utc(), "stop attestation")
+    try:                                                   # A3 Task 11 (F1/F2): the journal's TRIAL-STOP + stop.json
+        stop = z.current_stop(out, c.aware(pr["start"]), pr["calendar"], c.now_utc(), "stop attestation",
+                              mailbox=mailbox)             # (it never decides a stop: only decide_stop does, F2.2)
     except (ValueError, KeyError, TypeError) as e:
-        raise SystemExit(f"stop attestation refused: bad seal record ({e})") from None
+        raise SystemExit(f"stop attestation refused: bad stop record ({e})") from None
     if stop["status"] not in ("STOPPED", "TIMEOUT"):
         raise SystemExit(f"stop attestation refused: no stop recorded (status {stop['status']})")
-    probs = z.stop_problems(out, c.aware(pr["start"]), pr["calendar"], recheck=False)
+    probs = z.stop_problems(out, c.aware(pr["start"]), pr["calendar"], recheck=False, mailbox=mailbox)
     if probs:
         raise SystemExit(f"stop attestation refused: the persisted stop does not verify ({probs})")
+    import s1_journal as j
+    import s1_stage
+    stop_row = j.first(j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox), "TRIAL-STOP")
     stop_p = out / z.load_stop(out)["stop_seal"]
     rec = {"statement": statement, "trial_id": _plan_trial_id(out),
            "attest_start_sha256": c.sha256_file(out / "attest_start.json"), "start": pr["start"],
            "stop_close": stop["stop_close"], "stop_status": stop["status"],
            "sealed_final_ledger_sha256": c.sha256_file(stop_p),
            "stop_sha256": c.sha256_file(out / "stop.json"),                       # Task 12 (A2.1/A7.1)
+           "stop_line_sha256": stop_row.sha,                                       # A3 F1 graph 2: binds the STOP
            "recorded_utc": c.now_utc().isoformat()}
-    _write_once(out / "attest_stop.json", rec, "stop attestation")
+
+    def work(sw):                                          # A3 Task 11 (F4.8 stop_attest: single member)
+        sw.put_json("attest_stop.json", dict(rec, intent_at=sw.intent_at))
+        return []
+    s1_stage.run(gv, "stop_attest", inputs={"stop.json": c.sha256_file(out / "stop.json"),
+                                            "trial_stop_line": stop_row.sha}, acks={}, work=work, mailbox=mailbox)
     return rec
 
 
@@ -741,7 +749,7 @@ def score(root, ack_id: str, *, mailbox=None) -> dict:
     gv = s1_trial.gate(root, "score", mailbox=mailbox)     # A3 (F1, F8.1, OQ-19): a violation the legacy detector
     #                                                        just committed refuses here: no score, no record
     ack = s1_trial.verify_current(gv, "S1-SCORE-ACK", ack_id)          # A3: field by field (F6.1, F6.5, F7.1)
-    _pre_reserve_gate(out, ack)
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
     k._reserve(out / "score", ack)
     try:
         text = _serialise(_score(out, mailbox))           # ruling M-6: serialise before opening the output file
@@ -762,7 +770,7 @@ def _write_text_once(path: Path, text: str) -> None:
     c.publish_text_exclusive(path, text)                  # fix round 3 (C-1): atomic, exclusive
 
 
-def _trial_end(out: Path, pr: dict):
+def _trial_end(out: Path, pr: dict, mailbox=None):
     """(end instant, final manifest required): the instant the trial ended, or None when it cannot be placed
     (malformed records: the attempt then records ABORTED-INVALID, ruling m-1); STOPPED/TIMEOUT require the final
     manifest (ruling R-1). Raises SystemExit while RUNNING (ruling I-1)."""
@@ -774,8 +782,9 @@ def _trial_end(out: Path, pr: dict):
             return None, False
     start, cal = c.aware(pr["start"]), pr["calendar"]
     try:
-        st_ = z.current_stop(out, start, cal, c.now_utc(), "score")          # Task 12 (A2.1): the persisted stop
-        if st_.get("persisted") and z.stop_problems(out, start, cal, recheck=False):
+        st_ = z.current_stop(out, start, cal, c.now_utc(), "score",          # Task 12 (A2.1): the persisted stop;
+                             mailbox=mailbox)                                 # A3 T11 fix round 1 (M2): its mailbox
+        if st_.get("persisted") and z.stop_problems(out, start, cal, recheck=False, mailbox=mailbox):
             return (c.aware(st_["stop_close"]) if st_["stop_close"] else None), False    # A2.3: recorded INVALID
         if st_["status"] == "RUNNING":
             raise SystemExit("score refused: the trial is still RUNNING (no stop yet); nothing written")
@@ -787,12 +796,12 @@ def _trial_end(out: Path, pr: dict):
         return None, False
 
 
-def _pre_reserve_gate(out: Path, ack: dict) -> None:
+def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
     """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
     for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
     instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
     c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
-    end, need_final = _trial_end(out, _load(out / "prereg.json"))
+    end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
     if end is not None and c.aware(ack["created_utc"]) <= end:
         raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
                          f"({end.isoformat()}); nothing written")
@@ -1091,9 +1100,9 @@ def _score(out: Path, mailbox=None) -> dict:
         if ab is not None and z.load_stop(out) is None:    # terminal: nothing is persisted now
             stop = dict(z.stop_decision([s for _, s in seals], start, cal, today=c.now_utc()), persisted=False)
         else:
-            stop = z.current_stop(out, start, cal, c.now_utc(), "score")
+            stop = z.current_stop(out, start, cal, c.now_utc(), "score", mailbox=mailbox)
         if stop.get("persisted"):
-            invalid += z.stop_problems(out, start, cal)    # A2.3: integrity through the persisted stop
+            invalid += z.stop_problems(out, start, cal, mailbox=mailbox)    # A2.3: integrity through the stop
             sj = c.sha256_file(out / "stop.json")
             if (out / "attest_stop.json").exists() and _load(out / "attest_stop.json").get("stop_sha256") != sj:
                 invalid.append("persisted stop (stop.json) changed after the stop attestation")

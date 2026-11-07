@@ -195,9 +195,12 @@ def test_ms_stop_problems_reports_an_extra_seal_among_the_frozen_slices(tmp_path
     out = tmp_path / "s1_out"
     # A3 Task 7 (E2.6 r3): no seal stage can start after the STOP, so the extra seal is a file outside any stage
     # (stop_problems is the unit under test; the file's own INVALID is the gate's, E2.4)
-    (out / "seals" / "2026-10-22.json").write_bytes((out / "seals" / "2026-10-23.json").read_bytes())
+    # A3 Task 11 (intended, r1 A4): a seal named for an INELIGIBLE calendar date (pre-START, post-deadline) is not a
+    # frozen-slice candidate - its integrity is the gate's E2.4/E2.6 (a file outside any stage is a registration
+    # artifact); the extra-slice check stays for every other seal of a close <= the stop close
+    (out / "seals" / "zz.json").write_bytes((out / "seals" / "2026-10-26.json").read_bytes())
     probs = z.stop_problems(out, START_DT, st_["calendar"], recheck=False)
-    assert any("seals/2026-10-22.json is not among" in p for p in probs), probs
+    assert any("seals/zz.json is not among" in p for p in probs), probs
 
 
 def test_ms_take_snapshot_measures_with_the_injected_clock(tmp_path, ledger):

@@ -278,8 +278,10 @@ def final_setup(tmp_path, monkeypatch, mid="f1", now=ACQ_NOW):
     and the clock is moved past the registered acquisition lag. Task 11 (I-4): a real stopped, attested trial
     (stopped_trial), the derived final plan, and an ACK (acquire_token, binding attest_stop) after the attestation.
     Task 12 (A8.2) input: the ACK 1 h after the (genuine) stop attestation."""
+    from conftest import _Clock
     attested = stopped_trial(tmp_path, monkeypatch, now)
-    k.write_final_plan(tmp_path)
+    with _Clock(attested + timedelta(minutes=30)):        # A3 Task 11 (fixture): final_plan is a journal stage now;
+        k.write_final_plan(tmp_path)                      # the ACK (journal head) must follow its CREATED row
     mailbox(tmp_path, mid, k.acquire_token(tmp_path), created=attested + timedelta(hours=1))
 
 

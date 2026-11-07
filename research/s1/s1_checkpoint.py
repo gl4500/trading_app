@@ -334,7 +334,8 @@ def _complete_success(ev) -> bool:
             and ev["snapshot"] == cand["projection_sha256"])
 
 
-def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_build=None, *, mailbox=None) -> dict:
+def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_build=None, *, mailbox=None,
+                   now=None) -> dict:
     """A3 Task 7: the finalizer command for one post-START close - the trial gate as a deadline path (ruling N2:
     defer_pending=True, so a stalled stage lock never delays a TIMEOUT at D or a MISSED at E; the gate also runs the
     F3 evidence table), then s1_slot.finalize_close (the journal finalizer: TIMEOUT / MISSED rows, the deferred
@@ -358,6 +359,10 @@ def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_bu
         except Exception as e:                  # noqa: BLE001 - F0.7 (fix round 1, M3): unexpected errors fail closed
             raise SystemExit(f"finalizer (opening stage) refused with no row ({type(e).__name__}: {e}) "
                              f"(F0.7)") from None
+    elif (Path(out) / "prereg.json").is_file():       # A3 Task 11 (F2.2): a post-START close - the stop decision
+        pr = _load(Path(out) / "prereg.json")         # after the finalizer (the W slot's MISSED can complete it);
+        z.decide_stop(gv, pr["calendar"], c.aware(pr["start"]), now or c.now_utc,   # fix round 1 (review M1): a
+                      mailbox=mailbox)                # clock CALLABLE sampled inside the TRIAL-STOP transaction
     return fin
 
 
@@ -408,6 +413,46 @@ def _finalize_others(gv, cal, start, current: str, now, mailbox=None) -> None:
         s1_slot.finalize_close(gv, by_day[d], cal, now, mailbox=mailbox)
 
 
+def _finalize_last_if_due(gv, cal, start, now, mailbox=None) -> None:
+    """A3 Task 11 fix round 1 (review C1 ruling): once the clock is >= W of the LAST eligible close, the journal
+    finalizer runs on that close even when it is sealed (its later slots MISSED at E), so its W slot - the timeout's
+    trigger anchor (r1 P2) - gets its terminal row; the stop decision follows. Only the last eligible close is needed
+    for that (other closes counted missed need no rows, r1 A6). The sealed close's first QUALIFIED and its CREATED
+    seal stage are untouched (later terminals never change a determined close, E2.2). No-op before W or once every
+    slot of the close is terminal."""
+    import s1_journal as j
+    import s1_slot
+    eligible = z.eligible_sessions(start, cal)
+    if not eligible:
+        return
+    last = eligible[-1]
+    if now() < z.window_end(last, cal):
+        return
+    done = {r_.subject for r_ in j.read_trial(gv.trial.trial_id, gv.trial.genesis,
+                                              gv.mailbox if mailbox is None else mailbox) if r_.kind in j.TERMINAL}
+    if all(j.slot_subject(s) in done for s in z.schedule(last, cal)):
+        return
+    s1_slot.finalize_close(gv, last, cal, now, mailbox=mailbox)
+
+
+def run_finalizer(root, now=c.now_utc, mailbox=None) -> dict:
+    """A3 Task 11 fix round 1 (review C1 / M1 rulings): the finalizer COMMAND (`s1_checkpoint.py --finalize`). The
+    trial gate as a deadline path (ruling N2: defer_pending=True), the A8.2 registration, then the journal finalizer
+    of every unsealed post-START close with slot rows (_finalize_others), the last eligible close once the clock is
+    >= its W even when sealed (_finalize_last_if_due), and the stop decision (decide_stop, F2.2). `now` is a clock
+    CALLABLE (c.now_utc): j.append samples it inside each transaction - the TRIAL-STOP's readiness is never a fixed
+    command-start instant (Codex 28e08272 checkpoint). Read-only towards the app: it captures nothing."""
+    gv = s1_trial.gate(root, "finalizer", mailbox=mailbox, now=now, defer_pending=True)
+    out = Path(root) / "s1_out"
+    pr = g.verified_registration(out, "finalizer", mailbox, now)
+    start, cal = c.aware(pr["start"]), pr["calendar"]
+    _finalize_others(gv, cal, start, "", now, mailbox)
+    _finalize_last_if_due(gv, cal, start, now, mailbox)
+    z.decide_stop(gv, cal, start, now, mailbox=mailbox)
+    return {"mode": "finalize",
+            "stop": _public(z.current_stop(out, start, cal, now(), "finalizer", mailbox=mailbox))}
+
+
 def finalize_pending(out: Path, cal, start, t: datetime, *, mailbox=None) -> None:
     """Fix round 3 (I-1) on the journal (A3 Task 7): run by a command BEFORE it decides or freezes the stop (stop
     attestation, final plan, final snapshot) - the journal finalizer of every unsealed post-START close with slot rows
@@ -419,12 +464,12 @@ def finalize_pending(out: Path, cal, start, t: datetime, *, mailbox=None) -> Non
     _finalize_others(gv, cal, start, "", lambda: t, mailbox)
 
 
-def _trial_stop_error(out: Path, start, cal, t: datetime):
-    """A2.1 / I-4b (kept from the pre-A3 checkpoint): the persisted stop or the decision over the existing seals,
-    read BEFORE the capture only for its integrity: a bad seal record or a persisted stop gone missing is the
-    established violation `seal-record` (OQ-31); None when it reads."""
+def _trial_stop_error(out: Path, start, cal, t: datetime, mailbox=None):
+    """A2.1 / I-4b (kept from the pre-A3 checkpoint): the persisted stop, read BEFORE the capture only for its
+    integrity: a stop.json gone missing or unreadable is the established violation `seal-record` (OQ-31); None when
+    it reads. A3 Task 11: current_stop reads the journal's TRIAL-STOP (F1/F2) and never decides."""
     try:
-        z.current_stop(out, start, cal, t, "checkpoint")
+        z.current_stop(out, start, cal, t, "checkpoint", mailbox=mailbox)
         return None
     except (ValueError, KeyError, TypeError, b.BookError) as e:
         return f"{type(e).__name__}: {e}"
@@ -475,7 +520,7 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
         refused = _clock_refusal(cap_dir, day, cal, close, scheduled, t0)
         if refused is not None:                                    # A5.2 (t < s; t >= E cannot reach here)
             return dict(refused, journal=w.complete(refused, success=False))
-        state_err = _trial_stop_error(out, start, cal, t0)        # A2.1 / I-4b: corrupt stop or seal records
+        state_err = _trial_stop_error(out, start, cal, t0, mailbox)   # A2.1 / I-4b: corrupt stop or seal records
         meta, rep = _capture(close, scheduled, live_db, cap_dir, now, z.eligible_until(scheduled, day, cal))
         actual = c.aware(rep["actual"])
         proc, rec = _observe_process(out, rep, process_fn, crash_log)
@@ -549,8 +594,10 @@ def _after_terminal(gv, w, out, day, cal, start, actual, rep, receipt_sha, now, 
     import s1_slot
     got = dict(_seal_view(rep, s1_slot.finalize_close(gv, day, cal, now, mailbox=mailbox)))    # A3 Task 7
     _finalize_others(gv, cal, start, day["date"], now, mailbox)
+    _finalize_last_if_due(gv, cal, start, now, mailbox)      # A3 Task 11 fix round 1 (review C1): the W anchor
+    z.decide_stop(gv, cal, start, now, mailbox=mailbox)     # A3 Task 11 (F2.2): TRIAL-STOP then stop.json, if met
     try:
-        got["stop"] = _public(z.current_stop(out, start, cal, actual, "checkpoint"))   # A2.1: persisted if ended
+        got["stop"] = _public(z.current_stop(out, start, cal, actual, "checkpoint", mailbox=mailbox))   # (F1)
         if (out / "stop.json").exists():
             got["stop_sha256"] = c.sha256_file(out / "stop.json")
     except (ValueError, KeyError, TypeError, b.BookError) as e:              # a bad seal record is corruption
@@ -844,7 +891,7 @@ def _trial_state(out: Path, pr: dict, t: datetime, *, mailbox=None) -> tuple:
         return "ABORTED-INVALID", (st_ or {}).get("stop_close")
     try:                                                # A3 Task 7 (review N-1, F0.7): inside the try, mailbox threaded
         finalize_pending(out, pr["calendar"], c.aware(pr["start"]), t, mailbox=mailbox)   # B1.5 / I-1: finalize first
-        st_ = z.current_stop(out, c.aware(pr["start"]), pr["calendar"], t, "final snapshot")
+        st_ = z.current_stop(out, c.aware(pr["start"]), pr["calendar"], t, "final snapshot", mailbox=mailbox)
     except (ValueError, KeyError, TypeError) as e:
         raise SystemExit(f"final snapshot refused: bad seal record ({type(e).__name__}: {e})") from None
     if st_["status"] == "RUNNING":
@@ -945,12 +992,17 @@ def _final_snapshot_capture(out: Path, live_db, now, *, mailbox=None) -> dict:
 
 # ------------------------------------------------------------------ CLI
 def parse_mode(argv=None) -> tuple:
-    """Exactly one mode per call: ('scheduled', t) | ('opening', t) | ('final-snapshot', None)."""
+    """Exactly one mode per call: ('scheduled', t) | ('opening', t) | ('final-snapshot', None) | ('finalize', None)."""
     ap = argparse.ArgumentParser(description="S1 read-only checkpoint (counts and integrity only)")
     ap.add_argument("--scheduled", help="registered seal slot (aware ISO instant)")
     ap.add_argument("--opening", action="store_true", help="seal the opening close (with --scheduled)")
     ap.add_argument("--final-snapshot", action="store_true", help="acquisition-time snapshot after the stop")
+    ap.add_argument("--finalize", action="store_true", help="journal finalizer + stop decision (A3 Task 11)")
     a = ap.parse_args(argv)
+    if a.finalize:
+        if a.opening or a.scheduled is not None or a.final_snapshot:
+            ap.error("--finalize takes no other mode (exactly one mode per call)")
+        return "finalize", None
     if a.final_snapshot:
         if a.opening or a.scheduled is not None:
             ap.error("--final-snapshot takes neither --opening nor --scheduled (exactly one mode per call)")
@@ -965,7 +1017,9 @@ def main(argv=None):
     def receipt(reference=None):                           # fix round 2 (I-1): the bound receipt, raw check first
         kw = {} if reference is None else {"reference": reference}
         return r.semantic_receipt(REPO, REPO / ".env", REPO / "runtime" / "python" / "python.exe", **kw)
-    if mode == "final-snapshot":
+    if mode == "finalize":                                 # A3 Task 11 fix round 1 (review C1): the finalizer command
+        rep = run_finalizer(c.HERE)
+    elif mode == "final-snapshot":
         rep = run_final_snapshot(c.HERE, LIVE_DB)
     elif mode == "opening":
         rep = run_opening_checkpoint(c.HERE, LIVE_DB, scheduled, receipt, r.process_identity, CRASH_LOG)

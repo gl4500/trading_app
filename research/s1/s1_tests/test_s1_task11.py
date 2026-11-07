@@ -429,23 +429,25 @@ def test_i4_final_plan_refused_while_running_aborted_or_unattested(tmp_path):
 
 
 def test_i4_final_plan_refused_after_an_abort(tmp_path):
-    """Task 11 (controller-added), I-4."""
-    st_ = s1_state(tmp_path, START, score_ready=True)
+    """Task 11 (controller-added), I-4.
+    A3 Task 11 (fixture): final_plan.json is a CREATED stage member now (deleting it is stage-replaced), so the trial
+    is built attested but without the final step."""
+    st_ = s1_state(tmp_path, START, score_ready=True, final=False)
     out = tmp_path / "s1_out"
-    (out / "final_plan.json").unlink()
     (out / "aborted.json").write_text(json.dumps({"reason": "x"}), encoding="utf-8")
-    with _Clock(st_["now"]):
+    with _Clock(st_["stop_attested_at"] + timedelta(hours=1)):
         with pytest.raises(SystemExit, match="ABORTED"):
             k.write_final_plan(tmp_path)
     assert not (out / "final_plan.json").exists()
 
 
 def test_i4_final_plan_refused_without_the_stop_attestation(tmp_path):
-    """Task 11 (controller-added), I-4."""
-    st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False)
+    """Task 11 (controller-added), I-4.
+    A3 Task 11 (fixture): no unattested final plan can exist any more (F1 graph 3); the trial is built without the
+    attestation and the final step."""
+    st_ = s1_state(tmp_path, START, score_ready=True, stop_attest=False, final=False)
     out = tmp_path / "s1_out"
-    (out / "final_plan.json").unlink()
-    with _Clock(st_["now"]):
+    with _Clock(st_["stop_attested_at"] + timedelta(hours=1)):
         with pytest.raises(SystemExit, match="stop attestation"):
             k.write_final_plan(tmp_path)
     assert not (out / "final_plan.json").exists()
@@ -490,9 +492,14 @@ def test_i4_acquire_ack_binds_the_stop_attestation_and_do_final_records_the_plan
     assert m["attest_stop_sha256"] == sha(out / "attest_stop.json")
 
 
+# A3 Task 11 (intended): final_plan.json is the final_plan stage's CREATED member, so a hand-typed plan is INVALID
+# (stage-replaced) at do_final's gate; an ACQUIRE-ACK before the attestation is necessarily before final_plan's
+# CREATED row, so F6.1 refuses it first ("created not after the journal row it references")
 @pytest.mark.parametrize("breakage,why", [("aborted", "ABORTED-INVALID"),
-                                          ("hand-typed plan", "not the plan derived from the stop seal"),
-                                          ("ack before attestation", "not strictly after the stop attestation")])
+                                          ("hand-typed plan", r"stage final_plan: .*member final_plan\.json missing "
+                                                              r"or changed.*INVALID \(stage-replaced\)"),
+                                          ("ack before attestation", r"created not after the journal row it "
+                                                                     r"references \(F6\.1\)")])
 def test_i4_do_final_rechecks_the_stop_before_reserving(tmp_path, breakage, why):
     """Task 11 (controller-added), I-4: do_final re-derives the plan from the stop seal and re-checks the state, the
     abort marker and the attestation order before reserving: on any failure no request and no final/ attempt."""
@@ -636,7 +643,10 @@ def test_m1_final_plan_edited_after_the_acquisition_is_aborted_invalid(tmp_path,
     plan = read(fp)
     plan["ca_symbols_full_history"] = sorted(plan["ca_symbols_full_history"] + ["ZZZ"])
     fp.write_text(json.dumps(plan, indent=1, sort_keys=True), encoding="utf-8")
-    rep = score(tmp_path, monkeypatch, st_)
+    # A3 Task 11 (intended, F4 table CREATED): final_plan.json is the final_plan stage's committed member - the
+    # score's gate commits TRIAL-INVALID (stage-replaced); the unit-level record keeps the score's reason (the killer)
+    at(monkeypatch, st_["now"])
+    rep = s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")
     assert rep["verdict"] == "ABORTED-INVALID" and any("final plan" in x for x in rep["reasons"]), rep["reasons"]
 
 
