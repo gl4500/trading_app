@@ -4,8 +4,8 @@ version: v1.25.0
 ignore:
   SNYK-PYTHON-TRANSFORMERS-19500670:
     - '*':
-        reason: "Temporary acceptance: no upstream fix reported on 2026-10-17. The app uses only the constant ProsusAI/finbert text-classification pipeline, not load_custom_generate or caller-selected generative repositories. The installed package remains affected; this is not a package fix. Claude/Codex review due 2026-11-09; see docs/SECURITY.md for scope and exit criteria."
-        expires: 2026-11-16T00:00:00.000Z
+        reason: "Temporary acceptance, reviewed 2026-11-07 (Claude; Codex sign-off pending). Snyk, GHSA and CERT/CC still report no fixed version. Upstream source from v5.17.0 runs the trust_remote_code check before fetching custom_generate code; no advisory recognizes that yet, and no upgrade is validated. The installed 5.6.2 stays affected. The app's only Transformers use is the constant ProsusAI/finbert text-classification pipeline. That BERT classifier has no GenerationMixin, and the app never calls load_custom_generate or generate(custom_generate=...). Separate tested upgrade recommended. Review due 2026-11-23; see docs/SECURITY.md."
+        expires: 2026-11-30T00:00:00.000Z
   SNYK-PYTHON-STARLETTE-13733964:
     - '*':
         reason: "Deferred: fixed only in starlette >=1.x, which needs a FastAPI 0.115->0.141 major upgrade (separate tested change). Low practical risk on a localhost single-user, non-internet-exposed API (DoS/SSRF/ReDoS)."
@@ -28,29 +28,29 @@ ignore:
         expires: 2026-11-30T00:00:00.000Z
   SNYK-PYTHON-TRANSFORMERS-14560695:
     - '*':
-        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        reason: "CVE-2025-14926 (ZDI-25-1147): code injection in the SEW checkpoint converter's convert_config. No fixed version (Snyk, checked 2026-11-07; vendor rejected the report). The app does not load only its own models: backend/data/finbert_scorer.py loads third-party pretrained ProsusAI/finbert (BERT) weights from the Hugging Face Hub by a constant name, without trust_remote_code. It never converts checkpoints or loads the affected model family. The installed 5.6.2 wheel does not ship the SEW conversion script. Review due 2026-11-23; see docs/SECURITY.md."
         expires: 2026-11-30T00:00:00.000Z
   SNYK-PYTHON-TRANSFORMERS-14563374:
     - '*':
-        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        reason: "CVE-2025-14930 (ZDI-25-1145): deserialization when parsing GLM4 weights. No fixed version (Snyk, checked 2026-11-07; vendor rejected the report). The app does not load only its own models: backend/data/finbert_scorer.py loads third-party pretrained ProsusAI/finbert (BERT) weights from the Hugging Face Hub by a constant name, without trust_remote_code. It never converts checkpoints or loads the affected model family. The installed 5.6.2 wheel ships no GLM4 conversion script. Review due 2026-11-23; see docs/SECURITY.md."
         expires: 2026-11-30T00:00:00.000Z
   SNYK-PYTHON-TRANSFORMERS-14564275:
     - '*':
-        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        reason: "CVE-2025-14929 (ZDI-25-1144): deserialization in X-CLIP checkpoint conversion. No fixed version (Snyk, checked 2026-11-07; vendor rejected the report). The app does not load only its own models: backend/data/finbert_scorer.py loads third-party pretrained ProsusAI/finbert (BERT) weights from the Hugging Face Hub by a constant name, without trust_remote_code. It never converts checkpoints or loads the affected model family. The installed 5.6.2 wheel does not ship the X-CLIP conversion script. Review due 2026-11-23; see docs/SECURITY.md."
         expires: 2026-11-30T00:00:00.000Z
   SNYK-PYTHON-TRANSFORMERS-14564363:
     - '*':
-        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        reason: "CVE-2025-14924 (ZDI-25-1141): deserialization when parsing megatron_gpt2 checkpoints. No fixed version (Snyk, checked 2026-11-07; vendor rejected the report). The app does not load only its own models: backend/data/finbert_scorer.py loads third-party pretrained ProsusAI/finbert (BERT) weights from the Hugging Face Hub by a constant name, without trust_remote_code. It never converts checkpoints or loads the affected model family. The installed 5.6.2 megatron_gpt2 reshaping script is a CLI tool the app never imports, and it loads with weights_only=True. Review due 2026-11-23; see docs/SECURITY.md."
         expires: 2026-11-30T00:00:00.000Z
   SNYK-PYTHON-TRANSFORMERS-14564364:
     - '*':
-        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        reason: "CVE-2025-14928 (ZDI-25-1146): code injection in the HuBERT checkpoint converter's convert_config. No fixed version (Snyk, checked 2026-11-07; vendor rejected the report). The app does not load only its own models: backend/data/finbert_scorer.py loads third-party pretrained ProsusAI/finbert (BERT) weights from the Hugging Face Hub by a constant name, without trust_remote_code. It never converts checkpoints or loads the affected model family. The installed 5.6.2 wheel does not ship the HuBERT conversion script. Review due 2026-11-23; see docs/SECURITY.md."
         expires: 2026-11-30T00:00:00.000Z
   SNYK-PYTHON-TRANSFORMERS-14564365:
     - '*':
-        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        reason: "CVE-2025-14921 (ZDI-25-1149): deserialization when parsing Transformer-XL model files. No fixed version (Snyk, checked 2026-11-07; vendor rejected the report). The app does not load only its own models: backend/data/finbert_scorer.py loads third-party pretrained ProsusAI/finbert (BERT) weights from the Hugging Face Hub by a constant name, without trust_remote_code. It never converts checkpoints or loads the affected model family. The installed 5.6.2 package has no Transformer-XL model code. Review due 2026-11-23; see docs/SECURITY.md."
         expires: 2026-11-30T00:00:00.000Z
   SNYK-PYTHON-TRANSFORMERS-14564366:
     - '*':
-        reason: "No upstream fix available (transformers 5.14.1). The app loads only its own locally trained models, not untrusted model files, so the deserialization / code-injection vectors are not reachable. Re-evaluate when transformers ships a patch."
+        reason: "CVE-2025-14927 (ZDI-25-1148): code injection in the SEW-D checkpoint converter's convert_config. No fixed version (Snyk, checked 2026-11-07; vendor rejected the report). The app does not load only its own models: backend/data/finbert_scorer.py loads third-party pretrained ProsusAI/finbert (BERT) weights from the Hugging Face Hub by a constant name, without trust_remote_code. It never converts checkpoints or loads the affected model family. The installed 5.6.2 wheel does not ship the SEW-D conversion script. Review due 2026-11-23; see docs/SECURITY.md."
         expires: 2026-11-30T00:00:00.000Z

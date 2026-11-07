@@ -6,9 +6,11 @@ covering the pre-commit gate, static analysis, runtime hardening, and test cover
 ## Temporary Transformers exception: SNYK-PYTHON-TRANSFORMERS-19500670
 
 **Requirement:** REQ-TRANSFORMERS-19500670. Recorded 2026-10-17. Implementer:
-Codex; reviewer: Claude. Follow-up owners: **Claude/Codex**, review due
-**2026-11-09**. The exception expires **2026-11-16 at 00:00 UTC**; renewal
-requires a new advisory/reachability assessment and peer review.
+Codex; reviewer: Claude. Follow-up owners: **Claude/Codex**. The first review
+(due 2026-11-09) was done on **2026-11-07**; see
+"Review 2026-11-07" below. The next review is due **2026-11-23**. The
+exception now expires **2026-11-30 at 00:00 UTC**, moved from 2026-11-16.
+Renewal requires a new advisory/reachability assessment and peer review.
 
 This is a time-limited risk acceptance, **not a dependency upgrade or a fix to
 Transformers**. There is no dependency, pin, runtime or application-behavior
@@ -42,9 +44,9 @@ against every transitive or future library path.
 
 FinBERT loads **third-party pretrained weights**; it is not one of the app's
 locally trained XGB/W3 models. Older Transformers exceptions in `backend/.snyk`
-contain a broader locally-trained-model rationale. Their correction and
-individual reassessment are a **Claude/Codex follow-up**, not silently covered
-by this new exception. Their existing entries and expiry dates are unchanged.
+contained a broader locally-trained-model rationale, which was wrong. They were
+corrected and reassessed one by one on 2026-11-07; see
+"Transformers exceptions: seven no-fix advisories" below.
 
 Downgrading below 4.49.0 would avoid this advisory's listed range but is not a
 validated compatible or generally secure upgrade. Removing Transformers would
@@ -80,6 +82,175 @@ own Snyk outcome. No new Python behavior is introduced, so behavioral
 RED/GREEN, Hypothesis and Cosmic Ray are not applicable to this policy/document
 edit. No source code, live database, runtime packages or live configuration
 is modified during validation; model inference and external services are mocked.
+
+### Review 2026-11-07
+
+Reviewer: Claude. Codex sign-off on the PR head SHA is still pending, so this
+review is not yet a peer-agreed outcome. All sources below were checked on
+2026-11-07 without authentication.
+
+**Advisories:**
+
+- **Snyk:** the range is still `[4.49.0,)` and there is **no fixed version**.
+  The CVE is CVE-2026-80047 (CWE-863). The CVSS 4.0 score is 7.1, with
+  AV:N/AC:L/AT:N/PR:L/UI:N.
+- **GitHub (GHSA-x9r9-c232-4q39):** affected 4.49.0 through 5.8.1, with **no
+  patched version**. CVSS 3.1 AV:L/AC:L/PR:L/UI:N.
+- **CERT/CC VU#456290:** last revised 2026-09-22. It covers 4.49.0 through
+  5.8.1 and reports no vendor patch.
+
+**Upstream code (not an advisory).** The public source of
+`GenerationMixin.load_custom_generate` was compared across tags:
+
+- From 5.8.1 through 5.16.0, `get_cached_module_file` (the cache write) runs
+  before `resolve_trust_remote_code`.
+- From **v5.17.0 (2026-09-09)** through v5.22.2 (2026-11-06, the latest on
+  PyPI), the method first checks the file exists with `has_file`, then runs
+  `resolve_trust_remote_code`, and only then calls `get_cached_module_file`.
+
+This looks like the upstream remedy. No advisory recognizes it yet, and no one
+has validated an upgrade with this app. The `[4.49.0,)` range would still flag
+an upgraded package, so this exception would still be needed until Snyk
+narrows the range.
+
+**Installed versions (read only):**
+
+- The live runtime imports from the repo `site-packages/`
+  (`backend/main.py:7-12` and `start_backend.ps1:9,30`). There it has
+  **transformers 5.6.2**, huggingface_hub 1.11.0, tokenizers 0.22.2 and
+  safetensors 0.7.0.
+- torch 2.6.0+cu124 is in `runtime/python/Lib/site-packages`.
+- `backend/requirements.txt:21` declares `transformers>=4.40.0`. It is
+  unpinned, so CI (`.github/workflows/ci.yml:124-128`) installs and scans the
+  newest release.
+- The offline wheel cache `backend/packages/` holds **no** transformers wheel.
+
+**Reachability in the installed 5.6.2:**
+
+- The installed method has the vulnerable order: the write at
+  `transformers/generation/utils.py:464` runs before the check at `:479`.
+- That method is called only by:
+  - `from_pretrained`, and only when `trust_remote_code` is truthy (`:424-427`);
+  - `generate(custom_generate="<repo>")` (`:2241-2255`).
+- The app reaches neither:
+  - `backend/data/finbert_scorer.py:64-69` builds only a `text-classification`
+    pipeline. It uses the constant model `ProsusAI/finbert` (`:36`), passes no
+    `trust_remote_code`, and runs on CPU.
+  - The checkpoint is `BertForSequenceClassification`, which inherits only
+    `BertPreTrainedModel` (`models/bert/modeling_bert.py:1076`). It has no
+    `GenerationMixin`, so it has no `load_custom_generate` or `generate`.
+  - The only caller is `backend/data/signal_aggregator.py:23,109`. It passes
+    headline text only, never a repository name.
+- A grep of `backend/`, `scripts/` and `rnd_pod/` found no other `transformers`
+  or `huggingface_hub` import.
+- The default `~/.cache/huggingface/modules` path was absent at inspection
+  (2026-11-07). That does not establish that nothing was ever cached there,
+  or that no alternate cache root is used; the renewal does not rely on it.
+
+**Outcome:** **keep the exception**, with a corrected reason and a short
+extension:
+
+- The **expiry moves from 2026-11-16 to 2026-11-30**, matching the seven
+  entries below so one review covers all eight.
+- The **next review is due 2026-11-23**.
+
+**Recommended separate change.** Upgrade Transformers to **>=5.17.0** (the
+latest is 5.22.2) in its own tested PR. That PR must:
+
+- refresh `site-packages/` and the pin together;
+- verify that FinBERT scoring is unchanged;
+- update the wheel and setup paths.
+
+This PR does not upgrade anything. At the next review, decide one of:
+
+- the upgrade has landed and Snyk has narrowed its range → remove the
+  exception;
+- the upgrade has landed but the range still flags it → renew, citing the
+  upgrade;
+- neither → renew only on new evidence.
+
+---
+
+## Transformers exceptions: seven no-fix advisories
+
+Corrected and reassessed one by one on **2026-11-07** by Claude. Codex sign-off
+on the PR head SHA is pending.
+
+**Previous reason, wrong:** "the app loads only its own locally trained
+models". In fact `backend/data/finbert_scorer.py:23,36,64-69` downloads and
+loads the **third-party pretrained** `ProsusAI/finbert` weights from the
+Hugging Face Hub:
+
+- The model name is constant.
+- There is no `revision` pin, so it uses the hub's `main`.
+- There is no `trust_remote_code`.
+
+The model is a BERT classifier (`model_type: bert`). The local HF cache holds
+`pytorch_model.bin` at `main` and a bot `model.safetensors` under `refs/pr/29`.
+The app leaves `use_safetensors` at its default. Because `main` has no
+safetensors file, Transformers 5.6.2 therefore:
+
+- loads `pytorch_model.bin` (`modeling_utils.py:684-689`);
+- starts a background safetensors auto-conversion (`:701-714`).
+
+That load goes through `torch.load(weights_only=True)`, which is gated on
+torch>=2.6 (`modeling_utils.py:356-364`, `utils/import_utils.py:1355`). The
+installed torch is 2.6.0. This is a pickle-based load, so it is a dependency on
+torch's `weights_only` loader, not on safetensors.
+
+**Advisories.** All seven are listed by Snyk as affecting **all versions**
+(`[0,]`) with **no fixed version**. The original ZDI reports are dated
+2025-12-18 (0-day advisories); Snyk lists them as disclosed 2025-12-23 and
+published 2025-12-24, and the vendor rejected or closed each report. GitHub carries
+them only as *unreviewed* GHSAs with no package mapping. Checked 2026-11-07:
+
+| Snyk ID | CVE / ZDI | Title (component) | Snyk CVSS 4.0 vector |
+|---|---|---|---|
+| 14560695 | CVE-2025-14926 / ZDI-25-1147 | Code injection, SEW `convert_config` | AV:N/AC:L/AT:P/PR:N/UI:P, 7.7 |
+| 14563374 | CVE-2025-14930 / ZDI-25-1145 | Deserialization, GLM4 weight parsing | AV:N/AC:L/AT:N/PR:N/UI:P, 8.7 |
+| 14564275 | CVE-2025-14929 / ZDI-25-1144 | Deserialization, X-CLIP checkpoint conversion | AV:L/AC:L/AT:N/PR:N/UI:P, 8.5 |
+| 14564363 | CVE-2025-14924 / ZDI-25-1141 | Deserialization, megatron_gpt2 checkpoints | AV:L/AC:L/AT:N/PR:N/UI:P, 8.5 |
+| 14564364 | CVE-2025-14928 / ZDI-25-1146 | Code injection, HuBERT `convert_config` | AV:L/AC:L/AT:N/PR:N/UI:P, 8.5 |
+| 14564365 | CVE-2025-14921 / ZDI-25-1149 | Deserialization, Transformer-XL model files | AV:L/AC:L/AT:N/PR:N/UI:P, 8.5 |
+| 14564366 | CVE-2025-14927 / ZDI-25-1148 | Code injection, SEW-D `convert_config` | AV:L/AC:L/AT:N/PR:N/UI:P, 8.5 |
+
+ZDI scores each one CVSS 3.0 7.8, AV:L/AC:L/PR:N/UI:R. In every case the user
+must convert or open a malicious checkpoint or model file.
+
+**Reachability in the installed 5.6.2:**
+
+- **Conversion scripts.** The installed `site-packages/transformers` ships only
+  two `convert_*.py` files, and both are tokenizer converters. The upstream
+  repository has a SEW conversion script; the wheel does not. The installed
+  `models/{sew,sew_d,hubert,x_clip,glm4}` directories contain only
+  configuration, modeling and processing modules.
+- **megatron_gpt2.** `models/megatron_gpt2` has only
+  `checkpoint_reshaping_and_interoperability.py`. That is a CLI script the app
+  never imports, and every `torch.load` in it passes `weights_only=True`
+  (lines 280, 304, 345, 642).
+- **Transformer-XL.** There is no `transfo_xl` model directory, and
+  `models/deprecated` is empty apart from `__init__.py`.
+- **App code.** The app never converts checkpoints. It never loads any SEW,
+  SEW-D, HuBERT, X-CLIP, GLM4, Megatron or Transformer-XL model, and never
+  takes a model path or name from input.
+
+**Outcome for all seven:** **keep the exceptions**, with corrected, individual
+reasons in `backend/.snyk`:
+
+- There is no fixed version to upgrade to, and the vulnerable code is not
+  reachable from the app as built.
+- The **expiry is unchanged, 2026-11-30 at 00:00 UTC**, and was not extended.
+- The **next review is due 2026-11-23**.
+
+**Residual risk.** FinBERT trusts whatever the third-party `ProsusAI/finbert`
+repository serves at `main`. Pinning a `revision` and requiring safetensors
+would narrow that supply-chain trust, but it is a separate tested code change.
+
+**What would change this decision:**
+
+- a fixed version;
+- a new model, task or loading path;
+- any loading of user-supplied checkpoints.
 
 ---
 
