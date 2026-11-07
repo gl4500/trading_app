@@ -8,8 +8,8 @@ covering the pre-commit gate, static analysis, runtime hardening, and test cover
 **Requirement:** REQ-TRANSFORMERS-19500670. Recorded 2026-10-17. Implementer:
 Codex; reviewer: Claude. Follow-up owners: **Claude/Codex**. The first review
 (due 2026-11-09) was done on **2026-11-07**; see
-"Review 2026-11-07" below. The next review is due **2026-11-23**. The
-exception now expires **2026-11-30 at 00:00 UTC**, moved from 2026-11-16.
+"Review 2026-11-07" below. The expiry is **unchanged, 2026-11-16 at
+00:00 UTC**; a renewal decision is due **2026-11-13**.
 Renewal requires a new advisory/reachability assessment and peer review.
 
 This is a time-limited risk acceptance, **not a dependency upgrade or a fix to
@@ -146,12 +146,13 @@ narrows the range.
 - `~/.cache/huggingface/modules` does not exist on this host, so no
   custom-generate module has been cached.
 
-**Outcome:** **keep the exception**, with a corrected reason and a short
-extension:
+**Outcome:** **keep the exception until its existing expiry**, with a
+corrected reason:
 
-- The **expiry moves from 2026-11-16 to 2026-11-30**, matching the seven
-  entries below so one review covers all eight.
-- The **next review is due 2026-11-23**.
+- The **expiry stays 2026-11-16** (REQ-SEC-EXPIRY-3, Codex 2026-11-07): no
+  renewal without a separate peer-reviewed decision.
+- A **renewal decision is due 2026-11-13**; without one the exception
+  lapses and CI flags the advisory again.
 
 **Recommended separate change.** Upgrade Transformers to **>=5.17.0** (the
 latest is 5.22.2) in its own tested PR. That PR must:

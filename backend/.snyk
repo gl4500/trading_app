@@ -4,8 +4,8 @@ version: v1.25.0
 ignore:
   SNYK-PYTHON-TRANSFORMERS-19500670:
     - '*':
-        reason: "Temporary acceptance, reviewed 2026-11-07 (Claude; Codex sign-off pending). Snyk, GHSA and CERT/CC still report no fixed version. Upstream source from v5.17.0 runs the trust_remote_code check before fetching custom_generate code; no advisory recognizes that yet, and no upgrade is validated. The installed 5.6.2 stays affected. The app's only Transformers use is the constant ProsusAI/finbert text-classification pipeline. That BERT classifier has no GenerationMixin, and the app never calls load_custom_generate or generate(custom_generate=...). Separate tested upgrade recommended. Review due 2026-11-23; see docs/SECURITY.md."
-        expires: 2026-11-30T00:00:00.000Z
+        reason: "Temporary acceptance, reviewed 2026-11-07 (Claude; Codex sign-off pending). Snyk, GHSA and CERT/CC still report no fixed version. Upstream source from v5.17.0 runs the trust_remote_code check before fetching custom_generate code; no advisory recognizes that yet, and no upgrade is validated. The installed 5.6.2 stays affected. The app's only Transformers use is the constant ProsusAI/finbert text-classification pipeline. That BERT classifier has no GenerationMixin, and the app never calls load_custom_generate or generate(custom_generate=...). Separate tested upgrade recommended. Expiry unchanged; renewal decision due 2026-11-13; see docs/SECURITY.md."
+        expires: 2026-11-16T00:00:00.000Z
   SNYK-PYTHON-STARLETTE-13733964:
     - '*':
         reason: "Deferred: fixed only in starlette >=1.x, which needs a FastAPI 0.115->0.141 major upgrade (separate tested change). Low practical risk on a localhost single-user, non-internet-exposed API (DoS/SSRF/ReDoS)."
