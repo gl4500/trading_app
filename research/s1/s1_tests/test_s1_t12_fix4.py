@@ -287,7 +287,7 @@ def test_n3_probe_two_handmade_later_stage_files_before_any_opening_are_a_refusa
     if pair[1] == "seals/2026-01-01.json":
         # A3 Task 7 (E2.4 r3, "in every state"): a seal file of a non-opening close with no seal-stage row is a
         # registration artifact once the trial exists: TRIAL-INVALID at the gate, zero live callbacks
-        # A3 Task 10 (intended): prereg is ENFORCED too and the TABLE stages are evaluated before the seal stages, so
+        # A3 Task 10 (intended): prereg is enforced too and the TABLE stages are evaluated before the seal stages, so
         # the hand-made prereg.json is the violation named first (the same TRIAL-INVALID registration-artifact)
         with pytest.raises(SystemExit, match=r"stage prereg: artifacts \['prereg\.json'\] .*INVALID "
                                              r"\(registration-artifact\)"):
@@ -295,10 +295,10 @@ def test_n3_probe_two_handmade_later_stage_files_before_any_opening_are_a_refusa
         assert spies.zero(), spies.n
         return
     first = {"attest_start.json": "start_attest", "seals/2026-10-23.json": "opening",
-             "attest_stop.json": "stop_attest"}.get(pair[1])        # A3 Task 11: stop_attest/final_plan ENFORCED
+             "attest_stop.json": "stop_attest"}.get(pair[1])        # A3 Task 11: stop_attest/final_plan enforced
     if first is not None:
         # A3 Task 10 (intended, F4 table 'no INTENT: any artifact for g is a violation after the AUDIT-ACK'; the
-        # Task 7 concern-2 ruling - A3 supersedes A2 B3.2 after the AUDIT-ACK): start_attest / opening are ENFORCED
+        # Task 7 concern-2 ruling - A3 supersedes A2 B3.2 after the AUDIT-ACK): start_attest / opening are enforced
         # and evaluated before prereg: TRIAL-INVALID (registration-artifact), zero live callbacks, no registration
         with pytest.raises(SystemExit, match=rf"stage {first}: artifacts \['{pair[1]}'\] with no INTENT: INVALID "
                                              r"\(registration-artifact\)"):
@@ -431,7 +431,7 @@ def test_n3_retro_a_lone_handmade_seal_of_the_opening_close_is_a_refusal(tmp_pat
                                                encoding="utf-8")
     assert c.registration_witnesses(out, oc, False) == ["opening seal"]      # (fix round 8: the interface)
     # A3 Task 10 (intended, F4 table 'no INTENT: any artifact for g is a violation after the AUDIT-ACK', `opening`
-    # ENFORCED; the Task 7 concern-2 ruling): a hand-made opening seal is TRIAL-INVALID (registration-artifact) - it
+    # enforced; the Task 7 concern-2 ruling): a hand-made opening seal is TRIAL-INVALID (registration-artifact) - it
     # still manufactures no registration (the witness count above) and records no local abort at the gate
     with pytest.raises(SystemExit, match=r"stage opening: artifacts \['seals/2026-10-23\.json'\] with no INTENT: "
                                          r"INVALID \(registration-artifact\)"):

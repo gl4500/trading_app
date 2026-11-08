@@ -1,0 +1,112 @@
+A3 Task 14 fix round 1: one clean full suite (research/s1/s1_tests, default matrix), no edits under research/s1 during it.
+Command: PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python.exe -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests -q -rsxX
+Started: 2026-11-08T07:17:00-05:00
+
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................x.x............................. [  7%]
+......................x.x...x.....x.....xxx...xxx...x.....x.....xxx..... [  8%]
+........................................................................ [  9%]
+........................................................................ [ 11%]
+............................x.....x.....x.....x.....x.....x.....x.....x. [ 12%]
+....x................................................................... [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 80%]
+..............................................................s......... [ 81%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+...s..................s...............s.......s......................... [ 85%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 90%]
+......................s................................................. [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+...s                                                                     [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] research\s1\s1_tests\test_s1_checkpoint_7b.py:328: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_run.py:458: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_run.py:636: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_run.py:719: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_run.py:829: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_a9.py:185: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_task11.py:777: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan|same|unparseable] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree|same|unparseable] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+opening record (registry)|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+opening record (witnesses)|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+attestation|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+attestation|same|changed] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+attestation|same|unparseable] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+prereg|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+prereg|same|changed] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+prereg|same|unparseable] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+seal|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+receipt|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+stop|same|changed] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+stop|same|unparseable] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+attestation+prereg+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+prereg+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+5083 passed, 7 skipped, 26 xfailed in 4103.01s (1:08:23)
+Finished: 2026-11-08T08:25:24-05:00

@@ -1,7 +1,8 @@
 """Addendum 3 rev 5 F3 (finalizer rows, the evidence table, the opening/post-START seal from the first QUALIFIED
 slot in schedule order), F0.5 4c/4d/6, F0.7, OQ-13/OQ-14. Behavioural RED against the Task 7 stub
 (s1_evidence/a3/t7_red.txt). Synthetic journals and ledgers; spies; child processes for the two-finalizer race.
-Task 7 additions after the plan's list: the hook position (Task 8 D4), SEALS_ENFORCED (Task 8 D5), N2 (a stalled
+Task 7 additions after the plan's list: the hook position (Task 8 D4), the seal-file switch (Task 8 D5; deleted
+by A3 Task 14), N2 (a stalled
 stage lock never delays the finalizer's deadline rows), N-1/N-2 (a damaged QUALIFIED tree is INVALID at gate level,
 also for the stop attestation, the final plan and the final snapshot), ERROR_ACCESS_DENIED on the finalizer's locks,
 and the gate-level check of a QUALIFIED slot behind an in-flight earlier slot."""
@@ -369,7 +370,7 @@ def test_deleted_created_seal_is_invalid_and_never_recreated(tmp_path, monkeypat
 
 
 def test_seal_file_without_prepared_is_invalid(tmp_path, monkeypatch):                 # row 265 (E2.4 r3)
-    """Runs on the module default s1_stage.SEALS_ENFORCED (Task 8 D5 condition (b)): no monkeypatch of it."""
+    """Runs on the product default (Task 8 D5 condition (b)): no switch is monkeypatched (A3 Task 14: none exists)."""
     st_ = registered(tmp_path)
     day, sch = first_slot(st_)
     monkeypatch.setattr(sl, "run_seal_stage", lambda gv, d, cal, res=None, **k: res or {})   # no stage rows
@@ -382,7 +383,8 @@ def test_seal_file_without_prepared_is_invalid(tmp_path, monkeypatch):          
 
 
 def test_seals_enforced_is_on():                                                       # Task 8 D5 condition (b)
-    assert sg.SEALS_ENFORCED is True
+    """A3 Task 14: the transitional switch is deleted with the stage switch; seal files are always judged."""
+    assert not hasattr(sg, "SEALS_ENFORCED") and not hasattr(sg, "ENFORCED")
 
 
 def test_late_r_refuses_with_no_row_then_timeout(tmp_path, monkeypatch):

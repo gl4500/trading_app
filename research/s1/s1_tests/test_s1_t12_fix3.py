@@ -530,7 +530,7 @@ def test_i2_a_stray_seal_before_the_opening_is_a_preserved_refusal_never_an_abor
         assert isinstance(e.value, SystemExit) and "INVALID (registration-artifact)" in str(e.value), repr(e.value)
         assert f"seal/{name[:-5]}" in str(e.value) and spies.zero() and not (out / "captures").exists()
         return
-    # A3 Task 10 (intended): the opening close's own seal now belongs to the ENFORCED `opening` stage (F4 table 'no
+    # A3 Task 10 (intended): the opening close's own seal now belongs to the enforced `opening` stage (F4 table 'no
     # INTENT: any artifact is a violation after the AUDIT-ACK'; predicted by the Task 7 review of concern 2): the same
     # TRIAL-INVALID (registration-artifact) as any stage-less seal, zero callbacks, no claim (old: a B3.2 refusal)
     assert isinstance(e.value, SystemExit) and "stage opening: artifacts ['seals/2026-10-23.json'] with no INTENT: "         "INVALID (registration-artifact)" in str(e.value), repr(e.value)

@@ -82,7 +82,6 @@ def child(root, stage, mode, at_iso):
     at = c.aware(at_iso)
     c.now_utc = lambda: at
     relax(None, stage)
-    sg.ENFORCED = frozenset({stage})
     real = j.append
 
     def hooked(trial_id, gen, req, ctx_fn, **kw):

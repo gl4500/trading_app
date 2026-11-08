@@ -39,7 +39,6 @@ def stage_kinds(root, stage):
 
 
 def drive(root, stage, work, monkeypatch, inputs=None, clock=None, **kw):
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({stage}))
     if stage != "audit":
         h.relax(monkeypatch, stage)
     gv = t.gate(root, "engine")
@@ -319,7 +318,6 @@ def test_crash_after_prepared_recovery_by_b_appends_created_without_recompute(tm
     p = child(tmp_path, "final_plan", "die-after-prepared")
     assert p.returncode == 9, p.stderr.read()
     assert stage_kinds(tmp_path, "final_plan") == ["STAGE-INTENT", "STAGE-PREPARED"]
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
     h.relax(monkeypatch, "final_plan")
     called = []
     monkeypatch.setattr(h, "fake_single", lambda sw: called.append(1))
@@ -332,7 +330,6 @@ def test_crash_after_prepared_recovery_by_b_appends_created_without_recompute(tm
 
 def test_recovery_appends_created_with_a_op_and_b_actor_under_the_lock(tmp_path, trial, monkeypatch):
     assert child(tmp_path, "final_plan", "die-after-prepared").returncode == 9
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
     h.relax(monkeypatch, "final_plan")
     order = []
     real_acq, real_read, real_app = L.OwnershipLock.acquire, j.read_trial, j.append
@@ -350,7 +347,6 @@ def test_recovery_appends_created_with_a_op_and_b_actor_under_the_lock(tmp_path,
 @pytest.mark.parametrize("case", ["member-absent", "member-changed", "prepared-json-mismatch", "foreign-op",
                                   "missing-prepared"])
 def test_recovery_failures_are_invalid(tmp_path, trial, monkeypatch, case):
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
     h.relax(monkeypatch, "final_plan")
     tid = trial.trial.trial_id
     staging = sg.staging_dir(tmp_path, tid, "final_plan")
@@ -395,7 +391,6 @@ def test_recovery_publishes_only_missing_members_and_never_overwrites(tmp_path, 
     (tmp_path / "s1_out" / first).parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(staging / first, tmp_path / "s1_out" / first)          # partially published before the crash
     before = (tmp_path / "s1_out" / first).stat().st_mtime_ns
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"audit"}))
     t.gate(tmp_path, "recovery")
     assert (tmp_path / "s1_out" / first).stat().st_mtime_ns == before
     assert stage_kinds(tmp_path, "audit")[-1] == "STAGE-CREATED"
@@ -403,7 +398,6 @@ def test_recovery_publishes_only_missing_members_and_never_overwrites(tmp_path, 
 
 def test_recovery_unexpected_error_appends_nothing(tmp_path, trial, monkeypatch):
     assert child(tmp_path, "final_plan", "die-after-prepared").returncode == 9
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
     h.relax(monkeypatch, "final_plan")
     monkeypatch.setattr(c, "publish_exclusive", lambda p, d: (_ for _ in ()).throw(RuntimeError("disk")))
     with pytest.raises(SystemExit, match="refused with no row"):
@@ -447,7 +441,6 @@ def test_stage_state_table(tmp_path, monkeypatch, case):
             t.gate(tmp_path, "table")
         return
     h.plan_only(tmp_path, START)
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
     h.relax(monkeypatch, "final_plan")
     sp = Spies(monkeypatch)
     if case == "no-intent-artifact-after-audit-ack":
@@ -555,7 +548,6 @@ def test_commit_delete_detect_restore_is_still_invalid_with_zero_callbacks(tmp_p
 def test_pause_after_intent_with_a_live_owner_is_pending(tmp_path, trial, monkeypatch):
     p = child(tmp_path, "final_plan", "hold-after-intent")
     try:
-        monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
         h.relax(monkeypatch, "final_plan")
         sp = Spies(monkeypatch)
         with pytest.raises(SystemExit, match="pending"):
@@ -583,7 +575,6 @@ def test_lock_io_error_refuses_with_no_row_and_no_liveness_verdict(tmp_path, tri
     """F5.5 + Task 3 carry-forward: a lock path that is a directory gives ERROR_ACCESS_DENIED (Windows error 5) from
     CreateFileW - LockError, so the gate refuses with no row: never INVALID, never 'pending', never a crash."""
     assert child(tmp_path, "final_plan", "die-after-intent").returncode == 9
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
     h.relax(monkeypatch, "final_plan")
     lp = L.lock_path(tmp_path, trial.trial.trial_id, "stage-final_plan")
     lp.unlink(missing_ok=True)
@@ -608,6 +599,12 @@ def test_stage_lock_is_taken_before_the_journal_read(tmp_path, trial, monkeypatc
     assert i_lock < i_intent and ("read",) in order[i_lock:i_intent]      # the stage state is read under the lock
 
 
+def test_every_stage_is_enforced_by_the_gate():
+    import s1_stage
+    assert not hasattr(s1_stage, "ENFORCED")
+    assert not hasattr(s1_stage, "SEALS_ENFORCED")                  # (Task 8 D5: deleted with the stage set)
+
+
 def test_manifest_projection_rule():
     m = {"files": {"attempt.json": "a", "calendar.json": "b"}, "pages": {"audit/pages/calendar.json": "c"}}
     assert sg.manifest_projection("audit", m) == {"audit/attempt.json": "a", "audit/calendar.json": "b",
@@ -627,8 +624,7 @@ def test_every_stage_artifact_records_and_is_validated_against_the_trial_id(tmp_
 
 # ------------------------------------------------- seal stages in the stage-state table (E2.4/E2.6 r3, row 331)
 def test_a_seal_file_with_no_prepared_row_is_a_registration_artifact(tmp_path, trial, monkeypatch):
-    """E2.4 r3: a post-START seal file with no INTENT/PREPARED is a violation in every state (seal evaluation on)."""
-    monkeypatch.setattr(sg, "SEALS_ENFORCED", True)
+    """E2.4 r3: a post-START seal file with no INTENT/PREPARED is a violation in every state."""
     (tmp_path / "s1_out" / "seals").mkdir()
     (tmp_path / "s1_out" / "seals" / "2026-10-27.json").write_text("{}", encoding="utf-8")
     sp = Spies(monkeypatch)
@@ -651,13 +647,10 @@ def test_a_created_seal_deleted_is_stage_replaced_and_never_recreated(tmp_path, 
 
 
 def test_seal_files_on_disk_are_evaluated_once_the_seal_family_is_enforced(tmp_path, trial):
-    """Transitional (Task 8) switch, flipped by A3 Task 7 (Task 8 D5 condition (a)): the post-START seal writer is now
-    the seal/<close> stage, so SEALS_ENFORCED is True and a seal file with no rows is a registration artifact (E2.4 r3)
-    on the module default; ENFORCED (the TABLE stages) is {"audit"} since A3 Task 9 and {"audit", "opening",
-    "start_attest", "prereg"} since A3 Task 10, plus {"stop_attest", "final_plan"} since A3 Task 11, plus {"final"}
-    since A3 Task 12, plus {"score"} since A3 Task 13 (Task 14: all of TABLE)."""
-    assert sg.ENFORCED == frozenset({"audit", "opening", "start_attest", "prereg", "stop_attest", "final_plan",
-                                     "final", "score"}) and sg.SEALS_ENFORCED is True
+    """The post-START seal writer is the seal/<close> stage (A3 Task 7), so a seal file with no rows is a
+    registration artifact (E2.4 r3). A3 Task 14: the transitional enforcement switches of Tasks 8-13 are deleted
+    (their last state, every TABLE stage and the seal files enforced, is a3/t14_enforced_check.txt); the gate judges
+    every stage with no switch (test_every_stage_is_enforced_by_the_gate)."""
     (tmp_path / "s1_out" / "seals").mkdir()
     (tmp_path / "s1_out" / "seals" / "2026-10-27.json").write_text("{}", encoding="utf-8")
     with pytest.raises(SystemExit, match=r"seal/2026-10-27: artifacts .* with no INTENT: INVALID \(registration-artifact\)"):
@@ -668,7 +661,6 @@ def test_seal_files_on_disk_are_evaluated_once_the_seal_family_is_enforced(tmp_p
 def test_a_foreign_root_is_refused_by_the_plan_check_before_the_stage_table(tmp_path, trial, monkeypatch):
     """Hook placement (Deviation): evaluate() runs after the F6.2 plan check, so a root whose plan.json names another
     trial is refused and its files are never judged as the open trial's stage artifacts (no TRIAL-INVALID)."""
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
     h.relax(monkeypatch, "final_plan")
     other = tmp_path / "other_root"
     plan = json.loads((tmp_path / "s1_out" / "plan.json").read_text(encoding="utf-8"))
@@ -703,7 +695,6 @@ def test_no_intent_in_a_stale_snapshot_is_re_read_under_the_lock_before_invalid(
     """I1 (F5.1, F4 table "no INTENT"): a gate's snapshot shows no final_plan row; the stage then runs to CREATED;
     evaluate on the stale snapshot must take the stage lock, re-read, find CREATED and pass - never commit
     registration-artifact for a healthy stage."""
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
     h.relax(monkeypatch, "final_plan")
     stale = t.gate(tmp_path, "snapshot")
     assert sg.stage_rows(stale.rows, "final_plan")["intent"] is None
@@ -716,7 +707,6 @@ def test_no_intent_in_a_stale_snapshot_is_re_read_under_the_lock_before_invalid(
 def test_no_intent_in_a_stale_snapshot_with_a_live_owner_is_pending(tmp_path, trial, monkeypatch):
     """I1: the owner has published final_plan.json and holds the stage lock before CREATED (pipe barrier); a stale
     snapshot without its rows gives "pending" (refusal, no row), never INVALID."""
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
     h.relax(monkeypatch, "final_plan")
     before = len(jrows(tmp_path))
     p = child(tmp_path, "final_plan", "hold-before-created")
@@ -765,9 +755,8 @@ def test_seal_intent_without_prepared_in_a_stale_snapshot_with_a_live_owner_is_p
 
 
 def test_a_seal_completed_after_a_rowless_snapshot_is_not_an_artifact(tmp_path, trial, monkeypatch):
-    """I1 with SEALS_ENFORCED (as after Task 7): the snapshot has no seal row, the seal stage then completes; the
+    """I1 with the seal files judged (since Task 7): the snapshot has no seal row, the seal stage then completes; the
     on-disk seal file is re-read under the lock and found CREATED, not registration-artifact."""
-    monkeypatch.setattr(sg, "SEALS_ENFORCED", True)
     stale = t.gate(tmp_path, "snapshot")
     drive(tmp_path, SEAL, h.fake_seal, monkeypatch, inputs=h.SEAL_INPUTS, **h.SEAL_FAKES)
     _evaluate_passes(stale)
@@ -778,7 +767,6 @@ def test_recovery_never_creates_s1_out(tmp_path, trial, monkeypatch):
     """M3 (F6.6): s1_out disappears after the gate's total-loss check, while recovery holds the lock; recovery
     refuses with no row and never recreates s1_out (its absence is the total-loss evidence)."""
     assert child(tmp_path, "final_plan", "die-after-prepared").returncode == 9
-    monkeypatch.setattr(sg, "ENFORCED", frozenset({"final_plan"}))
     h.relax(monkeypatch, "final_plan")
     real_acq = L.OwnershipLock.acquire
 

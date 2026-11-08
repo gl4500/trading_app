@@ -1,0 +1,90 @@
+A3 Task 14 fix round 1 GREEN: every test_s1_a3_*.py file, default matrix (26 O-3 cases strict xfail).
+Command: PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python.exe -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_*.py -q -rsxX
+Started: 2026-11-08T06:49:46-05:00
+
+........................................................................ [  1%]
+........................................................................ [  3%]
+........................................................................ [  5%]
+........................................................................ [  7%]
+........................................x.x............................. [  8%]
+......................x.x...x.....x.....xxx...xxx...x.....x.....xxx..... [ 10%]
+........................................................................ [ 12%]
+........................................................................ [ 14%]
+............................x.....x.....x.....x.....x.....x.....x.....x. [ 15%]
+....x................................................................... [ 17%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 24%]
+........................................................................ [ 26%]
+........................................................................ [ 28%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 33%]
+........................................................................ [ 35%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 49%]
+........................................................................ [ 51%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................................................................ [ 58%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 63%]
+........................................................................ [ 65%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+........................................................................ [ 72%]
+........................................................................ [ 74%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 79%]
+........................................................................ [ 81%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 86%]
+........................................................................ [ 88%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 93%]
+........................................................................ [ 95%]
+........................................................................ [ 97%]
+........................................................................ [ 99%]
+......................................                                   [100%]
+=========================== short test summary info ===========================
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan|same|unparseable] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree|same|unparseable] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+opening record (registry)|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+opening record (witnesses)|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+attestation|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+attestation|same|changed] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+attestation|same|unparseable] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+prereg|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+prereg|same|changed] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+prereg|same|unparseable] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+seal|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+receipt|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+stop|same|changed] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+stop|same|unparseable] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+attestation+prereg+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+prereg+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+XFAIL research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted] - O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b
+4044 passed, 26 xfailed in 1633.33s (0:27:13)
+Finished: 2026-11-08T07:17:00-05:00

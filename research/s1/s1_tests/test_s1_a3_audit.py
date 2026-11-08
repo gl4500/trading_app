@@ -501,7 +501,7 @@ def test_the_n1_confirm_on_re_read_branches(tmp_path, monkeypatch, race):
 
 
 def test_the_opening_close_seal_with_no_row_is_judged_by_the_stage_table(tmp_path, monkeypatch):
-    """Carry-forward 4 (Task 9 N1): with `opening` in s1_stage.ENFORCED, an opening-close seal file with no opening
+    """Carry-forward 4 (Task 9 N1): with `opening` enforced by the stage table, an opening-close seal file with no opening
     INTENT is the F4 stage table's violation (registration-artifact), decided before the F3 hook's no-calendar branch
     is reached (that branch keeps it in _stray_files harmlessly)."""
     import s1_slot as sl

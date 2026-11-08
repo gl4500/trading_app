@@ -685,8 +685,14 @@ def s1_opening_checkpoint(root, ledger, opening_close, cal, receipt, *, minutes=
 def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.0, "2026-10-01T15:00:00+00:00"),),
              bridge=(), audit_actions=(), audit_problems=(), lots=None, bar_fn=None, final_actions=(),
              final_problems=(), bar_problems=(), seal_days=None, stop_attest=True, receipt=None,
-             final_snapshot=True, final=True, attest=True, stop=True, score_ack=True, seal_stage=True):
+             final_snapshot=True, final=True, attest=True, stop=True, score_ack=True, seal_stage=True, upto=None):
     """Build a synthetic s1_out/ under `root` through the REAL product gates (Task 7 test helper, not product code).
+    A3 Task 14 (the damage matrix's commitment points): `upto` = one of S1_UPTO ("after-start-attest" ... "after-score")
+    runs the real lifecycle (attest_start, do_prereg, decide_stop, attest_stop, write_final_plan, the real `final`
+    stage, the score command, each with the ACK it requires) and returns right after that stage's CREATED row (for
+    "after-stop": the TRIAL-STOP row + stop.json) - the ACK of the NEXT stage is not posted. info["now"] is then an
+    instant just after that point, at which the trial gate passes. `upto` implies score_ready from "after-prereg" on;
+    the other keywords keep their defaults.
 
     Always: plan (s1_collect.write_plan), a COMPLETE audit attempt (calendar + corporate actions, manifest hashes),
     the opening seal (carry-in rows; bridge rows are stored after it), the START attestation (s1_run.attest_start)
@@ -720,6 +726,10 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
     import s1_seal as z
 
     receipt = S1_RECEIPT if receipt is None else receipt
+    if upto is not None:
+        if upto not in S1_UPTO:
+            raise ValueError(f"s1_state: upto must be one of {S1_UPTO}, not {upto!r}")
+        score_ready = score_ready or upto != "after-start-attest"
     root = Path(root)
     out = root / "s1_out"
     start = c.aware(planned_start)
@@ -779,16 +789,22 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
                 "opening_close": opening_close}
     with _Clock(attest_t):
         r.attest_start(root, r.START_STATEMENT, receipt)
-    s1_ack(root, "run-ack", "S1-RUN-ACK", ack_t)                       # A3 Task 5: s1_trial.token (F7.1)
     info = {"start": start, "calendar": cal, "sessions": sessions, "rows": rows, "stop": None, "ledger": ledger,
             "now": max(start - timedelta(hours=12), prereg_t + timedelta(minutes=1)),   # (A3 Task 10: after prereg_t)
             "prereg_at": prereg_t, "opening_acked_at": e_w + timedelta(minutes=1),   # Task 12: a causal prereg instant
             "attest_at": attest_t, "opening_close": opening_close}
+    if upto == "after-start-attest":                                   # A3 Task 14: before prereg's RUN-ACK
+        info["now"] = attest_t + timedelta(seconds=30)
+        return info
+    s1_ack(root, "run-ack", "S1-RUN-ACK", ack_t)                       # A3 Task 5: s1_trial.token (F7.1)
     if not score_ready:
         return info
 
     with _Clock(prereg_t):
         r.do_prereg(root, "run-ack", receipt)
+    if upto == "after-prereg":                                         # A3 Task 14: before the PREREG-ACK
+        info["now"] = prereg_t + timedelta(seconds=30)
+        return info
     s1_ack(root, "prereg-ack", "S1-PREREG-ACK", prereg_t + timedelta(minutes=1))      # A3 Task 5 (F7.4)
     if seal_days is None:
         used = [L["buy_day"] for L in lots] + [L["sell"][0] for L in lots if L.get("sell")]
@@ -820,9 +836,16 @@ def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.
         z.decide_stop(gv, cal, start, lambda: t, mailbox=mb)
     assert j.first(j.read_trial(gv.trial.trial_id, gv.trial.genesis, mb), "TRIAL-STOP") is not None, \
         "fixture: decide_stop committed no TRIAL-STOP"     # (A3 Task 11 Step 4: the synthetic fallback is deleted)
+    if upto == "after-stop":                                           # A3 Task 14: TRIAL-STOP + stop.json
+        info["now"] = t + timedelta(seconds=30)
+        return info
     return _s1_finish(root, info, t, stop_, lots=lots, held_syms=held_syms, stop_attest=stop_attest, final=final,
                       bar_fn=bar_fn, bar_problems=bar_problems, final_actions=final_actions,
-                      final_problems=final_problems, final_snapshot=final_snapshot, score_ack=score_ack)
+                      final_problems=final_problems, final_snapshot=final_snapshot, score_ack=score_ack, upto=upto)
+
+
+S1_UPTO = ("after-start-attest", "after-prereg", "after-stop", "after-stop-attest", "after-final-plan", "after-final",
+           "after-score")                                              # A3 Task 14: s1_state(upto=...)
 
 
 def s1_unattest(root, *, books=True):
@@ -844,7 +867,7 @@ def s1_unattest(root, *, books=True):
 
 
 def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=True, bar_fn=None,
-               bar_problems=(), final_actions=(), final_problems=(), final_snapshot=True, score_ack=True):
+               bar_problems=(), final_actions=(), final_problems=(), final_snapshot=True, score_ack=True, upto=None):
     """A3 Task 11 (extracted unchanged from s1_state): the chain after the TRIAL-STOP at the fixture's decision
     instant `t` - the stop attestation, the final plan + a COMPLETE final attempt, the ACQUIRE-ACK, the final
     snapshot and the SCORE-ACK. Test-only.
@@ -867,8 +890,13 @@ def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=
         with _Clock(t):
             r.attest_stop(root, r.STOP_STATEMENT)
     info["stop_attested_at"] = t
+    if upto == "after-stop-attest":                                    # A3 Task 14 (s1_state(upto=...))
+        info["now"] = t + timedelta(seconds=30)
+        return info
     if not final:
         return info
+    if upto is not None and stop["status"] not in ("STOPPED", "TIMEOUT"):
+        raise ValueError(f"s1_state(upto={upto!r}): the stop is {stop['status']}, which has no final plan")
     if stop["status"] in ("STOPPED", "TIMEOUT"):
         stop_day = c.aware(stop["stop_close"]).astimezone(c.NY).date().isoformat()
         cohort_syms = sorted({L["symbol"] for L in lots})
@@ -877,6 +905,9 @@ def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=
                 k.write_final_plan(root)
             else:                                     # (test-only: an unattested acquisition, for the score's paths)
                 k._write_once(out / "final_plan.json", k.final_plan_record(root))
+        if upto == "after-final-plan":                                 # A3 Task 14: before the ACQUIRE-ACK
+            info["now"] = t + timedelta(hours=1, seconds=30)
+            return info
         bar_fn = bar_fn or (lambda sym, d: s1_bar(d))
         win = [d for d in sessions if d <= stop_day]
         bars = {}
@@ -898,6 +929,9 @@ def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=
             _final_stage(root, reserved, objs)
         else:                                         # (test-only: unattested - no stage can run; hand-written)
             _final_files(out / "final", reserved, objs)
+        if upto == "after-final":                     # A3 Task 14: final CREATED at reserved + 3 min (_final_stage)
+            info["now"] = reserved + timedelta(minutes=4)
+            return info
     else:
         shift = timedelta(0)
         # A3 Task 5 (F1 graph 4): the ACQUIRE-ACK after the final plan (NO-VALID-SEAL: no final plan, its fields absent)
@@ -909,6 +943,10 @@ def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=
     if score_ack:                                                                    # (A3 Task 11: Task 13 keyword)
         s1_ack(root, "score-ack", "S1-SCORE-ACK", t + timedelta(days=3) + shift)     # A3 Task 5 (F1 graph 6)
     info["now"] = t + timedelta(days=4) + shift
+    if upto == "after-score":                         # A3 Task 14: the real score command (stage `score`)
+        with _Clock(info["now"]):
+            r.score(root, "score-ack")
+        info["now"] = info["now"] + timedelta(minutes=1)
     return info
 
 

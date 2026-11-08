@@ -1,0 +1,153 @@
+A3 Task 14 Step 1: behavioural RED (mutant). The damage matrix (default selection: singletons, pairs, complements, full set; 3,300 cases + the static scope test) runs with s1_stage.evaluate monkeypatched to a no-op by a scratch pytest plugin (-p t14_mutant_evaluate, in the session scratchpad, never in the repo); the product tree is the Task 14 working tree.
+Plugin source:
+    """A3 Task 14 Step 1 behavioural RED (mutant), scratch plugin never in the repo: s1_stage.evaluate (the F4
+    stage-state table run by every gate) becomes a no-op for the whole run, including the module-scoped snapshot builds."""
+    
+    
+    def pytest_configure(config):
+        import s1_stage
+        s1_stage.evaluate = lambda gv, *, defer_pending=False: None
+        print("T14 MUTANT: s1_stage.evaluate is a no-op")
+Command: PYTHONPATH="research/s1;research/s1/s1_tests;<scratchpad>/t14" testenv/python.exe -m pytest -p conftest -p t14_mutant_evaluate -p no:cacheprovider research/s1/s1_tests/test_s1_a3_matrix.py -q --tb=no -rf
+Started: 2026-11-08T01:13:34-05:00
+
+T14 MUTANT: s1_stage.evaluate is a no-op
+.F....FFF................FF....FF....FF................F................ [  2%]
+..............................FFF...FFF...FFF...FFF...F.....F.....FFF... [  4%]
+.......FF....FF....FF................FF....FF....FF................FF... [  6%]
+.FF..........FF....FF..........FF..........FF.........F................. [  8%]
+........................................................................ [ 10%]
+......F.F............................................................... [ 13%]
+........................F.F.................................F.F......... [ 15%]
+..................F.F.....................F.................F........... [ 17%]
+......F.F...F...........F............................................... [ 19%]
+........................................................................ [ 21%]
+..................................................................F.F... [ 23%]
+........................................................................ [ 26%]
+..................................................................F..... [ 28%]
+........................................................................ [ 30%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+........................................................................ [ 37%]
+........................................................................ [ 39%]
+........................................................................ [ 41%]
+........................................................................ [ 43%]
+........................................................................ [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................F............................................... [ 58%]
+........................................................................ [ 61%]
+........................................................................ [ 63%]
+........................................................................ [ 65%]
+........................................................................ [ 67%]
+........................................................................ [ 69%]
+........................................................................ [ 71%]
+........................................................................ [ 74%]
+........................................................................ [ 76%]
+........................................................................ [ 78%]
+........................................................................ [ 80%]
+........................................................................ [ 82%]
+........................................................................ [ 85%]
+........................................................................ [ 87%]
+........................................................................ [ 89%]
+........................................................................ [ 91%]
+........................................................................ [ 93%]
+........................................................................ [ 95%]
+........................................................................ [ 98%]
+.............................................................            [100%]
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|attestation|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|attestation|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|prereg|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|prereg|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|seal|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|seal|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+opening record (registry)|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+opening record (registry)|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+opening record (registry)|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+opening record (witnesses)|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+opening record (witnesses)|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+opening record (witnesses)|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+attestation|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+attestation|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+attestation|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+prereg|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+prereg|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+prereg|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+seal|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+receipt|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+stop|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+stop|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+stop|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (registry)+attestation|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (registry)+attestation|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (registry)+prereg|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (registry)+prereg|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (registry)+seal|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (registry)+seal|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (witnesses)+attestation|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (witnesses)+attestation|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (witnesses)+prereg|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (witnesses)+prereg|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (witnesses)+seal|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|opening record (witnesses)+seal|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|attestation+prereg|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|attestation+prereg|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|attestation+seal|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|attestation+seal|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|attestation+stop|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|attestation+stop|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|prereg+seal|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|prereg+seal|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|prereg+stop|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|prereg+stop|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|seal+stop|same|changed]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|seal+stop|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|seal|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|seal|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|audit tree+seal|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|audit tree+seal|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|opening record (registry)+seal|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|opening record (registry)+seal|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|opening record (witnesses)+seal|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|opening record (witnesses)+seal|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|attestation+seal|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|prereg+seal|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|seal+receipt|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|seal+receipt|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|seal+stop|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening|audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening-ack|audit tree+seal|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening-ack|audit tree+seal|same|unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-opening-ack|audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted]
+FAILED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-stop|prereg+stop|same|deleted]
+71 failed, 3230 passed in 556.30s (0:09:16)
+Finished: 2026-11-08T01:22:51-05:00
+
+Summary (appended after the run): 71 of 3,300 matrix cases fail under the mutant, by point:
+        53 after-audit
+        14 after-opening
+         3 after-opening-ack
+         1 after-stop
+The other cases still pass under the mutant; inferred (not separately measured per case) to be because another detector (the OQ-19 legacy registration detector, the F3 evidence table, the F2.3/F2.4 stop check, the E5.5 evidence-manifest check or the F6.4 bundle check) stops the same damage; the static scope test passes (no product dependency).
+
+Fix round 1 note (review M-2, measured by the Task 14 reviewer, task-14-review-verdict.md; repro14/ in the session
+scratchpad; replaces the "inferred" wording above). First raising detector per case, nothing disabled: bundle-changed
+- the gate body decides all 165 cases at every point; bundle-same at after-audit - evaluate 65, legacy
+registration_gate 46, gate body (F6.2) 20; bundle-same from after-opening on - evaluate 84-93 per point, legacy 60-72,
+stop_check 9-18 (from after-stop). So evaluate decides many post-START cases, but disabling it alone fails only 71
+because later detectors catch the same damage. Independent mutants: evaluate + E5.5 opening_manifest_check: 82 failed;
+evaluate + E5.5 + evidence_check + stop_check: 85 failed; legacy registration_gate only: 439 failed (330 plan.json
+deleted/unparseable cases from after-opening on end with no TRIAL-INVALID - the O-3 defect, Task 14b; legacy-record
+damage; about 66 side-effects in verified_registration). Conclusion: after the opening the matrix is backed mostly by
+the OQ-19 legacy detector; it shows the outcome is fail-closed, not that the A3 detectors alone suffice. Disclosed to
+Codex at Stage-1 (no change, progress.md ruling "T14 I-2").

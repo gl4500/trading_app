@@ -37,20 +37,16 @@ TRIAL_ID_MEMBERS = {"audit": ("audit/attempt.json",), "start_attest": ("attest_s
                     "prereg": ("prereg.json",), "stop_attest": ("attest_stop.json",),
                     "final_plan": ("final_plan.json",), "final": ("final/attempt.json",),
                     "score": ("score/attempt.json", "score/s1.json")}
-ENFORCED = frozenset({"audit", "opening", "start_attest", "prereg",      # transitional (Task 8); Task 9 audit; Task 10
-                      "stop_attest", "final_plan",                       # A3 Task 11 (F1 graph 2-3, F4.8)
-                      "final",                                           # A3 Task 12 (F1 graph 5, F4.9)
-                      "score"})                                          # A3 Task 13 (F1 graph 7, F4.8/F4.9)
-# the pre-START stages (opening, start_attest, prereg); Tasks 11-13 add theirs; Task 14: all of TABLE
-# Transitional (Task 8; Task 14 deletes it with ENFORCED): seal files on disk with no seal-stage row are evaluated
-# (E2.4 r3) once the post-START seal writer is a stage - A3 Task 7 made it one (s1_slot.run_seal_stage), so it is True.
-# Seal stages that have journal rows are always evaluated.
-SEALS_ENFORCED = True
+# A3 Task 14: every stage of TABLE is enforced by the gate. The transitional stage-set and seal-file switches of
+# Tasks 8-13 are deleted; their final state (the stage set equal to TABLE, the seal-file switch on) is recorded in
+# a3/t14_enforced_check.txt. evaluate() judges every TABLE stage, every seal stage with a journal row and every
+# post-START seals/<date>.json on disk (E2.4 r3).
 # A3 Task 10 fix round 1 (review I1): the owner's publication hooks of a stage - (publish_ctx factory, before_publish)
 # built by `<module>.<function>(gv, inputs, clock)` from the INTENT envelope's inputs. The stage's command passes the
 # same pair to run(), and F4.7 recovery calls it too, so a recovered stage publishes exactly what a completed run
-# does (the legacy registry/witness records until Task 14 deletes them with ENFORCED). Imported lazily (owners import
-# this module).
+# does, including the legacy registry/witness records. A3 Task 14 keeps them: OQ-19 keeps the legacy detectors as
+# additional detectors and OQ-24 makes the two opening records damage-matrix elements, so the records and the
+# hooks that write them stay (no task removes them). Imported lazily (owners import this module).
 PUBLISH_HOOKS = {"opening": ("s1_checkpoint", "opening_publish_hooks"),
                  "start_attest": ("s1_run", "start_attest_publish_hooks"),
                  "prereg": ("s1_run", "prereg_publish_hooks")}
@@ -575,12 +571,12 @@ def _decide_locked(gv, stage, m) -> None:
 
 
 def evaluate(gv, *, defer_pending: bool = False) -> None:
-    """The F4 stage-state table over the enforced stages, run by every gate (and the F7.3 live-file check): no INTENT
-    + an artifact -> INVALID (registration-artifact; before the AUDIT-ACK the gate already refused); INTENT or
-    PREPARED without CREATED -> pending while a live owner holds the lock, else stage-incomplete / recovery; CREATED ->
-    created_problems -> INVALID (stage-replaced).
-    Seal stages (E2 r3) are evaluated too: every `seal/<date>` with a journal row, plus (SEALS_ENFORCED) every
-    post-START `seals/<date>.json` present on disk (a seal file with no INTENT/PREPARED is registration-artifact in
+    """The F4 stage-state table over every stage of TABLE (A3 Task 14), run by every gate (and the F7.3 live-file
+    check): no INTENT + an artifact -> INVALID (registration-artifact; before the AUDIT-ACK the gate already refused);
+    INTENT or PREPARED without CREATED -> pending while a live owner holds the lock, else stage-incomplete / recovery;
+    CREATED -> created_problems -> INVALID (stage-replaced).
+    Seal stages (E2 r3) are evaluated too: every `seal/<date>` with a journal row, plus every post-START
+    `seals/<date>.json` present on disk (a seal file with no INTENT/PREPARED is registration-artifact in
     every state, E2.4 r3; a CREATED seal missing, changed or unparseable is stage-replaced and never recreated,
     E2.6 r3). Never creates s1_out (F6.6).
     Fix round 1 (I1, F5.1): the gate's snapshot `gv.rows` only selects what to look at. A CREATED row is final, so it
@@ -591,10 +587,8 @@ def evaluate(gv, *, defer_pending: bool = False) -> None:
     "pending": a stalled stage owner never blocks a slot capture, a TIMEOUT at D or a MISSED at E. Deferring decides
     nothing about that stage (the next gate after its lock is free does); a LockError still refuses (F5.5), and
     every CREATED check and every decision on an acquirable lock is unchanged."""
-    on_disk = _seals_on_disk(gv.out) if SEALS_ENFORCED else []
+    on_disk = _seals_on_disk(gv.out)
     for stage in list(TABLE) + sorted(set(seal_stages(gv.rows)) | set(on_disk)):
-        if stage in TABLE and stage not in ENFORCED:
-            continue
         m = stage_rows(gv.rows, stage)
         if m["created"] is not None:
             _check_created(gv, stage, m)

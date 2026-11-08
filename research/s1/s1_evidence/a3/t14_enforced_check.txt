@@ -1,0 +1,6 @@
+A3 Task 14 transitional-state check (Task 8 D5 carry-forward), at HEAD 28fe5a0049a6b99acb84529153de76a0b202e140, before the deletion
+ENFORCED = ['audit', 'final', 'final_plan', 'opening', 'prereg', 'score', 'start_attest', 'stop_attest']
+TABLE    = ['audit', 'final', 'final_plan', 'opening', 'prereg', 'score', 'start_attest', 'stop_attest']
+ENFORCED == frozenset(TABLE): True
+SEALS_ENFORCED is True: True
+PASS

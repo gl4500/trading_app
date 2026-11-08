@@ -119,7 +119,7 @@ def test_b3_an_invalid_handmade_prereg_before_the_opening_is_a_preserved_refusal
                                      encoding="utf-8")
     spies = Spies(monkeypatch)
     # A3 Task 10 (intended, F4 table 'no INTENT: any artifact for g is a violation after the AUDIT-ACK', with prereg in
-    # s1_stage.ENFORCED; the Task 7 concern-2 ruling: A3 supersedes A2 B3.2 after the AUDIT-ACK): the hand-made
+    # the stage table; the Task 7 concern-2 ruling: A3 supersedes A2 B3.2 after the AUDIT-ACK): the hand-made
     # prereg.json is TRIAL-INVALID (registration-artifact) at the gate, still with no callback, no claim and no
     # registration manufactured (old: a preserved B3.2 refusal)
     with pytest.raises(SystemExit, match=r"stage prereg: artifacts \['prereg.json'\] with no INTENT: INVALID "

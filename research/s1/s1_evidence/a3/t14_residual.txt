@@ -1,0 +1,15 @@
+F8.1 residual: lost detection, not equivalence
+A3 Task 14 (map rows 161/223: test_uncommitted_detection_may_resume_and_is_labelled_lost_detection - an integrity violation observed while the journal cannot be written commits no TRIAL-INVALID; after the committed bytes are restored and the local witnesses (aborted.json, refusals.jsonl, invalid/) deleted, the restart resumes. This is the accepted F8.1 residual: the detection is LOST, the restored trial is NOT shown equivalent to an undamaged one, and no guarantee is claimed for it. Rows 162/224: test_invalid_committed_before_the_crash_keeps_restoration_invalid - once the TRIAL-INVALID is committed, the same restoration stays INVALID with zero callbacks, captures, provider requests and valuation calls.)
+Command: PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python.exe -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_residual.py -v
+
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-8.3.3, pluggy-1.6.0 -- C:\Users\gl450\.coordination\trading_app\testenv\Scripts\python.exe
+hypothesis profile 'default' -> database=DirectoryBasedExampleDatabase(WindowsPath('C:/Users/gl450/trading_app-s1/.hypothesis/examples'))
+rootdir: C:\Users\gl450\trading_app-s1
+plugins: anyio-4.15.1, hypothesis-6.112.1
+collecting ... collected 2 items
+
+research/s1/s1_tests/test_s1_a3_residual.py::test_uncommitted_detection_may_resume_and_is_labelled_lost_detection PASSED [ 50%]
+research/s1/s1_tests/test_s1_a3_residual.py::test_invalid_committed_before_the_crash_keeps_restoration_invalid PASSED [100%]
+
+============================== 2 passed in 2.96s ==============================

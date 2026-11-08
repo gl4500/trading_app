@@ -503,7 +503,7 @@ def test_an_opening_slot_after_the_opening_is_decided_is_refused_with_no_row(tmp
 
 def test_an_opening_slot_needs_the_created_audit_stage(tmp_path, monkeypatch):
     """F1: the opening capture needs the audit stage CREATED in the journal (no audit rows: refused, no row).
-    A3 Task 9 (intended, F4 table 'no INTENT: any artifact is a violation after the AUDIT-ACK'): with audit ENFORCED,
+    A3 Task 9 (intended, F4 table 'no INTENT: any artifact is a violation after the AUDIT-ACK'): with audit enforced,
     audit files with no audit rows are INVALID (registration-artifact) at the gate, before the slot gate is reached;
     the slot gate's own refusal is kept at unit level (its rows have no audit CREATED)."""
     start, cal, oc, _ = s1_plan_audit(tmp_path, START, journal=False)
