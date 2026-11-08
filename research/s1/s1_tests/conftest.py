@@ -1081,6 +1081,28 @@ def s1_first_invalid(root):
     return inv.subject if inv is not None else None
 
 
+# A3 H1 (Erratum 2 r4 G6.4): the trial gate's refusal after it recorded a surviving local abort
+S1_LOCAL_ABORT = r"surviving local abort recorded: INVALID \(established-violation\), subtype local-abort"
+
+
+def s1_local_abort_recorded(root):
+    """A3 H1 (Erratum 2 r4 G6.2/G6.4) test helper: asserts that the open trial's journal holds exactly ONE
+    TRIAL-INVALID, established-violation, whose evidence copy is the local-abort observation bound to the current
+    aborted.json bytes, and that nothing of the score exists; returns the observation record. Test-only."""
+    import s1_common as c
+    import s1_journal as j
+    import s1_trial as t
+    m, out = Path(root) / "mailbox.sqlite3", Path(root) / "s1_out"
+    (tid,) = [x for x, tr in t.trials(t.scan(m)).items() if tr.closed is None]
+    inv = [x for x in j.read_trial(tid, t.trials(t.scan(m))[tid].genesis, m) if x.kind == "TRIAL-INVALID"]
+    assert [x.subject for x in inv] == ["reason/established-violation"], inv
+    rec = json.loads((out / "invalid" / f"{inv[0].seq}.json").read_bytes())
+    assert inv[0].detail == j.detail_of(rec) and rec["subtype"] == t.LOCAL_ABORT, rec
+    assert rec["abort_sha256"] == c.sha256_file(out / "aborted.json"), rec
+    assert not (out / "score").exists()
+    return rec
+
+
 def s1_prereg_at(root):
     """A3 Task 10 (fixture change, F7.2(b) literal / E5.6): the fixtures' causal prereg instant - 1 min after the open
     trial's RUN-ACK (else its latest chain ACK). It replaces the old fixture instant START - 1 day, which now precedes

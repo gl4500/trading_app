@@ -46,6 +46,7 @@ _ATTRIB = re.compile(rf"trial_id=({_UUID4_TEXT})", re.ASCII)
 STRICT_HEX = ("bundle_sha256", "journal_head_sha256", "stop_line_sha256", "evidence_sha256",
               "evidence_manifest_sha256", "plan_sha256")          # never "absent"
 _SCAN = "SELECT id, sender, recipient, request_key, body, created FROM messages"
+LOCAL_ABORT = "local-abort"     # A3 H1 (Erratum 2 r4 G6.2; ruling OP-5): the recovery record's subtype (not SUBTYPES)
 
 
 class Refusal(SystemExit):
@@ -633,31 +634,46 @@ def _refuse(out: Path, where: str, msg: str, now=None):
     raise Refusal(f"{where} refused: {msg}")
 
 
-def invalidate(trial: Trial, reason: str, record: dict, *, root, mailbox=None, clock=None) -> j.Result:
+def invalidate(trial: Trial, reason: str, record: dict, *, root, mailbox=None, clock=None,
+               recovery: bool = False) -> j.Result:
     """Commit TRIAL-INVALID(reason) for a gate-found violation (detail = the observation record; a fresh op and
     actor, OQ-2); best-effort evidence copy s1_out/invalid/<seq>.json with the same canonical bytes (never for LOST:
     s1_out is not recreated). If the journal cannot be written, the observation is the F8.1 residual: a local
     aborted.json is attempted and the command refuses (no further work); nothing claims the violation was recorded
-    externally."""
+    externally.
+    A3 H1 (Erratum 2 r4): `recovery` (G6.5, O17) marks the gate's surviving-local-abort recovery request - decide()
+    then refuses when ANY TRIAL-INVALID is on the transaction's re-read rows, and the REFUSE Result comes back with no
+    row and no evidence copy. The journal-failure refusal says truthfully whether the local abort was published
+    (G6.3). Neither the local abort nor the evidence copy ever creates s1_out (G6.1/G6.3, O16): write_abort never
+    does, and invalid/ is created non-recursively under an existing root and published with mkdir=False, so a root
+    that vanished leaves the copy unpublished while the committed row stands."""
     req = j.Request("TRIAL-INVALID", j.invalid_subject(reason), j.new_nonce(), j.new_nonce(),
                     detail=j.detail_of(record))
     out = Path(root) / "s1_out"
     try:
         res = j.append(trial.trial_id, trial.genesis, req,
-                       lambda rows, con: j.Context(closed=closed_in(con, trial)), mailbox=mailbox, clock=clock)
+                       lambda rows, con: j.Context(closed=closed_in(con, trial), recovery=recovery),
+                       mailbox=mailbox, clock=clock)
     except j.JournalError as e:
-        if reason != "LOST" and out.is_dir():
+        if reason == "LOST":
+            local = "no local abort (LOST: s1_out is not recreated)"
+        elif not out.is_dir():                           # (caller guard kept; the helper never recreates it either)
+            local = "local abort not published (s1_out is gone)"
+        else:
+            wit = {"reason": f"uncommitted {reason}", "record": record, "journal_error": str(e), "actual": None,
+                   "close": None, "scheduled": None, "projection_sha256": None, "receipt_sha256": None}
             try:
-                c.write_abort(out, {"reason": f"uncommitted {reason}", "record": record, "journal_error": str(e),
-                                    "actual": None, "close": None, "scheduled": None, "projection_sha256": None,
-                                    "receipt_sha256": None})
-            except OSError:
-                pass
+                stored = c.write_abort(out, wit)
+                local = ("local abort published" if stored is wit
+                         else "local abort not published (an earlier aborted.json is kept: first wins)")
+            except OSError as w:
+                local = f"local abort not published ({type(w).__name__})"
         raise Refusal(f"violation ({reason}) observed but the journal could not be written ({type(e).__name__}): "
-                      f"refused; F8.1 residual (lost detection if it never commits)") from None
+                      f"refused; {local}; F8.1 residual (lost detection if it never commits)") from None
     if res.row is not None and reason != "LOST" and out.is_dir():
         try:
-            c.publish_exclusive(out / "invalid" / f"{res.row.seq}.json", c.canonical(record))
+            (out / "invalid").mkdir(exist_ok=True)          # non-recursive: never recreates a vanished s1_out
+            c.publish_exclusive(out / "invalid" / f"{res.row.seq}.json", c.canonical(record), mkdir=False)
         except OSError:                                  # (FileExistsError included) best effort evidence copy
             pass
     return res
@@ -698,8 +714,9 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
     state (F1: INVALID refuses with no work, F0.6 - checked before the bundle so re-entry adds no repeat row); total
     loss (F6.6: INVALID (LOST)); the bundle against the AUDIT-ACK's (F6.4: refusal before any row, INVALID (bundle) +
     local abort after); the plan's trial_id (F6.2; after any row, plan.json as the audit bound input,
-    _plan_after_rows, A3 Task 14b). The gate never creates or writes into a missing s1_out (review
-    I-1). `now`: the command's clock callable (refusal records, the INVALID row's `at`). `defer_pending` (A3 Task 6,
+    _plan_after_rows, A3 Task 14b); then (A3 H1, Erratum 2 r4 G6.4) the recovery of a surviving local abort
+    (_recover_local_abort: recorded once as INVALID (established-violation, local-abort), then a refusal with no
+    work). The gate never creates or writes into a missing s1_out (review I-1). `now`: the command's clock callable (refusal records, the INVALID row's `at`). `defer_pending` (A3 Task 6,
     ruling N2, Erratum 1 E1.2): only the slot paths pass True - a stage whose lock is held by a live (possibly stalled)
     owner is recorded in gv.deferred instead of refusing "pending", so deadline arbitration is never blocked by a
     work lock. Hooks, in order, after the plan check (a foreign root is never judged): the F4 stage table
@@ -739,8 +756,11 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
         rec = {"where": where, "expected_bundle_sha256": tr.bundle, "observed_bundle_sha256": observed,
                "problems": c.bundle_problems(c.bundle_manifest())}
         invalidate(tr, "bundle", rec, root=root, mailbox=mailbox, clock=now)
-        c.write_abort(out, dict(rec, reason="bundle", actual=None, close=None, scheduled=None,   # (s1_out exists:
-                                projection_sha256=None, receipt_sha256=None))                     # loss checked)
+        try:                                              # (s1_out exists: loss checked; H1 O16: if it vanished
+            c.write_abort(out, dict(rec, reason="bundle", actual=None, close=None, scheduled=None,   # since, the
+                                    projection_sha256=None, receipt_sha256=None))                     # helper never
+        except c.OutputRootGone:                          # recreates it and the committed INVALID decides, OP-8)
+            pass
         raise Refusal(f"{where} refused: S1 bundle differs from the trial's AUDIT-ACK bundle after journal rows: "
                       f"INVALID (bundle)")
     if rows:
@@ -753,6 +773,7 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
         if plan_tid != tr.trial_id:                               # before any row: a refusal (F6.2, F6.4)
             _refuse(out, where, f"plan.json trial_id {plan_tid!r} differs from the AUDIT-ACK's {tr.trial_id} (F6.2)",
                     now)
+    _recover_local_abort(tr, rows, root, out, where, now, mailbox)    # A3 H1 (Erratum 2 r4 G6.4)
     gv = Gate(root, out, tr, rows, st_, mailbox)
     import s1_seal                                        # A3 Task 11 (F2.3/F2.4): stop.json against the TRIAL-STOP
     s1_seal.stop_check(gv)                                # (the publication gap recovers here), before the F4 table
@@ -763,6 +784,58 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
     s1_seal.stop_gap_recover(gv)                          # A3 Task 11 fix round 1 (M4): the F2.3 gap, after F4/F3
     opening_manifest_check(gv)                            # A3 Task 10: E5.5 / F7.3, after the stage and F3 tables
     return gv
+
+
+def _recover_local_abort(tr: Trial, rows, root: Path, out: Path, where: str, now, mailbox) -> None:
+    """A3 H1 (Erratum 2 r4 G6.4, O12 items 2-5, O17, O18): a surviving local abort (s1_out/aborted.json) on an open,
+    not-INVALID trial is recorded here, in the common gate, before any stop-gap or stage recovery and any requested
+    work - after the identity, ACK chain, journal chain, CLOSED, INVALID, LOST, bundle and root/plan checks, which
+    keep their precedence (a foreign root, no trial, a forked chain, CLOSED or a lost s1_out never reach here).
+    Only once the trial has journal rows (ruling OP-15: before any row the command-local refusals stay).
+    1. A typed read (c.read_abort): absent -> healthy, return; a read/OS/permission error refuses with no row (never
+       a local-abort observation, I-4/O18).
+    2. Confirm on a re-read: the same typed outcome and the same bytes (sha256); a change or deletion between the
+       reads is unconfirmed: refusal, no row, no work (I-1).
+    3. The canonical, sanitized observation (G6.2): subtype local-abort, the witness bytes' sha256, trial_id, root,
+       recovery_observed_utc, and original_reason / original_observed_utc copied only when present as strings
+       (ruling OP-7: observed_utc, else actual) - or the malformation for readable malformed bytes. Nothing else
+       from the witness is copied; its stated reason is provenance, never the row's reason.
+    4. TRIAL-INVALID (established-violation) through the request-scoped conditional append (recovery=True: ANY
+       TRIAL-INVALID on the transaction's re-read rows refuses with no row, G6.5); `now` (the command's clock
+       callable) is passed by identity, so the row's `at` is the transaction clock (I-5). Either way the command
+       refuses with no work. The witness is never deleted or rewritten (G6.5); restoring files never resumes."""
+    if not rows:                                          # ruling OP-15: record only after journal rows
+        return
+    reads = []
+    for _ in range(2):
+        try:
+            a = c.read_abort(out)
+        except OSError as e:
+            _refuse(out, where, f"aborted.json unreadable ({type(e).__name__}): not a verified local-abort "
+                                f"observation; refused with no row (G6.2, F0.7)", now)
+        if a.kind == "absent" and not reads:
+            return                                        # healthy: nothing to record
+        reads.append(a)
+    first, second = reads
+    if (first.kind, first.sha256) != (second.kind, second.sha256):
+        _refuse(out, where, "aborted.json unconfirmed (changed or deleted between reads): no row, no work (G6.4)",
+                now)
+    rec = {"subtype": LOCAL_ABORT, "abort_sha256": first.sha256, "trial_id": tr.trial_id, "root": str(root),
+           "recovery_observed_utc": (now or c.now_utc)().isoformat()}
+    if first.kind == "valid":
+        w = first.record
+        if isinstance(w.get("reason"), str):
+            rec["original_reason"] = w["reason"]
+        obs = w.get("observed_utc") if isinstance(w.get("observed_utc"), str) else w.get("actual")
+        if isinstance(obs, str):
+            rec["original_observed_utc"] = obs
+    else:
+        rec["malformation"] = first.malformation
+    res = invalidate(tr, "established-violation", rec, root=root, mailbox=mailbox, clock=now, recovery=True)
+    if res.outcome == "APPEND":
+        raise Refusal(f"{where} refused: surviving local abort recorded: INVALID (established-violation), subtype "
+                      f"{LOCAL_ABORT}, bound to aborted.json {first.sha256[:12]}: no work (G6.4)")
+    raise Refusal(f"{where} refused: {res.reason}: no work (G6.5)")
 
 
 def _plan_read(p: Path):

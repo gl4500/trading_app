@@ -485,12 +485,16 @@ def test_a_second_opening_seal_is_caught_beyond_the_opening_gate(tmp_path):     
     with pytest.raises(SystemExit, match="a second, different opening seal"):
         ck._before_opening_seal(out, oc, "0" * 64, c.aware(START), rows_)
     ck._before_opening_seal(out, oc, h, c.aware(START), rows_)       # the same seal: no conflict
+    # A3 H1 (Erratum 2 r4 G6.4; setup order only): the guard's own local abort (above) is removed BEFORE the next
+    # trial gate - left in place, that gate now records it as the surviving local abort (G6.4, rows 460/466) and the
+    # stage-table checks below would never run (moved up from just before the seal replacement)
+    (out / "aborted.json").unlink()
     day = next(d for d in cal if d["date"] == oc)
     gv = t.gate(tmp_path, "second opening seal")
     assert ck._opening_stage(gv, out, day, cal, lambda: c.aware(START), mb(tmp_path)) == {"opening": "already decided"}
     with pytest.raises(SystemExit, match=r"stage opening is already CREATED: re-entry refused \(F1\)"):
         sg.run(gv, "opening", inputs={}, acks={}, work=lambda sw: [], mailbox=mb(tmp_path))
-    (out / "aborted.json").unlink()                                   # (the guard's own local abort, above)
+    assert not (out / "aborted.json").exists()                       # (the guard's own local abort, removed above)
     seal.write_bytes(seal.read_bytes() + b" ")                       # the TEST replaces its tmp opening seal
     assert any(f"{rel} missing or changed (a CREATED seal stage's committed member" in p
                for p in c.registration_problems(out, mb(tmp_path)))

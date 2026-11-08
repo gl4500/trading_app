@@ -23,6 +23,7 @@ from conftest import s1_first_invalid, s1_prereg_at, s1_replaced  # A3 Task 10 (
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_opening_checkpoint, s1_plan_audit, \
     s1_reack, s1_state
+from conftest import S1_LOCAL_ABORT, s1_local_abort_recorded  # A3 H1 (Erratum 2 r4 G6)
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"
@@ -314,9 +315,13 @@ def test_b3_an_earlier_bundle_abort_stays_first(tmp_path, monkeypatch):
     (tmp_path / "s1_out" / "attest_start.json").unlink()
     probs = c.registration_problems(tmp_path / "s1_out")             # (the B3.3 finding: unit level, fix round 1 M8)
     assert any("attest_start.json" in x for x in probs), probs
-    with pytest.raises(SystemExit, match=s1_replaced("attest_start.json")):     # A3 Task 10 (intended, F4 CREATED)
+    # A3 H1 (intended, Erratum 2 r4 G6.4): the surviving (bundle) abort is recorded by the trial gate before the F4
+    # stage table runs - TRIAL-INVALID established-violation / local-abort, the witness's "bundle" reason bound as
+    # provenance only (G6.2) - so the later stage-replaced verdict is never reached; the first abort stays first
+    with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):          # (old: s1_replaced("attest_start.json"), Task 10)
         _cp(tmp_path, st_["ledger"].path)
-    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/stage-replaced\)"):     # (its abort: first-wins)
+    assert s1_local_abort_recorded(tmp_path)["original_reason"] == "bundle"
+    with pytest.raises(t.Refusal, match=r"trial INVALID \(reason/established-violation\)"):     # (first-wins)
         _cp(tmp_path, st_["ledger"].path, minutes=47)
     assert _aborted(tmp_path)["reason"] == "bundle"
 
@@ -365,16 +370,25 @@ def test_b3_a_corrupt_aborted_json_fails_closed(tmp_path, monkeypatch):
     (tmp_path / "s1_out" / "aborted.json").write_text("{corrupt", encoding="utf-8")
     # A3 Task 6 (F8.1): a local aborted.json - corrupt included (it fails closed: it IS an abort) - refuses any new
     # capture before the SLOT-INTENT: no row, no capture, no seal, never a crash
-    with pytest.raises(SystemExit, match=r"aborted\.json exists .*no new capture"):
+    # A3 H1 (intended, Erratum 2 r4 G6.2/G6.4, O18): the trial gate confirms the same readable malformed bytes on a
+    # re-read and records them (TRIAL-INVALID established-violation / local-abort with the byte hash and the
+    # malformation, never an invented reason) before the checkpoint's own refusal; still no row of the slot, no
+    # capture, no seal
+    with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):          # (old: "aborted.json exists ... no new capture")
         _cp(tmp_path, st_["ledger"].path)
+    rec = s1_local_abort_recorded(tmp_path)
+    assert rec["malformation"] == "unparseable JSON" and "original_reason" not in rec
     assert not (tmp_path / "s1_out" / "captures" / "2026-10-26").exists()
     assert not (tmp_path / "s1_out" / "seals" / "2026-10-26.json").exists()
 
 
 def test_b3_a_corrupt_aborted_json_fails_closed_at_prereg(tmp_path):
-    """B3.4: prereg refuses with a corrupt aborted.json (it is an abort)."""
+    """B3.4: prereg refuses with a corrupt aborted.json (it is an abort).
+    A3 H1 (intended, Erratum 2 r4 G6.2/G6.4, O18): the prereg's trial gate records the confirmed malformed witness
+    (TRIAL-INVALID established-violation / local-abort, malformation stated) and refuses with no work."""
     s1_state(tmp_path, START)
     (tmp_path / "s1_out" / "aborted.json").write_text("{corrupt", encoding="utf-8")
-    with _Clock(s1_prereg_at(tmp_path)), pytest.raises(SystemExit, match="ABORTED"):
+    with _Clock(s1_prereg_at(tmp_path)), pytest.raises(SystemExit, match=S1_LOCAL_ABORT):   # (old: "ABORTED")
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     assert not (tmp_path / "s1_out" / "prereg.json").exists()
+    assert s1_local_abort_recorded(tmp_path)["malformation"] == "unparseable JSON"

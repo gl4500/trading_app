@@ -1,0 +1,59 @@
+# A3 H1 semantic mutants (Erratum 2 r4 G6.8 AB-A3 / AB-A6). Base: working tree on 6172c9b86070139ddda9b52e3be708a30e3bcb0c;
+# implementation sha256: s1_common.py e5b4db83856c499966d76dd71e56d9e15eacce36854bca91673db6a5937257de s1_journal.py 27b7123ada7f86233a59b66d3ec8a9cf444eef3a5bc156945fa2f745a091904b s1_trial.py 8c8403e7c4f603f1c53d1e718c0f8d934a49e219d2e85123095141836d1d394a
+# test file sha256 b08380648dd1d7ecfda676f974bf31169e3afbc50409e80fdc363bc6a290d5b1; mutations: scratchpad tH1/mk_tree.py (one exact replacement each).
+
+## m1: pre-read-only idempotence: the recovery appends with the DEFAULT Context (no recovery condition)
+834c834
+<     res = invalidate(tr, "established-violation", rec, root=root, mailbox=mailbox, clock=now, recovery=True)
+---
+>     res = invalidate(tr, "established-violation", rec, root=root, mailbox=mailbox, clock=now)
+# cmd: pytest research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_concurrent_recovery_arbitration
+FF                                                                       [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\m1\research\s1\s1_tests\test_s1_a3_abort_recovery.py:174: AssertionError: assert ['reason/esta...ed-violation'] == ['reason/esta...ed-violation']
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\m1\research\s1\s1_tests\test_s1_a3_abort_recovery.py:181: AssertionError: assert (True and 'established-violation' not in 'REFUSED chi... work (G6.4)'
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_concurrent_recovery_arbitration[same-witness]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_concurrent_recovery_arbitration[different-reason-invalid]
+2 failed in 14.54s
+VERDICT m1: KILLED (pytest exit 1: a killer test failed)
+
+## m2: same-subtype/same-witness-only condition: refuse only an existing established-violation INVALID
+357c357
+<         if any(r.kind == "TRIAL-INVALID" for r in rows):
+---
+>         if any(r.kind == "TRIAL-INVALID" and r.subject == req.subject for r in rows):
+# cmd: pytest research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_concurrent_recovery_arbitration
+.F                                                                       [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\m2\research\s1\s1_tests\test_s1_a3_abort_recovery.py:181: AssertionError: assert (True and 'established-violation' not in 'REFUSED chi... work (G6.4)'
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_concurrent_recovery_arbitration[different-reason-invalid]
+1 failed, 1 passed in 14.53s
+VERDICT m2: KILLED (pytest exit 1: a killer test failed)
+
+## m3: recovery placed before the bundle check
+750a751
+>     _recover_local_abort(tr, rows, root, out, where, now, mailbox)
+# cmd: pytest research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_no_guessed_invalid_on_identity_failures[bundle-mismatch]
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\m3\research\s1\s1_tests\test_s1_a3_abort_recovery.py:320: AssertionError: Regex pattern did not match.
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_no_guessed_invalid_on_identity_failures[bundle-mismatch]
+1 failed in 7.35s
+VERDICT m3: KILLED (pytest exit 1: a killer test failed)
+
+## m4: recovery for a missing s1_out recreates it (mkdir + recovery before the LOST check)
+747a748,750
+>     if rows and not out.is_dir():
+>         out.mkdir(parents=True, exist_ok=True)
+>         _recover_local_abort(tr, rows, root, out, where, now, mailbox)
+# cmd: pytest research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_no_guessed_invalid_on_identity_failures[missing-s1-out]
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\m4\research\s1\s1_tests\test_s1_a3_abort_recovery.py:320: AssertionError: Regex pattern did not match.
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_no_guessed_invalid_on_identity_failures[missing-s1-out]
+1 failed in 7.33s
+VERDICT m4: KILLED (pytest exit 1: a killer test failed)

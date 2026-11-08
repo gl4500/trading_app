@@ -16,6 +16,7 @@ import s1_snapshot
 from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_NVS_HELD, s1_score_invalid  # A3 Task 13
+from conftest import S1_LOCAL_ABORT, s1_local_abort_recorded  # A3 H1 (Erratum 2 r4 G6)
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_plan_audit, s1_reack, s1_receipt_with, s1_state
 
 UTC = timezone.utc
@@ -199,7 +200,16 @@ def test_a9_every_non_numeric_disposition_makes_no_valuation_call(tmp_path, monk
     from conftest import s1_mailbox
     s1_reack(tmp_path, "score-ack-n", "S1-SCORE-ACK", st_["now"] + timedelta(hours=20))
     # A3 Task 13 (intended, OQ-28): ABORTED-INVALID is TRIAL-INVALID with the report kept in the score staging
-    rep = s1_score_invalid(tmp_path, "score-ack-n") if kind == "ABORTED-INVALID" else r.score(tmp_path, "score-ack-n")
+    # A3 H1 (intended, Erratum 2 r4 G6.4/G6.6/G6.7): a surviving local abort is recorded by the score's trial gate
+    # (TRIAL-INVALID established-violation / local-abort) and the score is refused before any score work - no report,
+    # no INTENT, and (the point of this test) no valuation call
+    if kind == "ABORTED-INVALID":
+        with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):
+            r.score(tmp_path, "score-ack-n")
+        assert s1_local_abort_recorded(tmp_path)["original_reason"] == "semantic receipt changed"
+        assert called == []
+        return
+    rep = r.score(tmp_path, "score-ack-n")
     want = {"INCONCLUSIVE-carry-in": "INCONCLUSIVE", "INCONCLUSIVE-contamination": "INCONCLUSIVE",
             "INCONCLUSIVE-cap": "INCONCLUSIVE"}.get(kind, kind)
     assert rep["verdict"] == want, (kind, rep["verdict"], rep["reasons"])

@@ -29,6 +29,7 @@ import s1_trial as t
 from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import S1_NVS_HELD, s1_score_invalid  # A3 Task 13
+from conftest import S1_LOCAL_ABORT, s1_local_abort_recorded  # A3 H1 (Erratum 2 r4 G6)
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_reack, s1_receipt_with, s1_score_refused, s1_state
 
 UTC = timezone.utc
@@ -122,8 +123,11 @@ def test_c1_checkpoint_after_an_abort_is_post_stop_and_never_seals(tmp_path, mon
                                       encoding="utf-8")
     # A3 Task 6 (F8.1): a local aborted.json (here with no committed TRIAL-INVALID) refuses every new capture before
     # the SLOT-INTENT: no row, no claim, no capture, no seal
-    with pytest.raises(SystemExit, match=r"aborted\.json exists .*no new capture"):
+    # A3 H1 (intended, Erratum 2 r4 G6.4): the checkpoint's trial gate records that surviving abort first (one
+    # TRIAL-INVALID established-violation / local-abort) and refuses; still no slot row, capture or seal
+    with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):         # (old: "aborted.json exists ... no new capture")
         checkpoint(tmp_path, st_, "2026-10-26")
+    assert s1_local_abort_recorded(tmp_path)["original_reason"] == "x"
     assert not (out / "captures" / "2026-10-26").exists() and not (out / "seals" / "2026-10-26.json").exists()
 
 
@@ -437,8 +441,9 @@ def test_i4_final_plan_refused_after_an_abort(tmp_path):
     out = tmp_path / "s1_out"
     (out / "aborted.json").write_text(json.dumps({"reason": "x"}), encoding="utf-8")
     with _Clock(st_["stop_attested_at"] + timedelta(hours=1)):
-        with pytest.raises(SystemExit, match="ABORTED"):
+        with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):   # A3 H1 (intended, G6.4; old: "ABORTED")
             k.write_final_plan(tmp_path)
+    assert s1_local_abort_recorded(tmp_path)["original_reason"] == "x"
     assert not (out / "final_plan.json").exists()
 
 
@@ -501,7 +506,7 @@ def test_i4_acquire_ack_binds_the_stop_attestation_and_do_final_records_the_plan
 # A3 Task 11 (intended): final_plan.json is the final_plan stage's CREATED member, so a hand-typed plan is INVALID
 # (stage-replaced) at do_final's gate; an ACQUIRE-ACK before the attestation is necessarily before final_plan's
 # CREATED row, so F6.1 refuses it first ("created not after the journal row it references")
-@pytest.mark.parametrize("breakage,why", [("aborted", "ABORTED-INVALID"),
+@pytest.mark.parametrize("breakage,why", [("aborted", S1_LOCAL_ABORT),        # A3 H1 (G6.4; old "ABORTED-INVALID")
                                           ("hand-typed plan", r"stage final_plan: .*member final_plan\.json missing "
                                                               r"or changed.*INVALID \(stage-replaced\)"),
                                           ("ack before attestation", r"created not after the journal row it "
@@ -790,7 +795,12 @@ def test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge(tmp_path,
         want = "NO-VALID-SEAL"
     if kind == "aborted":
         at(monkeypatch, st_["now"])
-        rep = s1_score_invalid(tmp_path, "score-ack")
+        # A3 H1 (intended, Erratum 2 r4 G6.4/G6.7): the score's gate records the surviving abort and refuses before
+        # any score work; the ABORTED-INVALID report is the private _score helper's diagnostic (unit level only)
+        with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):
+            r.score(tmp_path, "score-ack")
+        s1_local_abort_recorded(tmp_path)
+        rep = json.loads(r._serialise(r._score(tmp_path / "s1_out")))
     else:
         rep = score(tmp_path, monkeypatch, st_)
     assert rep["verdict"] == want, rep["reasons"]

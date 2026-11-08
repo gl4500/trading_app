@@ -17,6 +17,7 @@ from conftest import s1_ack, s1_close_out  # A3 Task 10 (F7.2(b) literal: the OP
 from conftest import (S1_BINDING, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_receipt_with, s1_state,
                       s1_sync_portfolio)
 from conftest import S1_NVS_HELD, s1_first_invalid, s1_score_invalid  # A3 Task 13
+from conftest import S1_LOCAL_ABORT, s1_local_abort_recorded  # A3 H1 (Erratum 2 r4 G6)
 
 OTHER = s1_receipt_with(S1_RECEIPT, files={"agents/mean_reversion_agent.py": "other"})   # Task 12 (A1): fingerprint
 
@@ -230,16 +231,19 @@ def test_final_snapshot_refuses_without_prereg_and_while_running(tmp_path):
 def test_final_snapshot_on_an_active_trial_with_a_local_abort_is_refused_oq16(tmp_path):
     """Task 7b (controller-added): an aborted trial has stopped too (aborted.json).
     A3 Task 13 (intended, OQ-16): the authorized final snapshot runs only in the journal state STOPPED; a local
-    aborted.json on an ACTIVE trial (no TRIAL-STOP) is no stop - refused with no capture."""
+    aborted.json on an ACTIVE trial (no TRIAL-STOP) is no stop - refused with no capture.
+    A3 H1 (intended, Erratum 2 r4 G6.4/G6.7): the trial gate records the surviving abort first (one TRIAL-INVALID
+    established-violation / local-abort) and refuses with no capture; the OQ-16 refusal is no longer reached."""
     st_ = s1_state(tmp_path, START)
     with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     (tmp_path / "s1_out" / "aborted.json").write_text(json.dumps(
         {"reason": "semantic receipt changed", "actual": (START_DT + timedelta(hours=8)).isoformat()}),
         encoding="utf-8")
-    with pytest.raises(SystemExit, match=r"final snapshot refused: the trial is not STOPPED \(OQ-16\)"):
+    with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: START_DT + timedelta(days=1))
     assert not (tmp_path / "s1_out" / "final_snapshot").exists()
+    assert s1_local_abort_recorded(tmp_path)["original_reason"] == "semantic receipt changed"
 
 
 def test_final_snapshot_writes_once_after_the_stop_and_never_seals(tmp_path):

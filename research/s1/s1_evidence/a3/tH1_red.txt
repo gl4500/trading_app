@@ -1,0 +1,57 @@
+# A3 H1 behavioural RED (Erratum 2 r4 G6; rows 460-466, 468, 469 + OP-16).
+# Test file (final): research/s1/s1_tests/test_s1_a3_abort_recovery.py sha256 b08380648dd1d7ecfda676f974bf31169e3afbc50409e80fdc363bc6a290d5b1
+# Part A: against the H1 Step-1 interface stub = a clean export of HEAD 6172c9b86070139ddda9b52e3be708a30e3bcb0c (git archive HEAD research/s1) plus the
+#   additive stub edits (scratchpad tH1/mk_tree.py variant 'stub'): AbortRead/read_abort/OutputRootGone defined (no consumer);
+#   publish_text_exclusive(mkdir=) accepted and ignored; Context.recovery and invalidate(recovery=) accepted and ignored;
+#   LOCAL_ABORT; _recover_local_abort returns None at the G6.4 call site; write_abort keeps its mkdir; DOC_PINS += 2 docs (OP-16).
+#   Stub sha256: s1_common.py e3fb04902ccdf0ccf0492c94e95559e44c6023fac2083908f1cfa954503339ba s1_journal.py 340de048852e2ad4cb39a926e233679a14e6fad4e9f080b5a94fce18478037c5 s1_trial.py 0280b388b286a0339f0405e5e39a5c74917018f9e06eb97ebdb4fb3d58e03de1
+# cmd (from that tree): PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_abort_recovery.py -q --tb=line -rfE
+
+.FFF.FF.FF......FFFFFF.FFF.F                                             [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:91: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:91: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:91: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:151: AssertionError: PASSED
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:151: AssertionError: PASSED
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:249: AssertionError: assert 'local abort published' in 'violation (registration-artifact) observed but the journal could not be written (Outage): refused; F8.1 residual (lost detection if it never commits)'
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:247: AssertionError: assert (not False and 'local abort not published' in 'violation (registration-artifact) observed but the journal could not be written (Outage): refused; F8.1 residual (lost detection if it never commits)')
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:399: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:399: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:399: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:399: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:399: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:399: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:431: Failed: DID NOT RAISE <class 's1_common.OutputRootGone'>
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:443: Failed: DID NOT RAISE <class 's1_common.OutputRootGone'>
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:458: AssertionError: assert ('APPEND' == 'APPEND'
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\stub\research\s1\s1_tests\test_s1_a3_abort_recovery.py:480: AssertionError: assert ('APPEND' == 'REFUSE'
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_surviving_abort_recorded_once_then_refused[nvs]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_surviving_abort_recorded_once_then_refused[stopped]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_surviving_abort_recorded_once_then_refused[timeout]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_concurrent_recovery_arbitration[same-witness]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_concurrent_recovery_arbitration[different-reason-invalid]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_journal_outage_keeps_witness_then_commits_once[local-witness-kept]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_journal_outage_keeps_witness_then_commits_once[local-publish-fails]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_witness_integrity[permission-error-persistent]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_witness_integrity[read-error-persistent]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_witness_integrity[malformed-confirmed]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_witness_integrity[changed-between-reads]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_witness_integrity[deleted-between-reads]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_witness_integrity[valid-residual-once]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_no_s1_out_recreation[root-missing-at-entry]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_no_s1_out_recreation[root-vanishes-before-publish]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_no_s1_out_recreation[root-vanishes-before-evidence-copy]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_default_extra_invalid_observation_still_appends
+17 failed, 11 passed in 194.74s (0:03:14)
+
+# Part B: OP-16 pin test against the clean export of HEAD 6172c9b86070139ddda9b52e3be708a30e3bcb0c plus only this test file.
+# cmd (from that export): same flags, research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_bundle_pins_the_adopted_erratum2_and_clarification1
+
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH1\base\research\s1\s1_tests\test_s1_a3_abort_recovery.py:77: AssertionError: assert None == '883f09be8471b9da7ee2c01c026ea90f9cec37515d79f3863e8c72085caa6d87'
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_bundle_pins_the_adopted_erratum2_and_clarification1
+1 failed in 0.57s

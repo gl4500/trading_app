@@ -29,10 +29,13 @@ def test_uncommitted_detection_may_resume_and_is_labelled_lost_detection(tmp_pat
     p.write_bytes(keep + b" ")
     real = j.append
     monkeypatch.setattr(j, "append", lambda *a, **kw: (_ for _ in ()).throw(j.Outage("journal down")))
+    # A3 H1 (intended, Erratum 2 r4 G6.3): the refusal now states truthfully that the local abort was published
     with pytest.raises(SystemExit, match=r"violation \(stage-replaced\) observed but the journal could not be written "
-                                         r"\(Outage\): refused; F8\.1 residual \(lost detection if it never commits\)"):
+                                         r"\(Outage\): refused; local abort published; F8\.1 residual \(lost detection "
+                                         r"if it never commits\)"):
         t.gate(tmp_path, "observer during an outage")
     assert _invalid_rows(tmp_path) == []                           # the INVALID never committed (the residual)
+    assert (out / "aborted.json").is_file()                        # (the local witness the refusal reports)
     monkeypatch.setattr(j, "append", real)
     p.write_bytes(keep)
     for w in ("aborted.json", "refusals.jsonl"):

@@ -16,6 +16,7 @@ from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
 from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, _write_seal, s1_mailbox, s1_reack, s1_score_refused, s1_state,
                       s1_sync_portfolio)
+from conftest import S1_LOCAL_ABORT, s1_local_abort_recorded  # A3 H1 (Erratum 2 r4 G6)
 
 UTC = timezone.utc
 START = "2026-10-26T13:30:00+00:00"                     # Mon 09:30 EDT; opening close Fri 2026-10-23
@@ -159,13 +160,18 @@ def test_a2_post_stop_checkpoints_follow_the_persisted_stop(tmp_path, monkeypatc
 
 def test_a2_a_persisted_invalidity_is_never_converted_into_a_valid_stop(tmp_path, monkeypatch):
     """A2.2: aborted.json after stop.json (e.g. a post-stop bundle mismatch) keeps the trial terminal-invalid: no
-    stop attestation, no final plan, score ABORTED-INVALID."""
+    stop attestation, no final plan, score ABORTED-INVALID.
+    A3 H1 (intended, Erratum 2 r4 G6.4/G6.7): the stop attestation's trial gate records the surviving abort first
+    (one TRIAL-INVALID established-violation / local-abort; the witness's "bundle" reason is provenance only, G6.2)
+    and refuses with no work; the final plan (no trial gate) still refuses ABORTED."""
     st_, lg, rows = _live_stop(tmp_path)
     out = tmp_path / "s1_out"
     c.write_abort(out, {"reason": "bundle", "actual": (STOP_CLOSE + timedelta(hours=2)).isoformat()})
     with _Clock(STOP_CLOSE + timedelta(days=1)):
-        with pytest.raises(SystemExit, match="ABORTED"):
+        with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):
             r.attest_stop(tmp_path, r.STOP_STATEMENT)
+        assert s1_local_abort_recorded(tmp_path)["original_reason"] == "bundle"
+        assert not (out / "attest_stop.json").exists()
         with pytest.raises(SystemExit, match="ABORTED"):
             k.final_plan_record(tmp_path)
     assert read(out / "stop.json")["status"] == "STOPPED"

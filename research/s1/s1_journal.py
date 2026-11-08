@@ -111,7 +111,8 @@ class Context:
     checkpoint: `now` is the clock append() sampled inside THIS transaction - the same instant that becomes the row's
     `at` - never a preflight time). A missing slot_gate, stage_gate or stage_check (and slot_times, stop_detail,
     stop_fence, stop_ready) fails closed at step 5/6 (Task 5 fix round 1, review M-6); steps 2-4 never depend on
-    them."""
+    them. `recovery` (A3 H1, Erratum 2 r4 G6.5): only the gate's surviving-local-abort recovery request sets it;
+    decide() then refuses when ANY TRIAL-INVALID is on the re-read rows (see decide)."""
     closed: bool = False
     slot_times: Optional[Callable[[str], tuple]] = None
     stop_detail: Optional[Callable[[list], Optional[str]]] = None
@@ -120,6 +121,7 @@ class Context:
     stage_check: Optional[Callable[[list, str, dict], Optional["Decision"]]] = None
     stop_fence: Optional[Callable[[list], Optional[str]]] = None
     stop_ready: Optional[Callable[[list, datetime], Optional[str]]] = None
+    recovery: bool = False
 
 
 @dataclass(frozen=True)
@@ -340,9 +342,20 @@ def decide(rows, req, ctx, now) -> Decision:
     """F0.5 precedence on the state read inside the transaction (step 1, chain integrity, is verify_chain, run before
     this). Steps in order; the first that decides wins; the step-4 sub-steps 4a, 4b, 4c, 4d are disjoint. The OQ-3
     reused-op check (a malformed opening request: REFUSE) runs after 4b, so a repeated subject is still
-    repeat-attempt / repeat-stage (f045bd31 OQ-3 ruling)."""
+    repeat-attempt / repeat-stage (f045bd31 OQ-3 ruling).
+    A3 H1 (Erratum 2 r4 G6.5, O17): the documented, narrow F0.5 exception for the ONE request that sets
+    `ctx.recovery` (the gate's surviving-local-abort recovery, s1_trial._recover_local_abort): after step 2 and
+    before step 3, ANY TRIAL-INVALID on these rows (re-read inside this BEGIN IMMEDIATE, so the transaction is the
+    arbitration) - whatever its reason, subtype, witness or detail - refuses with no row; `recovery` on any other
+    kind fails closed. Every other request is unchanged (step 3 still APPENDs an extra INVALID observation)."""
     if ctx.closed:                                                                     # step 2
         return Decision("REFUSE", "trial CLOSED: no row of any kind")
+    if ctx.recovery:                                                     # A3 H1: Erratum 2 r4 G6.5 (O17), recovery only
+        if req.kind != "TRIAL-INVALID":
+            return Decision("REFUSE", "recovery context on a request other than TRIAL-INVALID (G6.5): fail closed, "
+                                      "no row")
+        if any(r.kind == "TRIAL-INVALID" for r in rows):
+            return Decision("REFUSE", "recovery: the trial already has a TRIAL-INVALID (G6.5): no recovery row")
     state = trial_state(rows)
     if state == "INVALID":                                                             # step 3
         if req.kind == "TRIAL-INVALID":

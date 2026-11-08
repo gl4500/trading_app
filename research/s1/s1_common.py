@@ -28,6 +28,7 @@ import json
 import os
 import sqlite3
 import uuid
+from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -58,7 +59,12 @@ DOC_PINS = {"docs/s1_design_v5.md": "33c3284072dc51392476f7cae596eab05f1fcbaccd6
             "docs/s1_design_v5_addendum2.md": "c7f0c3ffcd886b0f308c5f09bc0bfaca9977f8edae596bf51b30e28cb9ae3266",
             "docs/s1_design_v5_addendum3.md": "d9dd37595f0e0e73098ade1b8548e8cda2dc47fe49243f4d44735508029b9fb2",
             "docs/s1_design_v5_addendum3_erratum1.md":
-                "b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f"}    # adopted copy (de008b1)
+                "b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f",    # adopted copy (de008b1)
+            # A3 H1 (ruling OP-16): the operator-adopted, byte-frozen Erratum 2 r4 and its Clarification 1 r2 (6172c9b)
+            "docs/s1_design_v5_addendum3_erratum2.md":
+                "883f09be8471b9da7ee2c01c026ea90f9cec37515d79f3863e8c72085caa6d87",
+            "docs/s1_design_v5_addendum3_erratum2_clarification1.md":
+                "2ccb8a287de533f08dcbf1e919afb04add8d5a60a0088dfd370649689009e10d"}
 MISSING = "missing"
 ABSENT = "absent"                     # token placeholder for an artifact that does not exist
 
@@ -173,17 +179,61 @@ def load_abort(out: Path):
     return {"reason": CORRUPT_ABORT, "corrupt": True, "actual": None, "close": None, "scheduled": None}
 
 
+@dataclass(frozen=True)
+class AbortRead:
+    """A3 H1 (Erratum 2 r4 G6.4 step 1, O18): one typed read of s1_out/aborted.json. `kind` is "absent" (no file),
+    "valid" (a JSON object: ruling OP-6) or "malformed" (bytes read that are not UTF-8, not JSON or not an object;
+    `malformation` says which). An I/O error is not a kind: read_abort lets it propagate (the caller refuses, I-4)."""
+    kind: str
+    data: bytes = None
+    sha256: str = None
+    record: dict = None
+    malformation: str = None
+
+
+class OutputRootGone(FileNotFoundError):
+    """A3 H1 (Erratum 2 r4 G6.3, O16): write_abort found s1_out missing (on entry, or vanished before the link) and
+    published nothing: the helper chain never recreates s1_out or an ancestor (F6.6)."""
+
+
+def read_abort(out: Path) -> AbortRead:
+    """A3 H1 (G6.4 step 1, O18): read s1_out/aborted.json exactly once (no exists() pre-check, which could hide a
+    permission error) and classify it. FileNotFoundError -> absent; any other OSError PROPAGATES (a read, OS or
+    permission error is no proof of malformed bytes: the caller refuses with no row, G6.2); bytes that are not UTF-8,
+    not JSON or not a JSON object -> malformed with that malformation; a JSON object -> valid."""
+    try:
+        data = (Path(out) / "aborted.json").read_bytes()
+    except FileNotFoundError:
+        return AbortRead("absent")
+    sha = sha256_bytes(data)
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return AbortRead("malformed", data, sha, malformation="not UTF-8")
+    try:
+        rec = json.loads(text)
+    except ValueError:
+        return AbortRead("malformed", data, sha, malformation="unparseable JSON")
+    if not isinstance(rec, dict):
+        return AbortRead("malformed", data, sha, malformation="not an object")
+    return AbortRead("valid", data, sha, record=rec)
+
+
 def write_abort(out: Path, rec: dict) -> dict:
     """First abort wins (exclusive create): ABORTED-INVALID is permanent from that instant (v5 §6/§12, A3.3, A9.2).
     Returns the stored record (this one, or the earlier one that won; a corrupt one fails closed, B3.4).
     Fix round 3 (C-1): published atomically (publish_text_exclusive), so a concurrent writer or reader never sees a
-    partial aborted.json (which would read as the CORRUPT marker and lose the real reason)."""
+    partial aborted.json (which would read as the CORRUPT marker and lose the real reason).
+    A3 H1 (Erratum 2 r4 G6.1/G6.3, O16; F6.6): never creates s1_out or any missing ancestor - not on entry, and not
+    when s1_out vanishes after any caller's check (the publisher runs with mkdir=False, so the temporary file or the
+    link fails instead): OutputRootGone, nothing published. A later writer still gets the first record back."""
     out = Path(out)
-    out.mkdir(parents=True, exist_ok=True)
     try:
-        publish_text_exclusive(out / "aborted.json", json.dumps(rec, indent=1, default=str))
+        publish_text_exclusive(out / "aborted.json", json.dumps(rec, indent=1, default=str), mkdir=False)
     except FileExistsError:
         return load_abort(out)
+    except FileNotFoundError:
+        raise OutputRootGone("s1_out is gone: aborted.json not published (F6.6, G6.3)") from None
     return rec
 
 
@@ -226,10 +276,11 @@ def text_bytes(text: str) -> bytes:
     return text.replace("\n", os.linesep).encode("utf-8")
 
 
-def publish_text_exclusive(path: Path, text: str) -> None:
+def publish_text_exclusive(path: Path, text: str, *, mkdir: bool = True) -> None:
     """Fix round 3 (C-1): publish_exclusive of `text` with the platform newline translation of a text-mode write,
-    so an artifact keeps exactly the bytes its former exclusive text-mode write produced."""
-    publish_exclusive(path, text_bytes(text))
+    so an artifact keeps exactly the bytes its former exclusive text-mode write produced. A3 H1 (G6.3, O16): `mkdir`
+    is passed through (write_abort passes False: a missing parent is never created)."""
+    publish_exclusive(path, text_bytes(text), mkdir=mkdir)
 
 
 def replace_atomic(path: Path, text: str) -> None:

@@ -7,6 +7,7 @@ import s1_run as r
 import s1_trial as t
 from conftest import s1_finalize, s1_reack, s1_replaced, s1_score_refused, s1_state
 from conftest import S1_NVS_HELD, s1_score_invalid                              # A3 Task 13
+from conftest import S1_LOCAL_ABORT, s1_local_abort_recorded                    # A3 H1 (Erratum 2 r4 G6)
 
 UTC = timezone.utc
 SESS = ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"]
@@ -435,7 +436,13 @@ def test_score_aborted_checkpoint_is_invalid_and_unpriced(tmp_path, monkeypatch)
     (tmp_path / "s1_out" / "aborted.json").write_text(json.dumps({"reason": "semantic receipt changed"}),
                                                       encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rep = s1_score_invalid(tmp_path, "score-ack")        # A3 Task 13 (intended, OQ-28): TRIAL-INVALID, report staged
+    # A3 H1 (intended, Erratum 2 r4 G6.4/G6.6/G6.7; supersedes the Task 13 OQ-28 expectation for a KNOWN abort): the
+    # score's trial gate records the surviving abort (TRIAL-INVALID established-violation / local-abort) and refuses
+    # before any score INTENT; ABORTED-INVALID stays the private _score helper's diagnostic (unit level only)
+    with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):
+        r.score(tmp_path, "score-ack")
+    assert s1_local_abort_recorded(tmp_path)["original_reason"] == "semantic receipt changed"
+    rep = json.loads(r._serialise(r._score(tmp_path / "s1_out")))                  # (unit-level diagnostic)
     assert rep["verdict"] == "ABORTED-INVALID" and rep["nomination"] is False and "levels" not in rep
 
 
@@ -851,11 +858,19 @@ def test_score_ack_before_the_recorded_abort_is_refused(tmp_path, monkeypatch):
         {"reason": "semantic receipt changed", "actual": (st_["now"] - timedelta(hours=1)).isoformat()}),
         encoding="utf-8")
     at(monkeypatch, st_["now"])
-    with pytest.raises(SystemExit, match="SCORE-ACK"):
-        r.score(tmp_path, "score-ack")                                           # created before the abort
+    # A3 H1 (intended, Erratum 2 r4 G6.4/G6.6/G6.7): the score's trial gate records the surviving abort before any
+    # SCORE-ACK check, so the "created before the abort" refusal is no longer reached: one TRIAL-INVALID
+    # established-violation / local-abort, no score; the next score command meets "trial INVALID" (no score work).
+    # (Old second step: a SCORE-ACK re-issued at now - 30 min, then OQ-28 ABORTED-INVALID. Such an ACK now precedes
+    # the recorded INVALID row - the F6.1/F7.1 ACK binding refuses it - so the second step re-runs the same ACK.)
+    with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):                      # (old: match="SCORE-ACK")
+        r.score(tmp_path, "score-ack")
+    assert s1_local_abort_recorded(tmp_path)["original_reason"] == "semantic receipt changed"
     assert not (tmp_path / "s1_out" / "score").exists()
-    s1_reack(tmp_path, "after-abort", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
-    assert s1_score_invalid(tmp_path, "after-abort")["verdict"] == "ABORTED-INVALID"   # A3 Task 13 (intended, OQ-28)
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\): no work"):
+        r.score(tmp_path, "score-ack")
+    assert not (tmp_path / "s1_out" / "score").exists()
+    s1_local_abort_recorded(tmp_path)                                              # still exactly one INVALID
 
 
 def test_malformed_seal_is_recorded_as_aborted_invalid_not_refused_forever(tmp_path, monkeypatch):
