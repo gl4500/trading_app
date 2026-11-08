@@ -562,6 +562,7 @@ def test_connected_lifecycle_matches_independent_oracle(tmp_path, monkeypatch, r
     # 12. a second score refuses and no file under s1_out changes
     before = tree_hashes(out)
     at(acq_at + timedelta(days=1, hours=3))
-    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):   # Task 8 review M1
+    # A3 Task 13 (intended, F1 'each stage once'): "score/ already exists" -> the score stage's "already CREATED"
+    with pytest.raises(SystemExit, match=r"stage score is already CREATED: re-entry refused \(F1\)"):
         r.score(root, "score-ack")
     assert tree_hashes(out) == before

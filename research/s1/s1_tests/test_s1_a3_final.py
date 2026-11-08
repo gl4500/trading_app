@@ -346,3 +346,21 @@ def test_a_sent_request_is_recorded_in_provenance_before_its_page_write(tmp_path
                FailingStage())
     assert [(p["status"], p["page_relpath"], p["page_sha256"]) for p in auth.provenance] == \
         [(200, "final/pages/bars_page000.json", c.sha256_bytes(body))]
+
+
+# ====================================================================== A3 Task 13 (carry-forward: Task 12 N-1)
+def test_aborted_record_write_error_still_records_the_provider_structural_reason(tmp_path, monkeypatch):
+    """Task 12 re-review N-1 (fixed in Task 13): in s1_stage.run's StageAbort branch a local OSError writing
+    ABORTED.json never loses the anomaly's reason - TRIAL-INVALID (provider-structural) is still appended, its
+    observation noting the unwritten record; the command refuses with that INVALID, not a bare OSError."""
+    st_, at = ready(tmp_path)
+    hit = _flaky_staging(monkeypatch, "ABORTED.json")
+    with pytest.raises(BaseException, match=r"stage final: INVALID \(provider-structural\)") as ei:
+        final(tmp_path, monkeypatch, Provider(fail_url=k.CA_URL), at)
+    assert type(ei.value) is SystemExit and hit == ["ABORTED.json"]
+    inv = [x for x in jrows(tmp_path) if x.kind == "TRIAL-INVALID"]
+    assert len(inv) == 1 and inv[0].subject == "reason/provider-structural"
+    rec = json.loads((tmp_path / "s1_out" / "invalid" / f"{inv[0].seq}.json").read_bytes())
+    assert rec["aborted_record"] == "unwritten (PermissionError)" and rec["error_type"] == "Structural"
+    assert inv[0].detail == j.detail_of(rec)
+    assert list((tmp_path / "s1_staging").rglob("ABORTED.json")) == []

@@ -15,6 +15,7 @@ import s1_run as r
 import s1_snapshot
 from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
+from conftest import S1_NVS_HELD, s1_score_invalid  # A3 Task 13
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_plan_audit, s1_reack, s1_receipt_with, s1_state
 
 UTC = timezone.utc
@@ -180,6 +181,8 @@ def test_a9_every_non_numeric_disposition_makes_no_valuation_call(tmp_path, monk
     """A9.3: ABORTED-INVALID, BLOCKED, NO-VALID-SEAL, INCONCLUSIVE (carry-in, contamination 2b, > 10 % cap) and
     INSUFFICIENT are each reached with spies on every valuation helper - none may be called (proof by spies, not by
     omitted output fields)."""
+    if kind == "NO-VALID-SEAL":
+        pytest.skip(S1_NVS_HELD)                                     # (held; A3 Task 13 concern 1)
     kw = dict(DISPOSITIONS[kind])
     abort, blocked = kw.pop("_abort", False), kw.pop("_prereg_blocked", False)
     if blocked:                                       # as test_s1_run: bypass prereg's BLOCKED gate, score re-checks
@@ -195,7 +198,8 @@ def test_a9_every_non_numeric_disposition_makes_no_valuation_call(tmp_path, monk
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"] + timedelta(days=1))
     from conftest import s1_mailbox
     s1_reack(tmp_path, "score-ack-n", "S1-SCORE-ACK", st_["now"] + timedelta(hours=20))
-    rep = r.score(tmp_path, "score-ack-n")
+    # A3 Task 13 (intended, OQ-28): ABORTED-INVALID is TRIAL-INVALID with the report kept in the score staging
+    rep = s1_score_invalid(tmp_path, "score-ack-n") if kind == "ABORTED-INVALID" else r.score(tmp_path, "score-ack-n")
     want = {"INCONCLUSIVE-carry-in": "INCONCLUSIVE", "INCONCLUSIVE-contamination": "INCONCLUSIVE",
             "INCONCLUSIVE-cap": "INCONCLUSIVE"}.get(kind, kind)
     assert rep["verdict"] == want, (kind, rep["verdict"], rep["reasons"])

@@ -1,0 +1,5 @@
+.......................................ss                                [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] research\s1\s1_tests\test_s1_run.py:636: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_checkpoint_7b.py:328: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+39 passed, 2 skipped in 290.67s (0:04:50)

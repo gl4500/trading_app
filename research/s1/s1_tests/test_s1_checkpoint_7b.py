@@ -16,6 +16,7 @@ from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_ack, s1_close_out  # A3 Task 10 (F7.2(b) literal: the OPENING-ACK after the close-out)
 from conftest import (S1_BINDING, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_receipt_with, s1_state,
                       s1_sync_portfolio)
+from conftest import S1_NVS_HELD, s1_first_invalid, s1_score_invalid  # A3 Task 13
 
 OTHER = s1_receipt_with(S1_RECEIPT, files={"agents/mean_reversion_agent.py": "other"})   # Task 12 (A1): fingerprint
 
@@ -213,25 +214,32 @@ def test_final_snapshot_refuses_without_prereg_and_while_running(tmp_path):
     """Task 7b (controller-added)."""
     st_ = s1_state(tmp_path, START)
     out = tmp_path / "s1_out"
-    with pytest.raises(SystemExit, match="prereg"):
+    # A3 Task 13 (intended, OQ-16): the STOPPED check is the command's first after the gate, so an ACTIVE trial with no
+    # prereg is refused by it ("no prereg" -> "not STOPPED"); the prereg check stays behind it (defence in depth)
+    with pytest.raises(SystemExit, match=r"final snapshot refused: the trial is not STOPPED \(OQ-16\)"):
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: START_DT - timedelta(hours=3))
     with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
-    with pytest.raises(SystemExit, match="RUNNING"):
+    # A3 Task 13 (intended, OQ-16): the final snapshot runs in STOPPED only - the ACTIVE trial is refused by the
+    # command's state check right after the gate ("still RUNNING" -> "not STOPPED")
+    with pytest.raises(SystemExit, match=r"final snapshot refused: the trial is not STOPPED \(OQ-16\)"):
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: START_DT + timedelta(days=1))
     assert not (out / "final_snapshot").exists()
 
 
-def test_final_snapshot_after_a_recorded_abort_is_taken(tmp_path):
-    """Task 7b (controller-added): an aborted trial has stopped too (aborted.json)."""
+def test_final_snapshot_on_an_active_trial_with_a_local_abort_is_refused_oq16(tmp_path):
+    """Task 7b (controller-added): an aborted trial has stopped too (aborted.json).
+    A3 Task 13 (intended, OQ-16): the authorized final snapshot runs only in the journal state STOPPED; a local
+    aborted.json on an ACTIVE trial (no TRIAL-STOP) is no stop - refused with no capture."""
     st_ = s1_state(tmp_path, START)
     with _Clock(s1_prereg_at(tmp_path)):
         r.do_prereg(tmp_path, "run-ack", S1_RECEIPT)
     (tmp_path / "s1_out" / "aborted.json").write_text(json.dumps(
         {"reason": "semantic receipt changed", "actual": (START_DT + timedelta(hours=8)).isoformat()}),
         encoding="utf-8")
-    rep = ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: START_DT + timedelta(days=1))
-    assert rep["trial_status"] == "ABORTED-INVALID" and rep["capture_ok"] is True
+    with pytest.raises(SystemExit, match=r"final snapshot refused: the trial is not STOPPED \(OQ-16\)"):
+        ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: START_DT + timedelta(days=1))
+    assert not (tmp_path / "s1_out" / "final_snapshot").exists()
 
 
 def test_final_snapshot_writes_once_after_the_stop_and_never_seals(tmp_path):
@@ -270,7 +278,7 @@ def test_final_snapshot_records_a_backdated_row_and_score_is_aborted_invalid(tmp
     # Input adjusted for the controller rulings (SCORE_ACK binds final_snapshot_sha256): the snapshot was taken after
     # s1_state's "score-ack" ("absent"), so the operator issues a fresh ACK binding the recorded report.
     s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
-    out = r.score(tmp_path, "score-ack-2")
+    out = s1_score_invalid(tmp_path, "score-ack-2")      # A3 Task 13 (intended, OQ-28): TRIAL-INVALID, report staged
     assert out["verdict"] == "ABORTED-INVALID" and out["nomination"] is False and "levels" not in out
     assert any("final snapshot" in x and "backdated" in x for x in out["reasons"])
 
@@ -290,7 +298,7 @@ def test_score_with_a_tampered_final_snapshot_projection_is_aborted_invalid(tmp_
     p = tmp_path / "s1_out" / "final_snapshot" / "attempt-01" / "projection.json"
     p.write_bytes(p.read_bytes() + b" ")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    out = r.score(tmp_path, "score-ack")
+    out = s1_score_invalid(tmp_path, "score-ack")        # A3 Task 13 (intended, OQ-28): TRIAL-INVALID, report staged
     assert out["verdict"] == "ABORTED-INVALID" and any("final snapshot" in x for x in out["reasons"])
 
 
@@ -311,9 +319,16 @@ def test_full_synthetic_lifecycle_uses_the_real_opening_seal_and_final_snapshot(
 
 
 def test_no_valid_seal_trial_can_take_its_final_snapshot(tmp_path, monkeypatch):
-    """Task 7b (controller-added): NO-VALID-SEAL is a terminal trial state too (decision recorded in the report)."""
-    st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
+    """Task 7b (controller-added): NO-VALID-SEAL is a terminal trial state too (decision recorded in the report).
+    A3 Task 13 fix round 1 (M-5): the snapshot half runs; the score half is split out and held (S1_NVS_HELD)."""
+    s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
     assert read(tmp_path / "s1_out" / "final_snapshot" / "report.json")["trial_status"] == "NO-VALID-SEAL"
+
+
+@pytest.mark.skip(reason=S1_NVS_HELD)
+def test_no_valid_seal_trial_scores_no_valid_seal(tmp_path, monkeypatch):
+    """The NVS score half of test_no_valid_seal_trial_can_take_its_final_snapshot (split in A3 Task 13 fix round 1)."""
+    st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
     assert r.score(tmp_path, "score-ack")["verdict"] == "NO-VALID-SEAL"
 
@@ -338,8 +353,12 @@ def test_score_ack_binds_the_final_snapshot_report_and_an_edit_after_the_ack_is_
     assert f"final_snapshot_sha256={c.sha256_file(p)}" in r.score_token(tmp_path)
     p.write_text(json.dumps(dict(read(p), edited=True)), encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    with pytest.raises(t.Refusal, match=r"S1-SCORE-ACK score-ack: \['final_snapshot_sha256'\] differ"):   # (M-3)
+    # A3 Task 13 (intended, OQ-16): the report the SCORE-ACK binds is bound evidence - changed after the ACK, the
+    # score is INVALID (registration-artifact), never a refusal to be retried with a new ACK and never a fallback
+    with pytest.raises(SystemExit, match=r"the SCORE-ACK-bound final snapshot is missing or changed: INVALID "
+                                         r"\(registration-artifact\)"):
         r.score(tmp_path, "score-ack")
+    assert s1_first_invalid(tmp_path) == "reason/registration-artifact"
     assert not (tmp_path / "s1_out" / "score").exists()
 
 
@@ -477,7 +496,7 @@ def test_score_is_aborted_invalid_when_the_report_is_gone_but_an_ok_attempt_exis
         p.write_text("{not json", encoding="utf-8")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
     _fresh_score_ack(tmp_path, st_, "score-ack-2")
-    out = r.score(tmp_path, "score-ack-2")
+    out = s1_score_invalid(tmp_path, "score-ack-2")      # A3 Task 13 (intended, OQ-28): TRIAL-INVALID, report staged
     assert out["verdict"] == "ABORTED-INVALID" and out["nomination"] is False and "levels" not in out
     assert any("final snapshot" in x and "report" in x for x in out["reasons"])
 
@@ -491,7 +510,7 @@ def test_score_is_aborted_invalid_when_another_attempt_is_ok_too(tmp_path, monke
     assert read(d / "report.json")["attempt"] == "attempt-01"
     shutil.copytree(d / "attempt-01", d / "attempt-02")
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    out = r.score(tmp_path, "score-ack")                           # report.json unchanged: the ACK still binds it
+    out = s1_score_invalid(tmp_path, "score-ack")   # report.json unchanged: the ACK still binds it (A3 T13, OQ-28)
     assert out["verdict"] == "ABORTED-INVALID" and out["nomination"] is False
     assert any("final snapshot" in x and "attempt-02" in x for x in out["reasons"])
 

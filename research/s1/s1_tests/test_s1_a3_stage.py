@@ -655,9 +655,9 @@ def test_seal_files_on_disk_are_evaluated_once_the_seal_family_is_enforced(tmp_p
     the seal/<close> stage, so SEALS_ENFORCED is True and a seal file with no rows is a registration artifact (E2.4 r3)
     on the module default; ENFORCED (the TABLE stages) is {"audit"} since A3 Task 9 and {"audit", "opening",
     "start_attest", "prereg"} since A3 Task 10, plus {"stop_attest", "final_plan"} since A3 Task 11, plus {"final"}
-    since A3 Task 12 (Tasks 13-14 add theirs)."""
+    since A3 Task 12, plus {"score"} since A3 Task 13 (Task 14: all of TABLE)."""
     assert sg.ENFORCED == frozenset({"audit", "opening", "start_attest", "prereg", "stop_attest", "final_plan",
-                                     "final"}) and sg.SEALS_ENFORCED is True
+                                     "final", "score"}) and sg.SEALS_ENFORCED is True
     (tmp_path / "s1_out" / "seals").mkdir()
     (tmp_path / "s1_out" / "seals" / "2026-10-27.json").write_text("{}", encoding="utf-8")
     with pytest.raises(SystemExit, match=r"seal/2026-10-27: artifacts .* with no INTENT: INVALID \(registration-artifact\)"):

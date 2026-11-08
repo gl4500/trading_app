@@ -737,8 +737,18 @@ def _clean(obj):
 
 
 def score(root, ack_id: str, *, mailbox=None) -> dict:
-    """One exclusive score (§15): exact SCORE-ACK, then the reservation (exclusive), then computation; the report
-    s1_out/score/s1.json is written once. A refused ACK or a second attempt writes nothing."""
+    """Stage `score` (A3 Task 13; F1 graph step 7, F4.8/F4.9): members score/attempt.json and score/s1.json, bound
+    directly by PREPARED (no collector manifest, C-a); envelope inputs = the final manifest, the stop attestation and
+    the sampled history fixed at the STOP (OQ-29); ACK = the SCORE-ACK line. The SCORE-ACK is verified field by field
+    (F6.1, F6.5, F7.1); its final_snapshot_sha256 is bound evidence (OQ-16): a bound report missing or changed is
+    INVALID (registration-artifact), never a fallback. A score computation error ends the one attempt: the ABORTED
+    s1.json stays in staging, no PREPARED, INVALID (score-aborted). An ABORTED-INVALID verdict of `_score` (an
+    established integrity violation, confirmed on a second computation) is INVALID (registration-artifact) with the
+    report kept in staging (OQ-28); every other verdict (INSUFFICIENT, INCONCLUSIVE, ...) is committed normally. A
+    local I/O or journal/mailbox fault is no computation error: it refuses with no row (s1_stage.run; the F4 stage
+    table decides on re-entry). An INVALID trial never reaches here (the gate refuses with no work)."""
+    import s1_journal as j
+    import s1_stage
     gv = s1_trial.gate(root, "score", mailbox=mailbox)                  # A3 F0.6: open trial, state, bundle first
     out = _out(root)
     c.verify_bundle_first(out, "score", mailbox=mailbox, gate_refuses=False)   # fix round 2 (B3): gate first;
@@ -748,26 +758,104 @@ def score(root, ack_id: str, *, mailbox=None) -> dict:
                           gate_refuses=False)
     gv = s1_trial.gate(root, "score", mailbox=mailbox)     # A3 (F1, F8.1, OQ-19): a violation the legacy detector
     #                                                        just committed refuses here: no score, no record
-    ack = s1_trial.verify_current(gv, "S1-SCORE-ACK", ack_id)          # A3: field by field (F6.1, F6.5, F7.1)
-    _pre_reserve_gate(out, ack, mailbox=mailbox)
-    k._reserve(out / "score", ack)
     try:
-        text = _serialise(_score(out, mailbox))           # ruling M-6: serialise before opening the output file
-    except (Exception, SystemExit) as e:                  # one attempt: the failure itself is the preserved record
-        rep = {"trial_id": gv.trial.trial_id, "outcome": "ABORTED", "verdict": "ABORTED-INVALID", "provenance": None,
-               "nomination": False, "reasons": [f"score error: {type(e).__name__}: {e}"]}
-        _write_text_once(out / "score" / "s1.json", _serialise(rep))
-        raise SystemExit(f"score ABORTED ({type(e).__name__}); attempt preserved, see s1_out/score/s1.json") from None
-    _write_text_once(out / "score" / "s1.json", text)
+        tid = c.load_json(out / "plan.json").get("trial_id")
+    except (OSError, ValueError, AttributeError):
+        tid = None
+    expected = dict(s1_trial.artifact_fields("S1-SCORE-ACK", out), trial_id=tid, bundle_sha256=c.bundle_sha256())
+    snap_now = expected.pop("final_snapshot_sha256")             # OQ-16: checked below (bound -> INVALID)
+    a = s1_trial.verify_ack(gv.trial, gv.rows, "S1-SCORE-ACK", ack_id, expected)
+    ack = s1_trial.ack_record(a)
+    _bound_snapshot_check(gv, out, a.fields.get("final_snapshot_sha256"), snap_now, mailbox)
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+    stop_row = j.first(gv.rows, "TRIAL-STOP")
+    if stop_row is None:                                    # (F1: the score stage needs STOPPED; refused, no row)
+        raise SystemExit("score refused: no TRIAL-STOP (F1): nothing written")
+    try:                                                    # fix round 1 (M-7, F0.7): before the INTENT an error
+        pr = _load(out / "prereg.json")                     # here is a refusal with a reason, nothing written
+        seals = z.sampled_seals(out, gv.rows, pr["calendar"], c.aware(pr["start"]), upto_seq=stop_row.seq)
+        inputs = {"final/manifest.json": c.sha_or_absent(out / "final" / "manifest.json"),
+                  "attest_stop.json": c.sha_or_absent(out / "attest_stop.json"),
+                  "sampled_history": j.detail_of(z.sampled_history(gv.rows, stop_row, seals))}   # OQ-29
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        raise SystemExit(f"score refused: sampled history unreadable ({type(e).__name__}): "
+                         f"nothing written") from None
+
+    def work(sw):
+        sw.put_json("score/attempt.json", {"reserved_utc": c.now_utc().isoformat(), "ack": ack,
+                                           "trial_id": sw.trial_id, "intent_at": sw.intent_at})
+        rep = _score_attempt(sw)
+        if rep.get("verdict") == "ABORTED-INVALID":        # OQ-28 AMEND: an established integrity violation, confirmed
+            first = _clean(rep.get("reasons"))             # on a second computation (N1 confirm-on-re-read).
+            sw.put("first_computation_s1.json", c.text_bytes(_serialise(rep)))   # Fix round 1 (M-1): the first report
+            try:                                           # is evidence in staging (never a member: no PREPARED here)
+                again = _score_attempt(sw)
+            except s1_stage.StageAbort as e:               # (a score-aborted second computation keeps the reasons)
+                e.record["first_verdict_reasons"] = first
+                raise
+            if again.get("verdict") != "ABORTED-INVALID":
+                raise SystemExit("score: the integrity verdict ABORTED-INVALID did not repeat on a second computation "
+                                 "(transient read?): the first computation's report is kept in the score staging "
+                                 "(first_computation_s1.json); refused with no PREPARED; the F4 stage table decides "
+                                 "on re-entry")
+            sw.put("score/s1.json", c.text_bytes(_serialise(rep)))      # the report stays in staging; no PREPARED
+            raise s1_stage.StageAbort("registration-artifact", {"where": "score",
+                                                                "score_reasons": _clean(rep.get("reasons"))})
+        sw.put("score/s1.json", c.text_bytes(_serialise(rep)))
+        return []                         # INSUFFICIENT / INCONCLUSIVE / NO-VALID-SEAL / BLOCKED / numeric: committed
+    s1_stage.run(gv, "score", inputs=inputs, acks={"S1-SCORE-ACK": a.sha}, work=work, mailbox=mailbox)
     return _load(out / "score" / "s1.json")
+
+
+def _score_attempt(sw) -> dict:
+    """One `_score` computation inside the score stage's work (F4.9 score abort). A computation error - any exception
+    or refusal of `_score` - records the ABORTED s1.json in staging and raises StageAbort(score-aborted). A local fault
+    is no computation error (A3 Task 12 ruling, carried to Task 13): an OSError propagates to s1_stage.run (refused
+    with no row), and a journal or mailbox read failure refuses with no row too; neither becomes score-aborted."""
+    import s1_journal as j
+    import s1_stage
+    try:
+        return json.loads(_serialise(_score(sw.gv.out, sw.mailbox)))     # ruling M-6: the serialised report
+    except OSError:
+        raise
+    except (j.JournalError, s1_trial.MailboxOutage) as e:
+        raise SystemExit(f"score: journal or mailbox unreadable during the computation ({type(e).__name__}): "
+                         f"refused with no PREPARED; the F4 stage table decides on re-entry") from None
+    except (Exception, SystemExit) as e:                       # the one attempt (F4.9 score abort)
+        rep = {"trial_id": sw.trial_id, "outcome": "ABORTED", "verdict": "ABORTED-INVALID", "provenance": None,
+               "nomination": False, "reasons": [f"score error: {type(e).__name__}: {e}"]}
+        sw.put("score/s1.json", c.text_bytes(_serialise(rep)))
+        raise s1_stage.StageAbort("score-aborted", {"error_type": type(e).__name__}) from None
+
+
+def _bound_snapshot_check(gv, out: Path, bound, now_sha, mailbox) -> None:
+    """OQ-16: the final-snapshot report bound by the SCORE-ACK. An ACK that binds no report ("absent") requires none
+    on disk (the ACK fields differ otherwise: refused, as any other field); an ACK that binds a report requires those
+    bytes: missing or changed - confirmed on a second read (N1) - is INVALID (registration-artifact), never an
+    economic fallback. A read error on the second read refuses with no row (never INVALID)."""
+    if bound == now_sha:
+        return
+    if bound == "absent" or not isinstance(bound, str):
+        raise s1_trial.Refusal(f"S1-SCORE-ACK {gv.trial.acks['S1-SCORE-ACK'].mailbox_id}: ['final_snapshot_sha256'] "
+                               f"differ from the current artifacts")
+    snap = out / "final_snapshot" / "report.json"
+    try:                                                        # N1: confirm on a second read before any INVALID
+        again = c.sha256_file(snap) if snap.is_file() else "absent"
+    except OSError as e:
+        raise SystemExit(f"score refused: the final-snapshot report is unreadable ({type(e).__name__}): refused with "
+                         f"no row") from None
+    if again == bound:
+        raise SystemExit("score refused: the final-snapshot report read differently on a second read (transient?): "
+                         "refused with no row")
+    s1_trial.invalidate(gv.trial, "registration-artifact",
+                        {"where": "score", "final_snapshot": "missing" if again == "absent" else "changed",
+                         "bound_sha256": bound, "observed_sha256": again}, root=gv.root, mailbox=mailbox)
+    raise SystemExit("score refused: the SCORE-ACK-bound final snapshot is missing or changed: "
+                     "INVALID (registration-artifact)")
 
 
 def _serialise(rep) -> str:
     return json.dumps(_clean(rep), indent=1, sort_keys=True)
-
-
-def _write_text_once(path: Path, text: str) -> None:
-    c.publish_text_exclusive(path, text)                  # fix round 3 (C-1): atomic, exclusive
 
 
 def _trial_end(out: Path, pr: dict, mailbox=None):

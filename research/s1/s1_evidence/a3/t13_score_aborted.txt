@@ -1,0 +1,5 @@
+.                                                                        [100%]
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_computation_error_is_invalid_score_aborted_with_no_numeric_score
+1 passed in 10.67s

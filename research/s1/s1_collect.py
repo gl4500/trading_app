@@ -198,16 +198,6 @@ def _require_no_redirects(client) -> None:
         raise SystemExit("client refused: follow_redirects must be False")
 
 
-def _reserve(dirpath: Path, ack: dict) -> None:
-    """The c9b4322 one-attempt reservation. A3 Task 12: no longer used by do_final (the stage engine's one INTENT is
-    its one attempt); kept only for s1_run.score's reservation until the score is a stage (Task 13)."""
-    try:
-        dirpath.mkdir(parents=True, exist_ok=False)                         # one attempt: never reused
-    except FileExistsError:
-        raise SystemExit(f"{dirpath.name}: an attempt already exists; one attempt only") from None
-    _write_once(dirpath / "attempt.json", {"reserved_utc": c.now_utc().isoformat(), "ack": ack})
-
-
 def _headers(keys):
     return {"APCA-API-KEY-ID": keys[0], "APCA-API-SECRET-KEY": keys[1]}
 

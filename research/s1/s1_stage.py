@@ -39,7 +39,8 @@ TRIAL_ID_MEMBERS = {"audit": ("audit/attempt.json",), "start_attest": ("attest_s
                     "score": ("score/attempt.json", "score/s1.json")}
 ENFORCED = frozenset({"audit", "opening", "start_attest", "prereg",      # transitional (Task 8); Task 9 audit; Task 10
                       "stop_attest", "final_plan",                       # A3 Task 11 (F1 graph 2-3, F4.8)
-                      "final"})                                          # A3 Task 12 (F1 graph 5, F4.9)
+                      "final",                                           # A3 Task 12 (F1 graph 5, F4.9)
+                      "score"})                                          # A3 Task 13 (F1 graph 7, F4.8/F4.9)
 # the pre-START stages (opening, start_attest, prereg); Tasks 11-13 add theirs; Task 14: all of TABLE
 # Transitional (Task 8; Task 14 deletes it with ENFORCED): seal files on disk with no seal-stage row are evaluated
 # (E2.4 r3) once the post-START seal writer is a stage - A3 Task 7 made it one (s1_slot.run_seal_stage), so it is True.
@@ -354,8 +355,11 @@ def run(gv, stage, *, inputs: dict, acks: dict, work, policy_fn=None, mailbox=No
             provenance = work(sw) or []
         except StageAbort as e:
             rec = dict(e.record, stage=stage, reason=e.reason)
-            staging.put("ABORTED.json", c.canonical(rec))
-            _invalid(gv, e.reason, rec, mailbox, clock)
+            try:
+                staging.put("ABORTED.json", c.canonical(rec))
+            except OSError as w:              # A3 Task 13 (Task 12 N-1): a local write error on the ABORTED record
+                rec = dict(rec, aborted_record=f"unwritten ({type(w).__name__})")   # never loses the anomaly's
+            _invalid(gv, e.reason, rec, mailbox, clock)              # reason: INVALID(reason) is still recorded
         except OSError as e:                  # A3 Task 12 fix round 1 (I-1/I-2, ruling T12 concern 4 corrected): a
             raise SystemExit(f"stage {stage}: local I/O error after the INTENT ({type(e).__name__}): refused with "
                              f"no row; the F4 stage table decides on re-entry") from None   # local fault is no

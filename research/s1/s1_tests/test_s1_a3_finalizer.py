@@ -661,7 +661,10 @@ def test_post_stop_commands_invalidate_a_damaged_qualified_tree(tmp_path, monkey
 def test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback(tmp_path):   # carry-forward 8 (N-1)
     """N-1 (F0.7): the final snapshot's _trial_state meets a damaged QUALIFIED tree of a pending close (slot 45 TIMEOUT
     by the finalizer, slot 47 QUALIFIED with a damaged report): a SystemExit refusal through the threaded mailbox,
-    never an escaping ValueError (the reviewer's repro)."""
+    never an escaping ValueError (the reviewer's repro).
+    A3 Task 13 (intended, OQ-16): the final snapshot never finalizes a close (it is never sampled history), so its
+    _trial_state no longer meets the tree; the property is kept at the command, which meets it in its gate (the F3
+    evidence table): a SystemExit naming registration-artifact, never an escaping exception."""
     st_ = registered(tmp_path)
     cal = st_["calendar"]
     day, s45 = first_slot(st_)
@@ -676,14 +679,18 @@ def test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback(t
     rp = sl.names(out, s47, day["date"])["report"]
     rp.write_text(rp.read_text(encoding="utf-8") + " ", encoding="utf-8")
     pr = json.loads((out / "prereg.json").read_text(encoding="utf-8"))
+    assert pr["start"]
     try:
-        ck._trial_state(out, pr, d45 + timedelta(hours=1), mailbox=tmp_path / "mailbox.sqlite3")
+        with _Clock(d45 + timedelta(hours=1)):
+            ck.run_final_snapshot(tmp_path, tmp_path / "no_ledger.sqlite3", now=lambda: d45 + timedelta(hours=1),
+                                  mailbox=tmp_path / "mailbox.sqlite3")
     except SystemExit as e:
-        assert "registration-artifact" in str(e)
+        assert "registration-artifact" in str(e), e
     except BaseException as e:                                       # noqa: BLE001 - the N-1 defect, by assertion
-        pytest.fail(f"_trial_state escaped with {type(e).__name__}: {e}")
+        pytest.fail(f"run_final_snapshot escaped with {type(e).__name__}: {e}")
     else:
-        pytest.fail("_trial_state did not refuse a damaged QUALIFIED tree")
+        pytest.fail("run_final_snapshot did not refuse a damaged QUALIFIED tree")
+    assert not (out / "final_snapshot").exists()
 
 
 def test_access_denied_on_the_slot_lock_refuses_the_cleanup_with_no_invalid(tmp_path):   # carry-forward 11

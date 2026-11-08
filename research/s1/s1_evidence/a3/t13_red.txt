@@ -1,0 +1,41 @@
+F.FF.F.....F.F.F..FFFF.F                                                 [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:54: AssertionError: assert ['stage/audit...al_plan', ...] == ['stage/audit...al_plan', ...]
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:36: AssertionError: no score staging prepared.json
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:82: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:36: AssertionError: no score staging intent.json
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:138: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:149: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:171: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:198: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:198: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:209: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:231: AssertionError: {}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stop.py:281: AssertionError: {}
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_six_month_stop_reaches_a_numeric_score_with_no_invalid_row
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_invalid_never_reaches_a_numeric_score
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[ok]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[wrong-final]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[wrong-prev]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[wrong-stop-line]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[head-forked]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[receipt]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_damaged_capture_backup_is_invalid_before_scoring
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_non_integrity_dispositions_stay_valid[INSUFFICIENT]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_non_integrity_dispositions_stay_valid[INCONCLUSIVE]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_authorized_post_stop_prices_are_used_for_valuation
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_lot_count_stop_reaches_a_numeric_score_with_no_invalid_row
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_score_positive_path_isolated
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_score_computation_error_is_invalid_score_aborted_with_no_numeric_score
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_score_envelope_inputs_and_members
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_score_member_changed_is_invalid
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[snapshot-report]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_score_integrity_violation_persists_trial_invalid
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_missing_or_changed_is_invalid_not_a_fallback[missing]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_missing_or_changed_is_invalid_not_a_fallback[changed]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_only_in_stopped
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_in_flight_slot_started_before_the_stop_completes_but_never_enters_final_or_score
+12 failed, 12 passed in 190.92s (0:03:10)

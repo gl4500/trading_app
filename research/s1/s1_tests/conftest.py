@@ -371,6 +371,40 @@ def s1_score_refused(root, ack_id, reason="registration-artifact"):
                 "nomination": False, "reasons": [f"score error: {type(e).__name__}: {e}"]}
 
 
+S1_NVS_HELD = ("held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, "
+               "final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score "
+               "INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores")
+
+
+def s1_score_invalid(root, ack_id, reason="registration-artifact"):
+    """A3 Task 13 (intended, F4.9 score abort / OQ-28 AMEND): the score stage ending its one attempt INVALID - for
+    `registration-artifact` an ABORTED-INVALID verdict of _score (an established integrity violation, confirmed on a
+    second computation), for `score-aborted` a computation error. Asserts the refusal "stage score: INVALID
+    (<reason>)", exactly one TRIAL-INVALID row with that reason, no PREPARED and nothing of the score under s1_out;
+    returns the report kept in the score staging (score/s1.json), so a test's assertions on the score's own reasons
+    still run. Test-only."""
+    import s1_journal as j
+    import s1_run as r
+    import s1_stage as sg
+    import s1_trial as t
+    with pytest.raises(SystemExit, match=rf"stage score: INVALID \({reason}\)"):
+        r.score(root, ack_id)
+    m = Path(root) / "mailbox.sqlite3"
+    trs = t.trials(t.scan(m))
+    (tid,) = [x for x, tr_ in trs.items() if tr_.closed is None]
+    rows = j.read_trial(tid, trs[tid].genesis, m)
+    inv = [x for x in rows if x.kind == "TRIAL-INVALID"]
+    assert [x.subject for x in inv] == [f"reason/{reason}"], inv
+    d = sg.staging_dir(root, tid, "score")
+    assert not (d / "prepared.json").exists() and not (Path(root) / "s1_out" / "score").exists()
+    staged = json.loads((d / "score" / "s1.json").read_text(encoding="utf-8"))
+    rec = json.loads((Path(root) / "s1_out" / "invalid" / f"{inv[0].seq}.json").read_bytes())   # (T13 fix round 1,
+    assert inv[0].detail == j.detail_of(rec) and rec["stage"] == "score" and rec["reason"] == reason   # I-1: the
+    if reason == "registration-artifact":                        # observation lists _score's exact reasons, OQ-28)
+        assert rec["where"] == "score" and rec["score_reasons"] == staged["reasons"], rec
+    return staged
+
+
 S1_AUDIT_ABORTED = r"stage audit: INVALID \(provider-structural\)"          # A3 Task 9: the audit anomaly refusal
 
 

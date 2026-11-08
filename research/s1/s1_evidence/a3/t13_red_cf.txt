@@ -1,0 +1,21 @@
+# A3 Task 13 carry-forward RED: the new carry-forward tests run against an export of HEAD 20772fb research/s1 (git archive) with only the two test files copied in
+FFFFFF.F                                                                 [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\head\research\s1\s1_tests\test_s1_a3_score.py:255: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\head\research\s1\s1_tests\test_s1_a3_score.py:270: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\head\research\s1\s1_tests\test_s1_a3_score.py:290: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\head\research\s1\s1_tests\test_s1_a3_score.py:309: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\head\research\s1\s1_tests\test_s1_a3_score.py:342: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\head\research\s1\s1_tests\test_s1_a3_score.py:342: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\head\research\s1\s1_tests\test_s1_a3_final.py:358: AssertionError: Regex pattern did not match.
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_binding_no_snapshot_with_a_report_on_disk_is_a_refusal
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_local_oserror_in_the_score_refuses_with_no_row_never_score_aborted
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_journal_outage_in_the_score_refuses_with_no_row_never_score_aborted
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_unconfirmed_integrity_verdict_refuses_with_no_invalid
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_aborted_record_write_error_still_records_the_anomaly_reason
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_bound_snapshot_is_confirmed_on_a_second_read_before_any_invalid[differs-once]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_bound_snapshot_is_confirmed_on_a_second_read_before_any_invalid[unreadable]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_aborted_record_write_error_still_records_the_provider_structural_reason
+7 failed, 1 passed, 23 deselected in 64.04s (0:01:04)

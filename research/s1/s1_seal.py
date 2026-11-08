@@ -533,6 +533,15 @@ def sampled_seals(out, rows, cal, start, upto_seq=None) -> dict:
     return got
 
 
+def sampled_history(rows, stop_row, seals: dict) -> dict:
+    """OQ-29: the score's sampled-history input - every journal row at or before the STOP seq (line sha256 in seq
+    order) and the seals derived from QUALIFIED slots committed at or before it ({relpath: sha256}, keys sorted).
+    `seals` is sampled_seals(..., upto_seq=stop_row.seq): {day: (first QUALIFIED row, recomputed seal bytes)}. Later
+    completions change neither part (F1 STOP prefix)."""
+    return {"rows": [x.sha for x in sorted(rows, key=lambda x: x.seq) if x.seq <= stop_row.seq],
+            "seals": {f"seals/{d}.json": c.sha256_bytes(b_) for d, (_, b_) in sorted(seals.items())}}
+
+
 def stop_record(out, rows, start, cal, bundle):
     """F2.1 / OQ-8 r1 (t11_dispositions.md 9153062b, ACCEPTED): the stop CANDIDATE, a pure function of the committed
     rows (and the files they commit), or None.

@@ -14,6 +14,7 @@ import s1_run as r
 from conftest import s1_first_invalid, s1_replaced  # A3 Task 10
 from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
+from conftest import s1_score_invalid  # A3 Task 13
 from conftest import S1_BINDING, S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_state
 
 UTC = timezone.utc
@@ -241,7 +242,9 @@ def test_b2_the_score_rechecks_every_seals_binding_and_invalid_makes_zero_valuat
     st_ = _scored_state(tmp_path, monkeypatch, [{"status": "GAP", "binding": None,          # opening = A
                                                  "reason": "nothing listening"}, bad])       # then gap, then B
     called = _spy(monkeypatch)
-    rep = _score(tmp_path, monkeypatch, st_)
+    monkeypatch.setattr(c, "now_utc", lambda: st_["now"] + timedelta(days=1))          # (as _score)
+    s1_reack(tmp_path, "score-ack-b2", "S1-SCORE-ACK", st_["now"] + timedelta(hours=20))
+    rep = s1_score_invalid(tmp_path, "score-ack-b2")     # A3 Task 13 (intended, OQ-28): TRIAL-INVALID, report staged
     assert rep["verdict"] == "ABORTED-INVALID", rep["reasons"]
     assert any("process binding" in x for x in rep["reasons"]), rep["reasons"]
     assert called == [] and "levels" not in rep

@@ -278,6 +278,11 @@ def test_a3_score_checks_bundle_consistency_across_every_artifact(tmp_path, monk
         if where == "seal":                                  # A3 Task 7 (E2.6 r3): an edited seal is a CREATED
             assert "seals/2026-10-26.json missing or changed" in str(e) and "INVALID (stage-replaced)" in str(e), e
             rep = json.loads(r._serialise(r._score(out)))    # seal stage's changed member: refused; the unit record
+        elif where == "final_snapshot":                      # A3 Task 13 (intended, OQ-28): _score's ABORTED-
+            assert "stage score: INVALID (registration-artifact)" in str(e), e      # INVALID is TRIAL-INVALID; the
+            import s1_stage as sg                                                   # report stays in the staging
+            d = sg.staging_dir(tmp_path, t.open_trial(tmp_path / "mailbox.sqlite3").trial_id, "score")
+            rep = read(d / "score" / "s1.json")
         elif where == "final_manifest":                      # A3 Task 12 (intended, F4.9): the CREATED final
             assert re.search(s1_replaced("final/manifest.json"), str(e)), e       # stage's member changed: refused
             rep = json.loads(r._serialise(r._score(out)))    # (stage-replaced); the unit-level record

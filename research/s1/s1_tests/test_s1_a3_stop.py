@@ -270,7 +270,6 @@ def _in_flight_across_the_stop(tmp_path, monkeypatch):
     return st_, day2, rows, mine, j.first(rows, "TRIAL-STOP"), rep
 
 
-@pytest.mark.skip(reason="held with Task 13: needs s1_seal.sampled_history (progress.md ruling B11/B12/B16)")
 def test_in_flight_slot_started_before_the_stop_completes_but_never_enters_final_or_score(tmp_path, monkeypatch):
     st_, day2, rows, mine, stop, rep = _in_flight_across_the_stop(tmp_path, monkeypatch)
     intent, qual = j.first(mine, "SLOT-INTENT"), j.first(mine, "SLOT-QUALIFIED")
@@ -279,6 +278,8 @@ def test_in_flight_slot_started_before_the_stop_completes_but_never_enters_final
     assert f"seals/{day2}.json" not in rec["seals"]
     hist = z.sampled_history(rows, stop, z.sampled_seals(tmp_path / "s1_out", rows, st_["calendar"], st_["start"],
                                                          upto_seq=stop.seq))
+    assert set(hist) == {"rows", "seals"}, hist                     # (A3 Task 13 un-hold: assert, not KeyError)
+    assert stop.sha in hist["rows"]                                 # (the STOP prefix is there: a non-vacuous oracle)
     assert qual.sha not in hist["rows"] and f"seals/{day2}.json" not in hist["seals"]
 
 

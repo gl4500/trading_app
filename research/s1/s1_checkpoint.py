@@ -883,14 +883,14 @@ def run_opening_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, cra
 
 # ------------------------------------------------------------------ final-snapshot mode (Task 7b)
 def _trial_state(out: Path, pr: dict, t: datetime, *, mailbox=None) -> tuple:
-    """(status, stop_close) of a trial that has ended; refuses while it is RUNNING. Task 12 (A2.1): the persisted
-    stop (s1_out/stop.json; persisted now if the trial has ended and it is absent); an abort keeps its frozen stop
-    close (when one was persisted) for the slices."""
+    """(status, stop_close) of a trial that has ended, for the report (the command refuses outside STOPPED first:
+    OQ-16); refuses while it is RUNNING. Task 12 (A2.1): the persisted stop; an abort keeps its frozen stop close
+    (when one was persisted) for the slices. A3 Task 13 (OQ-16): it reads the journal's stop only - it never
+    finalizes a close and never appends a slot row (the final snapshot is never sampled history)."""
     if c.load_abort(out) is not None:                   # terminal; a persisted stop keeps its frozen slices
         st_ = z.load_stop(out)
         return "ABORTED-INVALID", (st_ or {}).get("stop_close")
     try:                                                # A3 Task 7 (review N-1, F0.7): inside the try, mailbox threaded
-        finalize_pending(out, pr["calendar"], c.aware(pr["start"]), t, mailbox=mailbox)   # B1.5 / I-1: finalize first
         st_ = z.current_stop(out, c.aware(pr["start"]), pr["calendar"], t, "final snapshot", mailbox=mailbox)
     except (ValueError, KeyError, TypeError) as e:
         raise SystemExit(f"final snapshot refused: bad seal record ({type(e).__name__}: {e})") from None
@@ -927,6 +927,8 @@ def run_final_snapshot(root, live_db, now=c.now_utc, mailbox=None) -> dict:
     attempts (any attempt-NN/meta.json with ok=True), so a lost or deleted report.json never re-opens the capture.
     Task 12: bundle first and the verified registration (A3.2/A8.2); the stop is the persisted one (A2.1)."""
     gv = s1_trial.gate(root, "final snapshot", mailbox=mailbox, now=now)          # A3 F0.6: the gate first
+    if gv.state != "STOPPED":                                                     # A3 Task 13 (OQ-16)
+        raise SystemExit("final snapshot refused: the trial is not STOPPED (OQ-16)")
     out = Path(root) / "s1_out"
     c.verify_bundle_first(out, "final snapshot", mailbox=mailbox, now=now,          # fix round 2 (B3): the gate
                           gate_refuses=False)                                         # first; it records (A2.3)

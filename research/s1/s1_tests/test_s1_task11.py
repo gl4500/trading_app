@@ -28,6 +28,7 @@ import s1_slot as sl
 import s1_trial as t
 from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
+from conftest import S1_NVS_HELD, s1_score_invalid  # A3 Task 13
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_reack, s1_receipt_with, s1_score_refused, s1_state
 
 UTC = timezone.utc
@@ -769,7 +770,11 @@ def test_m6_r_est_no_app_import_network_library_or_live_write_path():
 @pytest.mark.parametrize("kind", ["aborted", "blocked", "no-valid-seal"])
 def test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge(tmp_path, monkeypatch, kind):
     """Task 11 (controller-added), m-7: restarts and the quantity bridge are keys of the ABORTED-INVALID, BLOCKED and
-    NO-VALID-SEAL reports too (design §14 Report), not only of priced ones."""
+    NO-VALID-SEAL reports too (design §14 Report), not only of priced ones.
+    A3 Task 13 (intended, OQ-28): the ABORTED-INVALID report is TRIAL-INVALID and kept in the score staging (read
+    there); no-valid-seal is held (A3 Task 13 concern 1)."""
+    if kind == "no-valid-seal":
+        pytest.skip(S1_NVS_HELD)
     if kind == "aborted":
         st_ = s1_state(tmp_path, START, score_ready=True)
         (tmp_path / "s1_out" / "aborted.json").write_text(json.dumps({"reason": "x"}), encoding="utf-8")
@@ -783,7 +788,11 @@ def test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge(tmp_path,
     else:
         st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
         want = "NO-VALID-SEAL"
-    rep = score(tmp_path, monkeypatch, st_)
+    if kind == "aborted":
+        at(monkeypatch, st_["now"])
+        rep = s1_score_invalid(tmp_path, "score-ack")
+    else:
+        rep = score(tmp_path, monkeypatch, st_)
     assert rep["verdict"] == want, rep["reasons"]
     assert "observed_in_crash_log_minimum" in rep["restarts"] and "observation_gaps" in rep["restarts"]
     assert "quantity_bridge" in rep

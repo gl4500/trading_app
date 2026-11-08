@@ -1,0 +1,96 @@
+# A3 Task 13 fix round 1 RED, part A: the fix-round tests on the Task 13 tree BEFORE any fix-round product change
+.........................FFFFF.........                                  [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:310: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:338: AssertionError: assert ({'error_type'...age': 'score'} == {'error_type'...age': 'score'}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:357: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:357: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_score.py:357: AssertionError: Regex pattern did not match.
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_lot_count_stop_reaches_a_numeric_score_with_no_invalid_row
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_six_month_stop_reaches_a_numeric_score_with_no_invalid_row
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_positive_path_isolated
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_computation_error_is_invalid_score_aborted_with_no_numeric_score
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_invalid_never_reaches_a_numeric_score
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_envelope_inputs_and_members
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[ok]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[wrong-final]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[wrong-prev]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[wrong-stop-line]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[head-forked]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_member_changed_is_invalid
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[receipt]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[snapshot-report]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_damaged_capture_backup_is_invalid_before_scoring
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_integrity_violation_persists_trial_invalid
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_non_integrity_dispositions_stay_valid[INSUFFICIENT]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_non_integrity_dispositions_stay_valid[INCONCLUSIVE]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_missing_or_changed_is_invalid_not_a_fallback[missing]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_missing_or_changed_is_invalid_not_a_fallback[changed]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_only_in_stopped
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_authorized_post_stop_prices_are_used_for_valuation
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_local_oserror_in_the_score_refuses_with_no_row_never_score_aborted
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_journal_outage_in_the_score_refuses_with_no_row_never_score_aborted
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_aborted_record_write_error_still_records_the_anomaly_reason
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_bound_snapshot_is_confirmed_on_a_second_read_before_any_invalid[differs-once]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_bound_snapshot_is_confirmed_on_a_second_read_before_any_invalid[unreadable]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_binding_no_snapshot_with_a_report_on_disk_is_a_refusal
+PASSED research/s1/s1_tests/test_s1_run.py::test_early_score_ack_while_running_is_refused_with_no_output
+PASSED research/s1/s1_tests/test_s1_run.py::test_score_runner_changed_since_prereg_is_invalid
+PASSED research/s1/s1_tests/test_s1_run.py::test_score_failure_inside_the_attempt_is_preserved_as_aborted
+PASSED research/s1/s1_tests/test_s1_checkpoint_7b.py::test_no_valid_seal_trial_can_take_its_final_snapshot
+PASSED research/s1/s1_tests/test_s1_checkpoint_7b.py::test_final_snapshot_on_an_active_trial_with_a_local_abort_is_refused_oq16
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_unconfirmed_integrity_verdict_refuses_with_no_invalid
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_second_computation_error_after_an_integrity_verdict_keeps_the_first_reasons
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[ValueError]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[PermissionError]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[KeyError]
+5 failed, 34 passed in 292.02s (0:04:52)
+
+# PART B: mutants on scratch copies of the same tree (scratch f1_mutate.py; s1_evidence omitted from the copies). Each must be killed by its fix-round oracle.
+
+## mutant m5: (reviewer's I-1 mutant) the observation drops _score's reasons
+FF                                                                       [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\mut_m5\research\s1\s1_tests\test_s1_a3_score.py:192: AssertionError: assert ({'reason': 'r...ere': 'score'} == {'reason': 'r...ere': 'score'}
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\mut_m5\research\s1\s1_tests\conftest.py:404: AssertionError: {'reason': 'registration-artifact', 'score_reasons': None, 'stage': 'score', 'where': 'score'}
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_score_integrity_violation_persists_trial_invalid
+FAILED research/s1/s1_tests/test_s1_run.py::test_score_runner_changed_since_prereg_is_invalid
+2 failed in 23.45s
+EXIT 1
+
+## mutant m6: M-4: the envelope's sampled history runs to the journal head, not the STOP
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\mut_m6\research\s1\s1_tests\test_s1_a3_score.py:117: AssertionError: assert '7e448b47cfcc...643ffa8c2c74a' == '29af354c5c50...cdc608f16585c'
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_score_envelope_inputs_and_members
+1 failed in 14.20s
+EXIT 1
+
+## mutant m7: M-4: the final-manifest input hashes another file
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\mut_m7\research\s1\s1_tests\test_s1_a3_score.py:118: AssertionError: assert '22c014c5d776...bdffb01fcf645' == 'dedb7809d84c...8f84b498a134a'
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_score_envelope_inputs_and_members
+1 failed in 14.19s
+EXIT 1
+
+## mutant m8: M-3: the OQ-16 INVALID fires with another reason (a loose "INVALID" regex accepts it)
+FF.F                                                                     [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\mut_m8\research\s1\s1_tests\test_s1_a3_score.py:217: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\mut_m8\research\s1\s1_tests\test_s1_a3_score.py:217: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t13\mut_m8\research\s1\s1_tests\test_s1_a3_score.py:161: AssertionError: Regex pattern did not match.
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[receipt]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_missing_or_changed_is_invalid_not_a_fallback[missing]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_missing_or_changed_is_invalid_not_a_fallback[changed]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[snapshot-report]
+3 failed, 1 passed in 36.24s
+EXIT 1

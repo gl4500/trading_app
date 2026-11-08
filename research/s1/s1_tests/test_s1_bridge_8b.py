@@ -13,6 +13,7 @@ import s1_run as r
 import s1_seal as z
 from conftest import s1_first_invalid, s1_replaced  # A3 Task 10
 from conftest import s1_prereg_ack  # A3 Task 6
+from conftest import s1_score_invalid  # A3 Task 13
 from conftest import (S1_PROCESS, S1_RECEIPT, _Clock, s1_finalize, s1_mailbox, s1_reack, s1_score_refused, s1_state,
                       s1_sync_portfolio)
 
@@ -158,7 +159,7 @@ def test_bridge_row_edited_before_the_final_snapshot_is_aborted_invalid(tmp_path
     assert any("bridge" in v for v in snap["fence_violations"]), snap["fence_violations"]
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
     s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
-    rep = r.score(tmp_path, "score-ack-2")
+    rep = s1_score_invalid(tmp_path, "score-ack-2")      # A3 Task 13 (intended, OQ-28): TRIAL-INVALID, report staged
     assert rep["verdict"] == "ABORTED-INVALID" and any("bridge" in x for x in rep["reasons"]), rep["reasons"]
 
 

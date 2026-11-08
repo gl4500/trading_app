@@ -6,6 +6,7 @@ import s1_journal as j
 import s1_run as r
 import s1_trial as t
 from conftest import s1_finalize, s1_reack, s1_replaced, s1_score_refused, s1_state
+from conftest import S1_NVS_HELD, s1_score_invalid                              # A3 Task 13
 
 UTC = timezone.utc
 SESS = ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"]
@@ -399,7 +400,9 @@ def test_score_stop_attestation_with_wrong_binding_is_unverified(tmp_path, monke
 def test_second_score_refused_and_nothing_overwritten(tmp_path, monkeypatch):            # example 18
     scored(tmp_path, monkeypatch)
     before = all_hashes(tmp_path)
-    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):   # (Task 5: exact reason)
+    # A3 Task 13 (intended, F1 'each stage once'): the one score is the score stage's one INTENT - re-entry after its
+    # CREATED row is refused by the stage engine ("score/ already exists" -> "already CREATED")
+    with pytest.raises(SystemExit, match=r"stage score is already CREATED: re-entry refused \(F1\)"):
         r.score(tmp_path, "score-ack")
     assert all_hashes(tmp_path) == before
 
@@ -409,9 +412,12 @@ def test_score_reserves_before_any_priced_computation(tmp_path, monkeypatch):
     at(monkeypatch, st_["now"])
     seen = []
     real = r.b.economic_lots
+    # A3 Task 13 (intended, F4.2/F4.9): the reservation is the stage's staged score/attempt.json (outside s1_out)
+    staged = __import__("s1_stage").staging_dir(tmp_path, t.open_trial(tmp_path / "mailbox.sqlite3").trial_id,
+                                                "score") / "score" / "attempt.json"
 
     def spy(*a, **kw):
-        seen.append((tmp_path / "s1_out" / "score" / "attempt.json").exists())
+        seen.append(staged.exists())
         return real(*a, **kw)
     monkeypatch.setattr(r.b, "economic_lots", spy)
     r.score(tmp_path, "score-ack")
@@ -429,7 +435,7 @@ def test_score_aborted_checkpoint_is_invalid_and_unpriced(tmp_path, monkeypatch)
     (tmp_path / "s1_out" / "aborted.json").write_text(json.dumps({"reason": "semantic receipt changed"}),
                                                       encoding="utf-8")
     at(monkeypatch, st_["now"])
-    rep = r.score(tmp_path, "score-ack")
+    rep = s1_score_invalid(tmp_path, "score-ack")        # A3 Task 13 (intended, OQ-28): TRIAL-INVALID, report staged
     assert rep["verdict"] == "ABORTED-INVALID" and rep["nomination"] is False and "levels" not in rep
 
 
@@ -449,6 +455,7 @@ def test_score_seal_or_receipt_violation_is_invalid(tmp_path, monkeypatch, tampe
     assert s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")["verdict"] == "ABORTED-INVALID"
 
 
+@pytest.mark.skip(reason=S1_NVS_HELD)
 def test_score_no_valid_seal_is_never_fail(tmp_path, monkeypatch):                       # Review Focus 5
     _, rep, _ = scored(tmp_path, monkeypatch, lots=[], seal_days=[])
     assert rep["verdict"] == "NO-VALID-SEAL" and rep["nomination"] is False
@@ -507,11 +514,11 @@ def test_score_failure_inside_the_attempt_is_preserved_as_aborted(tmp_path, monk
     def boom():
         raise SystemExit("P13 in the pinned core is not the registered rule")
     monkeypatch.setattr(s1_common, "p13", boom)
-    with pytest.raises(SystemExit, match="ABORTED"):
-        r.score(tmp_path, "score-ack")
-    rec = read(tmp_path / "s1_out" / "score" / "s1.json")
+    # A3 Task 13 (intended, F4.9 score abort): the ABORTED record stays in the score staging, INVALID (score-aborted);
+    # the retry is the gate's INVALID refusal ("an attempt already exists" -> "trial INVALID")
+    rec = s1_score_invalid(tmp_path, "score-ack", reason="score-aborted")
     assert rec["outcome"] == "ABORTED" and rec["verdict"] == "ABORTED-INVALID" and rec["nomination"] is False
-    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):   # (Task 5: exact reason)
+    with pytest.raises(SystemExit, match=r"trial INVALID \(reason/score-aborted\)"):
         r.score(tmp_path, "score-ack")
 
 
@@ -600,7 +607,7 @@ def test_score_runner_changed_since_prereg_is_invalid(tmp_path, monkeypatch):
     monkeypatch.setattr(r, "runner_sha", lambda: "0" * 64)
     s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
-    rep = r.score(tmp_path, "score-ack-2")
+    rep = s1_score_invalid(tmp_path, "score-ack-2")      # A3 Task 13 (intended, OQ-28): TRIAL-INVALID, report staged
     assert rep["verdict"] == "ABORTED-INVALID" and "runner changed since prereg" in rep["reasons"]
     assert "levels" not in rep and rep["nomination"] is False
 
@@ -619,6 +626,18 @@ def test_early_score_ack_while_running_is_refused_with_no_output(tmp_path, monke
     with pytest.raises(t.Refusal, match="S1-SCORE-ACK early: created not after its predecessor"):   # A3 F6.1/F7.1
         r.score(tmp_path, "early")
     assert not (tmp_path / "s1_out" / "score").exists()
+    # A3 Task 13 fix round 1 (M-5): the NO-VALID-SEAL score half is split out and held (S1_NVS_HELD); this early-ACK
+    # half is no NVS score behaviour and runs
+    trs = t.trials(t.scan(tmp_path / "mailbox.sqlite3"))       # (read without the open-trial refusal: the early
+    (tid,) = [x for x, tr_ in trs.items() if tr_.closed is None]   # ACK makes the chain refuse)
+    assert j.subject_rows(j.read_trial(tid, trs[tid].genesis, tmp_path / "mailbox.sqlite3"), "stage/score") == []
+
+
+@pytest.mark.skip(reason=S1_NVS_HELD)
+def test_post_end_score_ack_scores_a_no_valid_seal_trial(tmp_path, monkeypatch):
+    """The NVS half of test_early_score_ack_while_running_is_refused_with_no_output (split in A3 Task 13 fix round 1,
+    M-5): after the end, a re-issued post-end SCORE-ACK scores NO-VALID-SEAL normally."""
+    st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
     at(monkeypatch, st_["now"])
     s1_reack(tmp_path, "score-ack", "S1-SCORE-ACK", st_["now"] - timedelta(days=1))   # (Codex re-issues the ACK)
     assert r.score(tmp_path, "score-ack")["verdict"] == "NO-VALID-SEAL"
@@ -697,6 +716,7 @@ def test_combined_carry_in_and_cap_reports_carry_in_inconclusive(tmp_path, monke
     assert "k" not in rep                                                       # the cap was never evaluated
 
 
+@pytest.mark.skip(reason=S1_NVS_HELD)
 def test_combined_abort_and_no_valid_seal_is_aborted_invalid(tmp_path, monkeypatch):
     """Retrospective (Task 7 review fix round 1), M-3."""
     st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
@@ -742,11 +762,12 @@ def test_report_is_serialised_before_the_output_file_is_opened(tmp_path, monkeyp
     st_ = s1_state(tmp_path, START, score_ready=True)
     at(monkeypatch, st_["now"])
     real = r._score
-    monkeypatch.setattr(r, "_score", lambda out: dict(real(out), bad=object()))
-    with pytest.raises(SystemExit, match="ABORTED"):
-        r.score(tmp_path, "score-ack")
-    rec = read(tmp_path / "s1_out" / "score" / "s1.json")
+    # A3 Task 13 (intended, F4.9 score abort): _score takes the stage's mailbox; the ABORTED record is staged, INVALID
+    # (score-aborted), and no s1.json of the failed serialisation exists anywhere
+    monkeypatch.setattr(r, "_score", lambda out, mailbox=None: dict(real(out, mailbox), bad=object()))
+    rec = s1_score_invalid(tmp_path, "score-ack", reason="score-aborted")
     assert rec["outcome"] == "ABORTED" and rec["verdict"] == "ABORTED-INVALID"
+    assert any("TypeError" in x for x in rec["reasons"]), rec["reasons"]
 
 
 # ---------------------------------------------------------------- Task 7 review fix round 2 (R-1, m-1, m-2)
@@ -805,6 +826,7 @@ def test_score_ack_strictly_after_the_stop_with_a_final_manifest_scores(tmp_path
     assert r.score(tmp_path, "after-stop")["verdict"] == "SHADOW PASS"
 
 
+@pytest.mark.skip(reason=S1_NVS_HELD)
 def test_score_ack_before_the_no_valid_seal_window_end_is_refused(tmp_path, monkeypatch):
     """Retrospective (Task 7 review fix round 2), R-1: for NO-VALID-SEAL the end instant is the last eligible
     session's seal window end."""
@@ -833,7 +855,7 @@ def test_score_ack_before_the_recorded_abort_is_refused(tmp_path, monkeypatch):
         r.score(tmp_path, "score-ack")                                           # created before the abort
     assert not (tmp_path / "s1_out" / "score").exists()
     s1_reack(tmp_path, "after-abort", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
-    assert r.score(tmp_path, "after-abort")["verdict"] == "ABORTED-INVALID"
+    assert s1_score_invalid(tmp_path, "after-abort")["verdict"] == "ABORTED-INVALID"   # A3 Task 13 (intended, OQ-28)
 
 
 def test_malformed_seal_is_recorded_as_aborted_invalid_not_refused_forever(tmp_path, monkeypatch):
@@ -1346,7 +1368,7 @@ def test_cr_runner_hash_differing_upward_is_invalid(tmp_path, monkeypatch):
     monkeypatch.setattr(r, "runner_sha", lambda: "f" * 64)
     s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
-    assert "runner changed since prereg" in r.score(tmp_path, "score-ack-2")["reasons"]
+    assert "runner changed since prereg" in s1_score_invalid(tmp_path, "score-ack-2")["reasons"]   # A3 T13 (OQ-28)
 
 
 @pytest.mark.parametrize("field,value", [(f, v) for f in ("plan_sha256", "audit_manifest_sha256", "attest_start_sha256")
@@ -1456,14 +1478,14 @@ def test_cr_ledger_errors_name_which_ledger(tmp_path, monkeypatch):
     st_ = s1_state(tmp_path, START, score_ready=True)
     real, calls = r._carry_in, []
 
-    def flaky(rows, start):
-        calls.append(1)
-        if len(calls) == 2:
+    def flaky(rows, start):                  # A3 Task 13 (intended, OQ-28 + N1): the integrity verdict is confirmed
+        calls.append(1)                       # on a second computation, so the final ledger (the 2nd _carry_in call
+        if len(calls) % 2 == 0:               # of each computation) is corrupt on both
             raise s1_books.BookError("final corrupt")
         return real(rows, start)
     monkeypatch.setattr(r, "_carry_in", flaky)
     at(monkeypatch, st_["now"])
-    rep = r.score(tmp_path, "score-ack")
+    rep = s1_score_invalid(tmp_path, "score-ack")
     assert "final ledger unreadable: final corrupt" in rep["reasons"], rep["reasons"]
 
 
@@ -1475,7 +1497,7 @@ def test_cr_opening_ledger_error_is_named(tmp_path, monkeypatch):
         raise s1_books.BookError("opening corrupt")
     monkeypatch.setattr(r, "_carry_in", bad)
     at(monkeypatch, st_["now"])
-    rep = r.score(tmp_path, "score-ack")
+    rep = s1_score_invalid(tmp_path, "score-ack")        # A3 Task 13 (intended, OQ-28): TRIAL-INVALID, report staged
     assert "opening ledger unreadable: opening corrupt" in rep["reasons"], rep["reasons"]
 
 

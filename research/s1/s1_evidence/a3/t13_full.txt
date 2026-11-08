@@ -1,0 +1,35 @@
+........................................................................ [  3%]
+........................................................................ [  7%]
+........................................................................ [ 11%]
+........................................................................ [ 15%]
+........................................................................ [ 19%]
+........................................................................ [ 23%]
+........................................................................ [ 27%]
+........................................................................ [ 31%]
+........................................................................ [ 35%]
+........................................................................ [ 39%]
+........................................................................ [ 43%]
+.................................................................s...... [ 47%]
+........................................................................ [ 51%]
+........................................................................ [ 55%]
+......s.................s...............s.......s....................... [ 59%]
+........................................................................ [ 63%]
+........................................................................ [ 67%]
+........................................................................ [ 71%]
+........................s............................................... [ 75%]
+........................................................................ [ 79%]
+........................................................................ [ 83%]
+........................................................................ [ 87%]
+........................................................................ [ 91%]
+........................................................................ [ 95%]
+........................................................................ [ 99%]
+.....s                                                                   [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] research\s1\s1_tests\test_s1_checkpoint_7b.py:321: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_run.py:458: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_run.py:616: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_run.py:708: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_run.py:818: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_t12_a9.py:185: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+SKIPPED [1] research\s1\s1_tests\test_s1_task11.py:777: held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores
+1799 passed, 7 skipped in 3488.16s (0:58:08)
