@@ -1039,7 +1039,8 @@ def _refuse_if_locked(out: Path, where: str) -> None:
                          f"(s1_out/{STAGE_LOCK}): nothing is evaluated until it completes or is inspected")
 
 
-def registration_gate(out: Path, where: str, now=None, *, refuse: bool = True, mailbox=None) -> list:
+def registration_gate(out: Path, where: str, now=None, *, refuse: bool = True, mailbox=None,
+                      stray_refuses: bool = True) -> list:
     """B3.3: once a registration exists, an observed missing / changed / unparseable REQUIRED artifact records
     sanitized immutable failure evidence and the first-wins aborted.json (reason "registration artifact"; an earlier
     abort keeps its reason); restoration never resumes (aborted.json persists). The command then stops (SystemExit),
@@ -1051,13 +1052,15 @@ def registration_gate(out: Path, where: str, now=None, *, refuse: bool = True, m
     scan, the state scanned again and the lock checked once more; only the problems seen on both scans with no lock
     at any check are recorded. A lock that appeared, or a violation that vanished, is a preserved refusal (a
     concurrent legitimate stage publication), never an abort. Before the opening close's first slot (N-3) nothing
-    is evaluated as a registration: any registration file is a refusal. Returns the problems."""
+    is evaluated as a registration: any registration file is a refusal. Returns the problems.
+    A3 Task 14b: `stray_refuses=False` (only the trial gate's plan.json check after journal rows) skips that B3.2
+    refusal, so the gate's own INVALID follows (Task 7 concern-2 ruling); a confirmed violation still aborts first."""
     out = Path(out)
     _refuse_if_locked(out, where)
     probs = registration_problems(out, mailbox, now=now)           # (empty before the opening, N-3)
     if not probs:
         stray = preregistration_problems(out, mailbox, now)
-        if stray and refuse:
+        if stray and refuse and stray_refuses:
             raise SystemExit(f"{where} refused: inconsistent pre-registration state {stray[:4]}: files only a "
                              f"registration produces exist, but no registration is witnessed (B3.2: nothing is "
                              f"registered, nothing is aborted)")

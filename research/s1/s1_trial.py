@@ -3,6 +3,7 @@ its CLOSE are found from the coordination mailbox only (opened mode=ro, F6.3); t
 these readers. Codex issues ACKs; S1 code only reads them. Token texts: ACK_FIELDS (exact fields in order, F6.1,
 OQ-5). No function here takes an output root for the trial lookup: closure is monotone from mailbox history alone
 (E3.4 r3), and S1 never recomputes a historical CLOSE's evidence."""
+import json
 import re
 import sqlite3
 import sys
@@ -696,7 +697,8 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
     the open trial (F6.3) and its ACK chain (F7.1) from the mailbox; the journal (chain, F0.5 step 1); the trial
     state (F1: INVALID refuses with no work, F0.6 - checked before the bundle so re-entry adds no repeat row); total
     loss (F6.6: INVALID (LOST)); the bundle against the AUDIT-ACK's (F6.4: refusal before any row, INVALID (bundle) +
-    local abort after); the plan's trial_id (F6.2). The gate never creates or writes into a missing s1_out (review
+    local abort after); the plan's trial_id (F6.2; after any row, plan.json as the audit bound input,
+    _plan_after_rows, A3 Task 14b). The gate never creates or writes into a missing s1_out (review
     I-1). `now`: the command's clock callable (refusal records, the INVALID row's `at`). `defer_pending` (A3 Task 6,
     ruling N2, Erratum 1 E1.2): only the slot paths pass True - a stage whose lock is held by a live (possibly stalled)
     owner is recorded in gv.deferred instead of refusing "pending", so deadline arbitration is never blocked by a
@@ -741,20 +743,16 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
                                 projection_sha256=None, receipt_sha256=None))                     # loss checked)
         raise Refusal(f"{where} refused: S1 bundle differs from the trial's AUDIT-ACK bundle after journal rows: "
                       f"INVALID (bundle)")
-    try:
-        plan_tid = c.load_json(out / "plan.json").get("trial_id")
-    except (OSError, ValueError, AttributeError):
-        plan_tid = None
-    if plan_tid != tr.trial_id:
-        if rows:                                          # OQ-19: after any row a lost/changed plan is a detected
-            _legacy_detectors(out, where, now, mailbox)   # registration-artifact violation, never only a refusal
-        _refuse(out, where, f"plan.json trial_id {plan_tid!r} differs from the AUDIT-ACK's {tr.trial_id} (F6.2)", now)
-    if rows and c.sha_or_absent(out / "plan.json") != tr.audit.fields.get("plan_sha256"):
-        # A3 Task 7 (Deviation): the stage table and the F3 evidence table read the plan's opening close, so a plan
-        # that is not the AUDIT-ACK's (A8.1) is judged first by the legacy detector (OQ-19: after any row a changed
-        # plan is a detected registration-artifact violation), never mis-read as a stage-less seal. Before any
-        # registration the detector finds nothing and the command's own A8.1 check refuses (no opening seal exists)
-        _legacy_detectors(out, where, now, mailbox)
+    if rows:
+        _plan_after_rows(tr, rows, root, out, where, now, mailbox)    # A3 Task 14b (O-3): never resumable
+    else:
+        try:
+            plan_tid = c.load_json(out / "plan.json").get("trial_id")
+        except (OSError, ValueError, AttributeError):
+            plan_tid = None
+        if plan_tid != tr.trial_id:                               # before any row: a refusal (F6.2, F6.4)
+            _refuse(out, where, f"plan.json trial_id {plan_tid!r} differs from the AUDIT-ACK's {tr.trial_id} (F6.2)",
+                    now)
     gv = Gate(root, out, tr, rows, st_, mailbox)
     import s1_seal                                        # A3 Task 11 (F2.3/F2.4): stop.json against the TRIAL-STOP
     s1_seal.stop_check(gv)                                # (the publication gap recovers here), before the F4 table
@@ -767,16 +765,162 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
     return gv
 
 
-def _legacy_detectors(out: Path, where: str, now, mailbox) -> None:
+def _plan_read(p: Path):
+    """plan.json's bytes, or None when it is absent (FileNotFoundError); any other OSError propagates (a refusal)."""
+    try:
+        return Path(p).read_bytes()
+    except FileNotFoundError:
+        return None
+
+
+def _plan_problem(blob, trial_id: str, committed) -> tuple:
+    """(problem, tid) for one read of plan.json against the trial: problem None = the AUDIT-ACK's plan (its sha256)
+    naming this trial; "foreign" = it parses and names ANOTHER trial_id (tid); else "absent" | "unparseable" |
+    "without a trial_id" | "changed" (it names this trial but is not the AUDIT-ACK's bytes)."""
+    if blob is None:
+        return "absent", None
+    try:
+        obj = json.loads(blob.decode("utf-8"))
+    except ValueError:                                    # (UnicodeDecodeError included)
+        return "unparseable", None
+    tid = obj.get("trial_id") if isinstance(obj, dict) else None
+    if not isinstance(tid, str) or not tid:
+        return "without a trial_id", None
+    if tid != trial_id:
+        return "foreign", tid
+    return (None if c.sha256_bytes(blob) == committed else "changed"), tid
+
+
+def _audit_state(rows) -> str:
+    """The audit stage's journal state, for the plan INVALID's text (fix round 1, M-1)."""
+    import s1_stage
+    m = s1_stage.stage_rows(rows, "audit")
+    return next((k.upper() for k in ("created", "prepared", "intent") if m[k] is not None), "no row")
+
+
+def _holds_this_trials_audit(tr: Trial, rows, root: Path, out: Path) -> bool:
+    """Fix round 1 (review I-1; ruling "T14b I-1", amending brief item 2): does `root` hold a journal-bound audit
+    artifact of THIS trial? True when s1_staging/<trial>/audit/intent.json hashes to the audit STAGE-INTENT row's
+    detail (F4.1, OQ-35), or when an audit CREATED member is present in s1_out with its committed sha256 (the
+    committed member list is the staging prepared.json verified against the PREPARED row - the only journal-bound
+    source of the member hashes, F4.3). Another trial's genuine root has neither (the staging dir is keyed by this
+    trial's uuid4, OQ-27). An absent file is "no"; any other OSError propagates (the caller refuses with no row)."""
+    import s1_stage
+    m = s1_stage.stage_rows(rows, "audit")
+    staging = s1_stage.staging_dir(root, tr.trial_id, "audit")
+    if m["intent"] is not None:
+        blob = _plan_read(staging / "intent.json")
+        if blob is not None and c.sha256_bytes(blob) == m["intent"].detail:
+            return True
+    if m["created"] is not None and m["prepared"] is not None:
+        blob = _plan_read(staging / "prepared.json")
+        if blob is not None and c.sha256_bytes(blob) == m["prepared"].detail:
+            try:
+                members = json.loads(blob.decode("utf-8")).get("members")
+            except (ValueError, AttributeError):
+                members = None
+            for rel, sha in (members.items() if isinstance(members, dict) else ()):
+                got = _plan_read(out / rel)
+                if got is not None and c.sha256_bytes(got) == sha:
+                    return True
+    return False
+
+
+def _journal_invalid(tr: Trial, mailbox) -> bool:
+    """Whether the trial's journal now holds a TRIAL-INVALID row (re-read). A read failure is not a "yes"."""
+    try:
+        return j.first(j.read_trial(tr.trial_id, tr.genesis, mailbox), "TRIAL-INVALID") is not None
+    except (Refusal, j.JournalError):
+        return False
+
+
+def _plan_after_rows(tr: Trial, rows, root: Path, out: Path, where: str, now, mailbox) -> None:
+    """A3 Task 14b (review O-3; ruling "T14 I-1"; fix round 1 rulings "T14b I-1", "T14b I-2"): the plan check once
+    the trial has any journal row. The trial is already bound without plan.json - the mailbox's unique open trial
+    (F6.3), its AUDIT-ACK trial_id and plan_sha256 (which the audit STAGE-INTENT envelope commits as its bound input,
+    F4.1/F4.8) and its journal - so plan.json is judged as the audit stage's bound input, never as the trial's
+    identity:
+    - it parses and names ANOTHER non-empty trial_id: THIS trial's root with its plan changed (problem "names another
+      trial_id") when the root holds a journal-bound audit artifact of this trial (_holds_this_trials_audit);
+      otherwise a foreign root - the F6.2 refusal with no row, never judged (F10 Identity: a foreign root never
+      invalidates this trial, so no legacy detector runs on it). An OSError reading the decider refuses with no row.
+      Residual (F8.1 class): a swapped plan with every artifact of this trial deleted from the root reads as foreign;
+    - absent, unparseable, without a trial_id, not the AUDIT-ACK's bytes, or swapped as above: F6.2 says it never
+      changes after the AUDIT-ACK and the F4 table makes a missing/changed bound input INVALIDATE. Confirmed on a
+      re-read first (Task 7 I1, Task 11 I1): only an absence, or the same bytes, on both reads counts; a re-read that
+      differs, or any other OSError, refuses with no row. If s1_out itself is gone by then, it is the total loss
+      (F6.6 precedence: INVALID (LOST); review M-3). Then the OQ-19 legacy detector runs without its A2 B3.2
+      stray-file refusal (Task 7 concern-2 ruling); a refusal it raises is kept only if the journal now holds a
+      TRIAL-INVALID (its persistent verdict decides first, OQ-19 order); any other refusal of it (a legacy
+      s1_out/stage.lock, a scan that changed) cannot explain a confirmed plan change - nothing writes plan.json after
+      the AUDIT-ACK - so the gate goes on (review I-2). Then TRIAL-INVALID (stage-replaced) for the audit bound input
+      plan.json, and the local abort while s1_out exists (F6.6: never recreated). Restoring plan.json never resumes
+      the trial (the journal row decides, F1)."""
+    p = out / "plan.json"
+    committed = tr.audit.fields.get("plan_sha256")
+    try:
+        first = _plan_read(p)
+        problem, tid = _plan_problem(first, tr.trial_id, committed)
+        if problem is None:
+            return
+        second = _plan_read(p) if problem != "foreign" else None
+    except OSError as e:
+        _refuse(out, where, f"plan.json unreadable ({type(e).__name__}) after journal rows: not a confirmed "
+                            f"violation, refused with no row", now)
+    if problem == "foreign":
+        try:
+            here = _holds_this_trials_audit(tr, rows, root, out)
+        except OSError as e:
+            _refuse(out, where, f"plan.json names trial_id {tid!r}; this trial's audit commitment unreadable "
+                                f"({type(e).__name__}): not a confirmed violation, refused with no row", now)
+        if not here:
+            _refuse(out, where, f"plan.json trial_id {tid!r} differs from the AUDIT-ACK's {tr.trial_id} (F6.2)", now)
+        problem = "names another trial_id"
+        try:
+            second = _plan_read(p)                        # confirm on re-read before any INVALID
+        except OSError as e:
+            _refuse(out, where, f"plan.json unreadable ({type(e).__name__}) after journal rows: not a confirmed "
+                                f"violation, refused with no row", now)
+    if second != first:
+        _refuse(out, where, f"plan.json {problem} on the first read and different on the re-read: the violation is "
+                            f"not confirmed, refused with no row", now)
+    if not out.is_dir():                                  # review M-3: F6.6 precedence over the bound-input verdict
+        invalidate(tr, "LOST", {"where": where, "missing": "s1_out"}, root=root, mailbox=mailbox, clock=now)
+        raise Refusal(f"{where} refused: s1_out is gone under an open trial with journal rows: INVALID (LOST)")
+    try:
+        _legacy_detectors(out, where, now, mailbox, stray=False)  # OQ-19: its persistent INVALID still wins first
+    except Refusal:
+        if _journal_invalid(tr, mailbox):
+            raise
+    state = _audit_state(rows)
+    rec = {"where": where, "stage": "audit", "audit_state": state, "bound_input": "plan.json", "problem": problem,
+           "expected_plan_sha256": committed, "observed_plan_sha256": None if first is None else c.sha256_bytes(first)}
+    invalidate(tr, "stage-replaced", rec, root=root, mailbox=mailbox, clock=now)
+    if out.is_dir():                                      # F6.6: the local abort never recreates s1_out
+        try:
+            c.write_abort(out, dict(rec, reason="stage-replaced", actual=None, close=None, scheduled=None,
+                                    projection_sha256=None, receipt_sha256=None))
+        except OSError:
+            pass
+    raise Refusal(f"{where} refused: stage audit: bound input plan.json missing or changed since the AUDIT-ACK "
+                  f"({problem}, after journal rows; the audit stage is at {state}; F4.1, F4.8, F6.2): INVALID "
+                  f"(stage-replaced)")
+
+
+def _legacy_detectors(out: Path, where: str, now, mailbox, *, stray: bool = True) -> None:
     """OQ-19: the legacy registration-artifact detector (s1_common.registration_gate: additional detector only, never
     an identity or authorization root), run where the gate refuses for a reason that could otherwise mask an
     established violation: a mailbox outage (B3.4; the TRIAL-INVALID then cannot commit, F8.1 residual, and the local
-    aborted.json is written) and a plan.json that no longer names the trial after journal rows. A confirmed violation
-    raises its own refusal (TRIAL-INVALID first, then aborted.json); otherwise the gate's refusal follows. Only for a
-    tree that exists (a total loss is F6.6, and the detector never recreates s1_out)."""
+    aborted.json is written) and a damaged plan.json after journal rows (Task 14b). A confirmed violation raises its
+    own refusal (TRIAL-INVALID first, then aborted.json); otherwise the gate's refusal or verdict follows. Only for a
+    tree that exists (a total loss is F6.6, and the detector never recreates s1_out). `stray=False` (A3 Task 14b,
+    the plan path after rows): the A2 B3.2 "inconsistent pre-registration state" refusal does not end the gate - the
+    gate goes on to its own INVALID (Task 7 concern-2 ruling). Every other refusal of the detector is still raised
+    from here; the plan path (_plan_after_rows, fix round 1 I-2) then keeps it only when the journal holds a
+    TRIAL-INVALID (the detector's persistent verdict) and otherwise goes on to its own stage-replaced INVALID."""
     if Path(out).is_dir():
         try:
-            c.registration_gate(Path(out), where, now, mailbox=mailbox)
+            c.registration_gate(Path(out), where, now, mailbox=mailbox, stray_refuses=stray)
         except SystemExit as e:                           # the gate's contract: every refusal is a Refusal, preserved
             c.record_refusal(Path(out), where, e, now)    # in refusals.jsonl (B3.2)
             if isinstance(e, Refusal):

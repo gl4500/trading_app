@@ -1,0 +1,4 @@
+# A3 Task 14b: the exhaustive after-audit subset of the damage matrix (S1_MATRIX_FULL=1, -k after-audit; 3066 cases = Task 14 fix round 1's 2780 passed + 286 xfailed), O-3 markers removed, HEAD 56f8cb23339728810f2d80d588e71d3e2fb55a58 + the Task 14b working tree
+# cmd: S1_MATRIX_FULL=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_matrix.py -q -k after-audit
+3066 passed, 27595 deselected in 265.26s (0:04:25)
+exit=0

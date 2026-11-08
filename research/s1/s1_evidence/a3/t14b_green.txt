@@ -1,0 +1,91 @@
+# A3 Task 14b GREEN: every A3 test file (research/s1/s1_tests/test_s1_a3_*.py, 17 files incl. the new test_s1_a3_plan_damage.py) + the default damage matrix, O-3 markers removed; worktree on HEAD 56f8cb23339728810f2d80d588e71d3e2fb55a58
+# cmd: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_*.py -q -rA   (raw -rA output in the session scratchpad t14b/green_raw.txt)
+
+## Summary
+4108 passed in 1683.00s (0:28:02)
+exit=0
+FAILED/ERROR/XPASS/XFAIL lines: 0
+
+## Before the marker removal (same fixed product): the after-audit default subset, markers still on
+# cmd: ... research/s1/s1_tests/test_s1_a3_matrix.py -q -k after-audit -rX
+26 failed, 304 passed, 2971 deselected in 55.20s
+(the 26 failures are exactly the 26 o3_held ids, each [XPASS(strict)] O-3 ...)
+
+## The 26 former O-3 holds after the marker removal (PASSED lines from this run)
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+attestation|same|changed]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+attestation|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+attestation|same|unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+attestation+prereg+seal+receipt+stop|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+receipt+stop|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+stop|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+attestation+seal+receipt+stop|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (registry)+opening record (witnesses)+prereg+seal+receipt+stop|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+audit tree|same|unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+opening record (registry)+opening record (witnesses)+attestation+prereg+seal+receipt+stop|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+opening record (registry)|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+opening record (witnesses)|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+prereg|same|changed]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+prereg|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+prereg|same|unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+receipt|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+seal|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+stop|same|changed]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+stop|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan+stop|same|unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan|same|deleted]
+PASSED research/s1/s1_tests/test_s1_a3_matrix.py::test_matrix[after-audit|plan|same|unparseable]
+
+## test_s1_a3_plan_damage.py (PASSED lines)
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_control_the_undamaged_snapshot_passes_the_gate[after-audit]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_control_the_undamaged_snapshot_passes_the_gate[after-opening]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_control_the_undamaged_snapshot_passes_the_gate[after-start-attest]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-audit-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-audit-unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-audit-no-trial-id]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-opening-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-opening-unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-opening-no-trial-id]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-start-attest-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-start-attest-unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-start-attest-no-trial-id]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[attest_start.json-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[attest_start.json-unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[attest_start.json-no-trial-id]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[attest_start.json-changed]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[prereg.json-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[prereg.json-unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[prereg.json-no-trial-id]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[prereg.json-changed]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[stop.json-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[stop.json-unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[stop.json-no-trial-id]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[stop.json-changed]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_plan_naming_another_trial_is_the_f62_refusal_and_never_invalidates_this_trial[after-audit-None]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_plan_naming_another_trial_is_the_f62_refusal_and_never_invalidates_this_trial[after-audit-attest_start.json]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_plan_naming_another_trial_is_the_f62_refusal_and_never_invalidates_this_trial[after-opening-None]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_plan_naming_another_trial_is_the_f62_refusal_and_never_invalidates_this_trial[after-opening-attest_start.json]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_transient_os_error_on_the_plan_read_refuses_with_no_row[after-audit]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_transient_os_error_on_the_plan_read_refuses_with_no_row[after-opening]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_re_read_that_differs_refuses_with_no_row[bad-then-other-bad]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_re_read_that_differs_refuses_with_no_row[absent-then-intact]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_re_read_that_differs_refuses_with_no_row[bad-then-intact]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_the_invalidation_never_recreates_a_vanished_s1_out
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_control_before_any_journal_row_a_damaged_plan_is_still_a_plain_refusal[deleted]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_control_before_any_journal_row_a_damaged_plan_is_still_a_plain_refusal[unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_control_before_any_journal_row_a_damaged_plan_is_still_a_plain_refusal[no-trial-id]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_control_before_any_journal_row_a_changed_plan_passes_the_gate
+
+## Note (after this run): one product message change, then re-verified
+A first full suite (scratchpad t14b/full_raw_run1.txt: 2 failed, 5145 passed, 7 skipped) showed that
+test_s1_t12_a3_a8.py[plan_edited_after_audit] matches `stage audit: .*INVALID \(stage-replaced\)`; the gate's new message
+was reworded to the F4 table's form ("stage audit: bound input plan.json missing or changed since the AUDIT-ACK (...):
+INVALID (stage-replaced)"); the test file's STAGE_REPLACED_PLAN regex was updated to match. After the change:
+test_s1_a3_plan_damage.py + test_s1_t12_a3_a8.py: 78 passed; and the clean full suite t14b_full.txt (every A3 file and the
+default matrix included) is 5147 passed, 7 skipped. The other run-1 failure (test_s1_a3_locks.py::test_killed_owner_frees_the_lock,
+LockHeld right after the child was killed) touches no Task 14b code; 5/5 isolated re-runs passed and it passed in run 2.
+The exhaustive after-audit subset (t14b_matrix_after_audit.txt) ran before the rewording; the matrix asserts only
+`refused|INVALID` plus the TRIAL-INVALID row, which the rewording does not change.

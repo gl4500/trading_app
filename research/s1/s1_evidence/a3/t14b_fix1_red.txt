@@ -1,0 +1,46 @@
+# A3 Task 14b fix round 1 behavioural RED (task-14b-review-verdict.md I-1, I-2, M-1, M-2, M-3; rulings "T14b I-1", "T14b I-2")
+# test file sha256 65b83a027fb99fc62aa82fed169485f427b6be3432dc019f081ee59808b7224d (the fix1 test file, before any fix1 product edit)
+## 1. Against the Task 14b tree BEFORE the fix-round product edits (s1_trial.py sha256 34e0ae000ce4d8731c28ec44ef28cc650511e202e163530bce37ef973ac8f010), the fix1 tests only (-k fx1)
+# cmd: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_plan_damage.py -q -k fx1 --tb=short -rA
+E   AssertionError: Regex pattern did not match.
+E    Input: "swapped plan refused: plan.json trial_id '60373b4d-28c6-4a98-801e-09cd1c3b3bbe' differs from the AUDIT-ACK's 3eabdca9-788d-4a8e-b20f-34ca29d4c2aa (F6.2)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "swapped plan refused: plan.json trial_id '60373b4d-28c6-4a98-801e-09cd1c3b3bbe' differs from the AUDIT-ACK's c67dc85f-edaf-4bb7-8b9c-829898113c1e (F6.2)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "swapped plan refused: plan.json trial_id '60373b4d-28c6-4a98-801e-09cd1c3b3bbe' differs from the AUDIT-ACK's e16226ba-1189-496d-8a8a-1aaf515b40b1 (F6.2)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "decider error refused: plan.json trial_id '60373b4d-28c6-4a98-801e-09cd1c3b3bbe' differs from the AUDIT-ACK's 3eabdca9-788d-4a8e-b20f-34ca29d4c2aa (F6.2)"
+E   AssertionError: Regex pattern did not match.
+E    Input: 'stage.lock + plan damage refused: a stage publication is in progress or was interrupted (s1_out/stage.lock): nothing is evaluated until it completes or is inspected'
+E   AssertionError: Regex pattern did not match.
+E    Input: 'stage.lock + plan damage refused: a stage publication is in progress or was interrupted (s1_out/stage.lock): nothing is evaluated until it completes or is inspected'
+E   AssertionError: Regex pattern did not match.
+E    Input: 'stage.lock + plan damage refused: a stage publication is in progress or was interrupted (s1_out/stage.lock): nothing is evaluated until it completes or is inspected'
+E   AssertionError: Regex pattern did not match.
+E    Input: 'stage.lock + plan damage refused: a stage publication is in progress or was interrupted (s1_out/stage.lock): nothing is evaluated until it completes or is inspected'
+E   AssertionError: assert ('the audit stage is at INTENT' in 'while the audit runs refused: stage audit: bound input plan.json missing or changed since the AUDIT-ACK (unparseable, after journal rows; F4 table CREATED, F4.8, F6.2): INVALID (stage-replaced)')
+E   AssertionError: Regex pattern did not match.
+E    Input: 'vanishing during the reads refused: stage audit: bound input plan.json missing or changed since the AUDIT-ACK (absent, after journal rows; F4 table CREATED, F4.8, F6.2): INVALID (stage-replaced)'
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_another_trials_genuine_root_is_refused_and_never_invalidates_the_open_trial[after-audit]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_another_trials_genuine_root_is_refused_and_never_invalidates_the_open_trial[after-opening]
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_a_live_audit_owner_at_intent_pending_for_an_intact_plan_invalid_for_a_damaged_one[intact]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_another_trials_plan_swapped_into_this_root_is_invalid_and_never_resumes[after-audit]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_another_trials_plan_swapped_into_this_root_is_invalid_and_never_resumes[after-opening]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_another_trials_plan_swapped_into_this_root_is_invalid_and_never_resumes[after-start-attest]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_an_os_error_reading_this_trials_audit_commitment_refuses_with_no_row
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_a_legacy_stage_lock_next_to_a_damaged_plan_never_pre_empts_the_invalid[after-audit-deleted]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_a_legacy_stage_lock_next_to_a_damaged_plan_never_pre_empts_the_invalid[after-audit-unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_a_legacy_stage_lock_next_to_a_damaged_plan_never_pre_empts_the_invalid[after-opening-deleted]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_a_legacy_stage_lock_next_to_a_damaged_plan_never_pre_empts_the_invalid[after-opening-unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_a_live_audit_owner_at_intent_pending_for_an_intact_plan_invalid_for_a_damaged_one[unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_s1_out_vanishing_between_the_plan_reads_is_lost_not_stage_replaced
+10 failed, 3 passed, 38 deselected in 4.19s
+
+# Passing here (3): the two genuine-foreign-root guards (the Task 14b tree already refuses them) and the M-2 'intact plan -> pending' control.
+
+## 2. The genuine-foreign-root regression guards against 56f8cb2 (clean git archive copy, scratchpad t14b/base, + this test file)
+E   AssertionError: Regex pattern did not match.
+E    Input: 'another trial\'s root refused: registration artifact(s) missing or changed: ["seals/2026-10-23.json exists but plan.json differs from every AUDIT-ACK\'s plan_sha256 (the opening date is unbound)", "registry/opening.json exists but plan.json differs from every AUDIT-ACK\'s plan_sha256 (the opening date is unbound)", "witnesses/opening.json exists but plan.json differs from every AUDIT-ACK\'s plan_sha256 (the opening date is unbound)"]: persistent ABORTED-INVALID (reason registration artifact)'
+PASSED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_another_trials_genuine_root_is_refused_and_never_invalidates_the_open_trial[after-audit]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_fx1_another_trials_genuine_root_is_refused_and_never_invalidates_the_open_trial[after-opening]
+1 failed, 1 passed, 49 deselected in 2.92s

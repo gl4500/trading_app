@@ -1,0 +1,4 @@
+# A3 Task 14b fix round 1: the exhaustive after-audit subset (S1_MATRIX_FULL=1, -k after-audit), HEAD 56f8cb23339728810f2d80d588e71d3e2fb55a58 + the fix-round-1 tree
+# cmd: S1_MATRIX_FULL=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_matrix.py -q -k after-audit
+3066 passed, 27595 deselected in 237.54s (0:03:57)
+exit=0

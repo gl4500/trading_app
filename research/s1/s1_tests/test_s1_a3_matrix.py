@@ -78,8 +78,9 @@ def oracle(point, subset, bundle, damage) -> str:
       opening INTENT and PREPARED and refuses "registry/opening.json already records different artifacts", and every
       later gate refuses the same way with no row (F4.7 recovery re-runs the same before_publish) until the file is
       deleted - fail-closed, availability only; disclosed to Codex at Stage-1 (no matrix point reaches it).
-    - O-3 is NOT an oracle change (fix round 1, review I-2): the brief's INVALID stands; the cases that fail on the
-      O-3 product defect are strict xfail (`o3_held`), fixed by Task 14b."""
+    - O-3 is NOT an oracle change (fix round 1, review I-2): the brief's INVALID stands. Task 14b fixed the product
+      (s1_trial._plan_after_rows: after any row a damaged plan.json is INVALID) and removed the 26 default / 286
+      exhaustive strict-xfail holds (`o3_held`) that Task 14 fix round 1 placed on those cases."""
     if bundle == "changed":
         return "invalid"
     idx = POINTS.index(point)
@@ -96,38 +97,6 @@ def oracle(point, subset, bundle, damage) -> str:
     if any(e in JOURNAL_MEMBERS for e in made):
         return "invalid"
     return "refuse-or-invalid"
-
-
-O3_REASON = "O-3: damaged plan.json after rows refuses instead of INVALID; fixed by Task 14b"
-
-
-def o3_held(point, subset, bundle, damage) -> bool:
-    """Fix round 1 (review I-2; progress.md ruling "T14 I-2"): the row-255 cases that fail on the O-3 product defect
-    (s1_trial.gate: after journal rows, a deleted/unparseable plan.json falls through to the F6.2 refusal with no row,
-    and the OQ-19 legacy detector run first on a plan that is not the AUDIT-ACK's ends the gate with the A2 B3.2
-    refusal before the F4 table). They keep the brief's oracle ('invalid') and are marked xfail(strict=True); Task 14b
-    fixes the gate, the cases XPASS, strict fails, and Task 14b removes the marker. This selects; it never changes
-    an expected outcome. The selection is exactly the cases measured to fail on the defect (scratch run of every
-    after-audit case, default and exhaustive, with no marker; a3/t14_old_new.md "Fix round 1"): after the audit,
-    bundle same, plan.json damaged and
-    - deleted, whatever else is deleted (no element but plan.json and the audit tree exists there): F6.2 refusal;
-    - unparseable, with nothing fabricated except attest_start/prereg/stop.json (each unparseable): the F6.2
-      refusal, or the B3.2 refusal for the fabricated files;
-    - changed, with at least one of attest_start/prereg/stop.json fabricated and nothing else fabricated: the B3.2
-      refusal pre-empts the F4 INVALID (plan.json changed alone, or with the audit tree, is INVALID: no hold).
-    A fabricated seal, receipt, registry or witness record next to the damaged plan makes the legacy detector's
-    persistent INVALID fire first, which meets the oracle: no hold. Counts: 26 default cases, 286 exhaustive."""
-    if point != "after-audit" or bundle != "same" or "plan" not in subset:
-        return False
-    if damage == "deleted":
-        return True
-    rest = set(subset) - {"plan", "audit tree"}
-    if not rest <= O3_B32_FILES:
-        return False
-    return damage == "unparseable" or bool(rest)
-
-
-O3_B32_FILES = {"attestation", "prereg", "stop"}      # files only a registration produces (A2 B3.2), pre-opening
 
 
 def _build(root, point):
@@ -186,9 +155,7 @@ def _invalid_rows(root) -> int:
 
 CASES = [(p, s, b, d) for p in POINTS for s in subsets() for b in ("same", "changed")
          for d in ("deleted", "changed", "unparseable")]
-PARAMS = [pytest.param(*case, id=f"{case[0]}|{'+'.join(case[1])}|{case[2]}|{case[3]}",
-                       marks=[pytest.mark.xfail(strict=True, reason=O3_REASON)] if o3_held(*case) else [])
-          for case in CASES]
+PARAMS = [pytest.param(*case, id=f"{case[0]}|{'+'.join(case[1])}|{case[2]}|{case[3]}") for case in CASES]
 
 
 @pytest.mark.parametrize("point,subset,bundle,damage", PARAMS)

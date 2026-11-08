@@ -1,0 +1,109 @@
+# A3 Task 14b behavioural RED: research/s1/s1_tests/test_s1_a3_plan_damage.py (sha256 6a79414e3963d364db4afa1a5dc0d9532783d85720eb32f60ba0a4ddc6bd9567, the final test file) run against the UNCHANGED product.
+# The product is a clean copy of research/s1 at HEAD 56f8cb23339728810f2d80d588e71d3e2fb55a58 (git archive HEAD research/s1, in the scratchpad t14b/base/) plus only this test file; the worktree's fixed s1_trial.py / s1_common.py are NOT on the path.
+# cmd (from t14b/base): PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_plan_damage.py -q --tb=line -rf
+# Passing on HEAD (14) = controls + regression guards: 3 undamaged-snapshot controls; 4 pre-row controls; foreign[after-audit-None] (HEAD already refuses F6.2 with no row there); and the 6 after-opening / after-start-attest damage cases, which HEAD already makes INVALID through the OQ-19 legacy detector (review M-2: from the opening on the legacy detector decides).
+
+...FFF......FFFFFFFFFFFF.FFFFFFFFF....                                   [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:142: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:142: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:142: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:166: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:187: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:187: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:187: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:207: PermissionError: [Errno 13] sharing violation
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:207: PermissionError: [Errno 13] sharing violation
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:252: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:252: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:252: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t14b\base\research\s1\s1_tests\test_s1_a3_plan_damage.py:276: AssertionError: Regex pattern did not match.
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-audit-deleted]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-audit-unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_after_journal_rows_is_invalid_and_restoring_never_resumes[after-audit-no-trial-id]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[attest_start.json-deleted]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[attest_start.json-unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[attest_start.json-no-trial-id]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[attest_start.json-changed]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[prereg.json-deleted]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[prereg.json-unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[prereg.json-no-trial-id]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[prereg.json-changed]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[stop.json-deleted]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[stop.json-unparseable]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[stop.json-no-trial-id]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_damaged_plan_with_a_fabricated_registration_file_is_invalid_never_the_b32_refusal[stop.json-changed]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_plan_naming_another_trial_is_the_f62_refusal_and_never_invalidates_this_trial[after-audit-attest_start.json]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_plan_naming_another_trial_is_the_f62_refusal_and_never_invalidates_this_trial[after-opening-None]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_plan_naming_another_trial_is_the_f62_refusal_and_never_invalidates_this_trial[after-opening-attest_start.json]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_transient_os_error_on_the_plan_read_refuses_with_no_row[after-audit]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_transient_os_error_on_the_plan_read_refuses_with_no_row[after-opening]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_re_read_that_differs_refuses_with_no_row[bad-then-other-bad]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_re_read_that_differs_refuses_with_no_row[absent-then-intact]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_a_re_read_that_differs_refuses_with_no_row[bad-then-intact]
+FAILED research/s1/s1_tests/test_s1_a3_plan_damage.py::test_the_invalidation_never_recreates_a_vanished_s1_out
+24 failed, 14 passed in 4.77s
+
+# Observed stops on HEAD (same run with --tb=short; 'Input:' = what the unchanged gate raised)
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage refused: plan.json trial_id None differs from the AUDIT-ACK's 1bdaa9ac-3abf-40b2-8ef5-daa5734c6ff3 (F6.2)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage refused: plan.json trial_id None differs from the AUDIT-ACK's 1bdaa9ac-3abf-40b2-8ef5-daa5734c6ff3 (F6.2)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage refused: plan.json trial_id None differs from the AUDIT-ACK's 1bdaa9ac-3abf-40b2-8ef5-daa5734c6ff3 (F6.2)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['attest_start.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['attest_start.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['attest_start.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['attest_start.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['prereg.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['prereg.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['prereg.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['prereg.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['stop.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['stop.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['stop.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "plan damage + fabricated refused: inconsistent pre-registration state ['stop.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: "foreign root refused: inconsistent pre-registration state ['attest_start.json']: files only a registration produces exist, but no registration is witnessed (B3.2: nothing is registered, nothing is aborted)"
+E   AssertionError: Regex pattern did not match.
+E    Input: 'foreign root refused: registration artifact(s) missing or changed: ["seals/2026-10-23.json exists but plan.json differs from every AUDIT-ACK\'s plan_sha256 (the opening date is unbound)", "registry/opening.json exists but plan.json differs from every AUDIT-ACK\'s plan_sha256 (the opening date is unbound)", "witnesses/opening.json exists but plan.json differs from every AUDIT-ACK\'s plan_sha256 (the opening date is unbound)"]: persistent ABORTED-INVALID (reason registration artifact)'
+E   AssertionError: Regex pattern did not match.
+E    Input: 'foreign root refused: registration artifact(s) missing or changed: ["seals/2026-10-23.json exists but plan.json differs from every AUDIT-ACK\'s plan_sha256 (the opening date is unbound)", "registry/opening.json exists but plan.json differs from every AUDIT-ACK\'s plan_sha256 (the opening date is unbound)", "witnesses/opening.json exists but plan.json differs from every AUDIT-ACK\'s plan_sha256 (the opening date is unbound)"]: persistent ABORTED-INVALID (reason registration artifact)'
+E   PermissionError: [Errno 13] sharing violation
+E   PermissionError: [Errno 13] sharing violation
+_____ test_a_re_read_that_differs_refuses_with_no_row[bad-then-other-bad] _____
+E   AssertionError: Regex pattern did not match.
+E    Input: "re-read refused: plan.json trial_id None differs from the AUDIT-ACK's 1bdaa9ac-3abf-40b2-8ef5-daa5734c6ff3 (F6.2)"
+_____ test_a_re_read_that_differs_refuses_with_no_row[absent-then-intact] _____
+E   AssertionError: Regex pattern did not match.
+E    Input: "re-read refused: plan.json trial_id None differs from the AUDIT-ACK's 1bdaa9ac-3abf-40b2-8ef5-daa5734c6ff3 (F6.2)"
+______ test_a_re_read_that_differs_refuses_with_no_row[bad-then-intact] _______
+E   AssertionError: Regex pattern did not match.
+E    Input: "re-read refused: plan.json trial_id None differs from the AUDIT-ACK's 1bdaa9ac-3abf-40b2-8ef5-daa5734c6ff3 (F6.2)"
+___________ test_the_invalidation_never_recreates_a_vanished_s1_out ___________
+E   AssertionError: Regex pattern did not match.
+E    Input: "vanishing tree refused: plan.json trial_id None differs from the AUDIT-ACK's 1bdaa9ac-3abf-40b2-8ef5-daa5734c6ff3 (F6.2)"
