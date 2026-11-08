@@ -1,0 +1,1841 @@
+FFFFFF.F...FFFFFFFFFFFFFFFFFFFFFFFFFF                                    [100%]
+================================== FAILURES ===================================
+_______________ test_final_policy_is_exactly_the_f49_final_rows _______________
+
+    def test_final_policy_is_exactly_the_f49_final_rows():
+        fp = {"bar_symbols": ["A", "B"], "ca_symbols_window": ["A"], "ca_symbols_full_history": ["B"],
+              "full_history_start": "2026-09-01", "stop_date": "2026-10-28"}
+        pr = {"start": "2026-10-26T13:30:00+00:00"}
+        fixed = {"region": "us", "data_quality": "all", "sort": "asc", "limit": 1000}
+>       assert k.final_policy(fp, pr, "2026-11-02") == {
+            "redirects": False, "max_pages": 200, "cutoff": "2026-11-02", "families": [
+                {"name": "bars", "url": "https://data.alpaca.markets/v2/stocks/bars", "scope": "final", "batches": None,
+                 "base_params": {"symbols": "A,B", "timeframe": "1Day", "start": "2026-10-26T04:00:00Z",
+                                 "end": "2026-10-29T03:59:59.999999Z", "adjustment": "raw", "feed": "sip",
+                                 "limit": 10000},
+                 "paged": True, "page_template": "final/pages/bars_page{n:03d}.json"},
+                {"name": "corporate_actions", "url": "https://data.alpaca.markets/v1/corporate-actions", "scope": "window",
+                 "batches": [["A"]], "base_params": [dict(fixed, symbols="A", start="2026-10-26", end="2026-11-02")],
+                 "paged": True, "page_template": "final/pages/ca_{i:03d}_page{n:03d}.json"},
+                {"name": "corporate_actions", "url": "https://data.alpaca.markets/v1/corporate-actions",
+                 "scope": "full_history", "batches": [["B"]],
+                 "base_params": [dict(fixed, symbols="B", start="2026-09-01", end="2026-11-02")],
+                 "paged": True, "page_template": "final/pages_full/ca_{i:03d}_page{n:03d}.json"}]}
+E       AssertionError: assert {'families': []} == {'cutoff': '2...rects': False}
+E         
+E         Differing items:
+E         {'families': []} != {'families': [{'base_params': {'adjustment': 'raw', 'end': '2026-10-29T03:59:59.999999Z', 'feed': 'sip', 'limit': 1000...batches': [['B']], 'name': 'corporate_actions', 'page_template': 'final/pages_full/ca_{i:03d}_page{n:03d}.json', ...}]}
+E         Right contains 3 more items:
+E         {'cutoff': '2026-11-02', 'max_pages': 200, 'redirects': False}
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_final.py:91: AssertionError
+___________________ test_normal_final_commits_every_member ____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_normal_final_commits_ever0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA285FF50>
+
+    def test_normal_final_commits_every_member(tmp_path, monkeypatch):
+        st_, at = ready(tmp_path)
+        m, sp = final(tmp_path, monkeypatch, Provider(bars_pages=2), at)
+>       cm = commitment(tmp_path)
+
+research\s1\s1_tests\test_s1_a3_final.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_normal_final_commits_ever0')
+
+    def commitment(root):
+        tr = t.open_trial(mb(root))
+        p = sg.staging_dir(root, tr.trial_id, "final") / "prepared.json"
+>       assert p.is_file(), "no final PREPARED commitment in staging"          # (Deviation: an assertion, not an OSError)
+E       AssertionError: no final PREPARED commitment in staging
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_normal_final_commits_ever0/s1_staging/40a19654-0008-4bdf-b280-ba3ba91ef830/final/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_final.py:82: AssertionError
+______ test_final_members_are_the_fixed_names_plus_one_page_per_request _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_members_are_the_fix0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2255940>
+
+    def test_final_members_are_the_fixed_names_plus_one_page_per_request(tmp_path, monkeypatch):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(bars_pages=3), at)
+>       cm = commitment(tmp_path)
+
+research\s1\s1_tests\test_s1_a3_final.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_members_are_the_fix0')
+
+    def commitment(root):
+        tr = t.open_trial(mb(root))
+        p = sg.staging_dir(root, tr.trial_id, "final") / "prepared.json"
+>       assert p.is_file(), "no final PREPARED commitment in staging"          # (Deviation: an assertion, not an OSError)
+E       AssertionError: no final PREPARED commitment in staging
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_members_are_the_fix0/s1_staging/a88e8bcd-9c98-41aa-aff0-1b2c410ccf52/final/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_final.py:82: AssertionError
+______________ test_final_manifest_projection_equals_the_members ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_manifest_projection0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29D4710>
+
+    def test_final_manifest_projection_equals_the_members(tmp_path, monkeypatch):
+        st_, at = ready(tmp_path)
+        m, _ = final(tmp_path, monkeypatch, Provider(), at)
+>       cm = commitment(tmp_path)
+
+research\s1\s1_tests\test_s1_a3_final.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_manifest_projection0')
+
+    def commitment(root):
+        tr = t.open_trial(mb(root))
+        p = sg.staging_dir(root, tr.trial_id, "final") / "prepared.json"
+>       assert p.is_file(), "no final PREPARED commitment in staging"          # (Deviation: an assertion, not an OSError)
+E       AssertionError: no final PREPARED commitment in staging
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_manifest_projection0/s1_staging/7420ea3f-ff6f-4949-92bc-1743f9cecbdb/final/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_final.py:82: AssertionError
+___________________ test_final_envelope_inputs_and_members ____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_envelope_inputs_and0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29D6A50>
+
+    def test_final_envelope_inputs_and_members(tmp_path, monkeypatch):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        tr = t.open_trial(mb(tmp_path))
+        ip = sg.staging_dir(tmp_path, tr.trial_id, "final") / "intent.json"
+>       assert ip.is_file(), "no final INTENT envelope in staging"            # (Deviation: an assertion, not an OSError)
+E       AssertionError: no final INTENT envelope in staging
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_envelope_inputs_and0/s1_staging/a68f1b3d-81d0-433c-bfc3-588471825dde/final/intent.json').is_file
+
+research\s1\s1_tests\test_s1_a3_final.py:136: AssertionError
+_____ test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[ok] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_acquire_ack_binds_prev_st0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA285FE60>
+case = 'ok'
+
+    @pytest.mark.parametrize("case", ["ok", "before-attest", "before-lag", "wrong-stop-line", "wrong-prev"])
+    def test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag(tmp_path, monkeypatch, case):
+        st_ = s1_state(tmp_path, START, score_ready=True, final=False)
+        with _Clock(st_["stop_attested_at"] + timedelta(hours=1)):
+            k.write_final_plan(tmp_path)
+        fp = json.loads((tmp_path / "s1_out" / "final_plan.json").read_text(encoding="utf-8"))
+        pr = json.loads((tmp_path / "s1_out" / "prereg.json").read_text(encoding="utf-8"))
+        lag = k._earliest_acquire(pr["calendar"], fp["stop_date"])
+        att = c.aware(json.loads((tmp_path / "s1_out" / "attest_stop.json").read_text(encoding="utf-8"))["recorded_utc"])
+        when = {"ok": lag + timedelta(minutes=1), "before-attest": att - timedelta(seconds=1),
+                "before-lag": lag - timedelta(minutes=1)}.get(case, lag + timedelta(minutes=1))
+        over = {"wrong-stop-line": {"stop_line_sha256": "0" * 64},
+                "wrong-prev": {"prev": t.open_trial(mb(tmp_path)).audit.mailbox_id}}.get(case, {})
+        s1_ack(tmp_path, "acq-ack", "S1-ACQUIRE-ACK", when, **over)
+        prov = Provider()
+        if case == "ok":
+            final(tmp_path, monkeypatch, prov, lag + timedelta(minutes=2))
+            kinds = [x.kind for x in j.subject_rows(jrows(tmp_path), "stage/final")]
+>           assert kinds and kinds[-1] == "STAGE-CREATED", kinds                 # (Deviation: no IndexError on the stub)
+E           AssertionError: []
+E           assert ([])
+
+research\s1\s1_tests\test_s1_a3_final.py:160: AssertionError
+_ test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[before-lag] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_acquire_ack_binds_prev_st2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA285FEC0>
+case = 'before-lag'
+
+    @pytest.mark.parametrize("case", ["ok", "before-attest", "before-lag", "wrong-stop-line", "wrong-prev"])
+    def test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag(tmp_path, monkeypatch, case):
+        st_ = s1_state(tmp_path, START, score_ready=True, final=False)
+        with _Clock(st_["stop_attested_at"] + timedelta(hours=1)):
+            k.write_final_plan(tmp_path)
+        fp = json.loads((tmp_path / "s1_out" / "final_plan.json").read_text(encoding="utf-8"))
+        pr = json.loads((tmp_path / "s1_out" / "prereg.json").read_text(encoding="utf-8"))
+        lag = k._earliest_acquire(pr["calendar"], fp["stop_date"])
+        att = c.aware(json.loads((tmp_path / "s1_out" / "attest_stop.json").read_text(encoding="utf-8"))["recorded_utc"])
+        when = {"ok": lag + timedelta(minutes=1), "before-attest": att - timedelta(seconds=1),
+                "before-lag": lag - timedelta(minutes=1)}.get(case, lag + timedelta(minutes=1))
+        over = {"wrong-stop-line": {"stop_line_sha256": "0" * 64},
+                "wrong-prev": {"prev": t.open_trial(mb(tmp_path)).audit.mailbox_id}}.get(case, {})
+        s1_ack(tmp_path, "acq-ack", "S1-ACQUIRE-ACK", when, **over)
+        prov = Provider()
+        if case == "ok":
+            final(tmp_path, monkeypatch, prov, lag + timedelta(minutes=2))
+            kinds = [x.kind for x in j.subject_rows(jrows(tmp_path), "stage/final")]
+            assert kinds and kinds[-1] == "STAGE-CREATED", kinds                 # (Deviation: no IndexError on the stub)
+            return
+>       with pytest.raises(SystemExit, match=ACK_REFUSAL[case]):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_final.py:162: Failed
+______ test_empty_ca_family_sends_no_request_and_final_completes[window] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_empty_ca_family_sends_no_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA27A7650>
+empty = 'window'
+
+    @pytest.mark.parametrize("empty", ["window", "full_history", "both"])
+    def test_empty_ca_family_sends_no_request_and_final_completes(tmp_path, monkeypatch, empty):
+        """A3-R3C-1 (retrospective): ca_symbols_window is the cohort (empty: no post-START BUY - a TIMEOUT stop on a
+        day-0 seal); ca_symbols_full_history is the carry-in/bridge symbols (empty: no carry-in)."""
+        kw = {}
+        if empty in ("window", "both"):
+            kw.update(lots=[], seal_days=[0])
+        if empty in ("full_history", "both"):
+            kw.update(carry_in=())
+        st_, at = ready(tmp_path, **kw)
+        prov = Provider()
+        m, _ = final(tmp_path, monkeypatch, prov, at)
+>       scopes = [p["scope"] for p in commitment(tmp_path)["provenance"]]
+
+research\s1\s1_tests\test_s1_a3_final.py:187: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_empty_ca_family_sends_no_0')
+
+    def commitment(root):
+        tr = t.open_trial(mb(root))
+        p = sg.staging_dir(root, tr.trial_id, "final") / "prepared.json"
+>       assert p.is_file(), "no final PREPARED commitment in staging"          # (Deviation: an assertion, not an OSError)
+E       AssertionError: no final PREPARED commitment in staging
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_empty_ca_family_sends_no_0/s1_staging/4b184093-d9f7-4c23-a35a-ca6c12b48dd7/final/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_final.py:82: AssertionError
+___ test_empty_ca_family_sends_no_request_and_final_completes[full_history] ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_empty_ca_family_sends_no_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2A0D520>
+empty = 'full_history'
+
+    @pytest.mark.parametrize("empty", ["window", "full_history", "both"])
+    def test_empty_ca_family_sends_no_request_and_final_completes(tmp_path, monkeypatch, empty):
+        """A3-R3C-1 (retrospective): ca_symbols_window is the cohort (empty: no post-START BUY - a TIMEOUT stop on a
+        day-0 seal); ca_symbols_full_history is the carry-in/bridge symbols (empty: no carry-in)."""
+        kw = {}
+        if empty in ("window", "both"):
+            kw.update(lots=[], seal_days=[0])
+        if empty in ("full_history", "both"):
+            kw.update(carry_in=())
+        st_, at = ready(tmp_path, **kw)
+        prov = Provider()
+        m, _ = final(tmp_path, monkeypatch, prov, at)
+>       scopes = [p["scope"] for p in commitment(tmp_path)["provenance"]]
+
+research\s1\s1_tests\test_s1_a3_final.py:187: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_empty_ca_family_sends_no_1')
+
+    def commitment(root):
+        tr = t.open_trial(mb(root))
+        p = sg.staging_dir(root, tr.trial_id, "final") / "prepared.json"
+>       assert p.is_file(), "no final PREPARED commitment in staging"          # (Deviation: an assertion, not an OSError)
+E       AssertionError: no final PREPARED commitment in staging
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_empty_ca_family_sends_no_1/s1_staging/1417e314-86ab-41c9-a215-7d7cbbfdc540/final/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_final.py:82: AssertionError
+_______ test_empty_ca_family_sends_no_request_and_final_completes[both] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_empty_ca_family_sends_no_2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA28E2D50>
+empty = 'both'
+
+    @pytest.mark.parametrize("empty", ["window", "full_history", "both"])
+    def test_empty_ca_family_sends_no_request_and_final_completes(tmp_path, monkeypatch, empty):
+        """A3-R3C-1 (retrospective): ca_symbols_window is the cohort (empty: no post-START BUY - a TIMEOUT stop on a
+        day-0 seal); ca_symbols_full_history is the carry-in/bridge symbols (empty: no carry-in)."""
+        kw = {}
+        if empty in ("window", "both"):
+            kw.update(lots=[], seal_days=[0])
+        if empty in ("full_history", "both"):
+            kw.update(carry_in=())
+        st_, at = ready(tmp_path, **kw)
+        prov = Provider()
+        m, _ = final(tmp_path, monkeypatch, prov, at)
+>       scopes = [p["scope"] for p in commitment(tmp_path)["provenance"]]
+
+research\s1\s1_tests\test_s1_a3_final.py:187: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_empty_ca_family_sends_no_2')
+
+    def commitment(root):
+        tr = t.open_trial(mb(root))
+        p = sg.staging_dir(root, tr.trial_id, "final") / "prepared.json"
+>       assert p.is_file(), "no final PREPARED commitment in staging"          # (Deviation: an assertion, not an OSError)
+E       AssertionError: no final PREPARED commitment in staging
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_empty_ca_family_sends_no_2/s1_staging/9c7e80a6-bfff-42bf-b0c2-40745982e323/final/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_final.py:82: AssertionError
+_____________ test_both_ca_families_are_requested_and_reconciled ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_both_ca_families_are_requ0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2256900>
+
+    def test_both_ca_families_are_requested_and_reconciled(tmp_path, monkeypatch):
+        st_, at = ready(tmp_path)
+        m, _ = final(tmp_path, monkeypatch, Provider(), at)
+>       scopes = {p["scope"] for p in commitment(tmp_path)["provenance"]}
+
+research\s1\s1_tests\test_s1_a3_final.py:196: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_both_ca_families_are_requ0')
+
+    def commitment(root):
+        tr = t.open_trial(mb(root))
+        p = sg.staging_dir(root, tr.trial_id, "final") / "prepared.json"
+>       assert p.is_file(), "no final PREPARED commitment in staging"          # (Deviation: an assertion, not an OSError)
+E       AssertionError: no final PREPARED commitment in staging
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_both_ca_families_are_requ0/s1_staging/cd5bfe0f-1713-4bf9-8344-1152f6d5c079/final/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_final.py:82: AssertionError
+_______________ test_final_request_order_is_the_collector_order _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_request_order_is_th0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2A0CF20>
+
+    def test_final_request_order_is_the_collector_order(tmp_path, monkeypatch):
+        st_, at = ready(tmp_path)
+        prov = Provider()
+        final(tmp_path, monkeypatch, prov, at)
+>       fams = [p["scope"] for p in commitment(tmp_path)["provenance"]]
+
+research\s1\s1_tests\test_s1_a3_final.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_request_order_is_th0')
+
+    def commitment(root):
+        tr = t.open_trial(mb(root))
+        p = sg.staging_dir(root, tr.trial_id, "final") / "prepared.json"
+>       assert p.is_file(), "no final PREPARED commitment in staging"          # (Deviation: an assertion, not an OSError)
+E       AssertionError: no final PREPARED commitment in staging
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_request_order_is_th0/s1_staging/e434360d-1796-42bb-8bab-537624d0650a/final/prepared.json').is_file
+
+research\s1\s1_tests\test_s1_a3_final.py:82: AssertionError
+___________ test_cutoff_is_the_intent_new_york_date_across_midnight ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_cutoff_is_the_intent_new_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29E3C20>
+
+    def test_cutoff_is_the_intent_new_york_date_across_midnight(tmp_path, monkeypatch):
+        st_, at = ready(tmp_path)
+        pre = datetime.combine(at.astimezone(c.NY).date(), time(23, 59, 59, 999999), tzinfo=c.NY).astimezone(timezone.utc)
+        post = pre + timedelta(microseconds=2)
+        now = [pre - timedelta(seconds=5)]
+        real = j.append
+    
+        def at_intent(trial_id, gen, req, ctx_fn, **kw):
+            if req.kind == "STAGE-INTENT" and req.subject == "stage/final":
+                kw["clock"] = lambda: pre
+                res = real(trial_id, gen, req, ctx_fn, **kw)
+                now[0] = post                                         # reservation and requests after New York midnight
+                return res
+            return real(trial_id, gen, req, ctx_fn, **kw)
+        monkeypatch.setattr(j, "append", at_intent)
+        monkeypatch.setattr(c, "now_utc", lambda: now[0])
+        prov, sp = Provider(), Spies(monkeypatch)
+        m = k.do_final(tmp_path, "acq-ack", sp.client(prov), KEYS)
+        want = pre.astimezone(c.NY).date().isoformat()
+        reserved = json.loads((tmp_path / "s1_out" / "final" / "attempt.json").read_bytes())["reserved_utc"]
+>       assert m["publication_cutoff"] == want != c.aware(reserved).astimezone(c.NY).date().isoformat()
+E       AssertionError: assert '2026-10-30' != '2026-10-30'
+E        +  where '2026-10-30' = <built-in method isoformat of datetime.date object at 0x0000019FA21BF170>()
+E        +    where <built-in method isoformat of datetime.date object at 0x0000019FA21BF170> = datetime.date(2026, 10, 30).isoformat
+E        +      where datetime.date(2026, 10, 30) = <built-in method date of datetime.datetime object at 0x0000019FA28D7BD0>()
+E        +        where <built-in method date of datetime.datetime object at 0x0000019FA28D7BD0> = datetime.datetime(2026, 10, 30, 23, 59, 54, 999999, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')).date
+E        +          where datetime.datetime(2026, 10, 30, 23, 59, 54, 999999, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) = <built-in method astimezone of datetime.datetime object at 0x0000019FA15EB420>(zoneinfo.ZoneInfo(key='America/New_York'))
+E        +            where <built-in method astimezone of datetime.datetime object at 0x0000019FA15EB420> = datetime.datetime(2026, 10, 31, 3, 59, 54, 999999, tzinfo=datetime.timezone.utc).astimezone
+E        +              where datetime.datetime(2026, 10, 31, 3, 59, 54, 999999, tzinfo=datetime.timezone.utc) = <function aware at 0x0000019FA2767E20>('2026-10-31T03:59:54.999999+00:00')
+E        +                where <function aware at 0x0000019FA2767E20> = c.aware
+E        +            and   zoneinfo.ZoneInfo(key='America/New_York') = c.NY
+
+research\s1\s1_tests\test_s1_a3_final.py:228: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/bars.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29D7680>
+victim = 'final/bars.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i0/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29D7680>
+victim = 'final/bars.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/bar_problems.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29818E0>
+victim = 'final/bar_problems.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i1/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29818E0>
+victim = 'final/bar_problems.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/corporate_actions.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA28E1E80>
+victim = 'final/corporate_actions.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i2/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA28E1E80>
+victim = 'final/corporate_actions.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/ca_problems.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2981490>
+victim = 'final/ca_problems.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i3/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2981490>
+victim = 'final/ca_problems.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/manifest.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29D4890>
+victim = 'final/manifest.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:751: in score
+    ack = s1_trial.verify_current(gv, "S1-SCORE-ACK", ack_id)          # A3: field by field (F6.1, F6.5, F7.1)
+research\s1\s1_trial.py:796: in verify_current
+    return ack_record(verify_ack(gv.trial, gv.rows, kind, ack_id, expected))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+trial = Trial(trial_id='cc5a488b-c0ff-4542-91da-6ed4806dac1d', bundle='9a82da633ead556daed8a9bc9ba87b383eb3e20f585df6bda016a12...b26a4df19542'})}, closed=None, problems=[], genesis='e3cfcf5733bf4c5f613476b402333261b0b6709b60d7d82480d85b91f17019e8')
+rows = [Row(trial_id='cc5a488b-c0ff-4542-91da-6ed4806dac1d', seq=1, prev='e3cfcf5733bf4c5f613476b402333261b0b6709b60d7d82480d...48 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='15de9e48-11e6-4969-b20f-d5f9c3df2d60', created=1792788330.0), ...]
+kind = 'S1-SCORE-ACK', ack_id = 'score-ack'
+expected = {'bundle_sha256': '9a82da633ead556daed8a9bc9ba87b383eb3e20f585df6bda016a12b9acad23a', 'final_manifest_sha256': 'c0d04b...l_snapshot_sha256': 'absent', 'runner_sha256': '61b177829724f4b3edf0ef62edcb1ac7e7cb04ac835a4ae4bce58d17250b5ffb', ...}
+
+    def verify_ack(trial: Trial, rows: list, kind: str, ack_id, expected: dict) -> Ack:
+        """The trial's one `kind` ACK: `ack_id` (when given) must be it (F6.5: another trial's or a stray ACK never
+        counts); its artifact-bound fields equal `expected`; its journal binding holds (F7.1); it is not in the
+        future."""
+        a = trial.audit if kind == "S1-AUDIT-ACK" else trial.acks.get(kind)
+        if a is None:
+            raise Refusal(f"no {kind} for trial {trial.trial_id}" + ("" if ack_id is None else
+                          f": {ack_id!r} does not count (F6.5: another trial's or a stray ACK never counts)"))
+        if ack_id is not None and a.mailbox_id != ack_id:
+            raise Refusal(f"{ack_id!r} is not the trial's {kind} (F6.5: another trial's or a stray ACK never counts)")
+        bad = sorted(n for n, v in expected.items() if a.fields.get(n) != v)
+        if bad:
+>           raise Refusal(f"{kind} {a.mailbox_id}: {bad} differ from the current artifacts")
+E           s1_trial.Refusal: S1-SCORE-ACK score-ack: ['final_manifest_sha256'] differ from the current artifacts
+
+research\s1\s1_trial.py:595: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29D4890>
+victim = 'final/manifest.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: "S1-SCORE-ACK score-ack: ['final_manifest_sha256'] differ from the current artifacts"
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages/bars_page000.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29372F0>
+victim = 'final/pages/bars_page000.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i5/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29372F0>
+victim = 'final/pages/bars_page000.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages/ca_000_page000.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2A49FA0>
+victim = 'final/pages/ca_000_page000.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i6/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2A49FA0>
+victim = 'final/pages/ca_000_page000.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages_full/ca_000_page000.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA28D7C80>
+victim = 'final/pages_full/ca_000_page000.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i7/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA28D7C80>
+victim = 'final/pages_full/ca_000_page000.json', damage = 'changed'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/bars.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i8')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA28E2990>
+victim = 'final/bars.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i8/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i8')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA28E2990>
+victim = 'final/bars.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/bar_problems.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i9')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA28E28D0>
+victim = 'final/bar_problems.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i9/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i9')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA28E28D0>
+victim = 'final/bar_problems.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/corporate_actions.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i10')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29E27B0>
+victim = 'final/corporate_actions.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i10/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i10')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29E27B0>
+victim = 'final/corporate_actions.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/ca_problems.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i11')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29375C0>
+victim = 'final/ca_problems.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i11/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i11')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA29375C0>
+victim = 'final/ca_problems.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/manifest.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i12')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2A7E540>
+victim = 'final/manifest.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:751: in score
+    ack = s1_trial.verify_current(gv, "S1-SCORE-ACK", ack_id)          # A3: field by field (F6.1, F6.5, F7.1)
+research\s1\s1_trial.py:796: in verify_current
+    return ack_record(verify_ack(gv.trial, gv.rows, kind, ack_id, expected))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+trial = Trial(trial_id='ec14372b-ac92-4ffd-9b6e-9d019a267c6e', bundle='9a82da633ead556daed8a9bc9ba87b383eb3e20f585df6bda016a12...fd010bff4726'})}, closed=None, problems=[], genesis='4f24f7a69239cc4b1d53418de9e3279dcc8077e8a4b75c8fabbeda7187e74673')
+rows = [Row(trial_id='ec14372b-ac92-4ffd-9b6e-9d019a267c6e', seq=1, prev='4f24f7a69239cc4b1d53418de9e3279dcc8077e8a4b75c8fabb...f0 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='866fefdf-2d93-4743-807e-ee107ea577b4', created=1792788330.0), ...]
+kind = 'S1-SCORE-ACK', ack_id = 'score-ack'
+expected = {'bundle_sha256': '9a82da633ead556daed8a9bc9ba87b383eb3e20f585df6bda016a12b9acad23a', 'final_manifest_sha256': 'absent...l_snapshot_sha256': 'absent', 'runner_sha256': '61b177829724f4b3edf0ef62edcb1ac7e7cb04ac835a4ae4bce58d17250b5ffb', ...}
+
+    def verify_ack(trial: Trial, rows: list, kind: str, ack_id, expected: dict) -> Ack:
+        """The trial's one `kind` ACK: `ack_id` (when given) must be it (F6.5: another trial's or a stray ACK never
+        counts); its artifact-bound fields equal `expected`; its journal binding holds (F7.1); it is not in the
+        future."""
+        a = trial.audit if kind == "S1-AUDIT-ACK" else trial.acks.get(kind)
+        if a is None:
+            raise Refusal(f"no {kind} for trial {trial.trial_id}" + ("" if ack_id is None else
+                          f": {ack_id!r} does not count (F6.5: another trial's or a stray ACK never counts)"))
+        if ack_id is not None and a.mailbox_id != ack_id:
+            raise Refusal(f"{ack_id!r} is not the trial's {kind} (F6.5: another trial's or a stray ACK never counts)")
+        bad = sorted(n for n, v in expected.items() if a.fields.get(n) != v)
+        if bad:
+>           raise Refusal(f"{kind} {a.mailbox_id}: {bad} differ from the current artifacts")
+E           s1_trial.Refusal: S1-SCORE-ACK score-ack: ['final_manifest_sha256'] differ from the current artifacts
+
+research\s1\s1_trial.py:595: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i12')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2A7E540>
+victim = 'final/manifest.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: "S1-SCORE-ACK score-ack: ['final_manifest_sha256'] differ from the current artifacts"
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages/bars_page000.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i13')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2CF87A0>
+victim = 'final/pages/bars_page000.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i13/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i13')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2CF87A0>
+victim = 'final/pages/bars_page000.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages/ca_000_page000.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i14')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2A0FBF0>
+victim = 'final/pages/ca_000_page000.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i14/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i14')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2A0FBF0>
+victim = 'final/pages/ca_000_page000.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+_ test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages_full/ca_000_page000.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i15')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2937AA0>
+victim = 'final/pages_full/ca_000_page000.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+        with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_final.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:752: in score
+    _pre_reserve_gate(out, ack, mailbox=mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i15/s1_out')
+ack = {'ack_id': 'score-ack', 'created_utc': '2026-10-31T20:02:00+00:00'}
+mailbox = None
+
+    def _pre_reserve_gate(out: Path, ack: dict, mailbox=None) -> None:
+        """Rulings I-1 / R-1 / m-1: an early SCORE-ACK never consumes the one score. Refuse (no output) while RUNNING,
+        for STOPPED/TIMEOUT without a final manifest, and unless the ACK was created strictly after the trial's end
+        instant (stop close; aborted.json's recorded capture time; NO-VALID-SEAL: the last eligible seal window end)."""
+        c.sim(), c.fetch()                    # Task 7 m-2: a pinned-core hash failure refuses before the reservation
+        end, need_final = _trial_end(out, _load(out / "prereg.json"), mailbox)
+        if end is not None and c.aware(ack["created_utc"]) <= end:
+            raise SystemExit(f"score refused: the SCORE-ACK ({ack['created_utc']}) is not strictly after the trial's end "
+                             f"({end.isoformat()}); nothing written")
+        if need_final and not (out / "final" / "manifest.json").exists():
+            raise SystemExit("score refused: no final acquisition manifest yet (COMPLETE or ABORTED); nothing written")
+        d = out / "final_snapshot"                                              # Task 7b (§6); fix round 1 (I-1):
+        if c.load_abort(out) is not None:     # fix round 3 (M-3): a persistent abort is terminal - the one score records
+            return                            # ABORTED-INVALID without a final snapshot (no priced path is reachable)
+        if not (d / "report.json").exists() and not _ok_attempts(d):          # an ok attempt is scored (INVALID)
+>           raise SystemExit("score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the "
+                             "stop); nothing written")
+E           SystemExit: score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written
+
+research\s1\s1_run.py:814: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_damaged_final_member_is_i15')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2937AA0>
+victim = 'final/pages_full/ca_000_page000.json', damage = 'deleted'
+
+    @pytest.mark.parametrize("victim", ["final/bars.json", "final/bar_problems.json", "final/corporate_actions.json",
+                                        "final/ca_problems.json", "final/manifest.json", "final/pages/bars_page000.json",
+                                        "final/pages/ca_000_page000.json", "final/pages_full/ca_000_page000.json"])
+    @pytest.mark.parametrize("damage", ["changed", "deleted"])
+    def test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls(tmp_path, monkeypatch, victim,
+                                                                                        damage):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        s1_ack(tmp_path, "score-ack", "S1-SCORE-ACK", at + timedelta(days=1))
+        p = tmp_path / "s1_out" / victim
+        if damage == "deleted":
+            p.unlink()
+        else:
+            p.write_bytes(p.read_bytes() + b" ")
+        sp = Spies(monkeypatch)
+>       with _Clock(at + timedelta(days=2)), pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(stage-replaced\\)'
+E        Input: 'score refused: no final snapshot (run s1_checkpoint.py --final-snapshot after the stop); nothing written'
+
+research\s1\s1_tests\test_s1_a3_final.py:247: AssertionError
+______ test_final_extra_page_or_orphan_provenance_is_invalid[extra-page] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_extra_page_or_orpha0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2CFBE00>
+case = 'extra-page'
+
+    @pytest.mark.parametrize("case", ["extra-page", "missing-page", "extra-full-page"])
+    def test_final_extra_page_or_orphan_provenance_is_invalid(tmp_path, monkeypatch, case):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        out = tmp_path / "s1_out"
+        if case == "extra-page":
+            (out / "final" / "pages" / "bars_page009.json").write_text("{}", encoding="utf-8")
+        elif case == "extra-full-page":
+            (out / "final" / "pages_full" / "ca_009_page000.json").write_text("{}", encoding="utf-8")
+        else:
+            (out / "final" / "pages" / "bars_page000.json").unlink()
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_final.py:263: Failed
+_____ test_final_extra_page_or_orphan_provenance_is_invalid[missing-page] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_extra_page_or_orpha1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA28D7E00>
+case = 'missing-page'
+
+    @pytest.mark.parametrize("case", ["extra-page", "missing-page", "extra-full-page"])
+    def test_final_extra_page_or_orphan_provenance_is_invalid(tmp_path, monkeypatch, case):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        out = tmp_path / "s1_out"
+        if case == "extra-page":
+            (out / "final" / "pages" / "bars_page009.json").write_text("{}", encoding="utf-8")
+        elif case == "extra-full-page":
+            (out / "final" / "pages_full" / "ca_009_page000.json").write_text("{}", encoding="utf-8")
+        else:
+            (out / "final" / "pages" / "bars_page000.json").unlink()
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_final.py:263: Failed
+___ test_final_extra_page_or_orphan_provenance_is_invalid[extra-full-page] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_extra_page_or_orpha2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2983C80>
+case = 'extra-full-page'
+
+    @pytest.mark.parametrize("case", ["extra-page", "missing-page", "extra-full-page"])
+    def test_final_extra_page_or_orphan_provenance_is_invalid(tmp_path, monkeypatch, case):
+        st_, at = ready(tmp_path)
+        final(tmp_path, monkeypatch, Provider(), at)
+        out = tmp_path / "s1_out"
+        if case == "extra-page":
+            (out / "final" / "pages" / "bars_page009.json").write_text("{}", encoding="utf-8")
+        elif case == "extra-full-page":
+            (out / "final" / "pages_full" / "ca_009_page000.json").write_text("{}", encoding="utf-8")
+        else:
+            (out / "final" / "pages" / "bars_page000.json").unlink()
+>       with pytest.raises(SystemExit, match=r"INVALID \(stage-replaced\)"):
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_final.py:263: Failed
+_____ test_final_provider_anomaly_after_the_stop_is_invalid_with_no_retry _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_provider_anomaly_af0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2937470>
+
+    def test_final_provider_anomaly_after_the_stop_is_invalid_with_no_retry(tmp_path, monkeypatch):
+        st_, at = ready(tmp_path)
+        with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+>           final(tmp_path, monkeypatch, Provider(fail_url=k.CA_URL), at)
+
+research\s1\s1_tests\test_s1_a3_final.py:270: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_final.py:75: in final
+    m = k.do_final(tmp_path, "acq-ack", sp.client(prov), KEYS)
+research\s1\s1_collect.py:706: in do_final
+    return _run_attempt(d, out, ack, created, body, {
+research\s1\s1_collect.py:432: in _run_attempt
+    _abort(d, out, ack, created, e)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+d = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_provider_anomaly_af0/s1_out/final')
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_provider_anomaly_af0/s1_out')
+ack = {'ack_id': 'acq-ack', 'created_utc': '2026-10-30T20:01:00+00:00'}
+created = [WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_provider_anomaly_af0/s1_out/fi...pData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_provider_anomaly_af0/s1_out/final/pages/ca_000_page000.json')]
+e = Structural('ca_000_page000.json: HTTP 500')
+
+    def _abort(d: Path, out: Path, ack: dict, created, e: Exception):
+        """ABORTED manifest (exclusive). Only an S1/E1 Structural's text is recorded (key-free by construction);
+        anything else records the exception TYPE NAME only. All pages stay, hashed."""
+        structural = isinstance(e, (Structural, c.fetch().Structural))
+        _write_once(d / "manifest.json", {
+            "outcome": "ABORTED", "error_type": type(e).__name__, "error": str(e) if structural else type(e).__name__,
+            "ack": ack, "pages": _page_hashes(out, created)})
+>       raise SystemExit(f"{d.name}: ABORTED ({type(e).__name__}); attempt preserved, see manifest.json") from None
+E       SystemExit: final: ABORTED (Structural); attempt preserved, see manifest.json
+
+research\s1\s1_collect.py:425: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21248/test_final_provider_anomaly_af0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019FA2937470>
+
+    def test_final_provider_anomaly_after_the_stop_is_invalid_with_no_retry(tmp_path, monkeypatch):
+        st_, at = ready(tmp_path)
+>       with pytest.raises(SystemExit, match=r"INVALID \(provider-structural\)"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'INVALID \\(provider-structural\\)'
+E        Input: 'final: ABORTED (Structural); attempt preserved, see manifest.json'
+
+research\s1\s1_tests\test_s1_a3_final.py:269: AssertionError
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[before-attest]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[wrong-stop-line]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[wrong-prev]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_no_provider_request_before_stop_attest_and_acquire_ack
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_normal_final_commits_every_member
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_final_members_are_the_fixed_names_plus_one_page_per_request
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_final_manifest_projection_equals_the_members
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_final_envelope_inputs_and_members
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[ok]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[before-lag]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_empty_ca_family_sends_no_request_and_final_completes[window]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_empty_ca_family_sends_no_request_and_final_completes[full_history]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_empty_ca_family_sends_no_request_and_final_completes[both]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_both_ca_families_are_requested_and_reconciled
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_final_request_order_is_the_collector_order
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_cutoff_is_the_intent_new_york_date_across_midnight
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/bars.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/bar_problems.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/corporate_actions.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/ca_problems.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/manifest.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages/bars_page000.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages/ca_000_page000.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages_full/ca_000_page000.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/bars.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/bar_problems.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/corporate_actions.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/ca_problems.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/manifest.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages/bars_page000.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages/ca_000_page000.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages_full/ca_000_page000.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_final_extra_page_or_orphan_provenance_is_invalid[extra-page]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_final_extra_page_or_orphan_provenance_is_invalid[missing-page]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_final_extra_page_or_orphan_provenance_is_invalid[extra-full-page]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_final_provider_anomaly_after_the_stop_is_invalid_with_no_retry
+33 failed, 4 passed in 249.49s (0:04:09)

@@ -1,0 +1,5 @@
+.                                                                        [100%]
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_cutoff_is_the_intent_new_york_date_across_midnight
+1 passed in 7.17s

@@ -466,12 +466,17 @@ def _bars_client(calls):
 
 
 def _acquire_ready(tmp_path, **kw):
-    st_ = s1_state(tmp_path, START, score_ready=True, **kw)
-    shutil.rmtree(tmp_path / "s1_out" / "final")                    # the fixture's hand-made attempt
-    con = sqlite3.connect(tmp_path / "mailbox.sqlite3")             # A3 (F7.1): before the acquisition there is no
-    con.execute("DELETE FROM messages WHERE id='score-ack'")        # SCORE-ACK; the test may re-issue the ACQUIRE
-    con.commit()
-    con.close()
+    """A3 Task 12 (fixture): the fixture's final attempt is the CREATED final stage now (removing it is INVALID
+    stage-replaced), so the state is built without it (final=False: stopped and attested, no ACQUIRE-ACK, no
+    SCORE-ACK), the final plan is written 1 h after the attestation (as s1_state does), and st_["now"] is 2 h after
+    the later of the acquisition lag and that plan - so the tests' ACK at now - 1 h respects the lag (OQ-22)."""
+    st_ = s1_state(tmp_path, START, score_ready=True, final=False, **kw)
+    plan_at = st_["stop_attested_at"] + timedelta(hours=1)
+    with _Clock(plan_at):
+        k.write_final_plan(tmp_path)
+    out = tmp_path / "s1_out"
+    lag = k._earliest_acquire(read(out / "prereg.json")["calendar"], read(out / "final_plan.json")["stop_date"])
+    st_["now"] = max(lag, plan_at) + timedelta(hours=2)
     return st_
 
 

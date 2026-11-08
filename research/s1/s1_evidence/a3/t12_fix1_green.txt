@@ -1,0 +1,16 @@
+............                                                             [100%]
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides[final/pages/bars_page000.json]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides[final/bars.json]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_a_sent_request_is_recorded_in_provenance_before_its_page_write
+PASSED research/s1/s1_tests/test_s1_a3_audit.py::test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides[audit/pages/ca_000_page000.json]
+PASSED research/s1/s1_tests/test_s1_a3_audit.py::test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides[audit/calendar_source.json]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_final_provider_anomaly_after_the_stop_is_invalid_with_no_retry
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[ok]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[before-attest]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[before-lag]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[wrong-stop-line]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[wrong-prev]
+PASSED research/s1/s1_tests/test_s1_collect.py::test_final_lag_refused_before_reserving
+12 passed in 64.53s (0:01:04)

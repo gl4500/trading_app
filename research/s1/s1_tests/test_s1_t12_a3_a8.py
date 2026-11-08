@@ -278,6 +278,9 @@ def test_a3_score_checks_bundle_consistency_across_every_artifact(tmp_path, monk
         if where == "seal":                                  # A3 Task 7 (E2.6 r3): an edited seal is a CREATED
             assert "seals/2026-10-26.json missing or changed" in str(e) and "INVALID (stage-replaced)" in str(e), e
             rep = json.loads(r._serialise(r._score(out)))    # seal stage's changed member: refused; the unit record
+        elif where == "final_manifest":                      # A3 Task 12 (intended, F4.9): the CREATED final
+            assert re.search(s1_replaced("final/manifest.json"), str(e)), e       # stage's member changed: refused
+            rep = json.loads(r._serialise(r._score(out)))    # (stage-replaced); the unit-level record
         else:                                                # A3 Task 10 (intended, F4 table CREATED): the
             assert where == "prereg" and re.search(s1_replaced("prereg.json"), str(e)), e     # prereg stage's member
             rep = json.loads(r._serialise(r._score(out)))    # changed: refused; the unit-level record

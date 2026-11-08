@@ -1,0 +1,333 @@
+FFFFF.......                                                             [100%]
+================================== FAILURES ===================================
+_ test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides[final/pages/bars_page000.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_a0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002376C2C6C30>
+needle = 'final/pages/bars_page000.json'
+
+    @pytest.mark.parametrize("needle", ["final/pages/bars_page000.json", "final/bars.json"])
+    def test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides(tmp_path, monkeypatch,
+                                                                                                   needle):
+        """Fix round 1, I-1 (ruling T12 concern 4, corrected): a local OSError inside the work (a staged page write
+        inside the request loop, or a derived file after it) is not a provider anomaly - a refusal with no row and no
+        ABORTED.json; re-entry is the F4 table's INTENT-without-PREPARED row: INVALID (stage-incomplete), no refetch."""
+        st_, at = ready(tmp_path)
+        hit = _flaky_staging(monkeypatch, needle)
+        prov = Provider()
+        with pytest.raises(BaseException, match=LOCAL_IO) as ei:          # (the old code raised a bare OSError for one)
+>           final(tmp_path, monkeypatch, prov, at)
+
+research\s1\s1_tests\test_s1_a3_final.py:317: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_final.py:76: in final
+    m = k.do_final(tmp_path, "acq-ack", sp.client(prov), KEYS)
+research\s1\s1_collect.py:668: in do_final
+    s1_stage.run(gv, "final", inputs={"final_plan.json": c.sha256_file(fp), "prereg.json": c.sha256_file(prp),
+research\s1\s1_stage.py:358: in run
+    _invalid(gv, e.reason, rec, mailbox, clock)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_a0'... mailbox_id='12e328da-51a3-4664-b6dc-9aff724e35c2', created=1793221200.0)], state='STOPPED', mailbox=None, deferred=[])
+reason = 'provider-structural'
+record = {'error': 'PermissionError', 'error_type': 'PermissionError', 'outcome': 'ABORTED', 'provenance': [], ...}
+mailbox = None
+clock = <function _Clock.__enter__.<locals>.<lambda> at 0x000002376D52DA80>
+
+    def _invalid(gv, reason, record, mailbox, clock):
+        import s1_trial
+        s1_trial.invalidate(gv.trial, reason, record, root=gv.root, mailbox=mailbox, clock=clock)
+>       raise SystemExit(f"stage {record.get('stage')}: INVALID ({reason})") from None   # (A3 Task 9: no chained text)
+E       SystemExit: stage final: INVALID (provider-structural)
+
+research\s1\s1_stage.py:308: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_a0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002376C2C6C30>
+needle = 'final/pages/bars_page000.json'
+
+    @pytest.mark.parametrize("needle", ["final/pages/bars_page000.json", "final/bars.json"])
+    def test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides(tmp_path, monkeypatch,
+                                                                                                   needle):
+        """Fix round 1, I-1 (ruling T12 concern 4, corrected): a local OSError inside the work (a staged page write
+        inside the request loop, or a derived file after it) is not a provider anomaly - a refusal with no row and no
+        ABORTED.json; re-entry is the F4 table's INTENT-without-PREPARED row: INVALID (stage-incomplete), no refetch."""
+        st_, at = ready(tmp_path)
+        hit = _flaky_staging(monkeypatch, needle)
+        prov = Provider()
+>       with pytest.raises(BaseException, match=LOCAL_IO) as ei:          # (the old code raised a bare OSError for one)
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'stage final: local I/O error after the INTENT \\(PermissionError\\).*refused with no row'
+E        Input: 'stage final: INVALID (provider-structural)'
+
+research\s1\s1_tests\test_s1_a3_final.py:316: AssertionError
+_ test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides[final/bars.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_a1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002376D55CBC0>
+needle = 'final/bars.json'
+
+    @pytest.mark.parametrize("needle", ["final/pages/bars_page000.json", "final/bars.json"])
+    def test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides(tmp_path, monkeypatch,
+                                                                                                   needle):
+        """Fix round 1, I-1 (ruling T12 concern 4, corrected): a local OSError inside the work (a staged page write
+        inside the request loop, or a derived file after it) is not a provider anomaly - a refusal with no row and no
+        ABORTED.json; re-entry is the F4 table's INTENT-without-PREPARED row: INVALID (stage-incomplete), no refetch."""
+        st_, at = ready(tmp_path)
+        hit = _flaky_staging(monkeypatch, needle)
+        prov = Provider()
+        with pytest.raises(BaseException, match=LOCAL_IO) as ei:          # (the old code raised a bare OSError for one)
+>           final(tmp_path, monkeypatch, prov, at)
+
+research\s1\s1_tests\test_s1_a3_final.py:317: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_final.py:76: in final
+    m = k.do_final(tmp_path, "acq-ack", sp.client(prov), KEYS)
+research\s1\s1_collect.py:668: in do_final
+    s1_stage.run(gv, "final", inputs={"final_plan.json": c.sha256_file(fp), "prereg.json": c.sha256_file(prp),
+research\s1\s1_stage.py:354: in run
+    provenance = work(sw) or []
+research\s1\s1_collect.py:651: in work
+    sw.put_json(f"final/{name}", obj)
+research\s1\s1_stage.py:112: in put_json
+    return self.staging.put(rel, c.text_bytes(json.dumps(obj, indent=1, sort_keys=True)))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <s1_stage._Staging object at 0x000002376C26E210>, rel = 'final/bars.json'
+data = b'{\r\n "CI": {},\r\n "S0": {},\r\n "S1": {},\r\n "S2": {},\r\n "S3": {},\r\n "S4": {}\r\n}'
+
+    def put(self, rel, data):
+        if rel.endswith(needle) and not hit:
+            hit.append(rel)
+>           raise PermissionError(13, "transient sharing violation (test)")
+E           PermissionError: [Errno 13] transient sharing violation (test)
+
+research\s1\s1_tests\test_s1_a3_final.py:298: PermissionError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_a1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002376D55CBC0>
+needle = 'final/bars.json'
+
+    @pytest.mark.parametrize("needle", ["final/pages/bars_page000.json", "final/bars.json"])
+    def test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides(tmp_path, monkeypatch,
+                                                                                                   needle):
+        """Fix round 1, I-1 (ruling T12 concern 4, corrected): a local OSError inside the work (a staged page write
+        inside the request loop, or a derived file after it) is not a provider anomaly - a refusal with no row and no
+        ABORTED.json; re-entry is the F4 table's INTENT-without-PREPARED row: INVALID (stage-incomplete), no refetch."""
+        st_, at = ready(tmp_path)
+        hit = _flaky_staging(monkeypatch, needle)
+        prov = Provider()
+>       with pytest.raises(BaseException, match=LOCAL_IO) as ei:          # (the old code raised a bare OSError for one)
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'stage final: local I/O error after the INTENT \\(PermissionError\\).*refused with no row'
+E        Input: '[Errno 13] transient sharing violation (test)'
+
+research\s1\s1_tests\test_s1_a3_final.py:316: AssertionError
+_____ test_a_sent_request_is_recorded_in_provenance_before_its_page_write _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_a_sent_request_is_recorde0')
+
+    def test_a_sent_request_is_recorded_in_provenance_before_its_page_write(tmp_path):
+        """Fix round 1, M-1 (F4.6: every request sent is recorded in provenance): the record precedes the page write, so a
+        page-write failure never drops a sent request."""
+        pol = k.final_policy({"bar_symbols": ["A"], "ca_symbols_window": [], "ca_symbols_full_history": [],
+                              "full_history_start": "2026-10-26", "stop_date": "2026-10-27"}, {"start": START},
+                             "2026-11-02")
+        auth = k._Authorizer(pol)
+        body = b'{"bars": {}, "next_page_token": null}'
+    
+        class FailingStage:
+            files = {}
+    
+            def put(self, rel, data):
+                raise PermissionError(13, "page write fails (test)")
+        cl = httpx.Client(transport=httpx.MockTransport(lambda req: httpx.Response(200, content=body)),
+                          follow_redirects=False)
+        with pytest.raises(PermissionError, match="page write fails"):
+            k._get(cl, auth, "bars", "final", k.BARS_URL, pol["families"][0]["base_params"], k._headers(KEYS),
+                   FailingStage())
+>       assert [(p["status"], p["page_relpath"], p["page_sha256"]) for p in auth.provenance] == \
+            [(200, "final/pages/bars_page000.json", c.sha256_bytes(body))]
+E       AssertionError: assert [] == [(200, 'final...e3ddaada54a')]
+E         
+E         Right contains one more item: (200, 'final/pages/bars_page000.json', 'fd8e4816a1c3647c5e60a2a98fea0b2faa8be84c0e5efe2b47e83e3ddaada54a')
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_final.py:347: AssertionError
+_ test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides[audit/pages/ca_000_page000.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_i0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002376D55D3A0>
+needle = 'audit/pages/ca_000_page000.json'
+
+    @pytest.mark.parametrize("needle", ["audit/pages/ca_000_page000.json", "audit/calendar_source.json"])
+    def test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides(tmp_path, monkeypatch,
+                                                                                               needle):
+        """Fix round 1, I-2 (ruling T12 concern 4, corrected; the do_audit twin of I-1): a staged page write or the
+        calendar_source.json write failing locally is a refusal with no row and no ABORTED.json, never INVALID
+        (provider-structural); re-entry is INVALID (stage-incomplete) with no refetch."""
+        setup(tmp_path, ("A",))
+        real, hit = sg._Staging.put, []
+    
+        def put(self, rel, data):
+            if rel.endswith(needle) and not hit:
+                hit.append(rel)
+                raise PermissionError(13, "transient sharing violation (test)")
+            return real(self, rel, data)
+        monkeypatch.setattr(sg._Staging, "put", put)
+        prov = Provider()
+        with pytest.raises(BaseException, match=r"stage audit: local I/O error after the INTENT \(PermissionError\).*"
+                                                r"refused with no row") as ei:
+>           audit(tmp_path, monkeypatch, prov)
+
+research\s1\s1_tests\test_s1_a3_audit.py:544: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:61: in audit
+    m = k.do_audit(root, "audit-ack", sp.client(provider), KEYS, mailbox=mailbox)
+research\s1\s1_collect.py:453: in do_audit
+    s1_stage.run(gv, "audit", inputs={"plan.json": c.sha256_file(out / "plan.json"), "bundle": c.bundle_sha256()},
+research\s1\s1_stage.py:358: in run
+    _invalid(gv, e.reason, rec, mailbox, clock)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_i0'...dc1c90345c2750c6330e0e0dbba65c4fbab789e897a920218956d9f897a4f6ca'), rows=[], state='ACTIVE', mailbox=None, deferred=[])
+reason = 'provider-structural'
+record = {'error': 'PermissionError', 'error_type': 'PermissionError', 'outcome': 'ABORTED', 'provenance': [{'family': 'calenda...it/pages/calendar.json', 'page_sha256': 'c6002f96c2934eb684c307831dc122a89a1f7c27ee768f496a6e3e09c0eb00ba', ...}], ...}
+mailbox = None
+clock = <function _clock.__enter__.<locals>.<lambda> at 0x000002376D953060>
+
+    def _invalid(gv, reason, record, mailbox, clock):
+        import s1_trial
+        s1_trial.invalidate(gv.trial, reason, record, root=gv.root, mailbox=mailbox, clock=clock)
+>       raise SystemExit(f"stage {record.get('stage')}: INVALID ({reason})") from None   # (A3 Task 9: no chained text)
+E       SystemExit: stage audit: INVALID (provider-structural)
+
+research\s1\s1_stage.py:308: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_i0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002376D55D3A0>
+needle = 'audit/pages/ca_000_page000.json'
+
+    @pytest.mark.parametrize("needle", ["audit/pages/ca_000_page000.json", "audit/calendar_source.json"])
+    def test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides(tmp_path, monkeypatch,
+                                                                                               needle):
+        """Fix round 1, I-2 (ruling T12 concern 4, corrected; the do_audit twin of I-1): a staged page write or the
+        calendar_source.json write failing locally is a refusal with no row and no ABORTED.json, never INVALID
+        (provider-structural); re-entry is INVALID (stage-incomplete) with no refetch."""
+        setup(tmp_path, ("A",))
+        real, hit = sg._Staging.put, []
+    
+        def put(self, rel, data):
+            if rel.endswith(needle) and not hit:
+                hit.append(rel)
+                raise PermissionError(13, "transient sharing violation (test)")
+            return real(self, rel, data)
+        monkeypatch.setattr(sg._Staging, "put", put)
+        prov = Provider()
+>       with pytest.raises(BaseException, match=r"stage audit: local I/O error after the INTENT \(PermissionError\).*"
+                                                r"refused with no row") as ei:
+E                                               AssertionError: Regex pattern did not match.
+E                                                Regex: 'stage audit: local I/O error after the INTENT \\(PermissionError\\).*refused with no row'
+E                                                Input: 'stage audit: INVALID (provider-structural)'
+
+research\s1\s1_tests\test_s1_a3_audit.py:542: AssertionError
+_ test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides[audit/calendar_source.json] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_i1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002376D55C380>
+needle = 'audit/calendar_source.json'
+
+    @pytest.mark.parametrize("needle", ["audit/pages/ca_000_page000.json", "audit/calendar_source.json"])
+    def test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides(tmp_path, monkeypatch,
+                                                                                               needle):
+        """Fix round 1, I-2 (ruling T12 concern 4, corrected; the do_audit twin of I-1): a staged page write or the
+        calendar_source.json write failing locally is a refusal with no row and no ABORTED.json, never INVALID
+        (provider-structural); re-entry is INVALID (stage-incomplete) with no refetch."""
+        setup(tmp_path, ("A",))
+        real, hit = sg._Staging.put, []
+    
+        def put(self, rel, data):
+            if rel.endswith(needle) and not hit:
+                hit.append(rel)
+                raise PermissionError(13, "transient sharing violation (test)")
+            return real(self, rel, data)
+        monkeypatch.setattr(sg._Staging, "put", put)
+        prov = Provider()
+        with pytest.raises(BaseException, match=r"stage audit: local I/O error after the INTENT \(PermissionError\).*"
+                                                r"refused with no row") as ei:
+>           audit(tmp_path, monkeypatch, prov)
+
+research\s1\s1_tests\test_s1_a3_audit.py:544: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_audit.py:61: in audit
+    m = k.do_audit(root, "audit-ack", sp.client(provider), KEYS, mailbox=mailbox)
+research\s1\s1_collect.py:453: in do_audit
+    s1_stage.run(gv, "audit", inputs={"plan.json": c.sha256_file(out / "plan.json"), "bundle": c.bundle_sha256()},
+research\s1\s1_stage.py:358: in run
+    _invalid(gv, e.reason, rec, mailbox, clock)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_i1'...0aea230208132261235529ec15867baa48d321ce596e736de5dd5db506ff6572'), rows=[], state='ACTIVE', mailbox=None, deferred=[])
+reason = 'provider-structural'
+record = {'error': 'PermissionError', 'error_type': 'PermissionError', 'outcome': 'ABORTED', 'provenance': [{'family': 'calenda...it/pages/calendar.json', 'page_sha256': 'c6002f96c2934eb684c307831dc122a89a1f7c27ee768f496a6e3e09c0eb00ba', ...}], ...}
+mailbox = None
+clock = <function _clock.__enter__.<locals>.<lambda> at 0x000002376D5B7880>
+
+    def _invalid(gv, reason, record, mailbox, clock):
+        import s1_trial
+        s1_trial.invalidate(gv.trial, reason, record, root=gv.root, mailbox=mailbox, clock=clock)
+>       raise SystemExit(f"stage {record.get('stage')}: INVALID ({reason})") from None   # (A3 Task 9: no chained text)
+E       SystemExit: stage audit: INVALID (provider-structural)
+
+research\s1\s1_stage.py:308: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21273/test_transient_local_oserror_i1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002376D55C380>
+needle = 'audit/calendar_source.json'
+
+    @pytest.mark.parametrize("needle", ["audit/pages/ca_000_page000.json", "audit/calendar_source.json"])
+    def test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides(tmp_path, monkeypatch,
+                                                                                               needle):
+        """Fix round 1, I-2 (ruling T12 concern 4, corrected; the do_audit twin of I-1): a staged page write or the
+        calendar_source.json write failing locally is a refusal with no row and no ABORTED.json, never INVALID
+        (provider-structural); re-entry is INVALID (stage-incomplete) with no refetch."""
+        setup(tmp_path, ("A",))
+        real, hit = sg._Staging.put, []
+    
+        def put(self, rel, data):
+            if rel.endswith(needle) and not hit:
+                hit.append(rel)
+                raise PermissionError(13, "transient sharing violation (test)")
+            return real(self, rel, data)
+        monkeypatch.setattr(sg._Staging, "put", put)
+        prov = Provider()
+>       with pytest.raises(BaseException, match=r"stage audit: local I/O error after the INTENT \(PermissionError\).*"
+                                                r"refused with no row") as ei:
+E                                               AssertionError: Regex pattern did not match.
+E                                                Regex: 'stage audit: local I/O error after the INTENT \\(PermissionError\\).*refused with no row'
+E                                                Input: 'stage audit: INVALID (provider-structural)'
+
+research\s1\s1_tests\test_s1_a3_audit.py:542: AssertionError
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_final_provider_anomaly_after_the_stop_is_invalid_with_no_retry
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[ok]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[before-attest]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[before-lag]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[wrong-stop-line]
+PASSED research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[wrong-prev]
+PASSED research/s1/s1_tests/test_s1_collect.py::test_final_lag_refused_before_reserving
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides[final/pages/bars_page000.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides[final/bars.json]
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_a_sent_request_is_recorded_in_provenance_before_its_page_write
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides[audit/pages/ca_000_page000.json]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides[audit/calendar_source.json]
+5 failed, 7 passed in 64.19s (0:01:04)

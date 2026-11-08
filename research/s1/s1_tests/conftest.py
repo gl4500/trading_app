@@ -813,7 +813,14 @@ def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=
                bar_problems=(), final_actions=(), final_problems=(), final_snapshot=True, score_ack=True):
     """A3 Task 11 (extracted unchanged from s1_state): the chain after the TRIAL-STOP at the fixture's decision
     instant `t` - the stop attestation, the final plan + a COMPLETE final attempt, the ACQUIRE-ACK, the final
-    snapshot and the SCORE-ACK. Test-only."""
+    snapshot and the SCORE-ACK. Test-only.
+    A3 Task 12 (F1 graph 4-5, OQ-22): the ACQUIRE-ACK is placed at the later of t + 2 h (its old instant) and the
+    acquisition lag (s1_collect._earliest_acquire of the stop date on the prereg calendar), and every later fixture
+    instant (the final attempt, the snapshot, the SCORE-ACK, info["now"]) moves by the same amount; when the lag
+    is already past at t + 2 h (e.g. a TIMEOUT stop), nothing moves. The final attempt is the REAL stage `final`
+    (_final_stage), after that ACK. info gains "acquire_ack_at" and "final_at". With stop_attest=False (an
+    unattested acquisition, test-only, an INVALID state) the stage cannot run - its predecessor final_plan is not
+    CREATED - so the final files stay hand-written as before."""
     from datetime import timedelta
     import s1_checkpoint as ck
     import s1_collect as k
@@ -836,7 +843,6 @@ def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=
                 k.write_final_plan(root)
             else:                                     # (test-only: an unattested acquisition, for the score's paths)
                 k._write_once(out / "final_plan.json", k.final_plan_record(root))
-        fin = out / "final"
         bar_fn = bar_fn or (lambda sym, d: s1_bar(d))
         win = [d for d in sessions if d <= stop_day]
         bars = {}
@@ -846,31 +852,96 @@ def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=
                 b_ = bar_fn(s, d)
                 if b_ is not None:
                     bars[s][d] = b_
-        _dump(fin / "attempt.json", {"reserved_utc": (t + timedelta(days=2)).isoformat(), "ack": {}})
-        _dump(fin / "bars.json", bars)
-        _dump(fin / "bar_problems.json", list(bar_problems))
-        _dump(fin / "corporate_actions.json", list(final_actions))
-        _dump(fin / "ca_problems.json", list(final_problems))
-        _dump(fin / "manifest.json", {"outcome": "COMPLETE", "ack": {}, "pages": {}, "coverage": {},
-                                      "bundle_sha256": c.bundle_sha256(),                     # Task 12 (A3)
-                                      "stop_sha256": c.sha_or_absent(out / "stop.json"),      # Task 12 (A2)
-                                      "prereg_sha256": c.sha256_file(out / "prereg.json"),
-                                      "final_plan_sha256": c.sha256_file(out / "final_plan.json"),   # Task 11
-                                      "attest_stop_sha256": (c.sha256_file(out / "attest_stop.json")
-                                                             if (out / "attest_stop.json").exists() else "absent"),
-                                      "files": {n: c.sha256_file(fin / n) for n in
-                                                ("attempt.json", "bars.json", "bar_problems.json",
-                                                 "corporate_actions.json", "ca_problems.json")}})
-    # A3 Task 5 (F1 graph 4): the ACQUIRE-ACK after the final plan (NO-VALID-SEAL: no final plan, its fields absent)
-    s1_ack(root, "acq-ack", "S1-ACQUIRE-ACK", t + timedelta(hours=2))
-    info["snapshot_at"] = t + timedelta(days=2, minutes=5)          # the acquisition-time snapshot (§6)
+        lag = k._earliest_acquire(c.load_json(out / "prereg.json")["calendar"], stop_day)    # A3 Task 12 (OQ-22)
+        shift = max(lag - (t + timedelta(hours=2)), timedelta(0))
+        reserved = t + timedelta(days=2) + shift
+        objs = {"bars.json": bars, "bar_problems.json": list(bar_problems),
+                "corporate_actions.json": list(final_actions), "ca_problems.json": list(final_problems)}
+        info["acquire_ack_at"] = t + timedelta(hours=2) + shift
+        s1_ack(root, "acq-ack", "S1-ACQUIRE-ACK", info["acquire_ack_at"])   # F1 graph 4: after the final plan
+        if stop_attest:
+            info["final_at"] = reserved
+            _final_stage(root, reserved, objs)
+        else:                                         # (test-only: unattested - no stage can run; hand-written)
+            _final_files(out / "final", reserved, objs)
+    else:
+        shift = timedelta(0)
+        # A3 Task 5 (F1 graph 4): the ACQUIRE-ACK after the final plan (NO-VALID-SEAL: no final plan, its fields absent)
+        s1_ack(root, "acq-ack", "S1-ACQUIRE-ACK", t + timedelta(hours=2))
+    info["snapshot_at"] = t + timedelta(days=2, minutes=5) + shift  # the acquisition-time snapshot (§6)
     if final_snapshot:
         with _Clock(info["snapshot_at"]):
             ck.run_final_snapshot(root, ledger.path, now=lambda: info["snapshot_at"])
     if score_ack:                                                                    # (A3 Task 11: Task 13 keyword)
-        s1_ack(root, "score-ack", "S1-SCORE-ACK", t + timedelta(days=3))             # A3 Task 5 (F1 graph 6)
-    info["now"] = t + timedelta(days=4)
+        s1_ack(root, "score-ack", "S1-SCORE-ACK", t + timedelta(days=3) + shift)     # A3 Task 5 (F1 graph 6)
+    info["now"] = t + timedelta(days=4) + shift
     return info
+
+
+def _final_manifest(out: Path, files: dict) -> dict:
+    """The fixture's COMPLETE final manifest (the same fields as before A3 Task 12; no pages, empty ack)."""
+    import s1_common as c
+    return {"outcome": "COMPLETE", "ack": {}, "pages": {}, "coverage": {},
+            "bundle_sha256": c.bundle_sha256(),                                       # Task 12 (A3)
+            "stop_sha256": c.sha_or_absent(out / "stop.json"),                        # Task 12 (A2)
+            "prereg_sha256": c.sha256_file(out / "prereg.json"),
+            "final_plan_sha256": c.sha256_file(out / "final_plan.json"),             # Task 11
+            "attest_stop_sha256": (c.sha256_file(out / "attest_stop.json")
+                                   if (out / "attest_stop.json").exists() else "absent"),
+            "files": files}
+
+
+FINAL_FIXTURE_FILES = ("attempt.json", "bars.json", "bar_problems.json", "corporate_actions.json", "ca_problems.json")
+
+
+def _final_files(fin: Path, reserved, objs: dict) -> None:
+    """The pre-A3-Task-12 hand-written final attempt (used only for the unattested, test-only branch)."""
+    import s1_common as c
+    _dump(fin / "attempt.json", {"reserved_utc": reserved.isoformat(), "ack": {}})
+    for n, obj in objs.items():
+        _dump(fin / n, obj)
+    _dump(fin / "manifest.json", _final_manifest(fin.parent, {n: c.sha256_file(fin / n) for n in FINAL_FIXTURE_FILES}))
+
+
+def _final_stage(root, reserved, objs: dict) -> None:
+    """A3 Task 12: the fixture's final attempt as the REAL stage `final` (s1_stage.run(gv, "final", ...), inputs and
+    ACK as do_final binds them, policy_fn = the real s1_collect.final_policy), INTENT at reserved - 1 s, PREPARED at
+    + 2 min, CREATED at + 3 min, with a fixture work that stages the same objects with the same bytes as the old
+    hand-written attempt (sw.put_json = the _dump bytes), except attempt.json's trial_id and intent_at (OQ-36, F4.5)
+    and so the manifest's hash of attempt.json. Synthetic shortcut: no provider request, no pages, provenance [] (the
+    stage engine does not compare provenance with the policy; the real collector enforces completeness with
+    auth.finished(), tested by test_s1_a3_final.py). Test-only."""
+    from datetime import timedelta
+    import s1_collect as k
+    import s1_common as c
+    import s1_stage as sg
+    import s1_trial as t
+
+    out = Path(root) / "s1_out"
+    plan, pr = c.load_json(out / "final_plan.json"), c.load_json(out / "prereg.json")
+
+    def work(sw):
+        sw.put_json("final/attempt.json", {"reserved_utc": reserved.isoformat(), "ack": {},
+                                           "trial_id": sw.trial_id, "intent_at": sw.intent_at})
+        for n, obj in objs.items():
+            sw.put_json(f"final/{n}", obj)
+        sw.put_json("final/manifest.json", _final_manifest(out, {n: c.sha256_bytes(sw.files[f"final/{n}"])
+                                                                 for n in FINAL_FIXTURE_FILES}))
+        return []
+
+    times = iter((reserved - timedelta(seconds=1), reserved + timedelta(minutes=2), reserved + timedelta(minutes=3)))
+    last = [None]
+
+    def clock():                                                  # INTENT, PREPARED, CREATED
+        last[0] = next(times, last[0])
+        return last[0]
+    mb = Path(root) / "mailbox.sqlite3"
+    with _Clock(reserved):
+        gv = t.gate(root, "fixture final", mailbox=mb)
+        sg.run(gv, "final", inputs={n: c.sha256_file(out / n) for n in ("final_plan.json", "prereg.json",
+                                                                         "attest_stop.json")},
+               acks={"S1-ACQUIRE-ACK": gv.trial.acks["S1-ACQUIRE-ACK"].sha}, work=work, mailbox=mb, clock=clock,
+               policy_fn=lambda at: k.final_policy(plan, pr, k._ny_date(at)))
 
 
 def s1_finish(root, info, t, *, lots=None, held_syms=("CI",), **kw):

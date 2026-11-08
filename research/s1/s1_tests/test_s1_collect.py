@@ -277,12 +277,17 @@ def final_setup(tmp_path, monkeypatch, mid="f1", now=ACQ_NOW):
     """Input changes vs the brief draft: prereg calendar carries the close (I-2 lag), the ACK binds prereg (I-8),
     and the clock is moved past the registered acquisition lag. Task 11 (I-4): a real stopped, attested trial
     (stopped_trial), the derived final plan, and an ACK (acquire_token, binding attest_stop) after the attestation.
-    Task 12 (A8.2) input: the ACK 1 h after the (genuine) stop attestation."""
+    Task 12 (A8.2) input: the ACK 1 h after the (genuine) stop attestation.
+    A3 Task 12 (input, OQ-22): the ACK no earlier than the acquisition lag - the later of attestation + 1 h and the
+    lag (2026-10-30T20:00Z for this trial)."""
     from conftest import _Clock
     attested = stopped_trial(tmp_path, monkeypatch, now)
     with _Clock(attested + timedelta(minutes=30)):        # A3 Task 11 (fixture): final_plan is a journal stage now;
         k.write_final_plan(tmp_path)                      # the ACK (journal head) must follow its CREATED row
-    mailbox(tmp_path, mid, k.acquire_token(tmp_path), created=attested + timedelta(hours=1))
+    out = tmp_path / "s1_out"
+    lag = k._earliest_acquire(json.loads((out / "prereg.json").read_text())["calendar"],
+                              json.loads((out / "final_plan.json").read_text())["stop_date"])
+    mailbox(tmp_path, mid, k.acquire_token(tmp_path), created=max(attested + timedelta(hours=1), lag))
 
 
 def test_final_requests_every_symbol_bars_and_full_history(tmp_path, monkeypatch):
@@ -307,7 +312,8 @@ def test_final_requests_every_symbol_bars_and_full_history(tmp_path, monkeypatch
     assert set(bars) == {"A", "B", "NEW"} and set(bars["A"]) == set(SESS)
     assert json.loads((tmp_path / "s1_out" / "final" / "bar_problems.json").read_text()) == []
     n = len(calls)
-    with pytest.raises(SystemExit, match="an attempt already exists; one attempt only"):   # (Task 5: exact reason)
+    # A3 Task 12 (intended, F1 'each stage once'): the one attempt is the stage's one INTENT
+    with pytest.raises(SystemExit, match=r"stage final is already CREATED: re-entry refused \(F1\)"):
         k.do_final(tmp_path, "f1", cl, KEYS)
     assert len(calls) == n
     no_key_text_written(tmp_path)
@@ -488,10 +494,13 @@ def test_audit_manifest_hashes_pages_coverage_limits_and_params(tmp_path):
 
 
 def test_final_lag_refused_before_reserving(tmp_path, monkeypatch):
-    """Retrospective (Task 6 review fix round 1): I-2 - 3rd session after the stop closes 2026-10-30 20:00Z."""
+    """Retrospective (Task 6 review fix round 1): I-2 - 3rd session after the stop closes 2026-10-30 20:00Z.
+    A3 Task 12 (intended, OQ-22): the ACK is no earlier than the lag (final_setup places it at exactly 20:00Z), so
+    before the lag it is still in the future and the F6.1 check refuses first; the execution-time lag check is the
+    same boundary. The ACK-before-the-lag refusal itself is test_s1_a3_final.py [before-lag]."""
     final_setup(tmp_path, monkeypatch, now=datetime(2026, 10, 30, 19, 59, tzinfo=UTC))
     calls = []
-    with pytest.raises(SystemExit, match="acquisition lag not met"):                       # (Task 5: exact reason)
+    with pytest.raises(SystemExit, match=r"ack is in the future"):    # (fix round 1, M-3: the one that fires)
         k.do_final(tmp_path, "f1", client(calls), KEYS)
     assert calls == [] and not (tmp_path / "s1_out" / "final").exists()
     monkeypatch.setattr(s1_common, "now_utc", lambda: datetime(2026, 10, 30, 20, 0, tzinfo=UTC))   # exactly the close
@@ -575,9 +584,12 @@ def test_final_ack_binds_prereg(tmp_path, monkeypatch):
 def test_final_aborts_on_structurally_bad_bars_page(tmp_path, monkeypatch, mutate):
     """Retrospective (Task 6 review fix round 1): I-6 + I-1."""
     calls, cl = run_final(tmp_path, monkeypatch, lambda calls: bars_handler(calls, mutate))
-    with pytest.raises(SystemExit, match=r"final: ABORTED \(Structural\)"):
+    # A3 Task 12 (intended, F4.6): the ABORTED record stays in the stage's staging + INVALID (provider-structural)
+    with pytest.raises(SystemExit, match=r"stage final: INVALID \(provider-structural\)"):
         k.do_final(tmp_path, "f1", cl, KEYS)
-    assert manifest_of(tmp_path, "final")["outcome"] == "ABORTED"
+    rec, _ = aborted_of(tmp_path, "final")
+    assert rec["outcome"] == "ABORTED" and rec["error_type"] == "Structural" and rec["provenance"]
+    assert s1_first_invalid(tmp_path) == "reason/provider-structural"
 
 
 def test_parse_bars_flags_non_midnight_and_bool_prices():

@@ -199,6 +199,8 @@ def _require_no_redirects(client) -> None:
 
 
 def _reserve(dirpath: Path, ack: dict) -> None:
+    """The c9b4322 one-attempt reservation. A3 Task 12: no longer used by do_final (the stage engine's one INTENT is
+    its one attempt); kept only for s1_run.score's reservation until the score is a stage (Task 13)."""
     try:
         dirpath.mkdir(parents=True, exist_ok=False)                         # one attempt: never reused
     except FileExistsError:
@@ -208,11 +210,6 @@ def _reserve(dirpath: Path, ack: dict) -> None:
 
 def _headers(keys):
     return {"APCA-API-KEY-ID": keys[0], "APCA-API-SECRET-KEY": keys[1]}
-
-
-def _write_page(path: Path, data: bytes, created: list) -> None:
-    c.publish_exclusive(path, data)                       # raw page kept, never overwritten; fix round 3: atomic
-    created.append(path)
 
 
 def _get(client, auth, family, scope, url, params, headers, sw):
@@ -225,9 +222,9 @@ def _get(client, auth, family, scope, url, params, headers, sw):
         auth.record(family, scope, n, url, params, c.now_utc().isoformat(), None, None, None)
         raise Structural(f"{rel}: transport error {type(e).__name__}") from None
     retrieved = c.now_utc()                                               # F4.5: the actual observation instant
-    sw.put(rel, resp.content)
-    auth.record(family, scope, n, url, params, retrieved.isoformat(), resp.status_code, rel,
-                c.sha256_bytes(resp.content))
+    auth.record(family, scope, n, url, params, retrieved.isoformat(), resp.status_code, rel,   # T12 fix round 1
+                c.sha256_bytes(resp.content))         # (M-1): recorded BEFORE the page write - every request sent
+    sw.put(rel, resp.content)                         # is in provenance even if the staging write fails (F4.6)
     if resp.status_code != 200:
         raise Structural(f"{rel}: HTTP {resp.status_code}" + (" (redirect, not followed)"
                                                                if 300 <= resp.status_code < 400 else ""))
@@ -262,41 +259,6 @@ def _corporate_actions(client, auth, keys, scope, symbols, start, end, sw):
         for page in _paged(client, auth, CA_FAMILY, scope, CA_URL, base, _headers(keys), sw, f.validate_ca_page):
             batched.append((batch, page))
     return f.classify_ca(batched)
-
-
-# ------------------------------------------------------------------ legacy (c9b4322) request path: do_final only
-# A3 Task 9 (Deviation): do_final keeps the frozen collector's direct-to-s1_out path until Task 12 makes it a stage
-# with final_policy; these three are removed there with _reserve/_abort/_run_attempt.
-def _legacy_get(client, url, params, headers, page_path: Path, created):
-    try:
-        resp = client.get(url, params=params, headers=headers)
-    except Exception as e:                                                # transport failure: no secrets in text
-        raise Structural(f"{page_path.name}: transport error {type(e).__name__}") from None
-    _write_page(page_path, resp.content, created)
-    if resp.status_code != 200:
-        raise Structural(f"{page_path.name}: HTTP {resp.status_code}")
-    try:
-        return json.loads(resp.content)
-    except ValueError:
-        raise Structural(f"{page_path.name}: body is not JSON") from None
-
-
-def _legacy_paged(client, url, base, headers, prefix: Path, validate, created) -> list:
-    pages, token, seen = [], None, set()
-    for n in range(MAX_PAGES):
-        params = dict(base, **({"page_token": token} if token else {}))
-        data = _legacy_get(client, url, params, headers, prefix.with_name(f"{prefix.name}_page{n:03d}.json"),
-                           created)
-        if validate:
-            validate(data, f"{prefix.name}_page{n:03d}")
-        pages.append(data)
-        token = data.get("next_page_token")
-        if not token:
-            return pages
-        if token in seen:
-            raise Structural(f"{prefix.name}: repeated next_page_token")
-        seen.add(token)
-    raise Structural(f"{prefix.name}: more than {MAX_PAGES} pages")
 
 
 def _is_num(v) -> bool:
@@ -356,18 +318,6 @@ def _parse_bars(symbols, pages, sessions):
     return out, problems
 
 
-def _legacy_corporate_actions(client, keys, symbols, start, end, pages_dir, created):
-    f = c.fetch()
-    batched = []
-    for i in range(0, len(symbols), 50):
-        batch = symbols[i:i + 50]
-        base = dict(CA_FIXED, symbols=",".join(batch), start=start, end=end)
-        for page in _legacy_paged(client, CA_URL, base, _headers(keys), pages_dir / f"ca_{i // 50:03d}",
-                                  f.validate_ca_page, created):
-            batched.append((batch, page))
-    return f.classify_ca(batched)
-
-
 # A7.2: the fields whose difference, for one provider action identity, is a conflict (type, dates, symbols, ratios)
 RECONCILE_KEYS = ("type", "special", "foreign")
 
@@ -408,33 +358,6 @@ def reconcile_actions(*record_lists) -> tuple:
             first["effective_conflict"] = True
             out.append(dict(rec, effective_conflict=True))
     return out, problems
-
-
-# ------------------------------------------------------------------ attempts: manifest / ABORTED
-def _page_hashes(out: Path, created) -> dict:
-    return {p.relative_to(out).as_posix(): c.sha256_file(p) for p in sorted(created) if p.exists()}
-
-
-def _abort(d: Path, out: Path, ack: dict, created, e: Exception):
-    """ABORTED manifest (exclusive). Only an S1/E1 Structural's text is recorded (key-free by construction);
-    anything else records the exception TYPE NAME only. All pages stay, hashed."""
-    structural = isinstance(e, (Structural, c.fetch().Structural))
-    _write_once(d / "manifest.json", {
-        "outcome": "ABORTED", "error_type": type(e).__name__, "error": str(e) if structural else type(e).__name__,
-        "ack": ack, "pages": _page_hashes(out, created)})
-    raise SystemExit(f"{d.name}: ABORTED ({type(e).__name__}); attempt preserved, see manifest.json") from None
-
-
-def _run_attempt(d: Path, out: Path, ack: dict, created: list, body, head: dict) -> dict:
-    try:
-        coverage = body()
-    except Exception as e:
-        _abort(d, out, ack, created, e)
-    files = {p.name: c.sha256_file(p) for p in sorted(d.glob("*.json")) if p.name != "manifest.json"}
-    manifest = dict(head, outcome="COMPLETE", ack=ack, files=files, pages=_page_hashes(out, created),
-                    coverage=coverage, limits=LIMITS)
-    _write_once(d / "manifest.json", manifest)
-    return json.loads((d / "manifest.json").read_text(encoding="utf-8"))
 
 
 # ------------------------------------------------------------------ audit
@@ -513,7 +436,9 @@ def do_audit(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
                                                    plan["ca_range"][0], cutoff, sw)
             if not auth.finished():
                 raise Structural("audit: the policy's families were not all requested")
-        except Exception as e:                                         # noqa: BLE001 - recorded type/Structural text
+        except OSError:                       # T12 fix round 1 (I-1/I-2): a local I/O fault (a staging write) is not a
+            raise                             # provider anomaly - s1_stage.run refuses with no row (transport errors
+        except Exception as e:                # are already Structural in _get)  # noqa: BLE001 - recorded type/text
             _provider_abort(auth, e)
         sw.put_json("audit/calendar.json", cal)
         sw.put_json("audit/corporate_actions.json", actions)
@@ -648,10 +573,37 @@ def _utc_z(t: datetime, micro: bool = False) -> str:
     return t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ" if micro else "%Y-%m-%dT%H:%M:%SZ")
 
 
+def final_policy(fplan: dict, prereg: dict, cutoff: str) -> dict:
+    """F4.6/F4.9: the final acquisition's policy - raw/SIP daily bars (one paged family), then corporate actions for
+    the window scope and the full-history scope (each per 50-symbol batch); every CA end = the INTENT's cutoff."""
+    start_day = _ny_date(c.aware(prereg["start"]))
+    bars_start = _ny_instant(start_day, "00:00")
+    bars_end = _ny_instant((date.fromisoformat(fplan["stop_date"]) + timedelta(days=1)).isoformat(),
+                           "00:00") - timedelta(microseconds=1)
+
+    def ca(scope, syms, start, template):
+        batches = [list(syms[i:i + CA_BATCH]) for i in range(0, len(syms), CA_BATCH)]
+        return {"name": CA_FAMILY, "url": CA_URL, "scope": scope, "batches": batches,
+                "base_params": [dict(CA_FIXED, symbols=",".join(b), start=start, end=cutoff) for b in batches],
+                "paged": True, "page_template": template}
+    return {"redirects": False, "max_pages": MAX_PAGES, "cutoff": cutoff, "families": [
+        {"name": "bars", "url": BARS_URL, "scope": "final", "batches": None,
+         "base_params": {"symbols": ",".join(fplan["bar_symbols"]), "timeframe": "1Day", "start": _utc_z(bars_start),
+                         "end": _utc_z(bars_end, micro=True), "adjustment": "raw", "feed": "sip", "limit": 10000},
+         "paged": True, "page_template": "final/pages/bars_page{n:03d}.json"},
+        ca("window", fplan["ca_symbols_window"], start_day, "final/pages/ca_{i:03d}_page{n:03d}.json"),
+        ca("full_history", fplan["ca_symbols_full_history"], fplan["full_history_start"],
+           "final/pages_full/ca_{i:03d}_page{n:03d}.json")]}
+
+
 def do_final(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
-    """One final acquisition under the exact ACQUIRE-ACK. Task 11 (controller-added), I-4: before reserving it
-    re-derives the final plan from the stop seal (STOPPED/TIMEOUT, no aborted.json) and requires the stored plan to
-    equal it, the stop attestation to bind that stop, and the ACK to be strictly after the stop attestation."""
+    """F1 graph step 5: the stage `final` under the exact ACQUIRE-ACK (F4.6/F4.9 final rows). Before the INTENT it
+    re-derives the final plan from the stop seal (Task 11, I-4) and requires the stored plan to equal it (less the
+    stage's intent_at), the stop attestation to bind that stop, the ACK to be strictly after the stop attestation and
+    no earlier than the acquisition lag (OQ-22: both the ACK's created and the execution time satisfy the lag, F1 step
+    4). The INTENT commits the final request policy (final_policy) with the cutoff = the New York date of the INTENT
+    row's `at` (F4.9, C-b). Work in staging; a provider anomaly -> ABORTED staging + INVALID (provider-structural), no
+    retry (F4.6). Every member is committed at PREPARED and published by the stage engine (C-a)."""
     gv = s1_trial.gate(root, "final acquisition", mailbox=mailbox)      # A3 F0.6: open trial, state, bundle first
     _require_no_redirects(client)
     out = _out(root)
@@ -660,7 +612,10 @@ def do_final(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
     if not fp.is_file():                                   # A3 Task 11 (F1 graph 3 -> 5; row 56): a refusal, not
         raise SystemExit("final refused: no final plan (final_plan comes first, F1)")   # a FileNotFoundError
     plan = json.loads(fp.read_text(encoding="utf-8"))
-    ack = s1_trial.verify_current(gv, "S1-ACQUIRE-ACK", ack_id)        # A3: field by field (F6.1, F6.5, F7.1)
+    a = s1_trial.verify_ack(gv.trial, gv.rows, "S1-ACQUIRE-ACK", ack_id,      # A3: field by field (F6.1, F6.5, F7.1)
+                            dict(s1_trial.artifact_fields("S1-ACQUIRE-ACK", out), trial_id=gv.trial.trial_id,
+                                 bundle_sha256=c.bundle_sha256()))
+    ack = s1_trial.ack_record(a)
     rec = final_plan_record(root, mailbox=mailbox)
     if {k_: v for k_, v in plan.items() if k_ != "intent_at"} != rec:     # A3 Task 11: the stage adds intent_at
         raise SystemExit("final refused: final_plan.json is not the plan derived from the stop seal")
@@ -669,38 +624,53 @@ def do_final(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
         raise SystemExit("final refused: the ACQUIRE-ACK is not strictly after the stop attestation")
     pr = json.loads(prp.read_text(encoding="utf-8"))
     earliest = _earliest_acquire(pr["calendar"], plan["stop_date"])
+    if c.aware(ack["created_utc"]) < earliest:                                                  # OQ-22
+        raise SystemExit("final refused: the ACQUIRE-ACK precedes the acquisition lag (F1 step 4)")
     if c.now_utc() < earliest:
         raise SystemExit(f"acquisition lag not met: not before {earliest.isoformat()}")
-    d = out / "final"
-    _reserve(d, ack)
-    created = []
-    cutoff = _ny_date(c.now_utc())
     start_day = _ny_date(c.aware(pr["start"]))
     sessions = [x["date"] for x in pr["calendar"] if start_day <= x["date"] <= plan["stop_date"]]
-    bars_start = _ny_instant(start_day, "00:00")
-    bars_end = _ny_instant((date.fromisoformat(plan["stop_date"]) + timedelta(days=1)).isoformat(),
-                           "00:00") - timedelta(microseconds=1)
 
-    def body():
-        bar_pages = _legacy_paged(client, BARS_URL, {"symbols": ",".join(plan["bar_symbols"]), "timeframe": "1Day",
-                                                     "start": _utc_z(bars_start), "end": _utc_z(bars_end, micro=True),
-                                                     "adjustment": "raw", "feed": "sip", "limit": 10000},
-                                  _headers(keys), d / "pages" / "bars", _validate_bars_page, created)
+    def work(sw):
+        auth, cutoff = _Authorizer(sw.policy), sw.policy["cutoff"]
+        sw.put_json("final/attempt.json", {"reserved_utc": c.now_utc().isoformat(), "ack": ack,
+                                           "trial_id": sw.trial_id, "intent_at": sw.intent_at})
+        try:
+            bar_pages = _paged(client, auth, "bars", "final", BARS_URL, sw.policy["families"][0]["base_params"],
+                               _headers(keys), sw, _validate_bars_page)
+            ca_win, p1 = _corporate_actions(client, auth, keys, "window", plan["ca_symbols_window"], start_day,
+                                            cutoff, sw)
+            ca_full, p2 = _corporate_actions(client, auth, keys, "full_history", plan["ca_symbols_full_history"],
+                                             plan["full_history_start"], cutoff, sw)
+            if not auth.finished():
+                raise Structural("final: the policy's families were not all requested")
+        except OSError:                       # T12 fix round 1 (I-1/I-2): a local I/O fault (a staging write) is not a
+            raise                             # provider anomaly - s1_stage.run refuses with no row (transport errors
+        except Exception as e:                # are already Structural in _get)  # noqa: BLE001 - recorded type/text
+            _provider_abort(auth, e)
         bars, bar_problems = _parse_bars(plan["bar_symbols"], bar_pages, sessions)
-        ca_win, p1 = _legacy_corporate_actions(client, keys, plan["ca_symbols_window"], start_day, cutoff,
-                                               d / "pages", created)
-        ca_full, p2 = _legacy_corporate_actions(client, keys, plan["ca_symbols_full_history"],
-                                                plan["full_history_start"], cutoff, d / "pages_full", created)
         actions, conflicts = reconcile_actions(ca_win, ca_full)          # Task 12 (A7.2): one global set
         for name, obj in (("bars.json", bars), ("bar_problems.json", bar_problems),
                           ("corporate_actions.json", actions), ("ca_problems.json", p1 + p2 + conflicts)):
-            _write_once(d / name, obj)
+            sw.put_json(f"final/{name}", obj)
+        files, pages = _attempt_files(sw, "final")
         per_symbol = {s: {"present": len(bars[s]), "missing": len(sessions) - len(bars[s])} for s in bars}
-        return {"bars": per_symbol, "bar_problems": len(bar_problems), "ca_records": len(actions),
-                "ca_problems": len(p1) + len(p2) + len(conflicts), "ca_conflicts": len(conflicts)}
-    return _run_attempt(d, out, ack, created, body, {
-        "publication_cutoff": cutoff, "prereg_sha256": c.sha256_file(prp), "earliest_acquire_utc": earliest.isoformat(),
-        "final_plan_sha256": c.sha256_file(fp), "attest_stop_sha256": c.sha256_file(out / "attest_stop.json"),
-        "bundle_sha256": c.bundle_sha256(),                                                    # Task 12 (A3.4)
-        "stop_sha256": c.sha256_file(out / "stop.json"),                                       # Task 12 (A2.1)
-        "bars_window": [_utc_z(bars_start), _utc_z(bars_end, micro=True)]})
+        bars_params = sw.policy["families"][0]["base_params"]
+        sw.put_json("final/manifest.json", {
+            "publication_cutoff": cutoff, "prereg_sha256": c.sha256_file(prp),
+            "earliest_acquire_utc": earliest.isoformat(), "final_plan_sha256": c.sha256_file(fp),
+            "attest_stop_sha256": c.sha256_file(out / "attest_stop.json"),
+            "bundle_sha256": c.bundle_sha256(),                                                  # Task 12 (A3.4)
+            "stop_sha256": c.sha256_file(out / "stop.json"),                                     # Task 12 (A2.1)
+            "bars_window": [bars_params["start"], bars_params["end"]],
+            "outcome": "COMPLETE", "ack": ack, "files": files, "pages": pages,
+            "coverage": {"bars": per_symbol, "bar_problems": len(bar_problems), "ca_records": len(actions),
+                         "ca_problems": len(p1) + len(p2) + len(conflicts), "ca_conflicts": len(conflicts)},
+            "limits": LIMITS})
+        return auth.provenance
+
+    s1_stage.run(gv, "final", inputs={"final_plan.json": c.sha256_file(fp), "prereg.json": c.sha256_file(prp),
+                                      "attest_stop.json": c.sha256_file(out / "attest_stop.json")},
+                 acks={"S1-ACQUIRE-ACK": a.sha}, policy_fn=lambda at: final_policy(plan, pr, _ny_date(at)),
+                 work=work, mailbox=mailbox)
+    return json.loads((out / "final" / "manifest.json").read_text(encoding="utf-8"))

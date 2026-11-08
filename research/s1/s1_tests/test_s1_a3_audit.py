@@ -520,3 +520,32 @@ def test_the_opening_close_seal_with_no_row_is_judged_by_the_stage_table(tmp_pat
     assert hook == []
     inv = [x.subject for x in j.read_trial(*_tg(tmp_path)) if x.kind == "TRIAL-INVALID"]
     assert inv == ["reason/registration-artifact"]
+
+
+# ====================================================================== Task 12 fix round 1 (review I-2)
+@pytest.mark.parametrize("needle", ["audit/pages/ca_000_page000.json", "audit/calendar_source.json"])
+def test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides(tmp_path, monkeypatch,
+                                                                                           needle):
+    """Fix round 1, I-2 (ruling T12 concern 4, corrected; the do_audit twin of I-1): a staged page write or the
+    calendar_source.json write failing locally is a refusal with no row and no ABORTED.json, never INVALID
+    (provider-structural); re-entry is INVALID (stage-incomplete) with no refetch."""
+    setup(tmp_path, ("A",))
+    real, hit = sg._Staging.put, []
+
+    def put(self, rel, data):
+        if rel.endswith(needle) and not hit:
+            hit.append(rel)
+            raise PermissionError(13, "transient sharing violation (test)")
+        return real(self, rel, data)
+    monkeypatch.setattr(sg._Staging, "put", put)
+    prov = Provider()
+    with pytest.raises(BaseException, match=r"stage audit: local I/O error after the INTENT \(PermissionError\).*"
+                                            r"refused with no row") as ei:
+        audit(tmp_path, monkeypatch, prov)
+    assert type(ei.value) is SystemExit and hit == [needle]
+    assert kinds(tmp_path) == [("STAGE-INTENT", "stage/audit")]
+    assert list((tmp_path / "s1_staging").rglob("ABORTED.json")) == []
+    n = len(prov.sent)
+    with pytest.raises(SystemExit, match=r"stage audit: INVALID \(stage-incomplete\)"):
+        audit(tmp_path, monkeypatch, prov, now=NOW + timedelta(minutes=1))
+    assert len(prov.sent) == n

@@ -727,9 +727,10 @@ def test_score_ack_with_stale_hash_is_refused_with_no_output(tmp_path, monkeypat
     at(monkeypatch, st_["now"])
     field = {"attest_stop.json": "stop_attest_sha256", "final/manifest.json": "final_manifest_sha256"}[edit]
     # A3 Task 11 (intended, F4 table CREATED): attest_stop.json is now a committed stage member - the gate's stage
-    # table refuses (INVALID stage-replaced) before the ACK field check; final/ is not a stage until Task 12
-    want = (s1_replaced("attest_stop.json") if edit == "attest_stop.json"
-            else rf"S1-SCORE-ACK score-ack: \['{field}'\] differ")                    # (Task 5: A3 F6.1)
+    # table refuses (INVALID stage-replaced) before the ACK field check. A3 Task 12 (intended, F4.9 consistency):
+    # final/manifest.json is the CREATED final stage's member too, so the same refusal ({field} is the unit oracle)
+    want = s1_replaced(edit)
+    assert field in __import__("s1_trial").ACK_FIELDS["S1-SCORE-ACK"]
     with pytest.raises(SystemExit, match=want):
         r.score(tmp_path, "score-ack")
     assert not (tmp_path / "s1_out" / "score").exists()
@@ -1443,11 +1444,9 @@ def test_cr_final_acquisition_binding_checks(tmp_path, monkeypatch, what):
     s1_reack(tmp_path, "ack-f", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
     at(monkeypatch, st_["now"])
     # A3 Task 11 (intended, F4 table CREATED): final_plan.json is the final_plan stage's member - edited or deleted
-    # it is INVALID (stage-replaced) at the gate; the unit-level record keeps the score's reason (the killer)
-    if what.startswith("plan") or what == "noplan":
-        rep = s1_score_refused(tmp_path, "ack-f", reason="stage-replaced")
-    else:
-        rep = r.score(tmp_path, "ack-f")
+    # it is INVALID (stage-replaced) at the gate; the unit-level record keeps the score's reason (the killer).
+    # A3 Task 12 (intended, F4.9 consistency before valuation): so is final/manifest.json (prereg0/preregf/outcome)
+    rep = s1_score_refused(tmp_path, "ack-f", reason="stage-replaced")
     assert any(want in x for x in rep["reasons"]), rep["reasons"]
 
 

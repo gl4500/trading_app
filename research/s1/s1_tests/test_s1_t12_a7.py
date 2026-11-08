@@ -15,7 +15,7 @@ import pytest
 import s1_collect as k
 import s1_common as c
 import s1_run as r
-from conftest import s1_mailbox, s1_reack, s1_state
+from conftest import s1_mailbox, s1_reack, s1_score_refused, s1_state
 
 START = "2026-10-26T13:30:00+00:00"
 
@@ -99,5 +99,8 @@ def test_a7_4_a_tampered_final_raw_page_is_an_integrity_failure_at_score(tmp_pat
     page.write_bytes(page.read_bytes() + b" ")                         # tampered after the manifest
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
     s1_reack(tmp_path, "score-ack-2", "S1-SCORE-ACK", st_["now"] - timedelta(minutes=30))
-    rep = r.score(tmp_path, "score-ack-2")
+    # A3 Task 12 (intended, F4.9 consistency before valuation): the final attempt is the CREATED final stage, so the
+    # changed manifest and the orphan page are INVALID (stage-replaced) at the score's gate; the unit-level record
+    # keeps the score's own raw-page re-check (A7.4, the killer)
+    rep = s1_score_refused(tmp_path, "score-ack-2", reason="stage-replaced")
     assert rep["verdict"] == "ABORTED-INVALID" and any("raw page" in x for x in rep["reasons"]), rep["reasons"]
