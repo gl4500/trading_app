@@ -523,6 +523,31 @@ def _stop_attestation(out: Path, plan: dict) -> dict:
     return a
 
 
+def _nvs_nothing_to_acquire(gv, out: Path, where: str) -> None:
+    """A3 H2 (Erratum 2 r4 G1.6, G1.6a, O3): under NVS(rows) - decided on the gate's rows by s1_seal.nvs, never by a
+    status or a file - the final plan and the final acquisition refuse "NO-VALID-SEAL: nothing to acquire", after the
+    gate and the integrity checks and before any INTENT, plan derivation, ACK verification or HTTP-client use; with
+    an S1-ACQUIRE-ACK present the refusal adds "(mistaken S1-ACQUIRE-ACK, O3): refuse and escalate" (no row, no
+    blocked.json, no closure action). A predicate that cannot be evaluated refuses too (fail closed)."""
+    try:
+        pr = _load(out / "prereg.json")
+    except FileNotFoundError:                              # (fix round 1, M-6: only the prereg load itself)
+        return                                             # no prereg: the existing refusal ("never started") follows
+    except (OSError, ValueError) as e:
+        raise SystemExit(f"{where} refused: prereg unreadable for the NO-VALID-SEAL predicate "
+                         f"({type(e).__name__}): refused with no row (F0.7)") from None
+    try:
+        nvs = s1_seal.nvs(out, gv.rows, c.aware(pr["start"]), pr["calendar"], gv.trial.bundle)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, s1_books.BookError) as e:
+        raise SystemExit(f"{where} refused: the NO-VALID-SEAL predicate cannot be evaluated ({type(e).__name__}: "
+                         f"{e}): refused with no row (Erratum 2 G1.1, F0.7)") from None
+    if nvs:
+        acq = gv.trial.acks.get("S1-ACQUIRE-ACK")
+        raise SystemExit(f"{where} refused: NO-VALID-SEAL: nothing to acquire (Erratum 2 G1.6)"
+                         + ("" if acq is None else f"; S1-ACQUIRE-ACK {acq.mailbox_id} (mistaken S1-ACQUIRE-ACK, O3): "
+                                                   f"refuse and escalate"))
+
+
 def write_final_plan(root, *, mailbox=None) -> Path:
     """Task 11 (controller-added), I-4: write-once final plan, derived (final_plan_record), only after the stop
     attestation. A3 Task 11: the stage `final_plan` (F1 step 3; F4.8): after stop_attest's CREATED row
@@ -531,6 +556,10 @@ def write_final_plan(root, *, mailbox=None) -> Path:
     import s1_stage
     gv = s1_trial.gate(root, "final plan", mailbox=mailbox)             # A3 F0.6: open trial, state, bundle first
     out = _out(root)
+    c.verify_bundle_first(out, "final plan", mailbox=mailbox)           # (the integrity checks before the branch)
+    if (out / "prereg.json").exists():
+        g.verified_registration(out, "final plan", mailbox)
+    _nvs_nothing_to_acquire(gv, out, "final plan")                    # A3 H2 (Erratum 2 r4 G1.6, G1.6a)
     rec = final_plan_record(root, mailbox=mailbox)
     _stop_attestation(out, rec)
 
@@ -598,6 +627,7 @@ def do_final(root, ack_id: str, client, keys, *, mailbox=None) -> dict:
     _require_no_redirects(client)
     out = _out(root)
     g.verified_registration(out, "final acquisition", mailbox)        # Task 12: A3.2 bundle first, then A8.2
+    _nvs_nothing_to_acquire(gv, out, "final")                         # A3 H2 (Erratum 2 r4 G1.6, G1.6a)
     fp, prp = out / "final_plan.json", out / "prereg.json"
     if not fp.is_file():                                   # A3 Task 11 (F1 graph 3 -> 5; row 56): a refusal, not
         raise SystemExit("final refused: no final plan (final_plan comes first, F1)")   # a FileNotFoundError

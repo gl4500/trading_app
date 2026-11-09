@@ -1,0 +1,53 @@
+# A3 H2 semantic mutants (scratchpad tH2/mk_mutant.py sha256 4b591793e81d0507f4d4c2357ef33d73aab6db1a2a6d1b27aae3fbefa79371c7, run_mutants.sh): each mutant is a copy of the
+# H2 working tree's research/s1 with ONE product edit; the named killer tests run against it. Every kill is an AssertionError or a
+# pytest Failed at the test's agreed line (ruling B3).
+#   m1 (OP-25): s1_trial.product_context ignores acks_in_txn (the score stage gate reads the gate snapshot's ACKs).
+#   m2 (C1.1): _close takes the CHAIN-rank last candidate (the retired rank reading) instead of creation chronology.
+#   m3 (C1.2): a non-chain-valid candidate created before the CLOSE is not refused.
+#   m4 (C3.3): _snapshot_lower_bound always passes.
+# m1-m3 ran on the final product and test files; m4 was re-run after its killer gained the explicit 'why is not None' assertion
+# (first run killed it by a TypeError, not counted). The final test files are byte-identical for m1-m3's killers.
+
+mutant m1 ready
+## mutant m1: research/s1/s1_tests/test_s1_a3_nvs.py::test_mistaken_acquire_ack_after_the_gate_refuses_in_the_intent_transaction
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\mut_m1\research\s1\s1_tests\test_s1_a3_nvs.py:544: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_mistaken_acquire_ack_after_the_gate_refuses_in_the_intent_transaction
+1 failed in 9.81s
+## exit 1
+mutant m2 ready
+## mutant m2: research/s1/s1_tests/test_s1_a3_close.py::test_nvs_fork_stale_close_refused
+FF                                                                       [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\mut_m2\research\s1\s1_tests\test_s1_a3_close.py:68: AssertionError: assert Ack(mailbox_id='close', created=1809093600.0, sender='codex', recipient='claude', key='experiments-prereg', line='S1-C...score-ack', 'reason': 'SCORED', 'evidence_sha256': '0000000000000000000000000000000000000000000000000000000000000000'}) is None
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\mut_m2\research\s1\s1_tests\test_s1_a3_close.py:68: AssertionError: assert Ack(mailbox_id='close', created=1809093600.0, sender='codex', recipient='claude', key='experiments-prereg', line='S1-C...score-ack', 'reason': 'SCORED', 'evidence_sha256': '0000000000000000000000000000000000000000000000000000000000000000'}) is None
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_nvs_fork_stale_close_refused[stale-prev-score-refused]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_nvs_fork_stale_close_refused[no-automatic-blocked-invalid-withdrawal]
+2 failed in 13.63s
+## exit 1
+mutant m3 ready
+## mutant m3: research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses
+...FFF                                                                   [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\mut_m3\research\s1\s1_tests\test_s1_a3_close.py:131: AssertionError: ['S1-ACQUIRE-ACK acq-bad: bundle chain broken (F7.1)', "CLOSE-ACK close refused (prev is not the latest ACK 'acq-bad' created before it): the trial stays open and commands refuse"]
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\mut_m3\research\s1\s1_tests\test_s1_a3_close.py:131: AssertionError: ['S1-ACQUIRE-ACK acq-bad: bundle chain broken (F7.1)', "CLOSE-ACK close refused (prev is not the latest ACK 'acq-bad' created before it): the trial stays open and commands refuse"]
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\mut_m3\research\s1\s1_tests\test_s1_a3_close.py:131: AssertionError: ['S1-ACQUIRE-ACK acq-bad: bundle chain broken (F7.1)', "CLOSE-ACK close refused (prev is not the latest ACK 'acq-bad' created before it): the trial stays open and commands refuse"]
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[invalid-chain-candidate-SCORED]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[invalid-chain-candidate-WITHDRAWN]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[invalid-chain-candidate-INVALID]
+3 failed, 3 passed in 39.19s
+## exit 1
+mutant m4 ready
+## mutant m4: research/s1/s1_tests/test_s1_a3_nvs.py::test_score_ack_written_utc_lower_bound
+F.                                                                       [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\mut_m4\research\s1\s1_tests\test_s1_a3_nvs.py:630: assert (None is not None)
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_score_ack_written_utc_lower_bound[created-le-written]
+1 failed, 1 passed in 15.92s
+## exit 1
+ALL-DONE

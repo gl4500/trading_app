@@ -484,3 +484,29 @@ def test_default_extra_invalid_observation_still_appends(tmp_path):             
     assert j.decide(rows, req, j.Context(), now).outcome == "APPEND"
     assert j.decide(rows, req, j.Context(recovery=True), now).outcome == "REFUSE"
     assert j.decide(rows, req, j.Context(closed=True, recovery=True), now).reason.startswith("trial CLOSED")
+
+
+# ---------------------------------------------------------------- row 467 (AB-A8; owned by H2, conflict-scan C-2)
+@pytest.mark.parametrize("case", ["discovered-in-score", "numeric-healthy", "nvs-healthy"])
+def test_abort_recovery_controls(tmp_path, monkeypatch, case):                             # row 467 (AB-A8)
+    """G6.6 controls: a failure genuinely discovered inside an authorized score follows OQ-28 (the same oracle as row
+    451: TRIAL-INVALID registration-artifact, never established-violation/local-abort); healthy numeric and NVS
+    scores are unchanged by the gate's recording point (H2 adds the NVS score branch)."""
+    from test_s1_a3_nvs import nvs_chain
+    if case == "nvs-healthy":
+        st_ = nvs_chain(tmp_path)
+        with _Clock(st_["now"]):
+            rep = r.score(tmp_path, "score-ack")
+        assert (rep["verdict"], rep["classification"]) == ("NO-VALID-SEAL", "INCONCLUSIVE")
+    elif case == "numeric-healthy":
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        with _Clock(st_["now"]):
+            assert r.score(tmp_path, "score-ack")["verdict"] in ("SHADOW PASS", "FAIL")
+    else:                                              # same oracle as row 451: OQ-28 inside an authorized score
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        real = r._seal_chain_problems
+        monkeypatch.setattr(r, "_seal_chain_problems", lambda *a, **kw: real(*a, **kw) + ["injected"])
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"stage score: INVALID \(registration-artifact\)"):
+            r.score(tmp_path, "score-ack")
+        assert [x.subject for x in invalids(tmp_path)] == ["reason/registration-artifact"]
+    assert all(x.subject != "reason/established-violation" for x in invalids(tmp_path))

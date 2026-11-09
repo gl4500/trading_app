@@ -1,0 +1,13 @@
+# A3 H2: Clarification 1 C1.7 / C0 OP-10 private _close probe - PRIVATE-FUNCTION RED, NOT END-TO-END (labelled per C1.7).
+# Script: scratchpad tH2/c1_probe.py sha256 6179841a5f233d58c727c63c1362e38bc9b9e86021973036718e7fcf3a301752; synthetic Ack objects, no mailbox, no file.
+# cmd: testenv/python -I -B c1_probe.py <tree>
+
+## RED: the H2 stub (HEAD's _close, the CHAIN-rank reading)
+fork, CLOSE(7) prev=SCORE(5): CLOSES; problems=[]
+fork, CLOSE(7) prev=ACQUIRE(6): REFUSED; problems=["CLOSE-ACK X refused (prev is not the latest ACK 'S5' created before it): the trial stays open and commands refuse"]
+normal control, CLOSE(7) prev=SCORE(6): CLOSES; problems=[]
+
+## GREEN re-run: the H2 working tree (creation chronology): the rank-reading verdict is gone
+fork, CLOSE(7) prev=SCORE(5): REFUSED; problems=["CLOSE-ACK X refused (prev is not the latest ACK 'Q6' created before it): the trial stays open and commands refuse"]
+fork, CLOSE(7) prev=ACQUIRE(6): CLOSES; problems=[]
+normal control, CLOSE(7) prev=SCORE(6): CLOSES; problems=[]

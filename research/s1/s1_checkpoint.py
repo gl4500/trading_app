@@ -983,6 +983,11 @@ def _final_snapshot_capture(out: Path, live_db, now, *, mailbox=None) -> dict:
             rep["fence_violations"] = [f"bad seal record: {type(e).__name__}: {e}"]
         rep["fence_checked"] = True
         rep["fence_violations"] += [f"persisted stop: {x}" for x in probs]     # Task 12 (A2.3), recorded
+    # A3 H2 (Erratum 2 Clarification 1 r2 C3.1; ruling NOP-2): written_utc is sampled ONCE, after every other field
+    # is final and immediately before the first of the two publications, so the attempt report and the published
+    # final_snapshot/report.json carry the same value. It is a LOWER BOUND only: a report cannot contain its own
+    # publication time, and SCORE-ACK.created > written_utc does not prove the report existed before the ACK (C3.1).
+    rep["written_utc"] = now().isoformat()
     c.publish_text_exclusive(d / attempt / "report.json", json.dumps(rep, indent=1))     # fix round 3 (C-1): atomic
     if meta["ok"]:
         try:

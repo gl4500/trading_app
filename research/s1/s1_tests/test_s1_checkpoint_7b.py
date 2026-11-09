@@ -16,7 +16,7 @@ from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_ack, s1_close_out  # A3 Task 10 (F7.2(b) literal: the OPENING-ACK after the close-out)
 from conftest import (S1_BINDING, S1_RECEIPT, _Clock, s1_mailbox, s1_plan_audit, s1_reack, s1_receipt_with, s1_state,
                       s1_sync_portfolio)
-from conftest import S1_NVS_HELD, s1_first_invalid, s1_score_invalid  # A3 Task 13
+from conftest import s1_first_invalid, s1_score_invalid  # A3 Task 13
 from conftest import S1_LOCAL_ABORT, s1_local_abort_recorded  # A3 H1 (Erratum 2 r4 G6)
 
 OTHER = s1_receipt_with(S1_RECEIPT, files={"agents/mean_reversion_agent.py": "other"})   # Task 12 (A1): fingerprint
@@ -324,17 +324,20 @@ def test_full_synthetic_lifecycle_uses_the_real_opening_seal_and_final_snapshot(
 
 def test_no_valid_seal_trial_can_take_its_final_snapshot(tmp_path, monkeypatch):
     """Task 7b (controller-added): NO-VALID-SEAL is a terminal trial state too (decision recorded in the report).
-    A3 Task 13 fix round 1 (M-5): the snapshot half runs; the score half is split out and held (S1_NVS_HELD)."""
+    A3 Task 13 fix round 1 (M-5): the snapshot half runs; the score half is split out (un-held in A3 H2)."""
     s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
     assert read(tmp_path / "s1_out" / "final_snapshot" / "report.json")["trial_status"] == "NO-VALID-SEAL"
 
 
-@pytest.mark.skip(reason=S1_NVS_HELD)
 def test_no_valid_seal_trial_scores_no_valid_seal(tmp_path, monkeypatch):
-    """The NVS score half of test_no_valid_seal_trial_can_take_its_final_snapshot (split in A3 Task 13 fix round 1)."""
+    """The NVS score half of test_no_valid_seal_trial_can_take_its_final_snapshot (split in A3 Task 13 fix round 1).
+    A3 H2 (un-held, Erratum 2 r4 G1.9 / NVS-A1): the snapshot is taken (trial_status NO-VALID-SEAL, O1: required),
+    then the NVS branch scores it: verdict NO-VALID-SEAL, classification INCONCLUSIVE, nomination false."""
     st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
+    assert read(tmp_path / "s1_out" / "final_snapshot" / "report.json")["trial_status"] == "NO-VALID-SEAL"
     monkeypatch.setattr(c, "now_utc", lambda: st_["now"])
-    assert r.score(tmp_path, "score-ack")["verdict"] == "NO-VALID-SEAL"
+    rep = r.score(tmp_path, "score-ack")
+    assert (rep["verdict"], rep["classification"], rep["nomination"]) == ("NO-VALID-SEAL", "INCONCLUSIVE", False)
 
 
 # ---------------------------------------------------------------- CLI

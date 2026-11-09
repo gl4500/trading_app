@@ -15,7 +15,7 @@ import s1_run as r
 import s1_snapshot
 from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
-from conftest import S1_NVS_HELD, s1_score_invalid  # A3 Task 13
+from conftest import s1_score_invalid  # A3 Task 13
 from conftest import S1_LOCAL_ABORT, s1_local_abort_recorded  # A3 H1 (Erratum 2 r4 G6)
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_plan_audit, s1_reack, s1_receipt_with, s1_state
 
@@ -182,8 +182,6 @@ def test_a9_every_non_numeric_disposition_makes_no_valuation_call(tmp_path, monk
     """A9.3: ABORTED-INVALID, BLOCKED, NO-VALID-SEAL, INCONCLUSIVE (carry-in, contamination 2b, > 10 % cap) and
     INSUFFICIENT are each reached with spies on every valuation helper - none may be called (proof by spies, not by
     omitted output fields)."""
-    if kind == "NO-VALID-SEAL":
-        pytest.skip(S1_NVS_HELD)                                     # (held; A3 Task 13 concern 1)
     kw = dict(DISPOSITIONS[kind])
     abort, blocked = kw.pop("_abort", False), kw.pop("_prereg_blocked", False)
     if blocked:                                       # as test_s1_run: bypass prereg's BLOCKED gate, score re-checks
@@ -213,4 +211,6 @@ def test_a9_every_non_numeric_disposition_makes_no_valuation_call(tmp_path, monk
     want = {"INCONCLUSIVE-carry-in": "INCONCLUSIVE", "INCONCLUSIVE-contamination": "INCONCLUSIVE",
             "INCONCLUSIVE-cap": "INCONCLUSIVE"}.get(kind, kind)
     assert rep["verdict"] == want, (kind, rep["verdict"], rep["reasons"])
+    if kind == "NO-VALID-SEAL":                         # A3 H2 (un-held, Erratum 2 r4 G1.9: NVS-A1 spies)
+        assert rep["classification"] == "INCONCLUSIVE" and rep["nomination"] is False
     assert called == [] and "levels" not in rep

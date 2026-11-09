@@ -28,7 +28,7 @@ import s1_slot as sl
 import s1_trial as t
 from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
-from conftest import S1_NVS_HELD, s1_score_invalid  # A3 Task 13
+from conftest import s1_score_invalid  # A3 Task 13
 from conftest import S1_LOCAL_ABORT, s1_local_abort_recorded  # A3 H1 (Erratum 2 r4 G6)
 from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_mailbox, s1_reack, s1_receipt_with, s1_score_refused, s1_state
 
@@ -777,9 +777,8 @@ def test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge(tmp_path,
     """Task 11 (controller-added), m-7: restarts and the quantity bridge are keys of the ABORTED-INVALID, BLOCKED and
     NO-VALID-SEAL reports too (design §14 Report), not only of priced ones.
     A3 Task 13 (intended, OQ-28): the ABORTED-INVALID report is TRIAL-INVALID and kept in the score staging (read
-    there); no-valid-seal is held (A3 Task 13 concern 1)."""
-    if kind == "no-valid-seal":
-        pytest.skip(S1_NVS_HELD)
+    there); no-valid-seal was held (A3 Task 13 concern 1) and is un-held in A3 H2 (Erratum 2 r4 G1.9: NVS-A1 plus
+    the restarts and quantity_bridge keys)."""
     if kind == "aborted":
         st_ = s1_state(tmp_path, START, score_ready=True)
         (tmp_path / "s1_out" / "aborted.json").write_text(json.dumps({"reason": "x"}), encoding="utf-8")
@@ -808,3 +807,5 @@ def test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge(tmp_path,
     assert "quantity_bridge" in rep
     if kind != "no-valid-seal":
         assert isinstance(rep["quantity_bridge"], dict)
+    else:                                                # A3 H2 (NVS-A1): INCONCLUSIVE, no numeric fields
+        assert rep["classification"] == "INCONCLUSIVE" and rep["nomination"] is False and "levels" not in rep

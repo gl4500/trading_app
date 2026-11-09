@@ -622,6 +622,40 @@ def stop_ready(out, rows, start, cal, bundle, now):
     return None
 
 
+NVS_NULLS = ("stop_close", "stop_seal", "stop_seal_sha256", "lots")              # t11 §4 NVS shape (Erratum 2 G1.1)
+
+
+def nvs(out, rows, start, cal, bundle) -> bool:
+    """A3 H2, Erratum 2 r4 G1.1 (NVS-REQ1): the NO-VALID-SEAL terminal-score branch predicate, decided on the DECIDING
+    rows only (a stage transaction's re-read rows, or a command's gate rows). True only when all of:
+    1. STOPPED: exactly one TRIAL-STOP and no TRIAL-INVALID (CLOSED is the caller's: the gate / step 2 refuse first);
+    2. the record recomputed from the rows with seq < the STOP seq (stop_record, F2.3) exists and its detail equals
+       the TRIAL-STOP detail;
+    3. that record is status NO-VALID-SEAL, rule timeout, with exactly the t11 §4 NVS shape: stop_close, stop_seal,
+       stop_seal_sha256 and lots null, cohort_row_ids [], seals {}, and missed = every eligible close (each is a
+       no-attempt close: no QUALIFIED, ruling OP-3);
+    4. sampled_seals(..., upto_seq = the STOP seq) is empty.
+    It never follows a CLI flag, file presence, a display status or a caller's verdict. An exception (an evidence
+    read, a malformed record) PROPAGATES: the caller refuses - it never selects the normal branch silently (I-2).
+    Recomputed per call; nothing is cached (I-7)."""
+    import s1_journal as j
+    rows = list(rows)
+    if j.trial_state(rows) != "STOPPED":
+        return False
+    stops = [x for x in rows if x.kind == "TRIAL-STOP"]
+    if len(stops) != 1:
+        return False
+    stop = stops[0]
+    rec = stop_record(out, [x for x in rows if x.seq < stop.seq], start, cal, bundle)
+    if rec is None or j.detail_of(rec) != stop.detail:
+        return False
+    if (rec["status"], rec["rule"]) != ("NO-VALID-SEAL", "timeout") or any(rec[k_] is not None for k_ in NVS_NULLS) \
+            or rec["cohort_row_ids"] != [] or rec["seals"] != {} \
+            or rec["missed"] != [d["date"] for d in eligible_sessions(start, cal)]:
+        return False
+    return not sampled_seals(out, rows, cal, start, upto_seq=stop.seq)
+
+
 STOP_FENCE_RETRIES = 3                                            # E2.5 r3: bounded seal-then-STOP retry
 
 

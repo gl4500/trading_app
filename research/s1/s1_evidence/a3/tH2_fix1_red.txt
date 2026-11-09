@@ -1,0 +1,42 @@
+# A3 H2 fix round 1 behavioural RED (review I-1, I-2, M-2..M-7): the fix-round test edits run against the PRE-FIX H2 tree
+# (a copy of the worktree's research/s1 taken before any fix-round product edit; scratchpad tH2/fix1_base), test files copied in.
+# pre-fix product sha256: *s1_trial.py 29dbb50d6513b11a9b565c27b6914f37af5eb005f15c55044f71dfb3abc02873 *s1_stage.py 0e6092d38a56a9b649f1a06bbdc6354bcd715eb20643a7102b75573ce9deefa7 *s1_collect.py 65de39af095750acd79cc319412948eb6073035f54b812644eaaac40a7057e42 
+# test files (final): *test_s1_a3_nvs.py ef61218870243e416e50e0eb133e3ebdf72592841060fbd92386afe792f6e0d0 *test_s1_a3_close.py 54d338fee5fec76bec318681a9fed470a593c3ad45f2c4da637c8c2eb1caff71 
+# cmd: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python -m pytest -p conftest -p no:cacheprovider --basetemp=<scratch> <ids> -q --tb=line -rfEsp
+# Labels: the 'Fix round 1' section of .superpowers/sdd/s1_plan_addendum3/task-H2-report.md.
+# started 2026-11-09T04:21:21Z
+
+......FFF..........FF..                                                  [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\fix1_base\research\s1\s1_tests\test_s1_a3_close.py:143: AssertionError: ['2 S1-ACQUIRE-ACK for trial d6449e21-0ceb-40b4-9fc4-d9197aa660b1 (F7.1; byte-identical included): escalate']
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\fix1_base\research\s1\s1_tests\test_s1_a3_close.py:143: AssertionError: ['2 S1-ACQUIRE-ACK for trial 43d4b4dc-4203-4257-8d5f-2ecb48a12a25 (F7.1; byte-identical included): escalate']
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\fix1_base\research\s1\s1_tests\test_s1_a3_close.py:143: AssertionError: ['2 S1-ACQUIRE-ACK for trial a60da17b-7e85-4e0d-a80e-2f66dd430637 (F7.1; byte-identical included): escalate']
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\fix1_base\research\s1\s1_tests\test_s1_a3_nvs.py:625: AssertionError: OSError(5, 'injected read error')
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\fix1_base\research\s1\s1_tests\test_s1_a3_nvs.py:639: AssertionError: Regex pattern did not match.
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[duplicate-before-close-SCORED]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[duplicate-before-close-WITHDRAWN]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[duplicate-before-close-INVALID]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_predicate_error_in_the_intent_transaction_refuses
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_predicate_file_not_found_is_no_missing_prereg
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[created-tie-SCORED]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[created-tie-WITHDRAWN]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[created-tie-INVALID]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[invalid-chain-candidate-SCORED]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[invalid-chain-candidate-WITHDRAWN]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[invalid-chain-candidate-INVALID]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_close_candidate_strictly_before_boundary[score-ack]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_close_candidate_strictly_before_boundary[acq-at-close]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_nvs_fork_withdrawn_names_latest_acquire
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_nvs_fork_stale_close_refused[stale-prev-score-refused]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_nvs_fork_stale_close_refused[no-automatic-blocked-invalid-withdrawal]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_forged_or_damaged_nvs_never_inconclusive[bad-stop-detail]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_forged_or_damaged_nvs_never_inconclusive[bad-stop-detail-publication-gap]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_normal_stop_cannot_take_nvs_path[stopped]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_normal_stop_cannot_take_nvs_path[timeout]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_snapshot_cases[missing-before-issuance]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_score_ack_written_utc_lower_bound[created-le-written]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_score_ack_written_utc_lower_bound[created-gt-written]
+5 failed, 18 passed in 169.56s (0:02:49)
+# pytest exit 1
+# finished 2026-11-09T04:24:11Z

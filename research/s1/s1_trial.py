@@ -4,6 +4,7 @@ these readers. Codex issues ACKs; S1 code only reads them. Token texts: ACK_FIEL
 OQ-5). No function here takes an output root for the trial lookup: closure is monotone from mailbox history alone
 (E3.4 r3), and S1 never recomputes a historical CLOSE's evidence."""
 import json
+import math
 import re
 import sqlite3
 import sys
@@ -89,8 +90,11 @@ class Trial:
 
     @property
     def latest(self) -> Ack:
+        """A3 H2 (Clarification 1 C1.1): the latest chain ACK by creation chronology (the default prev of a CLOSE
+        token); in a valid normal chain it is the CHAIN-rank last (C1.4). A tie keeps the rank order's last - a
+        tied CLOSE is refused by _close anyway (C1.2)."""
         present = [self.audit] + [self.acks[k_] for k_ in CHAIN[1:] if k_ in self.acks]
-        return present[-1]
+        return max(reversed(present), key=lambda a: a.created)
 
 
 def parse_ack_line(line: str) -> tuple:
@@ -167,8 +171,20 @@ def scan(mailbox=None) -> list:
         con.close()
 
 
+def pred_kind(kind: str, chosen: dict, created=None) -> str:
+    """F7.1 PRED with A3 H2 (Erratum 2 r4 G1.4, O2): an S1-SCORE-ACK has two syntactically valid shapes - prev = the
+    latest chain ACK created before it among {S1-ACQUIRE-ACK, S1-PREREG-ACK}: the ACQUIRE-ACK when one exists created
+    before it (`created`; None = the ACK to be issued now, after every existing one), else the PREREG-ACK (NO-VALID-SEAL
+    only). Parsing grants no authority: the score/journal gate decides the branch on its rows (s1_stage.permitted).
+    Every other kind: PRED."""
+    if kind != "S1-SCORE-ACK":
+        return PRED[kind]
+    acq = chosen.get("S1-ACQUIRE-ACK")
+    return "S1-ACQUIRE-ACK" if acq is not None and (created is None or acq.created < created) else "S1-PREREG-ACK"
+
+
 def _chain_problems(kind: str, a: Ack, audit: Ack, chosen: dict) -> list:
-    pk = PRED[kind]
+    pk = pred_kind(kind, chosen, a.created)
     pred = audit if pk == "S1-AUDIT-ACK" else chosen.get(pk)
     if pred is None:
         return [f"{kind} {a.mailbox_id}: no {pk} predecessor (F7.1)"]
@@ -182,11 +198,56 @@ def _chain_problems(kind: str, a: Ack, audit: Ack, chosen: dict) -> list:
     return probs
 
 
-def _close(closes: list, audit: Ack, chosen: dict) -> tuple:
+def _finite(x) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+
+
+def _close_chronology(a: Ack, audit: Ack, chosen: dict, invalid: set, malformed: list, dups=()) -> tuple:
+    """A3 H2, Erratum 2 Clarification 1 r2 C1 (Codex 6bfdc5cc OP-10; O-C1; ruling NOP-1, Codex 59953cfd: C1.2 kept
+    exactly, no reason-specific exemption): (the predecessor the CLOSE `a` must name, or None, why-not). Candidates =
+    the AUDIT-ACK plus every chosen chain ACK of the trial (official, same trial_id; F7.1/F6.1 and the G1.4
+    mailbox-level shapes, the AUDIT-ACK's bundle: `invalid` names the kinds with a _chain_problems entry) created
+    strictly before `a`. "Latest" = the greatest persisted `created`, never CHAIN rank (the retired rank reading took
+    the rank-last ACK). Refuse and escalate (no predecessor chosen, nothing withdrawn, invented or deleted) when:
+    `a`'s or a candidate's `created` is not a finite number; a chain ACK created before `a` is not chain-valid; an
+    official MALFORMED line naming this trial (E4.3) was created before `a` (its kind and chain validity cannot be
+    established, so neither can the predecessor chronology); or two candidates tie for the greatest `created` (exact
+    equality of the persisted values, O-C1: no read-order or UUID tie-break).
+    H2 fix round 1 (review I-1): `dups` = every official same-trial chain ACK that is NOT the chosen (earliest) one
+    of its kind. F7.1 allows at most one ACK of each kind, so such a duplicate is not chain-valid: created before
+    `a`, it refuses and escalates `a` like any invalid candidate (C1.2). A duplicate created after the closure stays
+    an escalation of the closed trial only (monotonicity, C1.3)."""
+    esc = "refuse and escalate (C1.2)"
+    if not _finite(a.created) or not _finite(audit.created):
+        return None, f"chronology cannot be established (created not a finite number): {esc}"
+    before = [x for x in chosen.values() if not _finite(x.created) or x.created < a.created]
+    if any(not _finite(x.created) for x in before):
+        return None, f"a chain ACK's chronology cannot be established (created not a finite number): {esc}"
+    bad = sorted({x.mailbox_id for x in before if x.kind in invalid}
+                 | {x.mailbox_id for x in dups if not _finite(x.created) or x.created < a.created})
+    if bad:
+        return None, f"chain ACK(s) {bad} created before it are not chain-valid: {esc}"
+    mal = sorted(m.mailbox_id for m in malformed if not _finite(m.created) or m.created < a.created)
+    if mal:
+        return None, f"malformed official ACK line(s) {mal} naming this trial precede it (E4.3): {esc}"
+    cands = [audit] + before                              # (the AUDIT-ACK always: a CLOSE before it is refused as such)
+    top = max(x.created for x in cands)
+    tied = [x for x in cands if x.created == top]
+    if len(tied) > 1:
+        return None, f"ambiguous latest predecessor: {sorted(x.mailbox_id for x in tied)} tie on created: {esc}"
+    return tied[0], None
+
+
+def _close(closes: list, audit: Ack, chosen: dict, invalid: set = frozenset(), malformed: list = (),
+           dups: list = ()) -> tuple:
     """F7.5 with E4 and E3.4 (controller ruling, Task 4 fix round 1): (the closure or None, problems).
     - Every CLOSE here is an official candidate (E4.1). They are taken in mailbox order (created, then read order).
     - Each is judged against the ACKs created BEFORE it: after the AUDIT-ACK, prev = the latest chain ACK created
       before it, the AUDIT-ACK's bundle. The first that validates is the trial's closure, permanently.
+    - A3 H2 (Clarification 1 r2 C1, recorded explicitly, C1.8 - not a silent refactor): "latest" is decided by
+      CREATION CHRONOLOGY among the individually chain-valid candidates (_close_chronology), not by CHAIN rank; a tie,
+      an unestablishable chronology or a non-chain-valid / malformed candidate before it refuses and escalates.
+      In a valid normal chain chronology equals rank (C1.4), so those verdicts are unchanged.
     - Monotone (E3.4): later messages never re-open a closed trial. Any other CLOSE (re-post, different, refused)
       and any chain ACK created after the closure are escalation problems of the closed trial only; a closed trial
       refuses no command of another trial.
@@ -200,12 +261,13 @@ def _close(closes: list, audit: Ack, chosen: dict) -> tuple:
     order = [a for _, a in sorted(enumerate(closes), key=lambda p: (p[1].created, p[0]))]
     closed, refused = None, []
     for a in order:
-        before = [audit] + [chosen[k_] for k_ in CHAIN[1:] if k_ in chosen and chosen[k_].created < a.created]
-        latest = before[-1]
+        latest, unclear = _close_chronology(a, audit, chosen, invalid, malformed, dups)
         why = []
-        if a.created <= audit.created:
+        if not (_finite(a.created) and a.created > audit.created):
             why.append("before the AUDIT-ACK")
-        if a.fields["prev"] != latest.mailbox_id:
+        if unclear is not None:
+            why.append(unclear)
+        elif a.fields["prev"] != latest.mailbox_id:
             why.append(f"prev is not the latest ACK {latest.mailbox_id!r} created before it")
         if a.fields["bundle_sha256"] != audit.fields["bundle_sha256"]:
             why.append("bundle differs")
@@ -246,13 +308,19 @@ def trials(acks) -> dict:
             if len(by_kind.get(kind, ())) > 1:
                 probs.append(f"{len(by_kind[kind])} {kind} for trial {tid} (F7.1; byte-identical included): escalate")
         chosen = {kind: min(ys, key=lambda a: a.created) for kind, ys in by_kind.items()}
+        invalid = set()                                   # A3 H2 (C1.2): kinds that are not individually chain-valid
         for kind in CHAIN[1:]:
             if kind in chosen:
-                probs += _chain_problems(kind, chosen[kind], audit, chosen)
+                cp = _chain_problems(kind, chosen[kind], audit, chosen)
+                probs += cp
+                if cp:
+                    invalid.add(kind)
+        malformed = [a for a in acks if a.kind is None and a.fields.get("trial_id") == tid]
+        dups = [a for kind, ys in by_kind.items() for a in ys if a is not chosen[kind]]   # (fix round 1, I-1)
         closed, cprobs = _close([a for a in acks if a.official and a.kind == "S1-CLOSE-ACK"
-                                 and a.fields.get("trial_id") == tid], audit, chosen)
+                                 and a.fields.get("trial_id") == tid], audit, chosen, invalid, malformed, dups)
         probs += [f"malformed official ACK line in {a.mailbox_id} names this trial (E4.3): refuse and escalate"
-                  for a in acks if a.kind is None and a.fields.get("trial_id") == tid]
+                  for a in malformed]
         out[tid] = Trial(tid, audit.fields["bundle_sha256"], audit, chosen, closed, probs + cprobs,
                          j.genesis(audit.line))
     return out
@@ -376,9 +444,10 @@ def token(kind: str, root, *, mailbox=None, **given) -> str:
     if kind == "S1-CLOSE-ACK":
         vals["prev"] = tr.latest.mailbox_id
     else:
-        pred = tr.audit if PRED[kind] == "S1-AUDIT-ACK" else tr.acks.get(PRED[kind])
+        pk = pred_kind(kind, tr.acks)                        # A3 H2 (G1.4): the SCORE-ACK's branch-aware prev
+        pred = tr.audit if pk == "S1-AUDIT-ACK" else tr.acks.get(pk)
         if pred is None:
-            raise Refusal(f"no {PRED[kind]} for trial {tr.trial_id}: no {kind} can follow (F7.1)")
+            raise Refusal(f"no {pk} for trial {tr.trial_id}: no {kind} can follow (F7.1)")
         vals["prev"] = pred.mailbox_id
     if rows:
         vals.update(journal_seq=str(rows[-1].seq), journal_head_sha256=rows[-1].sha)
@@ -689,21 +758,47 @@ def invalidate_current(out: Path, reason: str, record: dict, mailbox=None, *, cl
         pass
 
 
+def trial_in(con, trial: Trial):
+    """A3 H2 (ruling OP-25, Codex 6bfdc5cc; ruling NOP-3): the trial as the official ACKs parsed from `con` - the BEGIN
+    IMMEDIATE connection - give it inside the deciding transaction (as closed_in reads CLOSE), or a refusal reason:
+    an unattributable malformed official line, the trial absent from that view or bound to another AUDIT-ACK, or any
+    ACK-chain problem of the trial in that view refuses (fail closed, the same refusals as open_trial). A gate
+    snapshot is never authoritative for absence (C1.9)."""
+    acks = acks_from(con.execute(_SCAN).fetchall())
+    if any(a.kind is None and a.fields.get("trial_id") is None for a in acks):
+        return ("the transaction's ACK view has an unattributable malformed official ACK line (E4.3): refuse and "
+                "escalate")
+    tr = trials(acks).get(trial.trial_id)
+    if tr is None or tr.audit.mailbox_id != trial.audit.mailbox_id:
+        return f"trial {trial.trial_id} is not the same trial in the transaction's ACK view: fail closed (OP-25)"
+    if tr.problems:
+        return f"trial {trial.trial_id}: the transaction's ACK view {tr.problems[:3]}: refuse and escalate (OP-25)"
+    return tr
+
+
 def product_context(trial: Trial, cal=None, *, slot_gate=None, stage_gate=None, stop_detail=None,
-                    stage_check=None, stop_fence=None, stop_ready=None):
+                    stage_check=None, stop_fence=None, stop_ready=None, acks_in_txn=False):
     """The Context every product append uses: CLOSED read inside the transaction from the CLOSE rows of the same
     sqlite file (`con`, the BEGIN IMMEDIATE connection; E2.3 r3: atomic with CLOSE); slot timing from the pinned
     calendar (Task 6 supplies slot_times through s1_slot); stage/slot gates, the seal selection check, the stop rule
     and the STOP fence from their owners. A missing slot_gate, stage_check, stage_gate, stop_detail, stop_fence or slot
-    timing fails closed in decide() itself (Task 2 carry-forward; review M-6: also for a raw j.Context)."""
+    timing fails closed in decide() itself (Task 2 carry-forward; review M-6: also for a raw j.Context).
+    A3 H2 (ruling OP-25): `acks_in_txn` - the stage gate is called as stage_gate(rows, stage, trial) with the trial
+    re-parsed from the official ACKs of `con` inside this transaction (trial_in, parsed only when the gate runs, i.e.
+    for a STAGE-INTENT); a refusal reason of trial_in refuses the INTENT with no row."""
 
     def build(rows, con):
         st_ = None
         if cal is not None:
             import s1_slot                                   # (Task 6 module; absent before Task 6, cal is None)
             st_ = s1_slot.slot_times(cal)
+        gate_ = stage_gate
+        if acks_in_txn and stage_gate is not None:
+            def gate_(rows_, g):
+                tr_ = trial_in(con, trial)
+                return tr_ if isinstance(tr_, str) else stage_gate(rows_, g, tr_)
         return j.Context(closed=closed_in(con, trial), slot_times=st_, stop_detail=stop_detail,
-                         stage_gate=stage_gate, slot_gate=slot_gate, stage_check=stage_check,
+                         stage_gate=gate_, slot_gate=slot_gate, stage_check=stage_check,
                          stop_fence=stop_fence, stop_ready=stop_ready)    # A3 Task 11: (rows, txn now)
     return build
 

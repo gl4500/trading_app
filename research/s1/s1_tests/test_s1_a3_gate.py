@@ -147,11 +147,17 @@ def _damage(root, case):
         con.close()
     elif case == "closed-trial-same-bundle-ack":                # another (closed) trial's same-bundle RUN-ACK id
         s1_mailbox(root, "other-audit", tr.audit.line.replace(tr.trial_id, OTHER), at - timedelta(days=30))
-        s1_mailbox(root, "not-this-trials-run-ack", tr.acks["S1-RUN-ACK"].line.replace(tr.trial_id, OTHER),
-                   at - timedelta(days=29))
+        # A3 H2 (fixture incompatibility, Clarification 1 C1.2 / NOP-1): the other trial's RUN-ACK has no
+        # OPENING-ACK, so it is not chain-valid; a CLOSE created after it can no longer close that trial (old: a CLOSE
+        # at -28 d with prev = the RUN-ACK closed it by the retired rank reading). The other trial is now closed
+        # validly BEFORE its RUN-ACK (prev = its AUDIT-ACK); the RUN-ACK follows the closure (an escalation of the
+        # closed trial only, E3.4). The case's point - another trial's same-bundle RUN-ACK id never counts - and its
+        # expected refusal are unchanged.
         s1_mailbox(root, "other-close", " ".join(["S1-CLOSE-ACK", f"trial_id={OTHER}", f"bundle_sha256={tr.bundle}",
-                                                  "prev=not-this-trials-run-ack", "reason=WITHDRAWN",
-                                                  "evidence_sha256=" + "e" * 64]), at - timedelta(days=28))
+                                                  "prev=other-audit", "reason=WITHDRAWN",
+                                                  "evidence_sha256=" + "e" * 64]), at - timedelta(days=29))
+        s1_mailbox(root, "not-this-trials-run-ack", tr.acks["S1-RUN-ACK"].line.replace(tr.trial_id, OTHER),
+                   at - timedelta(days=28))
     elif case in ("journal-fork", "journal-gap", "duplicate-seq"):
         con = sqlite3.connect(m)
         r0 = rows[-1]
@@ -360,7 +366,9 @@ def test_explicit_mailbox_is_used_for_token_and_ack(tmp_path, monkeypatch):
     assert r.run_token(tmp_path, mailbox=mb(tmp_path)).startswith("S1-RUN-ACK trial_id=")
     with pytest.raises(t.Refusal, match="no S1-PREREG-ACK"):
         k.acquire_token(tmp_path, mailbox=mb(tmp_path))
-    with pytest.raises(t.Refusal, match="no S1-ACQUIRE-ACK"):
+    # A3 H2 (intended, Erratum 2 r4 G1.4): with no ACQUIRE-ACK the SCORE-ACK token's default prev is the PREREG-ACK
+    # (the NVS shape), so the explicit-mailbox token now refuses on the missing PREREG-ACK (old: "no S1-ACQUIRE-ACK")
+    with pytest.raises(t.Refusal, match="no S1-PREREG-ACK"):
         r.score_token(tmp_path, mailbox=mb(tmp_path))
     with _Clock(info["prereg_at"]):
         pr = r.do_prereg(tmp_path, "run-ack", S1_RECEIPT, mailbox=mb(tmp_path))

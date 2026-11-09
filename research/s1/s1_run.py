@@ -3,7 +3,7 @@ economics from the pinned E1 core, verdict and report. Never touches the live ap
 import json
 import re
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from fractions import Fraction
 from pathlib import Path
 
@@ -676,9 +676,23 @@ def _seals(out: Path) -> list:
     return [(p, _load(p)) for p in sorted((out / "seals").glob("*.json"))]
 
 
+def _nvs(gv, out: Path, pr: dict, where: str) -> bool:
+    """A3 H2 (Erratum 2 r4 G1.1): NVS(rows) on the command's gate rows (s1_seal.nvs; the bundle = the AUDIT-ACK's). A
+    predicate that cannot be evaluated (an evidence read error, a malformed record) refuses with no row - it never
+    selects the normal branch (I-2) and an I/O error is never INVALID here (I-4)."""
+    try:
+        return z.nvs(out, gv.rows, c.aware(pr["start"]), pr["calendar"], gv.trial.bundle)
+    except (OSError, ValueError, KeyError, TypeError, b.BookError) as e:
+        raise SystemExit(f"{where} refused: the NO-VALID-SEAL predicate cannot be evaluated ({type(e).__name__}: "
+                         f"{e}): refused with no row (Erratum 2 G1.1, F0.7)") from None
+
+
 def attest_stop(root, statement: str, *, mailbox=None) -> dict:
     """Stop attestations (§12): after a recorded stop (STOPPED/TIMEOUT from the seals), before the final acquisition
-    and any score; binds the START attestation, the actual START and stop and the sealed final ledger (stop seal)."""
+    and any score; binds the START attestation, the actual START and stop and the sealed final ledger (stop seal).
+    A3 H2 (Erratum 2 r4 G1.3, NVS-REQ2): also allowed under a verified NVS(rows) (the journal-authoritative recomputed
+    record bound by the TRIAL-STOP detail; never a status or file alone): the key set is unchanged, and only
+    stop_close and sealed_final_ledger_sha256 are null (no stop seal, no final ledger: never `out / None`)."""
     gv = s1_trial.gate(root, "stop attestation", mailbox=mailbox)       # A3 F0.6: open trial, state, bundle first
     if statement != STOP_STATEMENT:
         raise SystemExit("stop attestation refused: the statement must be exactly STOP_STATEMENT")
@@ -697,7 +711,8 @@ def attest_stop(root, statement: str, *, mailbox=None) -> dict:
                               mailbox=mailbox)             # (it never decides a stop: only decide_stop does, F2.2)
     except (ValueError, KeyError, TypeError) as e:
         raise SystemExit(f"stop attestation refused: bad stop record ({e})") from None
-    if stop["status"] not in ("STOPPED", "TIMEOUT"):
+    nvs = stop["status"] == "NO-VALID-SEAL" and _nvs(gv, out, pr, "stop attestation")   # A3 H2 (G1.1/G1.3)
+    if stop["status"] not in ("STOPPED", "TIMEOUT") and not nvs:
         raise SystemExit(f"stop attestation refused: no stop recorded (status {stop['status']})")
     probs = z.stop_problems(out, c.aware(pr["start"]), pr["calendar"], recheck=False, mailbox=mailbox)
     if probs:
@@ -705,11 +720,11 @@ def attest_stop(root, statement: str, *, mailbox=None) -> dict:
     import s1_journal as j
     import s1_stage
     stop_row = j.first(j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox), "TRIAL-STOP")
-    stop_p = out / z.load_stop(out)["stop_seal"]
+    stop_p = None if nvs else out / z.load_stop(out)["stop_seal"]       # G1.3: never out / None, never a "final" ledger
     rec = {"statement": statement, "trial_id": _plan_trial_id(out),
            "attest_start_sha256": c.sha256_file(out / "attest_start.json"), "start": pr["start"],
-           "stop_close": stop["stop_close"], "stop_status": stop["status"],
-           "sealed_final_ledger_sha256": c.sha256_file(stop_p),
+           "stop_close": None if nvs else stop["stop_close"], "stop_status": stop["status"],
+           "sealed_final_ledger_sha256": None if nvs else c.sha256_file(stop_p),
            "stop_sha256": c.sha256_file(out / "stop.json"),                       # Task 12 (A2.1/A7.1)
            "stop_line_sha256": stop_row.sha,                                       # A3 F1 graph 2: binds the STOP
            "recorded_utc": c.now_utc().isoformat()}
@@ -771,13 +786,22 @@ def score(root, ack_id: str, *, mailbox=None) -> dict:
     stop_row = j.first(gv.rows, "TRIAL-STOP")
     if stop_row is None:                                    # (F1: the score stage needs STOPPED; refused, no row)
         raise SystemExit("score refused: no TRIAL-STOP (F1): nothing written")
+    try:
+        pr = _load(out / "prereg.json")
+    except (OSError, ValueError) as e:
+        raise SystemExit(f"score refused: prereg unreadable ({type(e).__name__}): nothing written") from None
+    nvs = _nvs(gv, out, pr, "score")                        # A3 H2 (Erratum 2 r4 G1.1): the branch, on gv.rows
+    _score_branch_checks(gv, out, a, stop_row, nvs)         # (G1.4, G1.6a, C3.3), before any INTENT
     try:                                                    # fix round 1 (M-7, F0.7): before the INTENT an error
-        pr = _load(out / "prereg.json")                     # here is a refusal with a reason, nothing written
         seals = z.sampled_seals(out, gv.rows, pr["calendar"], c.aware(pr["start"]), upto_seq=stop_row.seq)
-        inputs = {"final/manifest.json": c.sha_or_absent(out / "final" / "manifest.json"),
-                  "attest_stop.json": c.sha_or_absent(out / "attest_stop.json"),
-                  "sampled_history": j.detail_of(z.sampled_history(gv.rows, stop_row, seals))}   # OQ-29
-    except (OSError, ValueError, KeyError, TypeError) as e:
+        history = j.detail_of(z.sampled_history(gv.rows, stop_row, seals))                    # OQ-29
+        if nvs:                                             # A3 H2 (G1.5): exactly the four NVS inputs
+            inputs = {"stop.json": c.sha256_file(out / "stop.json"), "trial_stop_line": stop_row.sha,
+                      "attest_stop.json": c.sha256_file(out / "attest_stop.json"), "sampled_history": history}
+        else:
+            inputs = {"final/manifest.json": c.sha_or_absent(out / "final" / "manifest.json"),
+                      "attest_stop.json": c.sha_or_absent(out / "attest_stop.json"), "sampled_history": history}
+    except (OSError, ValueError, KeyError, TypeError) as e:  # (here is a refusal with a reason, nothing written)
         raise SystemExit(f"score refused: sampled history unreadable ({type(e).__name__}): "
                          f"nothing written") from None
 
@@ -805,6 +829,74 @@ def score(root, ack_id: str, *, mailbox=None) -> dict:
         return []                         # INSUFFICIENT / INCONCLUSIVE / NO-VALID-SEAL / BLOCKED / numeric: committed
     s1_stage.run(gv, "score", inputs=inputs, acks={"S1-SCORE-ACK": a.sha}, work=work, mailbox=mailbox)
     return _load(out / "score" / "s1.json")
+
+
+def _snapshot_lower_bound(ack, written_utc):
+    """A3 H2, Erratum 2 Clarification 1 r2 C3.3: the S1 in-report check, named and reported as a LOWER BOUND only:
+    None when the SCORE-ACK was created strictly after the final-snapshot report's `written_utc` (a str or an aware
+    datetime), else the refusal reason. It does NOT prove that final_snapshot/report.json existed before the
+    SCORE-ACK (C3.1, the C0 OP-2 counterexample); publication-before-ACK is the issuer's read of the published report
+    (C3.2). A missing or unreadable written_utc fails the check (fail closed)."""
+    try:
+        w = c.aware(written_utc) if isinstance(written_utc, str) else written_utc
+        created = datetime.fromtimestamp(ack.created, tz=timezone.utc)
+        passed = isinstance(w, datetime) and created > w
+    except (ValueError, TypeError, OverflowError, OSError, AttributeError):
+        passed = False
+    if passed:
+        return None
+    return (f"S1-SCORE-ACK {getattr(ack, 'mailbox_id', '?')} is not after the final snapshot report's written_utc "
+            f"({written_utc}): refused (a lower bound check only, Clarification 1 C3.3)")
+
+
+def _score_branch_checks(gv, out: Path, a, stop_row, nvs: bool) -> None:
+    """A3 H2 (Erratum 2 r4 G1.4, G1.6a, NVS-A2/A3; Clarification 1 C3.3): before the score STAGE-INTENT, on the
+    command's verified gate rows (the stage gate repeats the predecessor rule inside the INTENT transaction on that
+    transaction's ACKs, OP-25). Under NVS(rows): no S1-ACQUIRE-ACK (mistaken, O3: refuse and escalate, nothing
+    written, no blocked.json), prev = the PREREG-ACK, final_manifest_sha256 = absent, final_snapshot_sha256 bound (never
+    absent, O1), journal_seq >= and created strictly after the stop_attest STAGE-CREATED row, and the C3 lower bound
+    against the bound report's written_utc. Otherwise (the normal branch) an absent-final or PREREG-prev SCORE-ACK is
+    the wrong branch (NVS-A3). Every failure refuses with no row."""
+    import s1_stage
+    acks, f = gv.trial.acks, a.fields
+    prereg = acks.get("S1-PREREG-ACK")
+    if not nvs:
+        if f.get("final_manifest_sha256") == ABSENT or (prereg is not None and f.get("prev") == prereg.mailbox_id):
+            raise SystemExit("score refused: a NO-VALID-SEAL-shaped SCORE-ACK (final_manifest_sha256=absent or prev = "
+                             "the PREREG-ACK) on a trial that is not NO-VALID-SEAL: wrong branch (NVS-A3); nothing "
+                             "written")
+        return
+    if "S1-ACQUIRE-ACK" in acks:
+        raise SystemExit(f"score refused: NO-VALID-SEAL trial with an S1-ACQUIRE-ACK "
+                         f"{acks['S1-ACQUIRE-ACK'].mailbox_id} "
+                         f"(mistaken S1-ACQUIRE-ACK, O3): refuse and escalate; nothing written")
+    if prereg is None or f.get("prev") != prereg.mailbox_id:
+        raise SystemExit("score refused: the NO-VALID-SEAL SCORE-ACK's prev is not the PREREG-ACK (G1.4); nothing "
+                         "written")
+    if f.get("final_manifest_sha256") != ABSENT:
+        raise SystemExit("score refused: a NO-VALID-SEAL SCORE-ACK binds final_manifest_sha256=absent only (G1.4); "
+                         "nothing written")
+    if f.get("final_snapshot_sha256") in (None, ABSENT):
+        raise SystemExit("score refused: the NO-VALID-SEAL SCORE-ACK binds no final snapshot (final_snapshot_sha256="
+                         "absent, O1); nothing written")
+    att = s1_stage.stage_rows(gv.rows, s1_stage.NVS_SCORE_PRED)["created"]
+    if att is None:
+        raise SystemExit("score refused: NO-VALID-SEAL without a stop_attest CREATED row (G1.2); nothing written")
+    if int(f["journal_seq"]) < att.seq:
+        raise SystemExit(f"score refused: the SCORE-ACK journal_seq {f['journal_seq']} precedes the stop_attest "
+                         f"CREATED "
+                         f"row (seq {att.seq}) (G1.4); nothing written")
+    if not a.created > att.created:
+        raise SystemExit("score refused: the SCORE-ACK is not created strictly after the stop_attest CREATED row "
+                         "(G1.4); nothing written")
+    try:
+        written = _load(out / "final_snapshot" / "report.json").get("written_utc")
+    except (OSError, ValueError, AttributeError) as e:
+        raise SystemExit(f"score refused: the final-snapshot report is unreadable for the lower bound check "
+                         f"({type(e).__name__}); nothing written") from None
+    why = _snapshot_lower_bound(a, written)
+    if why is not None:
+        raise SystemExit(f"score refused: {why}; nothing written")
 
 
 def _score_attempt(sw) -> dict:
@@ -1054,7 +1146,10 @@ def _seal_binding_problems(rep: dict, seals, pr: dict, opening_p, stop) -> list:
     return bad
 
 
-def _stop_attestation(out: Path, pr: dict, stop, stop_p, final_reserved) -> dict:
+def _stop_attestation(out: Path, pr: dict, stop, stop_p, final_reserved, *, nvs: bool = False) -> dict:
+    """The score's provenance check of attest_stop.json. A3 H2 (Erratum 2 r4 G1.3): the two nulls stop_close and
+    sealed_final_ledger_sha256 are accepted ONLY under `nvs` (a verified NVS(rows), with stop_status NO-VALID-SEAL
+    and no stop close / stop seal); on the normal branch a null is flagged, never valid."""
     p = out / "attest_stop.json"
     if not p.exists():
         return {"ok": False, "present": False, "problems": ["no stop attestation recorded"]}
@@ -1066,11 +1161,19 @@ def _stop_attestation(out: Path, pr: dict, stop, stop_p, final_reserved) -> dict
         probs.append("START attestation hash differs")
     if a.get("start") != pr["start"]:
         probs.append("START differs")
-    if stop is None or stop.get("stop_close") is None or a.get("stop_close") is None or \
-            c.aware(a["stop_close"]) != c.aware(stop["stop_close"]):
-        probs.append("stop close differs")
-    if stop_p is None or a.get("sealed_final_ledger_sha256") != c.sha256_file(stop_p):
-        probs.append("sealed final ledger hash differs")
+    if nvs:                                                # G1.3: the NVS-only nulls (no stop close, no final ledger)
+        if a.get("stop_status") != "NO-VALID-SEAL":
+            probs.append("stop status differs")
+        if a.get("stop_close") is not None or stop is None or stop.get("stop_close") is not None:
+            probs.append("stop close differs")
+        if a.get("sealed_final_ledger_sha256") is not None or stop_p is not None:
+            probs.append("sealed final ledger hash differs")
+    else:
+        if stop is None or stop.get("stop_close") is None or a.get("stop_close") is None or \
+                c.aware(a["stop_close"]) != c.aware(stop["stop_close"]):
+            probs.append("stop close differs")
+        if stop_p is None or a.get("sealed_final_ledger_sha256") != c.sha256_file(stop_p):
+            probs.append("sealed final ledger hash differs")
     if a.get("stop_sha256") != c.sha_or_absent(out / "stop.json"):                # Task 12 (A2.1)
         probs.append("persisted stop (stop.json) hash differs")
     try:
@@ -1232,7 +1335,17 @@ def _score(out: Path, mailbox=None) -> dict:
                 invalid.append("final acquisition manifest bundle differs from prereg")
         except (Invalid, FileNotFoundError) as e:
             invalid.append(f"final acquisition unusable: {e}")
-    attest = _stop_attestation(out, pr, stop, stop_p, final_reserved)
+    nvs = False                                            # A3 H2 (Erratum 2 r4 G1.1): computed once, on the journal
+    if stop is not None and stop["status"] == "NO-VALID-SEAL":
+        try:
+            tr_, rows_ = z._journal(mailbox, out)
+            nvs = z.nvs(out, rows_, start, cal, tr_.bundle)
+        except (ValueError, KeyError, TypeError, b.BookError) as e:
+            invalid.append(f"NO-VALID-SEAL branch unverifiable: {type(e).__name__}: {e}")
+        else:
+            if not nvs:                                    # a NO-VALID-SEAL stop the branch predicate does not verify
+                invalid.append("NO-VALID-SEAL stop not verified by the branch predicate (Erratum 2 G1.1)")
+    attest = _stop_attestation(out, pr, stop, stop_p, final_reserved, nvs=nvs)
     held0 = since0 = asof = held = since = lots = None
     if opening is not None:                                # ruling M-2: ledger errors are ABORTED-INVALID first
         try:
@@ -1263,8 +1376,10 @@ def _score(out: Path, mailbox=None) -> dict:
         rep["reasons"] += blocked
         return done("BLOCKED", attest)
 
-    # 3. NO-VALID-SEAL
+    # 3. NO-VALID-SEAL (A3 H2, Erratum 2 r4 G1.7 / ruling OP-4): classification INCONCLUSIVE, nomination false; no
+    # pricing, no return, no provider call
     if stop["status"] == "NO-VALID-SEAL":
+        rep["classification"] = "INCONCLUSIVE"
         return done("NO-VALID-SEAL", attest)
 
     # 4. untrusted carry-in inventory (bridge book from the frozen final ledger) -> INCONCLUSIVE before pricing

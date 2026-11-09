@@ -1,0 +1,201 @@
+# A3 H2 behavioural RED (Erratum 2 r4 G1 rows 400-407, 450-453, 467; Clarification 1 r2 rows 480-490; NOP-1/NOP-5/OP-25 additions; the 7 un-held NVS-1 tests and T13 N-2).
+# Test files (final): *test_s1_a3_nvs.py f0fe76c227801f70938e8cbaf73f02beafa2ad0a92166b5f98375038cdc3cc95 *test_s1_a3_close.py 94850736db6ba46f06503df63bf2a10c27a5c0c2e189774745e0ae9fa9cad36f 
+# Against the H2 Step-1 interface stub = a clean export of HEAD 5c5a5119def2ed9cf34f0c6f97d140f2d20fa734 (git archive HEAD research/s1) plus the additive
+#   stub edits (scratchpad tH2/mk_stub.py): s1_seal.nvs -> False; s1_stage.permitted(nvs=) and s1_run._stop_attestation(nvs=) accepted and
+#   ignored; s1_run._snapshot_lower_bound -> None; s1_trial.product_context(acks_in_txn=) accepted and ignored; trials/token/_close unchanged
+#   (rank reading); no written_utc; conftest = HEAD's (the conftest change is not in the stub, plan Step 1). The H2 test files copied in.
+#   Stub sha256: *s1_seal.py 0df8435ef2fddc52ee131ada1962384266757617e1e6a40c71b4649c28da9db4 *s1_stage.py 1fdb0511a73ca8da85e8edfbd4a7142ed418e351880fb2501aa62d62d57ea6fc *s1_run.py 02dbafdadcadf3fa2e4de8998b64d0788e771ca41dd6b09a4396f8b5689ad5cf *s1_trial.py 0a8e2e4e03803a3ed855f0547e8cbab2526b83784c5bd844919348345550a227 
+# cmd (from that tree): PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python -m pytest -p conftest -p no:cacheprovider --basetemp=<scratch> <paths> -q --tb=line -rfEsp
+# Labels: s1_evidence/a3/tH2_red_labels.md. Private C1 probe (not end-to-end): tH2_red_c1_probe.txt.
+# started 2026-11-09T00:20:23Z
+
+FFFFFFFFFFFFFFFFFF.FFFFFF....FFFFFFFFFFFFFFFFFFFFFFFFFFFFF...FFFFFFFFFFF [ 74%]
+FFFFFFFFFFFFF..FFFFF.FFFF                                                [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_trial.py:381: s1_trial.Refusal: no S1-ACQUIRE-ACK for trial 1282bcf8-9741-4d17-bf39-28805eb70140: no S1-SCORE-ACK can follow (F7.1)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_trial.py:381: s1_trial.Refusal: no S1-ACQUIRE-ACK for trial c756a83b-4f23-4b7c-9d18-ed0722185745: no S1-SCORE-ACK can follow (F7.1)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_trial.py:381: s1_trial.Refusal: no S1-ACQUIRE-ACK for trial 3d0d71c4-8050-4145-bed3-91d66a12c136: no S1-SCORE-ACK can follow (F7.1)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_trial.py:381: s1_trial.Refusal: no S1-ACQUIRE-ACK for trial 27d0a779-9a69-49a5-91af-a078b9046321: no S1-SCORE-ACK can follow (F7.1)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_a3_nvs.py:48: Failed: attest_stop refused on the NVS branch: stop attestation refused: no stop recorded (status NO-VALID-SEAL)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_stage.py:313: SystemExit: stage score: STAGE-INTENT REFUSE with no row: stage score: predecessor final is not CREATED (F1)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_stage.py:313: SystemExit: stage score: STAGE-INTENT REFUSE with no row: stage score: predecessor final is not CREATED (F1)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_run.py:636: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_run.py:655: AssertionError: assert ('S1-ACQUIRE-ACK' not in {'S1-ACQUIRE-ACK': Ack(mailbox_id='acq-ack', created=1808834400.0, sender='codex', recipient='claude', key='experiment... 'journal_seq': '80', 'journal_head_sha256': '0f6a02deb8b5894a1ae0124eaacbbf045b8072625ab6e4c9ffdec0fcc032dc48'}), ...})
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_tests\test_s1_run.py:871: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_stage.py:313: SystemExit: stage score: STAGE-INTENT REFUSE with no row: stage score: predecessor final is not CREATED (F1)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_stage.py:313: SystemExit: stage score: STAGE-INTENT REFUSE with no row: stage score: predecessor final is not CREATED (F1)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH2\stub\research\s1\s1_stage.py:313: SystemExit: stage score: STAGE-INTENT REFUSE with no row: stage score: predecessor final is not CREATED (F1)
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_branch_commits_inconclusive_score
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[no-ack]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[before-stop-attest]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[seq-before-stop-attest]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[before-w-last]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[before-snapshot]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[wrong-trial]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[ack-bundle-chain]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[wrong-stop-line]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[wrong-attest-sha]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[wrong-stop-sha]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[prev-run]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[prev-audit]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[prev-missing-acquire]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_ack_defects_refuse[nvs-with-acquire-prev]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_normal_stop_cannot_take_nvs_path[stopped]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_normal_stop_cannot_take_nvs_path[timeout]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_wrong_branch_score_ack_names_the_branch
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_forged_or_damaged_nvs_never_inconclusive[bad-stop-detail]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_forged_or_damaged_nvs_never_inconclusive[damaged-qualified]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_forged_or_damaged_nvs_never_inconclusive[damaged-ineligible-seal]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_forged_or_damaged_nvs_never_inconclusive[damaged-opening]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_forged_or_damaged_nvs_never_inconclusive[registered-bundle-changed]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_exact_schemas[nvs] - ...
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_failure_and_recovery_rules[publication-gap]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_failure_and_recovery_rules[same-ack-replay]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_failure_and_recovery_rules[conflicting-intent]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_score_failure_and_recovery_rules[computation-error]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_close_scored_evidence
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_known_invalidity_never_enters_score[committed-invalid]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_known_invalidity_never_enters_score[local-abort-after-stop-attest]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_failure_discovered_during_authorized_score
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_score_helper_unit_aborted_invalid
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_snapshot_cases[missing-before-issuance]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_snapshot_cases[deleted-after-binding]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_snapshot_cases[changed-after-binding]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_snapshot_cases[unconfirmed-read]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_snapshot_cases[fence-violation]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_mistaken_acquire_ack_on_nvs[refuse-escalate]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_mistaken_acquire_ack_on_nvs[no-blocked-json]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_mistaken_acquire_ack_on_nvs[close-skipping-acquire]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_mistaken_acquire_ack_on_nvs[withdrawn-fixture]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_mistaken_acquire_ack_after_the_gate_refuses_in_the_intent_transaction
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_final_plan_and_final_refuse_nothing_to_acquire
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_score_ack_issuer_reads_published_report[report-absent]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_score_ack_issuer_reads_published_report[report-hash-differs]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_score_ack_issuer_reads_published_report[report-same-hash]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_score_ack_written_utc_lower_bound[created-le-written]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_score_ack_written_utc_lower_bound[created-gt-written]
+FAILED research/s1/s1_tests/test_s1_a3_nvs.py::test_lower_bound_does_not_prove_publication_order
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_nvs_fork_stale_close_refused[stale-prev-score-refused]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_nvs_fork_stale_close_refused[no-automatic-blocked-invalid-withdrawal]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_nvs_fork_withdrawn_names_latest_acquire
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[created-tie-SCORED]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[created-tie-WITHDRAWN]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[created-tie-INVALID]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[invalid-chain-candidate-SCORED]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[invalid-chain-candidate-WITHDRAWN]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_ambiguous_or_invalid_predecessor_refuses[invalid-chain-candidate-INVALID]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_close_chronology_attribution_boundaries[non-official-ack-ignored]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_close_chronology_attribution_boundaries[malformed-attributed-refuses]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_close_chronology_attribution_boundaries[unattributable-malformed-not-this-trials]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_first_valid_close_monotone[ack-after-closure]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_first_valid_close_monotone[second-close-after-closure]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_scored_close_issuer_validation_no_send[record-absent]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_scored_close_issuer_validation_no_send[hash-mismatch]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_scored_close_issuer_validation_no_send[hash-match]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_scored_close_issuer_validation_no_send[prepared-mismatch]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_scored_close_issuer_validation_no_send[prepared-without-created]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_scored_close_issuer_validation_no_send[wrong-trial]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_scored_close_issuer_validation_no_send[wrong-root]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_scored_close_issuer_validation_no_send[wrong-op]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_scored_close_issuer_validation_no_send[unreadable-source]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_issued_close_runtime_lifecycle[closes-every-root]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_issued_close_runtime_lifecycle[rootless-lookup]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_issued_close_runtime_lifecycle[no-reopen-from-filesystem]
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_trusted_issuer_residual_wrong_hash_closes
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_abort_recovery_controls[nvs-healthy]
+FAILED research/s1/s1_tests/test_s1_checkpoint_7b.py::test_no_valid_seal_trial_scores_no_valid_seal
+FAILED research/s1/s1_tests/test_s1_run.py::test_score_no_valid_seal_is_never_fail
+FAILED research/s1/s1_tests/test_s1_run.py::test_early_score_ack_while_running_is_refused_with_no_output
+FAILED research/s1/s1_tests/test_s1_run.py::test_post_end_score_ack_scores_a_no_valid_seal_trial
+FAILED research/s1/s1_tests/test_s1_run.py::test_score_ack_before_the_no_valid_seal_window_end_is_refused
+FAILED research/s1/s1_tests/test_s1_run.py::test_post_window_score_ack_scores_no_valid_seal
+FAILED research/s1/s1_tests/test_s1_t12_a9.py::test_a9_every_non_numeric_disposition_makes_no_valuation_call[NO-VALID-SEAL]
+FAILED research/s1/s1_tests/test_s1_task11.py::test_m7_every_report_kind_carries_restarts_and_the_quantity_bridge[no-valid-seal]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_forged_or_damaged_nvs_never_inconclusive[forged-stop-json]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_nvs_exact_schemas[normal-control]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_not_terminal_nvs_cannot_attest_or_score[before-w-last]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_not_terminal_nvs_cannot_attest_or_score[pending-w-no-lots]
+PASSED research/s1/s1_tests/test_s1_a3_nvs.py::test_not_terminal_nvs_cannot_attest_or_score[unresolved]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_normal_chain_close_unchanged[scored-after-score]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_normal_chain_close_unchanged[invalid-after-prereg]
+PASSED research/s1/s1_tests/test_s1_a3_close.py::test_normal_chain_close_unchanged[withdrawn-after-acquire]
+PASSED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_abort_recovery_controls[discovered-in-score]
+PASSED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_abort_recovery_controls[numeric-healthy]
+PASSED research/s1/s1_tests/test_s1_run.py::test_combined_abort_and_no_valid_seal_is_recorded_invalid_and_refused
+86 failed, 11 passed in 513.13s (0:08:33)
+# pytest exit 1
+# finished 2026-11-09T00:28:57Z

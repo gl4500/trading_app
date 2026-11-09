@@ -371,11 +371,6 @@ def s1_score_refused(root, ack_id, reason="registration-artifact"):
                 "nomination": False, "reasons": [f"score error: {type(e).__name__}: {e}"]}
 
 
-S1_NVS_HELD = ("held with A3 Task 13 concern 1 (awaiting a ruling): a NO-VALID-SEAL trial has no stop_attest, "
-               "final_plan or final stage, and the F4 table (score pred = final CREATED, F1 graph) refuses its score "
-               "INTENT with no row, while OQ-28 names NO-VALID-SEAL among the normally committed scores")
-
-
 def s1_score_invalid(root, ack_id, reason="registration-artifact"):
     """A3 Task 13 (intended, F4.9 score abort / OQ-28 AMEND): the score stage ending its one attempt INVALID - for
     `registration-artifact` an ABORTED-INVALID verdict of _score (an established integrity violation, confirmed on a
@@ -886,8 +881,8 @@ def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=
     root = Path(root)
     out = root / "s1_out"
     sessions, ledger = info["sessions"], info["ledger"]
-    if stop_attest and stop["status"] in ("STOPPED", "TIMEOUT"):
-        with _Clock(t):
+    if stop_attest and stop["status"] in ("STOPPED", "TIMEOUT", "NO-VALID-SEAL"):   # A3 H2 (Erratum 2 r4 G1.2/G1.3):
+        with _Clock(t):                                                            # NVS is attested too
             r.attest_stop(root, r.STOP_STATEMENT)
     info["stop_attested_at"] = t
     if upto == "after-stop-attest":                                    # A3 Task 14 (s1_state(upto=...))
@@ -932,10 +927,8 @@ def _s1_finish(root, info, t, stop, *, lots, held_syms, stop_attest=True, final=
         if upto == "after-final":                     # A3 Task 14: final CREATED at reserved + 3 min (_final_stage)
             info["now"] = reserved + timedelta(minutes=4)
             return info
-    else:
-        shift = timedelta(0)
-        # A3 Task 5 (F1 graph 4): the ACQUIRE-ACK after the final plan (NO-VALID-SEAL: no final plan, its fields absent)
-        s1_ack(root, "acq-ack", "S1-ACQUIRE-ACK", t + timedelta(hours=2))
+    else:                                             # A3 H2 (Erratum 2 r4 G1.2, G1.6): NO-VALID-SEAL has no final
+        shift = timedelta(0)                          # plan, no ACQUIRE-ACK, no final (old: an ACQUIRE-ACK at t + 2 h)
     info["snapshot_at"] = t + timedelta(days=2, minutes=5) + shift  # the acquisition-time snapshot (§6)
     if final_snapshot:
         with _Clock(info["snapshot_at"]):

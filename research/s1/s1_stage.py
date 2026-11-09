@@ -11,6 +11,7 @@ import json
 import re
 from pathlib import Path
 
+import s1_books
 import s1_common as c
 import s1_journal as j
 import s1_locks as L
@@ -176,14 +177,31 @@ def committed_commitment(root, trial_id: str, stage: str, rows) -> dict:
     return json.loads(blob)
 
 
-def permitted(trial, rows, stage: str):
+NVS_SCORE_PRED = "stop_attest"                  # A3 H2 (Erratum 2 r4 G1.2): the score's predecessor under NVS(rows)
+
+
+def permitted(trial, rows, stage: str, *, nvs=None):
     """F1 + the finalization graph: the stage's trial state, its predecessor's CREATED row (or the TRIAL-STOP), and
     its required ACK. A reason string refuses the INTENT with no row (F0.5 step 5). A seal stage additionally needs
-    its close determined; that check is the caller's extra_gate (s1_slot.seal_gate, E2.2 r3)."""
+    its close determined; that check is the caller's extra_gate (s1_slot.seal_gate, E2.2 r3).
+    A3 H2 (Erratum 2 r4 G1.2, G1.4, G1.6a): `nvs` (a callable rows -> bool, s1_seal.nvs bound to the trial; used
+    for stage `score` only) selects the NO-VALID-SEAL branch on THESE rows: the predecessor is stop_attest CREATED,
+    the ACK still S1-SCORE-ACK and the state still STOPPED, and an S1-ACQUIRE-ACK in `trial.acks` (the deciding
+    transaction's ACKs, ruling OP-25) refuses and escalates (O3). Otherwise the TABLE row (pred final). Every other
+    stage is unchanged; TABLE is unchanged. An exception of `nvs` propagates (a refusal, never the normal branch)."""
     sp = spec(stage)
     st_ = j.trial_state(rows)
     if st_ != sp["state"]:
         return f"F1: stage {stage} is not allowed while {st_}"
+    if stage == "score" and nvs is not None and nvs(rows):
+        if stage_rows(rows, NVS_SCORE_PRED)["created"] is None:
+            return f"stage score (NO-VALID-SEAL): predecessor {NVS_SCORE_PRED} is not CREATED (Erratum 2 G1.2)"
+        if "S1-ACQUIRE-ACK" in trial.acks:
+            return ("stage score: NO-VALID-SEAL with an S1-ACQUIRE-ACK (mistaken S1-ACQUIRE-ACK, O3): refuse and "
+                    "escalate")
+        if sp["ack"] not in trial.acks:
+            return f"stage {stage}: no {sp['ack']} (F1 graph)"
+        return None
     pred = sp["pred"]
     if pred == "TRIAL-STOP":
         if j.first(rows, "TRIAL-STOP") is None:
@@ -271,29 +289,62 @@ def _no_selection(rows, subject, inputs):
     return None
 
 
+TXN_ACK_STAGES = ("score",)    # A3 H2 (ruling OP-25): stages whose stage gate reads the transaction's parsed ACKs
+
+
 def _append(gv, req, mailbox, clock, stage_gate, stage_check):
     """Every stage row (INTENT, PREPARED, CREATED) goes through product_context: CLOSED is read from the CLOSE rows of
     the same sqlite file inside the BEGIN IMMEDIATE transaction (F0.5 step 2) and INVALID from the journal rows
     (step 3), so a seal stage's PREPARED/CREATED is serializable with TRIAL-INVALID, TRIAL-STOP and CLOSE
-    (E2.3 r3). The gate callables are always real (decide refuses a missing one at step 5)."""
+    (E2.3 r3). The gate callables are always real (decide refuses a missing one at step 5). A3 H2 (ruling OP-25): for
+    the score stage the stage gate is given the official ACKs parsed from the same connection inside the transaction
+    (acks_in_txn), so the NVS predecessor rule is decided on the deciding transaction's ACKs, not the gate snapshot."""
     import s1_trial
+    txn = req.subject in {j.stage_subject(s) for s in TXN_ACK_STAGES}
     return j.append(gv.trial.trial_id, gv.trial.genesis, req,
-                    s1_trial.product_context(gv.trial, stage_gate=stage_gate, stage_check=stage_check),
+                    s1_trial.product_context(gv.trial, stage_gate=stage_gate, stage_check=stage_check,
+                                             acks_in_txn=txn),
                     mailbox=mailbox, clock=clock)
+
+
+def _nvs_of(gv):
+    """A3 H2 (Erratum 2 r4 G1.1/G1.2): the NVS predicate of the score stage gate, bound to the trial (out, prereg
+    start and calendar read ONCE here, before the transaction; the bundle = the AUDIT-ACK's). Returns (callable,
+    None), or (None, reason) when prereg cannot be read (the gate then refuses: fail closed). The rows are always the
+    transaction's (I-5); nothing is cached across calls (I-7)."""
+    import s1_seal
+    try:
+        pr = c.load_json(Path(gv.out) / "prereg.json")
+        start, cal = c.aware(pr["start"]), pr["calendar"]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+        return None, f"stage score: prereg unreadable for the NO-VALID-SEAL predicate ({type(e).__name__}): fail closed"
+    return (lambda rows_: s1_seal.nvs(gv.out, rows_, start, cal, gv.trial.bundle)), None
 
 
 def _gates(gv, stage, extra_gate, stage_check):
     """(stage_gate, stage_check) for the stage's transactions. stage_gate = permitted AND extra_gate. A seal stage's
     extra_gate (the determined close, E2.2) and stage_check (the selected QUALIFIED, E2.2 4a) belong to the seal side
     and are never defaulted: a missing gate refuses and a missing check stays missing, so decide() refuses the INTENT
-    with no row (fail closed)."""
+    with no row (fail closed). stage_gate(rows, stage, trial=None): `trial` is the deciding transaction's parsed
+    trial (s1_trial.product_context(acks_in_txn=True), ruling OP-25), else the gate's. A3 H2: the score stage's gate
+    supplies the NVS predicate to permitted (Erratum 2 r4 G1.2)."""
     seal = _is_seal(stage)
+    nvs, why_not = _nvs_of(gv) if stage == "score" else (None, None)
+
+    def allowed(rows_, g, trial):
+        if why_not is not None:
+            return why_not
+        try:
+            return permitted(trial if trial is not None else gv.trial, rows_, g, nvs=nvs)
+        except (OSError, ValueError, KeyError, TypeError, s1_books.BookError) as e:  # H2 fix round 1 (M-5, F0.7)
+            return (f"stage {g}: the NO-VALID-SEAL predicate cannot be evaluated ({type(e).__name__}: {e}): "
+                    f"fail closed, no row")
     if extra_gate is None and seal:
-        def stage_gate(rows_, g):
-            return permitted(gv.trial, rows_, g) or "no seal gate supplied (fail closed)"
+        def stage_gate(rows_, g, trial=None):
+            return allowed(rows_, g, trial) or "no seal gate supplied (fail closed)"
     else:
-        def stage_gate(rows_, g):
-            return permitted(gv.trial, rows_, g) or (extra_gate(rows_) if extra_gate is not None else None)
+        def stage_gate(rows_, g, trial=None):
+            return allowed(rows_, g, trial) or (extra_gate(rows_) if extra_gate is not None else None)
     if stage_check is None and not seal:
         stage_check = _no_selection
     return stage_gate, stage_check

@@ -6,7 +6,7 @@ import s1_journal as j
 import s1_run as r
 import s1_trial as t
 from conftest import s1_finalize, s1_reack, s1_replaced, s1_score_refused, s1_state
-from conftest import S1_NVS_HELD, s1_score_invalid                              # A3 Task 13
+from conftest import s1_score_invalid                                           # A3 Task 13
 from conftest import S1_LOCAL_ABORT, s1_local_abort_recorded                    # A3 H1 (Erratum 2 r4 G6)
 
 UTC = timezone.utc
@@ -462,10 +462,10 @@ def test_score_seal_or_receipt_violation_is_invalid(tmp_path, monkeypatch, tampe
     assert s1_score_refused(tmp_path, "score-ack", reason="stage-replaced")["verdict"] == "ABORTED-INVALID"
 
 
-@pytest.mark.skip(reason=S1_NVS_HELD)
 def test_score_no_valid_seal_is_never_fail(tmp_path, monkeypatch):                       # Review Focus 5
-    _, rep, _ = scored(tmp_path, monkeypatch, lots=[], seal_days=[])
+    _, rep, _ = scored(tmp_path, monkeypatch, lots=[], seal_days=[])          # A3 H2: un-held (G1.9, NVS-A1)
     assert rep["verdict"] == "NO-VALID-SEAL" and rep["nomination"] is False
+    assert rep["classification"] == "INCONCLUSIVE" and "levels" not in rep and "n" not in rep
 
 
 def test_score_timeout_with_few_lots_is_insufficient_not_fail(tmp_path, monkeypatch):   # Review Focus 5
@@ -622,32 +622,40 @@ def test_score_runner_changed_since_prereg_is_invalid(tmp_path, monkeypatch):
 # ---------------------------------------------------------------- Task 7 review fix round 1 (I-1..I-3, M-1..M-4, M-6)
 def test_early_score_ack_while_running_is_refused_with_no_output(tmp_path, monkeypatch):
     """Retrospective (Task 7 review fix round 1), I-1: an early SCORE-ACK (absent/absent token) while the trial is
-    RUNNING writes nothing; once the trial has ended (here NO-VALID-SEAL) a post-end ACK scores normally.
-    Input adjusted in fix round 2 (ruling R-1): reusing the early ACK after the end is now refused by design, so
-    the second step uses s1_state's "score-ack", created after the window end."""
+    RUNNING writes nothing. A3 Task 13 fix round 1 (M-5) moved the post-end NO-VALID-SEAL score into
+    test_post_end_score_ack_scores_a_no_valid_seal_trial; this test keeps only the early-ACK refusal (A3 H2, T13
+    N-2: docstring corrected)."""
     st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
     at(monkeypatch, START_DT + timedelta(days=2))
     s1_reack(tmp_path, "early", "S1-SCORE-ACK", START_DT + timedelta(days=1))
     # Task 12 (A2.1) input note: s1_state's final snapshot already persisted the NO-VALID-SEAL stop, so the early
     # ACK is refused for preceding the persisted end (the refusal and "nothing written" are unchanged)
-    with pytest.raises(t.Refusal, match="S1-SCORE-ACK early: created not after its predecessor"):   # A3 F6.1/F7.1
+    # A3 H2 (intended, Erratum 2 r4 G1.4 PRED, F6.1): on the NVS branch the SCORE-ACK's predecessor is the
+    # PREREG-ACK (no ACQUIRE-ACK exists), so the early ACK is refused by its journal binding instead (old match:
+    # "S1-SCORE-ACK early: created not after its predecessor", the fixture's ACQUIRE-ACK)
+    with pytest.raises(t.Refusal, match=r"S1-SCORE-ACK early: created not after the journal row it references"):
         r.score(tmp_path, "early")
     assert not (tmp_path / "s1_out" / "score").exists()
-    # A3 Task 13 fix round 1 (M-5): the NO-VALID-SEAL score half is split out and held (S1_NVS_HELD); this early-ACK
+    # A3 Task 13 fix round 1 (M-5): the NO-VALID-SEAL score half is split out (un-held in A3 H2); this early-ACK
     # half is no NVS score behaviour and runs
     trs = t.trials(t.scan(tmp_path / "mailbox.sqlite3"))       # (read without the open-trial refusal: the early
     (tid,) = [x for x, tr_ in trs.items() if tr_.closed is None]   # ACK makes the chain refuse)
     assert j.subject_rows(j.read_trial(tid, trs[tid].genesis, tmp_path / "mailbox.sqlite3"), "stage/score") == []
 
 
-@pytest.mark.skip(reason=S1_NVS_HELD)
 def test_post_end_score_ack_scores_a_no_valid_seal_trial(tmp_path, monkeypatch):
     """The NVS half of test_early_score_ack_while_running_is_refused_with_no_output (split in A3 Task 13 fix round 1,
-    M-5): after the end, a re-issued post-end SCORE-ACK scores NO-VALID-SEAL normally."""
+    M-5): after the end, a re-issued post-end SCORE-ACK scores NO-VALID-SEAL normally.
+    A3 H2 (un-held, Erratum 2 r4 G1.9): the fixture builds the NVS branch (stop_attest, the final snapshot, no
+    ACQUIRE-ACK); the re-issued SCORE-ACK names the PREREG-ACK (NVS-A2 shape), then NVS-A1."""
     st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
     at(monkeypatch, st_["now"])
     s1_reack(tmp_path, "score-ack", "S1-SCORE-ACK", st_["now"] - timedelta(days=1))   # (Codex re-issues the ACK)
-    assert r.score(tmp_path, "score-ack")["verdict"] == "NO-VALID-SEAL"
+    tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+    assert "S1-ACQUIRE-ACK" not in tr.acks and (tmp_path / "s1_out" / "attest_stop.json").is_file()
+    assert tr.acks["S1-SCORE-ACK"].fields["prev"] == tr.acks["S1-PREREG-ACK"].mailbox_id
+    rep = r.score(tmp_path, "score-ack")
+    assert (rep["verdict"], rep["classification"], rep["nomination"]) == ("NO-VALID-SEAL", "INCONCLUSIVE", False)
 
 
 @pytest.mark.parametrize("offset", [timedelta(hours=-1), timedelta(0)])
@@ -723,13 +731,24 @@ def test_combined_carry_in_and_cap_reports_carry_in_inconclusive(tmp_path, monke
     assert "k" not in rep                                                       # the cap was never evaluated
 
 
-@pytest.mark.skip(reason=S1_NVS_HELD)
-def test_combined_abort_and_no_valid_seal_is_aborted_invalid(tmp_path, monkeypatch):
-    """Retrospective (Task 7 review fix round 1), M-3."""
+def test_combined_abort_and_no_valid_seal_is_recorded_invalid_and_refused(tmp_path, monkeypatch):
+    """Retrospective (Task 7 review fix round 1), M-3. A3 H2 (un-held and renamed, Erratum 2 r4 G1.9 / NVS-A9(b),
+    G6.4/G6.6; old name test_combined_abort_and_no_valid_seal_is_aborted_invalid, old oracle a committed
+    ABORTED-INVALID score): a local aborted.json on an NVS trial after stop_attest CREATED is recorded by the
+    score's trial gate - one TRIAL-INVALID established-violation / local-abort - and the score is refused with no
+    _score call, no score INTENT and no INCONCLUSIVE. The ABORTED-INVALID diagnostic of the private _score helper
+    is unit-level only (test_s1_a3_nvs.py::test_score_helper_unit_aborted_invalid, NVS-A10 label)."""
     st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
     (tmp_path / "s1_out" / "aborted.json").write_text(json.dumps({"reason": "x"}), encoding="utf-8")
     at(monkeypatch, st_["now"])
-    assert r.score(tmp_path, "score-ack")["verdict"] == "ABORTED-INVALID"
+    calls, real = [], r._score
+    monkeypatch.setattr(r, "_score", lambda *a, **kw: calls.append(1) or real(*a, **kw))
+    with pytest.raises(SystemExit, match=S1_LOCAL_ABORT):
+        r.score(tmp_path, "score-ack")
+    assert s1_local_abort_recorded(tmp_path)["original_reason"] == "x" and calls == []
+    trs = t.trials(t.scan(tmp_path / "mailbox.sqlite3"))
+    (tid,) = trs
+    assert j.subject_rows(j.read_trial(tid, trs[tid].genesis, tmp_path / "mailbox.sqlite3"), "stage/score") == []
 
 
 def test_combined_blocked_and_insufficient_is_blocked(tmp_path, monkeypatch):
@@ -798,7 +817,10 @@ def test_score_ack_created_while_running_is_refused_after_the_stop(tmp_path, mon
     drop_final_and_attestation(tmp_path)
     s1_reack(tmp_path, "early", "S1-SCORE-ACK", START_DT + timedelta(hours=6))
     at(monkeypatch, st_["now"])
-    with pytest.raises(t.Refusal, match="S1-SCORE-ACK early: created not after its predecessor"):     # A3 F6.1/F7.1
+    # A3 H2 (intended, Erratum 2 r4 G1.4 two-shape PRED): an S1-SCORE-ACK created before the ACQUIRE-ACK has the
+    # PREREG-ACK as its mailbox-level predecessor, so its prev (the ACQUIRE-ACK) is refused as such (old match:
+    # "S1-SCORE-ACK early: created not after its predecessor")
+    with pytest.raises(t.Refusal, match=r"S1-SCORE-ACK early: prev 'acq-ack' is not the S1-PREREG-ACK"):
         r.score(tmp_path, "early")
     with pytest.raises(SystemExit, match="is not strictly after the trial's end"):   # the legacy check (unit)
         r._pre_reserve_gate(tmp_path / "s1_out",
@@ -823,7 +845,10 @@ def test_score_ack_strictly_after_the_stop_with_a_final_manifest_scores(tmp_path
     st_ = s1_state(tmp_path, START, score_ready=True)
     s1_reack(tmp_path, "at-stop", "S1-SCORE-ACK", STOP_CLOSE)
     at(monkeypatch, st_["now"])
-    with pytest.raises(t.Refusal, match="S1-SCORE-ACK at-stop: created not after its predecessor"):   # A3 F6.1/F7.1
+    # A3 H2 (intended, Erratum 2 r4 G1.4 two-shape PRED): an S1-SCORE-ACK created before the ACQUIRE-ACK has the
+    # PREREG-ACK as its mailbox-level predecessor, so its prev (the ACQUIRE-ACK) is refused as such (old match:
+    # "S1-SCORE-ACK at-stop: created not after its predecessor")
+    with pytest.raises(t.Refusal, match=r"S1-SCORE-ACK at-stop: prev 'acq-ack' is not the S1-PREREG-ACK"):
         r.score(tmp_path, "at-stop")
     with pytest.raises(SystemExit, match="is not strictly after the trial's end"):   # the legacy check (unit)
         r._pre_reserve_gate(tmp_path / "s1_out",
@@ -833,21 +858,34 @@ def test_score_ack_strictly_after_the_stop_with_a_final_manifest_scores(tmp_path
     assert r.score(tmp_path, "after-stop")["verdict"] == "SHADOW PASS"
 
 
-@pytest.mark.skip(reason=S1_NVS_HELD)
 def test_score_ack_before_the_no_valid_seal_window_end_is_refused(tmp_path, monkeypatch):
     """Retrospective (Task 7 review fix round 2), R-1: for NO-VALID-SEAL the end instant is the last eligible
-    session's seal window end."""
+    session's seal window end. A3 H2 (T13 N-2): split - this refusal half runs (un-held); the post-window score is
+    test_post_window_score_ack_scores_no_valid_seal."""
     st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
     s1_reack(tmp_path, "before-end", "S1-SCORE-ACK", st_["now"] - timedelta(days=5))
     at(monkeypatch, st_["now"])
-    with pytest.raises(t.Refusal, match="S1-SCORE-ACK before-end: created not after its predecessor"):   # A3 F6.1/F7.1
+    # A3 H2 (intended, Erratum 2 r4 G1.4 PRED, F6.1): the NVS SCORE-ACK's predecessor is the PREREG-ACK, so the
+    # early ACK is refused by its journal binding (it precedes the stop_attest CREATED row; NVS-A2) - old match
+    # "S1-SCORE-ACK before-end: created not after its predecessor" (the fixture's ACQUIRE-ACK)
+    with pytest.raises(t.Refusal, match=r"S1-SCORE-ACK before-end: created not after the journal row it "
+                                         r"references"):
         r.score(tmp_path, "before-end")
     with pytest.raises(SystemExit, match="is not strictly after the trial's end"):   # the legacy check (unit)
         r._pre_reserve_gate(tmp_path / "s1_out",
                             {"ack_id": "x", "created_utc": (st_["now"] - timedelta(days=5)).isoformat()})
     assert not (tmp_path / "s1_out" / "score").exists()
+
+
+def test_post_window_score_ack_scores_no_valid_seal(tmp_path, monkeypatch):
+    """A3 H2 (T13 N-2): the NVS-dependent line split out of
+    test_score_ack_before_the_no_valid_seal_window_end_is_refused - a SCORE-ACK re-issued after the window end
+    scores the NO-VALID-SEAL trial (Erratum 2 r4 NVS-A1)."""
+    st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[])
+    at(monkeypatch, st_["now"])
     s1_reack(tmp_path, "score-ack", "S1-SCORE-ACK", st_["now"] - timedelta(days=1))
-    assert r.score(tmp_path, "score-ack")["verdict"] == "NO-VALID-SEAL"
+    rep = r.score(tmp_path, "score-ack")
+    assert (rep["verdict"], rep["classification"]) == ("NO-VALID-SEAL", "INCONCLUSIVE")
 
 
 def test_score_ack_before_the_recorded_abort_is_refused(tmp_path, monkeypatch):
@@ -1188,7 +1226,11 @@ def test_cr_no_valid_seal_end_when_the_deadline_is_not_a_session(tmp_path, monke
         s1_common.NY).date().isoformat() == "2027-05-02"                  # Task 12 (A5.1) interface: an instant
     s1_reack(tmp_path, "before-end", "S1-SCORE-ACK", st_["now"] - timedelta(days=5))
     at(monkeypatch, st_["now"])
-    with pytest.raises(t.Refusal, match="S1-SCORE-ACK before-end: created not after its predecessor"):   # A3 F6.1
+    # A3 H2 (intended, Erratum 2 r4 G1.4 PRED, F6.1): the NVS SCORE-ACK's predecessor is the PREREG-ACK (the NVS
+    # fixture has no ACQUIRE-ACK), so the early ACK is refused by its journal binding (old match: "S1-SCORE-ACK
+    # before-end: created not after its predecessor")
+    with pytest.raises(t.Refusal, match=r"S1-SCORE-ACK before-end: created not after the journal row it "
+                                         r"references"):
         r.score(tmp_path, "before-end")
     with pytest.raises(SystemExit, match="is not strictly after the trial's end"):   # the legacy check (unit)
         r._pre_reserve_gate(tmp_path / "s1_out",
