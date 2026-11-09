@@ -17,7 +17,7 @@ import s1_receipt as rc
 import s1_run as r
 from conftest import s1_prereg_at  # A3 Task 10 (fixture instant)
 from conftest import s1_prereg_ack  # A3 Task 6
-from conftest import S1_BINDING, S1_PROCESS, S1_RECEIPT, s1_receipt_with, s1_state
+from conftest import S1_BINDING, S1_PROCESS, S1_RECEIPT, s1_finalize_close, s1_receipt_with, s1_state
 from test_s1_t12_a5_a6 import S45, S47, SEAL_P, Snap, _registered
 from test_s1_t12_fix2_b1 import Clock, Killed, res_path, run
 
@@ -107,7 +107,7 @@ def test_mt_an_arbitrary_report_file_does_not_resolve_a_slot(tmp_path, monkeypat
     # A3 Task 7 (F3 table, "no row: any claim, capture, report or resolution"): the dropped report resolves nothing
     # and is itself the registration-artifact violation at the finalizer's gate - no MISSED file, no seal from it
     with pytest.raises(SystemExit, match=r"report exists with no journal row .*INVALID \(registration-artifact\)"):
-        ck.finalize_close(out, day, st_["calendar"], S45 + timedelta(minutes=11))
+        s1_finalize_close(tmp_path, day, st_["calendar"], lambda: S45 + timedelta(minutes=11))   # (H3, O8)
     assert not res_path(tmp_path, S45).exists() and not SEAL_P(tmp_path).exists()
     assert c.load_abort(out)["reason"] == c.REGISTRATION_ARTIFACT
 
@@ -386,7 +386,7 @@ def test_mt_a_resolution_claiming_success_for_a_late_capture_never_seals(tmp_pat
     # A3 Task 7 (F3): a forged resolution of a slot with no journal row is never selected - the finalizer's gate
     # finds it (the "no row" violation): TRIAL-INVALID (registration-artifact), never a seal
     with pytest.raises(SystemExit, match=r"resolution exists with no journal row .*INVALID \(registration-artifact\)"):
-        ck.finalize_close(out, day, st_["calendar"], S47 + timedelta(minutes=9))
+        s1_finalize_close(tmp_path, day, st_["calendar"], lambda: S47 + timedelta(minutes=9))    # (H3, O8)
     assert not SEAL_P(tmp_path).exists()
 
 

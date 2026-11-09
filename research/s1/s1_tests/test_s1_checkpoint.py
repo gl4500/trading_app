@@ -400,7 +400,7 @@ def test_cr_main_dispatches_each_mode_with_the_live_paths(monkeypatch, capsys):
     monkeypatch.setattr(k, "run_final_snapshot", lambda root, db: {"mode": "final", "root": str(root), "db": str(db)})
 
     def fake(mode):
-        def f(root, db, sch, receipt, proc, log):
+        def f(root, db, sch, receipt, proc, log, **kw):             # (A3 H3: main passes now=c.now_utc)
             assert receipt() == {"ok": 1} and proc is k.r.process_identity and log == k.CRASH_LOG
             return {"mode": mode, "root": str(root), "db": str(db), "sch": sch.isoformat()}
         return f
@@ -442,7 +442,7 @@ def test_fr1_main_and_trial_state_compare_modes_and_status_by_value(tmp_path, mo
     that is an equal but distinct str is still recognised."""
     monkeypatch.setattr(k, "run_final_snapshot", lambda root, db: {"mode": "final-snapshot"})
     monkeypatch.setattr(k, "run_opening_checkpoint", lambda *a: {"mode": "opening"})
-    monkeypatch.setattr(k, "run_checkpoint", lambda *a: {"mode": "scheduled"})
+    monkeypatch.setattr(k, "run_checkpoint", lambda *a, **kw: {"mode": "scheduled"})   # (A3 H3: now=)
     for mode in ("final-snapshot", "opening", "scheduled"):
         monkeypatch.setattr(k, "parse_mode", lambda argv=None, m=mode: ("".join(list(m)), None))
         k.main([])
@@ -451,8 +451,7 @@ def test_fr1_main_and_trial_state_compare_modes_and_status_by_value(tmp_path, mo
     # A3 Task 6 fix round 1 (C1): finalize_pending reads the open trial's journal (fail closed); this unit test has no
     # trial, and its subject is the RUNNING comparison: an empty journal is supplied
     monkeypatch.setattr(s1_common, "_open_trial_rows", lambda mailbox=None: [])
-    # A3 Task 7: finalize_pending is the journal finalizer behind its own trial gate; this unit test has no trial
-    monkeypatch.setattr(k, "finalize_pending", lambda *a, **kw: None)
+    # (A3 H3, O8: the no-op patch of the retired finalize_pending is dropped; no product code called it)
     # A3 Task 11 (intended): _trial_state reads the journal's stop (s1_seal.current_stop, F1/F2), no longer
     # stop_decision over the seal files - the equal-but-distinct "RUNNING" is injected there
     monkeypatch.setattr(k.z, "current_stop", lambda *a, **kw: {"status": "".join(list("RUNNING")),

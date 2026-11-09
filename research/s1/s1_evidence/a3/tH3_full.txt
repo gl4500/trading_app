@@ -1,0 +1,7 @@
+# A3 H3 full suite (one clean run, single process; no edit under research/s1 while it ran): research/s1/s1_tests (every test file)
+# working tree on base e9bc6c0d0d87f77934f8847412fdefe9591ba14c; baseline (H2, e9bc6c0): 5292 passed, 0 skipped
+# sha256: 8ff18d9179bb340c736c152df44586ec0fb8dbb939224190cb9250c97fafd154 *s1_checkpoint.py 9b2eea9175f760c32cb038639c5af01d9a89323a4248acef5a647ec1fa037dc3 *s1_tests/conftest.py f97202cf299f51392f5731469e9032d204000ec7e061aa3be64061ec1abd1f59 *s1_tests/test_s1_a3_wpend.py fdb365cf7608887005ad8d24fbbc953366dad11dff13d5210f926520379576e1 *s1_tests/test_s1_a3_prestart.py 
+# started 2026-11-09T08:45:51Z
+5343 passed in 5730.61s (1:35:30)
+# pytest exit 0
+# finished 2026-11-09T10:21:24Z

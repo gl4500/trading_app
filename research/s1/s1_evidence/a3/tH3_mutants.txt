@@ -1,0 +1,266 @@
+# A3 H3 semantic mutants (scratchpad tH3/mk_mutant.py, run_mutants.sh): each mutant is a copy of the H3 working tree's research/s1 with ONE
+# product edit in s1_checkpoint.py; the named killer tests run against it. Every kill is an AssertionError or a pytest Failed
+# (incl. DID NOT RAISE / Regex pattern did not match) at the test's oracle line (ruling B3). 13 mutants, 13 killed.
+#   """H3 semantic mutants on a copy of the worktree's research/s1 (argv[1] = mutant root, argv[2] = worktree, argv[3] =
+#   mutant id). ONE product edit in s1_checkpoint.py (CRLF preserved) per mutant:
+#     r1 the W_L route is taken BEFORE verified_registration (prereg read directly; no registration check)
+#     r2 route predicate widened: any slot invoked at now >= its E is routed (a non-W_L slot after E is laundered)
+#     r3 the route catches the SystemExit of _close_for for W_L and finalizes anyway
+#     r4 the route is placed BEFORE _no_local_abort
+#     r5 run_finalizer without its _no_local_abort (O7)
+#     r6 the route freezes its clock: one invocation-start instant, `lambda: t0`, is passed down (I-6)
+#     o1 finalize_opening without _no_local_abort
+#     o2 finalize_opening builds a Worker (SLOT-INTENT path) for the first opening slot with no row
+#     o3 finalize_opening writes a synthetic seal from the TIMEOUT slot when no QUALIFIED slot sealed the opening
+#     o4 finalize_opening swallows _opening_stage exceptions as success
+#     o5 finalize_opening skips the gate's refusal (an INVALID trial is finalized from an ungated view)
+#     o6a parse_mode gains a --finalize-opening mode
+#     o6b --finalize (run_finalizer) is extended to the pre-START opening close (no registration -> finalize_opening)"""
+#   import shutil
+#   import sys
+#   from pathlib import Path
+#   
+#   dst, wt, mid = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
+#   if dst.exists():
+#       shutil.rmtree(dst)
+#   shutil.copytree(wt / "research" / "s1", dst / "research" / "s1", ignore=shutil.ignore_patterns("__pycache__"))
+#   P = dst / "research" / "s1" / "s1_checkpoint.py"
+#   s = P.read_bytes().decode("utf-8")
+#   assert "\r\n" in s
+#   s = s.replace("\r\n", "\n")
+#   
+#   ROUTE = ('''    _no_local_abort(out, "checkpoint")
+#       if scheduled == _w_last(cal, start):                 # A3 H3 (Erratum 2 r4 G2.1(2), O6): exact W_L, at any clock
+#           return _w_last_route(gv, out, cal, start, scheduled, now, mailbox)
+#   ''')
+#   REG = '''    pr = g.verified_registration(out, "checkpoint", mailbox, now)     # Task 12: A3.2 bundle first, then A8.2
+#   '''
+#   CLOSE_FOR = '''    day = _close_for(scheduled, cal)
+#       close = z.close_of(day["date"], cal)
+#   '''
+#   FIN_ABORT = '''    _no_local_abort(out, "finalizer")                  # A3 H3 (Erratum 2 r4 G2.1(5), O7): before any finalizer work
+#   '''
+#   OP_GATE = '''    gv = s1_trial.gate(root, "opening finalizer", mailbox=mailbox, now=now, defer_pending=True)   # C4.2 (N2)
+#   '''
+#   OP_ABORT = '''    _no_local_abort(out, "opening finalizer")                                                  # C4.3 (F8.1)
+#   '''
+#   OP_FIN = '''    fin = s1_slot.finalize_close(gv, day, cal, now, mailbox=mailbox, before_seal=before_seal)   # C4.4: due rows only
+#   '''
+#   OP_APPLY = '''        _apply_opening(fin, _opening_stage(gv, out, day, cal, now, mailbox))
+#   '''
+#   OP_EXC = '''    except SystemExit:
+#           raise
+#       except Exception as e:                      # noqa: BLE001 - F0.7 (Task 10 fix round 1, M3): fail closed, no row
+#   '''
+#   FINALIZER_REG = '''    pr = g.verified_registration(out, "finalizer", mailbox, now)
+#   '''
+#   PARSE = '''    ap.add_argument("--finalize", action="store_true", help="journal finalizer + stop decision (A3 Task 11)")
+#       a = ap.parse_args(argv)
+#   '''
+#   
+#   MUT = {
+#       "r1": [(ROUTE, '''    _no_local_abort(out, "checkpoint")
+#   '''), (REG, '''    _pr0 = _load(out / "prereg.json")                                  # MUTANT r1: route before the registration
+#       if scheduled == _w_last(_pr0["calendar"], c.aware(_pr0["start"])):
+#           return _w_last_route(gv, out, _pr0["calendar"], c.aware(_pr0["start"]), scheduled, now, mailbox)
+#   ''' + REG)],
+#       "r2": [(ROUTE, '''    _no_local_abort(out, "checkpoint")
+#       if scheduled == _w_last(cal, start) or now() >= z.eligible_until(scheduled, day, cal):   # MUTANT r2
+#           return _w_last_route(gv, out, cal, start, scheduled, now, mailbox)
+#   ''')],
+#       "r3": [(CLOSE_FOR, '''    try:                                                                  # MUTANT r3
+#           day = _close_for(scheduled, cal)
+#       except SystemExit:
+#           if scheduled == _w_last(cal, start):
+#               return _w_last_route(gv, out, cal, start, scheduled, now, mailbox)
+#           raise
+#       close = z.close_of(day["date"], cal)
+#   ''')],
+#       "r4": [(ROUTE, '''    if scheduled == _w_last(cal, start):                 # MUTANT r4: the route before the local-abort refusal
+#           return _w_last_route(gv, out, cal, start, scheduled, now, mailbox)
+#       _no_local_abort(out, "checkpoint")
+#   ''')],
+#       "r5": [(FIN_ABORT, "    pass                                               # MUTANT r5\n")],
+#       "r6": [(ROUTE, '''    _no_local_abort(out, "checkpoint")
+#       if scheduled == _w_last(cal, start):                 # MUTANT r6: an invocation-start instant, frozen
+#           _t0 = now()
+#           return _w_last_route(gv, out, cal, start, scheduled, lambda: _t0, mailbox)
+#   ''')],
+#       "o1": [(OP_ABORT, "    pass                                                                                       # MUTANT o1\n")],
+#       "o2": [(OP_FIN, '''    import s1_journal as _j                                                                     # MUTANT o2
+#       _rows = _j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox if mailbox is None else mailbox)
+#       _free = [x for x in z.schedule(day, cal) if not _j.subject_rows(_rows, _j.slot_subject(x))]
+#       if _free:
+#           with s1_slot.Worker(gv, _free[0], day, cal, slot_gate=s1_slot.opening_gate(gv.trial, out), mailbox=mailbox,
+#                               now=now) as _w:
+#               try:
+#                   _w.intent()
+#               except SystemExit:
+#                   pass
+#   ''' + OP_FIN)],
+#       "o3": [(OP_APPLY, OP_APPLY + '''        _sp = out / "seals" / f"{day['date']}.json"                                               # MUTANT o3
+#           if not _sp.exists():
+#               import s1_journal as _j
+#               _to = [x for x in _j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox if mailbox is None else
+#                                               mailbox) if x.kind == "SLOT-TIMEOUT"]
+#               if _to:
+#                   c.publish_text_exclusive(_sp, json.dumps({"synthetic": True, "capture": {
+#                       "scheduled": s1_slot.slot_of(_to[-1].subject).isoformat()}}))
+#   ''')],
+#       "o4": [(OP_EXC, '''    except SystemExit:
+#           raise
+#       except Exception:                                                                        # MUTANT o4
+#           return fin
+#       except BaseException as e:                  # noqa: BLE001
+#   ''')],
+#       "o5": [(OP_GATE, '''    try:                                                                                        # MUTANT o5
+#           gv = s1_trial.gate(root, "opening finalizer", mailbox=mailbox, now=now, defer_pending=True)
+#       except SystemExit:
+#           import s1_journal as _j
+#           _tr = s1_trial.open_trial(mailbox)
+#           gv = s1_trial.Gate(Path(root), Path(root) / "s1_out", _tr, _j.read_trial(_tr.trial_id, _tr.genesis, mailbox),
+#                              "ACTIVE", mailbox)
+#   ''')],
+#       "o6a": [(PARSE, '''    ap.add_argument("--finalize", action="store_true", help="journal finalizer + stop decision (A3 Task 11)")
+#       ap.add_argument("--finalize-opening", action="store_true")                                # MUTANT o6a
+#       a = ap.parse_args(argv)
+#       if a.finalize_opening:
+#           return "finalize-opening", None
+#   ''')],
+#       "o6b": [(FINALIZER_REG, '''    try:                                                                                        # MUTANT o6b
+#           pr = g.verified_registration(out, "finalizer", mailbox, now)
+#       except SystemExit:
+#           return finalize_opening(root, now, mailbox=mailbox)
+#   ''')],
+#   }
+#   for old, new in MUT[mid]:
+#       if s.count(old) != 1:
+#           raise SystemExit(f"{mid}: {s.count(old)} matches for {old[:60]!r}")
+#       s = s.replace(old, new)
+#   P.write_bytes(s.replace("\n", "\r\n").encode("utf-8"))
+#   print(f"mutant {mid} ready")
+# base e9bc6c0d0d87f77934f8847412fdefe9591ba14c + H3 working tree; mk_mutant.py sha256 dd25030a4ef6e13bc93036ac4f070d48b3a35f10d2f030d257c99bafa2a8e83e
+mutant r1 ready
+## mutant r1: research/s1/s1_tests/test_s1_a3_wpend.py::test_w_last_route_identity_first[forged-auth]
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_r1\research\s1\s1_tests\test_s1_a3_wpend.py:138: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_w_last_route_identity_first[forged-auth]
+1 failed in 2.95s
+## exit 1
+mutant r2 ready
+## mutant r2: research/s1/s1_tests/test_s1_a3_wpend.py::test_refusals_never_become_finalization[non-w-after-e] research/s1/s1_tests/test_s1_a3_wpend.py::test_no_window_extension
+FF                                                                       [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_r2\research\s1\s1_tests\test_s1_a3_wpend.py:164: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_r2\research\s1\s1_tests\test_s1_a3_wpend.py:316: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_refusals_never_become_finalization[non-w-after-e]
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_no_window_extension - F...
+2 failed in 6.26s
+## exit 1
+mutant r3 ready
+## mutant r3: research/s1/s1_tests/test_s1_a3_wpend.py::test_refusals_never_become_finalization[injected-systemexit]
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_r3\research\s1\s1_tests\test_s1_a3_wpend.py:164: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_refusals_never_become_finalization[injected-systemexit]
+1 failed in 2.91s
+## exit 1
+mutant r4 ready
+## mutant r4: research/s1/s1_tests/test_s1_a3_wpend.py::test_local_abort_refuses_route_and_finalizer[route]
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_r4\research\s1\s1_tests\test_s1_a3_wpend.py:413: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_local_abort_refuses_route_and_finalizer[route]
+1 failed in 5.37s
+## exit 1
+mutant r5 ready
+## mutant r5: research/s1/s1_tests/test_s1_a3_wpend.py::test_local_abort_refuses_route_and_finalizer[finalizer]
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_r5\research\s1\s1_tests\test_s1_a3_wpend.py:413: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_local_abort_refuses_route_and_finalizer[finalizer]
+1 failed in 5.19s
+## exit 1
+mutant r6 ready
+## mutant r6: research/s1/s1_tests/test_s1_a3_wpend.py::test_w_last_route_pins_clock_and_no_live_callback research/s1/s1_tests/test_s1_a3_wpend.py::test_late_scheduler_invocation
+FF                                                                       [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_r6\research\s1\s1_tests\test_s1_a3_wpend.py:97: assert False
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_r6\research\s1\s1_tests\test_s1_a3_wpend.py:306: assert ([datetime.dat...timezone.utc)] == [datetime.dat...timezone.utc)]
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_w_last_route_pins_clock_and_no_live_callback
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_late_scheduler_invocation
+2 failed in 11.53s
+## exit 1
+mutant o1 ready
+## mutant o1: research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_precedence[local-abort]
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_o1\research\s1\s1_tests\test_s1_a3_prestart.py:973: AssertionError: Regex pattern did not match.
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_precedence[local-abort]
+1 failed in 1.20s
+## exit 1
+mutant o2 ready
+## mutant o2: research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_no_new_work[no-worker] research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_no_new_work[no-slot-intent]
+FF                                                                       [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_o2\research\s1\s1_tests\test_s1_a3_prestart.py:998: Failed: a Worker was built
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_o2\research\s1\s1_tests\test_s1_a3_prestart.py:998: Failed: a Worker was built
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_no_new_work[no-worker]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_no_new_work[no-slot-intent]
+2 failed in 1.26s
+## exit 1
+mutant o3 ready
+## mutant o3: research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_no_new_work[no-qualifying-capture-no-opening]
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_o3\research\s1\s1_tests\test_s1_a3_prestart.py:1008: AssertionError: assert ([] == []
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_no_new_work[no-qualifying-capture-no-opening]
+1 failed in 0.91s
+## exit 1
+mutant o4 ready
+## mutant o4: research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_preserves_recovery[stage-error-to-refusal]
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_o4\research\s1\s1_tests\test_s1_a3_prestart.py:1036: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_preserves_recovery[stage-error-to-refusal]
+1 failed in 1.01s
+## exit 1
+mutant o5 ready
+## mutant o5: research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_precedence[invalid]
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_o5\research\s1\s1_tests\test_s1_a3_prestart.py:973: AssertionError: Regex pattern did not match.
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_precedence[invalid]
+1 failed in 0.98s
+## exit 1
+mutant o6a ready
+## mutant o6a: research/s1/s1_tests/test_s1_a3_wpend.py::test_no_new_cli_mode
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_o6a\research\s1\s1_tests\test_s1_a3_wpend.py:454: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_no_new_cli_mode - Faile...
+1 failed in 0.56s
+## exit 1
+mutant o6b ready
+## mutant o6b: research/s1/s1_tests/test_s1_a3_wpend.py::test_no_new_cli_mode
+F                                                                        [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\mut_o6b\research\s1\s1_tests\test_s1_a3_wpend.py:462: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_no_new_cli_mode - Faile...
+1 failed in 0.87s
+## exit 1
+ALL-DONE

@@ -1107,6 +1107,27 @@ def s1_prereg_at(root):
     return datetime.fromtimestamp(a.created, tz=timezone.utc) + timedelta(minutes=1)
 
 
+def s1_finalize_close(root, day, cal, now, *, mailbox=None):
+    """A3 H3 (Erratum 2 r4 G2.1(6), O8) test helper: the journal finalizer of ONE post-START close on the
+    clock-callable path - the trial gate as a deadline path (defer_pending=True, ruling N2) and s1_slot.finalize_close
+    with the clock CALLABLE `now` (j.append samples it inside each transaction), then the stop decision with the same
+    callable when the trial has a prereg (as the retired s1_checkpoint.finalize_close's post-START branch did). Replaces
+    the tests' calls of that frozen wrapper; never a product path and never a fixed instant built from a start time
+    by product code. Returns s1_slot.finalize_close's result. Test-only."""
+    import s1_common as c
+    import s1_seal as z
+    import s1_slot as sl
+    import s1_trial as t
+    mb = Path(root) / "mailbox.sqlite3" if mailbox is None else mailbox
+    gv = t.gate(root, "fixture: finalize one close", mailbox=mb, now=now, defer_pending=True)
+    fin = sl.finalize_close(gv, day, cal, now, mailbox=mb)
+    pr_p = Path(root) / "s1_out" / "prereg.json"
+    if pr_p.is_file():
+        pr = c.load_json(pr_p)
+        z.decide_stop(gv, pr["calendar"], c.aware(pr["start"]), now, mailbox=mb)
+    return fin
+
+
 def s1_close_out(root, cal, opening_close):
     """A3 Task 10 (F7.2(b) literal, OQ-37 ruling; E5.6) test helper: the journal finalizer (s1_slot.finalize_close,
     a deadline-path gate) on the opening close at the E of its last scheduled (W) slot, so every scheduled

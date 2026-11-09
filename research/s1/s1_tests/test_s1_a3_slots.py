@@ -540,7 +540,8 @@ def _late_r_45(tmp_path, st_, monkeypatch, s45, d45):
 
 def test_finalize_pending_never_seals_a_slot_without_a_qualified_row(tmp_path, monkeypatch):
     """Review C1 (F3, A2 B1.3, E1.2, E1.4): a worker whose R reaches D keeps its SUCCESS P but has no SLOT-QUALIFIED
-    row; finalize_pending (stop attestation / final plan / final snapshot) selects from the journal: no seal from that
+    row; the finalizer selects from the journal (A3 H3, O8: the retired finalize_pending's path is the finalizer
+    command, run_finalizer, with a clock callable): no seal from that
     slot, and no TIMEOUT or MISSED file is written into any slot of the close."""
     st_ = registered(tmp_path)
     day, s45 = first_slot(st_)
@@ -551,7 +552,10 @@ def test_finalize_pending_never_seals_a_slot_without_a_qualified_row(tmp_path, m
     files = lambda: sorted(p.relative_to(out).as_posix() for p in (out / "captures").rglob("*"))   # noqa: E731
     before = files()
     pr = json.loads((out / "prereg.json").read_text(encoding="utf-8"))
-    ck.finalize_pending(out, cal, c.aware(pr["start"]), z.window_end(day, cal) + timedelta(hours=1))
+    at = z.window_end(day, cal) + timedelta(hours=1)
+    assert c.aware(pr["start"]) < at                           # (the close is post-START)
+    with _Clock(at):
+        ck.run_finalizer(tmp_path, now=lambda: at)             # A3 H3 (O8): the clock-callable path
     assert not (out / "seals" / f"{day['date']}.json").exists()
     # A3 Task 7 (E1.2, E1.4, OQ-13): the journal finalizer appends slot 45's TIMEOUT (past D, no QUALIFIED) and,
     # the worker being gone, moves its leftovers to late/; nothing is ever written INTO a slot

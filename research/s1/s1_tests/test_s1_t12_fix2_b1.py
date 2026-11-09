@@ -16,7 +16,7 @@ import s1_journal as j
 import s1_seal as z
 import s1_slot as sl
 import s1_trial as t
-from conftest import S1_PROCESS, S1_RECEIPT, _Clock
+from conftest import S1_PROCESS, S1_RECEIPT, _Clock, s1_finalize_close
 from test_s1_t12_a5_a6 import MON_CLOSE, S45, S47, SEAL_P, Snap, _registered
 
 UTC = timezone.utc
@@ -27,6 +27,14 @@ D45 = E45 + timedelta(minutes=30)                       # 21:25:00
 S2100 = datetime(2026, 10, 26, 21, 0, tzinfo=UTC)
 S2200 = datetime(2026, 10, 26, 22, 0, tzinfo=UTC)
 WAIT = 20                                               # seconds a synchronization wait may block (never a sleep)
+
+
+def _finalize(out, day, cal, at):
+    """A3 H3 (Erratum 2 r4 G2.1(6), O8): the call shape of the retired frozen wrapper
+    s1_checkpoint.finalize_close(out, day, cal, t), now on the clock-callable path (conftest.s1_finalize_close: the
+    deadline-path gate, s1_slot.finalize_close and the stop decision, each given the clock callable); `at` is the
+    test's own fixed clock."""
+    return s1_finalize_close(Path(out).parent, day, cal, lambda: at)
 
 
 def read(p):
@@ -287,13 +295,13 @@ def test_b1_expiration_racing_a_late_completion_cannot_change_the_winner(tmp_pat
     # A3 Task 7: the finalizer command (the journal finalizer behind its own gate; it also appends the MISSED rows
     # of the later past-E slots, F3) - the seal follows the winner, and a replay changes nothing
     with _Clock(D45 + timedelta(minutes=1)):
-        ck.finalize_close(out, day, cal, D45 + timedelta(minutes=1))
+        _finalize(out, day, cal, D45 + timedelta(minutes=1))  # A3 H3 (O8): the retired wrapper's clock-callable path
     seal_bytes = SEAL_P(tmp_path).read_bytes()
     assert json.loads(seal_bytes)["capture"]["scheduled"] == winner.isoformat()
     rows = _rows(tmp_path)
     assert [k_ for k_ in kinds(tmp_path, S45) if k_ != "SLOT-INTENT"] == terminal      # the winner stands
     with _Clock(D45 + timedelta(minutes=2)):
-        ck.finalize_close(out, day, cal, D45 + timedelta(minutes=2))                    # replay: nothing changes
+        _finalize(out, day, cal, D45 + timedelta(minutes=2))                    # replay: nothing changes (H3, O8)
     assert SEAL_P(tmp_path).read_bytes() == seal_bytes and [x.line for x in _rows(tmp_path)] == [x.line for x in rows]
 
 
@@ -372,7 +380,7 @@ def test_b1_concurrent_finalizers_and_restart_replay_give_one_deterministic_seal
     st_, clock = _setup(tmp_path, monkeypatch, S47 + timedelta(seconds=30))
     Snap(monkeypatch)
     run(tmp_path, st_, S47, clock)
-    real, real_journal = ck.finalize_close, sl.finalize_close    # A3 Task 7: the worker path's finalizer is the
+    real, real_journal = _finalize, sl.finalize_close    # A3 Task 7: the worker path's finalizer is the (H3, O8)
 
     def crash_before_finalize(*a, **kw):                        # journal finalizer (s1_slot.finalize_close)
         raise Killed()
@@ -419,10 +427,13 @@ def test_b1_a_pending_resolution_cannot_cause_an_early_terminal_stop_followed_by
     # A3 Task 6 (F0.5 step 6 with A5.3's E = W = s): the 08:00 slot's SLOT-INTENT at s = E is refused with no row
     # (and A5.2 refuses any capture before s), so the slot can never be in flight: no pending attempt exists that a
     # later publication could "rescue" - the stop is decided once
+    # A3 H3 (intended, Erratum 2 r4 G2.1(2)/(4), O6): s8 IS W_L - the exact W_L invocation no longer refuses
+    # "now >= E"; it takes the provider-free route (never a SLOT-INTENT, never a capture): at W the route's journal
+    # finalizer MISSES the unclaimed slots (W_L included, its E = W) and the stop decision may commit
     assert z.eligible_until(s8, last, cal) == s8
-    with pytest.raises(SystemExit, match="now >= E"):
-        run(tmp_path, st_, s8, clock)
-    assert spy.calls == 0 and kinds(tmp_path, s8) == []
+    got = run(tmp_path, st_, s8, clock)
+    assert got["route"] == "w-last"
+    assert spy.calls == 0 and kinds(tmp_path, s8) == ["SLOT-MISSED"]
     out = tmp_path / "s1_out"
     # A3 Task 11 (intended, F2.2 / r1 §1.3; fix round 1, review I2 ruling): the stop is decided only by decide_stop,
     # reached end to end through the PRODUCT finalizer command (s1_checkpoint --finalize -> run_finalizer: the last

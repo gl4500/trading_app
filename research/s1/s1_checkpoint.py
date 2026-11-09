@@ -29,7 +29,13 @@ work lock, SLOT-INTENT, the claim (op, actor, capture_dir), P (resolution, then 
 (the B1.3 worker-side RESOLUTION-TIMEOUT / .late.json / .overrun.json records are gone; the finalizer's TIMEOUT is
 Task 7); after the STOP a new slot is LOST-RACE with no capture; an established violation commits TRIAL-INVALID
 (established-violation) before the local abort; the seal is selected over QUALIFIED slots only; seal and stop
-presentation is display-only (<slot>.after.json, OQ-11)."""
+presentation is display-only (<slot>.after.json, OQ-11).
+
+A3 H3 (Erratum 2 r4 G2, R3-WPEND-1; Clarification 1 r2 C4): an exact `--scheduled W_L` invocation routes to the
+provider-free finalizer + stop decision at any clock (run_checkpoint -> _w_last_route); `--finalize` (run_finalizer)
+is the catch-up and refuses on a local abort; the frozen wrappers finalize_close / finalize_pending are retired; the
+opening close's crashed-worker recovery is finalize_opening (a clock-callable helper reachable by direct call only -
+no CLI mode, O-C4). The four modes are unchanged."""
 import argparse
 import inspect
 import json
@@ -334,35 +340,44 @@ def _complete_success(ev) -> bool:
             and ev["snapshot"] == cand["projection_sha256"])
 
 
-def finalize_close(out: Path, day, cal, t: datetime, before_seal=None, before_build=None, *, mailbox=None,
-                   now=None) -> dict:
-    """A3 Task 7: the finalizer command for one post-START close - the trial gate as a deadline path (ruling N2:
-    defer_pending=True, so a stalled stage lock never delays a TIMEOUT at D or a MISSED at E; the gate also runs the
-    F3 evidence table), then s1_slot.finalize_close (the journal finalizer: TIMEOUT / MISSED rows, the deferred
-    leftover cleanup, the seal/<close> stage). It never writes a resolution file. `t`: the finalizer's clock.
-    `before_seal` is the seal stage's before_publish hook; `before_build` is accepted for the legacy signature and
-    ignored. A3 Task 10 (Task 7 concern 7): for the OPENING close the same journal finalizer runs, then the `opening`
-    stage (_opening_stage) - so a crashed opening worker's SLOT-TIMEOUT at D determines the opening close and the
-    opening seal follows, even when no later opening slot is captured.
-    Returns {"written", "sha256", "from_slot", "deferred", "refused", "cleanup"}."""
+def finalize_opening(root, now=c.now_utc, *, mailbox=None, before_seal=None) -> dict:
+    """A3 H3 (Erratum 2 Clarification 1 r2 C4; Codex OP-1 (b), narrow): the provider-free, clock-callable opening
+    finalizer. It replaces the opening branch of the retired frozen wrapper s1_checkpoint.finalize_close (r4 G2.1(6),
+    O8) and keeps Task 7 concern 7 / Task 10's crashed-opening-worker recovery. Contract C4.1-C4.6:
+    - C4.1: ONE clock callable `now`, passed by identity to the gate, every journal transaction (s1_slot.finalize_close
+      and the `opening` stage hand it to j.append, which samples it inside BEGIN IMMEDIATE) and _opening_stage; no
+      invocation-start instant and no `lambda: t` is ever built here.
+    - C4.2: the existing pre-START gate binds the open trial / AUDIT-ACK (deadline path, defer_pending=True, ruling N2);
+      the registered opening identity is plan.json + the verified audit calendar (_opening_close_row), never prereg.
+    - C4.3: precedence - the gate (INVALID, CLOSED, no open trial, a surviving local abort recorded by H1's G6.4
+      recovery, the F3 evidence table: integrity violations), the bundle (verify_bundle_first, need="audit"), the
+      registered identity, then the F8.1 local-abort refusal (_no_local_abort) - all before any finalizer work.
+    - C4.4: only EXISTING attempts and deadlines are finalized (s1_slot.finalize_close: MISSED at E, TIMEOUT at D) and
+      the ALREADY-AUTHORIZED `opening` stage is materialized (_opening_stage: only when the close is determined by a
+      committed QUALIFIED slot with every earlier slot terminal; otherwise deferred). No Worker, no SLOT-INTENT, no
+      receipt / process / snapshot / provider callback, no capture and no seal of its own: a TIMEOUT at D never by
+      itself authorizes or fabricates an opening seal - no qualifying capture means no opening and no START.
+    - C4.5: idempotent; first-QUALIFIED order and the deadline boundaries are s1_slot's; an _opening_stage error is a
+      refusal with no row (F0.7; QualifiedEvidence -> the F3 INVALID; SystemExit propagates).
+    - C4.6 / O-C4: reachable by DIRECT CALL only - no CLI mode exposes it and --finalize is not extended to the
+      pre-START opening close (parse_mode keeps exactly four modes). Not autonomous scheduling, not a new operational
+      authorization. Returns {"written", "sha256", "from_slot", "deferred", "refused", "cleanup"}."""
     import s1_slot
-    gv = s1_trial.gate(Path(out).parent, "finalize", mailbox=mailbox, now=lambda: t, defer_pending=True)
-    fin = s1_slot.finalize_close(gv, day, cal, lambda: t, mailbox=mailbox, before_seal=before_seal,
-                                 before_build=before_build)
-    if day["date"] == s1_slot._opening_date(Path(out)):            # A3 Task 10 (Task 7 concern 7): the opening close
-        try:
-            _apply_opening(fin, _opening_stage(gv, Path(out), day, cal, lambda: t, mailbox))
-        except s1_slot.QualifiedEvidence as e:                     # F3: a committed tree damaged (a race past the
-            s1_slot.evidence_violation(gv, [str(e)], "opening seal stage", mailbox, clock=lambda: t)   # re-check)
-        except SystemExit:
-            raise
-        except Exception as e:                  # noqa: BLE001 - F0.7 (fix round 1, M3): unexpected errors fail closed
-            raise SystemExit(f"finalizer (opening stage) refused with no row ({type(e).__name__}: {e}) "
-                             f"(F0.7)") from None
-    elif (Path(out) / "prereg.json").is_file():       # A3 Task 11 (F2.2): a post-START close - the stop decision
-        pr = _load(Path(out) / "prereg.json")         # after the finalizer (the W slot's MISSED can complete it);
-        z.decide_stop(gv, pr["calendar"], c.aware(pr["start"]), now or c.now_utc,   # fix round 1 (review M1): a
-                      mailbox=mailbox)                # clock CALLABLE sampled inside the TRIAL-STOP transaction
+    gv = s1_trial.gate(root, "opening finalizer", mailbox=mailbox, now=now, defer_pending=True)   # C4.2 (N2)
+    out = Path(root) / "s1_out"
+    c.verify_bundle_first(out, "opening finalizer", mailbox=mailbox, now=now, need="audit")      # as the opening mode
+    day, cal = _opening_close_row(out, mailbox)                                                # C4.2: the identity
+    _no_local_abort(out, "opening finalizer")                                                  # C4.3 (F8.1)
+    fin = s1_slot.finalize_close(gv, day, cal, now, mailbox=mailbox, before_seal=before_seal)   # C4.4: due rows only
+    try:
+        _apply_opening(fin, _opening_stage(gv, out, day, cal, now, mailbox))
+    except s1_slot.QualifiedEvidence as e:                         # F3: a committed tree damaged (a race past the
+        s1_slot.evidence_violation(gv, [str(e)], "opening seal stage", mailbox, clock=now)       # re-check)
+    except SystemExit:
+        raise
+    except Exception as e:                      # noqa: BLE001 - F0.7 (Task 10 fix round 1, M3): fail closed, no row
+        raise SystemExit(f"finalizer (opening stage) refused with no row ({type(e).__name__}: {e}) "
+                         f"(F0.7)") from None
     return fin
 
 
@@ -441,11 +456,14 @@ def run_finalizer(root, now=c.now_utc, mailbox=None) -> dict:
     of every unsealed post-START close with slot rows (_finalize_others), the last eligible close once the clock is
     >= its W even when sealed (_finalize_last_if_due), and the stop decision (decide_stop, F2.2). `now` is a clock
     CALLABLE (c.now_utc): j.append samples it inside each transaction - the TRIAL-STOP's readiness is never a fixed
-    command-start instant (Codex 28e08272 checkpoint). Read-only towards the app: it captures nothing."""
+    command-start instant (Codex 28e08272 checkpoint). Read-only towards the app: it captures nothing.
+    A3 H3 (Erratum 2 r4 G2.1(5), G2.3; O7): the catch-up, invoked at or after every outstanding D; the F8.1
+    local-abort refusal (_no_local_abort) runs after the registration and before any finalizer or stop work."""
     gv = s1_trial.gate(root, "finalizer", mailbox=mailbox, now=now, defer_pending=True)
     out = Path(root) / "s1_out"
     pr = g.verified_registration(out, "finalizer", mailbox, now)
     start, cal = c.aware(pr["start"]), pr["calendar"]
+    _no_local_abort(out, "finalizer")                  # A3 H3 (Erratum 2 r4 G2.1(5), O7): before any finalizer work
     _finalize_others(gv, cal, start, "", now, mailbox)
     _finalize_last_if_due(gv, cal, start, now, mailbox)
     z.decide_stop(gv, cal, start, now, mailbox=mailbox)
@@ -453,15 +471,25 @@ def run_finalizer(root, now=c.now_utc, mailbox=None) -> dict:
             "stop": _public(z.current_stop(out, start, cal, now(), "finalizer", mailbox=mailbox))}
 
 
-def finalize_pending(out: Path, cal, start, t: datetime, *, mailbox=None) -> None:
-    """Fix round 3 (I-1) on the journal (A3 Task 7): run by a command BEFORE it decides or freezes the stop (stop
-    attestation, final plan, final snapshot) - the journal finalizer of every unsealed post-START close with slot rows
-    (TIMEOUT at D, MISSED at E, then its seal stage, which is refused with no row once the trial is not ACTIVE, E2.6).
-    Its own gate is a deadline path (defer_pending=True, ruling N2) and runs the F3 evidence table, so a damaged
-    QUALIFIED tree is TRIAL-INVALID (registration-artifact), never a mere refusal (Task 6 review N-2). It never writes
-    a resolution file into any slot (E1.4)."""
-    gv = s1_trial.gate(Path(out).parent, "finalize pending", mailbox=mailbox, now=lambda: t, defer_pending=True)
-    _finalize_others(gv, cal, start, "", lambda: t, mailbox)
+def _w_last(cal, start) -> datetime:
+    """A3 H3 (Erratum 2 r4 G2): W_L = schedule(L, cal)[-1] = window_end(L, cal), L = eligible_sessions(start, cal)[-1],
+    from the verified calendar and START (never from the invocation clock)."""
+    return z.schedule(z.eligible_sessions(start, cal)[-1], cal)[-1]
+
+
+def _w_last_route(gv, out: Path, cal, start, scheduled: datetime, now, mailbox) -> dict:
+    """A3 H3 (Erratum 2 r4 G2.1(3), G2.2; R3-WPEND-1): the exact W_L invocation's route - the provider-free journal
+    finalizer (_finalize_others, _finalize_last_if_due) and the stop decision (decide_stop), each given the command's
+    own clock callable `now` by identity, unwrapped (j.append samples it inside each transaction: only rows due on
+    their own transaction clock - MISSED at/after E, TIMEOUT at/after D - and a STOP ready under t11 §1.3 commit,
+    E2-C2). No Worker, no work lock, no SLOT-INTENT (an exact W_L invocation never opens an attempt: the narrow OQ-33
+    exception, O6), no receipt/process callback, no capture, no provider call, no frozen time. Every identity,
+    registration, slot and local-abort refusal has already propagated (run_checkpoint, G2.1(1))."""
+    _finalize_others(gv, cal, start, "", now, mailbox)
+    _finalize_last_if_due(gv, cal, start, now, mailbox)
+    z.decide_stop(gv, cal, start, now, mailbox=mailbox)
+    return {"scheduled": scheduled.isoformat(), "route": "w-last",
+            "stop": _public(z.current_stop(out, start, cal, now(), "w-last route", mailbox=mailbox))}
 
 
 def _trial_stop_error(out: Path, start, cal, t: datetime, mailbox=None):
@@ -502,7 +530,11 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
     clock check (t < s: FAILED with the refused report, OQ-33), the capture and the observations (unchanged), an
     established violation external first (OQ-31), the resolution and report (P), R and J (QUALIFIED, R < D) or
     FAILED; then the legacy seal selection over QUALIFIED slots and the legacy stop (display-only <slot>.after.json,
-    OQ-11/E5.2). The stored report is final before J; the returned dict adds the post-J outcome."""
+    OQ-11/E5.2). The stored report is final before J; the returned dict adds the post-J outcome.
+    A3 H3 (Erratum 2 r4 G2.1): after the gate, the registration, the registered-slot identity (_close_for) and the
+    F8.1 local-abort refusal - each refusal propagating - an EXACT W_L invocation (aware-instant equality with
+    _w_last of the verified calendar and START) takes the provider-free route (_w_last_route) at any clock; every
+    other slot keeps the worker path below unchanged (OQ-33 included)."""
     import s1_slot
     gv = s1_trial.gate(root, "checkpoint", mailbox=mailbox, now=now, defer_pending=True)   # A3 F0.6 (N2)
     out = Path(root) / "s1_out"
@@ -511,6 +543,8 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
     day = _close_for(scheduled, cal)
     close = z.close_of(day["date"], cal)
     _no_local_abort(out, "checkpoint")
+    if scheduled == _w_last(cal, start):                 # A3 H3 (Erratum 2 r4 G2.1(2), O6): exact W_L, at any clock
+        return _w_last_route(gv, out, cal, start, scheduled, now, mailbox)
     with s1_slot.Worker(gv, scheduled, day, cal, slot_gate=s1_slot.post_start_gate(gv.trial), mailbox=mailbox,
                         now=now) as w:
         lost = w.intent()
@@ -623,9 +657,11 @@ def _audit_calendar(out: Path, mailbox=None) -> tuple:
     return aud["plan"], aud["calendar"]
 
 
-def _opening_day(out: Path, scheduled: datetime, mailbox=None) -> tuple:
-    """(opening calendar row, calendar): plan.json + the verified audit calendar, never prereg.json. Refuses unless
-    the plan's opening_close is the session immediately before planned START and `scheduled` is one of its slots."""
+def _opening_close_row(out: Path, mailbox=None) -> tuple:
+    """(opening calendar row, calendar): the registered opening identity - plan.json + the verified audit calendar,
+    never prereg.json. Refuses unless the plan's opening_close is the session immediately before planned START. A3 H3
+    (Clarification 1 C4.2): factored out of _opening_day (its identity part, without a scheduled slot) for
+    finalize_opening; _opening_day calls it."""
     if not (out / "plan.json").exists():
         raise SystemExit("opening refused: no plan.json")
     plan, cal = _audit_calendar(out, mailbox)
@@ -634,7 +670,13 @@ def _opening_day(out: Path, scheduled: datetime, mailbox=None) -> tuple:
     if not prior or prior[-1]["date"] != plan.get("opening_close"):
         raise SystemExit(f"opening refused: plan opening_close {plan.get('opening_close')!r} is not the session "
                          f"immediately before planned START ({plan['planned_start']}) in the audit calendar")
-    day = prior[-1]
+    return prior[-1], cal
+
+
+def _opening_day(out: Path, scheduled: datetime, mailbox=None) -> tuple:
+    """(opening calendar row, calendar): plan.json + the verified audit calendar, never prereg.json. Refuses unless
+    the plan's opening_close is the session immediately before planned START and `scheduled` is one of its slots."""
+    day, cal = _opening_close_row(out, mailbox)
     try:
         slots = z.schedule(day, cal)
     except ValueError as e:
@@ -1024,14 +1066,14 @@ def main(argv=None):
     def receipt(reference=None):                           # fix round 2 (I-1): the bound receipt, raw check first
         kw = {} if reference is None else {"reference": reference}
         return r.semantic_receipt(REPO, REPO / ".env", REPO / "runtime" / "python" / "python.exe", **kw)
-    if mode == "finalize":                                 # A3 Task 11 fix round 1 (review C1): the finalizer command
-        rep = run_finalizer(c.HERE)
+    if mode == "finalize":                                 # A3 Task 11 fix round 1 (review C1): the finalizer command;
+        rep = run_finalizer(c.HERE, now=c.now_utc)          # A3 H3 (T11 N1): the command clock, read at call time
     elif mode == "final-snapshot":
         rep = run_final_snapshot(c.HERE, LIVE_DB)
     elif mode == "opening":
         rep = run_opening_checkpoint(c.HERE, LIVE_DB, scheduled, receipt, r.process_identity, CRASH_LOG)
-    else:
-        rep = run_checkpoint(c.HERE, LIVE_DB, scheduled, receipt, r.process_identity, CRASH_LOG)
+    else:                                                  # A3 H3 (G2.1): the same clock reaches the W_L route
+        rep = run_checkpoint(c.HERE, LIVE_DB, scheduled, receipt, r.process_identity, CRASH_LOG, now=c.now_utc)
     print(json.dumps(rep, indent=1))
 
 

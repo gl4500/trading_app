@@ -24,8 +24,8 @@ import s1_seal as z
 import s1_slot as sl
 import s1_stage as sg
 import s1_trial as t
-from conftest import (Ledger, S1_PROCESS, S1_RECEIPT, Spies, _Clock, s1_ack, s1_jappend, s1_mailbox,  # noqa: F401
-                      s1_opening_checkpoint, s1_plan_audit, s1_state)
+from conftest import (Ledger, S1_LOCAL_ABORT, S1_PROCESS, S1_RECEIPT, Spies, _Clock, s1_ack, s1_jappend,  # noqa: F401
+                      s1_mailbox, s1_mailbox_init, s1_opening_checkpoint, s1_plan_audit, s1_state)
 
 START = "2026-10-26T13:30:00+00:00"
 HELPERS = Path(__file__).resolve().parent / "a3_helpers.py"
@@ -527,7 +527,7 @@ def test_the_opening_close_finalizer_never_writes_into_a_live_or_no_row_slot(tmp
     assert {p for p in _files_under(caps) if p.startswith(stem45)} == {f"{stem45}.attempt.json"}   # untouched
     d45 = z.resolution_deadline(s45, day, cal)
     with _Clock(d45):
-        ck.finalize_close(out, day, cal, d45, mailbox=mb(tmp_path))
+        ck.finalize_opening(tmp_path, now=lambda: d45, mailbox=mb(tmp_path))      # H3 (C4): the clock-callable helper
     assert [x.kind for x in j.subject_rows(jrows(tmp_path), j.slot_subject(s45))] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
     assert not any(p.endswith(".resolution.json") and not p.startswith(stem47) for p in _files_under(caps))
     missed = [x.subject for x in jrows(tmp_path) if x.kind == "SLOT-MISSED"]
@@ -550,7 +550,7 @@ def test_a_crashed_opening_worker_times_out_at_d_and_the_opening_is_sealed(tmp_p
     d45 = z.resolution_deadline(s45, day, cal)
     if via == "finalizer-command":
         with _Clock(d45):
-            got = ck.finalize_close(tmp_path / "s1_out", day, cal, d45, mailbox=mb(tmp_path))
+            got = ck.finalize_opening(tmp_path, now=lambda: d45, mailbox=mb(tmp_path))   # H3 (C4)
     else:
         later = next(s for s in z.schedule(day, cal) if s >= d45)
         minutes = int((later - z.close_of(oc, cal)).total_seconds() // 60)
@@ -584,7 +584,7 @@ def test_a_held_stage_lock_never_delays_the_opening_finalizers_deadline_rows(tmp
             s1_opening_checkpoint(tmp_path, lg, oc, cal, S1_RECEIPT, minutes=47)
             d45 = z.resolution_deadline(s45, day, cal)
             with _Clock(d45):
-                ck.finalize_close(tmp_path / "s1_out", day, cal, d45, mailbox=mb(tmp_path))
+                ck.finalize_opening(tmp_path, now=lambda: d45, mailbox=mb(tmp_path))   # H3 (C4)
         except SystemExit as e:
             pytest.fail(f"a deadline path was refused while an unrelated stage lock is held: {e}")
         assert [x.kind for x in j.subject_rows(jrows(tmp_path), j.slot_subject(s45))] == ["SLOT-INTENT",
@@ -819,7 +819,7 @@ def test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal(tmp_p
     e45 = z.eligible_until(opening_slot(cal, oc, 45), day, cal)
     try:
         with _Clock(e45):
-            ck.finalize_close(tmp_path / "s1_out", day, cal, e45, mailbox=mb(tmp_path))
+            ck.finalize_opening(tmp_path, now=lambda: e45, mailbox=mb(tmp_path))   # H3 (C4)
         got = None
     except BaseException as e:                                       # noqa: BLE001 - the outcome under test
         got = e
@@ -885,3 +885,170 @@ def test_a_pre_intent_write_never_recreates_a_vanished_s1_out(tmp_path, monkeypa
     assert isinstance(got, SystemExit) and re.search(r"s1_out is gone.*refused with no row \(F6\.6\)", str(got)), \
         repr(got)
     assert not out.exists()
+
+
+# ---------------------------------------------------------------- Clarification 1 C4: the opening-finalizer helper
+# (direct call only, O-C4: these tests establish preserved callable behaviour, not operational reachability)
+class _Adv:
+    def __init__(self, t0):
+        self.t = t0
+
+    def __call__(self):
+        self.t = self.t + timedelta(milliseconds=3)
+        return self.t
+
+
+def crashed_opening(tmp_path, *, qualify=True):
+    """Slot 45's worker crashed after its SLOT-INTENT; with `qualify`, slot 47's opening checkpoint QUALIFIED."""
+    start, cal, oc, _ = s1_plan_audit(tmp_path, START)
+    day = next(d for d in cal if d["date"] == oc)
+    s45, s47 = opening_slot(cal, oc, 45), opening_slot(cal, oc, 47)
+    s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s45), at=s45 + timedelta(seconds=1))
+    if qualify:
+        s1_opening_checkpoint(tmp_path, Ledger(tmp_path / "opening_ledger.sqlite3"), oc, cal, S1_RECEIPT, minutes=47)
+    return {"cal": cal, "oc": oc, "day": day, "s45": s45, "s47": s47,
+            "d45": z.resolution_deadline(s45, day, cal)}
+
+
+def test_opening_finalizer_helper_same_clock_callable(tmp_path, monkeypatch):            # row 491 (CL-A12)
+    o = crashed_opening(tmp_path)
+    clk = _Adv(o["d45"])
+    seen = []
+    real_gate, real_append, real_stage = t.gate, j.append, ck._opening_stage
+    monkeypatch.setattr(t, "gate", lambda *a, **kw: seen.append(("gate", kw.get("now"))) or real_gate(*a, **kw))
+    monkeypatch.setattr(j, "append", lambda *a, **kw: seen.append(("append", kw.get("clock"))) or real_append(*a, **kw))
+    monkeypatch.setattr(ck, "_opening_stage", lambda gv, out, day, cal, now, mb_: seen.append(("stage", now))
+                        or real_stage(gv, out, day, cal, now, mb_))
+    ck.finalize_opening(tmp_path, now=clk, mailbox=mb(tmp_path))
+    assert {n for n, _ in seen} >= {"gate", "append", "stage"}
+    assert all(x is clk for n, x in seen if n in ("gate", "stage"))            # by identity, no wrapper
+    assert all(x is clk for n, x in seen if n == "append" and x is not None)  # every journal transaction
+    ats = [c.aware(x.at) for x in jrows(tmp_path) if x.kind in ("SLOT-TIMEOUT", "STAGE-INTENT", "STAGE-CREATED")]
+    assert len(ats) >= 3 and ats == sorted(ats) and len(set(ats)) == len(ats)   # an advancing clock observed
+
+
+@pytest.mark.parametrize("case", ["local-abort", "invalid", "closed", "no-open-trial", "integrity-violation"])
+def test_opening_finalizer_helper_precedence(tmp_path, monkeypatch, case):              # row 492 (CL-A13)
+    """C4.2/C4.3: every refusal precedes any finalizer work. local-abort: (a) a witness present before the command is
+    recorded and refused by H1's gate (G6.4); (b) a witness appearing after the gate is refused by the helper's own
+    _no_local_abort (F8.1) - zero finalizer work in both (H3 deviation: sub-case (b) added, as row 425)."""
+    subs = ("before", "after-gate") if case == "local-abort" else ("",)
+    for sub in subs:
+        root = tmp_path / sub if sub else tmp_path
+        if sub:
+            root.mkdir()
+            monkeypatch.setattr(c, "MAILBOX", s1_mailbox_init(root))
+        o = crashed_opening(root)
+        out = root / "s1_out"
+        want = PRECEDENCE[case]
+        if case == "local-abort":
+            w = out / "aborted.json"
+            if sub == "before":
+                w.write_text(json.dumps({"reason": "x"}), encoding="utf-8")
+                want = S1_LOCAL_ABORT
+            else:
+                real_gate = t.gate
+
+                def gate_then_witness(*a, _g=real_gate, _w=w, **kw):
+                    gv = _g(*a, **kw)
+                    _w.write_text(json.dumps({"reason": "x"}), encoding="utf-8")
+                    return gv
+                monkeypatch.setattr(t, "gate", gate_then_witness)
+        elif case == "invalid":
+            s1_jappend(root, "TRIAL-INVALID", "reason/stage-replaced", at=o["d45"], detail="a" * 64)
+        elif case == "closed":
+            s1_ack(root, "close", "S1-CLOSE-ACK", o["d45"], reason="WITHDRAWN", evidence_sha256="0" * 64)
+        elif case == "no-open-trial":
+            import sqlite3
+            con = sqlite3.connect(mb(root))
+            con.execute("DELETE FROM messages WHERE body LIKE 'S1-AUDIT-ACK %'")
+            con.commit()
+            con.close()
+        else:                                                           # slot 47's committed capture damaged
+            p = next((out / "captures" / o["oc"]).glob("*/backup.sqlite3"))
+            p.write_bytes(p.read_bytes() + b"x")
+        calls = []
+        monkeypatch.setattr(sl, "finalize_close", lambda *a, **kw: calls.append("finalize_close"))
+        monkeypatch.setattr(ck, "_opening_stage", lambda *a, **kw: calls.append("_opening_stage"))
+        with _Clock(o["d45"]), pytest.raises(SystemExit, match=want):
+            ck.finalize_opening(root, now=lambda: o["d45"], mailbox=mb(root))
+        assert calls == []                                               # zero finalizer work
+        if case == "integrity-violation":
+            assert [x.subject for x in jrows(root) if x.kind == "TRIAL-INVALID"] == ["reason/registration-artifact"]
+        for mod, name, real in ((t, "gate", REAL_GATE), (sl, "finalize_close", REAL_SL_FINALIZE),
+                                (ck, "_opening_stage", REAL_OPENING_STAGE)):
+            monkeypatch.setattr(mod, name, real)                         # the next sub-case's fixture is real
+
+
+REAL_GATE, REAL_SL_FINALIZE, REAL_OPENING_STAGE = t.gate, sl.finalize_close, ck._opening_stage
+PRECEDENCE = {"local-abort": r"opening finalizer refused: s1_out/aborted\.json exists \(an observed violation, F8\.1\)",
+              "invalid": r"trial INVALID \(reason/stage-replaced\)",
+              "closed": r"zero open trials",                    # a CLOSED trial is no open trial (E3.4)
+              "no-open-trial": r"zero open trials",
+              "integrity-violation": r"INVALID \(registration-artifact\)"}
+
+
+@pytest.mark.parametrize("case", ["no-worker", "no-slot-intent", "no-process-callback", "no-receipt-callback",
+                                  "no-snapshot", "no-provider", "no-capture", "no-synthetic-seal",
+                                  "no-qualifying-capture-no-opening"])
+def test_opening_finalizer_helper_no_new_work(tmp_path, monkeypatch, case):              # row 493 (CL-A14)
+    o = crashed_opening(tmp_path, qualify=(case != "no-qualifying-capture-no-opening"))
+    sp = Spies(monkeypatch)
+    workers = []
+    monkeypatch.setattr(sl, "Worker", lambda *a, **kw: workers.append(1) or pytest.fail("a Worker was built"))
+    before = [x.sha for x in jrows(tmp_path)]
+    seals_before = sorted(p.name for p in (tmp_path / "s1_out" / "seals").glob("*.json"))
+    with _Clock(o["d45"]):
+        ck.finalize_opening(tmp_path, now=lambda: o["d45"], mailbox=mb(tmp_path))
+    new = [x for x in jrows(tmp_path) if x.sha not in before]
+    assert all(x.kind != "SLOT-INTENT" for x in new) and workers == []
+    sp.assert_zero()                                                      # receipt/process/capture/provider/valuation
+    seals = sorted(p.name for p in (tmp_path / "s1_out" / "seals").glob("*.json"))
+    if case == "no-qualifying-capture-no-opening":
+        assert stage_kinds(tmp_path, "opening") == [] and seals == seals_before   # no opening, no START
+        assert not (tmp_path / "s1_out" / "attest_start.json").exists()
+    else:
+        assert stage_kinds(tmp_path, "opening") == ["STAGE-INTENT", "STAGE-PREPARED", "STAGE-CREATED"]
+        seal = json.loads((tmp_path / "s1_out" / "seals" / f"{o['oc']}.json").read_bytes())
+        assert seal["capture"]["scheduled"] == o["s47"].isoformat()      # from the committed capture, not synthetic
+
+
+@pytest.mark.parametrize("case", ["crashed-last-opening-worker", "idempotent-repeat", "first-qualified-order",
+                                  "d-minus-1us", "stage-error-to-refusal"])
+def test_opening_finalizer_helper_preserves_recovery(tmp_path, monkeypatch, case):       # row 494 (CL-A15)
+    """Migrates test_a_crashed_opening_worker_times_out_at_d_and_the_opening_is_sealed[finalizer-command] (:534) and
+    test_the_finalizer_command_turns_an_opening_stage_error_into_a_refusal (:805). C4.4 governs: a TIMEOUT at D never
+    by itself authorizes or fabricates a seal (O-C4)."""
+    if case == "crashed-last-opening-worker":                           # the final opening slot's worker crashed
+        start, cal, oc, _ = s1_plan_audit(tmp_path, START)
+        day = next(d for d in cal if d["date"] == oc)
+        last = z.schedule(day, cal)[-1]
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(last), at=last - timedelta(seconds=30))
+        dl = z.resolution_deadline(last, day, cal)
+        with _Clock(dl):
+            ck.finalize_opening(tmp_path, now=lambda: dl, mailbox=mb(tmp_path))
+        assert [x.kind for x in j.subject_rows(jrows(tmp_path), j.slot_subject(last))][-1] == "SLOT-TIMEOUT"
+        assert stage_kinds(tmp_path, "opening") == []                   # no qualifying capture: no seal, no opening
+        return
+    o = crashed_opening(tmp_path)
+    if case == "stage-error-to-refusal":
+        monkeypatch.setattr(ck, "_opening_stage", lambda *a, **k: (_ for _ in ()).throw(OSError(5, "I/O error")))
+        with _Clock(o["d45"]), pytest.raises(SystemExit, match=r"refused with no row.*F0\.7"):
+            ck.finalize_opening(tmp_path, now=lambda: o["d45"], mailbox=mb(tmp_path))
+        return
+    at = o["d45"] - timedelta(microseconds=1) if case == "d-minus-1us" else o["d45"]
+    with _Clock(at):
+        ck.finalize_opening(tmp_path, now=lambda: at, mailbox=mb(tmp_path))
+    k45 = [x.kind for x in j.subject_rows(jrows(tmp_path), j.slot_subject(o["s45"]))]
+    if case == "d-minus-1us":
+        assert k45 == ["SLOT-INTENT"] and stage_kinds(tmp_path, "opening") == []   # boundary kept
+        return
+    assert k45 == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+    assert stage_kinds(tmp_path, "opening") == ["STAGE-INTENT", "STAGE-PREPARED", "STAGE-CREATED"]
+    seal = json.loads((tmp_path / "s1_out" / "seals" / f"{o['oc']}.json").read_bytes())
+    assert seal["capture"]["scheduled"] == o["s47"].isoformat()          # first QUALIFIED in slot order
+    if case == "idempotent-repeat":
+        n = len(jrows(tmp_path))
+        with _Clock(o["d45"] + timedelta(minutes=5)):
+            ck.finalize_opening(tmp_path, now=lambda: o["d45"] + timedelta(minutes=5), mailbox=mb(tmp_path))
+        assert len(jrows(tmp_path)) == n                                  # no row on repeat

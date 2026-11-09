@@ -24,7 +24,7 @@ import s1_seal as z
 import s1_slot as sl
 import s1_stage as sg
 import s1_trial as t
-from conftest import S1_PROCESS, S1_RECEIPT, Spies, _Clock, s1_ack, s1_jappend  # noqa: F401
+from conftest import S1_PROCESS, S1_RECEIPT, Spies, _Clock, s1_ack, s1_finalize_close, s1_jappend  # noqa: F401
 from test_s1_a3_slots import START, _hold_seal_stage, first_slot, registered, rows, run, slot_rows
 
 HERE = Path(__file__).resolve().parent.parent
@@ -584,7 +584,8 @@ def test_evidence_check_runs_after_the_plan_check(tmp_path):                   #
 
 
 def test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows(tmp_path):     # carry-forward 3 (N2)
-    """Ruling N2 (E1.2) for the finalizer command (s1_checkpoint.finalize_close, the journal finalizer behind a
+    """Ruling N2 (E1.2) for the finalizer (A3 H3, O8: the retired s1_checkpoint.finalize_close's clock-callable
+    path, conftest.s1_finalize_close - the journal finalizer behind a
     slot-path gate): while a REAL child process holds an unrelated seal stage's lock after its INTENT (a plain gate is
     "pending"), TIMEOUT at D and MISSED at E commit; the stalled stage stays undecided (its lock still held)."""
     st_ = registered(tmp_path)
@@ -599,7 +600,7 @@ def test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows(tmp_path
             t.gate(tmp_path, "a plain gate")                         # the hazard N2 removes from the deadline path
         with _Clock(d45):
             try:
-                res = ck.finalize_close(tmp_path / "s1_out", day, cal, d45, mailbox=tmp_path / "mailbox.sqlite3")
+                res = s1_finalize_close(tmp_path, day, cal, lambda: d45, mailbox=tmp_path / "mailbox.sqlite3")
             except SystemExit as e:
                 pytest.fail(f"the finalizer was refused: {e}")
         assert [k_ for k_, *_ in slot_rows(tmp_path, s45)] == ["SLOT-INTENT", "SLOT-TIMEOUT"]

@@ -1,0 +1,38 @@
+# A3 H3 behavioural RED (scratchpad tH3/run_red.sh): clean export of HEAD research/s1 + the Step-1 stub (tH3/mk_stub.py) + the final H3 test files; labels: tH3_red_labels.md
+stub ready
+# base: e9bc6c0d0d87f77934f8847412fdefe9591ba14c; stub: f433e596c79c941ea87f71849558e57af2d4d6c9a1ac0c4084f5905006e4560f mk_stub.py
+F.........FF...FF..FFFF....FFF.FF..F...............                      [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:54: Failed: run_checkpoint refused: slot/20270426T120000Z: already has a journal row: a restart never re-intents (F3); the finalizer decides it
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:54: Failed: route refused: slot/20270426T120000Z: already has a journal row: a restart never re-intents (F3); the finalizer decides it
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:54: Failed: route refused: slot/20270426T120000Z: already has a journal row: a restart never re-intents (F3); the finalizer decides it
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:54: Failed: route refused: slot/20270426T120000Z: already has a journal row: a restart never re-intents (F3); the finalizer decides it
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:54: Failed: route refused: slot/20270426T120000Z: already has a journal row: a restart never re-intents (F3); the finalizer decides it
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:54: Failed: route refused: slot/20270426T120000Z: already has a journal row: a restart never re-intents (F3); the finalizer decides it
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:54: Failed: route refused: slot/20270426T120000Z: already has a journal row: a restart never re-intents (F3); the finalizer decides it
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:54: Failed: run_checkpoint refused: slot/20270426T120000Z: SLOT-INTENT refused with no row: now >= E: the finalizer appends MISSED
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:334: AssertionError: assert (['SLOT-INTENT', 'SLOT-FAILED'] == []
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:413: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:422: AssertionError: assert (not True)
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_wpend.py:442: AssertionError: assert None is <function test_finalize_cli_dispatch_pins_the_clock_callable.<locals>.<lambda> at 0x000002A433DEBE20>
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_prestart.py:924: assert False
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_prestart.py:973: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\C--Users-gl450\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\tH3\stub\research\s1\s1_tests\test_s1_a3_prestart.py:973: AssertionError: Regex pattern did not match.
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_w_last_route_pins_clock_and_no_live_callback
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_before_d_no_timeout[route-at-w]
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_before_d_no_timeout[catchup-at-d-minus-1us]
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_repeat_invocations_idempotent[no-due-rows]
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_repeat_invocations_idempotent[post-stop-timeout]
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_early_claim_restart_refusal
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_late_scheduler_invocation
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_no_window_extension - F...
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_early_w_last_route_no_attempt
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_local_abort_refuses_route_and_finalizer[finalizer]
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_frozen_wrappers_retired
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_finalize_cli_dispatch_pins_the_clock_callable
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_same_clock_callable
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_precedence[local-abort]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_precedence[no-open-trial]
+15 failed, 36 passed, 61 deselected in 119.60s (0:01:59)
+## exit 1

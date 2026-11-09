@@ -707,9 +707,7 @@ def test_cr_final_snapshot_refuses_on_a_bad_seal_record(tmp_path, monkeypatch, b
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
     assert not (tmp_path / "s1_out" / "final_snapshot").exists()   # the command captures nothing; the
     # fence logic is then reached at unit level (_final_snapshot_capture, after every gate)
-    # (A3 Task 7: finalize_pending is the journal finalizer behind its own trial gate, which refuses the now INVALID
-    # trial; at unit level it is a no-op so the fence logic under test is still reached)
-    monkeypatch.setattr(ck, "finalize_pending", lambda *a, **kw: None)
+    # (A3 H3, O8: the no-op patch of the retired finalize_pending is dropped; no product code called it)
     if bad == "dup":
         # Task 12 (A2.1/A2.3, A10.1) REPLACEMENT for the duplicate: the stop is the PERSISTED one (never recomputed,
         # so no "two seals" ValueError); the extra seal is a frozen-slice integrity failure RECORDED by the
@@ -771,9 +769,7 @@ def test_cr_final_snapshot_records_a_malformed_seal_fence_as_a_violation(tmp_pat
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: st_["snapshot_at"])
     assert not (tmp_path / "s1_out" / "final_snapshot").exists()   # the command captures nothing; the
     # fence logic is then reached at unit level (_final_snapshot_capture, after every gate)
-    # (A3 Task 7: finalize_pending is the journal finalizer behind its own trial gate, which refuses the now INVALID
-    # trial; at unit level it is a no-op so the fence logic under test is still reached)
-    monkeypatch.setattr(ck, "finalize_pending", lambda *a, **kw: None)
+    # (A3 H3, O8: the no-op patch of the retired finalize_pending is dropped; no product code called it)
     rep = ck._final_snapshot_capture(tmp_path / "s1_out", st_["ledger"].path, lambda: st_["snapshot_at"])
     assert rep["fence_checked"] is True and rep["fence_violations"][0].startswith(f"bad seal record: {kind}")
 

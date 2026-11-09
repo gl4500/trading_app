@@ -26,7 +26,7 @@ from conftest import S1_PROCESS, S1_RECEIPT, Ledger, _Clock, s1_mailbox, s1_open
     s1_finalize, s1_reack, s1_state
 from test_s1_t12_a5_a6 import S45, S47, SEAL_P, Snap
 from test_s1_t12_a5_a6 import _registered as _registered_mon
-from test_s1_t12_fix2_b1 import Clock, Killed, _day, _setup, bg, res_path, run
+from test_s1_t12_fix2_b1 import Clock, Killed, _day, _finalize, _setup, bg, res_path, run   # (H3: _finalize, O8)
 from test_s1_t12_fix2_b3 import OPENING, Spies, _aborted, _cp, _refusals
 from test_s1_t12_fix2_b3 import _registered as _registered_b3
 
@@ -99,7 +99,7 @@ def _two_successes_no_seal(tmp_path, monkeypatch):
     st_, clock = _setup(tmp_path, monkeypatch, S47 + timedelta(seconds=30))
     Snap(monkeypatch)
     run(tmp_path, st_, S47, clock)
-    real, real_journal = ck.finalize_close, sl.finalize_close
+    real, real_journal = _finalize, sl.finalize_close  # A3 H3 (O8): the retired wrapper's clock-callable path
 
     def crash(*a, **kw):
         raise Killed()
@@ -427,7 +427,7 @@ def _success_without_seal(tmp_path, monkeypatch):
     clock = Clock(s7)
     monkeypatch.setattr(c, "now_utc", clock)
     Snap(monkeypatch, dur=timedelta(0))
-    real, real_journal = ck.finalize_close, sl.finalize_close
+    real, real_journal = _finalize, sl.finalize_close  # A3 H3 (O8): the retired wrapper's clock-callable path
 
     def boom(*a, **kw):
         raise Killed()

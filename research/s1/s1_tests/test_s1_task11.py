@@ -146,7 +146,7 @@ def test_c1_final_snapshot_and_score_check_fences_only_against_seals_up_to_the_s
     snap_at = st_["snapshot_at"]
     with _Clock(snap_at), pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
         ck.run_final_snapshot(tmp_path, st_["ledger"].path, now=lambda: snap_at)   # the file itself: INVALID
-    monkeypatch.setattr(ck, "finalize_pending", lambda *a, **kw: None)              # unit level: the fence logic
+    # unit level: the fence logic (A3 H3, O8: the no-op patch of the retired finalize_pending is dropped)
     rep = ck._final_snapshot_capture(out, st_["ledger"].path, lambda: snap_at)
     assert rep["fence_violations"] == [] and "2026-10-29.json" not in {x["file"] for x in rep["seals_checked"]}
     s1_reack(tmp_path, "ack-c1", "S1-SCORE-ACK", st_["now"] - timedelta(hours=1))
