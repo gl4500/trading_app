@@ -9,7 +9,7 @@ import re
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -28,6 +28,11 @@ REASONS = ("contradictory-completion", "contradictory-finalizer", "contradictory
            "score-aborted", "bundle", "LOST", "registration-artifact",
            "established-violation")                                       # OQ-1; OQ-31 (A3 Task 6)
 ABSENT, TRIAL_SUBJECT = "absent", "trial"
+# A3 H5a (Erratum 2 Clarification 4 C4.1, C4.4): F0.5 step 6 refuses a SLOT-INTENT whose in-transaction clock sample is
+# before the slot's registered scheduled instant s (declared tolerance 0), for EVERY caller; the pinned reason's exact
+# bytes (C4.4) are fixed here (s = the subject's scheduled instant, ISO 8601 UTC). No parameter disables it (C4.7).
+C4_TOLERANCE = timedelta(0)
+C4_REASON = "slot {slot} requested before its scheduled instant: no claim (Clarification 4)"
 DETAIL_ABSENT = ("SLOT-INTENT", "SLOT-TIMEOUT", "SLOT-MISSED")                                         # OQ-2
 _HEX64, _HEX32 = re.compile(r"[0-9a-f]{64}"), re.compile(r"[0-9a-f]{32}")
 # re.ASCII: `\d` would otherwise match any Unicode digit; the frozen F0.2 bytes are ASCII digits only.
@@ -136,6 +141,7 @@ class Result:
     reason: str
     row: Optional[Row]                # the row written (the requested one, or the TRIAL-INVALID), else None
     rows: list                        # the trial's rows as read inside the transaction (before this row)
+    now: Optional[datetime] = None    # A3 H5a (C4.3): the in-transaction clock sample the decision was taken on
 
 
 def new_nonce() -> str:
@@ -150,6 +156,12 @@ def fmt_at(t: datetime) -> str:
 
 def slot_subject(slot: datetime) -> str:
     return "slot/" + slot.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def slot_instant(subject: str) -> datetime:
+    """The registered scheduled instant s a slot subject names (slot_subject's inverse; a ValueError for a subject that
+    names no real instant: fail closed, no row)."""
+    return datetime.strptime(subject[len("slot/"):], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
 
 
 def stage_name_ok(stage: str) -> bool:
@@ -410,6 +422,8 @@ def _slot(rows, mine, req, ctx, now, state, reused=False) -> Decision:
     if ctx.slot_times is None:
         return Decision("REFUSE", "no slot timing supplied (fail closed)")
     e, d = ctx.slot_times(req.subject)
+    if k == "SLOT-INTENT" and now < slot_instant(req.subject) - C4_TOLERANCE:      # A3 H5a: Clarification 4 C4.1
+        return Decision("REFUSE", C4_REASON.format(slot=slot_instant(req.subject).isoformat()))
     if k == "SLOT-INTENT" and now >= e:
         return Decision("REFUSE", "now >= E: the finalizer appends MISSED")
     if k == "SLOT-QUALIFIED" and req.r_at >= d:
@@ -539,4 +553,4 @@ def append(trial_id: str, gen: str, req: Request, ctx_fn, *, mailbox=None, clock
         raise Outage(f"journal write failed ({type(e).__name__}): no row") from None
     finally:
         con.close()
-    return Result(dec.outcome, dec.reason, row, rows)
+    return Result(dec.outcome, dec.reason, row, rows, now)

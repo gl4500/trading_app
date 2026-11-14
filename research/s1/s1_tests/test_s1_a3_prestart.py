@@ -71,6 +71,13 @@ def com(root, stage):
     return _staged(root, stage, "prepared.json")
 
 
+def _failing_process():
+    """A3 H5a: a FAILED slot through a current production path - the process observation fails (A9.1), so there is no
+    candidate and the slot is FAILED (its tree: the claim and the failure report). Replaces the early-invocation
+    (OQ-33) FAILED, which Erratum 2 Clarification 4 now refuses with no row."""
+    raise RuntimeError("fixture: the process observation fails")
+
+
 @pytest.mark.parametrize("case", ["pending-earlier", "failed-earlier", "first-qualified"])
 def test_opening_intent_only_after_the_first_qualified_slot_and_earlier_slots_terminal(tmp_path, case):   # row 81
     start, cal, oc, _ = s1_plan_audit(tmp_path, START)
@@ -79,10 +86,10 @@ def test_opening_intent_only_after_the_first_qualified_slot_and_earlier_slots_te
     if case == "pending-earlier":
         s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s45), at=s45 + timedelta(seconds=1))
     elif case == "failed-earlier":
-        with _Clock(s45 - timedelta(seconds=5)):
-            ck.run_opening_checkpoint(tmp_path, lg.path, s45, lambda reference=None: S1_RECEIPT,
-                                      lambda: dict(S1_PROCESS), tmp_path / "c.log",
-                                      now=lambda: s45 - timedelta(seconds=5))
+        with _Clock(s45 + timedelta(seconds=30)):                  # H5a: FAILED by a failed process observation
+            ck.run_opening_checkpoint(tmp_path, lg.path, s45, lambda reference=None: S1_RECEIPT,   # (C4: an early
+                                      _failing_process, tmp_path / "c.log",                       # invocation leaves
+                                      now=lambda: s45 + timedelta(seconds=30))                    # no row)
     if case == "first-qualified":
         s1_opening_checkpoint(tmp_path, lg, oc, cal, S1_RECEIPT, minutes=45)
     else:
@@ -221,10 +228,10 @@ def test_opening_issuance_helper(tmp_path, case):                               
     s45, s47 = opening_slot(cal, oc, 45), opening_slot(cal, oc, 47)
     day = next(d for d in cal if d["date"] == oc)
     if case == "early-failed-then-qualified-all-terminal":
-        with _Clock(s45 - timedelta(seconds=5)):
-            ck.run_opening_checkpoint(tmp_path, lg.path, s45, lambda reference=None: S1_RECEIPT,
-                                      lambda: dict(S1_PROCESS), tmp_path / "c.log",
-                                      now=lambda: s45 - timedelta(seconds=5))
+        with _Clock(s45 + timedelta(seconds=30)):                  # H5a: FAILED by a failed process observation
+            ck.run_opening_checkpoint(tmp_path, lg.path, s45, lambda reference=None: S1_RECEIPT,   # (C4: an early
+                                      _failing_process, tmp_path / "c.log",                       # invocation leaves
+                                      now=lambda: s45 + timedelta(seconds=30))                    # no row)
         s1_opening_checkpoint(tmp_path, lg, oc, cal, S1_RECEIPT, minutes=47)
         close_out(tmp_path, cal, oc)
     elif case == "pending-blocks":
@@ -746,9 +753,9 @@ def test_the_evidence_manifest_membership_is_exactly_e55_with_failed_and_qualifi
     start, cal, oc, _ = s1_plan_audit(tmp_path, START)
     lg = Ledger(tmp_path / "opening_ledger.sqlite3")
     s45 = opening_slot(cal, oc, 45)
-    with _Clock(s45 - timedelta(seconds=5)):                       # A5.2: t < s - the :45 slot is FAILED
-        ck.run_opening_checkpoint(tmp_path, lg.path, s45, lambda reference=None: S1_RECEIPT,
-                                  lambda: dict(S1_PROCESS), tmp_path / "c.log", now=lambda: s45 - timedelta(seconds=5))
+    with _Clock(s45 + timedelta(seconds=30)):          # H5a: the :45 slot FAILED by a failed process observation
+        ck.run_opening_checkpoint(tmp_path, lg.path, s45, lambda reference=None: S1_RECEIPT,      # (C4: an early
+                                  _failing_process, tmp_path / "c.log", now=lambda: s45 + timedelta(seconds=30))
     s1_opening_checkpoint(tmp_path, lg, oc, cal, S1_RECEIPT, minutes=47)
     w = close_out(tmp_path, cal, oc)
     s1_ack(tmp_path, "opening-ack", "S1-OPENING-ACK", w + timedelta(minutes=1))
@@ -1023,7 +1030,8 @@ def test_opening_finalizer_helper_preserves_recovery(tmp_path, monkeypatch, case
         start, cal, oc, _ = s1_plan_audit(tmp_path, START)
         day = next(d for d in cal if d["date"] == oc)
         last = z.schedule(day, cal)[-1]
-        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(last), at=last - timedelta(seconds=30))
+        from conftest import s1_jstage                                     # H5a: staged legacy (pre-C4) INTENT
+        s1_jstage(tmp_path, "SLOT-INTENT", j.slot_subject(last), at=last - timedelta(seconds=30))
         dl = z.resolution_deadline(last, day, cal)
         with _Clock(dl):
             ck.finalize_opening(tmp_path, now=lambda: dl, mailbox=mb(tmp_path))

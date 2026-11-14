@@ -534,7 +534,11 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
     A3 H3 (Erratum 2 r4 G2.1): after the gate, the registration, the registered-slot identity (_close_for) and the
     F8.1 local-abort refusal - each refusal propagating - an EXACT W_L invocation (aware-instant equality with
     _w_last of the verified calendar and START) takes the provider-free route (_w_last_route) at any clock; every
-    other slot keeps the worker path below unchanged (OQ-33 included)."""
+    other slot keeps the worker path below unchanged (OQ-33 included).
+    A3 H5a (Erratum 2 Clarifications 2-4): the worker's post-START slot gate is built with the verified registration's
+    START and calendar; inside the SLOT-INTENT transaction it refuses, with no row, a post-deadline close (C2) and a
+    later slot of a close with an earlier committed QUALIFIED (C3), and step 6 refuses a sample before s (C4: OQ-33's
+    early INTENT + FAILED is replaced for new invocations; _clock_refusal stays as the fail-closed t < s defence)."""
     import s1_slot
     gv = s1_trial.gate(root, "checkpoint", mailbox=mailbox, now=now, defer_pending=True)   # A3 F0.6 (N2)
     out = Path(root) / "s1_out"
@@ -545,8 +549,8 @@ def run_checkpoint(root, live_db, scheduled, receipt_fn, process_fn, crash_log, 
     _no_local_abort(out, "checkpoint")
     if scheduled == _w_last(cal, start):                 # A3 H3 (Erratum 2 r4 G2.1(2), O6): exact W_L, at any clock
         return _w_last_route(gv, out, cal, start, scheduled, now, mailbox)
-    with s1_slot.Worker(gv, scheduled, day, cal, slot_gate=s1_slot.post_start_gate(gv.trial), mailbox=mailbox,
-                        now=now) as w:
+    with s1_slot.Worker(gv, scheduled, day, cal, slot_gate=s1_slot.post_start_gate(gv.trial, start=start, cal=cal),
+                        mailbox=mailbox, now=now) as w:
         lost = w.intent()
         if lost is not None:                                        # F1: STOPPED -> LOST-RACE, no capture
             return lost

@@ -1,0 +1,192 @@
+# H5a targeted semantic mutants: row 512 (Clarification 2, 8), row 531 (Clarification 3, 11), row 549 (Clarification 4, 9) - each applied to a FULL SCRATCH COPY of research/s1 (pytest tmp, module fixture), exact single-occurrence replacement (the file's own line ending), the named killing test run in a child pytest against the copy (own basetemp, PYTHONDONTWRITEBYTECODE), the file restored byte-for-byte (sha256 asserted). KILLED = the named killing test FAILED. Baseline per family: every killing test passes unmutated.
+# HEAD 5370bcedfd1a046d0f9ee029136c14b3f792a3fa + H5a working tree; run 2026-11-14T18:57:08Z
+# product sha256: 2e821dc5238c30e91308fd69a9a43058c57ca68fc17855adc55ede8358441354 *s1_slot.py 79144562c7567ca8bbf880bf95bc55deeab7108bef04cbf8fba0365d9addb97b *s1_journal.py 67d9d0f6baa4cc8915695c6f2bba75a12c2e750b180ff63e796b1ddfe755c48e *s1_checkpoint.py 9daaf4078286e0559ecee7d87668845df6f79350300ebe1e8df64eb526e3691d *s1_common.py 
+# runner = s1_tests/test_s1_a3_mutants.py sha256 22e8403e79ff6a36aac044864e6a1aa02603d275a26a4e20b8dd4c3e1464c0cb
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-8.3.3, pluggy-1.6.0
+rootdir: C:\Users\gl450\trading_app-s1
+plugins: anyio-4.15.1, hypothesis-6.112.1
+collected 31 items
+
+research\s1\s1_tests\test_s1_a3_mutants.py 
+== baseline eligibility: rc=0 7 passed in 9.66s
+.
+== baseline seal_once: rc=0 10 passed in 21.98s
+.
+== baseline intent_lower_bound: rc=0 8 passed in 12.73s
+.
+== eligibility[predicate-removed] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_eligibility.py::test_post_deadline_close_refused[d130-first-slot] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+   FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_post_deadline_close_refused[d130-first-slot]
+   1 failed in 4.35s
+.
+== eligibility[ge-instead-of-gt] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_eligibility.py::test_close_deadline_boundary[close-equals-deadline-not-refused] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_eligibility.py:75: AssertionError: close 2027-04-26 is not an A5.1-eligible session (Clarification 2): no post-START capture
+   FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_close_deadline_boundary[close-equals-deadline-not-refused]
+   1 failed in 0.51s
+.
+== eligibility[local-date-instead-of-instant] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_eligibility.py::test_post_deadline_close_refused[d130-first-slot] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+   FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_post_deadline_close_refused[d130-first-slot]
+   1 failed in 4.29s
+.
+== eligibility[unconditional-membership-incl-pre-start] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_eligibility.py::test_scheduled_mode_pre_start_session_unchanged[scheduled-opening-close-slot-no-new-refusal] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_eligibility.py:381: AssertionError: assert Decision(outc...TART capture') == Decision(outc...D', reason='')
+   FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_scheduled_mode_pre_start_session_unchanged[scheduled-opening-close-slot-no-new-refusal]
+   1 failed in 1.87s
+.
+== eligibility[wallclock-instead-of-close-identity] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligible_close_window_past_deadline_stays_under_e_w[slot-before-e-after-deadline-proceeds] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_eligibility.py:100: AssertionError: slot/20270502T140000Z: SLOT-INTENT refused with no row: close 2027-04-30 is not an A5.1-eligible session (Clarification 2): no post-START capture
+   FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligible_close_window_past_deadline_stays_under_e_w[slot-before-e-after-deadline-proceeds]
+   1 failed in 2.12s
+.
+== eligibility[checked-before-integrity-gate] [s1_checkpoint.py] killer research/s1/s1_tests/test_s1_a3_eligibility.py::test_precedence_preserved[integrity-violation] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_eligibility.py:278: AssertionError: Regex pattern did not match.
+   FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_precedence_preserved[integrity-violation]
+   1 failed in 1.80s
+.
+== eligibility[applied-to-opening-gate] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_eligibility.py::test_opening_mode_path_unchanged[opening-mode-captures-and-seals] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_slot.py:332: SystemExit: slot/20261023T204500Z: SLOT-INTENT refused with no row: close the opening close is not an A5.1-eligible session (Clarification 2): no post-START capture
+   FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_opening_mode_path_unchanged[opening-mode-captures-and-seals]
+   1 failed in 0.79s
+.
+== eligibility[route-predicate-ge-w-l] [s1_checkpoint.py] killer research/s1/s1_tests/test_s1_a3_eligibility.py::test_route_predicate_unchanged[later-registered-slot-not-routed] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+   FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_route_predicate_unchanged[later-registered-slot-not-routed]
+   1 failed in 4.14s
+.
+== seal_once[predicate-removed] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_earlier_qualified_not_determined_refuses_later[earlier-slot-pending] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_earlier_qualified_not_determined_refuses_later[earlier-slot-pending]
+   1 failed in 2.86s
+.
+== seal_once[any-qualified-blanket] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_earlier_slot_still_attemptable[earlier-attempt-allowed] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_slot.py:331: SystemExit: slot/20261026T204500Z: SLOT-INTENT refused with no row: close 2026-10-26 has a committed QUALIFIED at an earlier registered slot 2026-10-26T20:47:00+00:00: no later slot attempt (Clarification 3)
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_earlier_slot_still_attemptable[earlier-attempt-allowed]
+   1 failed in 2.56s
+.
+== seal_once[determined-gate-instead] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_earlier_qualified_not_determined_refuses_later[earlier-slot-pending] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_earlier_qualified_not_determined_refuses_later[earlier-slot-pending]
+   1 failed in 2.95s
+.
+== seal_once[commit-order-instead-of-scheduled] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_predicate_mapping[registered-instant-not-commit-order] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_predicate_mapping[registered-instant-not-commit-order]
+   1 failed in 3.76s
+.
+== seal_once[other-close-qualified-counts] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_predicate_mapping[other-close-qualified-ignored] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_slot.py:329: SystemExit: slot/20261026T204500Z: SLOT-INTENT refused with no row: close 2026-10-26 has a committed QUALIFIED at an earlier registered slot 2026-10-23T20:45:00+00:00: no later slot attempt (Clarification 3)
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_predicate_mapping[other-close-qualified-ignored]
+   1 failed in 2.00s
+.
+== seal_once[pre-read-instead-of-transaction-rows] [s1_checkpoint.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_transaction_barrier_around_q_commit[intent-after-q-commit-refused] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_seal_once.py:159: AssertionError: ('{"ok": true}
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_transaction_barrier_around_q_commit[intent-after-q-commit-refused]
+   1 failed in 3.26s
+.
+== seal_once[refuses-completions-too] [s1_journal.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_preclaimed_later_completions[qualified-r-before-d] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_seal_once.py:195: AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...OT-QUALIFIED']
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_preclaimed_later_completions[qualified-r-before-d]
+   1 failed in 2.68s
+.
+== seal_once[applied-to-pre-start-session] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_pre_start_paths_unchanged[scheduled-opening-close-slot-unchanged] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_seal_once.py:270: AssertionError: assert Decision(outc...ification 3)') == Decision(outc...D', reason='')
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_pre_start_paths_unchanged[scheduled-opening-close-slot-unchanged]
+   1 failed in 1.89s
+.
+== seal_once[c2-order-swapped] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[c2-post-deadline-reason-first] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\a3_h5a_helpers.py:188: AssertionError: Regex pattern did not match.
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[c2-post-deadline-reason-first]
+   1 failed in 2.12s
+.
+== seal_once[checked-before-integrity-gate] [s1_checkpoint.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[integrity-violation] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_eligibility.py:278: AssertionError: Regex pattern did not match.
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[integrity-violation]
+   1 failed in 2.49s
+.
+== seal_once[unknown-mapping-treated-as-no-q] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_seal_once.py::test_predicate_mapping[unknown-mapping-fails-closed] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_seal_once.py:440: Failed: DID NOT RAISE <class 'SystemExit'>
+   FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_predicate_mapping[unknown-mapping-fails-closed]
+   1 failed in 1.84s
+.
+== intent_lower_bound[lower-bound-removed] [s1_journal.py] killer research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-s-minus-1us-refused-no-row] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+   FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-s-minus-1us-refused-no-row]
+   1 failed in 2.02s
+.
+== intent_lower_bound[tolerance-nonzero] [s1_journal.py] killer research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-s-minus-1us-refused-no-row] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+   FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-s-minus-1us-refused-no-row]
+   1 failed in 2.16s
+.
+== intent_lower_bound[gt-instead-of-ge] [s1_journal.py] killer research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-equals-s-appends] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_slot.py:331: SystemExit: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl
+   FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-equals-s-appends]
+   1 failed in 2.01s
+.
+== intent_lower_bound[commit-clock-instead-of-sample] [s1_journal.py] killer research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_sample_before_e_commit_after_e[sample-before-e-commit-after-e-appends] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_journal.py:546: s1_journal.Outage: the commit clock disagrees: no row
+   FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_sample_before_e_commit_after_e[sample-before-e-commit-after-e-appends]
+   1 failed in 0.60s
+.
+== intent_lower_bound[journal-row-on-refusal] [s1_journal.py] killer research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[no-journal-row] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:179: AssertionError: assert (['6213468e895...46208a0', ...] == ['6213468e895...46208a0', ...]
+   FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[no-journal-row]
+   1 failed in 2.02s
+.
+== intent_lower_bound[root-recreated-by-diagnostic] [s1_slot.py] killer research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[missing-root-not-recreated] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:184: AssertionError: assert (not True)
+   FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[missing-root-not-recreated]
+   1 failed in 2.08s
+.
+== intent_lower_bound[mode-restricted-to-post-start] [s1_journal.py] killer research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[opening-mode-early-refused] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:219: Failed: DID NOT RAISE <class 'SystemExit'>
+   FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[opening-mode-early-refused]
+   1 failed in 0.74s
+.
+== intent_lower_bound[step6-before-step5] [s1_journal.py] killer research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[slot-gate-reasons-first] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:276: AssertionError: assert Decision(outc...ification 4)') == Decision(outc...pture (F7.4)')
+   FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[slot-gate-reasons-first]
+   1 failed in 0.64s
+.
+== intent_lower_bound[route-opens-intent] [s1_checkpoint.py] killer research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_w_claim_interval_empty[exact-w-l-route-unaffected-any-clock] -> rc=1
+   C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21502\h5a_mutants0\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:77: AssertionError: assert 'SLOT-INTENT' not in ['SLOT-INTENT']
+   FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_w_claim_interval_empty[exact-w-l-route-unaffected-any-clock]
+   1 failed in 5.34s
+.
+
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_baseline_killers_pass[eligibility]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_baseline_killers_pass[seal_once]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_baseline_killers_pass[intent_lower_bound]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_eligibility[predicate-removed]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_eligibility[ge-instead-of-gt]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_eligibility[local-date-instead-of-instant]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_eligibility[unconditional-membership-incl-pre-start]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_eligibility[wallclock-instead-of-close-identity]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_eligibility[checked-before-integrity-gate]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_eligibility[applied-to-opening-gate]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_eligibility[route-predicate-ge-w-l]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[predicate-removed]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[any-qualified-blanket]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[determined-gate-instead]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[commit-order-instead-of-scheduled]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[other-close-qualified-counts]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[pre-read-instead-of-transaction-rows]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[refuses-completions-too]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[applied-to-pre-start-session]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[c2-order-swapped]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[checked-before-integrity-gate]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_seal_once[unknown-mapping-treated-as-no-q]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_intent_lower_bound[lower-bound-removed]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_intent_lower_bound[tolerance-nonzero]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_intent_lower_bound[gt-instead-of-ge]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_intent_lower_bound[commit-clock-instead-of-sample]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_intent_lower_bound[journal-row-on-refusal]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_intent_lower_bound[root-recreated-by-diagnostic]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_intent_lower_bound[mode-restricted-to-post-start]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_intent_lower_bound[step6-before-step5]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_intent_lower_bound[route-opens-intent]
+======================= 31 passed in 129.38s (0:02:09) ========================

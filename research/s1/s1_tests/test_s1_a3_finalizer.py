@@ -428,6 +428,13 @@ def _put(p: Path, text="{}"):
     p.write_text(text, encoding="utf-8")
 
 
+def _failing_process():
+    """A3 H5a: a FAILED slot through a current production path - the process observation fails (A9.1), so there is no
+    candidate and the slot is FAILED (its tree: the claim and the failure report). Replaces the early-invocation
+    (OQ-33) FAILED, which Erratum 2 Clarification 4 now refuses with no row."""
+    raise RuntimeError("fixture: the process observation fails")
+
+
 def _evidence_case(tmp_path, st_, case):
     """Set up one F3 evidence-table case; returns the expected verdict ('ok' or 'invalid')."""
     day, sch = first_slot(st_)
@@ -453,7 +460,8 @@ def _evidence_case(tmp_path, st_, case):
         return "ok" if case == "in-flight-own-partial" else "invalid"   # row 311 (OQ-10 ruling)
     if case.startswith("qualified") or case.startswith("failed"):
         if case.startswith("failed"):
-            run(tmp_path, st_, sch, sch - timedelta(seconds=5))       # early: FAILED
+            import a3_h5a_helpers as hh                                 # H5a: a FAILED slot without an early
+            hh.run(tmp_path, st_, sch, sch + timedelta(seconds=30), process=_failing_process)    # invocation (C4)
         else:
             run(tmp_path, st_, sch, sch + timedelta(seconds=30))
         if case in ("qualified-ok", "failed-ok"):

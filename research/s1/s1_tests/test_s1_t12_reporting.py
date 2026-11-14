@@ -28,10 +28,15 @@ def test_r6_refused_captures_provenance_changes_and_observation_gaps_are_listed_
     st_ = s1_state(tmp_path, START, score_ready=True, stop=False, seal_days=[0])
     out = tmp_path / "s1_out"
     sch = datetime(2026, 10, 27, 20, 45, tzinfo=UTC)
-    early = sch - timedelta(minutes=1)
-    with _Clock(early):
+    # A3 H5a (Erratum 2 Clarification 4): an early invocation is now refused with no row (no attempt to list), so the
+    # clock-refused capture is a late one: the INTENT is sampled inside the window, the worker's clock then passes E
+    # before the A5.2 check (t > E: the refused report, SLOT-FAILED)
+    claim = out / "captures" / "2026-10-27" / "20261027T204500Z.attempt.json"
+    late = sch + timedelta(minutes=10, seconds=1)
+    clk = lambda: late if claim.exists() else sch + timedelta(seconds=30)               # noqa: E731
+    with _Clock(sch + timedelta(seconds=30)):
         ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, lambda: S1_RECEIPT, lambda: dict(S1_PROCESS),
-                          tmp_path / "crash.log", now=lambda: early)
+                          tmp_path / "crash.log", now=clk)
     # (fix round 2 migration, Addendum 2 B2.4: S1_PROCESS now observes the binding; the gap is an explicitly
     # unavailable binding)
     sch2 = datetime(2026, 10, 27, 20, 47, tzinfo=UTC)

@@ -286,7 +286,8 @@ def test_concurrent_append_is_serialized_and_a_busy_mailbox_is_an_outage(tmp_pat
         return OPEN(rows, con)
     first = j.append(TRIAL, GEN, intent(), ctx_outer, mailbox=mb, clock=lambda: T0)
     assert inner["outcome"].startswith("outage") and first.row.seq == 1
-    second = j.append(TRIAL, GEN, intent(SLOT2, op="3" * 32), OPEN, mailbox=mb, clock=lambda: T0 + timedelta(seconds=1))
+    second = j.append(TRIAL, GEN, intent(SLOT2, op="3" * 32), OPEN, mailbox=mb,     # H5a: sampled at/after SLOT2's
+                      clock=lambda: T0 + timedelta(minutes=2))                         # s (Clarification 4)
     rows = j.read_trial(TRIAL, GEN, mb)
     assert [r.seq for r in rows] == [1, 2] and rows[1].prev == rows[0].sha and second.row == rows[1]
 

@@ -368,7 +368,8 @@ def test_not_terminal_nvs_cannot_attest_or_score(tmp_path, monkeypatch, case):  
         st_ = s1_state(tmp_path, START, score_ready=True, lots=[], seal_days=[], stop=False)
         at = W_LAST - timedelta(seconds=1)
         if case == "pending-w-no-lots":                                # W_L INTENT before D(W_L), no lots candidate
-            s1_jappend(tmp_path, "SLOT-INTENT", "slot/20270426T120000Z", at=W_LAST - timedelta(seconds=10))
+            from conftest import s1_jstage                                 # H5a: staged legacy (pre-C4) INTENT
+            s1_jstage(tmp_path, "SLOT-INTENT", "slot/20270426T120000Z", at=W_LAST - timedelta(seconds=10))
             s1_close_out(tmp_path, st_["calendar"], "2027-04-23")      # the other d129 slots MISSED at W
             at = W_LAST + timedelta(minutes=29, seconds=59)
     pr = json.loads((tmp_path / "s1_out" / "prereg.json").read_text(encoding="utf-8"))

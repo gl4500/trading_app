@@ -289,15 +289,14 @@ def test_a5_the_clock_is_checked_before_any_capture_and_the_refused_attempt_is_p
         assert spy.calls == 0 and not (tmp_path / "s1_out" / "captures" / "2026-10-26").exists()
         assert not SEAL_P(tmp_path).exists()
         return
-    rep = _run(tmp_path, st_, S45, at)                 # early (t < s): the claim, a refused report, SLOT-FAILED
-    assert spy.calls == 0 and rep["seal"]["written"] is False and rep["capture_ok"] is False
-    assert rep["late"] is True and "clock" in str(rep.get("refused")) and rep["scheduled"] == S45.isoformat()
-    assert rep["journal"]["kind"] == "SLOT-FAILED" and rep["journal"]["outcome"] == "APPEND"
-    reports = list((tmp_path / "s1_out" / "captures" / "2026-10-26").glob("*.report.json"))
-    assert len(reports) == 1 and read(reports[0])["scheduled"] == S45.isoformat()
-    with pytest.raises(SystemExit, match="a restart never re-intents"):   # A3 Task 6 (F3): the slot is consumed
-        _run(tmp_path, st_, S45, S45 + timedelta(seconds=30))
-    assert spy.calls == 0
+    # A3 H5a (Erratum 2 Clarification 4 C4.1-C4.3, superseding OQ-33 for new invocations): an early invocation is
+    # refused at step 6 with no row, no claim and no report; the slot is NOT consumed - a retry at or after s captures
+    with pytest.raises(SystemExit, match=r"requested before its scheduled instant: no claim \(Clarification 4\)"):
+        _run(tmp_path, st_, S45, at)
+    assert spy.calls == 0 and not (tmp_path / "s1_out" / "captures" / "2026-10-26").exists()
+    assert not SEAL_P(tmp_path).exists()
+    retry = _run(tmp_path, st_, S45, S45 + timedelta(seconds=30))
+    assert spy.calls == 1 and retry["journal"]["outcome"] == "APPEND"
 
 
 def test_a5_a_capture_finishing_after_E_never_seals_one_ending_exactly_at_E_does(tmp_path, monkeypatch):
@@ -346,10 +345,14 @@ def test_a5_a_deferred_capture_seals_once_the_earlier_slots_window_has_passed(tm
     st_ = _registered(tmp_path)
     Snap(monkeypatch)
     _run(tmp_path, st_, S47, S47 + timedelta(seconds=30))
-    rep55 = _run(tmp_path, st_, S55, S55 + timedelta(seconds=30))
-    assert rep55["seal"]["written"] is True, rep55
+    # A3 H5a (Erratum 2 Clarification 3 S1, S2.6): the slot-55 invocation after slot 47's QUALIFIED is refused with
+    # no row and triggers no finalizer; the seal comes from the finalizer command (--finalize) at that clock
+    with pytest.raises(SystemExit, match=r"no later slot attempt \(Clarification 3\)"):
+        _run(tmp_path, st_, S55, S55 + timedelta(seconds=30))
+    at = S55 + timedelta(seconds=30)
+    with _Clock(at):
+        ck.run_finalizer(tmp_path, now=lambda: at)
     assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()
-    assert rep55["seal"].get("from_slot") == S47.isoformat()
 
 
 def test_a5_a_delayed_invocation_cannot_claim_a_later_slot(tmp_path, monkeypatch):

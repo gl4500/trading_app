@@ -19,7 +19,7 @@ import s1_seal as z
 import s1_slot as sl
 import s1_trial as t
 from conftest import (S1_PROCESS, S1_RECEIPT, Spies, _Clock, s1_ack, s1_close_out, s1_jappend,  # noqa: F401
-                      s1_mailbox_init, s1_state)
+                      s1_jstage, s1_mailbox_init, s1_state)
 
 START = "2026-10-26T13:30:00+00:00"
 HERE = Path(__file__).resolve().parent.parent
@@ -63,7 +63,7 @@ def history(tmp_path, case="no-valid-seal", *, early_intent=False):
                                                   seal_days=[0, 1, 2]),
                       "lots-earliest": dict(seal_days=[0, 1])}[case])
     if early_intent:
-        s1_jappend(tmp_path, "SLOT-INTENT", W_SUB, at=W_L - timedelta(seconds=10))
+        s1_jstage(tmp_path, "SLOT-INTENT", W_SUB, at=W_L - timedelta(seconds=10))   # H5a: staged legacy (pre-C4)
     return st_
 
 
@@ -280,8 +280,9 @@ def test_early_claim_restart_refusal(tmp_path, monkeypatch):                    
     gv = t.gate(tmp_path, "restart", defer_pending=True)                    # UNIT: a restarted W_L worker (OP-11)
     day = next(d for d in st_["calendar"] if d["date"] == D129)
     with _Clock(W_L - timedelta(seconds=5)), pytest.raises(SystemExit, match=r"a restart never re-intents"):
-        with sl.Worker(gv, W_L, day, st_["calendar"], slot_gate=sl.post_start_gate(gv.trial), mailbox=mb(tmp_path),
-                       now=lambda: W_L - timedelta(seconds=5)) as w:
+        with sl.Worker(gv, W_L, day, st_["calendar"], slot_gate=sl.post_start_gate(
+                gv.trial, start=c.aware(START), cal=st_["calendar"]), mailbox=mb(tmp_path),
+                now=lambda: W_L - timedelta(seconds=5)) as w:
             w.intent()
 
 
@@ -342,10 +343,12 @@ def test_ordinary_early_slot_oq33_unchanged(tmp_path, monkeypatch):             
     day = next(d for d in st_["calendar"] if d["date"] == "2026-10-26")
     s = z.schedule(day, st_["calendar"])[0]
     at = s - timedelta(seconds=10)
-    with _Clock(at):
-        got = ck.run_checkpoint(tmp_path, st_["ledger"].path, s, lambda reference=None: S1_RECEIPT,
-                                lambda: dict(S1_PROCESS), tmp_path / "c.log", now=lambda: at, mailbox=mb(tmp_path))
-    assert kinds(tmp_path, j.slot_subject(s)) == ["SLOT-INTENT", "SLOT-FAILED"] and got.get("refused")
+    # A3 H5a: Erratum 2 Clarification 4 (C4.1, C4.3) supersedes OQ-33's INTENT + FAILED for new invocations - an
+    # ordinary early slot (not W_L) is refused at step 6 with no row; the W_L route is still never taken for it
+    with _Clock(at), pytest.raises(SystemExit, match=r"requested before its scheduled instant: no claim \(Clarification 4\)"):
+        ck.run_checkpoint(tmp_path, st_["ledger"].path, s, lambda reference=None: S1_RECEIPT,
+                          lambda: dict(S1_PROCESS), tmp_path / "c.log", now=lambda: at, mailbox=mb(tmp_path))
+    assert kinds(tmp_path, j.slot_subject(s)) == []
 
 
 def test_earlier_lots_stop_with_pending_w_last(tmp_path):                                   # row 423 (R3-A14)

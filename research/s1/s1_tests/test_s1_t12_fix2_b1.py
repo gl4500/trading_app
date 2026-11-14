@@ -110,6 +110,20 @@ def kinds(tmp_path, slot):
     return [x.kind for x in j.subject_rows(_rows(tmp_path), j.slot_subject(slot))]
 
 
+C3_REFUSAL = r"no later slot attempt \(Clarification 3\)"
+
+
+def later_refused_then_catch_up(tmp_path, st_, slot, clock):
+    """A3 H5a (Erratum 2 Clarification 3 S1, S2.6, S5.2): a NEW attempt for a later slot of a close that already has an
+    earlier committed QUALIFIED is refused at the slot gate with no row and runs no finalizer; the seal/finalizer work
+    it used to trigger is recovered by the authorized catch-up, the finalizer command (s1_checkpoint --finalize ->
+    run_finalizer), at the same clock. (Its dispatch is R-3, not proven here.)"""
+    with pytest.raises(SystemExit, match=C3_REFUSAL):
+        run(tmp_path, st_, slot, clock)
+    assert kinds(tmp_path, slot) == []
+    return ck.run_finalizer(tmp_path, now=clock)
+
+
 def timeout_row(tmp_path, st_, slot, at):
     """A3 Task 6 (E1.2): the finalizer's SLOT-TIMEOUT for `slot` at `at` (the INTENT's op, its own actor) through the
     product context - the journal transaction arbitrates it against the worker's J; no lock is taken (Task 7 builds
@@ -164,7 +178,8 @@ def test_b1_the_reviews_overlap_race_selects_the_earlier_slot_in_both_completion
         assert rep45["seal"]["written"] is True
         clock.t = E45 + timedelta(seconds=3)
         spy.dur = timedelta(seconds=1)
-        assert run(tmp_path, st_, S47, clock)["seal"]["written"] is False
+        with pytest.raises(SystemExit, match=C3_REFUSAL):          # A3 H5a (Clarification 3): 47 after 45's
+            run(tmp_path, st_, S47, clock)                            # QUALIFIED is refused; the seal is 45's
     assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S45.isoformat()
 
 
@@ -185,19 +200,17 @@ def test_b1_a_claim_without_a_report_stays_pending_after_E_and_times_out_at_D(tm
     rep47 = run(tmp_path, st_, S47, clock)
     assert rep47["seal"]["written"] is False
     clock.t = S2100 + timedelta(seconds=30)                     # E45 < 21:00:30 < D45 = 21:25
-    rep21 = run(tmp_path, st_, S2100, clock)
-    assert rep21["seal"]["written"] is False and not SEAL_P(tmp_path).exists()
-    assert "pending" in str(rep21.get("deferred")), rep21
+    later_refused_then_catch_up(tmp_path, st_, S2100, clock)   # A3 H5a: the 21:00 trigger -> --finalize
+    assert not SEAL_P(tmp_path).exists()                      # (slot 45 still pending: the seal waits)
     assert not res_path(tmp_path, S45).exists()
     clock.t = S2200 + timedelta(seconds=30)                     # after D45
     # A3 Task 6 (B1.3 -> F3, E1.4; fix round 1, review C2): no RESOLUTION-TIMEOUT file is written into the slot (the
     # finalizer never touches a worker's files); an INTENT-only slot is not terminal, so the finalizer's SLOT-TIMEOUT
     # row (Task 7's, here timeout_row) commits first at D45 - then slot 47 is selectable and is the seal
     assert timeout_row(tmp_path, st_, S45, D45).outcome == "APPEND"
-    rep22 = run(tmp_path, st_, S2200, clock)
+    later_refused_then_catch_up(tmp_path, st_, S2200, clock)   # A3 H5a: the 22:00 trigger -> --finalize
     assert not res_path(tmp_path, S45).exists() and kinds(tmp_path, S45) == ["SLOT-INTENT", "SLOT-TIMEOUT"]
     assert z.resolution_deadline(S45, _day(st_), st_["calendar"]) == D45 < clock.t
-    assert rep22["seal"]["written"] is True and rep22["seal"].get("from_slot") == S47.isoformat()
     assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()
 
 
@@ -237,9 +250,8 @@ def test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_tim
     assert not res_path(tmp_path, S45).with_name(f"{S45.strftime('%Y%m%dT%H%M%SZ')}.late.json").exists()
     clock.t = S2200 + timedelta(seconds=30)
     assert timeout_row(tmp_path, st_, S45, clock.t).outcome == "APPEND"      # fix round 1 (C2): the finalizer's row
-    rep22 = run(tmp_path, st_, S2200, clock)                                # first (Task 7), then slot 47 seals
-    assert rep22["seal"]["written"] is True
-    assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()
+    later_refused_then_catch_up(tmp_path, st_, S2200, clock)  # first (Task 7), then slot 47 seals (H5a: through
+    assert read(SEAL_P(tmp_path))["capture"]["scheduled"] == S47.isoformat()   # --finalize, Clarification 3)
 
 
 # ====================================================================== expiration racing late completion
@@ -329,7 +341,7 @@ def test_b1_killed_and_merely_slow_workers_get_the_same_timeout_disposition(tmp_
     # fix round 1 (review C2): the finalizer's SLOT-TIMEOUT for slot 45 (Task 7's row, here timeout_row) commits at
     # D45 with no lock, while the slow worker still holds the slot (E1.2); then slot 47 is selectable
     assert timeout_row(tmp_path, st_, S45, D45).outcome == "APPEND"
-    run(tmp_path, st_, S2200, clock)
+    later_refused_then_catch_up(tmp_path, st_, S2200, clock)    # A3 H5a: the 22:00 trigger -> --finalize
     if th is not None:
         gate.go.set()
         th.join(WAIT)
@@ -406,7 +418,8 @@ def test_b1_concurrent_finalizers_and_restart_replay_give_one_deterministic_seal
     seal_bytes = SEAL_P(tmp_path).read_bytes()
     assert json.loads(seal_bytes)["capture"]["scheduled"] == S45.isoformat()
     clock.t = S2100 + timedelta(seconds=30)
-    assert run(tmp_path, st_, S2100, clock)["seal"]["written"] is False
+    with pytest.raises(SystemExit, match=C3_REFUSAL):           # A3 H5a: a later-slot replay is refused
+        run(tmp_path, st_, S2100, clock)                         # (Clarification 3); the seal is unchanged
     real(out, day, cal, S2200)
     assert SEAL_P(tmp_path).read_bytes() == seal_bytes
 

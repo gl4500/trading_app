@@ -549,19 +549,34 @@ def test_sealed_last_close_reaches_its_timeout_through_the_finalizer_command(tmp
     _assert_timeout_at_the_sealed_last_close(tmp_path, before)
 
 
-def test_sealed_last_close_reaches_its_timeout_through_a_later_checkpoint(tmp_path):
-    """Review C1 (ruling): the checkpoint's post-capture finalizer does the same - a later (ineligible d130) slot's
-    QUALIFIED at 2027-04-26 20:45Z finalizes the sealed last close (its W slot MISSED) and the stop decision commits
-    the TIMEOUT."""
+@pytest.mark.parametrize("case", ["d130-refused-no-new-work", "run-finalizer-recovers-timeout"])
+def test_d130_checkpoint_refused_then_finalizer_recovers_the_eligible_timeout(tmp_path, monkeypatch, case):
+    """Map row 509 (Erratum 2 Clarification 2 PW-A10, D4). EXPLICITLY SUPERSEDES
+    test_sealed_last_close_reaches_its_timeout_through_a_later_checkpoint (old -> new: s1_evidence/a3/h5a_old_new.md):
+    the ineligible d130 checkpoint (2027-04-26 20:45Z) is refused with the pinned reason and no new work - no row, no
+    capture, no finalizer, no stop decision (changed RED/GREEN); then run_finalizer (`--finalize`) gives the TIMEOUT
+    at the sealed last close (control). Scheduling that finalizer is R-3, not proven here."""
+    import a3_h5a_helpers as hh
     import s1_checkpoint as ck
     from conftest import S1_PROCESS
     st_ = _sealed_last_close(tmp_path)
     before = _sealed_state(tmp_path)
     s130 = c.aware("2027-04-26T20:45:00+00:00")
     a130 = s130 + timedelta(seconds=30)
+    if case == "d130-refused-no-new-work":
+        w = hh.Watch(monkeypatch)
+        shas = [x.sha for x in jrows(tmp_path)]
+        with _Clock(a130), pytest.raises(SystemExit, match=hh.refused(s130, hh.c2_text("2027-04-26"))):
+            ck.run_checkpoint(tmp_path, st_["ledger"].path, s130, w.receipt(), w.process(), tmp_path / "c.log",
+                              now=lambda: a130)
+        w.assert_no_work()
+        assert [x.sha for x in jrows(tmp_path)] == shas and j.first(jrows(tmp_path), "TRIAL-STOP") is None
+        assert _sealed_state(tmp_path) == before
+        return
     with _Clock(a130):
-        ck.run_checkpoint(tmp_path, st_["ledger"].path, s130, lambda reference=None: S1_RECEIPT,
-                          lambda: dict(S1_PROCESS), tmp_path / "c.log", now=lambda: a130)
+        hh.attempt(ck.run_checkpoint, tmp_path, st_["ledger"].path, s130, lambda reference=None: S1_RECEIPT,
+                   lambda: dict(S1_PROCESS), tmp_path / "c.log", now=lambda: a130)
+        ck.run_finalizer(tmp_path, now=lambda: a130, mailbox=mb(tmp_path))
     _assert_timeout_at_the_sealed_last_close(tmp_path, before)
 
 

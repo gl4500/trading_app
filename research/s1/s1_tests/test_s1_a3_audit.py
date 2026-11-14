@@ -483,7 +483,8 @@ def test_the_n1_confirm_on_re_read_branches(tmp_path, monkeypatch, race):
         if not fired:
             fired.append(1)
             if race == "legitimate-intent":
-                s1_jappend(tmp_path, "SLOT-INTENT", "slot/20261023T204500Z", at=NOW)
+                from conftest import s1_jstage                             # H5a: staged (pre-C4) row at NOW
+                s1_jstage(tmp_path, "SLOT-INTENT", "slot/20261023T204500Z", at=NOW)
             elif race == "file-gone":
                 p.unlink()
         return real(gv)

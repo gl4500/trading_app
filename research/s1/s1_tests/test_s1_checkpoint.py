@@ -23,15 +23,22 @@ def make_prereg(root, receipt=REC):
     s1_register(root, START.isoformat(), calendar=CAL, receipt=receipt)
 
 
-def run(root, ledger, minutes=45, receipt=REC, pid=1, log=None, proc=None, delay=30, intent_delay=None):
-    sch = datetime(2026, 10, 15, 20, 0, tzinfo=UTC).timestamp() + minutes * 60
+NEXT, LATER = "2026-10-16", "2026-10-19"   # A3 H5a: later closes' first slots (Clarification 3, see run)
+
+
+def run(root, ledger, minutes=45, receipt=REC, pid=1, log=None, proc=None, delay=30, intent_delay=None,
+        day="2026-10-15"):
+    """A3 H5a (Erratum 2 Clarification 3 S1): a later slot of a close whose earlier slot QUALIFIED is refused with no
+    row, so a test's SECOND and THIRD observations run on the first slot of a later close (`day`: NEXT, LATER) - the
+    same consecutive-observation semantics (process, restart record, receipt, fences) on a slot that may be claimed."""
+    sch = datetime(*map(int, day.split("-")), 20, 0, tzinfo=UTC).timestamp() + minutes * 60
     # (fix round 2 migration, Addendum 2 B2: an observation carries the sanitized launcher binding; the registered
     # reference is the opening's, conftest.S1_BINDING)
     p = {"pid": pid, "process_start": "2026-10-12T23:17:25", "binding": dict(S1_BINDING)} if proc is None else proc
     # A3 Task 6 (F0.5 step 6: a SLOT-INTENT at now >= E is refused with no row): `intent_delay` is the clock until the
     # slot's claim exists (the INTENT and its claim), `delay` the clock afterwards (the capture, R and J)
     when = datetime.fromtimestamp(sch, UTC)
-    claim = root / "s1_out" / "captures" / "2026-10-15" / f"{when:%Y%m%dT%H%M%SZ}.attempt.json"
+    claim = root / "s1_out" / "captures" / day / f"{when:%Y%m%dT%H%M%SZ}.attempt.json"
     now = (lambda: datetime.fromtimestamp(sch + delay, UTC)) if intent_delay is None else \
         (lambda: datetime.fromtimestamp(sch + (delay if claim.exists() else intent_delay), UTC))
     return k.run_checkpoint(root, ledger.path, when, lambda: receipt, lambda: p, log or root / "crash.log", now=now)
@@ -66,7 +73,7 @@ def test_restart_recorded_and_source_change_invalidates(tmp_path, ledger):      
     rep = run(tmp_path, ledger, pid=2)
     assert rep["receipt_match"] and rep["restart_gaps"] == []
     bad = s1_receipt_with(REC, files={"a.py": "2"})                    # Task 12 (A1): a fingerprint change
-    rep = run(tmp_path, ledger, minutes=47, receipt=bad, pid=2)
+    rep = run(tmp_path, ledger, day=NEXT, receipt=bad, pid=2)
     assert rep["receipt_match"] is False and rep["stop"]["status"] == "ABORTED-INVALID"
 
 
@@ -108,7 +115,7 @@ def test_pid_change_without_start_line_reported_and_prefix_checked(tmp_path, led
     """Added with the interface update: previous record size feeds restart_record; pid change is a gap."""
     make_prereg(tmp_path)
     run(tmp_path, ledger, pid=1)
-    rep = run(tmp_path, ledger, minutes=47, pid=9)
+    rep = run(tmp_path, ledger, day=NEXT, pid=9)
     assert any("pid 1 -> 9" in g for g in rep["restart_gaps"])
 
 
@@ -142,11 +149,11 @@ def test_abort_after_fence_violation_survives_clean_and_failed_runs(tmp_path, le
     assert SEAL(tmp_path).exists()
     ledger._x("DELETE FROM trades WHERE id=1", ())                            # a sealed row disappears
     ledger._x("DELETE FROM portfolios", ())
-    rep = run(tmp_path, ledger, minutes=47)
+    rep = run(tmp_path, ledger, day=NEXT)
     assert rep["fence_violations"] and rep["stop"]["status"] == "ABORTED-INVALID"
     first = ABORT(tmp_path).read_bytes()
     with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\)"):   # A3 Task 6 (F1)
-        run(tmp_path, ledger, minutes=49)
+        run(tmp_path, ledger, day=LATER)
     bad = tmp_path / "nodb.sqlite3"
     with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\)"):
         k.run_checkpoint(tmp_path, bad, datetime(2026, 10, 15, 20, 51, tzinfo=UTC), lambda: REC,
@@ -161,12 +168,12 @@ def test_backdated_row_later_deleted_stays_aborted(tmp_path, ledger):
     run(tmp_path, ledger, minutes=45)
     rid = ledger.trade("B", "BUY", 1, 10, "2026-10-15T19:00:00+00:00")      # stored after the seal, dated <= close
     ledger.set_portfolio("B", 1)
-    rep = run(tmp_path, ledger, minutes=47)
+    rep = run(tmp_path, ledger, day=NEXT)
     assert any("backdated" in v for v in rep["fence_violations"]) and rep["stop"]["status"] == "ABORTED-INVALID"
     ledger._x("DELETE FROM trades WHERE id=?", (rid,)); ledger.drop_portfolio("B")
     first = ABORT(tmp_path).read_bytes()
     with pytest.raises(SystemExit, match=r"trial INVALID \(reason/established-violation\)"):   # A3 Task 6 (F1)
-        run(tmp_path, ledger, minutes=49)
+        run(tmp_path, ledger, day=LATER)
     assert ABORT(tmp_path).read_bytes() == first
 
 
@@ -186,9 +193,9 @@ def test_pidless_after_good_observation_is_a_gap_with_reason(tmp_path, ledger):
     """Retrospective (Task 5 review fix round 1), C2."""
     _good(tmp_path, ledger)
     run(tmp_path, ledger, minutes=45, pid=1)
-    rep = run(tmp_path, ledger, minutes=47, proc={"error": "x"})
+    rep = run(tmp_path, ledger, day=NEXT, proc={"error": "x"})
     assert any("process not observed (x)" in g for g in rep["restart_gaps"])
-    rep = run(tmp_path, ledger, minutes=49, proc={})
+    rep = run(tmp_path, ledger, day=LATER, proc={})
     assert any("process not observed (nothing listening)" in g for g in rep["restart_gaps"])
 
 
@@ -199,10 +206,10 @@ def test_real_restart_on_second_run_observed_and_unlogged_pid_change_is_gap(tmp_
     log.write_text("2026-10-15 08:00:00 [PROCESS START] pid=1\n")
     run(tmp_path, ledger, minutes=45, pid=1)
     log.write_text(log.read_text() + "2026-10-15 20:46:00 [PROCESS START] pid=2\n")
-    rep = run(tmp_path, ledger, minutes=47, pid=2)
+    rep = run(tmp_path, ledger, day=NEXT, pid=2)
     assert rep["restart_gaps"] == [] and rep["process_starts"]["observed"] == 1
     assert rep["process_starts"]["latest"]["pid"] == 2
-    rep = run(tmp_path, ledger, minutes=49, pid=3)                                   # no PROCESS START line for 3
+    rep = run(tmp_path, ledger, day=LATER, pid=3)                                   # no PROCESS START line for 3
     assert any("pid 2 -> 3" in g for g in rep["restart_gaps"]) and rep["process_starts"]["observed"] == 0
 
 
@@ -218,7 +225,7 @@ def test_receipt_mismatch_capture_does_not_seal_and_seal_carries_receipt(tmp_pat
     assert rep["seal"]["written"] is True and rep["seal"]["sha256"] == s1_common.sha256_file(SEAL(tmp_path))
     assert rep["snapshot"] and len(rep["snapshot"]) == 64
     before = SEAL(tmp_path).read_bytes()
-    rep = run(tmp_path, ledger, minutes=47, receipt=s1_receipt_with(REC, files={"a.py": "x"}))   # Task 12 (A1)
+    rep = run(tmp_path, ledger, day=NEXT, receipt=s1_receipt_with(REC, files={"a.py": "x"}))   # Task 12 (A1)
     assert SEAL(tmp_path).read_bytes() == before and rep["seal"] == {"written": False, "sha256": None}
     assert ABORT(tmp_path).exists() and "candidate" not in rep
 
@@ -270,7 +277,7 @@ def test_late_capture_flagged(tmp_path, ledger):
     """Retrospective (Task 5 review fix round 1), m2."""
     _good(tmp_path, ledger)
     assert run(tmp_path, ledger, minutes=45, delay=30)["late"] is False
-    rep = run(tmp_path, ledger, minutes=47, delay=11 * 60, intent_delay=30)   # A3 Task 6: INTENT before E
+    rep = run(tmp_path, ledger, day=NEXT, delay=11 * 60, intent_delay=30)   # A3 Task 6: INTENT before E
     assert rep["late"] is True
 
 
@@ -278,8 +285,8 @@ def test_pid_change_across_a_pidless_run_without_start_line_is_gap(tmp_path, led
     """Retrospective (Task 5 review fix round 2), N1: pid 2 -> {} -> pid 77, no new PROCESS START line."""
     _good(tmp_path, ledger)
     run(tmp_path, ledger, minutes=45, pid=2)
-    run(tmp_path, ledger, minutes=47, proc={})
-    rep = run(tmp_path, ledger, minutes=49, pid=77)
+    run(tmp_path, ledger, day=NEXT, proc={})
+    rep = run(tmp_path, ledger, day=LATER, pid=77)
     assert any("pid 2 -> 77" in g for g in rep["restart_gaps"])
 
 
@@ -289,9 +296,9 @@ def test_pid_change_across_a_pidless_run_with_start_line_is_observed(tmp_path, l
     log = tmp_path / "crash.log"
     log.write_text("2026-10-15 08:00:00 [PROCESS START] pid=2\n")
     run(tmp_path, ledger, minutes=45, pid=2)
-    run(tmp_path, ledger, minutes=47, proc={})
-    log.write_text(log.read_text() + "2026-10-15 20:48:00 [PROCESS START] pid=77\n")
-    rep = run(tmp_path, ledger, minutes=49, pid=77)
+    run(tmp_path, ledger, day=NEXT, proc={})
+    log.write_text(log.read_text() + "2026-10-16 20:48:00 [PROCESS START] pid=77\n")
+    rep = run(tmp_path, ledger, day=LATER, pid=77)
     assert not any("pid 2 -> 77" in g for g in rep["restart_gaps"])
     assert rep["process_starts"]["observed"] == 1 and rep["process_starts"]["latest"]["pid"] == 77
 

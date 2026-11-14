@@ -1,0 +1,164 @@
+# H5a behavioural RED: base 5370bce + Step-1 stub (post_start_gate(trial, *, start, cal) signature with start/cal ignored; pinned-reason constants C2_REASON, C3_REASON, EARLY_REFUSALS in s1_slot and C4_TOLERANCE, C4_REASON in s1_journal; run_checkpoint passes start/cal; no behaviour) + test files
+# HEAD 5370bcedfd1a046d0f9ee029136c14b3f792a3fa; run 2026-11-14T17:17:38Z
+# product sha256: cc304fb20d9aea17e815679a4788c57f73ad9f6db88a88939eab89ec5541c8eb *s1_slot.py 950c3b7761236abd7a8c485dc7e8471e708a00c91d21e54cc8268c48ff20d2d5 *s1_journal.py 23350c1d92c8c6f935daabaea76aed8cd4d9cbc5b5e6336ea4ac916041170581 *s1_checkpoint.py e5b4db83856c499966d76dd71e56d9e15eacce36854bca91673db6a5937257de *s1_common.py 
+# test sha256: 343afce833e996f5d01fda8c478cdfc022caac25b13df3571905bb901f2febdf *test_s1_a3_eligibility.py 85cd318fc59dbef04e24e643e7e5da63bfefa2a6a9408cf1a019396f4c1d524c *test_s1_a3_seal_once.py 98f609cf0df4f69e7c3048321133b7a32d4e75addd822e27c8cc37edcdeacef5 *test_s1_a3_intent_lower_bound.py 25a9b724a013d5053baf9bbcf747e3f24b69476385b580ac7f72fc8cff8194ea *test_s1_a3_stop.py 746f91fd9cbea19c4b7c88be10fb4947a76c6e73313d4a5db2d8eda0e28f41cb *a3_h5a_helpers.py 02a86db4d9542bdb99d8960cccff0d01d78c6b0b9ad938a3409354519182a886 *a3_helpers.py 2598ee1e1587943611f61edec58e93ba57f37ed68a24468f2e61566afcf6ca45 *conftest.py 
+# command: PYTHONPATH=research/s1;research/s1/s1_tests testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_eligibility.py research/s1/s1_tests/test_s1_a3_seal_once.py research/s1/s1_tests/test_s1_a3_intent_lower_bound.py research/s1/s1_tests/test_s1_a3_stop.py::test_d130_checkpoint_refused_then_finalizer_recovers_the_eligible_timeout -rA --tb=line
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-8.3.3, pluggy-1.6.0
+rootdir: C:\Users\gl450\trading_app-s1
+plugins: anyio-4.15.1, hypothesis-6.112.1
+collected 105 items
+
+research\s1\s1_tests\test_s1_a3_eligibility.py FFF.F...F................ [ 23%]
+..FFF..F                                                                 [ 31%]
+research\s1\s1_tests\test_s1_a3_seal_once.py FF...F......F............F. [ 57%]
+...F..FF.                                                                [ 65%]
+research\s1\s1_tests\test_s1_a3_intent_lower_bound.py F..FF..F.FFFFFFF.F [ 82%]
+.......F.F.FF.FF                                                         [ 98%]
+research\s1\s1_tests\test_s1_a3_stop.py F.                               [100%]
+
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_eligibility.py:38: AssertionError: docs/s1_design_v5_addendum3_erratum2_clarification2.md
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_eligibility.py:77: AssertionError: assert None == 'close 2027-04-26 is not an A5.1-eligible session (Clarification 2): no post-START capture'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_eligibility.py:332: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_eligibility.py:350: AssertionError: [('SLOT-INTENT', 'APPEND'), ('SLOT-QUALIFIED', 'APPEND'), ('STAGE-INTENT', 'APPEND'), ('STAGE-PREPARED', 'APPEND'), ('STAGE-CREATED', 'APPEND'), ('SLOT-MISSED', 'APPEND'), ...]
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_eligibility.py:352: AssertionError: ['_after_terminal', 'finalize_close', 'run_seal_stage', 'run', '_finalize_others', '_finalize_last_if_due', ...]
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_eligibility.py:390: AssertionError: assert ('APPEND', '') == ('REFUSE', 'c...TART capture')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_seal_once.py:159: AssertionError: ('{"ok": true}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_seal_once.py:246: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_seal_once.py:392: AssertionError: (['_after_terminal', 'finalize_close', 'run_seal_stage', '_finalize_others', '_finalize_last_if_due', 'decide_stop'], [('SLOT-INTENT', 'APPEND'), ('SLOT-QUALIFIED', 'APPEND')])
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_seal_once.py:440: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:50: AssertionError: assert Decision(outc...D', reason='') == Decision(outc...ification 4)')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:171: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:171: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:171: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:171: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:171: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:219: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:256: AssertionError: assert Decision(outc...D', reason='') == Decision(outc...ification 4)')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:279: AssertionError: assert Decision(outc...D', reason='') == Decision(outc...TART capture')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:341: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:395: AssertionError: assert ('APPEND', '') == ('REFUSE', 'c...ification 3)')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:395: AssertionError: assert ('APPEND', '') == ('REFUSE', 'c...ification 3)')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:416: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_intent_lower_bound.py:434: AssertionError: assert Decision(outc...D', reason='') == Decision(outc...ification 4)')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_stop.py:569: Failed: DID NOT RAISE <class 'SystemExit'>
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_close_deadline_boundary[close-equals-deadline-not-refused]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligible_close_window_past_deadline_stays_under_e_w[slot-before-e-after-deadline-proceeds]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligible_close_window_past_deadline_stays_under_e_w[slot-at-or-after-e-refused]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_route_predicate_unchanged[exact-w-l-routes]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_legacy_eligible_claim_keeps_rules[legacy-claim-r-after-w-l-before-d-qualifies]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_legacy_eligible_claim_keeps_rules[legacy-claim-timeout-at-d]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_legacy_eligible_claim_keeps_rules[legacy-w-l-claim-completes]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_legacy_ineligible_history_kept[pending-ineligible-intent]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_legacy_ineligible_history_kept[created-ineligible-seal]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_legacy_ineligible_history_kept[no-new-invalid]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_opening_mode_path_unchanged[opening-mode-captures-and-seals]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_opening_mode_path_unchanged[opening-mode-keeps-opening-gate-guard]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_precedence_preserved[local-abort]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_precedence_preserved[closed]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_precedence_preserved[invalid]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_precedence_preserved[foreign-root]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_precedence_preserved[integrity-violation]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_precedence_preserved[stopped-lost-race]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_precedence_preserved[repeat-attempt-invalid]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_precedence_preserved[mandatory-invalid-not-suppressed]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_row305_kept_as_synthetic_history[row305-history]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_row305_kept_as_synthetic_history[damaged-ineligible-seal-invalid]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_scheduled_mode_pre_start_session_unchanged[scheduled-opening-close-slot-no-new-refusal]
+PASSED research/s1/s1_tests/test_s1_a3_eligibility.py::test_scheduled_mode_pre_start_session_unchanged[scheduled-opening-close-slot-keeps-ordinary-guards]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_earlier_slot_still_attemptable[earlier-attempt-allowed]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_earlier_slot_still_attemptable[earlier-qualified-becomes-selected-seal]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_transaction_barrier_around_q_commit[intent-before-q-commit-allowed]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_preclaimed_later_completions[qualified-r-before-d]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_preclaimed_later_completions[failed]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_preclaimed_later_completions[timeout-at-d]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_preclaimed_later_completions[lost-race-after-timeout]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_counterexamples_integrated[probe1-early-intent-q8]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_counterexamples_integrated[probe2-post-first-q-earlier-claims-q5]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_pre_start_paths_unchanged[scheduled-opening-close-slot-unchanged]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_pre_start_paths_unchanged[opening-mode-unchanged]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_pre_start_paths_unchanged[exact-w-l-route-unchanged]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[local-abort]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[closed]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[invalid]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[foreign-root]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[integrity-violation]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[stopped-lost-race]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[repeat-attempt-invalid]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[mandatory-invalid-not-suppressed]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[prereg-missing-first]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_retained_evidence_verified[multi-qualified-all-trees-hashed]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_retained_evidence_verified[damaged-non-selected-tree-invalid]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_retained_evidence_verified[damaged-q-tree-integrity-not-ignored]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_retained_evidence_verified[no-new-invalid-from-legacy]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_no_refusal_triggered_finalizer[next-close-worker-recovers]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_no_refusal_triggered_finalizer[run-finalizer-recovers]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_predicate_mapping[other-close-qualified-ignored]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-equals-s-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-s-plus-epsilon-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_w_claim_interval_empty[exact-w-l-route-unaffected-any-clock]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_paused_worker_loses_capture[old-head-early-intent-pause-resume-qualifies]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_failed_early_then_retry_gains_capture[old-head-early-failed-retry-refused]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[opening-mode-equality-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[scheduled-pre-start-session-equality-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[closed-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[invalid-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[identity-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[integrity-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[repeat-attempt-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[stopped-lost-race-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_sample_before_e_commit_after_e[sample-before-e-commit-after-e-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[probe2-still-q5]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[delayed-j-after-committed-timeout-lost-race]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_d130_checkpoint_refused_then_finalizer_recovers_the_eligible_timeout[run-finalizer-recovers-timeout]
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_bundle_pins_clarifications_2_3_4
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_post_deadline_close_refused[d130-first-slot]
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_post_deadline_close_refused[d131-post-deadline]
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_close_deadline_boundary[close-plus-1us-refused]
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_route_predicate_unchanged[later-registered-slot-not-routed]
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_direct_worker_entry_cannot_bypass[worker-post-start-gate-post-deadline-close]
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer[no-missed-timeout-rows]
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer[no-stop-decision]
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_scheduled_mode_pre_start_session_unchanged[paired-post-deadline-control-refused]
+FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_earlier_qualified_not_determined_refuses_later[earlier-slot-pending]
+FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_earlier_qualified_not_determined_refuses_later[earlier-slot-unclaimed-window-open]
+FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_transaction_barrier_around_q_commit[intent-after-q-commit-refused]
+FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_direct_worker_entry_cannot_bypass[worker-post-start-gate-later-slot-after-q]
+FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_precedence_preserved[c2-post-deadline-reason-first]
+FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_no_refusal_triggered_finalizer[refusal-runs-no-finalizer]
+FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_predicate_mapping[unknown-mapping-fails-closed]
+FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_predicate_mapping[registered-instant-not-commit-order]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-s-minus-1us-refused-no-row]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[zero-tolerance-declared]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_w_claim_interval_empty[non-last-close-w-slot-never-claimable-ends-missed]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_paused_worker_loses_capture[new-head-early-refused-no-retry-slot-missed]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_failed_early_then_retry_gains_capture[new-head-early-refused-retry-at-s-qualifies]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[records-slot-sample-reason]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[no-journal-row]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[no-claim-no-capture]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[missing-root-not-recreated]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[diagnostic-write-failure-still-refuses-and-discloses-gap]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[opening-mode-early-refused]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[scheduled-pre-start-session-early-refused]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[slot-gate-reasons-first]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[probe1-early-claims-refused]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[seven-slot-witness-close-minute-4]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[eighth-slot-excluded-half-open]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_row524_interaction[row524-labelled-historical-or-staged]
+FAILED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_row524_interaction[no-disable-c4-bypass]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_d130_checkpoint_refused_then_finalizer_recovers_the_eligible_timeout[d130-refused-no-new-work]
+================== 36 failed, 69 passed in 205.26s (0:03:25) ==================

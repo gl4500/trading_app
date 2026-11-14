@@ -318,7 +318,8 @@ def test_product_context_fails_closed_without_a_slot_gate_or_stage_check(tmp_pat
     no_check = _ctx_append(tmp_path, "STAGE-INTENT", stage, ctx(stage_gate=lambda rows, g: None), at,
                            detail=j.detail_of({"x": 1}))
     assert (no_check.outcome, no_check.row) == ("REFUSE", None) and "fail closed" in no_check.reason
-    ok = _ctx_append(tmp_path, "SLOT-INTENT", slot, ctx(slot_gate=lambda rows, s: None), at)
+    ok = _ctx_append(tmp_path, "SLOT-INTENT", slot, ctx(slot_gate=lambda rows, s: None),   # H5a: the sample at s
+                     c.aware(START) + timedelta(hours=7))                                      # (Clarification 4)
     assert ok.outcome == "APPEND" and ok.row.kind == "SLOT-INTENT"                         # positive control
 
 
@@ -505,7 +506,8 @@ def test_a_raw_context_without_slot_gate_or_stage_check_fails_closed():
     assert d.outcome == "REFUSE" and "no stage check supplied (fail closed)" in d.reason
     ok = j.Context(slot_times=lambda s: (far, far), stage_gate=lambda rows, g: None, slot_gate=lambda rows, s: None,
                    stage_check=lambda rows, s, i: None)
-    assert j.decide([], j.Request("SLOT-INTENT", slot, "1" * 32, "2" * 32), ok, now).outcome == "APPEND"
+    assert j.decide([], j.Request("SLOT-INTENT", slot, "1" * 32, "2" * 32), ok,          # H5a: the sample at s
+                    now + timedelta(hours=7)).outcome == "APPEND"                         # (Clarification 4)
     assert j.decide([], j.Request("STAGE-INTENT", stage, "1" * 32, "2" * 32, detail="a" * 64), ok,
                     now).outcome == "APPEND"
     ln = j.format_line(trial_id=OTHER, seq=1, prev="0" * 64, kind="STAGE-INTENT", subject=stage, detail="a" * 64,

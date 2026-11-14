@@ -64,7 +64,14 @@ DOC_PINS = {"docs/s1_design_v5.md": "33c3284072dc51392476f7cae596eab05f1fcbaccd6
             "docs/s1_design_v5_addendum3_erratum2.md":
                 "883f09be8471b9da7ee2c01c026ea90f9cec37515d79f3863e8c72085caa6d87",
             "docs/s1_design_v5_addendum3_erratum2_clarification1.md":
-                "2ccb8a287de533f08dcbf1e919afb04add8d5a60a0088dfd370649689009e10d"}
+                "2ccb8a287de533f08dcbf1e919afb04add8d5a60a0088dfd370649689009e10d",
+            # A3 H5a: the operator-adopted, byte-frozen Erratum 2 Clarifications 2, 3 and 4 (8dfc1ab, 8819b91)
+            "docs/s1_design_v5_addendum3_erratum2_clarification2.md":
+                "ba16fdc876030d824818bed4e56abd1c9e4ff1c825c738d34dbf18fc50c07e6c",
+            "docs/s1_design_v5_addendum3_erratum2_clarification3.md":
+                "fabac171ec8e6dc2769f9d3040b7acc4abdef607e5cda66de915f466b3ea7a6e",
+            "docs/s1_design_v5_addendum3_erratum2_clarification4.md":
+                "c974ed5f988e2922ec9a1ed19099b6b7260b53b27976f29191722bd6fc9c44d8"}
 MISSING = "missing"
 ABSENT = "absent"                     # token placeholder for an artifact that does not exist
 

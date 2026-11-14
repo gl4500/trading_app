@@ -178,11 +178,82 @@ def move_own_late(out, slot, day_iso, actor, committed: set) -> list:
     return moved
 
 
-def post_start_gate(trial):
-    """F7.4: no post-START capture without the trial's S1-PREREG-ACK (a refusal with no row at F0.5 step 5)."""
+# A3 H5a: the pinned refusal reasons of Erratum 2 Clarification 2 (O-P3) and Clarification 3 (S1.3); their exact bytes
+# are fixed here (<close> = the session's calendar date YYYY-MM-DD, <q> = q's registered scheduled instant, ISO 8601 UTC).
+C2_REASON = "close {close} is not an A5.1-eligible session (Clarification 2): no post-START capture"
+C3_REASON = ("close {close} has a committed QUALIFIED at an earlier registered slot {q}: no later slot attempt "
+             "(Clarification 3)")
+EARLY_REFUSALS = "early_refusals.jsonl"          # Clarification 4 C4.3 (O-C4-1): the reviewed diagnostic path
+
+
+def _earlier_qualified(rows, s, day, cal):
+    """Clarification 3 S1/S1.1: the earliest registered scheduled instant q of a committed SLOT-QUALIFIED in `rows` (the
+    deciding transaction's rows) that is a slot of the SAME close as `s` with q < s; None when there is none. Registered
+    scheduled instants only - never commit order, R, arrival order, string sorting or a file. A row whose subject names
+    no instant, or whose instant lies after this close and before s but maps to no registered slot, keeps the
+    fail-closed classification: SystemExit (a refusal with no row), never "no earlier q". An instant at or before the
+    close, or at or after s, can never be an earlier slot of this close (every slot of a close follows it)."""
+    close = z.close_of(day["date"], cal)
+    best = None
+    for r_ in rows:
+        if r_.kind != "SLOT-QUALIFIED":
+            continue
+        try:
+            q = slot_of(r_.subject)
+        except ValueError:
+            raise SystemExit(f"{r_.subject} is not a registered seal slot (fail closed, Clarification 3 S1.1)") \
+                from None
+        if not close < q < s:
+            continue
+        if day_for(q, cal)["date"] != day["date"]:          # an unknown mapping raises SystemExit (fail closed)
+            continue
+        if best is None or q < best:
+            best = q
+    return best
+
+
+def post_start_gate(trial, *, start, cal):
+    """The F0.5 step-5 post-START slot gate, evaluated INSIDE the deciding SLOT-INTENT transaction on the rows read there
+    (never gv.rows, a pre-transaction result or a file), after the journal's 4b repeat-attempt and STOPPED -> LOST-RACE.
+    `start` and `cal` are the verified registration's START and calendar (s1_gates.verified_registration). In order:
+    1. F7.4: no post-START capture without the trial's S1-PREREG-ACK.
+    2. A3 H5a, Erratum 2 Clarification 2 (D1, D2): a session with open_instant >= START whose close INSTANT is after the
+       registered A5.1 deadline (s1_seal.deadline; a close equal to it is not refused) - the pinned C2 reason.
+    3. A3 H5a, Erratum 2 Clarification 3 (S1, S2): a committed SLOT-QUALIFIED of an earlier registered slot of the same
+       close (_earlier_qualified) - the pinned C3 reason.
+    A session opening before START gets no refusal and no authorization from 2 and 3 (C2 D1.6, C3 S1.4). A refusal adds
+    no row (decide: REFUSE); every Worker built with this gate goes through it (no bypass, C2 D2.4 / C3 S2.4)."""
+    deadline = z.deadline(start)
+
     def g(rows, subject):
-        return None if "S1-PREREG-ACK" in trial.acks else "no S1-PREREG-ACK: no post-START capture (F7.4)"
+        if "S1-PREREG-ACK" not in trial.acks:
+            return "no S1-PREREG-ACK: no post-START capture (F7.4)"
+        s = slot_of(subject)
+        day = day_for(s, cal)
+        pre = z.open_instant(day) < start
+        if not pre and z.close_of(day["date"], cal) > deadline:
+            return C2_REASON.format(close=day["date"])
+        q = None if pre else _earlier_qualified(rows, s, day, cal)
+        if q is not None:
+            return C3_REASON.format(close=day["date"], q=q.isoformat())
+        return None
     return g
+
+
+def record_early_refusal(out, rec: dict):
+    """A3 H5a, Erratum 2 Clarification 4 C4.3 (O-C4-1): the reviewed local diagnostic path for an early refusal - one
+    JSON line (the registered slot, the in-transaction sample, the reason) appended to s1_out/early_refusals.jsonl,
+    outside the journal. It never creates s1_out or any ancestor: the existing directory is required and the file is
+    only opened for append (a missing directory fails the open). Returns None when recorded, else the failure's class
+    (the caller still refuses, does no work and discloses the gap, C4.3.4)."""
+    try:
+        if not Path(out).is_dir():
+            raise FileNotFoundError(f"{Path(out).name} is absent")
+        with open(Path(out) / EARLY_REFUSALS, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, sort_keys=True) + "\n")
+    except OSError as e:
+        return type(e).__name__
+    return None
 
 
 def opening_gate(trial, out):
@@ -257,13 +328,27 @@ class Worker:
         if res.outcome == "INVALIDATE":
             raise SystemExit(f"{self.subject}: SLOT-INTENT -> INVALID ({res.reason})")
         if res.outcome != "APPEND":
-            raise SystemExit(f"{self.subject}: SLOT-INTENT refused with no row: {res.reason}")
+            raise SystemExit(f"{self.subject}: SLOT-INTENT refused with no row: {res.reason}{self._early_note(res)}")
         self.intent_row = res.row
         c.publish_text_exclusive(self.n["claim"], json.dumps({
             "scheduled": self.slot.isoformat(), "invoked_utc": res.row.at,
             "close": z.close_of(self.day["date"], self.cal).isoformat(), "op": self.op, "actor": self.actor,
             "intent_seq": res.row.seq, "capture_dir": _rel(self.gv.out, self.cap_dir)}))     # OQ-10 ruling
         return None
+
+    def _early_note(self, res) -> str:
+        """A3 H5a (Clarification 4 C4.3): an early refusal (the C4 reason for this slot) is an unauthorized invocation,
+        not a capture attempt: its diagnostic (slot, in-transaction sample, reason) goes to the reviewed path
+        (record_early_refusal) - never a journal row; the refusal text says whether it was recorded or states the
+        recording gap. '' for every other refusal."""
+        if res.reason != j.C4_REASON.format(slot=self.slot.isoformat()):
+            return ""
+        gap = record_early_refusal(self.gv.out, {"subject": self.subject, "scheduled": self.slot.isoformat(),
+                                                 "sample": res.now.isoformat() if res.now else None,
+                                                 "reason": res.reason})
+        if gap is None:
+            return f"; early-refusal diagnostic recorded in s1_out/{EARLY_REFUSALS}"
+        return f"; early-refusal diagnostic NOT recorded ({gap}): recording gap (Clarification 4 C4.3.4)"
 
     def complete(self, rep: dict, success: bool) -> dict:
         """P: the resolution, then the report (each carries op/actor; the report is final before J, E5.2); R; then J

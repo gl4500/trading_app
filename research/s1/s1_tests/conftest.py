@@ -259,6 +259,32 @@ def s1_jappend(root, kind, subject, *, at, detail=None, op=None, actor=None, r_a
     return res.row
 
 
+def s1_jstage(root, kind, subject, *, at, detail=None, op=None, actor=None):
+    """A3 H5a (Clarification 4 C4.3.1 / C4.7): a STAGED LEGACY journal row - history that today's product can no longer
+    write (e.g. an early SLOT-INTENT before its scheduled instant, OQ-33's pre-C4 behaviour). The committed row is
+    built with the frozen F0.2 grammar, chained on the trial's verified rows and INSERTed directly into the TEST's tmp
+    mailbox (sender s1, recipient codex, the journal key): it never goes through s1_journal.append, so no runtime
+    switch exists that disables a product rule. The row's `at` is `at` (QUALIFIED: R). Test-only."""
+    import s1_journal as j
+    import s1_trial as t
+    mb = Path(root) / "mailbox.sqlite3"
+    tr = t.open_trial(mb)
+    rows = j.read_trial(tr.trial_id, tr.genesis, mb)
+    line = j.format_line(trial_id=tr.trial_id, seq=len(rows) + 1, prev=rows[-1].sha if rows else tr.genesis,
+                         kind=kind, subject=subject, detail=detail or j.ABSENT, op=op or j.new_nonce(),
+                         actor=actor or j.new_nonce(), at=j.fmt_at(at))
+    j.parse_line(line)
+    con = sqlite3.connect(mb)
+    try:
+        con.execute("INSERT INTO messages (id, sender, recipient, request_key, body, created, acknowledged) "
+                    "VALUES (?, ?, ?, ?, ?, ?, NULL)", (f"staged-{len(rows) + 1}-{j.new_nonce()}", j.SENDER,
+                                                        j.RECIPIENT, j.KEY, line, at.timestamp()))
+        con.commit()
+    finally:
+        con.close()
+    return j.first(j.subject_rows(j.read_trial(tr.trial_id, tr.genesis, mb), subject), kind)
+
+
 def s1_synthetic_stop(root, at, record=None):
     """A3 Task 11 (F2.2/F2.3): a SYNTHETIC stop for tests of the STOPPED state that do not exercise the stop
     decision: stop.json = `record` (default a synthetic marker) published exactly as persist_stop publishes it, then a

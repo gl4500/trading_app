@@ -164,19 +164,27 @@ def test_clock_boundaries_before_capture(tmp_path, monkeypatch, offset):        
         with pytest.raises(SystemExit, match="now >= E"):
             run(tmp_path, st_, sch, at)
         assert slot_rows(tmp_path, sch) == [] and not n["claim"].exists() and captured == []
-    elif offset == "s-1us":
-        run(tmp_path, st_, sch, at)
-        assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-FAILED"]
-        assert n["claim"].exists() and captured == []
+    elif offset == "s-1us":                 # A3 H5a: Clarification 4 C4.1/C4.3 supersedes OQ-33's INTENT + FAILED for
+        with pytest.raises(SystemExit, match=r"requested before its scheduled instant: no claim \(Clarification 4\)"):    # new invocations: refused, no row
+            run(tmp_path, st_, sch, at)
+        assert slot_rows(tmp_path, sch) == [] and not n["claim"].exists() and captured == []
     else:
         run(tmp_path, st_, sch, at)
         assert captured == [1] and [k_ for k_, *_ in slot_rows(tmp_path, sch)][:1] == ["SLOT-INTENT"]
 
 
+def _failing_process():
+    """A3 H5a: a FAILED slot through a current production path - the process observation fails (A9.1), so there is no
+    candidate and the slot is FAILED (its tree: the claim and the failure report). Replaces the early-invocation
+    (OQ-33) FAILED, which Erratum 2 Clarification 4 now refuses with no row."""
+    raise RuntimeError("fixture: the process observation fails")
+
+
 def test_failed_detail_binds_the_claim_and_the_failure_report(tmp_path):
     st_ = registered(tmp_path)
     day, sch = first_slot(st_)
-    run(tmp_path, st_, sch, sch - timedelta(seconds=5))           # an early invocation: clock before s -> FAILURE
+    import a3_h5a_helpers as hh                                    # H5a: an early invocation is now refused with no
+    hh.run(tmp_path, st_, sch, sch + timedelta(seconds=30), process=_failing_process)   # row (C4): FAILURE this way
     got = slot_rows(tmp_path, sch)
     assert [k_ for k_, *_ in got] == ["SLOT-INTENT", "SLOT-FAILED"]
     assert got[1][4] == j.detail_of(sl.failed_tree(tmp_path / "s1_out", sch, day["date"]))
@@ -424,15 +432,16 @@ def test_a_held_stage_lock_never_blocks_the_slot_path_or_the_deadline_rows(tmp_p
             except SystemExit as e:
                 pytest.fail(f"the slot-path gate was refused: {e}")
         assert gv.deferred == [stage]
-        try:
-            run(tmp_path, st_, sch, sch + timedelta(seconds=30))   # (1) the slot worker is not refused "pending"
+        s47 = sch + timedelta(minutes=2)    # A3 H5a (Clarification 3): (1) captures :47, (2) the EARLIER :45 - a
+        try:                                # later slot after a committed QUALIFIED is refused at the slot gate
+            run(tmp_path, st_, s47, s47 + timedelta(seconds=30))   # (1) the slot worker is not refused "pending"
         except SystemExit as e:
             pytest.fail(f"the slot path was refused: {e}")
-        assert [k_ for k_, *_ in slot_rows(tmp_path, sch)] == ["SLOT-INTENT", "SLOT-QUALIFIED"]
+        assert [k_ for k_, *_ in slot_rows(tmp_path, s47)] == ["SLOT-INTENT", "SLOT-QUALIFIED"]
         # (2) a late R: the clock reaches D just before the report (the last file of P) is published
-        sch2 = sch + timedelta(minutes=2)
+        sch2 = sch
         d2, e2 = z.resolution_deadline(sch2, day, cal), z.eligible_until(sch2, day, cal)
-        clock = [sch2 + timedelta(seconds=30)]
+        clock = [s47 + timedelta(seconds=40)]
         real = c.publish_exclusive
 
         def late(path, data, **kw):

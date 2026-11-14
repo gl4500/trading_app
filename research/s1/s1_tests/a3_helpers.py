@@ -144,12 +144,14 @@ def _dates(first, last):
 
 def _early_failed(root, subject, day_iso, intent_at, failed_at):
     """OQ-33 early invocation: SLOT-INTENT before the slot (journal: only now < E is required), consumed as SLOT-FAILED
-    with zero capture - its claim and failure report carry the INTENT's op/actor, FAILED detail = their tree (F3)."""
-    from conftest import s1_jappend
+    with zero capture - its claim and failure report carry the INTENT's op/actor, FAILED detail = their tree (F3).
+    A3 H5a (Clarification 4 C4.3.1): an early SLOT-INTENT is now refused with no row for every new invocation, so this
+    pre-C4 history is a STAGED LEGACY row (conftest.s1_jstage); the FAILED completion still goes through the journal."""
+    from conftest import s1_jappend, s1_jstage
     import s1_slot as sl
     out = Path(root) / "s1_out"
     slot = sl.slot_of(subject)
-    intent = s1_jappend(root, "SLOT-INTENT", subject, at=c.aware(intent_at))
+    intent = s1_jstage(root, "SLOT-INTENT", subject, at=c.aware(intent_at))
     n = sl.names(out, slot, day_iso)
     n["claim"].parent.mkdir(parents=True, exist_ok=True)
     who = {"op": intent.op, "actor": intent.actor}
