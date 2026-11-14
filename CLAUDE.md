@@ -1,7 +1,10 @@
 # CLAUDE.md — AI Trading App Coordination Contract
 
-This file is read by all Claude Code agents working on this repository.
-It defines responsibilities, workflows, and rules that every agent must follow.
+This file is read by all Claude Code agents working on this repository. Codex reads `AGENTS.md`,
+which tells it to read this whole file too. It defines responsibilities, workflows, and rules that
+every agent must follow.
+
+@AGENTS.md
 
 ---
 
@@ -9,9 +12,11 @@ It defines responsibilities, workflows, and rules that every agent must follow.
 
 **Only modify files inside `C:\Users\gl450\trading_app\`.**
 Never touch `radioconda\`, `.spyder-py3\`, or any other directory in the user's home folder.
+Two exceptions: the shared Claude memory folder (`C:\Users\gl450\.claude\projects\C--Users-gl450\memory\`),
+and cross-project work the operator has explicitly authorized for that task.
 
 - For running tests, only use `C:\Users\gl450\trading_app\runtime\python\python.exe` — never fall back to radioconda or any system Python.
-- If pytest is missing from that runtime, flag it to the user — do NOT silently switch runtimes.
+- pytest is not installed in that runtime; tests run through `backend/run_tests.py` (unittest discovery). Do not install pytest into it or switch runtimes without asking the operator.
 
 ### Fresh install infrastructure
 - New-machine setup: `scripts/setup_fresh.bat` (double-click) or `scripts/setup_fresh.ps1`
@@ -23,12 +28,15 @@ Never touch `radioconda\`, `.spyder-py3\`, or any other directory in the user's 
 
 ## Two-Agent Setup
 
-| Agent | Role | Owns |
-|---|---|---|
-| **Implementation agent** (main Claude Code session) | Feature work, bug fixes, refactors | `backend/`, `frontend/`, `README.md` |
-| **Testing sub-agent** (separate session) | Unit & component tests, test infrastructure | `backend/tests/`, `backend/pytest.ini`, `backend/tests/conftest.py` |
+Intended roles (policy as of 2026-11-14; this describes how work should be split, not a measurement of past practice):
 
-**Coordination via filesystem:** both agents read/write files — the contract below prevents conflicts.
+| Agent | Role |
+|---|---|
+| **Claude Code** (implementation) | Writes the failing test, the code and the docs for each change. May delegate test-writing to a subagent if it says so in the review request. |
+| **Codex** (independent review) | Reviews every change before merge under `~/.coordination/trading_app/PEER_REVIEW.md` and replies APPROVE naming the head SHA, or a numbered defect list. |
+| **Operator** | Clicks merge, restarts the live app. |
+
+The **File Ownership** section below applies only when a separate testing sub-agent session is used.
 
 ---
 
@@ -60,18 +68,22 @@ Found issues:
 ## TDD Workflow — Required for every change
 
 ```
-1. Testing sub-agent writes a failing test  →  backend/tests/test_<module>.py
-2. Implementation agent implements the code
-3. Run tests:  cd backend && python -m pytest tests/ -v
-4. Both agents verify GREEN before committing
-5. Commit:  git add tests/<file> <module.py> && git commit
+1. Write a failing test  →  backend/tests/test_<module>.py   (Claude, or a disclosed delegated subagent)
+2. Implement the code
+3. Run tests:  cd C:\Users\gl450\trading_app\backend && ..\runtime\python\python.exe run_tests.py -v
+4. Verify GREEN before committing; Codex reviews before merge
+5. Commit:  git commit -m "<msg>" -- tests/<file> <module.py>
 ```
 
 No code change is committed without a corresponding test. No exceptions for "small" fixes.
+Documentation-only changes (markdown, comments, CLAUDE.md/AGENTS.md wording) need link and
+consistency checks instead of behavioral tests.
 
 ---
 
 ## File Ownership
+
+Applies only when a separate testing sub-agent session is used (see Two-Agent Setup).
 
 ### Implementation agent writes:
 ```
@@ -102,7 +114,7 @@ backend/
 
 ## Test Conventions
 
-- Framework: `unittest.TestCase` + `pytest` runner
+- Framework: `unittest.TestCase`, run by `backend/run_tests.py` (unittest discovery; pytest is not installed in the runtime)
 - Async tests: `unittest.IsolatedAsyncioTestCase`
 - **No live API calls** — mock `anthropic`, `openai`, `alpaca`, `yfinance`, `httpx`
 - **No real DB writes** — use `tempfile.mkstemp()` for database tests
@@ -113,22 +125,30 @@ backend/
 ### Running tests
 ```bash
 cd C:\Users\gl450\trading_app\backend
-runtime\python\python.exe run_tests.py -v    # full suite (verbose)
-runtime\python\python.exe run_tests.py       # full suite (summary only)
+..\runtime\python\python.exe run_tests.py -v    # full suite (verbose)
+..\runtime\python\python.exe run_tests.py       # full suite (summary only)
 ```
 Note: pytest is not installed in the self-contained runtime. Use `run_tests.py` (unittest discovery).
+The runtime lives at the repo root (`trading_app\runtime\`), so from `backend\` it is `..\runtime\`.
 
 ### Shell cleanup — required after every test run
 
-Running tests repeatedly causes background bash+python processes to stack up. After any test run:
+Running tests repeatedly causes background bash+python processes to stack up. After any test run,
+clean up **only your own** test processes, identified by command line. Never a blanket sweep: it can
+take down the live backend on port 8000, training workers and the Claude/Codex mailbox servers.
+(The old `ps aux | grep python | ... | xargs kill -9` recipe was removed 2026-11-14; it was also
+malformed, since `$1` in `ps aux` output is the user column, not the PID.)
 
-```bash
-# Kill leftover python processes
-ps aux | grep python | grep -v grep | awk '{print $1}' | xargs kill -9 2>/dev/null
+```powershell
+# 1. List and decide. 2. Kill only PIDs you can name as your own test run, as a separate step.
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Select ProcessId, ParentProcessId, CommandLine
 ```
 
+Exclude at minimum: the live backend (`main.py` / uvicorn on 8000) and its parent or children,
+anything under `rnd_pod\` or `.coordination\`, and anything whose path is outside this repository.
+
 Rules:
-- **Prefer per-module tests** (`python -m unittest tests.<module>`) over the full suite during development — faster, stays foreground, no stacking
+- **Prefer per-module tests** (`..\runtime\python\python.exe -m unittest tests.<module>` from `backend\`) over the full suite during development — faster, stays foreground, no stacking
 - **Only run the full suite once** before committing, not repeatedly
 - **Always clean up** after a test run completes or is interrupted
 
@@ -145,7 +165,9 @@ refactor: internal cleanup, no behavior change
 security: security hardening, SAST fixes, secret scanning
 ```
 
-All commits include both the implementation file and its test file.
+Every commit that changes behavior includes both the implementation file and its test file;
+`docs:` commits are exempt (see TDD Workflow). Commit with an explicit pathspec
+(`git commit -m "<msg>" -- <paths>`), never `git commit -a`.
 Co-Authored-By line required (added automatically by implementation agent).
 
 ---
