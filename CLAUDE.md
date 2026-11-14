@@ -70,11 +70,11 @@ Found issues:
 ## TDD Workflow — Required for every change
 
 ```
-1. Write a failing test  →  backend/tests/test_<module>.py   (Claude, or a disclosed delegated subagent)
+1. Write a failing test  →  backend/tests/test_<module>.py   (the task's author, or a delegate the author discloses)
 2. Implement the code
 3. Run tests from the backend\ of the checkout that holds your change (see "Running tests"):
    cd <your checkout>\backend && C:\Users\gl450\trading_app\runtime\python\python.exe run_tests.py -v
-4. Verify GREEN before committing; Codex reviews before merge
+4. Verify GREEN before committing; the task's assigned reviewer (the other agent) signs off on the exact head SHA before merge
 5. Commit:  git commit -m "<msg>" -- tests/<file> <module.py>
 ```
 
