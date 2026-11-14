@@ -18,6 +18,26 @@ import pandas as pd
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
+# Disable the real Stooq client for the whole module. Tests here mock `yf` and
+# the Alpaca client; without this default `_fetch_bars` fell through to the
+# real stooq.com for every macro proxy symbol (~20 s per lookup), which pushed
+# the CI backend job past its 600 s limit (2026-11-14; see
+# TestMacroBackfillNeverTouchesNetwork). A test that needs Stooq behaviour
+# patches `data.history_backfill.stooq_client` itself.
+_stooq_patcher = None
+
+def setUpModule():
+    global _stooq_patcher
+    stooq = MagicMock()
+    stooq.get_bars = AsyncMock(return_value=pd.DataFrame())
+    _stooq_patcher = patch("data.history_backfill.stooq_client", stooq)
+    _stooq_patcher.start()
+
+def tearDownModule():
+    if _stooq_patcher is not None:
+        _stooq_patcher.stop()
+
+
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def _make_bars(symbol: str, n: int = 120, start_price: float = 100.0,
@@ -762,3 +782,34 @@ class TestSignalHistoryMacroCoexistence(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMacroBackfillNeverTouchesNetwork(unittest.IsolatedAsyncioTestCase):
+    """CI regression (2026-11-14): with `yf` patched as a MagicMock and no
+    `stooq_client` patch, `backfill_macro_history` fell through to the REAL
+    Stooq client for each proxy symbol (~20 s per stooq.com lookup), which
+    pushed the CI backend job past its 600 s limit. Under this module's
+    defaults the macro backfill must perform zero DNS lookups."""
+
+    async def test_macro_backfill_makes_no_dns_lookup(self):
+        import socket
+        from data.history_backfill import backfill_macro_history
+        lookups = []
+
+        def _spy(host, *a, **kw):
+            lookups.append(host)
+            raise OSError(f"network disabled in tests: {host!r}")
+
+        syms = ["GLD", "TLT", "UUP", "USO", "SPY", "IWM", "QQQ"]
+        bars = {s: _make_bars(s, n=120, seed=hash(s) % 1000) for s in syms}
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("socket.getaddrinfo", side_effect=_spy), \
+             patch("data.macro_history._MACRO_FILE",
+                   os.path.join(tmpdir, "__MACRO__.parquet")), \
+             patch("data.history_backfill._HISTORY_DIR", tmpdir), \
+             patch("data.history_backfill.alpaca_client", _mock_alpaca(bars)), \
+             patch("data.history_backfill.yf") as mock_yf:
+            mock_yf.download.side_effect = _mock_yf(_make_vix_bars(120),
+                                                    _make_vix_bars(120, base=4.3))
+            await backfill_macro_history(days=90)
+        self.assertEqual(lookups, [], f"test reached the network: {lookups}")

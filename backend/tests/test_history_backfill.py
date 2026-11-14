@@ -18,21 +18,31 @@ import pandas as pd
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
-# Disable yfinance for the whole module by default — it's the new primary
-# data source in `_fetch_bars`, but tests should not hit the real Yahoo
-# endpoint. Tests that need yfinance behavior patch `_fetch_bars_yfinance`
-# directly (see TestBackfillFallback).
-_yf_patcher = None
+# Disable the two network data sources for the whole module by default.
+# yfinance is the primary source in `_fetch_bars` and Stooq the secondary;
+# with both returning empty, `_fetch_bars` reaches the Alpaca client that each
+# test mocks. Tests that need yfinance or Stooq behaviour patch
+# `_fetch_bars_yfinance` / `stooq_client` themselves, which overrides these
+# defaults for that test (see TestBackfillFallback). Without the Stooq default,
+# every test that omitted it waited ~20 s on the real stooq.com (CI timeout,
+# 2026-11-14; see TestBackfillNeverTouchesNetwork).
+_module_patchers = []
 
 def setUpModule():
-    global _yf_patcher
-    _yf_patcher = patch("data.history_backfill._fetch_bars_yfinance",
-                        new_callable=AsyncMock, return_value=pd.DataFrame())
-    _yf_patcher.start()
+    stooq = MagicMock()
+    stooq.get_bars = AsyncMock(return_value=pd.DataFrame())
+    _module_patchers[:] = [
+        patch("data.history_backfill._fetch_bars_yfinance",
+              new_callable=AsyncMock, return_value=pd.DataFrame()),
+        patch("data.history_backfill.stooq_client", stooq),
+    ]
+    for p in _module_patchers:
+        p.start()
 
 def tearDownModule():
-    if _yf_patcher is not None:
-        _yf_patcher.stop()
+    for p in reversed(_module_patchers):
+        p.stop()
+    _module_patchers.clear()
 
 
 def _make_bars(n: int = 120, start_price: float = 100.0) -> pd.DataFrame:
@@ -473,3 +483,30 @@ class TestBackfillCNNCompatibility(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBackfillNeverTouchesNetwork(unittest.IsolatedAsyncioTestCase):
+    """CI regression (2026-11-14): tests in this module that did not patch
+    `stooq_client` fell through yfinance (module-patched empty) to the REAL
+    Stooq client. Each such test waited ~20 s on stooq.com before falling back
+    to the mocked Alpaca bars: 26 lookups, ~520 s, enough to breach the CI
+    `timeout 600` limit (main run for PR #116 killed at 655 s, exit 124).
+    Under this module's defaults, a backfill must perform zero DNS lookups."""
+
+    async def test_default_backfill_makes_no_dns_lookup(self):
+        import socket
+        from data.history_backfill import backfill_signal_history
+        lookups = []
+
+        def _spy(host, *a, **kw):
+            lookups.append(host)
+            raise OSError(f"network disabled in tests: {host!r}")
+
+        bars = _make_bars(120)
+        with tempfile.TemporaryDirectory() as tmpdir, \
+             patch("socket.getaddrinfo", side_effect=_spy), \
+             patch("data.history_backfill._HISTORY_DIR", tmpdir), \
+             patch("data.history_backfill.alpaca_client") as mock_ac:
+            mock_ac.get_bars = AsyncMock(return_value=bars)
+            await backfill_signal_history(["AAPL"], days=90)
+        self.assertEqual(lookups, [], f"test reached the network: {lookups}")
