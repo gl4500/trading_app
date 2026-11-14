@@ -30,7 +30,9 @@ requirements and testing standard). Multi-agent work also follows
 3. Confirm the task stays inside this repo (CLAUDE.md, Scope).
 
 **Before running anything that uses this machine (both)**
-1. Use only `runtime\python\python.exe`; tests run through `backend\run_tests.py`.
+1. Use only `C:\Users\gl450\trading_app\runtime\python\python.exe`; run `backend\run_tests.py` from the
+   checkout that holds the code under test, which needs a `site-packages` link if it is a worktree
+   (CLAUDE.md, Running tests).
 2. Never test against the live `trading.db` or the broker; use temp DBs and mocks (CLAUDE.md, Test Conventions).
 3. Clean up only processes you can name as your own, by command line (CLAUDE.md, Shell cleanup).
 

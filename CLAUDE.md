@@ -70,7 +70,8 @@ Found issues:
 ```
 1. Write a failing test  →  backend/tests/test_<module>.py   (Claude, or a disclosed delegated subagent)
 2. Implement the code
-3. Run tests:  cd C:\Users\gl450\trading_app\backend && ..\runtime\python\python.exe run_tests.py -v
+3. Run tests from the backend\ of the checkout that holds your change (see "Running tests"):
+   cd <your checkout>\backend && C:\Users\gl450\trading_app\runtime\python\python.exe run_tests.py -v
 4. Verify GREEN before committing; Codex reviews before merge
 5. Commit:  git commit -m "<msg>" -- tests/<file> <module.py>
 ```
@@ -123,13 +124,35 @@ backend/
 - One test file per module: `agents/foo.py` → `tests/test_foo.py`
 
 ### Running tests
+Always use the installed interpreter by its absolute path, and run it from the `backend\` folder of
+the checkout that holds the code under test:
+
 ```bash
-cd C:\Users\gl450\trading_app\backend
-..\runtime\python\python.exe run_tests.py -v    # full suite (verbose)
-..\runtime\python\python.exe run_tests.py       # full suite (summary only)
+cd <your checkout>\backend
+C:\Users\gl450\trading_app\runtime\python\python.exe run_tests.py -v    # full suite (verbose)
+C:\Users\gl450\trading_app\runtime\python\python.exe run_tests.py       # full suite (summary only)
 ```
 Note: pytest is not installed in the self-contained runtime. Use `run_tests.py` (unittest discovery).
-The runtime lives at the repo root (`trading_app\runtime\`), so from `backend\` it is `..\runtime\`.
+
+`run_tests.py` tests the code next to it: it puts its own `backend\` folder and `..\site-packages`
+on the path. So the tested code is whichever checkout you `cd` into, and that checkout needs a
+`site-packages` folder:
+
+- **Main checkout** (`C:\Users\gl450\trading_app`): `site-packages\` is already there. Only work
+  here when no other session is using this checkout; changes under review belong in a worktree.
+- **Isolated worktree** (preferred for changes under review): `runtime\` and `site-packages\` are
+  gitignored, so a new worktree has neither. Before running tests, link the installed packages in
+  read-only use, and remove the link when done:
+  ```bat
+  mklink /J <worktree>\site-packages C:\Users\gl450\trading_app\site-packages
+  rem ... run tests from <worktree>\backend as above ...
+  rmdir <worktree>\site-packages
+  ```
+  Remove the link only with `rmdir` on that exact path. `rm -rf` or `Remove-Item -Recurse` can follow
+  the junction and delete the real packages. Never install or upgrade packages through the link.
+  The pre-commit hook needs the same link, because it scans with `<checkout>\site-packages` on the path.
+
+Tests never touch the live `trading.db` or the broker (see Test Conventions).
 
 ### Shell cleanup — required after every test run
 
@@ -148,7 +171,7 @@ Exclude at minimum: the live backend (`main.py` / uvicorn on 8000) and its paren
 anything under `rnd_pod\` or `.coordination\`, and anything whose path is outside this repository.
 
 Rules:
-- **Prefer per-module tests** (`..\runtime\python\python.exe -m unittest tests.<module>` from `backend\`) over the full suite during development — faster, stays foreground, no stacking
+- **Prefer per-module tests** (from `<your checkout>\backend`: `set PYTHONPATH=..\site-packages` then `C:\Users\gl450\trading_app\runtime\python\python.exe -m unittest tests.<module>`) over the full suite during development — faster, stays foreground, no stacking
 - **Only run the full suite once** before committing, not repeatedly
 - **Always clean up** after a test run completes or is interrupted
 
