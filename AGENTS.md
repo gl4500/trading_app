@@ -15,12 +15,33 @@ Reviews follow `C:\Users\gl450\.coordination\trading_app\PEER_REVIEW.md` (shared
 requirements and testing standard). Multi-agent work also follows
 `C:\Users\gl450\.agent-forum\AGENT_FORUM_FRAMEWORK.md`.
 
-## 2. Who does what
+## 2. Roles (assigned per task, not per agent)
 
-- **Claude (author):** implements, writes the failing test first, requests review.
-- **Codex (reviewer, `ta-codex`):** independent review of every PR before merge.
-- **Operator:** clicks merge on GitHub; restarts the live app; approves anything irreversible.
+Either agent can be author or reviewer. Roles are fixed here; who fills them is set per task.
+
+| Role | Must | Must not |
+|---|---|---|
+| **Author** | Claim the task; work on its own branch or worktree; write the failing test first; request review with the head SHA, what changed and the evidence (PEER_REVIEW.md record) | Approve its own work; confirm its own finding; merge |
+| **Reviewer** | Inspect the exact head SHA; check each decision-critical claim itself; give the strongest objection; reply APPROVE naming the SHA, or numbered defects, plus a forum status | Push to the author's branch (it proposes fixes instead); approve a SHA it did not inspect |
+| **Operator** | Clicks merge; restarts the live app; approves test windows and anything irreversible; decides disputes, NO_CONSENSUS and role swaps | — |
+
+**Assignment.** Each task has one record, set when it starts, at
+`C:\Users\gl450\.coordination\trading_app\tasks\<task-id>.yaml` (next to the shared findings ledger):
+
+```yaml
+task: <id>          # also named in every review request and verdict
+author: claude      # or codex
+reviewer: codex     # always the other agent
+operator: gl4500
+scope: [paths]
+branch: <branch>
+```
+
+- Default: whoever claims the task is the author. Swaps only by the operator or an explicit handoff message.
+- **Codex as author:** Codex never edits Claude's memory folder. It records each change in the PR description
+  and the findings ledger; the Claude reviewer updates memory after merge.
 - Mailbox: `C:\Users\gl450\.coordination\trading_app\mailbox.py` only. Never the polymarket session link.
+  Agents: Claude in the trading_app workspace, `ta-codex` (Herdr names).
 
 ## 3. Checklists by pause point
 
@@ -36,13 +57,18 @@ requirements and testing standard). Multi-agent work also follows
 2. Never test against the live `trading.db` or the broker; use temp DBs and mocks (CLAUDE.md, Test Conventions).
 3. Clean up only processes you can name as your own, by command line (CLAUDE.md, Shell cleanup).
 
-**Live-backend guard (enforced, not just a checklist)**
-`tools/agent_guard/live_guard.py` runs before every shell command for both agents (`.claude/settings.json`,
-`.codex/hooks.json`). While port 8000 is listening it blocks test runs and process kills. Test runs are let
-through only during an operator test window: a gitignored `.agent-test-window` file at the repo root holding an
-ISO-8601 expiry with timezone (e.g. `2026-11-14T22:00:00-05:00`). Kills always need the operator. It is a
-guardrail against mistakes, not a security boundary. Codex skips new project hooks until they are trusted
-(`/hooks`), and loads them only in a trusted project. Tests: `tools/agent_guard/test_live_guard.py`.
+**Live-backend guard**
+`tools/agent_guard/live_guard.py` is a PreToolUse hook for both agents (`.claude/settings.json`,
+`.codex/hooks.json`). While port 8000 is listening (or its state can't be determined) it blocks test runs and
+process kills. Test runs pass only during an operator test window: a gitignored `.agent-test-window` file at the
+repo root holding an ISO-8601 expiry with timezone (e.g. `2026-11-14T22:00:00-05:00`). Kills always need the
+operator.
+
+- **Claude:** active whenever this checkout's `.claude/settings.json` loads; a failing hook blocks the command.
+- **Codex:** active only after the operator trusts the project hooks (`/hooks`), in a project Codex trusts.
+- **If the hook itself breaks** and blocks everything, only the operator restores it, for example by
+  temporarily renaming `.claude/settings.json` locally (never committed). Agents never weaken the guard.
+- It is a guardrail against mistakes, not a security boundary. Tests: `tools/agent_guard/test_live_guard.py`.
 
 **Author: before requesting review**
 1. Fresh branch off `main`; commit with `git commit -m "<msg>" -- <paths>`; check `git log -1 --stat`.
