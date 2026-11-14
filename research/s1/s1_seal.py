@@ -26,17 +26,19 @@ def _ny(d: str, hhmm: str) -> datetime:
     return datetime.combine(date.fromisoformat(d), time(h, m), tzinfo=c.NY).astimezone(timezone.utc)
 
 
-def _close(day) -> datetime:
-    """Close instant of a calendar row as aware UTC (the pinned core returns it in New York local time)."""
-    return c.sim().close_instant(day).astimezone(timezone.utc)
+def _close(day, *, sim=None) -> datetime:
+    """Close instant of a calendar row as aware UTC (the pinned core returns it in New York local time). A3 H4
+    (Erratum 2 r4 G3.2, M4(1)): `sim` - the pinned module ALREADY verified in the caller's evidence pass (c.sim());
+    None verifies it here, as before."""
+    return (c.sim() if sim is None else sim).close_instant(day).astimezone(timezone.utc)
 
 
 def open_instant(day) -> datetime:
     return _ny(day["date"], day["open"])
 
 
-def close_of(day_iso: str, calendar) -> datetime:
-    return _close(next(d for d in calendar if d["date"] == day_iso))
+def close_of(day_iso: str, calendar, *, sim=None) -> datetime:
+    return _close(next(d for d in calendar if d["date"] == day_iso), sim=sim)
 
 
 def _sorted_calendar(calendar) -> list:
@@ -59,8 +61,8 @@ def window_end(day, calendar) -> datetime:
     return _ny(_next_session(day, calendar)["date"], "08:00")
 
 
-def schedule(day, calendar) -> list:
-    close = _close(day)
+def schedule(day, calendar, *, sim=None) -> list:
+    close = _close(day, sim=sim)
     slots = [close + timedelta(minutes=m) for m in OFFSETS_MIN]
     t = (slots[-1] + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
     end = window_end(day, calendar)
@@ -788,12 +790,15 @@ def stop_check(gv) -> None:
     raise SystemExit(f"stop.json {what}: INVALID ({reason}) (F2.3/F2.4)")
 
 
-def stop_gap_recover(gv) -> None:
+def stop_gap_recover(gv, *, publish: bool = True) -> None:
     """Gate hook (F2.3), AFTER the F4 stage table and the F3 evidence table (fix round 1, review M4: a damaged stage
     member or slot tree is judged by its own table first): a TRIAL-STOP whose stop.json is absent before any
     finalization INTENT is the publication gap - the record recomputed from the rows before the STOP is published
     when it matches the STOP's detail (same bytes), else INVALID (stop-conflict). A recompute that raises (an
-    evidence error the tables did not judge) or a publication error refuses with no row - never a silent gap."""
+    evidence error the tables did not judge) or a publication error refuses with no row - never a silent gap.
+    A3 H4 fix round 2 (re-review F-1; controller ruling: a refusal path does no work - no row, no file publication):
+    `publish=False` (the gate, while a C5 unreadable refusal is pending) still recomputes and still commits a
+    stop-conflict INVALID (its precedence is kept), but never persists stop.json; the next healthy gate publishes."""
     import s1_journal as j
     import s1_stage
     import s1_trial
@@ -817,6 +822,8 @@ def stop_gap_recover(gv) -> None:
                                                         "stop_line_sha256": stop.sha},
                             root=gv.root, mailbox=gv.mailbox)
         raise SystemExit("publication gap: the recomputed stop record differs: INVALID (stop-conflict) (F2.3)")
+    if not publish:                                      # fix round 2 (F-1): a refusal is pending - no publication
+        return
     try:
         persist_stop(gv.out, rec)
     except (OSError, SystemExit) as e:
@@ -832,6 +839,7 @@ def stop_problems(out: Path, start: datetime, calendar, *, recheck: bool = True,
     (OQ-8): stop.json equals stop_record over the rows before the TRIAL-STOP and its detail is the STOP's. It can only
     refuse, never move the stop."""
     import s1_journal as j
+    import s1_slot
     out = Path(out)
     st_ = load_stop(out)
     if st_ is None:
@@ -884,6 +892,8 @@ def stop_problems(out: Path, start: datetime, calendar, *, recheck: bool = True,
         again = stop_record(out, [x for x in rows if x.seq < stop.seq], start, calendar, tr.bundle)
         if again != st_ or j.detail_of(st_) != stop.detail:
             probs.append("persisted stop is not the record committed history gives before its TRIAL-STOP (OQ-8)")
+    except s1_slot.QualifiedUnreadable:                  # A3 H4 (Clarification 1 C5.1): an unreadable QUALIFIED
+        raise                                            # member refuses the invocation - never a problem
     except (OSError, ValueError, KeyError, TypeError, b.BookError, SystemExit) as e:
         probs.append(f"persisted stop unverifiable: {type(e).__name__}: {e}")
     return probs

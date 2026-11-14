@@ -1,0 +1,21 @@
+# A3 H4 fix round 2 - GREEN (recorded 2026-11-14T15:12:09Z) on the fixed tree (base 9af5406 + H4 + fix rounds 1-2, HEAD 8dfc1ab)
+# product sha256: 6b676fd48a8d152b2402973a8c9f5bc5fb95f42a16592ff1f0b3c8db23785743 *s1_trial.py 3866ecd90a3962bf7959c3f81dd1830aa78c95f9ea8a7275971da4d88dea7677 *s1_seal.py ff2c48effb85847f3560a6d2ba6c002626dbfc3c2afa9ca505e1b1efc3a12cfb *s1_slot.py 
+# Targeted: test_s1_a3_m4_pass.py (incl. the 3 fix2 instances), test_s1_a3_stop.py (publication-gap tests)
+
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[pending-refusal-no-publish]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[pending-refusal-conflict-invalid-wins]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[no-refusal-publishes]
+113 passed in 387.99s (0:06:27)
+
+## Mutants re-enabling the publication while a refusal is pending (scratch copy h4fix/mutcopy3 of the FIXED research/s1, byte-equal at copy time; script h4fix/run_mutants2.py)
+g1: the gate always publishes (publish=True): KILLED - 1 failed, 2 passed, 45 deselected in 14.06s
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[pending-refusal-no-publish]
+    E           AssertionError: assert not True
+    E            +  where True = exists()
+g2: stop_gap_recover ignores publish=False: KILLED - 1 failed, 2 passed, 45 deselected in 14.15s
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[pending-refusal-no-publish]
+    E           AssertionError: assert not True
+    E            +  where True = exists()
+## 2 of 2 KILLED by assertions.
+
+## Note: test_fix1_stop_gap_unreadable_never_masks_e55's stub stop_gap_recover now accepts **kw (the gate passes publish=); oracle unchanged.

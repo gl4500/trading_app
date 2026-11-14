@@ -1,0 +1,12 @@
+# coldcheck.py output (2026-11-09, during the H4 preliminary test scan: 4 pytest processes running - contended), sanity check of the declared cold method
+{
+ "robocopy_rc": 1,
+ "copy_s": 5.577259900048375,
+ "first_read_s_copy": 2.843394000083208,
+ "second_read_s_copy": 1.5517901997081935,
+ "hash_pass_warm_s": 9.343387800268829,
+ "bytes": 3040000000,
+ "first_read_GBps": 1.0691448318140357,
+ "second_read_GBps": 1.9590277091398418,
+ "sha256_GBps_warm": 0.3253637829217078
+}

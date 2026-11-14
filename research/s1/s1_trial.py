@@ -816,7 +816,9 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
     owner is recorded in gv.deferred instead of refusing "pending", so deadline arbitration is never blocked by a
     work lock. Hooks, in order, after the plan check (a foreign root is never judged): the F4 stage table
     (s1_stage.evaluate), the F3 evidence table (s1_slot.evidence_check), then (A3 Task 10) the E5.5 evidence-manifest
-    check of the OPENING-ACK (opening_manifest_check)."""
+    check of the OPENING-ACK (opening_manifest_check). A3 H4 fix round 1 (review I-1, Clarification 1 C5.1): the C5
+    refusals for unreadable QUALIFIED members (returned by evidence_check, or raised by the F2.3 recompute) are held
+    as local values and raised only after E5.5 has run, so they never mask a later mandatory INVALID."""
     root = Path(root)
     out = root / "s1_out"
     try:
@@ -875,9 +877,16 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
     import s1_stage                                       # A3 Task 8: the F4 stage-state table (never creates s1_out)
     s1_stage.evaluate(gv, defer_pending=defer_pending)    # A3 Task 6 (N2): the slot paths defer a held stage lock
     import s1_slot                                        # A3 Task 7: the F3 evidence table, after the plan check
-    s1_slot.evidence_check(gv)                            # (Deviation 1, Task 8 D4: a foreign root is never judged)
-    s1_seal.stop_gap_recover(gv)                          # A3 Task 11 fix round 1 (M4): the F2.3 gap, after F4/F3
+    unreadable = s1_slot.evidence_check(gv) or []         # (Deviation 1, Task 8 D4: a foreign root is never judged)
+    held = None                                           # A3 H4 fix round 1 (review I-1, Clarification 1 C5.1): an
+    try:                                                  # I/O refusal never masks a later mandatory INVALID - the
+        s1_seal.stop_gap_recover(gv, publish=not unreadable)   # C5 refusals (the F3 table's unreadable members, a
+    except s1_slot.QualifiedUnreadable as e:              # QualifiedUnreadable from the F2.3 recompute) are held as
+        held = e                                          # local values, never stored, until E5.5 has run
     opening_manifest_check(gv)                            # A3 Task 10: E5.5 / F7.3, after the stage and F3 tables
+    s1_slot.refuse_unreadable(unreadable)                 # C5.1: refused with no row, no work, no INVALID
+    if held is not None:
+        raise held
     return gv
 
 

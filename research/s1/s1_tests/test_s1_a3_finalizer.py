@@ -742,7 +742,7 @@ def _start_in_the_window(monkeypatch, tmp_path, slot, day_iso, *, stray):
     out = tmp_path / "s1_out"
     fired = []
 
-    def window(out_, rows_, day_, cal_):
+    def window(out_, rows_, day_, cal_, **kw):                     # A3 H4: forwards the evidence-pass keyword (ps)
         if not fired:
             fired.append(1)
             n = sl.names(out, slot, day_iso)
@@ -752,7 +752,7 @@ def _start_in_the_window(monkeypatch, tmp_path, slot, day_iso, *, stray):
                 row = s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(slot), at=slot + timedelta(seconds=1))
                 who = {"op": row.op, "actor": row.actor}
             _put(n["claim"], json.dumps(dict(who, capture_dir=n["capture"].relative_to(out).as_posix())))
-        return real_cp(out_, rows_, day_, cal_)
+        return real_cp(out_, rows_, day_, cal_, **kw)
     monkeypatch.setattr(sl, "close_problems", window)
     return fired
 

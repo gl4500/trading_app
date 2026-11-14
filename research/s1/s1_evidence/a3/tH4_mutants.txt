@@ -1,0 +1,108 @@
+# H4 semantic mutants (G3.5 p1-p8 + C5 c1-c4), applied one at a time to the GREEN implementation (base HEAD 9af5406 + H4 working tree), each restored byte-for-byte (sha256 asserted).
+# runner: scratchpad tH4/mutants.py sha256 9cfe032662754e0489bd9af30606eeab826517e7bd1aa42ab75c34889772ccf1 (exact single-occurrence replacements, listed in the runner); per mutant the killing tests and the failing line (--tb=line).
+# product sha256 at the run: s1_slot.py a12bd5256627fce7e9f237b8655db02fd684d4d87e9dbc4c9d5c955a05bd1ea8 s1_seal.py 706e058a9196e147bb8929101938e489663b353180eb0626ad4fb5c65ba264dd s1_run.py f7512ad02e4c9332091e16a513511f4fa08b5b3ba0feb7c41c91f8af65162d75; test file 7cef664b9b4727050b03473bad435346d594866b09cc282b084f6a2ba085d2d6
+== p1: cross-gate tree memo (module-level dict keyed by subject) [s1_slot.py] -> KILLED
+   tests: ['test_same_size_same_mtime_change_detected_next_gate', 'test_non_selected_qualified_damage_invalid']
+   pytest: 2 failed in 3.85s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_same_size_same_mtime_change_detected_next_gate
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_non_selected_qualified_damage_invalid
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:75: Failed: DID NOT RAISE <class 'SystemExit'>
+== p2: (size, mtime) shortcut (module-level memo of member hashes) [s1_slot.py] -> KILLED
+   tests: ['test_same_size_same_mtime_change_detected_next_gate']
+   pytest: 1 failed in 3.67s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_same_size_same_mtime_change_detected_next_gate
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:75: Failed: DID NOT RAISE <class 'SystemExit'>
+== p3a: index/rows reuse in the gate's confirming pass (ps1 passed into the confirming call) [s1_slot.py] -> KILLED
+   tests: ['test_confirming_pass_rereads_journal[new-row]', 'test_changed_calendar_fresh_pass[between-passes]']
+   pytest: 1 failed, 1 passed in 7.07s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_confirming_pass_rereads_journal[new-row]
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:122: AssertionError: no violation expected: gate: slot evidence violation ['slot/20261029T204500Z: claim exists with no journal row (F3)']: INVALID
+== p3b: rows/index reuse in confirmed_close_problems' confirming pass [s1_slot.py] -> KILLED
+   tests: ['test_confirming_pass_rereads_journal[lock-reread-head-change]']
+   pytest: 1 failed in 3.45s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_confirming_pass_rereads_journal[lock-reread-head-change]
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:125: AssertionError: assert ['slot/202610...nal row (F3)'] == []
+== p4: listing error treated as empty [s1_slot.py] -> KILLED
+   tests: ['test_listing_error_refuses[scandir]', 'test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes]']
+   pytest: 2 failed in 6.90s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[scandir]
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes]
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:158: AssertionError: a listing/read/permission error is never OK
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:366: AssertionError: None
+== p5: pin loaded once per process [s1_slot.py] -> KILLED
+   tests: ['test_changed_pin_fails_closed[between-gates]', 'test_changed_pin_fails_closed[between-passes]']
+   pytest: 2 failed in 7.11s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_pin_fails_closed[between-gates]
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_pin_fails_closed[between-passes]
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:171: AssertionError: Regex pattern did not match.
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:186: AssertionError: Regex pattern did not match.
+== p6: calendar cached across passes [s1_slot.py] -> KILLED
+   tests: ['test_changed_calendar_fresh_pass[between-gates]', 'test_changed_calendar_fresh_pass[between-passes]']
+   pytest: 2 failed in 7.01s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[between-gates]
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[between-passes]
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:210: Failed: DID NOT RAISE <class 'SystemExit'>
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:218: assert 0 >= 2
+== p7: hash only the selected QUALIFIED tree (the close's first QUALIFIED) [s1_slot.py] -> KILLED
+   tests: ['test_non_selected_qualified_damage_invalid']
+   pytest: 1 failed in 3.71s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_non_selected_qualified_damage_invalid
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:263: Failed: DID NOT RAISE <class 'SystemExit'>
+== p8: problem order changed by the pass/index path [s1_slot.py] -> KILLED
+   tests: ['test_problem_lists_exact']
+   pytest: 1 failed in 3.70s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_problem_lists_exact
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:280: AssertionError: assert ['slot/202610...nal row (F3)'] == ['slot/202610...nal row (F3)']
+== c1: C5: a generic OSError on a QUALIFIED member kept as the caller's F3 problem (today's mapping) [s1_slot.py] -> KILLED
+   tests: ['test_qualified_member_read_classification[persistent-permission]', 'test_qualified_member_read_classification[first-bad-confirm-generic-io]', 'test_read_classification_all_consumers[slot-problems]', 'test_read_classification_all_consumers[sampled-seals]']
+   pytest: 4 failed in 13.63s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[persistent-permission]
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[first-bad-confirm-generic-io]
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[slot-problems]
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[sampled-seals]
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:373: AssertionError: assert ([Row(trial_id...27652.076616)] == []
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:373: AssertionError: assert ([Row(trial_id...27655.458637)] == []
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:437: AssertionError: ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:437: AssertionError: QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (PermissionError)')
+== c2: C5: stop_problems turns QualifiedUnreadable into a problem (re-raise removed) [s1_seal.py] -> KILLED
+   tests: ['test_c5_stop_problems_reraises_unreadable']
+   pytest: 1 failed in 4.97s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_c5_stop_problems_reraises_unreadable
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:459: Failed: DID NOT RAISE <class 's1_slot.QualifiedUnreadable'>
+== c3: C5: _score_attempt turns QualifiedUnreadable into score-aborted (re-raise removed) [s1_run.py] -> KILLED
+   tests: ['test_c5_score_attempt_reraises_unreadable']
+   pytest: 1 failed in 0.45s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_c5_score_attempt_reraises_unreadable
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:471: AssertionError: no ABORTED s1.json may be staged for an unreadable member
+== c4: C5: the gate passes when its only observation is an unreadable member [s1_slot.py] -> KILLED
+   tests: ['test_qualified_member_read_classification[persistent-permission]', 'test_qualified_member_read_classification[later-healthy-reevaluates]']
+   pytest: 2 failed in 7.00s
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[persistent-permission]
+   FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[later-healthy-reevaluates]
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:366: AssertionError: None
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_pass.py:359: AssertionError: None
+
+# ---- row-439 verdict rule (RM-1 arithmetic) mutants v1-v6 against m4_workload/verdict_rule.py sha256 dd83b7dfc2e78a32e48c83d84c8225ad4d9cd719ce0475bb7eeba953f01f0ace; runner scratchpad tH4/verdict_mutants.py sha256 c745d6301306b2918933988006b081b3914d1a6c98d33c0be82f9b1c951dae69
+# (the rule was written before its tests - tooling, not product; these mutants are its RED evidence, H4 D-10)
+== v1: C ignores L (T alone) -> KILLED; 3 failed, 5 passed in 0.55s
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:23: AssertionError: assert ('READY' == 'NOT READY'
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:28: AssertionError: assert {'max_C': 45....ict': 'READY'} == {'max_C': 60....ict': 'READY'}
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:55: assert 50.0 == 52.0
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_l20_t45_fails_although_t_alone_passes
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_equality_passes
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_max_over_all_runs_and_unresolved_workload
+== v2: negative L clamped to zero -> KILLED; 1 failed, 7 passed in 0.55s
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:50: AssertionError: assert ('READY' == 'NOT READY'
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_negative_l_is_inconsistent_never_clamped
+== v3: a fast refusal counted as a pass -> KILLED; 1 failed, 7 passed in 0.60s
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:44: AssertionError: assert 'READY' == 'NOT READY'
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_fast_refusal_is_not_a_pass
+== v4: strict cap (equality fails) -> KILLED; 1 failed, 7 passed in 0.50s
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:28: AssertionError: assert {'max_C': 60....: 'NOT READY'} == {'max_C': 60....ict': 'READY'}
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_equality_passes
+== v5: unknown L treated as 0 -> KILLED; 1 failed, 7 passed in 0.52s
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:38: AssertionError: assert ('READY' == 'NOT READY'
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unknown_lateness_is_not_ready
+== v6: B unknown reported as READY -> KILLED; 1 failed, 7 passed in 0.52s
+   C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:62: AssertionError: assert 'B-CONDITIONAL READY' == 'NOT READY'
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_labels

@@ -1,0 +1,66 @@
+# tH4 M4 RED (rows 430-438) against the Step-1 stub; base HEAD 9af540609d13c2951f7d0037b2c988dc9757660e; stub = ignored ps=/sim= keywords, EvidencePass/new_pass/QualifiedUnreadable/_read_member present and unused
+# sha256 test file: 0b7c0c770f5a8edec27d8bd55bb5d0cfa86190842d185b40c007c6ae842dbab4
+# sha256 s1_slot.py (stub): e5db9aa98ac36f3b490ac0600b28b36609f04b585f3a9acec0b8cc03b2464dc2  s1_seal.py (stub): 537d4f51fb45b7d48dddc94186dd9af5389a640e610b391c3c9cbcea83b6f69d
+.....FFF...FFF..                                                         [100%]
+================================== FAILURES ===================================
+_____________________ test_listing_error_refuses[scandir] _____________________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:57: in gate_outcome
+    t.gate(root, where)
+research\s1\s1_trial.py:878: in gate
+    s1_slot.evidence_check(gv)                            # (Deviation 1, Task 8 D4: a foreign root is never judged)
+research\s1\s1_slot.py:846: in evidence_check
+    has_files = any((out / "captures").glob("*/*")) or any((out / "seals").glob("*.json"))
+research\s1\s1_tests\test_s1_a3_m4_pass.py:144: in bad_glob
+    raise PermissionError(13, "listing denied (simulated)")
+E   PermissionError: [Errno 13] listing denied (simulated)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_m4_pass.py:156: in test_listing_error_refuses
+    e = gate_outcome(tmp_path, "probe")
+research\s1\s1_tests\test_s1_a3_m4_pass.py:61: in gate_outcome
+    pytest.fail(f"a raw {type(e).__name__} escaped the gate ({e}): neither a refusal nor a verdict")
+E   Failed: a raw PermissionError escaped the gate ([Errno 13] listing denied (simulated)): neither a refusal nor a verdict
+______________________ test_listing_error_refuses[read] _______________________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:159: in test_listing_error_refuses
+    assert no_new_invalid(tmp_path, before)                             # never a new INVALID (OP-9 resolved)
+E   AssertionError: assert False
+E    +  where False = no_new_invalid(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21376/test_listing_error_refuses_rea0'), ['294438ef18894e60af82db430a9683b65aa796e7aad626b3fd7dc27bb69a1fc2', 'aad1f7bd3f3173c4a9fb5d853f5163b4e6fef0ad556a7151...82393b3d1fb031a5601252b48fe70cbbf3059408371d', 'b529f512fd3d0862c82ef98ff24683075900d634aa1cec96aba8161ecdb597b4', ...])
+___________________ test_listing_error_refuses[permission] ____________________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:159: in test_listing_error_refuses
+    assert no_new_invalid(tmp_path, before)                             # never a new INVALID (OP-9 resolved)
+E   AssertionError: assert False
+E    +  where False = no_new_invalid(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21376/test_listing_error_refuses_per0'), ['b05421eda92086c4628dc6d40cff8d62bff2d1f4ec533d7594353ebea37618c4', '5962c0b2b45cc6570c3e64b64c1ecab54259c5b435bf5ff9...9d0724ad36ef7c4099b8fac8e220154e8113b2f53f5e', '64101fcfe69f0dd613253692de3f513957c71d775eee9183dfdefb7b2bf66584', ...])
+______________ test_changed_calendar_fresh_pass[between-passes] _______________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:217: in test_changed_calendar_fresh_pass
+    assert len(reads) >= 2                                                   # a fresh calendar read per pass (O9)
+E   AssertionError: assert 1 >= 2
+E    +  where 1 = len([[{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'}...ose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]])
+_______________ test_changed_calendar_fresh_pass[unknown-slot] ________________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:217: in test_changed_calendar_fresh_pass
+    assert len(reads) >= 2                                                   # a fresh calendar read per pass (O9)
+E   AssertionError: assert 1 >= 2
+E    +  where 1 = len([[{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'}...ose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]])
+_____________________________ test_pass_counters ______________________________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:242: in test_pass_counters
+    assert len(sims) == 1                                                # exactly one verified pin load
+E   AssertionError: assert 161 == 1
+E    +  where 161 = len(['e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', ...])
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_same_size_same_mtime_change_detected_next_gate
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_tree_file_missing_or_added[missing]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_tree_file_missing_or_added[added]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_confirming_pass_rereads_journal[new-row]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_confirming_pass_rereads_journal[lock-reread-head-change]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_pin_fails_closed[between-gates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_pin_fails_closed[between-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[between-gates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_non_selected_qualified_damage_invalid
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_problem_lists_exact
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[scandir]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[read]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[permission]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[between-passes]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[unknown-slot]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_pass_counters - Asser...
+6 failed, 10 passed in 69.91s (0:01:09)

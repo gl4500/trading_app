@@ -1,0 +1,140 @@
+# H4 Step 3a: C5 behavioural RED (Clarification 1 r2 C5, OP-9; rows 496-497 and row 433[read,permission] line 159), recorded against the Step-1 stub BEFORE any C5 change and separately from the M4 RED (tH4_red.txt). Base HEAD 9af540609d13c2951f7d0037b2c988dc9757660e.
+# sha256 test file: 0b7c0c770f5a8edec27d8bd55bb5d0cfa86190842d185b40c007c6ae842dbab4; s1_slot.py (stub): e5db9aa98ac36f3b490ac0600b28b36609f04b585f3a9acec0b8cc03b2464dc2
+FFF..F...FFFFFF.FF                                                       [100%]
+================================== FAILURES ===================================
+_______ test_qualified_member_read_classification[transient-permission] _______
+research\s1\s1_tests\test_s1_a3_m4_pass.py:355: in test_qualified_member_read_classification
+    assert isinstance(e, SystemExit), e
+E   AssertionError: None
+E   assert False
+E    +  where False = isinstance(None, SystemExit)
+______ test_qualified_member_read_classification[persistent-permission] _______
+research\s1\s1_tests\test_s1_a3_m4_pass.py:362: in test_qualified_member_read_classification
+    assert new == [] and "INVALID" not in str(e)                         # refusal, no new INVALID, no work
+E   AssertionError: assert ([Row(trial_id...26474.342193)] == []
+E     
+E     Left contains one more item: Row(trial_id='de9c9efe-f34c-4730-bc2a-999efd94e9cf', seq=99, prev='3bcdc860caad4780070882e3661308f1365f3e959113474d0d1...d3e at=2026-11-09T12:14:34.342193+00:00', mailbox_id='62563732-50c4-48a9-8d7c-0b7a1395e033', created=1794226474.342193)
+E     Use -v to get more diff)
+___ test_qualified_member_read_classification[first-bad-confirm-generic-io] ___
+research\s1\s1_tests\test_s1_a3_m4_pass.py:362: in test_qualified_member_read_classification
+    assert new == [] and "INVALID" not in str(e)                         # refusal, no new INVALID, no work
+E   AssertionError: assert ([Row(trial_id...26478.636845)] == []
+E     
+E     Left contains one more item: Row(trial_id='4de62d70-48c6-4941-8b74-a6bcfa5daa44', seq=99, prev='1faf8039305d8fc6147dc2118975c330ebafb267adeac3f7ed8...763 at=2026-11-09T12:14:38.636845+00:00', mailbox_id='0fb0d8e7-cbdd-4349-9b18-6c6e548b7acc', created=1794226478.636845)
+E     Use -v to get more diff)
+_ test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes] _
+research\s1\s1_tests\test_s1_a3_m4_pass.py:57: in gate_outcome
+    t.gate(root, where)
+research\s1\s1_trial.py:878: in gate
+    s1_slot.evidence_check(gv)                            # (Deviation 1, Task 8 D4: a foreign root is never judged)
+research\s1\s1_slot.py:846: in evidence_check
+    has_files = any((out / "captures").glob("*/*")) or any((out / "seals").glob("*.json"))
+research\s1\s1_tests\test_s1_a3_m4_pass.py:332: in lost_listing
+    raise FileNotFoundError(2, "listing failed (simulated)")
+E   FileNotFoundError: [Errno 2] listing failed (simulated)
+
+During handling of the above exception, another exception occurred:
+research\s1\s1_tests\test_s1_a3_m4_pass.py:354: in test_qualified_member_read_classification
+    e = gate_outcome(tmp_path, "probe")
+research\s1\s1_tests\test_s1_a3_m4_pass.py:61: in gate_outcome
+    pytest.fail(f"a raw {type(e).__name__} escaped the gate ({e}): neither a refusal nor a verdict")
+E   Failed: a raw FileNotFoundError escaped the gate ([Errno 2] listing failed (simulated)): neither a refusal nor a verdict
+____ test_qualified_member_read_classification[later-healthy-reevaluates] _____
+research\s1\s1_tests\test_s1_a3_m4_pass.py:348: in test_qualified_member_read_classification
+    assert isinstance(e, SystemExit) and "unreadable" in str(e), e
+E   AssertionError: None
+E   assert (False)
+E    +  where False = isinstance(None, SystemExit)
+____________ test_read_classification_all_consumers[slot-problems] ____________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:426: in test_read_classification_all_consumers
+    assert isinstance(got, SystemExit) or (isinstance(got, dict) and got.get("refused")), got
+E   AssertionError: ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)']
+E   assert (False or (False))
+E    +  where False = isinstance(['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)'], SystemExit)
+E    +  and   False = isinstance(['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)'], dict)
+___________ test_read_classification_all_consumers[seal-recompute] ____________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:426: in test_read_classification_all_consumers
+    assert isinstance(got, SystemExit) or (isinstance(got, dict) and got.get("refused")), got
+E   AssertionError: ['seals/2026-10-26.json is not the seal of its first QUALIFIED slot (OQ-14)']
+E   assert (False or (False))
+E    +  where False = isinstance(['seals/2026-10-26.json is not the seal of its first QUALIFIED slot (OQ-14)'], SystemExit)
+E    +  and   False = isinstance(['seals/2026-10-26.json is not the seal of its first QUALIFIED slot (OQ-14)'], dict)
+___________ test_read_classification_all_consumers[run-seal-stage] ____________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:427: in test_read_classification_all_consumers
+    assert no_new_invalid(root, before)
+E   AssertionError: assert False
+E    +  where False = no_new_invalid(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21377/test_read_classification_all_c2'), ['927c9c6f1357cec6ea27d658edd50f192c3889f3a1021389c5fc06f3a5eae444', 'a6ef661d79c4dfdeaef79a08f823c82b26f3d1b3064395ac...9333f7c11dbcda327dc240b7378910378f78d9d6a00f', 'bcec1d218ead954deb2a0dc2b0b688d8478e62bd554c78ecc9375a0c48bd3f3e', ...])
+____________ test_read_classification_all_consumers[sampled-seals] ____________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:426: in test_read_classification_all_consumers
+    assert isinstance(got, SystemExit) or (isinstance(got, dict) and got.get("refused")), got
+E   AssertionError: QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (PermissionError)')
+E   assert (False or (False))
+E    +  where False = isinstance(QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (PermissionError)'), SystemExit)
+E    +  and   False = isinstance(QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (PermissionError)'), dict)
+____________ test_read_classification_all_consumers[opening-stage] ____________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:427: in test_read_classification_all_consumers
+    assert no_new_invalid(root, before)
+E   AssertionError: assert False
+E    +  where False = no_new_invalid(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21377/test_read_classification_all_c4'), ['551250e946d81c40d5bea9b3909165019cf839a2d2c82cd4577528b80ed8b630', '616ca190e42aa48d5947c32c752c3a08568e8fdb62a5e4e5...3bf944c21e197d9d422b24fcdf687b71fe20719044bd', '70e62b749e31692ec27517f164b6c9f9b5c6b299436787e582d245ccf603e1f7', ...])
+______________________ test_listing_error_refuses[read] _______________________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:159: in test_listing_error_refuses
+    assert no_new_invalid(tmp_path, before)                             # never a new INVALID (OP-9 resolved)
+E   AssertionError: assert False
+E    +  where False = no_new_invalid(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21377/test_listing_error_refuses_rea0'), ['c4de135bce53f47b8e37337e34637c31764d161a9de65808e7d53ac7af6a03fc', '5d7126d52c4c1a5654cf06b9217b33b66b889817be1c75a0...71d004fe797b22d7284c9eabeebc339d5e661f143638', '1ad0632c90b8d84ef428eeb8c615d70a5716fc561d8e0fd75c4e226dc6f4bb00', ...])
+___________________ test_listing_error_refuses[permission] ____________________
+research\s1\s1_tests\test_s1_a3_m4_pass.py:159: in test_listing_error_refuses
+    assert no_new_invalid(tmp_path, before)                             # never a new INVALID (OP-9 resolved)
+E   AssertionError: assert False
+E    +  where False = no_new_invalid(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21377/test_listing_error_refuses_per0'), ['fc417cf77976c9b2a59acbf18da189770e915739e823a80880002c5cee89d0f0', 'c556c09078d3d9fa9b8541da1c1e23feeb9e5287a9c0518b...eeaae3ed52f5f4c6bd002105a22eaf9afee02927dc06', '1dc602554f8012f757c567e0c19ec601b4fdca26938eddd7772ba0de2606fd15', ...])
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[direct-missing-member-both-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[confirmed-missing-parent-path]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[changed-confirmed]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[malformed-confirmed]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[unrelated-mandatory-invalid-precedence]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[decide-stop]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[transient-permission]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[persistent-permission]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[first-bad-confirm-generic-io]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[later-healthy-reevaluates]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[slot-problems]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[seal-recompute]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[run-seal-stage]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[sampled-seals]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[opening-stage]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[read]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[permission]
+12 failed, 6 passed in 69.37s (0:01:09)
+
+# ---- O-C5a: which call raises (stub, same base). Probe = scratchpad tH4/probe_which_call.py (sha256 7f32ae7e6279a7b79d90aa40328d54b5a48ba2297080e5e118146c4e28fa0fd4), pytest -p conftest -s;
+# the fault is injected at the DIRECT read of the member (Path.read_bytes; open for the OSError case; Path.glob of captures/ for the listing case).
+# Each chain lists the product frames down to the raising read; outcome = what the consumer produced on the stub (today's classification).
+[O-C5a] gate-member-permission: 4 raising read(s); outcome="Refusal: gate: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or"
+   chain 1: s1_trial.py:878 gate -> s1_slot.py:857 evidence_check -> s1_slot.py:739 evidence_problems -> s1_slot.py:676 slot_problems -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+   chain 2: s1_trial.py:878 gate -> s1_slot.py:857 evidence_check -> s1_slot.py:748 evidence_problems -> s1_slot.py:629 _resolution_evidence -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+   chain 3: s1_trial.py:878 gate -> s1_slot.py:860 evidence_check -> s1_slot.py:739 evidence_problems -> s1_slot.py:676 slot_problems -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+   chain 4: s1_trial.py:878 gate -> s1_slot.py:860 evidence_check -> s1_slot.py:748 evidence_problems -> s1_slot.py:629 _resolution_evidence -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+[O-C5a] gate-member-open-oserror: 4 raising read(s); outcome="Refusal: gate: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or"
+   chain 1: s1_trial.py:878 gate -> s1_slot.py:857 evidence_check -> s1_slot.py:739 evidence_problems -> s1_slot.py:676 slot_problems -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+   chain 2: s1_trial.py:878 gate -> s1_slot.py:857 evidence_check -> s1_slot.py:748 evidence_problems -> s1_slot.py:629 _resolution_evidence -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+   chain 3: s1_trial.py:878 gate -> s1_slot.py:860 evidence_check -> s1_slot.py:739 evidence_problems -> s1_slot.py:676 slot_problems -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+   chain 4: s1_trial.py:878 gate -> s1_slot.py:860 evidence_check -> s1_slot.py:748 evidence_problems -> s1_slot.py:629 _resolution_evidence -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+[O-C5a] gate-listing-fnf: 1 raising read(s); outcome='FileNotFoundError: [Errno 2] listing failed (simulated)'
+   chain 1: s1_trial.py:878 gate -> s1_slot.py:846 evidence_check
+[O-C5a] slot-problems: 1 raising read(s); outcome='returned list'
+   chain 1: s1_slot.py:676 slot_problems -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+[O-C5a] seal-recompute: 1 raising read(s); outcome='returned list'
+   chain 1: s1_slot.py:748 evidence_problems -> s1_slot.py:629 _resolution_evidence -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+[O-C5a] run-seal-stage: 2 raising read(s); outcome="Refusal: seal stage seal/2026-10-26: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required fi"
+   chain 1: s1_slot.py:582 run_seal_stage -> s1_slot.py:714 confirmed_close_problems -> s1_slot.py:705 close_problems -> s1_slot.py:676 slot_problems -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+   chain 2: s1_slot.py:582 run_seal_stage -> s1_slot.py:718 confirmed_close_problems -> s1_slot.py:705 close_problems -> s1_slot.py:676 slot_problems -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+[O-C5a] sampled-seals: 1 raising read(s); outcome='QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (PermissionError)'
+   chain 1: s1_seal.py:533 sampled_seals -> s1_slot.py:629 _resolution_evidence -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+[O-C5a] opening-stage: 2 raising read(s); outcome="Refusal: opening seal stage: slot evidence violation ['slot/20261023T204700Z: QUALIFIED tree differs from the committed detail (a required file missi"
+   chain 1: s1_checkpoint.py:773 _opening_stage -> s1_slot.py:714 confirmed_close_problems -> s1_slot.py:705 close_problems -> s1_slot.py:676 slot_problems -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+   chain 2: s1_checkpoint.py:773 _opening_stage -> s1_slot.py:718 confirmed_close_problems -> s1_slot.py:705 close_problems -> s1_slot.py:676 slot_problems -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+[O-C5a] decide-stop: 1 raising read(s); outcome='SystemExit: stop decision refused with no row (QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (Permissi'
+   chain 1: s1_seal.py:697 decide_stop -> s1_seal.py:715 _decide_locked -> s1_seal.py:575 stop_record -> s1_slot.py:629 _resolution_evidence -> s1_slot.py:121 qualified_tree -> s1_slot.py:115 tree_manifest -> s1_common.py:87 sha256_file
+9 passed in 34.69s

@@ -1,0 +1,46 @@
+# H4 C5 GREEN (rows 496-497, row 433[read,permission], the two supplementary C5 tests); HEAD 9af540609d13c2951f7d0037b2c988dc9757660e + H4 tree
+# sha256: s1_slot.py a12bd5256627fce7e9f237b8655db02fd684d4d87e9dbc4c9d5c955a05bd1ea8 s1_seal.py 706e058a9196e147bb8929101938e489663b353180eb0626ad4fb5c65ba264dd s1_run.py f7512ad02e4c9332091e16a513511f4fa08b5b3ba0feb7c41c91f8af65162d75 test 7cef664b9b4727050b03473bad435346d594866b09cc282b084f6a2ba085d2d6
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[transient-permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[persistent-permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[first-bad-confirm-generic-io]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[direct-missing-member-both-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[confirmed-missing-parent-path]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[changed-confirmed]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[malformed-confirmed]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[unrelated-mandatory-invalid-precedence]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[later-healthy-reevaluates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[slot-problems]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[seal-recompute]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[run-seal-stage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[sampled-seals]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[opening-stage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[decide-stop]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[read]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_c5_stop_problems_reraises_unreadable
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_c5_score_attempt_reraises_unreadable
+20 passed in 62.18s (0:01:02)
+
+# ---- O-C5a after C5 (same probe, sha256 7f32ae7e6279a7b79d90aa40328d54b5a48ba2297080e5e118146c4e28fa0fd4): the raising read and the consumer's outcome now
+[O-C5a] gate-member-permission: 2 raising read(s); outcome='Refusal: F3 evidence table: 2 QUALIFIED member read(s) unreadable (QUALIFIED member C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21432/te'
+   chain 1: s1_trial.py:878 gate -> s1_slot.py:1088 evidence_check -> s1_slot.py:945 evidence_problems -> s1_slot.py:822 slot_problems -> s1_slot.py:759 _qualified_manifest -> s1_slot.py:385 _member_sha -> s1_slot.py:364 _classify -> s1_common.py:87 sha256_file
+   chain 2: s1_trial.py:878 gate -> s1_slot.py:1088 evidence_check -> s1_slot.py:962 evidence_problems -> s1_slot.py:772 _resolution_evidence -> s1_slot.py:759 _qualified_manifest -> s1_slot.py:385 _member_sha -> s1_slot.py:364 _classify -> s1_common.py:87 sha256_file
+[O-C5a] gate-member-open-oserror: 2 raising read(s); outcome='Refusal: F3 evidence table: 2 QUALIFIED member read(s) unreadable (QUALIFIED member C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21432/te'
+   chain 1: s1_trial.py:878 gate -> s1_slot.py:1088 evidence_check -> s1_slot.py:945 evidence_problems -> s1_slot.py:822 slot_problems -> s1_slot.py:759 _qualified_manifest -> s1_slot.py:385 _member_sha -> s1_slot.py:364 _classify -> s1_common.py:87 sha256_file
+   chain 2: s1_trial.py:878 gate -> s1_slot.py:1088 evidence_check -> s1_slot.py:962 evidence_problems -> s1_slot.py:772 _resolution_evidence -> s1_slot.py:759 _qualified_manifest -> s1_slot.py:385 _member_sha -> s1_slot.py:364 _classify -> s1_common.py:87 sha256_file
+[O-C5a] gate-listing-fnf: 1 raising read(s); outcome='Refusal: F3 evidence table: captures/ or seals/ could not be listed or probed (FileNotFoundError: [Errno 2] listing failed (simulated)): refused with'
+   chain 1: s1_trial.py:878 gate -> s1_slot.py:1076 evidence_check
+[O-C5a] slot-problems: 1 raising read(s); outcome='QualifiedUnreadable: QUALIFIED member C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21432/test_consumer_cases_slot_probl0/s1_out/captures/2026-10-26/2'
+   chain 1: s1_slot.py:822 slot_problems -> s1_slot.py:759 _qualified_manifest -> s1_slot.py:385 _member_sha -> s1_slot.py:364 _classify -> s1_common.py:87 sha256_file
+[O-C5a] seal-recompute: 1 raising read(s); outcome='QualifiedUnreadable: QUALIFIED member C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21432/test_consumer_cases_seal_recom0/s1_out/captures/2026-10-26/2'
+   chain 1: s1_slot.py:962 evidence_problems -> s1_slot.py:772 _resolution_evidence -> s1_slot.py:759 _qualified_manifest -> s1_slot.py:385 _member_sha -> s1_slot.py:364 _classify -> s1_common.py:87 sha256_file
+[O-C5a] run-seal-stage: 1 raising read(s); outcome='QualifiedUnreadable: close 2026-10-26: QUALIFIED member C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21432/test_consumer_cases_run_seal_s0/s1_out/cap'
+   chain 1: s1_slot.py:701 run_seal_stage -> s1_slot.py:892 confirmed_close_problems -> s1_slot.py:867 close_problems -> s1_slot.py:822 slot_problems -> s1_slot.py:759 _qualified_manifest -> s1_slot.py:385 _member_sha -> s1_slot.py:364 _classify -> s1_common.py:87 sha256_file
+[O-C5a] sampled-seals: 1 raising read(s); outcome='QualifiedUnreadable: QUALIFIED member C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21432/test_consumer_cases_sampled_se0/s1_out/captures/2026-10-26/2'
+   chain 1: s1_seal.py:533 sampled_seals -> s1_slot.py:772 _resolution_evidence -> s1_slot.py:759 _qualified_manifest -> s1_slot.py:385 _member_sha -> s1_slot.py:364 _classify -> s1_common.py:87 sha256_file
+[O-C5a] opening-stage: 1 raising read(s); outcome='QualifiedUnreadable: close 2026-10-23: QUALIFIED member C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21432/test_consumer_cases_opening_st0/s1_out/cap'
+   chain 1: s1_checkpoint.py:773 _opening_stage -> s1_slot.py:892 confirmed_close_problems -> s1_slot.py:867 close_problems -> s1_slot.py:822 slot_problems -> s1_slot.py:759 _qualified_manifest -> s1_slot.py:385 _member_sha -> s1_slot.py:364 _classify -> s1_common.py:87 sha256_file
+[O-C5a] decide-stop: 1 raising read(s); outcome='QualifiedUnreadable: QUALIFIED member C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21432/test_consumer_cases_decide_sto0/s1_out/captures/2026-10-26/2'
+   chain 1: s1_seal.py:697 decide_stop -> s1_seal.py:715 _decide_locked -> s1_seal.py:575 stop_record -> s1_slot.py:772 _resolution_evidence -> s1_slot.py:759 _qualified_manifest -> s1_slot.py:385 _member_sha -> s1_slot.py:364 _classify -> s1_common.py:87 sha256_file
+9 passed in 29.01s

@@ -773,7 +773,15 @@ def _opening_stage(gv, out: Path, day, cal, now, mailbox) -> dict:
     probs = s1_slot.confirmed_close_problems(gv, out, rows, day, cal, mailbox)    # Task 7 I1: confirmed on re-read
     if probs:
         s1_slot.evidence_violation(gv, probs, "opening seal stage", mailbox, clock=now)
-    ev = s1_slot._resolution_evidence(out, q, day["date"])
+    try:
+        ev = s1_slot._resolution_evidence(out, q, day["date"])
+    except s1_slot.QualifiedEvidence:                       # A3 H4 fix round 1 (review M-6; Task 7 I1, C5.1 "on both
+        try:                                                # passes"): confirm on a re-read before any TRIAL-INVALID -
+            s1_slot._resolution_evidence(out, q, day["date"])   # a second read, every member re-hashed. Seen again:
+        except s1_slot.QualifiedEvidence:                   # the F3 violation (the callers commit the INVALID). Not
+            raise                                           # seen again: one observation never invalidates - refused
+        return {"refused": f"{q.subject}: its QUALIFIED tree was missing, changed or unparseable on one read and "
+                           f"healthy on the re-read: not confirmed, refused with no row (Task 7 I1, C5.1)"}
     close = z.close_of(day["date"], cal)
     rel = f"seals/{day['date']}.json"
     rp = out / "opening_receipt.json"

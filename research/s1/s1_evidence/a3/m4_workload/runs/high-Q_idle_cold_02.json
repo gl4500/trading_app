@@ -1,0 +1,180 @@
+{
+ "id": "high-Q_idle_cold_02",
+ "workload": "high-Q",
+ "contention": "idle",
+ "cache": "cold",
+ "due_wall": 1794234837.4574025,
+ "launch_wall": 1794234837.4594257,
+ "launch_mono": 2199628.335163,
+ "end_mono": 2199762.6227829,
+ "end_wall": 1794234971.746948,
+ "child_exit": 0,
+ "L_driver": 0.0020232200622558594,
+ "T": 134.28761989995837,
+ "C_driver": 134.28964312002063,
+ "wall_minus_mono_over_T": -9.758397936820984e-05,
+ "child_startup_s": 0.08637209981679916,
+ "child_return_to_exit_s": 0.04367029992863536,
+ "clocks": {
+  "T_clock": "time.perf_counter (QueryPerformanceCounter: monotonic, system-wide)",
+  "perf_counter": {
+   "implementation": "QueryPerformanceCounter()",
+   "monotonic": true,
+   "adjustable": false,
+   "resolution": 1e-07
+  },
+  "wall": {
+   "implementation": "GetSystemTimeAsFileTime()",
+   "monotonic": false,
+   "adjustable": true,
+   "resolution": 0.015625
+  },
+  "wall_vs_mono_note": "L from wall instants (due, launch); T from perf_counter; their relation per run = wall_minus_mono_over_T (wall span - T)"
+ },
+ "control_ok": true,
+ "child": {
+  "child_mono_start": 2199628.4215351,
+  "child_wall_start": 1794234837.545293,
+  "imports_done_mono": 2199628.733893,
+  "control_ok": true,
+  "journal": {
+   "kind": "SLOT-QUALIFIED",
+   "outcome": "APPEND",
+   "reason": "",
+   "R": "2027-04-23T20:47:18.995669+00:00"
+  },
+  "seal": {
+   "written": true,
+   "sha256": "3725ed5d3e7c05ce7432228520e276f6045712995f4bf702f77a755056dc76a1"
+  },
+  "stop": {
+   "status": "RUNNING",
+   "stop_close": null,
+   "missed": []
+  },
+  "refused": null,
+  "return_mono": 2199762.5791126,
+  "return_wall": 1794234971.7030475,
+  "spans": {
+   "s1_trial.gate": {
+    "n": 1,
+    "s": 106.23655969975516,
+    "max": 106.23655969975516
+   },
+   "s1_slot.evidence_check": {
+    "n": 1,
+    "s": 105.78374389978126,
+    "max": 105.78374389978126
+   },
+   "s1_slot.evidence_problems": {
+    "n": 1,
+    "s": 105.64378500031307,
+    "max": 105.64378500031307
+   },
+   "s1_slot.confirmed_close_problems": {
+    "n": 1,
+    "s": 0.045762999914586544,
+    "max": 0.045762999914586544
+   },
+   "s1_slot.finalize_close": {
+    "n": 1,
+    "s": 1.0754728000611067,
+    "max": 1.0754728000611067
+   },
+   "s1_slot.run_seal_stage": {
+    "n": 1,
+    "s": 0.8122266000136733,
+    "max": 0.8122266000136733
+   },
+   "s1_seal.decide_stop": {
+    "n": 1,
+    "s": 18.578283799812198,
+    "max": 18.578283799812198
+   },
+   "s1_seal.stop_record": {
+    "n": 1,
+    "s": 18.459899500012398,
+    "max": 18.459899500012398
+   },
+   "s1_seal.current_stop": {
+    "n": 2,
+    "s": 0.298244500067085,
+    "max": 0.15023719985038042
+   },
+   "s1_gates.verified_registration": {
+    "n": 1,
+    "s": 1.2961115995422006,
+    "max": 1.2961115995422006
+   },
+   "s1_checkpoint._capture": {
+    "n": 1,
+    "s": 0.059611700009554625,
+    "max": 0.059611700009554625
+   },
+   "s1_checkpoint._finalize_others": {
+    "n": 1,
+    "s": 5.104703899938613,
+    "max": 5.104703899938613
+   },
+   "s1_checkpoint._after_terminal": {
+    "n": 1,
+    "s": 24.973038000054657,
+    "max": 24.973038000054657
+   },
+   "s1_journal.read_trial": {
+    "n": 12,
+    "s": 1.4685896993614733,
+    "max": 0.13440269976854324
+   },
+   "s1_journal.append": {
+    "n": 5,
+    "s": 0.7930266000330448,
+    "max": 0.17442450020462275
+   },
+   "s1_common.sha256_file": {
+    "n": 44460,
+    "s": 100.53852854948491,
+    "max": 0.04389620013535023
+   },
+   "s1_common.bundle_sha256": {
+    "n": 8,
+    "s": 0.05106960004195571,
+    "max": 0.007581699639558792
+   },
+   "s1_common.load_pinned": {
+    "n": 23441,
+    "s": 10.415427807718515,
+    "max": 0.0012603001669049263
+   }
+  }
+ },
+ "prep_seconds": 49.95754550024867,
+ "warm_read_bytes": 0,
+ "fixture": {
+  "kind": "high-Q",
+  "start": "2026-10-26T13:30:00+00:00",
+  "backup_mb_declared": 7.6,
+  "ledger_bytes": 7970816,
+  "eligible_closes": 130,
+  "sealed_closes": 129,
+  "max_closes_smoke": null,
+  "n_qualified_rows": 3910,
+  "n_qualified_trees": 3910,
+  "backup_bytes_total": 31157948416,
+  "projection_bytes": {
+   "n": 3910,
+   "min": 712,
+   "max": 45344,
+   "total": 176778475
+  },
+  "journal_rows_J": 8417,
+  "mailbox_bytes": 4464640,
+  "run_close": "2027-04-23",
+  "run_slot": "2027-04-23T20:45:00+00:00",
+  "bundle_sha256": "64b37236f4a92a89362d0fd9e5c7244d503780c147925ce38c64c3098d6d1cc2",
+  "pristine_root": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\C--Users-gl450\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\m4fx_highq",
+  "build_seconds": 1486.7173367999494,
+  "built_utc": "2026-11-09T13:51:38.472302+00:00"
+ },
+ "contention_procs": 0
+}

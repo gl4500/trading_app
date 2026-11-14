@@ -1,0 +1,9 @@
+# A3 H4 full suite (one clean run, single process; no edit under research/s1 while it ran): research/s1/s1_tests (every test file)
+# working tree on base 9af540609d13c2951f7d0037b2c988dc9757660e; baseline (H3, 9af5406): 5343 passed, 0 skipped
+# sha256: a12bd5256627fce7e9f237b8655db02fd684d4d87e9dbc4c9d5c955a05bd1ea8 *s1_slot.py 706e058a9196e147bb8929101938e489663b353180eb0626ad4fb5c65ba264dd *s1_seal.py f7512ad02e4c9332091e16a513511f4fa08b5b3ba0feb7c41c91f8af65162d75 *s1_run.py 7cef664b9b4727050b03473bad435346d594866b09cc282b084f6a2ba085d2d6 *s1_tests/test_s1_a3_m4_pass.py 7755a73500f640bfb3ba77a75fbbae107e71c1a9eabaf223f736b019cf16f46a *s1_tests/test_s1_a3_m4_workload_verdict.py 44d24e8c02d440d7d1760bc29900e2ec7933e71db233a68a3140419891a2b53f *s1_tests/test_s1_a3_finalizer.py 
+# started 2026-11-09T15:24:52Z
+........................................................................ [ 98%]
+.........................................................                [100%]
+5385 passed in 5082.04s (1:24:42)
+# pytest exit 0
+# finished 2026-11-09T16:49:37Z

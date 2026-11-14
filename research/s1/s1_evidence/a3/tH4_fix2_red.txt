@@ -1,0 +1,12 @@
+# A3 H4 fix round 2 - RED (recorded 2026-11-14T15:01:50Z) on the fix-round-1 tree (base 9af5406 + H4 + fix round 1, HEAD 8dfc1ab)
+# product sha256 at RED: a1f8277b1b4cda12ec33cd3a751e8a634985832a51b5615d3cf9f30682aaea1c *s1_trial.py 706e058a9196e147bb8929101938e489663b353180eb0626ad4fb5c65ba264dd *s1_seal.py ff2c48effb85847f3560a6d2ba6c002626dbfc3c2afa9ca505e1b1efc3a12cfb *s1_slot.py 
+# Item: re-review F-1 + controller ruling (a refusal path does no work: no row, no file publication).
+# RED: [pending-refusal-no-publish] - a pending C5 refusal, recoverable missing stop.json: the gate refused but stop.json was published (assert not exists, line 669).
+# Controls (pass on this tree): [pending-refusal-conflict-invalid-wins] (stop-conflict INVALID wins), [no-refusal-publishes] (healthy gap recovery).
+
+E           AssertionError: assert not True
+research\s1\s1_tests\test_s1_a3_m4_pass.py:669: AssertionError
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[pending-refusal-conflict-invalid-wins]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[no-refusal-publishes]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[pending-refusal-no-publish]
+1 failed, 2 passed, 45 deselected in 13.96s

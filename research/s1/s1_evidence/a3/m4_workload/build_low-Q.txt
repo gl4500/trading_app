@@ -1,0 +1,18 @@
+[     2.4s] trial ACTIVE (plan, audit, opening, START attestation, prereg, PREREG-ACK)
+[     2.6s] ledger padded to 15941632 bytes
+[     3.1s] close 1/129 2026-10-26: 1 QUALIFIED
+[    12.5s] close 11/129 2026-11-09: 1 QUALIFIED
+[    27.3s] close 21/129 2026-11-23: 1 QUALIFIED
+[    48.0s] close 31/129 2026-12-07: 1 QUALIFIED
+[    74.2s] close 41/129 2026-12-21: 1 QUALIFIED
+[   106.2s] close 51/129 2027-01-04: 1 QUALIFIED
+[   143.6s] close 61/129 2027-01-18: 1 QUALIFIED
+[   187.0s] close 71/129 2027-02-01: 1 QUALIFIED
+[   236.3s] close 81/129 2027-02-15: 1 QUALIFIED
+[   291.5s] close 91/129 2027-03-01: 1 QUALIFIED
+[   353.9s] close 101/129 2027-03-15: 1 QUALIFIED
+[   421.0s] close 111/129 2027-03-29: 1 QUALIFIED
+[   500.1s] close 121/129 2027-04-12: 1 QUALIFIED
+[   563.5s] close 129/129 2027-04-22: 1 QUALIFIED
+[   563.7s] built: {"kind": "low-Q", "start": "2026-10-26T13:30:00+00:00", "backup_mb_declared": 15.2, "ledger_bytes": 15941632, "eligible_closes": 130, "sealed_closes": 129, "max_closes_smoke": null, "n_qualified_rows": 130, "n_qualified_trees": 130, "backup_bytes_total": 2056499200, "projection_bytes": {"n": 130, "min": 712, "max": 45344, "total": 5827615}, "journal_rows_J": 4637, "mailbox_bytes": 2326528, "run_close": "2027-04-23", "run_slot": "2027-04-23T20:45:00+00:00", "bundle_sha256": "64b37236f4a92a89362d0fd9e5c7244d503780c147925ce38c64c3098d6d1cc2", "pristine_root": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\C--Users-gl450\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\m4fx_lowq", "build_seconds": 563.7281777998433, "built_utc": "2026-11-09T13:36:15.483569+00:00"}
+exit 0

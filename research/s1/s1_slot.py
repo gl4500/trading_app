@@ -6,8 +6,10 @@ across read-work-append (F5.1 as amended by E1.1); terminal decisions are arbitr
 never by a lock (E1.2). Every JSON record a worker writes carries its op and actor; its capture directory carries
 them through its claim (OQ-10). A loser (LOST-RACE) moves only its own uncommitted files to late/ and re-checks."""
 import json
+import os
 import re
 import shutil
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -25,17 +27,19 @@ def slot_of(subject: str) -> datetime:
     return datetime.strptime(subject[len("slot/"):], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
 
 
-def day_for(slot, cal) -> dict:
+def day_for(slot, cal, *, ps=None) -> dict:
     """The calendar row whose seal schedule contains `slot` (its CLOSE day: an overnight slot belongs to the
     previous close); SystemExit when no row does. A3 Task 7 (performance only; the evidence table calls this for
     every slot at every gate): a close's slots lie after its close and no later than 08:00 New York on its next
     session, before that session's close - so the owner can only be the LATEST session whose close precedes the slot;
-    only that row's schedule is computed (any malformed row: the full scan below, as before)."""
+    only that row's schedule is computed (any malformed row: the full scan below, as before).
+    A3 H4 (Erratum 2 r4 G3.2): `ps` - the caller's evidence pass: the closes and schedules come from its verified module
+    and are computed once per calendar row within that pass (same algorithm, same result, same exceptions)."""
     try:
         ny = slot.astimezone(c.NY).date().isoformat()
         latest = None
         for d in sorted((d for d in cal if d["date"] <= ny), key=lambda d: d["date"], reverse=True)[:2]:
-            if z.close_of(d["date"], cal) < slot:                 # (a session's close is on its own date)
+            if _close_on(d["date"], cal, ps) < slot:              # (a session's close is on its own date)
                 latest = d
                 break
     except (KeyError, TypeError, ValueError, AttributeError):
@@ -44,14 +48,14 @@ def day_for(slot, cal) -> dict:
         raise SystemExit(f"{slot.isoformat()} is not a registered seal slot")
     if latest is not False:
         try:
-            if slot in z.schedule(latest, cal):
+            if slot in _sched_on(latest, cal, ps):
                 return latest
         except ValueError:
             pass
         raise SystemExit(f"{slot.isoformat()} is not a registered seal slot")
     for d in cal:
         try:
-            if slot in z.schedule(d, cal):
+            if slot in _sched_on(d, cal, ps):
                 return d
         except ValueError:
             continue
@@ -335,22 +339,172 @@ class QualifiedEvidence(ValueError):
     (registration-artifact); the seal is never built from it."""
 
 
+class QualifiedUnreadable(SystemExit):
+    """A3 H4 (Erratum 2 Clarification 1 r2 C5.1, O-C5): a QUALIFIED tree member could not be read for a reason other
+    than a confirmed typed absence (PermissionError, another OSError, a failed listing or lookup): it proves
+    unreadability, not altered bytes - the invocation refuses with no row, no requested work and no INVALID based on
+    that observation. A SystemExit: no F0.7 `except Exception` / `except OSError` block can turn it into a violation,
+    and a caller that catches SystemExit must re-raise it (s1_seal.stop_problems, s1_run._score_attempt)."""
+
+
+def _member_name(out, path) -> str:
+    """The member's path relative to s1_out (H4 fix round 1, review N-4: the brief's `<rel>`); the absolute path
+    when it is not under `out` (or `out` is unknown)."""
+    try:
+        return Path(path).relative_to(out).as_posix() if out is not None else Path(path).as_posix()
+    except ValueError:
+        return Path(path).as_posix()
+
+
+def _unreadable(path, e: BaseException, out=None) -> QualifiedUnreadable:
+    return QualifiedUnreadable(f"QUALIFIED member {_member_name(out, path)} unreadable ({type(e).__name__}): refused "
+                               f"with no row and no requested work; unreadability is never a violation "
+                               f"(Clarification 1 C5.1)")
+
+
+def _classify(out, path, read):
+    """C5.1 / O-C5 for ONE direct read of the specific expected member `path` (`read(path)`): a FileNotFoundError of
+    that direct read is the typed absence - re-raised unchanged, so the caller's existing F3 classification applies
+    (and the confirm-on-re-read makes it a violation only when the confirming pass's direct read raises it again) -
+    while `out` (s1_out) is still a directory; with the root gone it is the root's loss (F6.6 LOST, the next gate's
+    decision): unreadable here. Any other OSError (PermissionError included): QualifiedUnreadable. Nothing is
+    returned, and so nothing is cached, for a failed read."""
+    try:
+        return read(path)
+    except FileNotFoundError as e:
+        try:
+            root_ok = out is None or Path(out).is_dir()
+        except OSError:
+            root_ok = False
+        if root_ok:
+            raise
+        raise _unreadable(path, e, out) from None
+    except OSError as e:
+        raise _unreadable(path, e, out) from None
+
+
+def _read_member(out, path) -> bytes:
+    """A3 H4 (C5, O-C5a): ONE direct read of the specific expected member `path` (Path.read_bytes), classified
+    (_classify)."""
+    return _classify(out, path, lambda p: Path(p).read_bytes())
+
+
+def _member_sha(out, path) -> str:
+    """The member's sha256 from ONE direct read (c.sha256_file), classified (_classify)."""
+    return _classify(out, path, c.sha256_file)
+
+
+@dataclass
+class EvidencePass:
+    """A3 H4 (Erratum 2 r4 G3.1-G3.4, M4(1)-(3), O9): ONE evidence pass - one verified read of the rows (`rows`) and
+    its subject index (`index`: subject -> its rows in seq order, G3.3), one read of the registered calendar (`cal`),
+    one bundle check (`bundle_ok`), the pinned module verified once in this pass (`sim`, set by evidence_problems /
+    confirmed_close_problems through the verified c.sim(), G3.2), and the QUALIFIED trees hashed in this pass (`tree`:
+    subject -> {relpath: sha256}; `files`: absolute member path -> the same sha256, G3.4), plus the per-row schedules
+    and close instants computed with that module from that calendar (`sched`, `closes`). It lives for ONE pass only:
+    never stored on a gate, a module global, a lock record or a file, and never handed to a confirming pass, a later
+    gate, a callback or another command (I-7, G3.1, G3.5). Its memos apply only to the pass's own `rows` and `cal`
+    objects (identity), so a caller passing other rows or another calendar gets the uncached computation."""
+    rows: list
+    index: dict
+    cal: object
+    sim: object = None
+    bundle_ok: bool = False
+    tree: dict = field(default_factory=dict)
+    files: dict = field(default_factory=dict)
+    sched: dict = field(default_factory=dict)
+    closes: dict = field(default_factory=dict)
+    unreadable: list = field(default_factory=list)       # C5.1: QualifiedUnreadable observations of this pass
+
+
+def _index(rows) -> dict:
+    """G3.3: subject -> [rows of that subject], each list in the rows' (seq) order - j.subject_rows for every subject
+    at once."""
+    got = {}
+    for r_ in rows:
+        got.setdefault(r_.subject, []).append(r_)
+    return got
+
+
+def _pass_of(rows, cal) -> EvidencePass:
+    return EvidencePass(rows=rows, index=_index(rows), cal=cal)
+
+
+def new_pass(gv) -> EvidencePass:
+    """G3.1: a NEW evidence pass for gate `gv` - a fresh calendar read (_calendar; None: no registered calendar, the
+    caller's existing branch decides and nothing else is read), fresh rows (_read_rows: a JournalError is a refusal,
+    F0.7) and their index, and a fresh bundle check against the trial's AUDIT-ACK bundle (ruling OP-14: a mismatch
+    during the gate refuses with no row; the next gate's own bundle check commits INVALID (bundle), F6.4). The pinned
+    module is verified by the pass's evidence_problems call (G3.2)."""
+    import s1_trial
+    cal = _calendar(gv)
+    if cal is None:
+        return EvidencePass(rows=None, index={}, cal=None)
+    rows = _read_rows(gv)
+    if c.bundle_sha256() != gv.trial.bundle:
+        raise s1_trial.Refusal("F3 evidence pass: the S1 bundle differs from the trial's AUDIT-ACK bundle during the "
+                               "gate's evidence pass: refused with no row (ruling OP-14; the next gate decides INVALID "
+                               "(bundle), F6.4)")
+    ps = _pass_of(rows, cal)
+    ps.bundle_ok = True
+    return ps
+
+
+def _mine(rows, subject, ps) -> list:
+    """j.subject_rows(rows, subject), from the pass's index when `rows` are the pass's rows (G3.3)."""
+    if ps is not None and rows is ps.rows:
+        return ps.index.get(subject, [])
+    return j.subject_rows(rows, subject)
+
+
+def _sim_of(ps):
+    return None if ps is None else ps.sim
+
+
+def _close_on(day_iso, cal, ps) -> datetime:
+    """z.close_of(day_iso, cal); within a pass (cal is the pass's calendar) computed once per date with the pass's
+    verified module (G3.2)."""
+    if ps is None or cal is not ps.cal or ps.sim is None:
+        return z.close_of(day_iso, cal, sim=_sim_of(ps))
+    if day_iso not in ps.closes:
+        ps.closes[day_iso] = z.close_of(day_iso, cal, sim=ps.sim)
+    return ps.closes[day_iso]
+
+
+def _sched_on(day, cal, ps) -> list:
+    """z.schedule(day, cal) (a ValueError as before); within a pass (cal is the pass's calendar, `day` one of its
+    rows) computed once per row with the pass's verified module - the slot -> close map of G3.2."""
+    if ps is None or cal is not ps.cal or ps.sim is None:
+        return z.schedule(day, cal, sim=_sim_of(ps))
+    k = c.canonical(day)                                 # review N-1: keyed by the row's content, never id()
+    if k not in ps.sched:
+        try:
+            ps.sched[k] = ("ok", z.schedule(day, cal, sim=ps.sim))
+        except ValueError as e:
+            ps.sched[k] = ("err", str(e))
+    kind, v = ps.sched[k]
+    if kind == "err":
+        raise ValueError(v)
+    return v
+
+
 def _empty() -> dict:
     return {"written": False, "sha256": None, "from_slot": None, "deferred": None, "refused": None, "cleanup": None}
 
 
-def _schedule(day, cal) -> list:
+def _schedule(day, cal, ps=None) -> list:
     try:
-        return z.schedule(day, cal)
+        return _sched_on(day, cal, ps)
     except ValueError:                                 # the last calendar day: no next session, no window
         return []
 
 
-def first_qualified(rows, day, cal):
+def first_qualified(rows, day, cal, *, ps=None):
     """F3/OQ-14: walking the close's slots in schedule order, the first QUALIFIED one, provided every earlier slot is
-    terminal (QUALIFIED, FAILED, TIMEOUT, MISSED); None otherwise. late/ files are never consulted."""
-    for slot in _schedule(day, cal):
-        term = j.first(j.subject_rows(rows, j.slot_subject(slot)), *j.TERMINAL)
+    terminal (QUALIFIED, FAILED, TIMEOUT, MISSED); None otherwise. late/ files are never consulted. A3 H4: `ps` - the
+    caller's evidence pass (its index and schedules, G3.2/G3.3)."""
+    for slot in _schedule(day, cal, ps):
+        term = j.first(_mine(rows, j.slot_subject(slot), ps), *j.TERMINAL)
         if term is None:
             return None
         if term.kind == "SLOT-QUALIFIED":
@@ -364,15 +518,20 @@ def determined(rows, day, cal):
     return first_qualified(rows, day, cal)
 
 
-def seal_bytes(day, close, ev) -> bytes:
+def seal_bytes(day, close, ev, *, ps=None) -> bytes:
     """The deterministic seal of a close from the SUCCESS evidence (moved unchanged from s1_checkpoint._seal_bytes;
-    a capture that differs from its recorded projection is a ValueError)."""
+    a capture that differs from its recorded projection is a ValueError). A3 H4 (G3.4): `ps` - the caller's evidence
+    pass: when that pass already hashed this projection file (as a member of a QUALIFIED tree), that hash is used and
+    the file is not hashed again in the pass."""
     cand = ev["candidate"]
     cap_dir = Path(cand["dir"])
     proj_p = cap_dir / "projection.json"
-    if not proj_p.is_file() or c.sha256_file(proj_p) != cand["projection_sha256"]:
+    if not _classify(None, proj_p, lambda p: Path(p).is_file()):
         raise ValueError(f"candidate capture {cap_dir.name} differs from its recorded projection")
-    proj = json.loads(proj_p.read_text(encoding="utf-8"))
+    sha = ps.files.get(_path_key(proj_p)) if ps is not None else None
+    if (_member_sha(None, proj_p) if sha is None else sha) != cand["projection_sha256"]:
+        raise ValueError(f"candidate capture {cap_dir.name} differs from its recorded projection")
+    proj = json.loads(_read_member(None, proj_p).decode("utf-8"))        # C5.1: a generic OSError is unreadable
     cap = {"scheduled": ev["scheduled"], "actual": ev["actual"], "capture_start": cand["capture_start"],
            "capture_end": cand["capture_end"], "ok": True, "consistent": True,
            "projection_sha256": cand["projection_sha256"], "dir": cand["dir"]}
@@ -592,11 +751,35 @@ def _opening_date(out):
         return None
 
 
-def _resolution_evidence(out, q, day_iso) -> dict:
+def _path_key(p) -> str:
+    """A member's identity within one pass: its normalized absolute path."""
+    return os.path.normcase(os.path.abspath(p))
+
+
+def _qualified_manifest(out, s, day_iso, subject, ps) -> dict:
+    """qualified_tree(out, s, day_iso), hashed at most ONCE per evidence pass (G3.4): the first consumer in the pass
+    (slot_problems, or _resolution_evidence / seal_bytes) hashes every member from its live bytes; the others in the
+    SAME pass reuse that manifest. A read error propagates and nothing is cached for it. Never across passes."""
+    if ps is not None and subject in ps.tree:
+        return ps.tree[subject]
+    n = names(out, s, day_iso)
+    paths = [n["report"], n["resolution"]] + [n["capture"] / f for f in CAPTURE_TREE]
+    out_ = Path(out)
+    tree = {_rel(out_, p): _member_sha(out_, p) for p in sorted(paths)}    # = qualified_tree, each read classified
+    if ps is not None:                                                     # (C5.1); cached only after every member
+        ps.tree[subject] = tree                                            # was read and hashed
+        for p in paths:
+            ps.files[_path_key(p)] = tree[_rel(out_, p)]
+    return tree
+
+
+def _resolution_evidence(out, q, day_iso, *, ps=None) -> dict:
+    """The selected QUALIFIED slot's resolution evidence, from a tree equal to its committed detail (F3; else
+    QualifiedEvidence). A3 H4 (G3.4): `ps` - the caller's evidence pass (the tree hashed once per pass)."""
     s = slot_of(q.subject)
     try:
-        tree = qualified_tree(out, s, day_iso)
-        ev = json.loads(names(out, s, day_iso)["resolution"].read_text(encoding="utf-8"))["evidence"]
+        tree = _qualified_manifest(out, s, day_iso, q.subject, ps)
+        ev = json.loads(_read_member(out, names(out, s, day_iso)["resolution"]).decode("utf-8"))["evidence"]
     except (OSError, ValueError, KeyError, TypeError) as e:
         raise QualifiedEvidence(f"{q.subject}: a file of its QUALIFIED tree is missing or unreadable "
                                 f"({type(e).__name__})") from None
@@ -605,22 +788,28 @@ def _resolution_evidence(out, q, day_iso) -> dict:
     return ev
 
 
-def slot_problems(out, rows, subject, cal) -> list:
+def slot_problems(out, rows, subject, cal, *, ps=None) -> list:
     """The F3 evidence table for one slot subject (states from the journal; files as evidence):
     no row - any claim, capture, report or resolution; in flight (INTENT, no terminal) - a file carrying another op
     (or a capture directory its claim does not name, OQ-10); QUALIFIED - a file of the tree manifest missing, changed
     or unparseable; FAILED - its claim/report missing or changed; TIMEOUT - a seal citing the slot; MISSED - any file
-    outside late/. late/ is never read. Also the LOST-RACE re-check of the winner's committed evidence."""
+    outside late/. late/ is never read. Also the LOST-RACE re-check of the winner's committed evidence.
+    A3 H4 (Erratum 2 r4 G3.2-G3.4): `ps` - the caller's evidence pass (its index, schedules and verified module; a
+    QUALIFIED tree hashed once per pass). The existence probe never turns an I/O error into "absent": an OSError of
+    the probe refuses with no row (G3.4).
+    A3 H4 fix round 1 (review M-1, C5.1 precedence): the probe runs only for the branches that use it (no row, in
+    flight, MISSED). A QUALIFIED slot is judged by direct member reads (C5), so its probe error can never refuse ahead
+    of an unrelated confirmed violation."""
     out = Path(out)
     try:
         s = slot_of(subject)
-        day_iso = day_for(s, cal)["date"]
+        day_iso = day_for(s, cal, ps=ps)["date"]
     except (SystemExit, ValueError):
         return [f"{subject}: not a registered slot"]
     n = names(out, s, day_iso)
-    mine = j.subject_rows(rows, subject)
+    mine = _mine(rows, subject, ps)
     intent, term = j.first(mine, "SLOT-INTENT"), j.first(mine, *j.TERMINAL)
-    present = [k_ for k_ in ("claim", "report", "resolution", "capture") if n[k_].exists()]
+    present = _present(n, subject) if term is None or term.kind == "SLOT-MISSED" else []
     if not mine:
         return [f"{subject}: {k_} exists with no journal row (F3)" for k_ in present]
     if term is None:                                                              # in flight
@@ -642,11 +831,11 @@ def slot_problems(out, rows, subject, cal) -> list:
         return bad
     if term.kind == "SLOT-QUALIFIED":
         try:
-            ok = j.detail_of(qualified_tree(out, s, day_iso)) == term.detail
-            json.loads(n["resolution"].read_text(encoding="utf-8"))
-            json.loads(n["report"].read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            ok = False
+            ok = j.detail_of(_qualified_manifest(out, s, day_iso, subject, ps)) == term.detail
+            json.loads(_read_member(out, n["resolution"]).decode("utf-8"))
+            json.loads(_read_member(out, n["report"]).decode("utf-8"))
+        except (OSError, ValueError):                 # a typed absence (FileNotFoundError), changed or malformed
+            ok = False                                # bytes; a generic OSError is QualifiedUnreadable (C5.1)
         return [] if ok else [f"{subject}: QUALIFIED tree differs from the committed detail (a required file missing, "
                               f"changed or unparseable, F3)"]
     if term.kind == "SLOT-FAILED":
@@ -666,58 +855,133 @@ def slot_problems(out, rows, subject, cal) -> list:
     return [f"{subject}: MISSED slot has {k_} outside late/ (F3)" for k_ in present]                # MISSED
 
 
-def close_problems(out, rows, day, cal) -> list:
+def _listing_refusal(what: str, e: OSError):
+    """G3.4: a listing or existence-probe error is never "empty", "absent" or "OK" - a refusal with no row."""
+    import s1_trial
+    return s1_trial.Refusal(f"F3 evidence table: {what} could not be listed or probed ({type(e).__name__}: {e}): "
+                            f"refused with no row (a listing error never means empty or absent, G3.4)")
+
+
+def _present(n: dict, subject: str) -> list:
+    """The slot's claim/report/resolution/capture that exist (the F3 inventory probe); an OSError refuses (G3.4)."""
+    try:
+        return [k_ for k_ in ("claim", "report", "resolution", "capture") if n[k_].exists()]
+    except OSError as e:
+        raise _listing_refusal(f"{subject}'s files", e) from None
+
+
+def close_problems(out, rows, day, cal, *, ps=None) -> list:
     """slot_problems for every scheduled slot of close `day` (every QUALIFIED slot included, not only those reached
-    in slot order; Task 6 review N-2)."""
+    in slot order; Task 6 review N-2). A3 H4: `ps` - the caller's evidence pass."""
     probs = []
-    for slot in _schedule(day, cal):
-        probs += slot_problems(out, rows, j.slot_subject(slot), cal)
+    for slot in _schedule(day, cal, ps):
+        try:
+            probs += slot_problems(out, rows, j.slot_subject(slot), cal, ps=ps)
+        except QualifiedUnreadable as e:              # C5.1: recorded in the pass, never a problem; the other slots
+            if ps is None:                            # are still judged (an I/O refusal never masks a violation)
+                raise
+            ps.unreadable.append(str(e))
     return probs
 
 
-def confirmed_close_problems(gv, out, rows, day, cal, mailbox=None) -> list:
+def confirmed_close_problems(gv, out, rows, day, cal, mailbox=None, *, ps=None) -> list:
     """close_problems confirmed on rows re-read AFTER the problems were first observed (fix round 1, review I1: the
     same confirm-on-re-read as the gate hook). A legitimate slot file is always written after its row, so a later
     slot whose worker starts between the first read and the file scan is never a violation; a problem seen on both
-    scans, the second on rows read after the first, is. A journal error is the caller's refusal (F0.7)."""
-    first = close_problems(out, rows, day, cal)
+    scans, the second on rows read after the first, is. A journal error is the caller's refusal (F0.7).
+    A3 H4 (Erratum 2 r4 G3.1, O9): each scan is its own evidence pass. The first is a pass on the caller's verified
+    read (`rows`, `cal`; or the caller's pass `ps` when those are its rows and calendar). The confirming scan is a NEW
+    pass: fresh rows and index, a fresh read of the registered calendar (unreadable, or different from the caller's
+    `cal`, refuses with no row: the close identity `day` is the caller's), a fresh bundle check (OP-14), the pin
+    verified again and every tree hashed again. Nothing of the first pass reaches it.
+    A3 H4 (Clarification 1 C5.1): a QUALIFIED member unreadable in either pass is no problem and confirms nothing; the
+    confirmed problems are returned (the caller's INVALID keeps its precedence); otherwise an unreadable member refuses
+    with no row and no INVALID (QualifiedUnreadable)."""
+    import s1_trial
+    if ps is None or rows is not ps.rows or cal is not ps.cal:
+        ps = _pass_of(rows, cal)
+    ps.sim = c.sim()                                                  # G3.2: verified once for this pass
+    first = close_problems(out, rows, day, cal, ps=ps)
     if not first:
+        if ps.unreadable:
+            raise QualifiedUnreadable(f"close {day.get('date')}: {ps.unreadable[0]}")
         return []
     again = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox if mailbox is None else mailbox)
-    return [p for p in close_problems(out, again, day, cal) if p in first]
+    fresh = _calendar(gv)
+    if fresh is None or fresh != cal:
+        raise s1_trial.Refusal(f"close {day.get('date')}: the registered calendar is unreadable or differs from the "
+                               f"command's in the confirming pass: refused with no row (G3.1, fail closed)")
+    if c.bundle_sha256() != gv.trial.bundle:
+        raise s1_trial.Refusal("close evidence: the S1 bundle differs from the trial's AUDIT-ACK bundle in the "
+                               "confirming pass: refused with no row (ruling OP-14)")
+    day2 = next((d for d in fresh if d == day), day)
+    ps2 = _pass_of(again, fresh)
+    ps2.bundle_ok = True
+    ps2.sim = c.sim()                                                 # G3.2: a new pass verifies the pin again
+    confirmed = [p for p in close_problems(out, again, day2, fresh, ps=ps2) if p in first]
+    if not confirmed and (ps.unreadable or ps2.unreadable):          # C5.1: an I/O error never confirms
+        raise QualifiedUnreadable(f"close {day.get('date')}: {(ps.unreadable + ps2.unreadable)[0]}")
+    return confirmed
 
 
 def _file_subjects(out) -> set:
     got = set()
-    for p in sorted((Path(out) / "captures").glob("*/*")):
+    try:
+        found = sorted((Path(out) / "captures").glob("*/*"))
+    except OSError as e:                                              # G3.4: never "no files"
+        raise _listing_refusal("captures/", e) from None
+    for p in found:
         stem = p.name.split(".", 1)[0]
         if _SLOT_STEM.fullmatch(stem):
             got.add("slot/" + stem)
     return got
 
 
-def evidence_problems(out, rows, cal) -> list:
+def evidence_problems(out, rows, cal, *, ps=None) -> list:
     """Every slot subject with rows, plus every captures/<day>/<slot>* file whose slot has no row (F3 table); and every
     post-START seal file that is not the recomputation from its first QUALIFIED slot (OQ-14). Seal stage state (a seal
     file with no PREPARED, a CREATED seal missing or changed) is s1_stage.evaluate's (E2.4/E2.6 r3); this function adds
-    only the recomputation check of the bytes against the selected QUALIFIED evidence."""
+    only the recomputation check of the bytes against the selected QUALIFIED evidence.
+    A3 H4 (Erratum 2 r4 G3.1-G3.4): `ps` - the evidence pass this evaluation belongs to (evidence_check builds a NEW one
+    per pass). The pinned module is verified exactly once here (c.sim(): load_pinned, fail closed) and passed down
+    with the pass's calendar and its slot -> close map; the subject index replaces the per-slot row scans; each
+    QUALIFIED tree is hashed once and shared by slot_problems, _resolution_evidence and seal_bytes in this pass only.
+    Texts and order of the problems are unchanged (M4-A9). A listing error refuses (G3.4)."""
     out = Path(out)
+    if ps is not None:
+        ps.sim = c.sim()                                              # G3.2: one verified load per pass
     subjects = {r_.subject for r_ in rows if r_.kind in j.SLOT_KINDS} | _file_subjects(out)
     probs = []
     for sub in sorted(subjects):
-        probs += slot_problems(out, rows, sub, cal)
+        try:
+            probs += slot_problems(out, rows, sub, cal, ps=ps)
+        except QualifiedUnreadable as e:              # C5.1: in a pass, recorded (never a problem) and every other
+            if ps is None:                            # subject is still judged; without a pass it refuses here
+                raise
+            ps.unreadable.append(str(e))
     oday = _opening_date(out)
-    for seal in sorted((out / "seals").glob("*.json")):
+    try:
+        seals = sorted((out / "seals").glob("*.json"))
+    except OSError as e:                                              # G3.4: never "no seals"
+        raise _listing_refusal("seals/", e) from None
+    for seal in seals:
         day_iso = seal.stem
         if day_iso == oday:
             continue                                                              # the opening stage (Task 10)
         day = next((d for d in cal if d["date"] == day_iso), None)
-        q = first_qualified(rows, day, cal) if day is not None else None
+        q = first_qualified(rows, day, cal, ps=ps) if day is not None else None
         try:
-            want = seal_bytes(day, z.close_of(day_iso, cal), _resolution_evidence(out, q, day_iso)) if q else None
-            ok = want is not None and seal.read_bytes() == want
-        except (OSError, ValueError, KeyError, TypeError):
-            ok = False
+            want = (seal_bytes(day, _close_on(day_iso, cal, ps), _resolution_evidence(out, q, day_iso, ps=ps), ps=ps)
+                    if q else None)
+            ok = want is not None and _classify(out, seal, lambda p: Path(p).read_bytes()) == want
+        except (FileNotFoundError, ValueError, KeyError, TypeError):  # C5: a generic OSError is QualifiedUnreadable,
+            ok = False                                                # never "not the seal"
+        except (QualifiedUnreadable, OSError) as e:
+            u = e if isinstance(e, QualifiedUnreadable) else _unreadable(seal, e, out)
+            if ps is None:
+                raise u from None
+            ps.unreadable.append(str(u))
+            continue
         if not ok:
             probs.append(f"seals/{seal.name} is not the seal of its first QUALIFIED slot (OQ-14)")
     return probs
@@ -778,10 +1042,13 @@ def _stray_files(out: Path) -> list:
     the `opening` stage covers it and s1_stage.evaluate, which runs first, decides it - kept here harmlessly). Every
     other seals/<date>.json is a seal stage's, judged by s1_stage.evaluate (E2.4/E2.6 r3)."""
     out = Path(out)
-    found = list((out / "captures").glob("*/*"))
-    oday = _opening_date(out)
-    if oday and (out / "seals" / f"{oday}.json").exists():
-        found.append(out / "seals" / f"{oday}.json")
+    try:
+        found = list((out / "captures").glob("*/*"))
+        oday = _opening_date(out)
+        if oday and (out / "seals" / f"{oday}.json").exists():
+            found.append(out / "seals" / f"{oday}.json")
+    except OSError as e:                                              # A3 H4 (G3.4): never "no files"
+        raise _listing_refusal("captures/ or the opening seal", e) from None
     return sorted(_rel(out, p) for p in found)
 
 
@@ -806,26 +1073,54 @@ def _judge_without_calendar(gv, out) -> bool:
     return False                                                    # (unreachable: evidence_violation raises)
 
 
-def evidence_check(gv) -> None:
+def evidence_check(gv) -> list:
     """Gate hook (F3 table), after the F6.2 plan check: a violation commits TRIAL-INVALID (registration-artifact) and
     refuses with no work. The rows are read here (not the gate's snapshot), and a problem is confirmed on rows re-read
     after it was first observed: a legitimate file is always written after its row, so a file seen before that re-read
-    with no row in it is a violation, never a race with a starting worker (F5.1 lesson, Task 8 I1)."""
+    with no row in it is a violation, never a race with a starting worker (F5.1 lesson, Task 8 I1).
+    A3 H4 (Erratum 2 r4 G3.1, O9 - a prospective semantic strengthening): each evaluation is its own evidence pass
+    (new_pass: the calendar, the rows and their index, the bundle and the pin, the trees - all fresh), and the
+    confirming re-read is a NEW pass, never the first pass's calendar, rows, index, module or hashes. A listing error
+    refuses (G3.4). A calendar that is unreadable in the confirming pass cannot confirm: refused with no row.
+    A3 H4 fix round 1 (review I-1; Clarification 1 C5.1 "an unrelated mandatory INVALID keeps its precedence: an I/O
+    refusal never masks it"): the QUALIFIED member reads found unreadable in this gate's pass(es) are RETURNED, never
+    raised here: a list the caller (s1_trial.gate) holds as a local value - never stored on the gate, a module, a file
+    or a later pass - and turns into the C5 refusal (refuse_unreadable) only after every later mandatory INVALID
+    check of the gate (E5.5 opening_manifest_check) has run. [] when nothing was unreadable."""
+    import s1_trial
     out = Path(gv.out)
-    has_files = any((out / "captures").glob("*/*")) or any((out / "seals").glob("*.json"))
+    try:
+        has_files = any((out / "captures").glob("*/*")) or any((out / "seals").glob("*.json"))
+    except OSError as e:                                              # G3.4: never "no files"
+        raise _listing_refusal("captures/ or seals/", e) from None
     if not has_files and not any(r_.kind in j.SLOT_KINDS for r_ in gv.rows):
-        return
-    cal = _calendar(gv)
-    if cal is None:
+        return []
+    ps1 = new_pass(gv)
+    if ps1.cal is None:
         if not any(r_.kind in j.SLOT_KINDS for r_ in gv.rows) and not _judge_without_calendar(gv, out):
-            return                                                    # A3 Task 9 (N1): nothing left to judge
-        import s1_trial                                               # fix round 1 (review M3): fail closed - an
-        s1_trial._legacy_detectors(out, "F3 evidence table", None, gv.mailbox)       # unreadable registered calendar
-        raise s1_trial.Refusal("slot rows exist but no registered calendar is readable (the F3 evidence table "  # is
-                               "cannot run): refused with no row (fail closed)")      # first the legacy detector's
-    first = evidence_problems(out, _read_rows(gv), cal)
+            return []                                                 # A3 Task 9 (N1): nothing left to judge
+        s1_trial._legacy_detectors(out, "F3 evidence table", None, gv.mailbox)       # fix round 1 (review M3): fail
+        raise s1_trial.Refusal("slot rows exist but no registered calendar is readable (the F3 evidence table "  # closed
+                               "cannot run): refused with no row (fail closed)")
+    first = evidence_problems(out, ps1.rows, ps1.cal, ps=ps1)
     if not first:
-        return
-    confirmed = [p for p in evidence_problems(out, _read_rows(gv), cal) if p in first]
-    if confirmed:
-        evidence_violation(gv, confirmed, "gate", gv.mailbox)
+        return list(ps1.unreadable)                                   # C5.1: nothing to confirm (the caller refuses)
+    ps2 = new_pass(gv)                                                # G3.1/O9: the confirming pass is a NEW pass
+    if ps2.cal is None:
+        raise s1_trial.Refusal("F3 evidence table: the registered calendar is unreadable in the confirming pass: the "
+                               "first pass's problems cannot be confirmed - refused with no row (fail closed)")
+    confirmed = [p for p in evidence_problems(out, ps2.rows, ps2.cal, ps=ps2) if p in first]
+    if confirmed:                                                     # an unrelated confirmed violation keeps its
+        evidence_violation(gv, confirmed, "gate", gv.mailbox)         # precedence over an I/O refusal (C5.1)
+    return ps1.unreadable + ps2.unreadable                            # C5.1: an I/O error never confirms
+
+
+def refuse_unreadable(seen: list) -> None:
+    """A3 H4 (Clarification 1 C5.1, O-C5): QUALIFIED member(s) unreadable in this gate's evidence pass(es) - a refusal
+    with no row, no requested work and no INVALID (a later healthy gate re-evaluates normally). Raised by the gate
+    after its last mandatory INVALID check (fix round 1, review I-1); a no-op for an empty list."""
+    if seen:
+        import s1_trial
+        raise s1_trial.Refusal(f"F3 evidence table: {len(seen)} QUALIFIED member read(s) unreadable ({seen[0]}): "
+                               f"refused with no row and no work; unreadability is never a violation "
+                               f"(Clarification 1 C5.1)")

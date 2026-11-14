@@ -1,0 +1,60 @@
+# A3 H4 fix round 1 - RED (recorded 2026-11-14T13:13:02Z) on the UNFIXED H4 tree (base 9af5406 + H4 working tree, HEAD 8dfc1ab)
+# product sha256 at RED: a12bd5256627fce7e9f237b8655db02fd684d4d87e9dbc4c9d5c955a05bd1ea8 *research/s1/s1_slot.py c871c4dd8d30bd1965478c2a9050aa0152935c788331fdb25244f0fcd1883519 *research/s1/s1_trial.py 8ff18d9179bb340c736c152df44586ec0fb8dbb939224190cb9250c97fafd154 *research/s1/s1_checkpoint.py dd83b7dfc2e78a32e48c83d84c8225ad4d9cd719ce0475bb7eeba953f01f0ace *research/s1/s1_evidence/a3/m4_workload/verdict_rule.py 
+# Items: I-1 (row 496[unrelated-mandatory-invalid-precedence-e55], test_fix1_gate_unreadable_refusal_after_e55, test_fix1_stop_gap_unreadable_never_masks_e55[e55-mismatch]);
+#        M-1 (test_fix1_qualified_probe_error_never_masks[confirmed-violation]); M-6 (test_fix1_opening_stage_confirms_on_reread[missing-once, changed-once]);
+#        M-5 (test_b_conditional_requires_resolved_workloads_and_injected_cases).
+# Controls (expected to pass on the unfixed tree): e55-healthy, no-other-damage, missing-twice, M-2 [permission]/[readable].
+# M-2 is a mutant-killer: the real code is correct (review M-2), so its RED is mutant R3 (section 3).
+
+## 1. m4_pass new tests (behavioural)
+                                      "failed-listing-or-lookup-as-filenotfound-both-passes", "changed-confirmed",
+        elif case == "failed-listing-or-lookup-as-filenotfound-both-passes":
+                    raise FileNotFoundError(2, "listing failed (simulated)")
+E           AssertionError: []
+research\s1\s1_tests\test_s1_a3_m4_pass.py:374: AssertionError
+E           Failed: evidence_check raised the C5 refusal itself (F3 evidence table: 2 QUALIFIED member read(s) unreadable (QUALIFIED member C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21452/test_fix1_gate_unreadable_refu0/s1_out/captures/2026-10-26/20261026T204500Z/backup.sqlite3 unreadable (PermissionError): refused with no row and no requested work; unreadability is never a violation (Clarification 1 C5.1)): refused with no row and no work; unreadability is never a violation (Clarification 1 C5.1)) instead of returning it
+research\s1\s1_tests\test_s1_a3_m4_pass.py:507: Failed
+E           AssertionError: ([], QualifiedUnreadable('QUALIFIED member x unreadable (PermissionError) (simulated)'))
+research\s1\s1_tests\test_s1_a3_m4_pass.py:536: AssertionError
+E           AssertionError: ([], Refusal("F3 evidence table: slot/20261026T204500Z's files could not be listed or probed (PermissionError: [Errno 13] probe denied (simulated)): refused with no row (a listing error never means empty or absent, G3.4)"))
+research\s1\s1_tests\test_s1_a3_m4_pass.py:563: AssertionError
+E           AssertionError: QualifiedEvidence('slot/20261023T204700Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+research\s1\s1_tests\test_s1_a3_m4_pass.py:624: AssertionError
+E           AssertionError: QualifiedEvidence('slot/20261023T204700Z: QUALIFIED tree differs from the committed detail (F3)')
+research\s1\s1_tests\test_s1_a3_m4_pass.py:624: AssertionError
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_stop_gap_unreadable_never_masks_e55[e55-healthy]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_qualified_probe_error_never_masks[no-other-damage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[readable]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[missing-twice]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[unrelated-mandatory-invalid-precedence-e55]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_gate_unreadable_refusal_after_e55
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_stop_gap_unreadable_never_masks_e55[e55-mismatch]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_qualified_probe_error_never_masks[confirmed-violation]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[missing-once]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[changed-once]
+6 failed, 5 passed, 34 deselected in 28.93s
+
+## 2. verdict-rule test (M-5)
+E       AssertionError: {'B': 15.0, 'label': 'B-CONDITIONAL READY', 'max_T': 45.0, 'max_T_plus_B': 60.0, ...}
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:76: AssertionError
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_l20_t45_fails_although_t_alone_passes
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_equality_passes
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_just_over_the_cap_fails
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unknown_lateness_is_not_ready
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_fast_refusal_is_not_a_pass
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_negative_l_is_inconsistent_never_clamped
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_max_over_all_runs_and_unresolved_workload
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_labels
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_requires_resolved_workloads_and_injected_cases
+1 failed, 8 passed in 0.63s
+
+## 3. M-2: mutant R3 in confirmed_close_problems ('if not confirmed and (ps.unreadable or ps2.unreadable):' -> 'if False:'),
+##    run from a full scratch copy of research/s1 (scratchpad h4fix/mutcopy; conftest puts its own research/s1 first on sys.path)
+##    mutant line: 910:    if False:  # MUTANT R3                                           # C5.1: an I/O error never confirms
+E           Failed: DID NOT RAISE <class 's1_slot.QualifiedUnreadable'>
+research\s1\s1_tests\test_s1_a3_m4_pass.py:584: Failed
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[readable]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[permission]
+1 failed, 1 passed, 43 deselected in 7.33s
+## R3 KILLED by test_fix1_confirming_pass_unreadable_refuses[permission] (pytest.raises DID NOT RAISE at the agreed line); the [readable] control passes under the mutant.

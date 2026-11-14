@@ -905,11 +905,12 @@ def _score_attempt(sw) -> dict:
     is no computation error (A3 Task 12 ruling, carried to Task 13): an OSError propagates to s1_stage.run (refused
     with no row), and a journal or mailbox read failure refuses with no row too; neither becomes score-aborted."""
     import s1_journal as j
+    import s1_slot
     import s1_stage
     try:
         return json.loads(_serialise(_score(sw.gv.out, sw.mailbox)))     # ruling M-6: the serialised report
-    except OSError:
-        raise
+    except (OSError, s1_slot.QualifiedUnreadable):           # A3 H4 (Clarification 1 C5.1): an unreadable QUALIFIED
+        raise                                                # member is a local fault - a refusal, never score-aborted
     except (j.JournalError, s1_trial.MailboxOutage) as e:
         raise SystemExit(f"score: journal or mailbox unreadable during the computation ({type(e).__name__}): "
                          f"refused with no PREPARED; the F4 stage table decides on re-entry") from None

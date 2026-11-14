@@ -1,0 +1,6 @@
+# A3 H4: the exhaustive after-audit subset (S1_MATRIX_FULL=1, -k after-audit), HEAD 9af540609d13c2951f7d0037b2c988dc9757660e + the H4 tree
+# cmd: S1_MATRIX_FULL=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="research/s1;research/s1/s1_tests" testenv/python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_matrix.py -q -k after-audit
+........................................................................ [ 98%]
+..........................................                               [100%]
+3066 passed, 27595 deselected in 234.34s (0:03:54)
+exit=0

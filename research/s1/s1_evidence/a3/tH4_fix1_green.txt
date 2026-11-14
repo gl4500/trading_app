@@ -1,0 +1,141 @@
+# A3 H4 fix round 1 - GREEN (recorded 2026-11-14T13:25:25Z) on the fixed tree (base 9af5406 + H4 + fix round 1, HEAD 8dfc1ab)
+# product sha256: ff2c48effb85847f3560a6d2ba6c002626dbfc3c2afa9ca505e1b1efc3a12cfb *research/s1/s1_slot.py a1f8277b1b4cda12ec33cd3a751e8a634985832a51b5615d3cf9f30682aaea1c *research/s1/s1_trial.py edf336835975d0f1c250f06600adfd99929d56d118d8dce1ef45dd024c15aa93 *research/s1/s1_checkpoint.py c7dd5a2000263e3bc5f483dc566904adca4c7f5660e4ec1d20b3e72882930dea *research/s1/s1_evidence/a3/m4_workload/verdict_rule.py 
+# Targeted: test_s1_a3_m4_pass.py (incl. the 11 fix-round-1 instances), test_s1_a3_m4_workload_verdict.py, test_s1_a3_finalizer.py
+
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_same_size_same_mtime_change_detected_next_gate
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_tree_file_missing_or_added[missing]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_tree_file_missing_or_added[added]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_confirming_pass_rereads_journal[new-row]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_confirming_pass_rereads_journal[lock-reread-head-change]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[scandir]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[read]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_pin_fails_closed[between-gates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_pin_fails_closed[between-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[between-gates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[between-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[unknown-slot]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_pass_counters
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_non_selected_qualified_damage_invalid
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_problem_lists_exact
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[transient-permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[persistent-permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[first-bad-confirm-generic-io]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[direct-missing-member-both-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[confirmed-missing-parent-path]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[changed-confirmed]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[malformed-confirmed]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[unrelated-mandatory-invalid-precedence]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[unrelated-mandatory-invalid-precedence-e55]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[later-healthy-reevaluates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[slot-problems]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[seal-recompute]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[run-seal-stage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[sampled-seals]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[opening-stage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[decide-stop]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_c5_stop_problems_reraises_unreadable
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_c5_score_attempt_reraises_unreadable
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_gate_unreadable_refusal_after_e55
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_stop_gap_unreadable_never_masks_e55[e55-mismatch]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_stop_gap_unreadable_never_masks_e55[e55-healthy]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_qualified_probe_error_never_masks[confirmed-violation]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_qualified_probe_error_never_masks[no-other-damage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[readable]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[missing-once]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[changed-once]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[missing-twice]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_l20_t45_fails_although_t_alone_passes
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_equality_passes
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_just_over_the_cap_fails
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unknown_lateness_is_not_ready
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_fast_refusal_is_not_a_pass
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_negative_l_is_inconsistent_never_clamped
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_max_over_all_runs_and_unresolved_workload
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_labels
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_requires_resolved_workloads_and_injected_cases
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_premature_finalizer_before_e_or_d_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_against_an_in_flight_slot_refuses_then_timeout_at_d
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_carries_the_intent_op_and_the_finalizer_actor
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[late-r]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[early-r]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_decision_never_touches_the_work_lock
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_cleanup_waits_for_the_work_lock
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_is_an_f4_stage
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_invalid_between_active_read_and_prepared
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_stage_and_stop_orders[publish-first]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_stage_and_stop_orders[stop-first]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_deleted_created_seal_is_invalid_and_never_recreated[after-stop]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_deleted_created_seal_is_invalid_and_never_recreated[while-active]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_file_without_prepared_is_invalid
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seals_enforced_is_on
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_late_r_refuses_with_no_row_then_timeout
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_stale_finalizer_moves_none_of_the_winners_files_and_the_recheck_passes
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-clean]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-claim]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-capture]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-own-partial]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-foreign-op]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-capture-dir-not-named-by-claim]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-ok]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-missing]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-changed]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-late-extra]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-changed]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-ok]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-report-changed]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-partial-capture]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[timeout-leftovers]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[timeout-seal-cites]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[missed-clean]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[missed-stray]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_from_the_first_qualified_slot_in_schedule_order_after_earlier_slots_terminal
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_late_files_are_never_selectable_for_a_seal
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_unexpected_error_appends_nothing
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_evidence_check_runs_after_the_plan_check
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_damaged_qualified_tree_behind_an_in_flight_slot_is_invalid_at_the_gate
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[stop attestation]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[final plan]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[final snapshot]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_access_denied_on_the_slot_lock_refuses_the_cleanup_with_no_invalid
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_access_denied_on_the_seal_stage_lock_is_a_refusal
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_seal_stage_recheck_is_not_a_violation[legitimate-start]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_seal_stage_recheck_is_not_a_violation[stray-claim-control]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_opening_recheck_is_not_a_violation[legitimate-start]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_opening_recheck_is_not_a_violation[stray-claim-control]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_journal_read_error_in_the_gate_hook_is_a_refusal
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_rows_without_a_calendar_fail_closed
+114 passed in 234.57s (0:03:54)
+
+## Mutants of the fix (scratch copy h4fix/mutcopy2 of the FIXED research/s1, byte-equal to the worktree at copy time; script h4fix/run_mutants.py)
+R3 (review M-2): confirming-pass unreadable refusal dropped: KILLED - 1 failed, 1 passed, 43 deselected in 9.28s
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[permission]
+f1 (I-1): the C5 refusal raised BEFORE E5.5: KILLED - 2 failed, 2 passed, 41 deselected in 16.50s
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[unrelated-mandatory-invalid-precedence-e55]
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_gate_unreadable_refusal_after_e55
+f2 (I-1): the held stop-gap QualifiedUnreadable not held: KILLED - 1 failed, 1 passed, 43 deselected in 9.23s
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_stop_gap_unreadable_never_masks_e55[e55-mismatch]
+f3 (I-1): the returned unreadable list ignored by the gate: KILLED - 2 failed, 43 deselected in 9.13s
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[later-healthy-reevaluates]
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_gate_unreadable_refusal_after_e55
+f4 (M-1): the existence probe run for every slot: KILLED - 1 failed, 1 passed, 43 deselected in 9.30s
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_qualified_probe_error_never_masks[confirmed-violation]
+f5 (M-6): no confirm-on-re-read in _opening_stage: KILLED - 2 failed, 1 passed, 42 deselected in 2.24s
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[missing-once]
+    FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[changed-once]
+f6 (M-5): b_conditional ignores workloads_resolved / injected_resolved: KILLED - 1 failed, 1 passed, 7 deselected in 0.64s
+    FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_requires_resolved_workloads_and_injected_cases
+## 7 of 7 KILLED by assertions.
+
+## Note: after the RED, one literal in test_fix1_gate_unreadable_refusal_after_e55 was corrected: the gate's single member is read twice per pass (slot_problems and the OQ-14 recomputation), so the returned list holds 2 observations, not 1 (assertion now: non-empty, every entry 'unreadable (PermissionError)'). The RED for that test was the uncaught C5 refusal at the pytest.fail line, unaffected.
