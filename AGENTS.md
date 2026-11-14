@@ -36,6 +36,14 @@ requirements and testing standard). Multi-agent work also follows
 2. Never test against the live `trading.db` or the broker; use temp DBs and mocks (CLAUDE.md, Test Conventions).
 3. Clean up only processes you can name as your own, by command line (CLAUDE.md, Shell cleanup).
 
+**Live-backend guard (enforced, not just a checklist)**
+`tools/agent_guard/live_guard.py` runs before every shell command for both agents (`.claude/settings.json`,
+`.codex/hooks.json`). While port 8000 is listening it blocks test runs and process kills. Test runs are let
+through only during an operator test window: a gitignored `.agent-test-window` file at the repo root holding an
+ISO-8601 expiry with timezone (e.g. `2026-11-14T22:00:00-05:00`). Kills always need the operator. It is a
+guardrail against mistakes, not a security boundary. Codex skips new project hooks until they are trusted
+(`/hooks`), and loads them only in a trusted project. Tests: `tools/agent_guard/test_live_guard.py`.
+
 **Author: before requesting review**
 1. Fresh branch off `main`; commit with `git commit -m "<msg>" -- <paths>`; check `git log -1 --stat`.
 2. Evidence per PEER_REVIEW.md: requirement IDs, old-fail/new-pass, commands and outputs.

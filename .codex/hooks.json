@@ -1,0 +1,18 @@
+{
+  "description": "Live-backend guard: blocks tests and process kills while trading_app's backend (port 8000) is live. See tools/agent_guard/live_guard.py.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Users/gl450/trading_app/runtime/python/python.exe\" \"C:/Users/gl450/trading_app/tools/agent_guard/live_guard.py\" --port 8000",
+            "timeout": 30,
+            "statusMessage": "Checking the live backend"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -57,3 +57,6 @@ scripts/debug_*_steps.csv
 
 # Obsidian vault config (per-user UI/plugin state, not project config)
 .obsidian/
+
+# Operator-written test window for tools/agent_guard/live_guard.py (never committed)
+.agent-test-window
