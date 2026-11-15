@@ -71,7 +71,7 @@ and cross-project work the operator has explicitly authorized for that task.
 
 Roles are assigned **per task**, not per agent: either Claude Code or Codex can be the author, and the
 other agent is then the reviewer. The role definitions and the per-task assignment record live in
-"Roles" below. In short (policy as of 2026-11-14):
+"Roles" above. In short (policy as of 2026-11-14):
 
 | Role | Does |
 |---|---|
