@@ -1,5 +1,6 @@
 """Tests for data/earnings_calendar.py — yfinance-cached earnings dates."""
 from __future__ import annotations
+import tests._isolation  # noqa: F401 - must precede any backend import
 
 import json
 import os

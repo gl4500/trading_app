@@ -3,6 +3,7 @@ Unit tests for agents/summary_agent.py
 Covers: _today_trades(), _agent_signal_summary(), _build_consensus_map(),
         DailySummaryService.generate() with mocked Claude
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

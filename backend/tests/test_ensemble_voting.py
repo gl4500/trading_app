@@ -4,6 +4,7 @@ Focuses on the pure logic methods: _vote(), _detect_regime(),
 _compute_adaptive_weights(). No external API calls needed.
 Requires: pandas (for regime detection bars)
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

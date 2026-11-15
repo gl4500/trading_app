@@ -9,6 +9,7 @@ Covers:
   * Stable SECTOR_TO_ID mapping (Unknown=0, alphabetical thereafter)
   * force_refresh=True bypasses cache
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import json
 import os
 import sys

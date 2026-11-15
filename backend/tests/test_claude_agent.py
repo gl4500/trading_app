@@ -2,6 +2,7 @@
 Unit tests for agents/claude_agent.py
 Covers: analyze() fallback, backoff counter, _api_lock, _build_market_prompt
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

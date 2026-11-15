@@ -4,6 +4,7 @@ Covers: format_bars_for_prompt, build_portfolio_context,
         parse_ai_decisions, fill_missing_symbols, get_fallback_signals.
 Requires: pandas
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

@@ -4,6 +4,7 @@ Covers: score_headlines(), pipeline lazy loading, graceful degrade when
 transformers is missing or the model fails to load. Real FinBERT weights are
 NEVER loaded — tests mock the pipeline.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import os
 import sys
 import unittest

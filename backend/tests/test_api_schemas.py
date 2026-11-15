@@ -12,6 +12,7 @@ The shim must let existing dict-style callsites work unchanged:
 
 These tests are pure shim tests — they don't reach into Portfolio or BaseAgent.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import json
 import unittest
 from dataclasses import is_dataclass

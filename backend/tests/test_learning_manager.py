@@ -4,6 +4,7 @@ Covers: record_trade(), get_learning_summary().
 Each test class redirects LEARNING_FILE to a temporary path so the real
 learning.json is never touched.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import json

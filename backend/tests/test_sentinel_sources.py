@@ -5,6 +5,7 @@ Network-fetching async functions (fetch_rss_feeds, fetch_edgar_8k, etc.)
 are not called here to avoid live HTTP traffic in CI; they are smoke-tested
 with patched httpx clients.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

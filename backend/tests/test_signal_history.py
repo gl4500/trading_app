@@ -1,4 +1,5 @@
 """Tests for data/signal_history.py — return feature augmentation."""
+import tests._isolation  # noqa: F401 - must precede any backend import
 import os
 import unittest
 

@@ -3,6 +3,7 @@ Unit tests for data/stooq_client.py
 Covers: get_bars() CSV parsing, column normalisation, caching, error handling,
         get_bars_multi() concurrent fetch, graceful degradation.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

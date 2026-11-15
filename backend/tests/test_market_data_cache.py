@@ -2,6 +2,7 @@
 Unit tests for data/market_data.py — MarketDataCache and MarketDataService.
 MarketDataService tests verify Alpaca-primary data flow (Massive is last resort).
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

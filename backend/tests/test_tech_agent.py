@@ -3,6 +3,7 @@ Unit tests for agents/tech_agent.py
 Covers: manual_rsi(), manual_macd(), manual_bollinger(),
         _calculate_indicators(), _generate_signal(), analyze()
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import math

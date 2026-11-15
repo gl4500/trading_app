@@ -2,6 +2,7 @@
 Unit tests for agents/scanner_portfolio_agent.py
 Covers: BUY recs >= 60% confidence, SELL recs, underperformer exit, new-scan gate
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

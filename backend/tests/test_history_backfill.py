@@ -4,6 +4,7 @@ Unit tests for data/history_backfill.py
 Covers: row generation, RV computation, return labelling,
         idempotency, Stooq fallback, and API endpoint.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import asyncio
 import os
 import sys

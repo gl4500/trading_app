@@ -9,6 +9,7 @@ Covers:
   - analyze() does not raise when market_context is empty
   - Sentinel catalysts and macro context injected into Ollama prompt
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import asyncio
 import os
 import sys

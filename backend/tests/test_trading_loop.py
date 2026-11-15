@@ -9,6 +9,7 @@ collected signals to agents that declare `set_peer_signals`, for use next cycle.
 They are deliberately NOT put into market_context: a dict-valued key there is
 treated as a symbol by every agent's `isinstance(ctx, dict)` iteration.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import os
 import sys
 import unittest

@@ -4,6 +4,7 @@ Covers: compute(), manual indicator implementations,
         format_for_prompt(), edge cases.
 Requires: pandas, numpy
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import math

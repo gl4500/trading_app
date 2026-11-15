@@ -4,6 +4,7 @@ Covers: inter-market rules, regime classification, text formatting,
         strategic (slow) context, regime duration, slow insights, breadth.
 All tests are purely logic-based — no yfinance calls, no network I/O.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

@@ -3,6 +3,7 @@ Unit tests for trading/risk_manager.py
 Covers: position size limits, concentration limits, daily loss halt,
         sell validation, max shares calculation.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

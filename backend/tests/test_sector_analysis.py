@@ -3,6 +3,7 @@ Unit tests for data/sector_analysis.py
 Covers: get_sector_performance(), get_stock_vs_sector(),
         format_sector_summary(), format_stock_sector_context()
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

@@ -4,6 +4,7 @@ Covers: availability gate, caching, response normalisation, S3 helpers,
         macro context formatting, sentinel integration.
 All external calls (httpx, boto3) are mocked — no real API calls.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

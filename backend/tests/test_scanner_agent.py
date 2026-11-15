@@ -3,6 +3,7 @@ Unit tests for agents/scanner_agent.py
 Covers: _coerce_rec(), _merge_recommendations(), _split_candidates(),
         get_cached_scan(), _pre_screen() (mocked), _build_user_message()
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

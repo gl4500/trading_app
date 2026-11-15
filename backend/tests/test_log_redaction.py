@@ -5,6 +5,7 @@ httpx logs every request URL at INFO ("HTTP Request: GET <url> ..."). Massive (a
 authenticate with query parameters, so their keys were written to live.log and backend_stderr.log in plain
 text. install_logging() must redact secret query values for every record that reaches any handler.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import io
 import logging
 import os

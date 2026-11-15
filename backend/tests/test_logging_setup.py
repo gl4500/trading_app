@@ -6,6 +6,7 @@ The existing file handlers (error.log WARNING+, errors_only.log ERROR+)
 are exercised indirectly via test_main_endpoints; this file just guards
 the new INFO-level handler so a future refactor doesn't silently regress it.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import logging
 import os
 import sys

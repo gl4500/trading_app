@@ -3,6 +3,7 @@ Unit tests for main.py FastAPI endpoints.
 Uses TestClient to test REST API without starting the real trading loop.
 All agents, DB, market data, and scanner are mocked.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

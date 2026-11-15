@@ -2,6 +2,7 @@
 Unit tests for agents/mean_reversion_agent.py
 Covers: _calculate_zscore(), _generate_signal(), analyze()
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

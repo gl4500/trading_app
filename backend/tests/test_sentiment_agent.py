@@ -2,6 +2,7 @@
 Unit tests for agents/sentiment_agent.py
 Covers: _describe_price_action(), _generate_signal(), analyze() with mocked OpenAI
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

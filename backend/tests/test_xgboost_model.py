@@ -1,4 +1,5 @@
 """Tests for data/xgboost_model.py — XGBoost backend mirror of SignalCNN."""
+import tests._isolation  # noqa: F401 - must precede any backend import
 import math
 import unittest
 

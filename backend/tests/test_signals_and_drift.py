@@ -3,6 +3,7 @@ Unit tests for:
   - agents/base_agent.py :: Signal.is_actionable()
   - data/drift_detector.py :: win_rate, avg_pnl_pct, drift detection logic
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

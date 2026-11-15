@@ -4,6 +4,7 @@ Covers: score_headline() — the pure scoring function that requires no I/O.
 scan_policy_news() is async and hits the news service; it is covered with
 a lightweight smoke test that stubs news_service.get_news_multi.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

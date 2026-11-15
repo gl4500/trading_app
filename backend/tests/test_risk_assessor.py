@@ -2,6 +2,7 @@
 Unit tests for data/risk_assessor.py
 Covers: churn detection, regime accuracy tracking, assessment context.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

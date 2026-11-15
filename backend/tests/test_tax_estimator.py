@@ -3,6 +3,7 @@ Unit tests for data/tax_estimator.py and AlpacaClient.get_filled_orders().
 No live Alpaca API calls — all SDK calls mocked.
 data/tax_estimator.py tests are added in subsequent tasks.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

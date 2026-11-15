@@ -3,6 +3,7 @@ Unit tests for database.py (async SQLite layer).
 Uses a temporary file-based DB for each test class.
 Requires: aiosqlite
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

@@ -3,6 +3,7 @@ Unit tests for data/cnn_model.py
 Covers: build_training_windows, SignalCNN.predict, fit, get_learned_weights,
         save/load, training_summary, device selection
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import os
 import sys
 import tempfile
