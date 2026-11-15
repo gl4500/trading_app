@@ -1,0 +1,10 @@
+# A3 H5a-FIX2 hashes (sha256) after FIX ROUND 1, base HEAD 655fc89a989cdd3f4366d911b24e5234d1d0f96d + the H5a-FIX2 working tree, 2026-11-15T07:56:34Z
+# An explicit file list (paths relative to research/s1); this file never lists itself.
+28b572ae1ebc57b3cd3cd6bc101230060955ef5492e7703c56fca47a7ee1812e *s1_slot.py
+1d1cd8f1155b0dec994df6b820e01b57a506b7c9b18726fed65843c5b541350f *s1_tests/test_s1_a3_early_refusal_tail.py
+6264087543f8bab0bf79b18294f63e41371a9cf84d3a82bb157260559adf4df1 *s1_tests/test_s1_a3_early_refusal_lock.py
+2f21c5aca682c94b7e6d7bbab3a0bd62dae8bc309e8c13e30137d61cf1026f3f *s1_evidence/a3/h5afix2_red.txt
+ff080028e30132e2c52a6fdc581c92c036fc1f7a4950f85c558c1e81b8974dc3 *s1_evidence/a3/h5afix2_green.txt
+a53c45a36e53549583995ef2f2b7d7327006964187cf31bc31d77c712311c772 *s1_evidence/a3/h5afix2_mutants.txt
+87250d0f293e393b4377c77dad60206376738e0dfe9ca8492e5725fcde35e0be *s1_evidence/a3/h5afix2_full.txt
+62affff503dd5098eec8de27ebb2e6e7c7edf81614bae130d01dba8b412c99ec *s1_evidence/a3/h5afix2_old_new.md

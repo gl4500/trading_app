@@ -1,0 +1,327 @@
+# A3 H5a-FIX2 RED (with the Codex addendum): the FINAL test file test_s1_a3_early_refusal_tail.py (15 nodes) run against the BASE product - a full scratch copy of the worktree's research/s1 with s1_slot.py replaced by `git show HEAD:research/s1/s1_slot.py` (HEAD 655fc89a989cdd3f4366d911b24e5234d1d0f96d; sha256 16d33a03c4f877405d77ba9c452b6a16e45be4bdb2c5915492f58d6caf4bb6b0 verified), run 2026-11-15
+# 10 failed, every failure an AssertionError (B3; no TypeError/NameError/AttributeError/ImportError). 5 pass on the base as controls: tail_completion[absent-file|empty-file|healthy-file|lone-lf|bare-lf].
+# (An earlier RED of the first 10 nodes on the worktree before the product edit, 5 failed / 5 passed, is superseded by this run of the final file; same 5 controls.)
+F...FF.F.FFFFFF                                                          [100%]
+================================== FAILURES ===================================
+_____________ test_fault_then_recovery_keeps_every_claimed_record _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/bt/red2/test_fault_then_recovery_keeps0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002212ED816A0>
+
+    def test_fault_then_recovery_keeps_every_claimed_record(tmp_path, monkeypatch):
+        """1: recorded. 2: a 7-byte partial write AND a failed rollback ftruncate -> its failure class (its own gap,
+        disclosed), a torn fragment left on disk. 3: healthy -> None, and its record IS one valid line; record 1 still
+        parses; the fragment is the only unparseable line (both readers); record 1's bytes are untouched."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        assert sl.record_early_refusal(out, _rec(1)) is None
+        first = path.read_bytes()
+        real_open = open
+    
+        def bad_truncate(fd, n):
+            raise OSError(errno.EIO, "injected rollback failure")
+        monkeypatch.setattr(sl, "open", lambda *a, **kw: _Torn(real_open(*a, **kw)), raising=False)
+        monkeypatch.setattr(os, "ftruncate", bad_truncate)
+        assert sl.record_early_refusal(out, _rec(2)) == "OSError"
+        monkeypatch.undo()
+        torn = path.read_bytes()
+        assert torn.startswith(first) and len(torn) == len(first) + 7           # the inherited incomplete tail
+        assert sl.record_early_refusal(out, _rec(3)) is None
+        data = path.read_bytes()
+        assert data.startswith(torn)                                           # nothing deleted or rewritten
+        for reader in (_strict, _lf):
+>           assert reader(data) == ([_rec(1), _rec(3)], 1), reader.__name__
+E           AssertionError: _strict
+E           assert ([{'reason': ...204500Z'}], 1) == ([{'reason': ...204500Z'}], 1)
+E             
+E             At index 0 diff: [{'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'}] != [{'subject': 'slot/20261026T204500Z', 'scheduled': '2026-10-26T20:45:00+00:00', 'sample': '2026-10-26T20:44:58.999998+00:00', 'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)'}, {'subject': 'slot/20261026T204500Z', 'scheduled': '2026-10-26T20:45:00+00:00', '...
+E             
+E             ...Full output truncated (2 lines hidden), use '-vv' to show
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:108: AssertionError
+_____________________ test_tail_completion[no-terminator] _____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/bt/red2/test_tail_completion_no_termin0')
+case = 'no-terminator'
+
+    @pytest.mark.parametrize("case", list(TAILS))
+    def test_tail_completion(tmp_path, case):
+        """Whatever the inherited tail, the call returns None and the file is EXACTLY the existing bytes (never deleted or
+        rewritten) + the minimal completion + this record's line; this record is one intact line for both readers, every
+        earlier valid record still parses, and an incomplete tail is at most one unparseable line. A healthy (or empty, or
+        absent) file gets nothing but the line, byte for byte."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        existing, completion = TAILS[case]
+        if existing is not None:
+            path.write_bytes(existing)
+        assert sl.record_early_refusal(out, _rec(11)) is None
+        data = path.read_bytes()
+>       assert data == (existing or b"") + completion + _line(_rec(11)), data
+E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+E         '
+E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+E         
+E         At index 256 diff: b'{' != b'\r'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:139: AssertionError
+________________________ test_tail_completion[lone-cr] ________________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/bt/red2/test_tail_completion_lone_cr_0')
+case = 'lone-cr'
+
+    @pytest.mark.parametrize("case", list(TAILS))
+    def test_tail_completion(tmp_path, case):
+        """Whatever the inherited tail, the call returns None and the file is EXACTLY the existing bytes (never deleted or
+        rewritten) + the minimal completion + this record's line; this record is one intact line for both readers, every
+        earlier valid record still parses, and an incomplete tail is at most one unparseable line. A healthy (or empty, or
+        absent) file gets nothing but the line, byte for byte."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        existing, completion = TAILS[case]
+        if existing is not None:
+            path.write_bytes(existing)
+        assert sl.record_early_refusal(out, _rec(11)) is None
+        data = path.read_bytes()
+>       assert data == (existing or b"") + completion + _line(_rec(11)), data
+E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+E         '
+E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+E         
+E         At index 257 diff: b'{' != b'\n'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:139: AssertionError
+________________________ test_tail_completion[bare-cr] ________________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/bt/red2/test_tail_completion_bare_cr_0')
+case = 'bare-cr'
+
+    @pytest.mark.parametrize("case", list(TAILS))
+    def test_tail_completion(tmp_path, case):
+        """Whatever the inherited tail, the call returns None and the file is EXACTLY the existing bytes (never deleted or
+        rewritten) + the minimal completion + this record's line; this record is one intact line for both readers, every
+        earlier valid record still parses, and an incomplete tail is at most one unparseable line. A healthy (or empty, or
+        absent) file gets nothing but the line, byte for byte."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        existing, completion = TAILS[case]
+        if existing is not None:
+            path.write_bytes(existing)
+        assert sl.record_early_refusal(out, _rec(11)) is None
+        data = path.read_bytes()
+>       assert data == (existing or b"") + completion + _line(_rec(11)), data
+E       AssertionError: b'\r{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "s... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+E         '
+E       assert b'\r{"reason"...204500Z"}\r\n' == b'\r\n{"reaso...204500Z"}\r\n'
+E         
+E         At index 1 diff: b'{' != b'\n'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:139: AssertionError
+__________________ test_tail_read_failure_returns_the_class ___________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/bt/red2/test_tail_read_failure_returns0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002212F4FFA10>
+
+    def test_tail_read_failure_returns_the_class(tmp_path, monkeypatch):
+        """Reading the inherited tail fails (EIO): nothing is recorded, the failure class is returned (the caller
+        discloses the gap), and the file is byte-identical."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        path.write_bytes(HEALTHY + b'{"torn')
+        before = path.read_bytes()
+    
+        def bad_read(fd, n):
+            raise OSError(errno.EIO, "injected tail read failure")
+        monkeypatch.setattr(os, "read", bad_read)
+        got = sl.record_early_refusal(out, _rec(13))
+        monkeypatch.undo()
+>       assert got == "OSError", got
+E       AssertionError: None
+E       assert None == 'OSError'
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:164: AssertionError
+_______ test_failure_during_the_completion_rolls_back[before-any-byte] ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/bt/red2/test_failure_during_the_comple0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002212F527770>
+k = 0
+
+    @pytest.mark.parametrize("k", [0, 1], ids=["before-any-byte", "inside-the-completion"])
+    def test_failure_during_the_completion_rolls_back(tmp_path, monkeypatch, k):
+        """The write fails before any byte, or after ONE byte of the CRLF completion: the failure class, the file
+        byte-identical (the completion rolled back with the line), and the next call completes the tail and records."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        path.write_bytes(TORN)
+        _script(monkeypatch, "fail", k)
+        got = sl.record_early_refusal(out, _rec(20))
+        monkeypatch.undo()
+        assert got == "OSError", got
+        assert path.read_bytes() == TORN
+        assert sl.record_early_refusal(out, _rec(21)) is None
+>       assert path.read_bytes() == TORN + b"\r\n" + _line(_rec(21))
+E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+E         
+E         At index 256 diff: b'{' != b'\r'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:224: AssertionError
+____ test_failure_during_the_completion_rolls_back[inside-the-completion] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/bt/red2/test_failure_during_the_comple1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002212F2660C0>
+k = 1
+
+    @pytest.mark.parametrize("k", [0, 1], ids=["before-any-byte", "inside-the-completion"])
+    def test_failure_during_the_completion_rolls_back(tmp_path, monkeypatch, k):
+        """The write fails before any byte, or after ONE byte of the CRLF completion: the failure class, the file
+        byte-identical (the completion rolled back with the line), and the next call completes the tail and records."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        path.write_bytes(TORN)
+        _script(monkeypatch, "fail", k)
+        got = sl.record_early_refusal(out, _rec(20))
+        monkeypatch.undo()
+        assert got == "OSError", got
+        assert path.read_bytes() == TORN
+        assert sl.record_early_refusal(out, _rec(21)) is None
+>       assert path.read_bytes() == TORN + b"\r\n" + _line(_rec(21))
+E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+E         
+E         At index 256 diff: b'{' != b'\r'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:224: AssertionError
+__________________ test_short_writes_through_the_completion ___________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/bt/red2/test_short_writes_through_the_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002212F4FFF80>
+
+    def test_short_writes_through_the_completion(tmp_path, monkeypatch):
+        """One byte per write call, starting inside the completion: completed under the same lock - exactly the old bytes,
+        the CRLF completion and one intact line."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        path.write_bytes(TORN)
+        made = []
+        _script(monkeypatch, "drip", made=made)
+        assert sl.record_early_refusal(out, _rec(22)) is None
+        monkeypatch.undo()
+>       assert made[0].calls == len(b"\r\n" + _line(_rec(22)))
+E       assert 237 == 239
+E        +  where 237 = <test_s1_a3_early_refusal_tail._Writer object at 0x000002212F4FED20>.calls
+E        +  and   239 = len((b'\r\n' + b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999977+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r\n'))
+E        +    where b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999977+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r\n' = _line({'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999977+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'})
+E        +      where {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999977+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(22)
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:238: AssertionError
+_ test_inherited_tail_failed_rollback_then_success[torn-inside-the-completion] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/bt/red2/test_inherited_tail_failed_rol0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002212F4FDEE0>
+k = 1
+
+    @pytest.mark.parametrize("k", [1, 5], ids=["torn-inside-the-completion", "torn-after-the-completion"])
+    def test_inherited_tail_failed_rollback_then_success(tmp_path, monkeypatch, k):
+        """Codex addendum: an inherited torn tail; a call whose write fails after k bytes (1: only the CR of its
+        completion; 5: the completion and 3 bytes of its line) AND whose rollback fails -> its failure class; then a
+        healthy call -> None. Every prior byte is preserved (each file is a prefix of the next), and the new record parses
+        as its own line with both readers, with the earlier valid record."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        path.write_bytes(TORN)
+        _script(monkeypatch, "fail", k)
+    
+        def bad_truncate(fd, n):
+            raise OSError(errno.EIO, "injected rollback failure")
+        monkeypatch.setattr(os, "ftruncate", bad_truncate)
+        assert sl.record_early_refusal(out, _rec(23)) == "OSError"
+        monkeypatch.undo()
+        after = path.read_bytes()
+>       assert after == TORN + (b"\r\n" + _line(_rec(23)))[:k]
+E       assert b'{"reason": ...n": "slot 20{' == b'{"reason": ...": "slot 20\r'
+E         
+E         At index 256 diff: b'{' != b'\r'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:260: AssertionError
+_ test_inherited_tail_failed_rollback_then_success[torn-after-the-completion] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/bt/red2/test_inherited_tail_failed_rol1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002212F4FD5E0>
+k = 5
+
+    @pytest.mark.parametrize("k", [1, 5], ids=["torn-inside-the-completion", "torn-after-the-completion"])
+    def test_inherited_tail_failed_rollback_then_success(tmp_path, monkeypatch, k):
+        """Codex addendum: an inherited torn tail; a call whose write fails after k bytes (1: only the CR of its
+        completion; 5: the completion and 3 bytes of its line) AND whose rollback fails -> its failure class; then a
+        healthy call -> None. Every prior byte is preserved (each file is a prefix of the next), and the new record parses
+        as its own line with both readers, with the earlier valid record."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        path.write_bytes(TORN)
+        _script(monkeypatch, "fail", k)
+    
+        def bad_truncate(fd, n):
+            raise OSError(errno.EIO, "injected rollback failure")
+        monkeypatch.setattr(os, "ftruncate", bad_truncate)
+        assert sl.record_early_refusal(out, _rec(23)) == "OSError"
+        monkeypatch.undo()
+        after = path.read_bytes()
+>       assert after == TORN + (b"\r\n" + _line(_rec(23)))[:k]
+E       assert b'{"reason": ..."slot 20{"rea' == b'{"reason": ...lot 20\r\n{"r'
+E         
+E         At index 256 diff: b'{' != b'\r'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:260: AssertionError
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[absent-file]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[empty-file]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[healthy-file]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-lf]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-lf]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_fault_then_recovery_keeps_every_claimed_record
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_read_failure_returns_the_class
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[before-any-byte]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[inside-the-completion]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_short_writes_through_the_completion
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-inside-the-completion]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-after-the-completion]
+10 failed, 5 passed in 0.92s
+
+# ======== FIX ROUND 1 RED (2026-11-15T07:56:34Z) ========
+# Mutant-kill RED, stated explicitly (B3: assertion failures): the product already reads the tail under the lock and already handles a short read, so the two new pinning tests pass on the product; their RED is each FAILING against the mutant that removes the property, on a full scratch copy (h5afix2_mutants.txt):
+== tail-read-before-lock [s1_slot.py] -> KILLED (rc=1)
+   killers: test_tail_read_happens_under_the_lock_on_the_products_fd
+   E       AssertionError: [(11, 1, False)]
+   E       assert [(11, 1, False)] == [(11, 1, True)]
+   E         
+   E         At index 0 diff: (11, 1, False) != (11, 1, True)
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_read_happens_under_the_lock_on_the_products_fd
+   1 failed in 0.54s
+== short-read-branch-removed [s1_slot.py] -> KILLED (rc=1)
+   killers: test_tail_short_read_returns_the_class
+   E       AssertionError: None
+   E       assert None == 'OSError'
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_short_read_returns_the_class
+   1 failed in 0.62s
+# test_terminator_only_fragment_becomes_a_valid_over_disclosed_record[all-but-lf|all-but-crlf] is a characterization test of the documented over-disclosure behaviour (finding 2): it has no RED of its own (it passes on the product by design).

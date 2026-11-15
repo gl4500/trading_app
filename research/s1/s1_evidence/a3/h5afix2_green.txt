@@ -1,0 +1,171 @@
+# A3 H5a-FIX2 GREEN (with the Codex addendum): base HEAD 655fc89 + the H5a-FIX2 working tree, run 2026-11-15, times UTC
+# 1) tail (15) + lock (13) + intent_lower_bound (34, the C4.3 controls) in one run: 62 passed; its concurrency test printed the counts.
+...............claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_fault_then_recovery_keeps_every_claimed_record
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[absent-file]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[empty-file]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[healthy-file]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-lf]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-lf]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_read_failure_returns_the_class
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[before-any-byte]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[inside-the-completion]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_short_writes_through_the_completion
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-inside-the-completion]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-after-the-completion]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[partial-write-failure]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[fsync-failure]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_short_writes_complete_one_line
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_region_unlocked_before_the_handle_closes
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_missing_root_is_never_created[root-missing]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_missing_root_is_never_created[ancestor-missing]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[diagnostic-recorded]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[gap-disclosed]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-s-minus-1us-refused-no-row]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-equals-s-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-s-plus-epsilon-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[zero-tolerance-declared]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_w_claim_interval_empty[non-last-close-w-slot-never-claimable-ends-missed]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_w_claim_interval_empty[exact-w-l-route-unaffected-any-clock]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_paused_worker_loses_capture[old-head-early-intent-pause-resume-qualifies]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_paused_worker_loses_capture[new-head-early-refused-no-retry-slot-missed]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_failed_early_then_retry_gains_capture[old-head-early-failed-retry-refused]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_failed_early_then_retry_gains_capture[new-head-early-refused-retry-at-s-qualifies]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[records-slot-sample-reason]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[no-journal-row]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[no-claim-no-capture]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[missing-root-not-recreated]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[diagnostic-write-failure-still-refuses-and-discloses-gap]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[opening-mode-early-refused]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[opening-mode-equality-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[scheduled-pre-start-session-early-refused]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[scheduled-pre-start-session-equality-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[closed-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[invalid-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[identity-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[integrity-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[repeat-attempt-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[stopped-lost-race-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[slot-gate-reasons-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_sample_before_e_commit_after_e[sample-before-e-commit-after-e-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[probe1-early-claims-refused]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[probe2-still-q5]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[seven-slot-witness-close-minute-4]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[eighth-slot-excluded-half-open]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[delayed-j-after-committed-timeout-lost-race]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_row524_interaction[row524-labelled-historical-or-staged]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_row524_interaction[no-disable-c4-bypass]
+62 passed in 53.67s
+
+# 2) 5 further separate runs of test_concurrent_writers_lose_no_record (4 processes x 100 calls)
+== concurrency run 1 06:02:41Z
+claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+1 passed in 0.90s
+== concurrency run 2 06:02:42Z
+claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+1 passed in 0.92s
+== concurrency run 3 06:02:44Z
+claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+1 passed in 0.99s
+== concurrency run 4 06:02:46Z
+claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+1 passed in 0.91s
+== concurrency run 5 06:02:48Z
+claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+1 passed in 0.92s
+
+# 3) earlier runs before the Codex addendum (product logic identical; docstring-only product edit after): 57 passed + 5 concurrency runs, all 400/400
+== concurrency run 1 05:57:02Z
+claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+1 passed in 0.92s
+== concurrency run 2 05:57:04Z
+claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+1 passed in 0.92s
+== concurrency run 3 05:57:05Z
+claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+1 passed in 0.95s
+== concurrency run 4 05:57:07Z
+claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+1 passed in 0.95s
+== concurrency run 5 05:57:09Z
+claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+1 passed in 0.89s
+
+# ======== FIX ROUND 1 GREEN (2026-11-15T07:56:34Z) ========
+# tail (19 = 15 + 4 new: test_tail_read_happens_under_the_lock_on_the_products_fd, test_tail_short_read_returns_the_class, test_terminator_only_fragment_becomes_a_valid_over_disclosed_record[all-but-lf|all-but-crlf]) + lock (13) + intent_lower_bound (34): 66 passed; its concurrency run printed the counts. Product change this round: docstring + whitespace only.
+...................claimed=400 failed=0 lines=400 valid_unique=400 unparseable=0
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_fault_then_recovery_keeps_every_claimed_record
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[absent-file]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[empty-file]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[healthy-file]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-lf]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-lf]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_read_failure_returns_the_class
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[before-any-byte]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[inside-the-completion]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_short_writes_through_the_completion
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-inside-the-completion]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-after-the-completion]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_read_happens_under_the_lock_on_the_products_fd
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_short_read_returns_the_class
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_terminator_only_fragment_becomes_a_valid_over_disclosed_record[all-but-lf]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_terminator_only_fragment_becomes_a_valid_over_disclosed_record[all-but-crlf]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[partial-write-failure]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[fsync-failure]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_short_writes_complete_one_line
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_region_unlocked_before_the_handle_closes
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_missing_root_is_never_created[root-missing]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_missing_root_is_never_created[ancestor-missing]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[diagnostic-recorded]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[gap-disclosed]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-s-minus-1us-refused-no-row]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-equals-s-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[sample-s-plus-epsilon-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_permission_boundary[zero-tolerance-declared]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_w_claim_interval_empty[non-last-close-w-slot-never-claimable-ends-missed]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_w_claim_interval_empty[exact-w-l-route-unaffected-any-clock]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_paused_worker_loses_capture[old-head-early-intent-pause-resume-qualifies]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_paused_worker_loses_capture[new-head-early-refused-no-retry-slot-missed]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_failed_early_then_retry_gains_capture[old-head-early-failed-retry-refused]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_failed_early_then_retry_gains_capture[new-head-early-refused-retry-at-s-qualifies]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[records-slot-sample-reason]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[no-journal-row]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[no-claim-no-capture]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[missing-root-not-recreated]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_early_refusal_diagnostics[diagnostic-write-failure-still-refuses-and-discloses-gap]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[opening-mode-early-refused]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[opening-mode-equality-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[scheduled-pre-start-session-early-refused]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[scheduled-pre-start-session-equality-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[closed-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[invalid-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[identity-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[integrity-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[repeat-attempt-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[stopped-lost-race-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_scope_and_precedence[slot-gate-reasons-first]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_sample_before_e_commit_after_e[sample-before-e-commit-after-e-appends]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[probe1-early-claims-refused]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[probe2-still-q5]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[seven-slot-witness-close-minute-4]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[eighth-slot-excluded-half-open]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_conditional_bound_witnesses[delayed-j-after-committed-timeout-lost-race]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_row524_interaction[row524-labelled-historical-or-staged]
+PASSED research/s1/s1_tests/test_s1_a3_intent_lower_bound.py::test_row524_interaction[no-disable-c4-bypass]
+66 passed in 54.21s

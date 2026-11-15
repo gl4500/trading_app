@@ -222,6 +222,30 @@ def _lock_diag(fd: int) -> None:
         time.sleep(EARLY_LOCK_POLL_S)
 
 
+def _tail_completion(fd: int, end: int) -> bytes:
+    """A3 H5a-FIX2 (Codex X-15 / H5AFIX-CX-1): the bytes this call must put BEFORE its own line so that line is intact
+    whatever tail it inherits (a torn fragment left by a failed write whose best-effort rollback also failed, by a
+    killed writer, or by any other corruption). Read under the lock, on the same read-capable fd: the last byte of the
+    file (`end` = its size). Empty file, or a last byte b"\\n" (a terminated line): b"". A lone b"\\r": b"\\n"
+    (completing b"\\r\\n"). Any other byte: b"\\r\\n". The fragment thus becomes its own line - usually unparseable; a
+    fragment missing only its terminator (a failed call that wrote all but the last 1-2 bytes) becomes a VALID record
+    whose call still reported the gap (over-disclosure, never loss). A fragment's gap was disclosed only when it came
+    from one of OUR failed returns - a killed process or other corruption may never have disclosed it. Existing bytes
+    are never deleted or rewritten, and no blank line is added for a reader that splits on a lone CR. A read failure
+    or a short read propagates (an OSError: the caller's failure class, the gap disclosed)."""
+    if end == 0:
+        return b""
+    os.lseek(fd, end - 1, os.SEEK_SET)
+    last = os.read(fd, 1)
+    if len(last) != 1:
+        raise OSError(errno.EIO, f"{EARLY_REFUSALS}: the last byte could not be read")
+    if last == b"\n":
+        return b""
+    if last == b"\r":
+        return b"\n"
+    return b"\r\n"
+
+
 def _unlock_diag(fd: int) -> None:
     import msvcrt
     try:
@@ -297,20 +321,25 @@ def record_early_refusal(out, rec: dict):
     locked (bounded: EARLY_LOCK_WAIT_S, else LockTimeout) across the seek to the end, the write of the whole line and
     the fsync; then released. None is returned only after the fsync under the lock; every failure - the bound
     included - returns its class (a short write is completed under the same lock; a failed write or fsync truncates
-    the file back to its end before this call, best effort, still under the lock)."""
+    the file back to its end before this call, best effort, still under the lock).
+    A3 H5a-FIX2 (Codex X-15): when that best-effort rollback itself fails, a torn fragment stays at the end; the next
+    call - under the same lock, before appending - reads the last byte and prepends the minimal terminator completion
+    (_tail_completion), so a None is never returned for a record that is not one valid line. The file is opened "a+b"
+    (append + read; created when absent exactly as "ab" - never a directory); no existing byte is changed."""
     line = (json.dumps(rec, sort_keys=True) + "\r\n").encode("utf-8")      # the bytes text mode wrote on Windows
     try:
         if sys.platform != "win32":
             raise LockUnavailable("the early-refusal diagnostic lock requires msvcrt (Windows): fail closed")
         if not Path(out).is_dir():
             raise FileNotFoundError(f"{Path(out).name} is absent")
-        with open(Path(out) / EARLY_REFUSALS, "ab", buffering=0) as f:
+        with open(Path(out) / EARLY_REFUSALS, "a+b", buffering=0) as f:     # H5a-FIX2: readable for the tail
             fd = f.fileno()
             _lock_diag(fd)
             try:
                 end = os.lseek(fd, 0, os.SEEK_END)
+                data = _tail_completion(fd, end) + line                    # H5a-FIX2 (X-15): an inherited tail
                 try:
-                    view = memoryview(line)
+                    view = memoryview(data)
                     while view:
                         n = f.write(view)
                         if not n:

@@ -1,0 +1,711 @@
+# A3 H5a-FIX2 mutants after FIX ROUND 1: 15 = 2 new (tail-read-before-lock - the reviewer's mutant B; short-read-branch-removed) + the 5 X-15/addendum mutants + the 8 of H5a-FIX round 1, re-run in full. Runner: /c/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/mutants2.py (sha256 in the run line). Supersedes the 13/13 record (kept below).
+# A3 H5a-FIX2 semantic mutants (the 8 of H5a-FIX round 1 + 5 for Codex X-15 and its addendum + 2 of H5a-FIX2 fix round 1): each applied to a FULL SCRATCH COPY of research/s1 (C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5afix2\mutscratch), exact single-occurrence replacement in binary (the file's own line ending), the named killing tests run in a child pytest against the copy (own basetemp, PYTHONDONTWRITEBYTECODE), the file restored byte-for-byte (sha256 asserted). KILLED = a named killing test FAILED. Baseline: every killing test passes unmutated.
+# run 2026-11-15T07:55:27Z; runner sha256 c41dfbca285703312b95d1f2c6cbfe6f47a3d9e1ce1fc2ab87514a22de2773f9
+# sha256 at the run: 28b572ae1ebc57b3cd3cd6bc101230060955ef5492e7703c56fca47a7ee1812e *s1_slot.py 6264087543f8bab0bf79b18294f63e41371a9cf84d3a82bb157260559adf4df1 *s1_tests/test_s1_a3_early_refusal_lock.py 1d1cd8f1155b0dec994df6b820e01b57a506b7c9b18726fed65843c5b541350f *s1_tests/test_s1_a3_early_refusal_tail.py
+== baseline: rc=0 28 passed in 13.30s
+== tail-read-before-lock [s1_slot.py] -> KILLED (rc=1)
+   killers: test_tail_read_happens_under_the_lock_on_the_products_fd
+   E       AssertionError: [(11, 1, False)]
+   E       assert [(11, 1, False)] == [(11, 1, True)]
+   E         
+   E         At index 0 diff: (11, 1, False) != (11, 1, True)
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_read_happens_under_the_lock_on_the_products_fd
+   1 failed in 0.54s
+== short-read-branch-removed [s1_slot.py] -> KILLED (rc=1)
+   killers: test_tail_short_read_returns_the_class
+   E       AssertionError: None
+   E       assert None == 'OSError'
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_short_read_returns_the_class
+   1 failed in 0.62s
+== no-tail-check [s1_slot.py] -> KILLED (rc=1)
+   killers: test_fault_then_recovery_keeps_every_claimed_record, test_tail_completion, test_tail_read_failure_returns_the_class, test_failure_during_the_completion_rolls_back, test_short_writes_through_the_completion, test_inherited_tail_failed_rollback_then_success
+           """1: recorded. 2: a 7-byte partial write AND a failed rollback ftruncate -> its failure class (its own gap,
+   E           AssertionError: _strict
+   E           assert ([{'reason': ...204500Z'}], 1) == ([{'reason': ...204500Z'}], 1)
+   E             
+   E             At index 0 diff: [{'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'}] != [{'subject': 'slot/20261026T
+   E             
+   E             ...Full output truncated (2 lines hidden), use '-vv' to show
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 256 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 257 diff: b'{' != b'\n'
+   E         Use -v to get more diff
+   E       AssertionError: b'\r{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "s... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'\r{"reason"...204500Z"}\r\n' == b'\r\n{"reaso...204500Z"}\r\n'
+   E         
+   E         At index 1 diff: b'{' != b'\n'
+   E         Use -v to get more diff
+   E       AssertionError: None
+   E       assert None == 'OSError'
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 256 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 256 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   E       assert 237 == 239
+   E        +  where 237 = <test_s1_a3_early_refusal_tail._Writer object at 0x0000025666A594C0>.calls
+   E        +  and   239 = len((b'\r\n' + b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999977+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r\n'))
+   E        +    where b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999977+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r\n' = _line({'reason': 'slot 2026-10-26T20:
+   E        +      where {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999977+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(22)
+   E       assert b'{"reason": ...n": "slot 20{' == b'{"reason": ...": "slot 20\r'
+   E         
+   E         At index 256 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   E       assert b'{"reason": ..."slot 20{"rea' == b'{"reason": ...lot 20\r\n{"r'
+   E         
+   E         At index 256 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_fault_then_recovery_keeps_every_claimed_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_read_failure_returns_the_class
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[before-any-byte]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_short_writes_through_the_completion
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-after-the-completion]
+   10 failed, 5 passed in 0.85s
+== tail-check-deletes-the-fragment [s1_slot.py] -> KILLED (rc=1)
+   killers: test_fault_then_recovery_keeps_every_claimed_record, test_tail_completion, test_failure_during_the_completion_rolls_back, test_inherited_tail_failed_rollback_then_success
+           """1: recorded. 2: a 7-byte partial write AND a failed rollback ftruncate -> its failure class (its own gap,
+   E           AssertionError: _strict
+   E           assert ([{'reason': ...204500Z'}], 0) == ([{'reason': ...204500Z'}], 1)
+   E             
+   E             At index 1 diff: 0 != 1
+   E             Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 256 diff: b'2' != b'\r'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 256 diff: b'2' != b'\r'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'\r\n{"reaso...204500Z"}\r\n'
+   E         
+   E         At index 0 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...on": "slot 20'
+   E         
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...on": "slot 20'
+   E         
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...on": "slot 20' == b'{"reason": ...": "slot 20\r'
+   E         
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...on": "slot 20' == b'{"reason": ...lot 20\r\n{"r'
+   E         
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_fault_then_recovery_keeps_every_claimed_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[before-any-byte]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-after-the-completion]
+   8 failed, 5 passed in 0.78s
+== completion-outside-the-rollback [s1_slot.py] -> KILLED (rc=1)
+   killers: test_failure_during_the_completion_rolls_back, test_short_writes_through_the_completion, test_inherited_tail_failed_rollback_then_success
+   E       assert b'{"reason": ... "slot 20\r\n' == b'{"reason": ...on": "slot 20'
+   E         
+   E         Use -v to get more diff
+   E       assert b'{"reason": ... "slot 20\r\n' == b'{"reason": ...on": "slot 20'
+   E         
+   E         Use -v to get more diff
+   E       assert 237 == 239
+   E        +  where 237 = <test_s1_a3_early_refusal_tail._Writer object at 0x000001D0772F5BB0>.calls
+   E        +  and   239 = len((b'\r\n' + b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999977+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r\n'))
+   E        +    where b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999977+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r\n' = _line({'reason': 'slot 2026-10-26T20:
+   E        +      where {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999977+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(22)
+   E       assert b'{"reason": ..."slot 20\r\n{' == b'{"reason": ...": "slot 20\r'
+   E         
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...t 20\r\n{"rea' == b'{"reason": ...lot 20\r\n{"r'
+   E         
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[before-any-byte]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_short_writes_through_the_completion
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-after-the-completion]
+   5 failed in 0.67s
+== completion-applied-unconditionally [s1_slot.py] -> KILLED (rc=1)
+   killers: test_tail_completion
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 237 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 237 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 237 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 495 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 257 diff: b'\r' != b'\n'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 257 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   E       AssertionError: b'\r\r
+   E         {"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)"... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'\r\r\n{"rea...204500Z"}\r\n' == b'\r\n{"reaso...204500Z"}\r\n'
+   E         
+   E         At index 1 diff: b'\r' != b'\n'
+   E         Use -v to get more diff
+   E       AssertionError: b'
+   E         \r
+   E         {"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)"... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'\n\r\n{"rea...204500Z"}\r\n' == b'\n{"reason"...204500Z"}\r\n'
+   E         
+   E         At index 1 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[absent-file]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[empty-file]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[healthy-file]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-lf]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-lf]
+   8 failed in 0.76s
+== lone-cr-gets-full-crlf [s1_slot.py] -> KILLED (rc=1)
+   killers: test_tail_completion
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 257 diff: b'\r' != b'\n'
+   E         Use -v to get more diff
+   E       AssertionError: b'\r\r
+   E         {"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)"... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'\r\r\n{"rea...204500Z"}\r\n' == b'\r\n{"reaso...204500Z"}\r\n'
+   E         
+   E         At index 1 diff: b'\r' != b'\n'
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+   2 failed, 6 passed in 0.67s
+== no-ftruncate [s1_slot.py] -> KILLED (rc=1)
+   killers: test_write_or_fsync_failure_rolls_back
+   >       assert path.read_bytes() == before                           # byte-identical: nothing of the failed call remains
+   E       assert b'{"reason": ..."}\r\n{"reaso' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         Use -v to get more diff
+   >       assert path.read_bytes() == before                           # byte-identical: nothing of the failed call remains
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[partial-write-failure]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[fsync-failure]
+   2 failed in 0.69s
+== wrong-unlock-offset [s1_slot.py] -> KILLED (rc=1)
+   killers: test_region_unlocked_before_the_handle_closes
+   E       AssertionError: [False]
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_region_unlocked_before_the_handle_closes
+   1 failed in 0.72s
+== short-write-not-completed [s1_slot.py] -> KILLED (rc=1)
+   killers: test_short_writes_complete_one_line
+   E       assert 1 > 1
+   E        +  where 1 = <test_s1_a3_early_refusal_lock._FailingFile object at 0x000001391EA30950>.calls
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_short_writes_complete_one_line
+   1 failed in 0.64s
+== lock-removed [s1_slot.py] -> KILLED (rc=1)
+   killers: test_concurrent_writers_lose_no_record, test_lock_held_across_write_and_fsync, test_lock_timeout_records_nothing_and_returns_the_class, test_lock_timeout_worker_refuses_and_discloses_the_gap, test_no_new_file_in_s1_out
+           claimed, failed = set(), {}
+               failed.update({(k, i): v for i, v in d["fail"].items()})
+           summary = (f"claimed={len(claimed)} failed={len(failed)} lines={len(recs)} valid_unique={len(set(keys))} "
+   E       AssertionError: claimed=400 failed=0 lines=382 valid_unique=382 unparseable=0
+   E       assert {('slot/20261...+00:00'), ...} == {('slot/20261...+00:00'), ...}
+   E         
+   E         Extra items in the right set:
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999935+00:00')
+   E         ('slot/20261026T205100Z', '2026-10-26T20:50:58.999953+00:00')
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999955+00:00')
+   E         ('slot/20261026T205100Z', '2026-10-26T20:50:58.999931+00:00')
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999937+00:00')...
+   E         
+   E         ...Full output truncated (14 lines hidden), use '-vv' to show
+   claimed=400 failed=0 lines=382 valid_unique=382 unparseable=0
+   E       AssertionError: {'fsync': [False], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no ...26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', False)]}
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   E           AssertionError: None
+   E           assert None == 'LockTimeout'
+   E       AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl
+   E       assert None
+   E        +  where None = <function search at 0x0000022DBD7872E0>('early\\-refusal\\ diagnostic\\ NOT\\ recorded\\ \\(LockTimeout\\):\\ recording\\ gap\\ \\(Clarification\\ 4\\ C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its
+   E        +    where <function search at 0x0000022DBD7872E0> = re.search
+   E        +    and   'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' = str(SystemExit('slot/20261026T204500Z: SLOT-INTENT refus
+   E        +      where SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl') = <ExceptionInfo SystemExit('slot/20261026T2
+   E           AssertionError: assert None == 'LockTimeout'
+   E            +  where None = <function record_early_refusal at 0x0000022DBF4B5D00>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/mutscratch/bt/lock-removed/test_no_new_file_in_s1_out0/s1_out'), {'reason': 'slot 2026-10-
+   E            +    where <function record_early_refusal at 0x0000022DBF4B5D00> = sl.record_early_refusal
+   E            +    and   {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(1)
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+   5 failed in 2.94s
+== lock-released-before-write [s1_slot.py] -> KILLED (rc=1)
+   killers: test_concurrent_writers_lose_no_record, test_lock_held_across_write_and_fsync
+           claimed, failed = set(), {}
+               failed.update({(k, i): v for i, v in d["fail"].items()})
+           summary = (f"claimed={len(claimed)} failed={len(failed)} lines={len(recs)} valid_unique={len(set(keys))} "
+   E       AssertionError: claimed=400 failed=0 lines=393 valid_unique=393 unparseable=0
+   E       assert {('slot/20261...+00:00'), ...} == {('slot/20261...+00:00'), ...}
+   E         
+   E         Extra items in the right set:
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999995+00:00')
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999988+00:00')
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999999+00:00')
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999914+00:00')
+   E         ('slot/20261026T205100Z', '2026-10-26T20:50:58.999975+00:00')...
+   E         
+   E         ...Full output truncated (3 lines hidden), use '-vv' to show
+   claimed=400 failed=0 lines=393 valid_unique=393 unparseable=0
+   E       AssertionError: {'fsync': [False], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no ...26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', False)]}
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   2 failed in 0.97s
+== timeout-returns-none-claimed-success [s1_slot.py] -> KILLED (rc=1)
+   killers: test_lock_timeout_records_nothing_and_returns_the_class, test_lock_timeout_worker_refuses_and_discloses_the_gap, test_no_new_file_in_s1_out
+   E           AssertionError: None
+   E           assert None == 'LockTimeout'
+   E       AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl
+   E       assert None
+   E        +  where None = <function search at 0x000002517E1C72E0>('early\\-refusal\\ diagnostic\\ NOT\\ recorded\\ \\(LockTimeout\\):\\ recording\\ gap\\ \\(Clarification\\ 4\\ C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its
+   E        +    where <function search at 0x000002517E1C72E0> = re.search
+   E        +    and   'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' = str(SystemExit('slot/20261026T204500Z: SLOT-INTENT refus
+   E        +      where SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl') = <ExceptionInfo SystemExit('slot/20261026T2
+   E           AssertionError: assert None == 'LockTimeout'
+   E            +  where None = <function record_early_refusal at 0x00000251000B1800>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/mutscratch/bt/timeout-returns-none-claimed-success/test_no_new_file_in_s1_out0/s1_out'), {
+   E            +    where <function record_early_refusal at 0x00000251000B1800> = sl.record_early_refusal
+   E            +    and   {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(1)
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+   3 failed in 8.78s
+== no-fsync [s1_slot.py] -> KILLED (rc=1)
+   killers: test_lock_held_across_write_and_fsync
+   E       AssertionError: {'fsync': [], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim...-26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', True)]}
+   E       assert [] == [True]
+   E         
+   E         Right contains one more item: True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   1 failed in 0.67s
+== m1-reverted-self-slot [s1_slot.py] -> KILLED (rc=1)
+   killers: test_non_utc_slot_diagnostic
+   E           AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)
+   E           assert 'early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' in 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)'
+   E           AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)
+   E           assert None
+   E            +  where None = <function search at 0x0000013BE3BDB2E0>('early-refusal diagnostic NOT recorded \\(PermissionError\\): recording gap \\(Clarification 4 C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled i
+   E            +    where <function search at 0x0000013BE3BDB2E0> = re.search
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[diagnostic-recorded]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[gap-disclosed]
+   2 failed in 3.92s
+== 15/15 KILLED
+
+# ======== SUPERSEDED: the 13-mutant record before fix round 1 ========
+# A3 H5a-FIX2 mutants (with the Codex addendum): 13 = 5 new (no-tail-check, tail-check-deletes-the-fragment, completion-outside-the-rollback, completion-applied-unconditionally, lone-cr-gets-full-crlf) + the 8 of H5a-FIX round 1, re-run in full. Runner: /c/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/mutants2.py (sha256 in the run line). Supersedes a 12-mutant run before the addendum (12/12 KILLED).
+# A3 H5a-FIX2 semantic mutants (the 8 of H5a-FIX round 1 + 5 for Codex X-15 and its addendum): each applied to a FULL SCRATCH COPY of research/s1 (C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5afix2\mutscratch), exact single-occurrence replacement in binary (the file's own line ending), the named killing tests run in a child pytest against the copy (own basetemp, PYTHONDONTWRITEBYTECODE), the file restored byte-for-byte (sha256 asserted). KILLED = a named killing test FAILED. Baseline: every killing test passes unmutated.
+# run 2026-11-15T06:02:50Z; runner sha256 b4d7968d325191df634ec465edbc82197d69963be2dc594fbc79fcd66514cb48
+# sha256 at the run: 15821b681b0d7ef295afc497169efc20f76f737c8cb9814978468f75acbee13a *s1_slot.py 6264087543f8bab0bf79b18294f63e41371a9cf84d3a82bb157260559adf4df1 *s1_tests/test_s1_a3_early_refusal_lock.py a646292798fbea1878b0d89906f66098395298e674d73dc421e2a409eeece39e *s1_tests/test_s1_a3_early_refusal_tail.py
+== baseline: rc=0 26 passed in 12.98s
+== no-tail-check [s1_slot.py] -> KILLED (rc=1)
+   killers: test_fault_then_recovery_keeps_every_claimed_record, test_tail_completion, test_tail_read_failure_returns_the_class, test_failure_during_the_completion_rolls_back, test_short_writes_through_the_completion, test_inherited_tail_failed_rollback_then_success
+           """1: recorded. 2: a 7-byte partial write AND a failed rollback ftruncate -> its failure class (its own gap,
+   E           AssertionError: _strict
+   E           assert ([{'reason': ...204500Z'}], 1) == ([{'reason': ...204500Z'}], 1)
+   E             
+   E             At index 0 diff: [{'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'}] != [{'subject': 'slot/20261026T
+   E             
+   E             ...Full output truncated (2 lines hidden), use '-vv' to show
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 256 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 257 diff: b'{' != b'\n'
+   E         Use -v to get more diff
+   E       AssertionError: b'\r{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "s... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'\r{"reason"...204500Z"}\r\n' == b'\r\n{"reaso...204500Z"}\r\n'
+   E         
+   E         At index 1 diff: b'{' != b'\n'
+   E         Use -v to get more diff
+   E       AssertionError: None
+   E       assert None == 'OSError'
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 256 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 256 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   E       assert 237 == 239
+   E        +  where 237 = <test_s1_a3_early_refusal_tail._Writer object at 0x00000194008B20F0>.calls
+   E        +  and   239 = len((b'\r\n' + b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999977+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r\n'))
+   E        +    where b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999977+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r\n' = _line({'reason': 'slot 2026-10-26T20:
+   E        +      where {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999977+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(22)
+   E       assert b'{"reason": ...n": "slot 20{' == b'{"reason": ...": "slot 20\r'
+   E         
+   E         At index 256 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   E       assert b'{"reason": ..."slot 20{"rea' == b'{"reason": ...lot 20\r\n{"r'
+   E         
+   E         At index 256 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_fault_then_recovery_keeps_every_claimed_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_read_failure_returns_the_class
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[before-any-byte]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_short_writes_through_the_completion
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-after-the-completion]
+   10 failed, 5 passed in 0.79s
+== tail-check-deletes-the-fragment [s1_slot.py] -> KILLED (rc=1)
+   killers: test_fault_then_recovery_keeps_every_claimed_record, test_tail_completion, test_failure_during_the_completion_rolls_back, test_inherited_tail_failed_rollback_then_success
+           """1: recorded. 2: a 7-byte partial write AND a failed rollback ftruncate -> its failure class (its own gap,
+   E           AssertionError: _strict
+   E           assert ([{'reason': ...204500Z'}], 0) == ([{'reason': ...204500Z'}], 1)
+   E             
+   E             At index 1 diff: 0 != 1
+   E             Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 256 diff: b'2' != b'\r'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 256 diff: b'2' != b'\r'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'\r\n{"reaso...204500Z"}\r\n'
+   E         
+   E         At index 0 diff: b'{' != b'\r'
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...on": "slot 20'
+   E         
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...on": "slot 20'
+   E         
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...on": "slot 20' == b'{"reason": ...": "slot 20\r'
+   E         
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...on": "slot 20' == b'{"reason": ...lot 20\r\n{"r'
+   E         
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_fault_then_recovery_keeps_every_claimed_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[before-any-byte]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-after-the-completion]
+   8 failed, 5 passed in 0.75s
+== completion-outside-the-rollback [s1_slot.py] -> KILLED (rc=1)
+   killers: test_failure_during_the_completion_rolls_back, test_short_writes_through_the_completion, test_inherited_tail_failed_rollback_then_success
+   E       assert b'{"reason": ... "slot 20\r\n' == b'{"reason": ...on": "slot 20'
+   E         
+   E         Use -v to get more diff
+   E       assert b'{"reason": ... "slot 20\r\n' == b'{"reason": ...on": "slot 20'
+   E         
+   E         Use -v to get more diff
+   E       assert 237 == 239
+   E        +  where 237 = <test_s1_a3_early_refusal_tail._Writer object at 0x000002136568C980>.calls
+   E        +  and   239 = len((b'\r\n' + b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999977+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r\n'))
+   E        +    where b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999977+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r\n' = _line({'reason': 'slot 2026-10-26T20:
+   E        +      where {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999977+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(22)
+   E       assert b'{"reason": ..."slot 20\r\n{' == b'{"reason": ...": "slot 20\r'
+   E         
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...t 20\r\n{"rea' == b'{"reason": ...lot 20\r\n{"r'
+   E         
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[before-any-byte]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_failure_during_the_completion_rolls_back[inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_short_writes_through_the_completion
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-inside-the-completion]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_inherited_tail_failed_rollback_then_success[torn-after-the-completion]
+   5 failed in 0.63s
+== completion-applied-unconditionally [s1_slot.py] -> KILLED (rc=1)
+   killers: test_tail_completion
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 237 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 237 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 237 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 495 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 257 diff: b'\r' != b'\n'
+   E         Use -v to get more diff
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 257 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   E       AssertionError: b'\r\r
+   E         {"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)"... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'\r\r\n{"rea...204500Z"}\r\n' == b'\r\n{"reaso...204500Z"}\r\n'
+   E         
+   E         At index 1 diff: b'\r' != b'\n'
+   E         Use -v to get more diff
+   E       AssertionError: b'
+   E         \r
+   E         {"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)"... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'\n\r\n{"rea...204500Z"}\r\n' == b'\n{"reason"...204500Z"}\r\n'
+   E         
+   E         At index 1 diff: b'\r' != b'{'
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[absent-file]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[empty-file]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[healthy-file]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-lf]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-lf]
+   8 failed in 0.70s
+== lone-cr-gets-full-crlf [s1_slot.py] -> KILLED (rc=1)
+   killers: test_tail_completion
+   E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         At index 257 diff: b'\r' != b'\n'
+   E         Use -v to get more diff
+   E       AssertionError: b'\r\r
+   E         {"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)"... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         '
+   E       assert b'\r\r\n{"rea...204500Z"}\r\n' == b'\r\n{"reaso...204500Z"}\r\n'
+   E         
+   E         At index 1 diff: b'\r' != b'\n'
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+   2 failed, 6 passed in 0.63s
+== no-ftruncate [s1_slot.py] -> KILLED (rc=1)
+   killers: test_write_or_fsync_failure_rolls_back
+   >       assert path.read_bytes() == before                           # byte-identical: nothing of the failed call remains
+   E       assert b'{"reason": ..."}\r\n{"reaso' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         Use -v to get more diff
+   >       assert path.read_bytes() == before                           # byte-identical: nothing of the failed call remains
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[partial-write-failure]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[fsync-failure]
+   2 failed in 0.65s
+== wrong-unlock-offset [s1_slot.py] -> KILLED (rc=1)
+   killers: test_region_unlocked_before_the_handle_closes
+   E       AssertionError: [False]
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_region_unlocked_before_the_handle_closes
+   1 failed in 0.67s
+== short-write-not-completed [s1_slot.py] -> KILLED (rc=1)
+   killers: test_short_writes_complete_one_line
+   E       assert 1 > 1
+   E        +  where 1 = <test_s1_a3_early_refusal_lock._FailingFile object at 0x000001CA69193410>.calls
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_short_writes_complete_one_line
+   1 failed in 0.65s
+== lock-removed [s1_slot.py] -> KILLED (rc=1)
+   killers: test_concurrent_writers_lose_no_record, test_lock_held_across_write_and_fsync, test_lock_timeout_records_nothing_and_returns_the_class, test_lock_timeout_worker_refuses_and_discloses_the_gap, test_no_new_file_in_s1_out
+           claimed, failed = set(), {}
+               failed.update({(k, i): v for i, v in d["fail"].items()})
+           summary = (f"claimed={len(claimed)} failed={len(failed)} lines={len(recs)} valid_unique={len(set(keys))} "
+   E       AssertionError: claimed=400 failed=0 lines=380 valid_unique=380 unparseable=0
+   E       assert {('slot/20261...+00:00'), ...} == {('slot/20261...+00:00'), ...}
+   E         
+   E         Extra items in the right set:
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999938+00:00')
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999999+00:00')
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999944+00:00')
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999956+00:00')
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999998+00:00')...
+   E         
+   E         ...Full output truncated (16 lines hidden), use '-vv' to show
+   claimed=400 failed=0 lines=380 valid_unique=380 unparseable=0
+   E       AssertionError: {'fsync': [False], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no ...26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', False)]}
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   E           AssertionError: None
+   E           assert None == 'LockTimeout'
+   E       AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl
+   E       assert None
+   E        +  where None = <function search at 0x000001992D5E72E0>('early\\-refusal\\ diagnostic\\ NOT\\ recorded\\ \\(LockTimeout\\):\\ recording\\ gap\\ \\(Clarification\\ 4\\ C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its
+   E        +    where <function search at 0x000001992D5E72E0> = re.search
+   E        +    and   'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' = str(SystemExit('slot/20261026T204500Z: SLOT-INTENT refus
+   E        +      where SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl') = <ExceptionInfo SystemExit('slot/20261026T2
+   E           AssertionError: assert None == 'LockTimeout'
+   E            +  where None = <function record_early_refusal at 0x000001992F37DD00>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/mutscratch/bt/lock-removed/test_no_new_file_in_s1_out0/s1_out'), {'reason': 'slot 2026-10-
+   E            +    where <function record_early_refusal at 0x000001992F37DD00> = sl.record_early_refusal
+   E            +    and   {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(1)
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+   5 failed in 3.02s
+== lock-released-before-write [s1_slot.py] -> KILLED (rc=1)
+   killers: test_concurrent_writers_lose_no_record, test_lock_held_across_write_and_fsync
+           claimed, failed = set(), {}
+               failed.update({(k, i): v for i, v in d["fail"].items()})
+           summary = (f"claimed={len(claimed)} failed={len(failed)} lines={len(recs)} valid_unique={len(set(keys))} "
+   E       AssertionError: claimed=400 failed=0 lines=391 valid_unique=391 unparseable=0
+   E       assert {('slot/20261...+00:00'), ...} == {('slot/20261...+00:00'), ...}
+   E         
+   E         Extra items in the right set:
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999973+00:00')
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999999+00:00')
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999984+00:00')
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999999+00:00')
+   E         ('slot/20261026T205100Z', '2026-10-26T20:50:58.999941+00:00')...
+   E         
+   E         ...Full output truncated (5 lines hidden), use '-vv' to show
+   claimed=400 failed=0 lines=391 valid_unique=391 unparseable=0
+   E       AssertionError: {'fsync': [False], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no ...26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', False)]}
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   2 failed in 0.99s
+== timeout-returns-none-claimed-success [s1_slot.py] -> KILLED (rc=1)
+   killers: test_lock_timeout_records_nothing_and_returns_the_class, test_lock_timeout_worker_refuses_and_discloses_the_gap, test_no_new_file_in_s1_out
+   E           AssertionError: None
+   E           assert None == 'LockTimeout'
+   E       AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl
+   E       assert None
+   E        +  where None = <function search at 0x0000014DD75172E0>('early\\-refusal\\ diagnostic\\ NOT\\ recorded\\ \\(LockTimeout\\):\\ recording\\ gap\\ \\(Clarification\\ 4\\ C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its
+   E        +    where <function search at 0x0000014DD75172E0> = re.search
+   E        +    and   'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' = str(SystemExit('slot/20261026T204500Z: SLOT-INTENT refus
+   E        +      where SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl') = <ExceptionInfo SystemExit('slot/20261026T2
+   E           AssertionError: assert None == 'LockTimeout'
+   E            +  where None = <function record_early_refusal at 0x0000014DD91DD800>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix2/mutscratch/bt/timeout-returns-none-claimed-success/test_no_new_file_in_s1_out0/s1_out'), {
+   E            +    where <function record_early_refusal at 0x0000014DD91DD800> = sl.record_early_refusal
+   E            +    and   {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(1)
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+   3 failed in 8.68s
+== no-fsync [s1_slot.py] -> KILLED (rc=1)
+   killers: test_lock_held_across_write_and_fsync
+   E       AssertionError: {'fsync': [], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim...-26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', True)]}
+   E       assert [] == [True]
+   E         
+   E         Right contains one more item: True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   1 failed in 0.66s
+== m1-reverted-self-slot [s1_slot.py] -> KILLED (rc=1)
+   killers: test_non_utc_slot_diagnostic
+   E           AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)
+   E           assert 'early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' in 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)'
+   E           AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)
+   E           assert None
+   E            +  where None = <function search at 0x000001A47FA6B2E0>('early-refusal diagnostic NOT recorded \\(PermissionError\\): recording gap \\(Clarification 4 C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled i
+   E            +    where <function search at 0x000001A47FA6B2E0> = re.search
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[diagnostic-recorded]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[gap-disclosed]
+   2 failed in 4.03s
+== 13/13 KILLED
