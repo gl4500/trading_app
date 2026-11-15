@@ -238,8 +238,11 @@ class TestBootstrapFreshInterpreter(unittest.TestCase):
         # (run_tests.py puts backend/ and the repo site-packages on sys.path only),
         # so hand dependency-needing children the parent's existing sys.path dirs
         # followed by any ambient PYTHONPATH. Case (b) drops this entirely.
-        entries = [p for p in sys.path if p and os.path.isdir(p)]
-        entries += [p for p in os.environ.get("PYTHONPATH", "").split(os.pathsep) if p]
+        # Resolve relative/empty entries ("" means the parent's cwd) against the
+        # parent's cwd now, before the child runs elsewhere; order is preserved.
+        entries = [os.path.abspath(p or os.getcwd()) for p in sys.path]
+        entries = [p for p in entries if os.path.isdir(p)]
+        entries += [os.path.abspath(p) for p in os.environ.get("PYTHONPATH", "").split(os.pathsep) if p]
         self.env["PYTHONPATH"] = os.pathsep.join(dict.fromkeys(entries))
         # Private temp root so child bootstrap dirs are countable and cleaned up.
         self.child_tmp = os.path.join(self.work, "tmproot")
