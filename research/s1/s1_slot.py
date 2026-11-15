@@ -1284,13 +1284,17 @@ def _confirming_calendar(gv):
     kind (not prereg.json's calendar, not the verified audit's: a failed authoritative read never becomes a different
     copy). Any failure - an OSError of any kind, a missing file, a hash mismatch, a malformed manifest or calendar -
     is None: the caller refuses with no row and no INVALID (I-2, I-4). Used ONLY by the confirming passes of
-    confirmed_close_problems and s1_run._pre_intent_qualified; every other reader keeps _calendar."""
+    confirmed_close_problems and s1_run._pre_intent_qualified; every other reader keeps _calendar.
+    Fix round 1 (Codex X-18 / H5CFIX2-CX-1): calendar.json is read ONCE; the hash of THAT buffer is compared with the
+    manifest's record and THAT buffer is parsed (strict utf-8 + json.loads, as c.load_json - a BOM still fails), so
+    the rows returned are the bytes verified. A UnicodeDecodeError is a ValueError (covered)."""
     out = Path(gv.out)
     try:
         man = c.load_json(out / "audit" / "manifest.json")
-        if man["files"]["calendar.json"] != c.sha256_file(out / "audit" / "calendar.json"):
+        raw = (out / "audit" / "calendar.json").read_bytes()              # the one read: hashed AND parsed
+        if man["files"]["calendar.json"] != c.sha256_bytes(raw):
             return None
-        return z.calendar_rows(c.load_json(out / "audit" / "calendar.json"))
+        return z.calendar_rows(json.loads(raw.decode("utf-8")))
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return None
 

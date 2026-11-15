@@ -844,16 +844,17 @@ def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, mon
 
 # ---------------------------------------------------------------- A3 H5c-FIX2 (Codex X-17 / H5CFIX-CX-1)
 def _deny_registered_calendar(monkeypatch, root, armed):
-    """c.sha256_file raises PermissionError for the REAL audit/calendar.json path once `armed` is non-empty (the
-    injection is at the hash-read boundary: no calendar function's output is replaced). Returns the denied paths."""
-    calendar, real, denied = Path(root) / "s1_out" / "audit" / "calendar.json", c.sha256_file, []
+    """Path.read_bytes raises PermissionError for the REAL audit/calendar.json path once `armed` is non-empty (fix
+    round 1, X-18: the injection is at the helper's one direct read; no calendar function's output is replaced).
+    Returns the denied paths."""
+    calendar, real, denied = Path(root) / "s1_out" / "audit" / "calendar.json", Path.read_bytes, []
 
-    def sha(p):
-        if armed and Path(p) == calendar:
-            denied.append(str(p))
+    def rb(self):
+        if armed and self == calendar:
+            denied.append(str(self))
             raise PermissionError(13, "injected registered-calendar read failure")
-        return real(p)
-    monkeypatch.setattr(c, "sha256_file", sha)
+        return real(self)
+    monkeypatch.setattr(Path, "read_bytes", rb)
     return denied
 
 

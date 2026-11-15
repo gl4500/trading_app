@@ -322,3 +322,66 @@ FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calen
 FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[calendar-malformed]
 FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[permission]
 9 failed, 113 deselected in 21.58s
+
+# ===================== Fix round 1 (Codex X-18 / H5CFIX2-CX-1) RED at HEAD c61ccd3 (tests changed, product unchanged)
+# cmd: PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_score.py research/s1/s1_tests/test_s1_a3_m4_pass.py -k "h5cfix2 or calendar_is_fresh" -q
+# RED: test_h5cfix2_confirming_calendar_parses_only_the_verified_bytes[replaced-after-read] (AssertionError: B parsed, not verified A).
+# The other 12 pass on c61ccd3: the moved Path.read_bytes injections also reach c.sha256_file's own read_bytes, and [read-bytes-not-the-record] is a control.
+...........F.                                                            [100%]
+================================== FAILURES ===================================
+_ test_h5cfix2_confirming_calendar_parses_only_the_verified_bytes[replaced-after-read] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21654/test_h5cfix2_confirming_calend8')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019B5A25BC50>
+case = 'replaced-after-read'
+
+    @pytest.mark.parametrize("case", ["replaced-after-read", "read-bytes-not-the-record"])
+    def test_h5cfix2_confirming_calendar_parses_only_the_verified_bytes(tmp_path, monkeypatch, case):   # X-18 (binding)
+        """Fix round 1 (Codex X-18 / H5CFIX2-CX-1): the strict read binds the ONE byte sequence it consumes.
+        replaced-after-read: the read of audit/calendar.json returns the verified bytes A, and then (inside that read,
+        after A is captured) the file on disk is replaced with different valid calendar bytes B - the helper returns the
+        rows parsed from A (the manifest-verified calendar), never B. read-bytes-not-the-record (control): the bytes read
+        are B (not the manifest's record) while A is on disk - None."""
+        s1_state(tmp_path, START)                                             # a real audit (manifest records SHA256(A))
+        out = tmp_path / "s1_out"
+        cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+        gv = _cal_gv(tmp_path)
+        strict = getattr(sl, "_confirming_calendar", None)
+        assert callable(strict), "s1_slot._confirming_calendar does not exist"
+        a = cal_p.read_bytes()
+        assert json.loads(man_p.read_bytes())["files"]["calendar.json"] == c.sha256_bytes(a)
+        verified = z.calendar_rows(json.loads(a.decode("utf-8")))
+        raw = json.loads(a.decode("utf-8"))
+        b = json.dumps([dict(x, close="13:00") if i == 0 else x for i, x in enumerate(raw)]).encode("utf-8")
+        assert b != a and z.calendar_rows(json.loads(b)) != verified          # B: a different, valid calendar
+        real, reads = Path.read_bytes, []
+    
+        def rb(self):
+            if self != cal_p:
+                return real(self)
+            reads.append(str(self))
+            if case == "read-bytes-not-the-record":
+                return b                                                      # the consumed bytes are not the record
+            got = real(self)                                                  # A, captured...
+            if len(reads) == 1:
+                with open(cal_p, "wb") as f:                                  # ...then B replaces it on disk
+                    f.write(b)
+            return got
+        monkeypatch.setattr(Path, "read_bytes", rb)
+        got = strict(gv)
+        assert reads, "the strict read must read audit/calendar.json"
+        if case == "read-bytes-not-the-record":
+            assert got is None, got
+            return
+        assert cal_p.read_bytes() == b                                        # the replacement happened
+>       assert got == verified, f"the strict read returned bytes never verified against the manifest: {str(got)[:200]}"
+E       AssertionError: the strict read returned bytes never verified against the manifest: [{'date': '2026-09-16', 'open': '09:30', 'close': '13:00'}, {'date': '2026-09-17', 'open': '09:30', 'close': '16:00'}, {'date': '2026-09-18', 'open': '09:30', 'close': '16:00'}, {'date': '2026-09-21',
+E       assert [{'close': '1...'09:30'}, ...] == [{'close': '1...'09:30'}, ...]
+E         
+E         At index 0 diff: {'date': '2026-09-16', 'open': '09:30', 'close': '13:00'} != {'date': '2026-09-16', 'open': '09:30', 'close': '16:00'}
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:821: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_parses_only_the_verified_bytes[replaced-after-read]
+1 failed, 12 passed, 111 deselected in 41.35s

@@ -690,28 +690,28 @@ CLOSE_CAL = (r"^close 2026-10-2\d: the registered calendar is unreadable or diff
 
 
 def test_h5cfix2_close_confirming_calendar_read_failure_refuses(tmp_path, monkeypatch):     # X-17 (close path)
-    """confirmed_close_problems: a problem seen in pass 1, then the registered calendar's hash read fails (injected at
-    the real c.sha256_file boundary for audit/calendar.json, only after the first pass): refused with no row, never the
-    prereg fallback confirming the problem."""
+    """confirmed_close_problems: a problem seen in pass 1, then the registered calendar's read fails (injected at the
+    helper's one direct Path.read_bytes of audit/calendar.json - fix round 1, X-18 - only after the first pass):
+    refused with no row, never the prereg fallback confirming the problem."""
     st_ = three_qualified(tmp_path)
     cal, out = st_["calendar"], tmp_path / "s1_out"
     member = trees(tmp_path)[0]
     member.write_bytes(member.read_bytes() + b"x")                        # pass 1: changed (a problem)
     day = sl.day_for(sl.slot_of("slot/" + member.parent.name), cal)
-    calendar, real_sha, denied, passes = out / "audit" / "calendar.json", c.sha256_file, [], []
+    calendar, real_rb, denied, passes = out / "audit" / "calendar.json", Path.read_bytes, [], []
 
-    def sha(p):
-        if passes and Path(p) == calendar:
-            denied.append(str(p))
+    def rb(self):
+        if passes and self == calendar:
+            denied.append(str(self))
             raise PermissionError(13, "injected registered-calendar read failure")
-        return real_sha(p)
+        return real_rb(self)
     real_cp = sl.close_problems
 
     def cp(*a, **kw):
         got = real_cp(*a, **kw)
         passes.append(1)                                                  # armed after the first pass
         return got
-    monkeypatch.setattr(c, "sha256_file", sha)
+    monkeypatch.setattr(Path, "read_bytes", rb)
     monkeypatch.setattr(sl, "close_problems", cp)
     before = [x.sha for x in jrows(tmp_path)]
     gv = _gv(tmp_path)
@@ -764,12 +764,58 @@ def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):       
         m["files"]["calendar.json"] = c.sha256_file(cal_p)               # hashes to the record, yet unparseable
         man_p.write_text(json.dumps(m), encoding="utf-8")
     else:
-        real = c.sha256_file
+        real, denied = Path.read_bytes, []
 
-        def sha(p):
-            if Path(p) == cal_p:
+        def rb(self):                                                     # fix round 1 (X-18): the one direct read
+            if self == cal_p:
+                denied.append(str(self))
                 raise PermissionError(13, "injected registered-calendar read failure")
-            return real(p)
-        monkeypatch.setattr(c, "sha256_file", sha)
+            return real(self)
+        monkeypatch.setattr(Path, "read_bytes", rb)
     assert sl._calendar(gv) is not None                                   # the lenient read still finds a fallback
+    seen = len(denied) if case == "permission" else 0
     assert strict(gv) is None
+    if case == "permission":
+        assert len(denied) > seen, "the registered-calendar read failure must be exercised by the strict read"
+
+
+@pytest.mark.parametrize("case", ["replaced-after-read", "read-bytes-not-the-record"])
+def test_h5cfix2_confirming_calendar_parses_only_the_verified_bytes(tmp_path, monkeypatch, case):   # X-18 (binding)
+    """Fix round 1 (Codex X-18 / H5CFIX2-CX-1): the strict read binds the ONE byte sequence it consumes.
+    replaced-after-read: the read of audit/calendar.json returns the verified bytes A, and then (inside that read,
+    after A is captured) the file on disk is replaced with different valid calendar bytes B - the helper returns the
+    rows parsed from A (the manifest-verified calendar), never B. read-bytes-not-the-record (control): the bytes read
+    are B (not the manifest's record) while A is on disk - None."""
+    s1_state(tmp_path, START)                                             # a real audit (manifest records SHA256(A))
+    out = tmp_path / "s1_out"
+    cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+    gv = _cal_gv(tmp_path)
+    strict = getattr(sl, "_confirming_calendar", None)
+    assert callable(strict), "s1_slot._confirming_calendar does not exist"
+    a = cal_p.read_bytes()
+    assert json.loads(man_p.read_bytes())["files"]["calendar.json"] == c.sha256_bytes(a)
+    verified = z.calendar_rows(json.loads(a.decode("utf-8")))
+    raw = json.loads(a.decode("utf-8"))
+    b = json.dumps([dict(x, close="13:00") if i == 0 else x for i, x in enumerate(raw)]).encode("utf-8")
+    assert b != a and z.calendar_rows(json.loads(b)) != verified          # B: a different, valid calendar
+    real, reads = Path.read_bytes, []
+
+    def rb(self):
+        if self != cal_p:
+            return real(self)
+        reads.append(str(self))
+        if case == "read-bytes-not-the-record":
+            return b                                                      # the consumed bytes are not the record
+        got = real(self)                                                  # A, captured...
+        if len(reads) == 1:
+            with open(cal_p, "wb") as f:                                  # ...then B replaces it on disk
+                f.write(b)
+        return got
+    monkeypatch.setattr(Path, "read_bytes", rb)
+    got = strict(gv)
+    assert reads, "the strict read must read audit/calendar.json"
+    if case == "read-bytes-not-the-record":
+        assert got is None, got
+        return
+    assert cal_p.read_bytes() == b                                        # the replacement happened
+    assert got == verified, f"the strict read returned bytes never verified against the manifest: {str(got)[:200]}"
