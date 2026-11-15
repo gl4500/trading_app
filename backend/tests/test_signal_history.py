@@ -1,7 +1,32 @@
 """Tests for data/signal_history.py — return feature augmentation."""
+import os
 import unittest
 
 import numpy as np
+
+
+# Some feature tests reach data.sector_lookup.get_sectors() unpatched, which
+# persists to backend/data/sectors.json. Point the cache at a temp dir instead.
+_PROD_SECTORS_CACHE_PATH = None
+_TEMP_SECTORS_DIR = None
+
+
+def setUpModule():
+    global _PROD_SECTORS_CACHE_PATH, _TEMP_SECTORS_DIR
+    import tempfile
+    import data.sector_lookup as sector_lookup
+    _PROD_SECTORS_CACHE_PATH = sector_lookup.SECTORS_CACHE_PATH
+    _TEMP_SECTORS_DIR = tempfile.mkdtemp(prefix="test_sectors_")
+    sector_lookup.SECTORS_CACHE_PATH = os.path.join(_TEMP_SECTORS_DIR, "sectors.json")
+
+
+def tearDownModule():
+    import shutil
+    import data.sector_lookup as sector_lookup
+    if _PROD_SECTORS_CACHE_PATH is not None:
+        sector_lookup.SECTORS_CACHE_PATH = _PROD_SECTORS_CACHE_PATH
+    if _TEMP_SECTORS_DIR:
+        shutil.rmtree(_TEMP_SECTORS_DIR, ignore_errors=True)
 
 
 class TestComputeReturnFeatures(unittest.TestCase):
@@ -1236,3 +1261,17 @@ class TestGetLatestRv20d(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSectorCacheIsolation(unittest.TestCase):
+    """Tests must never write the production sector cache (backend/data/sectors.json)."""
+
+    def test_sector_cache_path_redirected_to_temp(self):
+        import os
+        import tempfile
+        import data.sector_lookup as sector_lookup
+        prod = os.path.normcase(os.path.realpath(os.path.join(
+            os.path.dirname(sector_lookup.__file__), "sectors.json")))
+        current = os.path.normcase(os.path.realpath(sector_lookup.SECTORS_CACHE_PATH))
+        self.assertNotEqual(current, prod)
+        self.assertTrue(current.startswith(os.path.normcase(os.path.realpath(tempfile.gettempdir()))))
