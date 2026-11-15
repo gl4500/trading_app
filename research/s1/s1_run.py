@@ -802,8 +802,9 @@ def score(root, ack_id: str, *, mailbox=None) -> dict:
         else:
             inputs = {"final/manifest.json": c.sha_or_absent(out / "final" / "manifest.json"),
                       "attest_stop.json": c.sha_or_absent(out / "attest_stop.json"), "sampled_history": history}
-    except s1_slot.QualifiedEvidence:                       # A3 H5c (T13 N-1): the F3 signal (a ValueError), never
-        _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+    except s1_slot.QualifiedEvidence as e:                  # A3 H5c (T13 N-1): the F3 signal (a ValueError), never
+        _pre_intent_qualified(gv, out, pr, stop_row, mailbox,      # "unreadable"; QualifiedUnreadable (a SystemExit)
+                              first=e.identity)                    # H5c-FIX (X-16): only the first identity passes
     except (OSError, ValueError, KeyError, TypeError) as e:  # and ListingRefusal propagate (refusals, never caught here)
         raise SystemExit(f"score refused: sampled history unreadable ({type(e).__name__}): "
                          f"nothing written") from None
@@ -834,20 +835,49 @@ def score(root, ack_id: str, *, mailbox=None) -> dict:
     return _load(out / "score" / "s1.json")
 
 
-def _pre_intent_qualified(gv, out: Path, pr: dict, stop_row, mailbox) -> None:
+def _qe_label(identity) -> str:
+    """H5c-FIX: a QualifiedEvidence identity for a refusal text ('<subject> [<kind>, <category>, <member>]' or
+    '<subject> [<kind>, <commitment>]', or 'unidentified')."""
+    return "unidentified" if identity is None else f"{identity[0]} [{', '.join(identity[1:])}]"
+
+
+def _pre_intent_qualified(gv, out: Path, pr: dict, stop_row, mailbox, *, first) -> None:
     """A3 H5c (T13 N-1; I-1, I-4): a QualifiedEvidence raised by the score's pre-INTENT sampled-history computation (a
-    race past the gate's F3 table) is the F3 signal, confirmed on a re-read before any INVALID: the journal rows are
-    read again and the sampled seals recomputed once over them. A second QualifiedEvidence -> the F3 violation
-    (s1_slot.evidence_violation: TRIAL-INVALID registration-artifact, then the local abort while s1_out exists); a
-    clean recomputation -> refused with no row (not confirmed); an OSError or journal failure on the re-read (or any
-    other error of the recomputation) -> refused with no row, never INVALID. Never catches QualifiedUnreadable or
-    ListingRefusal (SystemExits: they propagate as refusals). Always raises."""
+    race past the gate's F3 table) is the F3 signal, confirmed on a re-read before any INVALID.
+    A3 H5c-FIX (Codex X-16 / H5C-CX-1; Erratum 2 r4 G3.1, as s1_slot.confirmed_close_problems): `first` is the first
+    observation's structured identity (QualifiedEvidence.identity, amendment A1: (slot subject, kind, category, expected
+    member) for a member-local fault, (slot subject, kind, committed detail) for a tree mismatch; None when missing or
+    invalid, A2) - nothing else of the first pass reaches here. The confirming pass is a NEW pass: fresh journal rows, a fresh read of the registered
+    calendar (unreadable, or different from the command's pr["calendar"], refuses with no row), a fresh bundle check
+    against the trial's AUDIT-ACK bundle (OP-14; differs -> refused with no row), the pin verified again (c.sim(); a
+    failure is its SystemExit, a refusal) and the sampled seals recomputed over those rows and that calendar (every
+    QUALIFIED tree hashed again: sampled_seals keeps no pass state). The trial START and the STOP seq are the command's
+    verified identity (as `day` in confirmed_close_problems). sampled_seals raises on the FIRST problem in eligible
+    close order, so only that raised observation is compared. The SAME identity raised again -> the F3 violation
+    (s1_slot.evidence_violation: TRIAL-INVALID registration-artifact, then the local abort while s1_out exists, on the
+    confirming observation's text); a different subject, the same subject with another kind, or an unidentified
+    observation in either pass -> refused with no row (not confirmed); a clean recomputation -> refused with no row;
+    an OSError or journal failure on the re-read (or any other error of the recomputation) -> refused with no row,
+    never INVALID. Never catches QualifiedUnreadable or ListingRefusal (SystemExits: they propagate as refusals).
+    Always raises."""
     import s1_journal as j
     import s1_slot
     try:
         rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox)
-        z.sampled_seals(out, rows, pr["calendar"], c.aware(pr["start"]), upto_seq=stop_row.seq)
+        fresh = s1_slot._calendar(gv)
+        if fresh is None or fresh != pr["calendar"]:
+            raise SystemExit("score refused: the registered calendar is unreadable or differs from the command's in "
+                             "the confirming pass: refused with no row (G3.1, fail closed)")
+        if c.bundle_sha256() != gv.trial.bundle:
+            raise SystemExit("score refused: the S1 bundle differs from the trial's AUDIT-ACK bundle in the confirming "
+                             "pass: refused with no row (ruling OP-14)")
+        c.sim()                                          # G3.2: the confirming pass verifies the pin again
+        z.sampled_seals(out, rows, fresh, c.aware(pr["start"]), upto_seq=stop_row.seq)
     except s1_slot.QualifiedEvidence as e:
+        again = e.identity
+        if first is None or again != first:
+            raise SystemExit(f"score refused: a QUALIFIED tree problem was not confirmed on a re-read (first "
+                             f"{_qe_label(first)}; re-read {_qe_label(again)}): refused with no row") from None
         s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
         raise                                            # (unreachable: evidence_violation raises its Refusal)
     except (OSError, j.JournalError, ValueError, KeyError, TypeError) as e:

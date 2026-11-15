@@ -1,0 +1,2938 @@
+# A3 H5c-FIX behavioural RED, amendment round A1-A3 (supersedes the round-1 RED, sha256 6f64d85c51846d4f7dd3fe923fb2a67b0eab7fd749199d2b0164730595a2cc2f, which ran in the worktree before the product edits).
+# Tree: a full scratch copy of base ca13ab6 research/s1 (git archive HEAD | tar) at /c/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5cfix_redbase, with ONLY s1_tests/test_s1_a3_score.py replaced by the final amended test file. sha256: s1_run.py 983d002bd5683e8306c4180d86723043921a38555769101910c426e096584235 s1_slot.py 395b2f7c004220b6260feff61a5ba08d192b398de756b9b7b03c4c8d37474bcb (= ca13ab6) test_s1_a3_score.py 89f9a3668a445629b5ccc973a4f4f5b2690158eeacf724bf200e5e9b8e4651cf.
+# cmd (cwd = that copy): PYTHONPATH="research/s1;research/s1/s1_tests" testenv/Scripts/python.exe -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_score.py -k "pre_intent or h5cfix" -q -rf
+# Result: 27 new nodes -> 25 FAILED, each by AssertionError (25 '<file>:<line>: AssertionError' location lines, no other exception type at a failure location); passed on base: the 7 existing pre_intent nodes + the 2 synthetic same-identity controls. The 6 real end-to-end scenarios all fail on base: the 3 non-confirming ones by the INVALID the base commits, the 3 confirming ones by the A3 executed-pin-path assertion (the base helper never calls c.sim()).
+.......FFFFFF..FFFFFFFFFFFFFFFFFFF                                       [100%]
+================================== FAILURES ===================================
+____________ test_h5cfix_different_slots_do_not_confirm_each_other ____________
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261027T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261027T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_different_slots_do0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\...iffers\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='b659619c-ce0a-47b7-898e-85d9a9825360', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261027T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261027T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_different_slots_do0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C88CBF80>
+
+    def test_h5cfix_different_slots_do_not_confirm_each_other(tmp_path, monkeypatch):       # X-16 (Codex's regression)
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        a, b = _diff(D1), _diff(D2)
+        calls = _two_observations(monkeypatch, a, b)
+>       _score_refused_no_row(tmp_path, st_, _not_same(a, b))
+
+research\s1\s1_tests\test_s1_a3_score.py:594: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_different_slots_do0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\...iffers\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]; re-read slot/20261027T204500Z\\ \\[differs\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261027T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+__ test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs] __
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\...iffers\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='13b52155-6105-4b48-a10f-885912c81bc5', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C831EF60>
+order = 'missing-then-differs'
+
+    @pytest.mark.parametrize("order", ["missing-then-differs", "differs-then-missing"])
+    def test_h5cfix_same_slot_changed_kind_does_not_confirm(tmp_path, monkeypatch, order):  # X-16 (changed problem)
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        a, b = _miss(D1), _diff(D1)
+        if order == "differs-then-missing":
+            a, b = b, a
+        calls = _two_observations(monkeypatch, a, b)
+>       _score_refused_no_row(tmp_path, st_, _not_same(a, b))
+
+research\s1\s1_tests\test_s1_a3_score.py:605: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\...iffers\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\-or\\-unreadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]; re-read slot/20261026T204500Z\\ \\[differs\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+__ test_h5cfix_same_slot_changed_kind_does_not_confirm[differs-then-missing] __
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_1')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\...eadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='966b865a-5b42-424e-bc4e-9a835fac76da', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C8921400>
+order = 'differs-then-missing'
+
+    @pytest.mark.parametrize("order", ["missing-then-differs", "differs-then-missing"])
+    def test_h5cfix_same_slot_changed_kind_does_not_confirm(tmp_path, monkeypatch, order):  # X-16 (changed problem)
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        a, b = _miss(D1), _diff(D1)
+        if order == "differs-then-missing":
+            a, b = b, a
+        calls = _two_observations(monkeypatch, a, b)
+>       _score_refused_no_row(tmp_path, st_, _not_same(a, b))
+
+research\s1\s1_tests\test_s1_a3_score.py:605: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_1')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\...eadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]; re-read slot/20261026T204500Z\\ \\[missing\\-or\\-unreadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+______ test_h5cfix_same_slot_changed_evidence_does_not_confirm[category] ______
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (JSONDecodeError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (JSONDecodeError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_2')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\...-unreadable,\\ unparseable,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='e8e5641f-183c-4a29-b857-6efa4cb7985a', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (JSONDecodeError)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (JSONDecodeError)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C8920920>
+change = 'category'
+
+    @pytest.mark.parametrize("change", ["category", "member", "commitment"])
+    def test_h5cfix_same_slot_changed_evidence_does_not_confirm(tmp_path, monkeypatch, change):   # A1 (synthetic)
+        """Same slot and kind, another category / expected member / committed tree: not the same observation."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        a, b = {"category": (_miss(D1), _miss(D1, QE_UNPARSEABLE, err="JSONDecodeError")),
+                "member": (_miss(D1), _miss(D1, member="captures/2026-10-26/20261026T204500Z/meta.json")),
+                "commitment": (_diff(D1), _diff(D1, "d" * 64))}[change]
+        _two_observations(monkeypatch, a, b)
+>       _score_refused_no_row(tmp_path, st_, _not_same(a, b))
+
+research\s1\s1_tests\test_s1_a3_score.py:617: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_2')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\...-unreadable,\\ unparseable,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\-or\\-unreadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]; re-read slot/20261026T204500Z\\ \\[missing\\-or\\-unreadable,\\ unparseable,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (JSONDecodeError)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+_______ test_h5cfix_same_slot_changed_evidence_does_not_confirm[member] _______
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_3')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\...or\\-unreadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z/meta\\.json\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='e6c60912-545b-4c69-9525-9398c7799684', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9C88F80>
+change = 'member'
+
+    @pytest.mark.parametrize("change", ["category", "member", "commitment"])
+    def test_h5cfix_same_slot_changed_evidence_does_not_confirm(tmp_path, monkeypatch, change):   # A1 (synthetic)
+        """Same slot and kind, another category / expected member / committed tree: not the same observation."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        a, b = {"category": (_miss(D1), _miss(D1, QE_UNPARSEABLE, err="JSONDecodeError")),
+                "member": (_miss(D1), _miss(D1, member="captures/2026-10-26/20261026T204500Z/meta.json")),
+                "commitment": (_diff(D1), _diff(D1, "d" * 64))}[change]
+        _two_observations(monkeypatch, a, b)
+>       _score_refused_no_row(tmp_path, st_, _not_same(a, b))
+
+research\s1\s1_tests\test_s1_a3_score.py:617: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_3')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\...or\\-unreadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z/meta\\.json\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\-or\\-unreadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]; re-read slot/20261026T204500Z\\ \\[missing\\-or\\-unreadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z/meta\\.json\\]\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+_____ test_h5cfix_same_slot_changed_evidence_does_not_confirm[commitment] _____
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_4')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\...iffers\\-from\\-detail,\\ dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='6c455be0-969f-40a8-b076-647efb2c48b0', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C99E5E50>
+change = 'commitment'
+
+    @pytest.mark.parametrize("change", ["category", "member", "commitment"])
+    def test_h5cfix_same_slot_changed_evidence_does_not_confirm(tmp_path, monkeypatch, change):   # A1 (synthetic)
+        """Same slot and kind, another category / expected member / committed tree: not the same observation."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        a, b = {"category": (_miss(D1), _miss(D1, QE_UNPARSEABLE, err="JSONDecodeError")),
+                "member": (_miss(D1), _miss(D1, member="captures/2026-10-26/20261026T204500Z/meta.json")),
+                "commitment": (_diff(D1), _diff(D1, "d" * 64))}[change]
+        _two_observations(monkeypatch, a, b)
+>       _score_refused_no_row(tmp_path, st_, _not_same(a, b))
+
+research\s1\s1_tests\test_s1_a3_score.py:617: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_same_slot_changed_4')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\...iffers\\-from\\-detail,\\ dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\\]\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]; re-read slot/20261026T204500Z\\ \\[differs\\-from\\-detail,\\ dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\\]\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+_____ test_h5cfix_a_missing_or_invalid_identity_never_confirms[untagged] ______
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='aa6cf58d-d2d4-4430-a577-3f418eafda5c', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C888C8C0>
+bad = 'untagged'
+
+    @pytest.mark.parametrize("bad", ["untagged", "no-subject", "empty-subject", "unknown-kind", "missing-no-category",
+                                     "missing-unknown-category", "missing-no-member", "differs-no-commitment"])
+    def test_h5cfix_a_missing_or_invalid_identity_never_confirms(tmp_path, monkeypatch, bad):    # A2
+        """A QualifiedEvidence without a valid structured identity is no confirmable observation: twice the same object
+        (the same text, the same attributes) is refused with no row - never None == None."""
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        text = DIFF_TEXT.format(D1)
+    
+        def make():
+            if bad == "untagged":
+                return s1_slot.QualifiedEvidence(text)
+            e = _miss(D1) if bad.startswith("missing") else _diff(D1)
+            if bad == "no-subject":
+                e.subject = None
+            elif bad == "empty-subject":
+                e.subject = ""
+            elif bad == "unknown-kind":
+                e.kind = "something-else"
+            elif bad == "missing-no-category":
+                e.category = None
+            elif bad == "missing-unknown-category":
+                e.category = "unreadable"
+            elif bad == "missing-no-member":
+                e.member = ""
+            else:
+                e.commitment = None
+            return e
+        calls = _two_observations(monkeypatch, make(), make())
+>       _score_refused_no_row(tmp_path, st_, _not_same(None, None))
+
+research\s1\s1_tests\test_s1_a3_score.py:658: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+____ test_h5cfix_a_missing_or_invalid_identity_never_confirms[no-subject] _____
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval1')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='6a5ddc61-c353-4cbd-8caf-d90f6abc740e', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9CAB980>
+bad = 'no-subject'
+
+    @pytest.mark.parametrize("bad", ["untagged", "no-subject", "empty-subject", "unknown-kind", "missing-no-category",
+                                     "missing-unknown-category", "missing-no-member", "differs-no-commitment"])
+    def test_h5cfix_a_missing_or_invalid_identity_never_confirms(tmp_path, monkeypatch, bad):    # A2
+        """A QualifiedEvidence without a valid structured identity is no confirmable observation: twice the same object
+        (the same text, the same attributes) is refused with no row - never None == None."""
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        text = DIFF_TEXT.format(D1)
+    
+        def make():
+            if bad == "untagged":
+                return s1_slot.QualifiedEvidence(text)
+            e = _miss(D1) if bad.startswith("missing") else _diff(D1)
+            if bad == "no-subject":
+                e.subject = None
+            elif bad == "empty-subject":
+                e.subject = ""
+            elif bad == "unknown-kind":
+                e.kind = "something-else"
+            elif bad == "missing-no-category":
+                e.category = None
+            elif bad == "missing-unknown-category":
+                e.category = "unreadable"
+            elif bad == "missing-no-member":
+                e.member = ""
+            else:
+                e.commitment = None
+            return e
+        calls = _two_observations(monkeypatch, make(), make())
+>       _score_refused_no_row(tmp_path, st_, _not_same(None, None))
+
+research\s1\s1_tests\test_s1_a3_score.py:658: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval1')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+___ test_h5cfix_a_missing_or_invalid_identity_never_confirms[empty-subject] ___
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval2')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='db68e6aa-0931-4bb4-b88d-50e81f207ef1', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C831EA50>
+bad = 'empty-subject'
+
+    @pytest.mark.parametrize("bad", ["untagged", "no-subject", "empty-subject", "unknown-kind", "missing-no-category",
+                                     "missing-unknown-category", "missing-no-member", "differs-no-commitment"])
+    def test_h5cfix_a_missing_or_invalid_identity_never_confirms(tmp_path, monkeypatch, bad):    # A2
+        """A QualifiedEvidence without a valid structured identity is no confirmable observation: twice the same object
+        (the same text, the same attributes) is refused with no row - never None == None."""
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        text = DIFF_TEXT.format(D1)
+    
+        def make():
+            if bad == "untagged":
+                return s1_slot.QualifiedEvidence(text)
+            e = _miss(D1) if bad.startswith("missing") else _diff(D1)
+            if bad == "no-subject":
+                e.subject = None
+            elif bad == "empty-subject":
+                e.subject = ""
+            elif bad == "unknown-kind":
+                e.kind = "something-else"
+            elif bad == "missing-no-category":
+                e.category = None
+            elif bad == "missing-unknown-category":
+                e.category = "unreadable"
+            elif bad == "missing-no-member":
+                e.member = ""
+            else:
+                e.commitment = None
+            return e
+        calls = _two_observations(monkeypatch, make(), make())
+>       _score_refused_no_row(tmp_path, st_, _not_same(None, None))
+
+research\s1\s1_tests\test_s1_a3_score.py:658: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval2')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+___ test_h5cfix_a_missing_or_invalid_identity_never_confirms[unknown-kind] ____
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval3')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='88f63bbc-349f-4e94-aa7f-0c0d6201271f', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9CBE690>
+bad = 'unknown-kind'
+
+    @pytest.mark.parametrize("bad", ["untagged", "no-subject", "empty-subject", "unknown-kind", "missing-no-category",
+                                     "missing-unknown-category", "missing-no-member", "differs-no-commitment"])
+    def test_h5cfix_a_missing_or_invalid_identity_never_confirms(tmp_path, monkeypatch, bad):    # A2
+        """A QualifiedEvidence without a valid structured identity is no confirmable observation: twice the same object
+        (the same text, the same attributes) is refused with no row - never None == None."""
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        text = DIFF_TEXT.format(D1)
+    
+        def make():
+            if bad == "untagged":
+                return s1_slot.QualifiedEvidence(text)
+            e = _miss(D1) if bad.startswith("missing") else _diff(D1)
+            if bad == "no-subject":
+                e.subject = None
+            elif bad == "empty-subject":
+                e.subject = ""
+            elif bad == "unknown-kind":
+                e.kind = "something-else"
+            elif bad == "missing-no-category":
+                e.category = None
+            elif bad == "missing-unknown-category":
+                e.category = "unreadable"
+            elif bad == "missing-no-member":
+                e.member = ""
+            else:
+                e.commitment = None
+            return e
+        calls = _two_observations(monkeypatch, make(), make())
+>       _score_refused_no_row(tmp_path, st_, _not_same(None, None))
+
+research\s1\s1_tests\test_s1_a3_score.py:658: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval3')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+_ test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-no-category] _
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval4')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='9c45b804-1877-4a21-ba8d-b928a012cf55', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C99E4A40>
+bad = 'missing-no-category'
+
+    @pytest.mark.parametrize("bad", ["untagged", "no-subject", "empty-subject", "unknown-kind", "missing-no-category",
+                                     "missing-unknown-category", "missing-no-member", "differs-no-commitment"])
+    def test_h5cfix_a_missing_or_invalid_identity_never_confirms(tmp_path, monkeypatch, bad):    # A2
+        """A QualifiedEvidence without a valid structured identity is no confirmable observation: twice the same object
+        (the same text, the same attributes) is refused with no row - never None == None."""
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        text = DIFF_TEXT.format(D1)
+    
+        def make():
+            if bad == "untagged":
+                return s1_slot.QualifiedEvidence(text)
+            e = _miss(D1) if bad.startswith("missing") else _diff(D1)
+            if bad == "no-subject":
+                e.subject = None
+            elif bad == "empty-subject":
+                e.subject = ""
+            elif bad == "unknown-kind":
+                e.kind = "something-else"
+            elif bad == "missing-no-category":
+                e.category = None
+            elif bad == "missing-unknown-category":
+                e.category = "unreadable"
+            elif bad == "missing-no-member":
+                e.member = ""
+            else:
+                e.commitment = None
+            return e
+        calls = _two_observations(monkeypatch, make(), make())
+>       _score_refused_no_row(tmp_path, st_, _not_same(None, None))
+
+research\s1\s1_tests\test_s1_a3_score.py:658: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval4')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+_ test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-unknown-category] _
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval5')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='c74fec1f-dde9-4e9a-bec2-868a9533bdc5', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C99656A0>
+bad = 'missing-unknown-category'
+
+    @pytest.mark.parametrize("bad", ["untagged", "no-subject", "empty-subject", "unknown-kind", "missing-no-category",
+                                     "missing-unknown-category", "missing-no-member", "differs-no-commitment"])
+    def test_h5cfix_a_missing_or_invalid_identity_never_confirms(tmp_path, monkeypatch, bad):    # A2
+        """A QualifiedEvidence without a valid structured identity is no confirmable observation: twice the same object
+        (the same text, the same attributes) is refused with no row - never None == None."""
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        text = DIFF_TEXT.format(D1)
+    
+        def make():
+            if bad == "untagged":
+                return s1_slot.QualifiedEvidence(text)
+            e = _miss(D1) if bad.startswith("missing") else _diff(D1)
+            if bad == "no-subject":
+                e.subject = None
+            elif bad == "empty-subject":
+                e.subject = ""
+            elif bad == "unknown-kind":
+                e.kind = "something-else"
+            elif bad == "missing-no-category":
+                e.category = None
+            elif bad == "missing-unknown-category":
+                e.category = "unreadable"
+            elif bad == "missing-no-member":
+                e.member = ""
+            else:
+                e.commitment = None
+            return e
+        calls = _two_observations(monkeypatch, make(), make())
+>       _score_refused_no_row(tmp_path, st_, _not_same(None, None))
+
+research\s1\s1_tests\test_s1_a3_score.py:658: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval5')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+_ test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-no-member] _
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval6')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='23136d5d-c428-4a89-ad99-49cdb52117bf', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9967B30>
+bad = 'missing-no-member'
+
+    @pytest.mark.parametrize("bad", ["untagged", "no-subject", "empty-subject", "unknown-kind", "missing-no-category",
+                                     "missing-unknown-category", "missing-no-member", "differs-no-commitment"])
+    def test_h5cfix_a_missing_or_invalid_identity_never_confirms(tmp_path, monkeypatch, bad):    # A2
+        """A QualifiedEvidence without a valid structured identity is no confirmable observation: twice the same object
+        (the same text, the same attributes) is refused with no row - never None == None."""
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        text = DIFF_TEXT.format(D1)
+    
+        def make():
+            if bad == "untagged":
+                return s1_slot.QualifiedEvidence(text)
+            e = _miss(D1) if bad.startswith("missing") else _diff(D1)
+            if bad == "no-subject":
+                e.subject = None
+            elif bad == "empty-subject":
+                e.subject = ""
+            elif bad == "unknown-kind":
+                e.kind = "something-else"
+            elif bad == "missing-no-category":
+                e.category = None
+            elif bad == "missing-unknown-category":
+                e.category = "unreadable"
+            elif bad == "missing-no-member":
+                e.member = ""
+            else:
+                e.commitment = None
+            return e
+        calls = _two_observations(monkeypatch, make(), make())
+>       _score_refused_no_row(tmp_path, st_, _not_same(None, None))
+
+research\s1\s1_tests\test_s1_a3_score.py:658: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval6')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+_ test_h5cfix_a_missing_or_invalid_identity_never_confirms[differs-no-commitment] _
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval7')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='fdcf82fb-63d4-46b1-be52-3a6e6c47d349', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C99E4200>
+bad = 'differs-no-commitment'
+
+    @pytest.mark.parametrize("bad", ["untagged", "no-subject", "empty-subject", "unknown-kind", "missing-no-category",
+                                     "missing-unknown-category", "missing-no-member", "differs-no-commitment"])
+    def test_h5cfix_a_missing_or_invalid_identity_never_confirms(tmp_path, monkeypatch, bad):    # A2
+        """A QualifiedEvidence without a valid structured identity is no confirmable observation: twice the same object
+        (the same text, the same attributes) is refused with no row - never None == None."""
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        text = DIFF_TEXT.format(D1)
+    
+        def make():
+            if bad == "untagged":
+                return s1_slot.QualifiedEvidence(text)
+            e = _miss(D1) if bad.startswith("missing") else _diff(D1)
+            if bad == "no-subject":
+                e.subject = None
+            elif bad == "empty-subject":
+                e.subject = ""
+            elif bad == "unknown-kind":
+                e.kind = "something-else"
+            elif bad == "missing-no-category":
+                e.category = None
+            elif bad == "missing-unknown-category":
+                e.category = "unreadable"
+            elif bad == "missing-no-member":
+                e.member = ""
+            else:
+                e.commitment = None
+            return e
+        calls = _two_observations(monkeypatch, make(), make())
+>       _score_refused_no_row(tmp_path, st_, _not_same(None, None))
+
+research\s1\s1_tests\test_s1_a3_score.py:658: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_a_missing_or_inval7')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first unidentified; re-read unidentified\\): refused with no row$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+__________ test_h5cfix_confirming_pass_calendar_is_fresh[unreadable] __________
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ca0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='9e003342-955b-4f51-aac1-b0ebb28afc24', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ca0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C831FB30>
+fresh = 'unreadable'
+
+    @pytest.mark.parametrize("fresh", ["unreadable", "differs"])
+    def test_h5cfix_confirming_pass_calendar_is_fresh(tmp_path, monkeypatch, fresh):         # G3.1 (fresh calendar)
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        real, flipped = s1_slot._calendar, []
+    
+        def cal(gv):
+            got = real(gv)
+            if not flipped:
+                return got
+            return None if fresh == "unreadable" else [dict(d, close="12:00") for d in got]
+        monkeypatch.setattr(s1_slot, "_calendar", cal)
+        calls = _two_observations(monkeypatch, _diff(D1), _diff(D1), after_first=lambda: flipped.append(1))
+>       _score_refused_no_row(tmp_path, st_, CAL_REFUSAL)
+
+research\s1\s1_tests\test_s1_a3_score.py:675: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ca0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+___________ test_h5cfix_confirming_pass_calendar_is_fresh[differs] ____________
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ca1')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='f202a89a-2cdb-4357-8277-6f901990f78f', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ca1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9EF3DD0>
+fresh = 'differs'
+
+    @pytest.mark.parametrize("fresh", ["unreadable", "differs"])
+    def test_h5cfix_confirming_pass_calendar_is_fresh(tmp_path, monkeypatch, fresh):         # G3.1 (fresh calendar)
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        real, flipped = s1_slot._calendar, []
+    
+        def cal(gv):
+            got = real(gv)
+            if not flipped:
+                return got
+            return None if fresh == "unreadable" else [dict(d, close="12:00") for d in got]
+        monkeypatch.setattr(s1_slot, "_calendar", cal)
+        calls = _two_observations(monkeypatch, _diff(D1), _diff(D1), after_first=lambda: flipped.append(1))
+>       _score_refused_no_row(tmp_path, st_, CAL_REFUSAL)
+
+research\s1\s1_tests\test_s1_a3_score.py:675: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ca1')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+________________ test_h5cfix_confirming_pass_checks_the_bundle ________________
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ch0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = "^score refused: the S1 bundle differs from the trial's AUDIT-ACK bundle in the confirming pass: refused with no row \\(ruling OP-14\\)$"
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='35d34455-3421-453b-8196-cbefc5cf4b04', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ch0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9967B30>
+
+    def test_h5cfix_confirming_pass_checks_the_bundle(tmp_path, monkeypatch):                # OP-14 (fresh bundle)
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        real, flipped = c.bundle_sha256, []
+        monkeypatch.setattr(c, "bundle_sha256", lambda *a, **kw: "0" * 64 if flipped else real(*a, **kw))
+        calls = _two_observations(monkeypatch, _diff(D1), _diff(D1), after_first=lambda: flipped.append(1))
+>       _score_refused_no_row(tmp_path, st_, BUNDLE_REFUSAL)
+
+research\s1\s1_tests\test_s1_a3_score.py:684: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ch0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = "^score refused: the S1 bundle differs from the trial's AUDIT-ACK bundle in the confirming pass: refused with no row \\(ruling OP-14\\)$"
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: "^score refused: the S1 bundle differs from the trial's AUDIT-ACK bundle in the confirming pass: refused with no row \\(ruling OP-14\\)$"
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+_____________ test_h5cfix_confirming_pass_verifies_the_pin_again ______________
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ve0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^e1_sim\\.py: missing or hash differs from the pinned \\(simulated\\)$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='b1967070-952b-4f30-aa4a-85bb0c19b4d2', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ve0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9C60FE0>
+
+    def test_h5cfix_confirming_pass_verifies_the_pin_again(tmp_path, monkeypatch):           # A3 / G3.2 control
+        """The pin failing in the confirming pass (after a first observation) refuses with no row (its SystemExit)."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        real, flipped = c.sim, []
+    
+        def sim():
+            if flipped:
+                raise SystemExit("e1_sim.py: missing or hash differs from the pinned (simulated)")
+            return real()
+        monkeypatch.setattr(c, "sim", sim)
+        calls = _two_observations(monkeypatch, _diff(D1), _diff(D1), after_first=lambda: flipped.append(1))
+>       _score_refused_no_row(tmp_path, st_, r"^e1_sim\.py: missing or hash differs from the pinned \(simulated\)$")
+
+research\s1\s1_tests\test_s1_a3_score.py:699: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_confirming_pass_ve0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = '^e1_sim\\.py: missing or hash differs from the pinned \\(simulated\\)$'
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: '^e1_sim\\.py: missing or hash differs from the pinned \\(simulated\\)$'
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+____________ test_h5cfix_raise_site_texts_and_identity_are_pinned _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_raise_site_texts_a0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9EE1B50>
+
+    def test_h5cfix_raise_site_texts_and_identity_are_pinned(tmp_path, monkeypatch):          # str(e) byte-identical, A1
+        import dataclasses
+        import s1_slot
+        s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        day, q = _sealed(tmp_path)[0]
+        p = _paths(out, q, day)
+        keep = p["resolution"].read_bytes()
+        with pytest.raises(s1_slot.QualifiedEvidence, match=r"QUALIFIED tree differs") as ei:     # differs: the commitment
+            s1_slot._resolution_evidence(out, dataclasses.replace(q, detail="0" * 64), day)
+        assert str(ei.value) == f"{q.subject}: QUALIFIED tree differs from the committed detail (F3)"
+>       assert _ident(ei.value) == (q.subject, QE_DIFFERS, None, None, "0" * 64)
+E       AssertionError: assert (None, None, None, None, None) == ('slot/202610...000000000000')
+E         
+E         At index 0 diff: None != 'slot/20261026T204500Z'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_score.py:737: AssertionError
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C8326A20>
+name = 'same-differs'
+
+    @pytest.mark.parametrize("name", list(SCENARIOS))
+    def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, monkeypatch, name):   # end to end, A1/A3
+        """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
+        observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
+        with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
+        pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
+        inside the recompute (pass 2)."""
+        import sys
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        (dd1, q1), (dd2, q2) = _sealed(tmp_path)[:2]
+        p = {"d1": _paths(out, q1, dd1), "d2": _paths(out, q2, dd2)}
+        keep = {(d, m): p[d][m].read_bytes() for d in p for m in p[d]}
+        phase, sims, manifests = ["before"], [], []
+    
+        def damage(steps):
+            for d, m, how in steps:
+                if how == "append":
+                    p[d][m].write_bytes(keep[(d, m)] + b" ")
+                elif how == "delete":
+                    p[d][m].unlink()
+                elif how == "malformed":
+                    p[d][m].write_bytes(b"{not json")
+                else:
+                    p[d][m].write_bytes(keep[(d, m)])
+        first, second, confirmed = SCENARIOS[name]
+        real_seals, real_sim, real_man = z.sampled_seals, c.sim, s1_slot._qualified_manifest
+        n = [0]
+    
+        def seals(*a, **kw):
+            n[0] += 1
+            damage(first if n[0] == 1 else second)
+            phase[0] = n[0]
+            try:
+                return real_seals(*a, **kw)
+            finally:
+                phase[0] = f"after{n[0]}"
+    
+        def sim():
+            sims.append((phase[0], sys._getframe(1).f_code.co_name))
+            return real_sim()
+    
+        def man(o, s, d, subject, ps):
+            manifests.append((phase[0], subject, ps))
+            return real_man(o, s, d, subject, ps)
+        monkeypatch.setattr(z, "sampled_seals", seals)
+        monkeypatch.setattr(c, "sim", sim)
+        monkeypatch.setattr(s1_slot, "_qualified_manifest", man)
+        if confirmed:
+            _score_invalid(tmp_path, st_)
+        else:
+            with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                                     r"confirmed on a re-read \(first "):
+                r.score(tmp_path, "score-ack")
+            assert all(x.kind != "TRIAL-INVALID" for x in jrows(tmp_path)) and _stage_kinds(tmp_path) == []
+            assert not (out / "aborted.json").exists()
+        assert n[0] == 2
+>       assert ("after1", "_pre_intent_qualified") in sims and (2, "_close") in sims, sims     # A3: executed pin path
+E       AssertionError: [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...]
+E       assert (('after1', '_pre_intent_qualified') in [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...])
+
+research\s1\s1_tests\test_s1_a3_score.py:836: AssertionError
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs] _
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+
+    def seals(*a, **kw):
+        n[0] += 1
+        damage(first if n[0] == 1 else second)
+        phase[0] = n[0]
+        try:
+>           return real_seals(*a, **kw)
+
+research\s1\s1_tests\test_s1_a3_score.py:813: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_seal.py:532: in sampled_seals
+    ev = s1_slot._resolution_evidence(out, q, d["date"])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c1/s1_out')
+q = Row(trial_id='f6d0af03-9ff1-4eab-acf2-e5056f60ef1f', seq=85, prev='ff5138f9aa50f2c9fe95aad7395470b86371f601bca1bc67421...a3161efd at=2026-10-26T20:45:31.000000+00:00', mailbox_id='163279a4-dcc1-4d45-8cb4-e4e9e62b7992', created=1793047531.0)
+day_iso = '2026-10-26'
+
+    def _resolution_evidence(out, q, day_iso, *, ps=None) -> dict:
+        """The selected QUALIFIED slot's resolution evidence, from a tree equal to its committed detail (F3; else
+        QualifiedEvidence). A3 H4 (G3.4): `ps` - the caller's evidence pass (the tree hashed once per pass)."""
+        s = slot_of(q.subject)
+        try:
+            tree = _qualified_manifest(out, s, day_iso, q.subject, ps)
+            ev = json.loads(_read_member(out, names(out, s, day_iso)["resolution"]).decode("utf-8"))["evidence"]
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            raise QualifiedEvidence(f"{q.subject}: a file of its QUALIFIED tree is missing or unreadable "
+                                    f"({type(e).__name__})") from None
+        if j.detail_of(tree) != q.detail:
+>           raise QualifiedEvidence(f"{q.subject}: QUALIFIED tree differs from the committed detail (F3)")
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_slot.py:986: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+
+    def seals(*a, **kw):
+        n[0] += 1
+        damage(first if n[0] == 1 else second)
+        phase[0] = n[0]
+        try:
+>           return real_seals(*a, **kw)
+
+research\s1\s1_tests\test_s1_a3_score.py:813: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_seal.py:532: in sampled_seals
+    ev = s1_slot._resolution_evidence(out, q, d["date"])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c1/s1_out')
+q = Row(trial_id='f6d0af03-9ff1-4eab-acf2-e5056f60ef1f', seq=90, prev='3919724c5414ed8b70bb4eb1e4bf8f8f9b903497dbe073ad0d3...3720b56e at=2026-10-27T20:45:31.000000+00:00', mailbox_id='cd66b6ff-72f8-4cd5-94d8-ab795229dd9f', created=1793133931.0)
+day_iso = '2026-10-27'
+
+    def _resolution_evidence(out, q, day_iso, *, ps=None) -> dict:
+        """The selected QUALIFIED slot's resolution evidence, from a tree equal to its committed detail (F3; else
+        QualifiedEvidence). A3 H4 (G3.4): `ps` - the caller's evidence pass (the tree hashed once per pass)."""
+        s = slot_of(q.subject)
+        try:
+            tree = _qualified_manifest(out, s, day_iso, q.subject, ps)
+            ev = json.loads(_read_member(out, names(out, s, day_iso)["resolution"]).decode("utf-8"))["evidence"]
+        except (OSError, ValueError, KeyError, TypeError) as e:
+            raise QualifiedEvidence(f"{q.subject}: a file of its QUALIFIED tree is missing or unreadable "
+                                    f"({type(e).__name__})") from None
+        if j.detail_of(tree) != q.detail:
+>           raise QualifiedEvidence(f"{q.subject}: QUALIFIED tree differs from the committed detail (F3)")
+E           s1_slot.QualifiedEvidence: slot/20261027T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_slot.py:986: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9EE0470>
+name = 'moved-differs'
+
+    @pytest.mark.parametrize("name", list(SCENARIOS))
+    def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, monkeypatch, name):   # end to end, A1/A3
+        """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
+        observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
+        with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
+        pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
+        inside the recompute (pass 2)."""
+        import sys
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        (dd1, q1), (dd2, q2) = _sealed(tmp_path)[:2]
+        p = {"d1": _paths(out, q1, dd1), "d2": _paths(out, q2, dd2)}
+        keep = {(d, m): p[d][m].read_bytes() for d in p for m in p[d]}
+        phase, sims, manifests = ["before"], [], []
+    
+        def damage(steps):
+            for d, m, how in steps:
+                if how == "append":
+                    p[d][m].write_bytes(keep[(d, m)] + b" ")
+                elif how == "delete":
+                    p[d][m].unlink()
+                elif how == "malformed":
+                    p[d][m].write_bytes(b"{not json")
+                else:
+                    p[d][m].write_bytes(keep[(d, m)])
+        first, second, confirmed = SCENARIOS[name]
+        real_seals, real_sim, real_man = z.sampled_seals, c.sim, s1_slot._qualified_manifest
+        n = [0]
+    
+        def seals(*a, **kw):
+            n[0] += 1
+            damage(first if n[0] == 1 else second)
+            phase[0] = n[0]
+            try:
+                return real_seals(*a, **kw)
+            finally:
+                phase[0] = f"after{n[0]}"
+    
+        def sim():
+            sims.append((phase[0], sys._getframe(1).f_code.co_name))
+            return real_sim()
+    
+        def man(o, s, d, subject, ps):
+            manifests.append((phase[0], subject, ps))
+            return real_man(o, s, d, subject, ps)
+        monkeypatch.setattr(z, "sampled_seals", seals)
+        monkeypatch.setattr(c, "sim", sim)
+        monkeypatch.setattr(s1_slot, "_qualified_manifest", man)
+        if confirmed:
+            _score_invalid(tmp_path, st_)
+        else:
+            with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                                     r"confirmed on a re-read \(first "):
+>               r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:832: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='40378824-4e2d-441e-a0fc-3275894aec8f', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261027T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261027T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9EE0470>
+name = 'moved-differs'
+
+    @pytest.mark.parametrize("name", list(SCENARIOS))
+    def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, monkeypatch, name):   # end to end, A1/A3
+        """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
+        observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
+        with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
+        pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
+        inside the recompute (pass 2)."""
+        import sys
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        (dd1, q1), (dd2, q2) = _sealed(tmp_path)[:2]
+        p = {"d1": _paths(out, q1, dd1), "d2": _paths(out, q2, dd2)}
+        keep = {(d, m): p[d][m].read_bytes() for d in p for m in p[d]}
+        phase, sims, manifests = ["before"], [], []
+    
+        def damage(steps):
+            for d, m, how in steps:
+                if how == "append":
+                    p[d][m].write_bytes(keep[(d, m)] + b" ")
+                elif how == "delete":
+                    p[d][m].unlink()
+                elif how == "malformed":
+                    p[d][m].write_bytes(b"{not json")
+                else:
+                    p[d][m].write_bytes(keep[(d, m)])
+        first, second, confirmed = SCENARIOS[name]
+        real_seals, real_sim, real_man = z.sampled_seals, c.sim, s1_slot._qualified_manifest
+        n = [0]
+    
+        def seals(*a, **kw):
+            n[0] += 1
+            damage(first if n[0] == 1 else second)
+            phase[0] = n[0]
+            try:
+                return real_seals(*a, **kw)
+            finally:
+                phase[0] = f"after{n[0]}"
+    
+        def sim():
+            sims.append((phase[0], sys._getframe(1).f_code.co_name))
+            return real_sim()
+    
+        def man(o, s, d, subject, ps):
+            manifests.append((phase[0], subject, ps))
+            return real_man(o, s, d, subject, ps)
+        monkeypatch.setattr(z, "sampled_seals", seals)
+        monkeypatch.setattr(c, "sim", sim)
+        monkeypatch.setattr(s1_slot, "_qualified_manifest", man)
+        if confirmed:
+            _score_invalid(tmp_path, st_)
+        else:
+>           with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                                     r"confirmed on a re-read \(first "):
+E                                                                    AssertionError: Regex pattern did not match.
+E                                                                     Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first '
+E                                                                     Input: "score: slot evidence violation ['slot/20261027T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:830: AssertionError
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8CA2D4710>
+name = 'same-absent-member'
+
+    @pytest.mark.parametrize("name", list(SCENARIOS))
+    def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, monkeypatch, name):   # end to end, A1/A3
+        """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
+        observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
+        with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
+        pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
+        inside the recompute (pass 2)."""
+        import sys
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        (dd1, q1), (dd2, q2) = _sealed(tmp_path)[:2]
+        p = {"d1": _paths(out, q1, dd1), "d2": _paths(out, q2, dd2)}
+        keep = {(d, m): p[d][m].read_bytes() for d in p for m in p[d]}
+        phase, sims, manifests = ["before"], [], []
+    
+        def damage(steps):
+            for d, m, how in steps:
+                if how == "append":
+                    p[d][m].write_bytes(keep[(d, m)] + b" ")
+                elif how == "delete":
+                    p[d][m].unlink()
+                elif how == "malformed":
+                    p[d][m].write_bytes(b"{not json")
+                else:
+                    p[d][m].write_bytes(keep[(d, m)])
+        first, second, confirmed = SCENARIOS[name]
+        real_seals, real_sim, real_man = z.sampled_seals, c.sim, s1_slot._qualified_manifest
+        n = [0]
+    
+        def seals(*a, **kw):
+            n[0] += 1
+            damage(first if n[0] == 1 else second)
+            phase[0] = n[0]
+            try:
+                return real_seals(*a, **kw)
+            finally:
+                phase[0] = f"after{n[0]}"
+    
+        def sim():
+            sims.append((phase[0], sys._getframe(1).f_code.co_name))
+            return real_sim()
+    
+        def man(o, s, d, subject, ps):
+            manifests.append((phase[0], subject, ps))
+            return real_man(o, s, d, subject, ps)
+        monkeypatch.setattr(z, "sampled_seals", seals)
+        monkeypatch.setattr(c, "sim", sim)
+        monkeypatch.setattr(s1_slot, "_qualified_manifest", man)
+        if confirmed:
+            _score_invalid(tmp_path, st_)
+        else:
+            with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                                     r"confirmed on a re-read \(first "):
+                r.score(tmp_path, "score-ack")
+            assert all(x.kind != "TRIAL-INVALID" for x in jrows(tmp_path)) and _stage_kinds(tmp_path) == []
+            assert not (out / "aborted.json").exists()
+        assert n[0] == 2
+>       assert ("after1", "_pre_intent_qualified") in sims and (2, "_close") in sims, sims     # A3: executed pin path
+E       AssertionError: [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...]
+E       assert (('after1', '_pre_intent_qualified') in [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...])
+
+research\s1\s1_tests\test_s1_a3_score.py:836: AssertionError
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members] _
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+
+    def seals(*a, **kw):
+        n[0] += 1
+        damage(first if n[0] == 1 else second)
+        phase[0] = n[0]
+        try:
+>           return real_seals(*a, **kw)
+
+research\s1\s1_tests\test_s1_a3_score.py:813: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_seal.py:532: in sampled_seals
+    ev = s1_slot._resolution_evidence(out, q, d["date"])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c3/s1_out')
+q = Row(trial_id='0d4e7fd1-3697-4d47-8c8e-9601d9702016', seq=85, prev='a2e669957bd2c33779a3f2c50b7f52e7bddced0ee008768b020...92df8f23 at=2026-10-26T20:45:31.000000+00:00', mailbox_id='53216e94-0c5a-491e-9a20-d4f91d95adf5', created=1793047531.0)
+day_iso = '2026-10-26'
+
+    def _resolution_evidence(out, q, day_iso, *, ps=None) -> dict:
+        """The selected QUALIFIED slot's resolution evidence, from a tree equal to its committed detail (F3; else
+        QualifiedEvidence). A3 H4 (G3.4): `ps` - the caller's evidence pass (the tree hashed once per pass)."""
+        s = slot_of(q.subject)
+        try:
+            tree = _qualified_manifest(out, s, day_iso, q.subject, ps)
+            ev = json.loads(_read_member(out, names(out, s, day_iso)["resolution"]).decode("utf-8"))["evidence"]
+        except (OSError, ValueError, KeyError, TypeError) as e:
+>           raise QualifiedEvidence(f"{q.subject}: a file of its QUALIFIED tree is missing or unreadable "
+                                    f"({type(e).__name__})") from None
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)
+
+research\s1\s1_slot.py:983: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9965910>
+name = 'different-absent-members'
+
+    @pytest.mark.parametrize("name", list(SCENARIOS))
+    def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, monkeypatch, name):   # end to end, A1/A3
+        """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
+        observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
+        with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
+        pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
+        inside the recompute (pass 2)."""
+        import sys
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        (dd1, q1), (dd2, q2) = _sealed(tmp_path)[:2]
+        p = {"d1": _paths(out, q1, dd1), "d2": _paths(out, q2, dd2)}
+        keep = {(d, m): p[d][m].read_bytes() for d in p for m in p[d]}
+        phase, sims, manifests = ["before"], [], []
+    
+        def damage(steps):
+            for d, m, how in steps:
+                if how == "append":
+                    p[d][m].write_bytes(keep[(d, m)] + b" ")
+                elif how == "delete":
+                    p[d][m].unlink()
+                elif how == "malformed":
+                    p[d][m].write_bytes(b"{not json")
+                else:
+                    p[d][m].write_bytes(keep[(d, m)])
+        first, second, confirmed = SCENARIOS[name]
+        real_seals, real_sim, real_man = z.sampled_seals, c.sim, s1_slot._qualified_manifest
+        n = [0]
+    
+        def seals(*a, **kw):
+            n[0] += 1
+            damage(first if n[0] == 1 else second)
+            phase[0] = n[0]
+            try:
+                return real_seals(*a, **kw)
+            finally:
+                phase[0] = f"after{n[0]}"
+    
+        def sim():
+            sims.append((phase[0], sys._getframe(1).f_code.co_name))
+            return real_sim()
+    
+        def man(o, s, d, subject, ps):
+            manifests.append((phase[0], subject, ps))
+            return real_man(o, s, d, subject, ps)
+        monkeypatch.setattr(z, "sampled_seals", seals)
+        monkeypatch.setattr(c, "sim", sim)
+        monkeypatch.setattr(s1_slot, "_qualified_manifest", man)
+        if confirmed:
+            _score_invalid(tmp_path, st_)
+        else:
+            with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                                     r"confirmed on a re-read \(first "):
+>               r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:832: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='a58274d6-ee65-4e7a-ad57-4d119b54bf1f', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C9965910>
+name = 'different-absent-members'
+
+    @pytest.mark.parametrize("name", list(SCENARIOS))
+    def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, monkeypatch, name):   # end to end, A1/A3
+        """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
+        observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
+        with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
+        pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
+        inside the recompute (pass 2)."""
+        import sys
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        (dd1, q1), (dd2, q2) = _sealed(tmp_path)[:2]
+        p = {"d1": _paths(out, q1, dd1), "d2": _paths(out, q2, dd2)}
+        keep = {(d, m): p[d][m].read_bytes() for d in p for m in p[d]}
+        phase, sims, manifests = ["before"], [], []
+    
+        def damage(steps):
+            for d, m, how in steps:
+                if how == "append":
+                    p[d][m].write_bytes(keep[(d, m)] + b" ")
+                elif how == "delete":
+                    p[d][m].unlink()
+                elif how == "malformed":
+                    p[d][m].write_bytes(b"{not json")
+                else:
+                    p[d][m].write_bytes(keep[(d, m)])
+        first, second, confirmed = SCENARIOS[name]
+        real_seals, real_sim, real_man = z.sampled_seals, c.sim, s1_slot._qualified_manifest
+        n = [0]
+    
+        def seals(*a, **kw):
+            n[0] += 1
+            damage(first if n[0] == 1 else second)
+            phase[0] = n[0]
+            try:
+                return real_seals(*a, **kw)
+            finally:
+                phase[0] = f"after{n[0]}"
+    
+        def sim():
+            sims.append((phase[0], sys._getframe(1).f_code.co_name))
+            return real_sim()
+    
+        def man(o, s, d, subject, ps):
+            manifests.append((phase[0], subject, ps))
+            return real_man(o, s, d, subject, ps)
+        monkeypatch.setattr(z, "sampled_seals", seals)
+        monkeypatch.setattr(c, "sim", sim)
+        monkeypatch.setattr(s1_slot, "_qualified_manifest", man)
+        if confirmed:
+            _score_invalid(tmp_path, st_)
+        else:
+>           with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                                     r"confirmed on a re-read \(first "):
+E                                                                    AssertionError: Regex pattern did not match.
+E                                                                     Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first '
+E                                                                     Input: "score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:830: AssertionError
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed] _
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+
+    def seals(*a, **kw):
+        n[0] += 1
+        damage(first if n[0] == 1 else second)
+        phase[0] = n[0]
+        try:
+>           return real_seals(*a, **kw)
+
+research\s1\s1_tests\test_s1_a3_score.py:813: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_seal.py:532: in sampled_seals
+    ev = s1_slot._resolution_evidence(out, q, d["date"])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c4/s1_out')
+q = Row(trial_id='9690fd1c-9d1a-4e3d-9159-1283d110c3cc', seq=85, prev='905e6608ab80c7eb61a1f70766eee4225f322b968833d0c931c...2ba9d9fe at=2026-10-26T20:45:31.000000+00:00', mailbox_id='d8d76d60-350f-4abb-8565-e40b0b80e981', created=1793047531.0)
+day_iso = '2026-10-26'
+
+    def _resolution_evidence(out, q, day_iso, *, ps=None) -> dict:
+        """The selected QUALIFIED slot's resolution evidence, from a tree equal to its committed detail (F3; else
+        QualifiedEvidence). A3 H4 (G3.4): `ps` - the caller's evidence pass (the tree hashed once per pass)."""
+        s = slot_of(q.subject)
+        try:
+            tree = _qualified_manifest(out, s, day_iso, q.subject, ps)
+            ev = json.loads(_read_member(out, names(out, s, day_iso)["resolution"]).decode("utf-8"))["evidence"]
+        except (OSError, ValueError, KeyError, TypeError) as e:
+>           raise QualifiedEvidence(f"{q.subject}: a file of its QUALIFIED tree is missing or unreadable "
+                                    f"({type(e).__name__})") from None
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (JSONDecodeError)
+
+research\s1\s1_slot.py:983: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C832AA20>
+name = 'absent-then-malformed'
+
+    @pytest.mark.parametrize("name", list(SCENARIOS))
+    def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, monkeypatch, name):   # end to end, A1/A3
+        """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
+        observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
+        with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
+        pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
+        inside the recompute (pass 2)."""
+        import sys
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        (dd1, q1), (dd2, q2) = _sealed(tmp_path)[:2]
+        p = {"d1": _paths(out, q1, dd1), "d2": _paths(out, q2, dd2)}
+        keep = {(d, m): p[d][m].read_bytes() for d in p for m in p[d]}
+        phase, sims, manifests = ["before"], [], []
+    
+        def damage(steps):
+            for d, m, how in steps:
+                if how == "append":
+                    p[d][m].write_bytes(keep[(d, m)] + b" ")
+                elif how == "delete":
+                    p[d][m].unlink()
+                elif how == "malformed":
+                    p[d][m].write_bytes(b"{not json")
+                else:
+                    p[d][m].write_bytes(keep[(d, m)])
+        first, second, confirmed = SCENARIOS[name]
+        real_seals, real_sim, real_man = z.sampled_seals, c.sim, s1_slot._qualified_manifest
+        n = [0]
+    
+        def seals(*a, **kw):
+            n[0] += 1
+            damage(first if n[0] == 1 else second)
+            phase[0] = n[0]
+            try:
+                return real_seals(*a, **kw)
+            finally:
+                phase[0] = f"after{n[0]}"
+    
+        def sim():
+            sims.append((phase[0], sys._getframe(1).f_code.co_name))
+            return real_sim()
+    
+        def man(o, s, d, subject, ps):
+            manifests.append((phase[0], subject, ps))
+            return real_man(o, s, d, subject, ps)
+        monkeypatch.setattr(z, "sampled_seals", seals)
+        monkeypatch.setattr(c, "sim", sim)
+        monkeypatch.setattr(s1_slot, "_qualified_manifest", man)
+        if confirmed:
+            _score_invalid(tmp_path, st_)
+        else:
+            with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                                     r"confirmed on a re-read \(first "):
+>               r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:832: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:851: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='e225014d-51af-4cce-8b67-94d5d1c1657c', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (JSONDecodeError)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (JSONDecodeError)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1226: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C832AA20>
+name = 'absent-then-malformed'
+
+    @pytest.mark.parametrize("name", list(SCENARIOS))
+    def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, monkeypatch, name):   # end to end, A1/A3
+        """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
+        observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
+        with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
+        pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
+        inside the recompute (pass 2)."""
+        import sys
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        (dd1, q1), (dd2, q2) = _sealed(tmp_path)[:2]
+        p = {"d1": _paths(out, q1, dd1), "d2": _paths(out, q2, dd2)}
+        keep = {(d, m): p[d][m].read_bytes() for d in p for m in p[d]}
+        phase, sims, manifests = ["before"], [], []
+    
+        def damage(steps):
+            for d, m, how in steps:
+                if how == "append":
+                    p[d][m].write_bytes(keep[(d, m)] + b" ")
+                elif how == "delete":
+                    p[d][m].unlink()
+                elif how == "malformed":
+                    p[d][m].write_bytes(b"{not json")
+                else:
+                    p[d][m].write_bytes(keep[(d, m)])
+        first, second, confirmed = SCENARIOS[name]
+        real_seals, real_sim, real_man = z.sampled_seals, c.sim, s1_slot._qualified_manifest
+        n = [0]
+    
+        def seals(*a, **kw):
+            n[0] += 1
+            damage(first if n[0] == 1 else second)
+            phase[0] = n[0]
+            try:
+                return real_seals(*a, **kw)
+            finally:
+                phase[0] = f"after{n[0]}"
+    
+        def sim():
+            sims.append((phase[0], sys._getframe(1).f_code.co_name))
+            return real_sim()
+    
+        def man(o, s, d, subject, ps):
+            manifests.append((phase[0], subject, ps))
+            return real_man(o, s, d, subject, ps)
+        monkeypatch.setattr(z, "sampled_seals", seals)
+        monkeypatch.setattr(c, "sim", sim)
+        monkeypatch.setattr(s1_slot, "_qualified_manifest", man)
+        if confirmed:
+            _score_invalid(tmp_path, st_)
+        else:
+>           with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                                     r"confirmed on a re-read \(first "):
+E                                                                    AssertionError: Regex pattern did not match.
+E                                                                     Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first '
+E                                                                     Input: "score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (JSONDecodeError)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:830: AssertionError
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_h5cfix_real_raise_sites_c5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B8C88934A0>
+name = 'same-malformed'
+
+    @pytest.mark.parametrize("name", list(SCENARIOS))
+    def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, monkeypatch, name):   # end to end, A1/A3
+        """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
+        observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
+        with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
+        pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
+        inside the recompute (pass 2)."""
+        import sys
+        import s1_slot
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        out = tmp_path / "s1_out"
+        (dd1, q1), (dd2, q2) = _sealed(tmp_path)[:2]
+        p = {"d1": _paths(out, q1, dd1), "d2": _paths(out, q2, dd2)}
+        keep = {(d, m): p[d][m].read_bytes() for d in p for m in p[d]}
+        phase, sims, manifests = ["before"], [], []
+    
+        def damage(steps):
+            for d, m, how in steps:
+                if how == "append":
+                    p[d][m].write_bytes(keep[(d, m)] + b" ")
+                elif how == "delete":
+                    p[d][m].unlink()
+                elif how == "malformed":
+                    p[d][m].write_bytes(b"{not json")
+                else:
+                    p[d][m].write_bytes(keep[(d, m)])
+        first, second, confirmed = SCENARIOS[name]
+        real_seals, real_sim, real_man = z.sampled_seals, c.sim, s1_slot._qualified_manifest
+        n = [0]
+    
+        def seals(*a, **kw):
+            n[0] += 1
+            damage(first if n[0] == 1 else second)
+            phase[0] = n[0]
+            try:
+                return real_seals(*a, **kw)
+            finally:
+                phase[0] = f"after{n[0]}"
+    
+        def sim():
+            sims.append((phase[0], sys._getframe(1).f_code.co_name))
+            return real_sim()
+    
+        def man(o, s, d, subject, ps):
+            manifests.append((phase[0], subject, ps))
+            return real_man(o, s, d, subject, ps)
+        monkeypatch.setattr(z, "sampled_seals", seals)
+        monkeypatch.setattr(c, "sim", sim)
+        monkeypatch.setattr(s1_slot, "_qualified_manifest", man)
+        if confirmed:
+            _score_invalid(tmp_path, st_)
+        else:
+            with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                                     r"confirmed on a re-read \(first "):
+                r.score(tmp_path, "score-ack")
+            assert all(x.kind != "TRIAL-INVALID" for x in jrows(tmp_path)) and _stage_kinds(tmp_path) == []
+            assert not (out / "aborted.json").exists()
+        assert n[0] == 2
+>       assert ("after1", "_pre_intent_qualified") in sims and (2, "_close") in sims, sims     # A3: executed pin path
+E       AssertionError: [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...]
+E       assert (('after1', '_pre_intent_qualified') in [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...])
+
+research\s1\s1_tests\test_s1_a3_score.py:836: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_different_slots_do_not_confirm_each_other
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[differs-then-missing]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[category]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[member]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[commitment]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[untagged]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[no-subject]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[empty-subject]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[unknown-kind]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-no-category]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-unknown-category]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-no-member]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[differs-no-commitment]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[unreadable]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[differs]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_checks_the_bundle
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_verifies_the_pin_again
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_raise_site_texts_and_identity_are_pinned
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed]
+25 failed, 9 passed, 31 deselected in 359.94s (0:05:59)

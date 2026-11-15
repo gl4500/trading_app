@@ -533,9 +533,53 @@ class Worker:
 _SLOT_STEM = re.compile(r"\d{8}T\d{6}Z", re.ASCII)
 
 
+QE_MISSING = "missing-or-unreadable"        # A3 H5c-FIX (Codex X-16): the F3 kinds of a QualifiedEvidence
+QE_DIFFERS = "differs-from-detail"
+QE_ABSENT = "typed-absence"                 # A3 H5c-FIX amendment A1: the member-local categories of QE_MISSING
+QE_UNPARSEABLE = "unparseable"
+QE_SHAPE = "required-shape"
+QE_CATEGORIES = (QE_ABSENT, QE_UNPARSEABLE, QE_SHAPE)
+
+
+def _identity_text(v) -> bool:
+    return isinstance(v, str) and v != ""
+
+
 class QualifiedEvidence(ValueError):
     """F3 table, QUALIFIED: a required file of the slot's committed tree is missing, changed or unparseable: INVALIDATE
-    (registration-artifact); the seal is never built from it."""
+    (registration-artifact); the seal is never built from it.
+    A3 H5c-FIX (Codex X-16 / H5C-CX-1; amendments A1/A2): the observation's structured identity, attached where the
+    observation is made (never parsed from str(e), which is the message alone, unchanged):
+    - kind QE_MISSING (a member-local fault): `subject` (the slot subject), `category` (QE_ABSENT: a FileNotFoundError
+      of the direct read of the expected member, C5.1 typed absence; QE_UNPARSEABLE: the resolution member read but not
+      decodable/JSON; QE_SHAPE: it parsed but lacks the required shape) and `member` (that expected member's path
+      relative to s1_out, posix). identity = (subject, kind, category, member).
+    - kind QE_DIFFERS (the live tree does not reproduce the committed one): `subject` and `commitment` (the committed
+      tree detail of the slot's QUALIFIED row). identity = (subject, kind, commitment): the violation is "this
+      committed tree is not reproduced", whichever member differs and whatever the live bytes are.
+    Any other combination (an unset or empty field, an unknown kind or category) has identity None: it is no
+    confirmable observation (A2; the caller refuses with no row, never None == None). A generic I/O fault never gets
+    here: _classify makes it QualifiedUnreadable (C5.1)."""
+    subject = None
+    kind = None
+    category = None
+    member = None
+    commitment = None
+
+    def __init__(self, msg, *, subject=None, kind=None, category=None, member=None, commitment=None):
+        super().__init__(msg)
+        self.subject, self.kind = subject, kind
+        self.category, self.member, self.commitment = category, member, commitment
+
+    @property
+    def identity(self):
+        if not _identity_text(self.subject):
+            return None
+        if self.kind == QE_MISSING and self.category in QE_CATEGORIES and _identity_text(self.member):
+            return (self.subject, self.kind, self.category, self.member)
+        if self.kind == QE_DIFFERS and _identity_text(self.commitment):
+            return (self.subject, self.kind, self.commitment)
+        return None
 
 
 class QualifiedUnreadable(SystemExit):
@@ -575,7 +619,8 @@ def _classify(out, path, read):
             root_ok = out is None or Path(out).is_dir()
         except OSError:
             root_ok = False
-        if root_ok:
+        if root_ok:                                   # A3 H5c-FIX A1: the typed absence names ITS expected member
+            e.qualified_member = _member_name(out, path)     # (relative to s1_out), set here at the direct read
             raise
         raise _unreadable(path, e, out) from None
     except OSError as e:
@@ -972,18 +1017,40 @@ def _qualified_manifest(out, s, day_iso, subject, ps) -> dict:
     return tree
 
 
+def _member_fault(e: BaseException, parsed) -> dict:
+    """A3 H5c-FIX A1: the category and expected member of a member-local fault, from where it was observed (never from
+    a message). Before the resolution bytes were read (`parsed` None) only a typed absence of a direct member read is
+    identified (the FileNotFoundError _classify re-raised, carrying its `qualified_member`); after it, a ValueError
+    (decode/JSON) is QE_UNPARSEABLE and a KeyError/TypeError is QE_SHAPE of the resolution member (`parsed`). Anything
+    else: {} - no identity, so the observation is not confirmable."""
+    if parsed is None:
+        m = getattr(e, "qualified_member", None) if isinstance(e, FileNotFoundError) else None
+        return {"category": QE_ABSENT, "member": m} if _identity_text(m) else {}
+    if isinstance(e, ValueError):
+        return {"category": QE_UNPARSEABLE, "member": parsed}
+    if isinstance(e, (KeyError, TypeError)):
+        return {"category": QE_SHAPE, "member": parsed}
+    return {}
+
+
 def _resolution_evidence(out, q, day_iso, *, ps=None) -> dict:
     """The selected QUALIFIED slot's resolution evidence, from a tree equal to its committed detail (F3; else
     QualifiedEvidence). A3 H4 (G3.4): `ps` - the caller's evidence pass (the tree hashed once per pass)."""
     s = slot_of(q.subject)
+    parsed = None                    # A3 H5c-FIX A1: the resolution member (relative) once its bytes have been read
     try:
         tree = _qualified_manifest(out, s, day_iso, q.subject, ps)
-        ev = json.loads(_read_member(out, names(out, s, day_iso)["resolution"]).decode("utf-8"))["evidence"]
+        res = names(out, s, day_iso)["resolution"]
+        raw = _read_member(out, res)
+        parsed = _member_name(out, res)
+        ev = json.loads(raw.decode("utf-8"))["evidence"]
     except (OSError, ValueError, KeyError, TypeError) as e:
         raise QualifiedEvidence(f"{q.subject}: a file of its QUALIFIED tree is missing or unreadable "
-                                f"({type(e).__name__})") from None
+                                f"({type(e).__name__})", subject=q.subject, kind=QE_MISSING,
+                                **_member_fault(e, parsed)) from None
     if j.detail_of(tree) != q.detail:
-        raise QualifiedEvidence(f"{q.subject}: QUALIFIED tree differs from the committed detail (F3)")
+        raise QualifiedEvidence(f"{q.subject}: QUALIFIED tree differs from the committed detail (F3)",
+                                subject=q.subject, kind=QE_DIFFERS, commitment=q.detail)
     return ev
 
 

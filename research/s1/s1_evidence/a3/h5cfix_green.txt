@@ -1,0 +1,8 @@
+# A3 H5c-FIX GREEN, amendment round A1-A3 (supersedes the round-1 GREEN '165 passed', sha256 8a25ece913e66e094fdd82432bfbfb69ddd1e123776de60edf114d64f29a4583), 2026-11-15, the worktree after the amended product edits: the touched test file and the two other files exercising QualifiedEvidence (test_s1_a3_m4_pass.py, test_s1_a3_stop.py); serial, run concurrently with the mutant campaign and Codex's CPU benchmark (one run, no flake observed). 179 = 165 + the 14 nodes added in the amendment round.
+# product sha256: s1_run.py fa50c1ec0a5c0ad3fbb9ccbc5c58f9e937cfe6cd76b314ba57ccde99d0c4b677 s1_slot.py cb23618cc44a0f4818dd01a7055b9fdfa04fa84a1c54ec41a1e0b29ac680fef6 s1_tests/test_s1_a3_score.py 89f9a3668a445629b5ccc973a4f4f5b2690158eeacf724bf200e5e9b8e4651cf
+# also: focused 'pre_intent or h5cfix' in the worktree: 34 passed, 31 deselected in 350.01s (7 existing + 27 new).
+# cmd: PYTHONPATH="research/s1;research/s1/s1_tests" testenv/Scripts/python.exe -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_score.py research/s1/s1_tests/test_s1_a3_m4_pass.py research/s1/s1_tests/test_s1_a3_stop.py -q -rfE
+........................................................................ [ 40%]
+........................................................................ [ 80%]
+...................................                                      [100%]
+179 passed in 1235.12s (0:20:35)

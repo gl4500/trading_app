@@ -1,0 +1,10 @@
+# A3 H5c-FIX hashes (sha256), base HEAD ca13ab6feeb35a515dbd03376cc103f29db3ec0d + the H5c-FIX working tree after amendment round A1-A3 and the full suite, 2026-11-15T15:08:54Z
+# An explicit file list (paths relative to research/s1); this file never lists itself. h5cfix_full.txt is the final full-suite record (5750 passed).
+fa50c1ec0a5c0ad3fbb9ccbc5c58f9e937cfe6cd76b314ba57ccde99d0c4b677 *s1_run.py
+cb23618cc44a0f4818dd01a7055b9fdfa04fa84a1c54ec41a1e0b29ac680fef6 *s1_slot.py
+89f9a3668a445629b5ccc973a4f4f5b2690158eeacf724bf200e5e9b8e4651cf *s1_tests/test_s1_a3_score.py
+86eac4e1ed595fa6e4ef545abcafd1235f9d6f16051a63538e6bd28811d773de *s1_evidence/a3/h5cfix_red.txt
+53d3db2a195047b8ec2061ed948af07791f1a77aebdcbe72cfb55d10954463e5 *s1_evidence/a3/h5cfix_green.txt
+7d008300a4d74fc845d6769f2a9e39b3337ffc091763b19876239fdfb0ed6ff6 *s1_evidence/a3/h5cfix_mutants.txt
+5485b9c18c13d7a5577d7d5e0e76845103b8769a905afd41540017aa51d335b5 *s1_evidence/a3/h5cfix_old_new.md
+474e5172c16a880ad08eb7aaa119c96236789dac71b03904b544428ae35a959e *s1_evidence/a3/h5cfix_full.txt

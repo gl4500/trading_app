@@ -426,9 +426,27 @@ def test_score_ack_binding_no_snapshot_with_a_report_on_disk_is_a_refusal(tmp_pa
 
 
 # ---------------------------------------------------------------- A3 H5c item 1 (T13 N-1): pre-INTENT QualifiedEvidence
-def _qe(msg):
+QE_MISSING, QE_DIFFERS = "missing-or-unreadable", "differs-from-detail"    # H5c-FIX: the F3 kinds (pinned values)
+QE_ABSENT, QE_UNPARSEABLE, QE_SHAPE = "typed-absence", "unparseable", "required-shape"   # A1 categories (pinned)
+COMMIT = "c" * 64                                                          # a synthetic committed tree detail
+
+
+def _qe(msg, subject="slot/x", kind=QE_DIFFERS, category=None, member=None, commitment=COMMIT):
+    """H5c-FIX (X-16; A1/A2): a QualifiedEvidence carrying a VALID structured identity as the s1_slot raise sites set
+    it (QE_DIFFERS: subject + commitment; QE_MISSING: subject + category + member). The attributes are set after
+    construction (so this helper builds the same object on the base); the product's identity validation still
+    applies to them (A2: no positive control bypasses it)."""
     import s1_slot
-    return s1_slot.QualifiedEvidence(msg)
+    e = s1_slot.QualifiedEvidence(msg)
+    e.subject, e.kind, e.category, e.member = subject, kind, category, member
+    e.commitment = commitment if kind == QE_DIFFERS else None
+    return e
+
+
+def _label(e) -> str:
+    """The refusal text's rendering of an identity (the oracle's own copy: '<subject> [<kind>, ...]')."""
+    rest = [e.kind, e.category, e.member] if e.kind == QE_MISSING else [e.kind, e.commitment]
+    return f"{e.subject} [{', '.join(rest)}]"
 
 
 def test_pre_intent_qualified_evidence_is_invalid_when_confirmed(tmp_path, monkeypatch):     # T13 N-1
@@ -502,3 +520,320 @@ def test_pre_intent_qualified_evidence_reread_failure_refuses_with_no_row(tmp_pa
         r.score(tmp_path, "score-ack")
     assert n[0] == (2 if err == "oserror-recompute" else 1)
     assert len(jrows(tmp_path)) == before and _stage_kinds(tmp_path) == []
+
+
+# ---------------------------------------------------------------- A3 H5c-FIX (Codex X-16 / H5C-CX-1; A1-A3): observations
+NOT_SAME = (r"^score refused: a QUALIFIED tree problem was not confirmed on a re-read \(first {a}; re-read {b}\): "
+            r"refused with no row$")
+CAL_REFUSAL = (r"^score refused: the registered calendar is unreadable or differs from the command's in the confirming "
+               r"pass: refused with no row \(G3\.1, fail closed\)$")
+BUNDLE_REFUSAL = (r"^score refused: the S1 bundle differs from the trial's AUDIT-ACK bundle in the confirming pass: "
+                  r"refused with no row \(ruling OP-14\)$")
+INVALID_RE = r"^score: slot evidence violation \[.*\]: INVALID \(registration-artifact\)$"
+D1, D2 = "slot/20261026T204500Z", "slot/20261027T204500Z"
+DIFF_TEXT = "{}: QUALIFIED tree differs from the committed detail (F3)"
+MISS_TEXT = "{}: a file of its QUALIFIED tree is missing or unreadable ({})"
+M1 = "captures/2026-10-26/20261026T204500Z.resolution.json"
+
+
+def _not_same(e1, e2) -> str:
+    import re
+    lab = (lambda e: "unidentified" if e is None else re.escape(_label(e)))
+    return NOT_SAME.format(a=lab(e1), b=lab(e2))
+
+
+def _diff(subject, commitment=COMMIT):
+    return _qe(DIFF_TEXT.format(subject), subject, QE_DIFFERS, commitment=commitment)
+
+
+def _miss(subject, category=QE_ABSENT, member=M1, err="FileNotFoundError"):
+    return _qe(MISS_TEXT.format(subject, err), subject, QE_MISSING, category=category, member=member)
+
+
+def _two_observations(monkeypatch, first, second, after_first=None):
+    """sampled_seals raises `first` then `second` (each a QualifiedEvidence or None = clean); `after_first` runs
+    after the first observation (it flips the confirming-pass environment)."""
+    calls = []
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+            raise e
+        return {}
+    monkeypatch.setattr(z, "sampled_seals", seals)
+    return calls
+
+
+def _score_refused_no_row(tmp_path, st_, match):
+    before = len(jrows(tmp_path))
+    with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+        r.score(tmp_path, "score-ack")
+    new = [(x.kind, x.subject) for x in jrows(tmp_path)[before:]]
+    assert new == [], new
+    assert _stage_kinds(tmp_path) == [] and not (tmp_path / "s1_out" / "aborted.json").exists()
+
+
+def _score_invalid(tmp_path, st_, problems=None):
+    before = len(jrows(tmp_path))
+    with _Clock(st_["now"]), pytest.raises(SystemExit, match=INVALID_RE):
+        r.score(tmp_path, "score-ack")
+    assert [x.subject for x in jrows(tmp_path)[before:]] == ["reason/registration-artifact"]
+    ab = json.loads((tmp_path / "s1_out" / "aborted.json").read_text(encoding="utf-8"))
+    assert ab["reason"] == c.REGISTRATION_ARTIFACT and ab["where"] == "score", ab
+    if problems is not None:
+        assert ab["problems"] == problems, ab
+
+
+def test_h5cfix_different_slots_do_not_confirm_each_other(tmp_path, monkeypatch):       # X-16 (Codex's regression)
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    a, b = _diff(D1), _diff(D2)
+    calls = _two_observations(monkeypatch, a, b)
+    _score_refused_no_row(tmp_path, st_, _not_same(a, b))
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize("order", ["missing-then-differs", "differs-then-missing"])
+def test_h5cfix_same_slot_changed_kind_does_not_confirm(tmp_path, monkeypatch, order):  # X-16 (changed problem)
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    a, b = _miss(D1), _diff(D1)
+    if order == "differs-then-missing":
+        a, b = b, a
+    calls = _two_observations(monkeypatch, a, b)
+    _score_refused_no_row(tmp_path, st_, _not_same(a, b))
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize("change", ["category", "member", "commitment"])
+def test_h5cfix_same_slot_changed_evidence_does_not_confirm(tmp_path, monkeypatch, change):   # A1 (synthetic)
+    """Same slot and kind, another category / expected member / committed tree: not the same observation."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    a, b = {"category": (_miss(D1), _miss(D1, QE_UNPARSEABLE, err="JSONDecodeError")),
+            "member": (_miss(D1), _miss(D1, member="captures/2026-10-26/20261026T204500Z/meta.json")),
+            "commitment": (_diff(D1), _diff(D1, "d" * 64))}[change]
+    _two_observations(monkeypatch, a, b)
+    _score_refused_no_row(tmp_path, st_, _not_same(a, b))
+
+
+@pytest.mark.parametrize("kind", [QE_MISSING, QE_DIFFERS])
+def test_h5cfix_same_identity_twice_is_invalid(tmp_path, monkeypatch, kind):              # control (passes on base)
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    mk = {QE_MISSING: _miss, QE_DIFFERS: _diff}[kind]
+    calls = _two_observations(monkeypatch, mk(D1), mk(D1))
+    _score_invalid(tmp_path, st_, [str(mk(D1))])
+    assert len(calls) == 2 and calls[0] is not calls[1]
+
+
+@pytest.mark.parametrize("bad", ["untagged", "no-subject", "empty-subject", "unknown-kind", "missing-no-category",
+                                 "missing-unknown-category", "missing-no-member", "differs-no-commitment"])
+def test_h5cfix_a_missing_or_invalid_identity_never_confirms(tmp_path, monkeypatch, bad):    # A2
+    """A QualifiedEvidence without a valid structured identity is no confirmable observation: twice the same object
+    (the same text, the same attributes) is refused with no row - never None == None."""
+    import s1_slot
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    text = DIFF_TEXT.format(D1)
+
+    def make():
+        if bad == "untagged":
+            return s1_slot.QualifiedEvidence(text)
+        e = _miss(D1) if bad.startswith("missing") else _diff(D1)
+        if bad == "no-subject":
+            e.subject = None
+        elif bad == "empty-subject":
+            e.subject = ""
+        elif bad == "unknown-kind":
+            e.kind = "something-else"
+        elif bad == "missing-no-category":
+            e.category = None
+        elif bad == "missing-unknown-category":
+            e.category = "unreadable"
+        elif bad == "missing-no-member":
+            e.member = ""
+        else:
+            e.commitment = None
+        return e
+    calls = _two_observations(monkeypatch, make(), make())
+    _score_refused_no_row(tmp_path, st_, _not_same(None, None))
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize("fresh", ["unreadable", "differs"])
+def test_h5cfix_confirming_pass_calendar_is_fresh(tmp_path, monkeypatch, fresh):         # G3.1 (fresh calendar)
+    import s1_slot
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    real, flipped = s1_slot._calendar, []
+
+    def cal(gv):
+        got = real(gv)
+        if not flipped:
+            return got
+        return None if fresh == "unreadable" else [dict(d, close="12:00") for d in got]
+    monkeypatch.setattr(s1_slot, "_calendar", cal)
+    calls = _two_observations(monkeypatch, _diff(D1), _diff(D1), after_first=lambda: flipped.append(1))
+    _score_refused_no_row(tmp_path, st_, CAL_REFUSAL)
+    assert len(calls) == 1                                                # refused before the confirming recompute
+
+
+def test_h5cfix_confirming_pass_checks_the_bundle(tmp_path, monkeypatch):                # OP-14 (fresh bundle)
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    real, flipped = c.bundle_sha256, []
+    monkeypatch.setattr(c, "bundle_sha256", lambda *a, **kw: "0" * 64 if flipped else real(*a, **kw))
+    calls = _two_observations(monkeypatch, _diff(D1), _diff(D1), after_first=lambda: flipped.append(1))
+    _score_refused_no_row(tmp_path, st_, BUNDLE_REFUSAL)
+    assert len(calls) == 1
+
+
+def test_h5cfix_confirming_pass_verifies_the_pin_again(tmp_path, monkeypatch):           # A3 / G3.2 control
+    """The pin failing in the confirming pass (after a first observation) refuses with no row (its SystemExit)."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    real, flipped = c.sim, []
+
+    def sim():
+        if flipped:
+            raise SystemExit("e1_sim.py: missing or hash differs from the pinned (simulated)")
+        return real()
+    monkeypatch.setattr(c, "sim", sim)
+    calls = _two_observations(monkeypatch, _diff(D1), _diff(D1), after_first=lambda: flipped.append(1))
+    _score_refused_no_row(tmp_path, st_, r"^e1_sim\.py: missing or hash differs from the pinned \(simulated\)$")
+    assert len(calls) == 1
+
+
+def _sealed(tmp_path):
+    """The real sampled seals of the score_ready fixture: [(day, first QUALIFIED row)] in date order."""
+    out = tmp_path / "s1_out"
+    pr = json.loads((out / "prereg.json").read_text(encoding="utf-8"))
+    seals = z.sampled_seals(out, jrows(tmp_path), pr["calendar"], c.aware(pr["start"]))
+    return [(d, q) for d, (q, _b) in sorted(seals.items())]
+
+
+def _paths(out, q, day):
+    import s1_slot
+    n = s1_slot.names(out, s1_slot.slot_of(q.subject), day)
+    return {"resolution": n["resolution"], "report": n["report"], "backup": n["capture"] / "backup.sqlite3",
+            "meta": n["capture"] / "meta.json"}
+
+
+def _rel(out, p) -> str:
+    return p.relative_to(out).as_posix()
+
+
+def _ident(e):
+    return tuple(getattr(e, k, None) for k in ("subject", "kind", "category", "member", "commitment"))
+
+
+def test_h5cfix_raise_site_texts_and_identity_are_pinned(tmp_path, monkeypatch):          # str(e) byte-identical, A1
+    import dataclasses
+    import s1_slot
+    s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    day, q = _sealed(tmp_path)[0]
+    p = _paths(out, q, day)
+    keep = p["resolution"].read_bytes()
+    with pytest.raises(s1_slot.QualifiedEvidence, match=r"QUALIFIED tree differs") as ei:     # differs: the commitment
+        s1_slot._resolution_evidence(out, dataclasses.replace(q, detail="0" * 64), day)
+    assert str(ei.value) == f"{q.subject}: QUALIFIED tree differs from the committed detail (F3)"
+    assert _ident(ei.value) == (q.subject, QE_DIFFERS, None, None, "0" * 64)
+    cases = [("backup", None, "FileNotFoundError", QE_ABSENT), ("resolution", None, "FileNotFoundError", QE_ABSENT),
+             ("resolution", b"{not json", "JSONDecodeError", QE_UNPARSEABLE),
+             ("resolution", b"\xff\xfe", "UnicodeDecodeError", QE_UNPARSEABLE),
+             ("resolution", b"{}", "KeyError", QE_SHAPE), ("resolution", b"[]", "TypeError", QE_SHAPE)]
+    for member, data, err, cat in cases:
+        keep_m = p[member].read_bytes()
+        if data is None:
+            p[member].unlink()
+        else:
+            p[member].write_bytes(data)
+        with pytest.raises(s1_slot.QualifiedEvidence, match=r"missing or unreadable") as ei:
+            s1_slot._resolution_evidence(out, q, day)
+        p[member].write_bytes(keep_m)
+        assert str(ei.value) == f"{q.subject}: a file of its QUALIFIED tree is missing or unreadable ({err})"
+        assert _ident(ei.value) == (q.subject, QE_MISSING, cat, _rel(out, p[member]), None), (member, err)
+    assert p["resolution"].read_bytes() == keep
+    real = c.sha256_file                                       # C5.1 control: a generic I/O fault stays unreadable
+
+    def locked(path, *a, **kw):
+        if Path(path) == p["backup"]:
+            raise PermissionError("locked (simulated)")
+        return real(path, *a, **kw)
+    monkeypatch.setattr(c, "sha256_file", locked)
+    with pytest.raises(s1_slot.QualifiedUnreadable, match=r"QUALIFIED member .*backup\.sqlite3 unreadable "
+                                                          r"\(PermissionError\)"):
+        s1_slot._resolution_evidence(out, q, day)
+
+
+SCENARIOS = {                          # name: (pass-1 damage, pass-2 damage, confirmed?)
+    "same-differs": ([("d1", "resolution", "append")], [], True),
+    "moved-differs": ([("d1", "resolution", "append")], [("d1", "resolution", "restore"), ("d2", "resolution",
+                                                                                            "append")], False),
+    "same-absent-member": ([("d1", "backup", "delete")], [], True),
+    "different-absent-members": ([("d1", "backup", "delete")], [("d1", "backup", "restore"),
+                                                                 ("d1", "meta", "delete")], False),
+    "absent-then-malformed": ([("d1", "resolution", "delete")], [("d1", "resolution", "malformed")], False),
+    "same-malformed": ([("d1", "resolution", "malformed")], [], True),
+}
+
+
+@pytest.mark.parametrize("name", list(SCENARIOS))
+def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, monkeypatch, name):   # end to end, A1/A3
+    """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
+    observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
+    with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
+    pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
+    inside the recompute (pass 2)."""
+    import sys
+    import s1_slot
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out = tmp_path / "s1_out"
+    (dd1, q1), (dd2, q2) = _sealed(tmp_path)[:2]
+    p = {"d1": _paths(out, q1, dd1), "d2": _paths(out, q2, dd2)}
+    keep = {(d, m): p[d][m].read_bytes() for d in p for m in p[d]}
+    phase, sims, manifests = ["before"], [], []
+
+    def damage(steps):
+        for d, m, how in steps:
+            if how == "append":
+                p[d][m].write_bytes(keep[(d, m)] + b" ")
+            elif how == "delete":
+                p[d][m].unlink()
+            elif how == "malformed":
+                p[d][m].write_bytes(b"{not json")
+            else:
+                p[d][m].write_bytes(keep[(d, m)])
+    first, second, confirmed = SCENARIOS[name]
+    real_seals, real_sim, real_man = z.sampled_seals, c.sim, s1_slot._qualified_manifest
+    n = [0]
+
+    def seals(*a, **kw):
+        n[0] += 1
+        damage(first if n[0] == 1 else second)
+        phase[0] = n[0]
+        try:
+            return real_seals(*a, **kw)
+        finally:
+            phase[0] = f"after{n[0]}"
+
+    def sim():
+        sims.append((phase[0], sys._getframe(1).f_code.co_name))
+        return real_sim()
+
+    def man(o, s, d, subject, ps):
+        manifests.append((phase[0], subject, ps))
+        return real_man(o, s, d, subject, ps)
+    monkeypatch.setattr(z, "sampled_seals", seals)
+    monkeypatch.setattr(c, "sim", sim)
+    monkeypatch.setattr(s1_slot, "_qualified_manifest", man)
+    if confirmed:
+        _score_invalid(tmp_path, st_)
+    else:
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                                 r"confirmed on a re-read \(first "):
+            r.score(tmp_path, "score-ack")
+        assert all(x.kind != "TRIAL-INVALID" for x in jrows(tmp_path)) and _stage_kinds(tmp_path) == []
+        assert not (out / "aborted.json").exists()
+    assert n[0] == 2
+    assert ("after1", "_pre_intent_qualified") in sims and (2, "_close") in sims, sims     # A3: executed pin path
+    for k in (1, 2):                                                                       # A3: no memo crosses
+        assert any(ph == k and subj == q1.subject for ph, subj, _ in manifests), (k, manifests)
+    assert all(ps is None for ph, _, ps in manifests if ph in (1, 2)), manifests

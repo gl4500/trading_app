@@ -1,0 +1,166 @@
+# A3 H5c-FIX semantic mutants, amendment round A1-A3, 2026-11-15 (supersedes the round-1 file, sha256 532a9dcdee0033308fdc7df9fe5fa81adbac20fcae9913838753b3d082e38066: 8/8 killed on the round-1 code). Each mutant = one exact single-occurrence string replacement in a FULL fresh copy (shutil.copytree) of the worktree research/s1 under /c/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5cfix_mut2/mut_<M>/s1; the worktree is never mutated.
+# product sha256 (source of every copy): s1_run.py fa50c1ec0a5c0ad3fbb9ccbc5c58f9e937cfe6cd76b314ba57ccde99d0c4b677 s1_slot.py cb23618cc44a0f4818dd01a7055b9fdfa04fa84a1c54ec41a1e0b29ac680fef6 s1_tests/test_s1_a3_score.py 89f9a3668a445629b5ccc973a4f4f5b2690158eeacf724bf200e5e9b8e4651cf
+# runner /c/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5cfix_mutants.py sha256 8d52b63d3639c32850aee1adb8d0035e70fe821b6bff53df6753fc4825f217de (testenv/Scripts/python.exe -I); campaign run concurrently with the amended GREEN and Codex's benchmark.
+# per mutant: pytest -p conftest -p no:cacheprovider -x -q -rf <copy>/s1_tests/test_s1_a3_score.py -k "pre_intent or h5cfix"; KILLED = pytest exit 1 (-x: the first failing node is shown). M0 is the unmutated control (must pass).
+# replacements (old -> new), verbatim from the runner:
+MUTANTS = [
+    ("M0 unmutated copy (control: must pass)", "s1_run.py", "def _qe_label(identity) -> str:\n",
+     "def _qe_label(identity) -> str:\n"),
+    ("M1 identity comparison removed", "s1_run.py",
+     "        if first is None or again != first:\n",
+     "        if False:\n"),
+    ("M2 subject-only comparison (kind ignored)", "s1_run.py",
+     "        if first is None or again != first:\n",
+     "        if first is None or again is None or again[0] != first[0]:\n"),
+    ("M3 confirming pass skips the calendar check", "s1_run.py",
+     "        if fresh is None or fresh != pr[\"calendar\"]:\n",
+     "        if False:\n"),
+    ("M4 confirming pass skips the bundle check", "s1_run.py",
+     "        if c.bundle_sha256() != gv.trial.bundle:\n",
+     "        if False:\n"),
+    ("M5 confirming pass skips the pin verification", "s1_run.py",
+     "        c.sim()                                          # G3.2: the confirming pass verifies the pin again\n",
+     "        pass\n"),
+    ("M6 confirming pass reuses the first pass's rows", "s1_run.py",
+     "        rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox)\n",
+     "        rows = gv.rows\n"),
+    ("M7 differs raise site loses its commitment", "s1_slot.py",
+     "                                subject=q.subject, kind=QE_DIFFERS, commitment=q.detail)\n",
+     "                                subject=q.subject, kind=QE_DIFFERS)\n"),
+    ("M8 missing raise site tagged as differs", "s1_slot.py",
+     "f\"({type(e).__name__})\", subject=q.subject, kind=QE_MISSING,\n",
+     "f\"({type(e).__name__})\", subject=q.subject, kind=QE_DIFFERS,\n"),
+    ("M9 missing identity accepted (None == None confirms)", "s1_run.py",
+     "        if first is None or again != first:\n",
+     "        if again != first:\n"),
+    ("M10 identity validation dropped (any attribute tuple is an identity)", "s1_slot.py",
+     "        if not _identity_text(self.subject):\n            return None\n",
+     "        return (self.subject, self.kind, self.category, self.member, self.commitment)\n"),
+    ("M11 coarse member-local identity (category and member ignored)", "s1_slot.py",
+     "            return (self.subject, self.kind, self.category, self.member)\n",
+     "            return (self.subject, self.kind)\n"),
+    ("M12 typed absence loses its expected member", "s1_slot.py",
+     "            e.qualified_member = _member_name(out, path)",
+     "            e.qualified_member = \"member\""),
+    ("M13 unparseable classified as required-shape", "s1_slot.py",
+     "        return {\"category\": QE_UNPARSEABLE, \"member\": parsed}\n",
+     "        return {\"category\": QE_SHAPE, \"member\": parsed}\n"),
+    ("M14 a generic I/O fault becomes a member-local QualifiedEvidence", "s1_slot.py",
+     "    except OSError as e:\n        raise _unreadable(path, e, out) from None\n",
+     "    except OSError as e:\n        e.qualified_member = _member_name(out, path)\n        raise\n"),
+    ("M15 a tree memo crosses passes (module-global evidence pass)", "s1_slot.py",
+     "    if ps is not None and subject in ps.tree:\n        return ps.tree[subject]\n",
+     "    if ps is None:\n        ps = globals().setdefault(\"_MUT_MEMO\", _pass_of([], []))\n"
+     "    if subject in ps.tree:\n        return ps.tree[subject]\n"),
+]
+
+## results
+M0 unmutated copy (control: must pass) [s1_run.py]: CONTROL PASSED in 370.3s
+    34 passed, 31 deselected in 369.60s (0:06:09)
+M1 identity comparison removed [s1_run.py]: KILLED in 85.8s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_different_slots_do_not_confirm_each_other
+    1 failed, 7 passed, 31 deselected in 85.16s (0:01:25)
+M2 subject-only comparison (kind ignored) [s1_run.py]: KILLED in 97.5s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]
+    1 failed, 8 passed, 31 deselected in 96.86s (0:01:36)
+M3 confirming pass skips the calendar check [s1_run.py]: KILLED in 253.9s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[unreadable]
+    1 failed, 23 passed, 31 deselected in 253.22s (0:04:13)
+M4 confirming pass skips the bundle check [s1_run.py]: KILLED in 276.7s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_checks_the_bundle
+    1 failed, 25 passed, 31 deselected in 276.11s (0:04:36)
+M5 confirming pass skips the pin verification [s1_run.py]: KILLED in 286.0s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_verifies_the_pin_again
+    1 failed, 26 passed, 31 deselected in 285.34s (0:04:45)
+M6 confirming pass reuses the first pass's rows [s1_run.py]: KILLED in 40.5s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_is_invalid_when_confirmed
+    1 failed, 3 passed, 31 deselected in 39.83s
+M7 differs raise site loses its commitment [s1_slot.py]: KILLED in 288.9s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_raise_site_texts_and_identity_are_pinned
+    1 failed, 27 passed, 31 deselected in 288.27s (0:04:48)
+M8 missing raise site tagged as differs [s1_slot.py]: KILLED in 329.4s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_raise_site_texts_and_identity_are_pinned
+    1 failed, 27 passed, 31 deselected in 328.64s (0:05:28)
+M9 missing identity accepted (None == None confirms) [s1_run.py]: KILLED in 177.0s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[untagged]
+    1 failed, 15 passed, 31 deselected in 176.29s (0:02:56)
+M10 identity validation dropped (any attribute tuple is an identity) [s1_slot.py]: KILLED in 90.5s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_different_slots_do_not_confirm_each_other
+    1 failed, 7 passed, 31 deselected in 89.84s (0:01:29)
+M11 coarse member-local identity (category and member ignored) [s1_slot.py]: KILLED in 98.9s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]
+    1 failed, 8 passed, 31 deselected in 98.28s (0:01:38)
+M12 typed absence loses its expected member [s1_slot.py]: KILLED in 284.0s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_raise_site_texts_and_identity_are_pinned
+    1 failed, 27 passed, 31 deselected in 283.22s (0:04:43)
+M13 unparseable classified as required-shape [s1_slot.py]: KILLED in 256.0s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_raise_site_texts_and_identity_are_pinned
+    1 failed, 27 passed, 31 deselected in 255.36s (0:04:15)
+M14 a generic I/O fault becomes a member-local QualifiedEvidence [s1_slot.py]: KILLED in 240.4s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_raise_site_texts_and_identity_are_pinned
+    1 failed, 27 passed, 31 deselected in 239.83s (0:03:59)
+M15 a tree memo crosses passes (module-global evidence pass) [s1_slot.py]: KILLED in 10.1s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[PermissionError]
+    1 failed, 1 passed, 31 deselected in 9.50s
+# 15/15 mutants KILLED; control passed (34 nodes). Brief: M1 identity removed, M2 subject-only, M3 calendar skipped, M4 bundle skipped. A2: M9 missing identity accepted (killed by the A2 regression [untagged]), M10 validation dropped. A3: M5 pin skipped (killed by the confirming-pass pin-failure control test_h5cfix_confirming_pass_verifies_the_pin_again), M15 cross-pass memo. A1: M7, M8, M11 (coarse identity), M12 (absence member lost), M13 (category), M14 (generic I/O made confirmable).
+
+## kill audit (no -x: every failing node), M10 / M12 / M15 - runner /c/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5cfix_killaudit.py sha256 5126837547c66ae42f8222c2e85e6e52f1443ef34dd52850ed3454696898de69 (the campaign runner with -x removed, all FAILED lines kept, a tag filter), copies under /c/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5cfix_kill
+M10 identity validation dropped (any attribute tuple is an identity) [s1_slot.py]: KILLED in 297.3s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_different_slots_do_not_confirm_each_other
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[differs-then-missing]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[category]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[member]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[commitment]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[untagged]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[no-subject]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[empty-subject]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[unknown-kind]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-no-category]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-unknown-category]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-no-member]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[differs-no-commitment]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed]
+    17 failed, 17 passed, 31 deselected in 296.66s (0:04:56)
+M12 typed absence loses its expected member [s1_slot.py]: KILLED in 287.1s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_raise_site_texts_and_identity_are_pinned
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]
+    2 failed, 32 passed, 31 deselected in 286.55s (0:04:46)
+M15 a tree memo crosses passes (module-global evidence pass) [s1_slot.py]: KILLED in 24.9s
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[PermissionError]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[KeyError]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_is_invalid_when_confirmed
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_unconfirmed_refuses_with_no_row
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_reread_failure_refuses_with_no_row[oserror-recompute]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_reread_failure_refuses_with_no_row[journal-reread]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_different_slots_do_not_confirm_each_other
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[differs-then-missing]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[category]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[member]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[commitment]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_identity_twice_is_invalid[missing-or-unreadable]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_identity_twice_is_invalid[differs-from-detail]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[untagged]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[no-subject]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[empty-subject]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[unknown-kind]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-no-category]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-unknown-category]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-no-member]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[differs-no-commitment]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[unreadable]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[differs]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_checks_the_bundle
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_verifies_the_pin_again
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_raise_site_texts_and_identity_are_pinned
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed]
+    FAILED s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed]
+    33 failed, 1 passed, 31 deselected in 24.38s
+# Reading: M10 fails the A2 regressions and the A1 changed-evidence nodes (17). M12 fails the raise-site pin AND the intended end-to-end [different-absent-members]. M15 (a module-global pass object in _qualified_manifest) breaks 33/34 nodes incl. the H5c pre_intent ones: a GROSS kill - it shows a cross-pass memo is not silent, but it is not a precise kill of the no-memo assertion (ps is None in both passes; the score path never creates a pass object, so that property is structural).
