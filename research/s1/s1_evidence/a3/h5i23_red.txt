@@ -1,0 +1,55 @@
+== Section 1 (initial round): NameError, helper absent ==
+F                                                                        [100%]
+================================== FAILURES ===================================
+____ test_entered_reports_the_workers_failure_when_the_gate_wait_times_out ____
+
+    def test_entered_reports_the_workers_failure_when_the_gate_wait_times_out():
+        """I23: a worker that dies before reaching the gate must be visible in the wait-failure message."""
+        def boom():
+            raise RuntimeError("distinctive-worker-crash-I23")
+    
+        gate = Gate()
+        th, box = bg(boom)
+        th.join(WAIT)
+        with pytest.raises(AssertionError, match=r"alive=False") as info:
+>           entered(gate, th, box, wait=0.05)
+E           NameError: name 'entered' is not defined
+
+research\s1\s1_tests\test_s1_t12_fix2_b1.py:476: NameError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_t12_fix2_b1.py::test_entered_reports_the_workers_failure_when_the_gate_wait_times_out
+1 failed, 17 deselected in 0.70s
+
+== Section 2 (fix round 1, 2026-11-15): during-the-wait test vs read-before-wait helper ==
+F                                                                        [100%]
+================================== FAILURES ===================================
+______ test_entered_reports_a_worker_crash_that_happens_during_the_wait _______
+
+    def test_entered_reports_a_worker_crash_that_happens_during_the_wait():
+        """I23 fix round 1: the crash lands while entered() is waiting (the PS-1 shape); no pre-join, no sleep."""
+        release = threading.Event()
+    
+        def crash_when_released():
+            assert release.wait(WAIT), "never released"
+            raise RuntimeError("distinctive-crash-during-wait-I23")
+    
+        class WaitThatReleasesTheWorker:
+            def wait(self, timeout):
+                release.set()
+                th.join(WAIT)
+                return False
+    
+        gate = Gate()
+        gate.inside = WaitThatReleasesTheWorker()
+        th, box = bg(crash_when_released)
+        with pytest.raises(AssertionError, match=r"alive=False") as info:
+            entered(gate, th, box, wait=0.05)
+>       assert "distinctive-crash-during-wait-I23" in str(info.value)
+E       AssertionError: assert 'distinctive-crash-during-wait-I23' in 'worker never entered the gate: alive=False err=None rep=None\n  worker traceback: None\nassert False\n +  where False...itThatReleasesTheWorker object at 0x000001A044375460> = <test_s1_t12_fix2_b1.Gate object at 0x000001A0443755E0>.inside'
+E        +  where 'worker never entered the gate: alive=False err=None rep=None\n  worker traceback: None\nassert False\n +  where False...itThatReleasesTheWorker object at 0x000001A044375460> = <test_s1_t12_fix2_b1.Gate object at 0x000001A0443755E0>.inside' = str(AssertionError('worker never entered the gate: alive=False err=None rep=None\n  worker traceback: None\nassert False\n...tThatReleasesTheWorker object at 0x000001A044375460> = <test_s1_t12_fix2_b1.Gate object at 0x000001A0443755E0>.inside'))
+E        +    where AssertionError('worker never entered the gate: alive=False err=None rep=None\n  worker traceback: None\nassert False\n...tThatReleasesTheWorker object at 0x000001A044375460> = <test_s1_t12_fix2_b1.Gate object at 0x000001A0443755E0>.inside') = <ExceptionInfo AssertionError('worker never entered the gate: alive=False err=None rep=None\n  worker traceback: None\...asesTheWorker object at 0x000001A044375460> = <test_s1_t12_fix2_b1.Gate object at 0x000001A0443755E0>.inside') tblen=2>.value
+
+research\s1\s1_tests\test_s1_t12_fix2_b1.py:510: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_t12_fix2_b1.py::test_entered_reports_a_worker_crash_that_happens_during_the_wait
+1 failed, 18 deselected in 0.68s

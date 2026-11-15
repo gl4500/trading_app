@@ -5,6 +5,7 @@ Synthetic only: tmp_path ledgers, mailbox and HMAC key."""
 import ast
 import json
 import threading
+import traceback
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -85,6 +86,18 @@ def bg(fn):
     return th, box
 
 
+def entered(gate, th, box, wait=WAIT):
+    """Assert the worker reached the gate; on failure report the worker's state (alive / error / report)."""
+    if gate.inside.wait(wait):
+        return
+    # read the worker's state only AFTER the wait failed: a crash during the wait must show up here
+    err = box.get("err")
+    tb = "".join(traceback.format_exception(type(err), err, err.__traceback__)) if err is not None else None
+    raise AssertionError(
+        f"worker never entered the gate: alive={th.is_alive()} err={err!r} rep={box.get('rep')!r}\n"
+        f"worker traceback: {tb}")
+
+
 def res_path(tmp_path, slot):
     return tmp_path / "s1_out" / "captures" / DAY / f"{slot.strftime('%Y%m%dT%H%M%SZ')}.resolution.json"
 
@@ -162,7 +175,7 @@ def test_b1_the_reviews_overlap_race_selects_the_earlier_slot_in_both_completion
     if order == "later_slot_finalizes_first":
         gate = Gate()
         th, box = bg(lambda: run(tmp_path, st_, S45, clock, receipt_fn=gate))
-        assert gate.inside.wait(WAIT)
+        entered(gate, th, box)
         clock.t = E45 + timedelta(seconds=3)
         spy.dur = timedelta(seconds=1)
         rep47 = run(tmp_path, st_, S47, clock)
@@ -227,7 +240,7 @@ def test_b1_a_success_published_strictly_before_D_qualifies_at_or_after_D_it_tim
     Snap(monkeypatch, dur=timedelta(seconds=8))
     gate = Gate()
     th, box = bg(lambda: run(tmp_path, st_, S45, clock, receipt_fn=gate))
-    assert gate.inside.wait(WAIT)
+    entered(gate, th, box)
     clock.t = S47 + timedelta(minutes=8)                        # 20:55:00, within E47 = 20:57
     assert run(tmp_path, st_, S47, clock)["seal"]["written"] is False
     clock.t = D45 + offset
@@ -268,7 +281,7 @@ def test_b1_expiration_racing_a_late_completion_cannot_change_the_winner(tmp_pat
     gate = Gate()
     wclock = Clock(clock.t)
     th, box = bg(lambda: run(tmp_path, st_, S45, wclock, receipt_fn=gate))
-    assert gate.inside.wait(WAIT)
+    entered(gate, th, box)
     clock.t = S47 + timedelta(minutes=8)
     assert run(tmp_path, st_, S47, clock)["seal"]["written"] is False
     out, day, cal = tmp_path / "s1_out", _day(st_), st_["calendar"]
@@ -334,7 +347,7 @@ def test_b1_killed_and_merely_slow_workers_get_the_same_timeout_disposition(tmp_
     else:
         gate = Gate()
         th, box = bg(lambda: run(tmp_path, st_, S45, clock, receipt_fn=gate))
-        assert gate.inside.wait(WAIT)
+        entered(gate, th, box)
     clock.t = S47 + timedelta(seconds=30)
     run(tmp_path, st_, S47, clock)
     clock.t = S2200 + timedelta(seconds=30)
@@ -462,3 +475,40 @@ def test_b1_a_pending_resolution_cannot_cause_an_early_terminal_stop_followed_by
     st1, st2 = sts
     assert (st1["status"], st1["stop_close"]) == (st2["status"], st2["stop_close"]), (st1, st2)
     assert st1["status"] != "RUNNING" and read(out / "stop.json")["status"] == st1["status"]
+
+
+def test_entered_reports_the_workers_failure_when_the_gate_wait_times_out():
+    """I23: a worker that dies before reaching the gate must be visible in the wait-failure message."""
+    def boom():
+        raise RuntimeError("distinctive-worker-crash-I23")
+
+    gate = Gate()
+    th, box = bg(boom)
+    th.join(WAIT)
+    with pytest.raises(AssertionError, match=r"alive=False") as info:
+        entered(gate, th, box, wait=0.05)
+    assert "distinctive-worker-crash-I23" in str(info.value)
+    assert "Traceback" in str(info.value)
+
+
+def test_entered_reports_a_worker_crash_that_happens_during_the_wait():
+    """I23 fix round 1: the crash lands while entered() is waiting (the PS-1 shape); no pre-join, no sleep."""
+    release = threading.Event()
+
+    def crash_when_released():
+        assert release.wait(WAIT), "never released"
+        raise RuntimeError("distinctive-crash-during-wait-I23")
+
+    class WaitThatReleasesTheWorker:
+        def wait(self, timeout):
+            release.set()
+            th.join(WAIT)
+            return False
+
+    gate = Gate()
+    gate.inside = WaitThatReleasesTheWorker()
+    th, box = bg(crash_when_released)
+    with pytest.raises(AssertionError, match=r"alive=False") as info:
+        entered(gate, th, box, wait=0.05)
+    assert "distinctive-crash-during-wait-I23" in str(info.value)
+    assert "Traceback" in str(info.value)
