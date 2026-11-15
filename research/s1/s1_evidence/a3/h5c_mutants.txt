@@ -1,0 +1,161 @@
+# A3 H5c semantic mutants. Source tree: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_final (full scratch copy of the final H5c research/s1).
+# product sha256: s1_checkpoint.py 4aa81342d424ed7fbeb14c27eccc998dbf68b53ef39f06e7ffc6055bb92efb22 s1_common.py 45d2dff77243fd4df2395db4b32759a67da9603036d1fd3041ccaae70ef5628d s1_run.py 983d002bd5683e8306c4180d86723043921a38555769101910c426e096584235 s1_slot.py 1e314d4844d8deaa6e11cbc7963eaf1e5b9ee3ad270606e68d0f6248050308a4 s1_stage.py 1f08573d08166e1e8d3b3757cedd1f6e746379d1f1e5e4b5681cc052160460db s1_trial.py 61edbed7e4b651a2babbb3b88e5b2e3eaf3375f4c57a21687432f1c696ccff10
+# runner sha256 b2424c20fcde8b6381fda8c35d5adc54b1b12c27c299e15b2e0191783ca54c36
+
+## baseline (unmutated): every killing node
+26 passed in 77.53s (0:01:17)
+pytest_rc=0
+
+## m4-op15-guard-removed (item 4 (H1 M-3))
+# s1_trial.py: one exact replacement
+<<<     if not rows:                                          # ruling OP-15: record only after journal rows
+<<<         return
+>>>     pass                                                  # MUTANT: OP-15 guard removed
+# cmd: pytest research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_witness_before_any_journal_row_stays_command_local
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m4-op15-guard-removed\research\s1\s1_tests\test_s1_a3_abort_recovery.py:195: Failed: the gate refused/recorded before any journal row (OP-15): probe command refused: surviving local abort recorded: INVALID (established-violation), subtype local-abort, bound to aborted.json 6288c0c1da29: no work (G6.4)
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_witness_before_any_journal_row_stays_command_local
+1 failed in 0.64s
+VERDICT m4-op15-guard-removed: KILLED
+
+## m6-dups-filter-dropped (item 6 (H2 N-1))
+# s1_trial.py: one exact replacement
+<<< | {x.mailbox_id for x in dups if not _finite(x.created) or x.created < a.created})
+>>> | {x.mailbox_id for x in dups})
+# cmd: pytest research/s1/s1_tests/test_s1_a3_close.py::test_first_valid_close_monotone
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m6-dups-filter-dropped\research\s1\s1_tests\test_s1_a3_close.py:237: AssertionError: ['2 S1-ACQUIRE-ACK for trial d8dcb236-caa6-4be3-b5ab-e99efb51d871 (F7.1; byte-identical included): escalate', "CLOSE-A...cq-dup'] created before it are not chain-valid: refuse and escalate (C1.2)): the trial stays open and commands refuse"]
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_close.py::test_first_valid_close_monotone[duplicate-after-closure]
+1 failed, 2 passed in 20.15s
+VERDICT m6-dups-filter-dropped: KILLED
+
+## m8-r2-route-predicate-widened (item 8 (H3 M-2))
+# s1_checkpoint.py: one exact replacement
+<<<     if scheduled == _w_last(cal, start):
+>>>     if scheduled >= _w_last(cal, start):
+# cmd: pytest research/s1/s1_tests/test_s1_a3_wpend.py::test_registered_slot_after_w_last_never_routes research/s1/s1_tests/test_s1_a3_wpend.py::test_no_window_extension research/s1/s1_tests/test_s1_a3_eligibility.py::test_route_predicate_unchanged
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m8-r2-route-predicate-widened\research\s1\s1_tests\test_s1_a3_wpend.py:345: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m8-r2-route-predicate-widened\research\s1\s1_tests\a3_h5a_helpers.py:188: Failed: DID NOT RAISE <class 'SystemExit'>
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_wpend.py::test_registered_slot_after_w_last_never_routes[first-registered-slot-after-w-last]
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_route_predicate_unchanged[later-registered-slot-not-routed]
+2 failed, 2 passed in 18.55s
+VERDICT m8-r2-route-predicate-widened: KILLED
+
+## m7-prepared-default-clock (item 7 (H3 M-1, oracle))
+# s1_stage.py: one exact replacement
+<<<                           mailbox, clock, stage_gate, check), stage, "STAGE-PREPARED")
+>>>                           mailbox, None, stage_gate, check), stage, "STAGE-PREPARED")
+# cmd: pytest research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_same_clock_callable
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m7-prepared-default-clock\research\s1\s1_tests\test_s1_a3_prestart.py:933: assert ([<test_s1_a3_prestart._Adv object at 0x00000220DFE9A240>, <test_s1_a3_prestart._Adv object at 0x00000220DFE9A240>, <te... <test_s1_a3_prestart._Adv object at 0x00000220DFE9A240>, <test_s1_a3_prestart._Adv object at 0x00000220DFE9A240>, ...] and False)
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_same_clock_callable
+1 failed in 1.13s
+VERDICT m7-prepared-default-clock: KILLED
+
+## m7-control-old-oracle (item 7 control: the SAME mutant vs the pre-H5c oracle line (expected SURVIVED))
+# s1_stage.py: one exact replacement
+<<<                           mailbox, clock, stage_gate, check), stage, "STAGE-PREPARED")
+>>>                           mailbox, None, stage_gate, check), stage, "STAGE-PREPARED")
+# s1_tests/test_s1_a3_prestart.py: one exact replacement
+<<<     appends = [x for n, x in seen if n == "append"]                # A3 H5c (H3 M-1): the oracle pins the clock of
+<<<     assert appends and all(x is clk for x in appends)              # EVERY journal transaction - no None admitted
+>>>     assert all(x is clk for n, x in seen if n == "append" and x is not None)  # every journal transaction
+# cmd: pytest research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_finalizer_helper_same_clock_callable
+.                                                                        [100%]
+1 passed in 1.15s
+VERDICT m7-control-old-oracle: SURVIVED
+
+## m5-h1-m1-default-context (item 5 (H1 M-5; H1's m1 re-run))
+# s1_trial.py: one exact replacement
+<<<     res = invalidate(tr, "established-violation", rec, root=root, mailbox=mailbox, clock=now, recovery=True)
+>>>     res = invalidate(tr, "established-violation", rec, root=root, mailbox=mailbox, clock=now)
+# cmd: pytest research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_concurrent_recovery_arbitration
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m5-h1-m1-default-context\research\s1\s1_tests\test_s1_a3_abort_recovery.py:216: AssertionError: assert ['reason/esta...ed-violation'] == ['reason/esta...ed-violation']
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m5-h1-m1-default-context\research\s1\s1_tests\test_s1_a3_abort_recovery.py:223: AssertionError: assert (True and 'established-violation' not in 'REFUSED chi... work (G6.4)'
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_concurrent_recovery_arbitration[same-witness]
+FAILED research/s1/s1_tests/test_s1_a3_abort_recovery.py::test_concurrent_recovery_arbitration[different-reason-invalid]
+2 failed in 15.46s
+VERDICT m5-h1-m1-default-context: KILLED
+
+## m1-recompute-over-gate-rows (item 1 (I-1 re-read))
+# s1_run.py: one exact replacement
+<<<         rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox)
+<<<         z.sampled_seals(out, rows,
+>>>         rows = gv.rows
+>>>         z.sampled_seals(out, rows,
+# cmd: pytest research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_is_invalid_when_confirmed research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_reread_failure_refuses_with_no_row
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m1-recompute-over-gate-rows\research\s1\s1_tests\test_s1_a3_score.py:451: AssertionError: assert (2 == 2 and [Row(trial_id='c20500aa-58fd-4827-be03-5f41099d6b83', seq=1, prev='83998f74718e02dab4e5b74b238a47b82ffba8926bfeb0040e3...35 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='78dfacd0-0e2e-4b2b-84cf-b85b4c8009f9', created=1792788330.0), ...] is not [Row(trial_id='c20500aa-58fd-4827-be03-5f41099d6b83', seq=1, prev='83998f74718e02dab4e5b74b238a47b82ffba8926bfeb0040e3...35 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='78dfacd0-0e2e-4b2b-84cf-b85b4c8009f9', created=1792788330.0), ...])
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m1-recompute-over-gate-rows\research\s1\s1_tests\test_s1_a3_score.py:497: AssertionError: Regex pattern did not match.
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_is_invalid_when_confirmed
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_reread_failure_refuses_with_no_row[journal-reread]
+2 failed, 1 passed in 25.24s
+VERDICT m1-recompute-over-gate-rows: KILLED
+
+## m1b-no-confirmation (item 1 (I-1))
+# s1_run.py: one exact replacement
+<<<     except s1_slot.QualifiedEvidence:                       # A3 H5c (T13 N-1)
+>>>     except ():                                              # MUTANT (T13 N-1)
+# cmd: pytest research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_is_invalid_when_confirmed
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m1b-no-confirmation\research\s1\s1_tests\test_s1_a3_score.py:446: AssertionError: Regex pattern did not match.
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_is_invalid_when_confirmed
+1 failed in 8.65s
+VERDICT m1b-no-confirmation: KILLED
+
+## m2-finally-guard-removed (item 2 (H1 M-1))
+# s1_slot.py: one exact replacement
+<<<             except c.OutputRootGone:        # A3 H5c (H1 M-1)
+>>>             except ZeroDivisionError:       # MUTANT (H1 M-1)
+# cmd: pytest research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m2-finally-guard-removed\research\s1\s1_tests\test_s1_a3_carried_minors.py:83: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m2-finally-guard-removed\research\s1\s1_tests\test_s1_a3_carried_minors.py:90: Failed: violation() raised OutputRootGone: s1_out is gone: aborted.json not published (F6.6, G6.3) after a committed INVALID
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome[worker-violation-journal-down]
+FAILED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome[worker-violation-committed]
+2 failed, 6 passed in 0.64s
+VERDICT m2-finally-guard-removed: KILLED
+
+## m3-record-refusal-mkdir (item 3 (H1 M-2))
+# s1_common.py: one exact replacement
+<<<     out = Path(out)
+<<<     try:
+<<<         with (out / "refusals.jsonl")
+>>>     out = Path(out)
+>>>     try:
+>>>         out.mkdir(parents=True, exist_ok=True)
+>>>         with (out / "refusals.jsonl")
+# cmd: pytest research/s1/s1_tests/test_s1_a3_carried_minors.py::test_record_refusal_never_creates_s1_out
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m3-record-refusal-mkdir\research\s1\s1_tests\test_s1_a3_carried_minors.py:138: AssertionError: assert (not True)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m3-record-refusal-mkdir\research\s1\s1_tests\test_s1_a3_carried_minors.py:138: AssertionError: assert (not True)
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_record_refusal_never_creates_s1_out[root-missing-at-entry]
+FAILED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_record_refusal_never_creates_s1_out[root-vanishes-after-the-caller-check]
+2 failed in 0.58s
+VERDICT m3-record-refusal-mkdir: KILLED
+
+## m17-no-utc-normalization (item 17 (H5a-FIX c4))
+# s1_slot.py: one exact replacement
+<<<             slot = slot.astimezone(timezone.utc)
+>>>             slot = slot
+# cmd: pytest research/s1/s1_tests/test_s1_a3_carried_minors.py::test_non_utc_slot_names_files_by_utc_wall_time research/s1/s1_tests/test_s1_a3_carried_minors.py::test_non_utc_slot_late_paths_use_utc_wall_time
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m17-no-utc-normalization\research\s1\s1_tests\test_s1_a3_carried_minors.py:169: AssertionError: ('refused', "seal stage seal/2026-10-26: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)']: INVALID (registration-artifact)")
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5c_mut\m17-no-utc-normalization\research\s1\s1_tests\test_s1_a3_carried_minors.py:199: AssertionError: assert ['20261026T164500Z'] == ['20261026T204500Z']
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_non_utc_slot_names_files_by_utc_wall_time
+FAILED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_non_utc_slot_late_paths_use_utc_wall_time
+2 failed in 3.90s
+VERDICT m17-no-utc-normalization: KILLED
+

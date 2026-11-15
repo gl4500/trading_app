@@ -423,3 +423,79 @@ def test_score_ack_binding_no_snapshot_with_a_report_on_disk_is_a_refusal(tmp_pa
                                                              r"artifacts"):
         r.score(tmp_path, "score-ack")
     assert all(x.kind != "TRIAL-INVALID" for x in jrows(tmp_path)) and _stage_kinds(tmp_path) == []
+
+
+# ---------------------------------------------------------------- A3 H5c item 1 (T13 N-1): pre-INTENT QualifiedEvidence
+def _qe(msg):
+    import s1_slot
+    return s1_slot.QualifiedEvidence(msg)
+
+
+def test_pre_intent_qualified_evidence_is_invalid_when_confirmed(tmp_path, monkeypatch):     # T13 N-1
+    """A QualifiedEvidence raised by the score's pre-INTENT sampled-history computation (a race past the gate's F3
+    table) is the F3 signal: confirmed on a recomputation over re-read rows, it is TRIAL-INVALID
+    (registration-artifact) - never 'sampled history unreadable'."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    calls = []
+
+    def bad(*a, **kw):
+        calls.append(a[1])
+        raise _qe("slot/x: QUALIFIED tree differs from the committed detail (F3)")
+    monkeypatch.setattr(z, "sampled_seals", bad)
+    n = len(jrows(tmp_path))
+    with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score: slot evidence violation \['slot/x: QUALIFIED "
+                                                             r"tree differs from the committed detail \(F3\)'\]: "
+                                                             r"INVALID \(registration-artifact\)$"):
+        r.score(tmp_path, "score-ack")
+    rows = jrows(tmp_path)
+    assert len(calls) == 2 and calls[0] is not calls[1]                   # the recomputation is over RE-READ rows
+    assert [x.subject for x in rows[n:]] == ["reason/registration-artifact"]
+    assert j.subject_rows(rows, "stage/score") == [] and _stage_kinds(tmp_path) == []
+    assert not (tmp_path / "s1_out" / "score").exists()
+
+
+def test_pre_intent_qualified_evidence_unconfirmed_refuses_with_no_row(tmp_path, monkeypatch):   # T13 N-1
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    real, n = z.sampled_seals, [0]
+
+    def once(*a, **kw):
+        n[0] += 1
+        if n[0] == 1:
+            raise _qe("transient (simulated)")
+        return real(*a, **kw)
+    monkeypatch.setattr(z, "sampled_seals", once)
+    before = len(jrows(tmp_path))
+    with _Clock(st_["now"]), pytest.raises(SystemExit, match=r"^score refused: a QUALIFIED tree problem was not "
+                                                             r"confirmed on a re-read: refused with no row$"):
+        r.score(tmp_path, "score-ack")
+    assert n[0] == 2 and len(jrows(tmp_path)) == before and _stage_kinds(tmp_path) == []
+
+
+@pytest.mark.parametrize("err", ["oserror-recompute", "journal-reread"])
+def test_pre_intent_qualified_evidence_reread_failure_refuses_with_no_row(tmp_path, monkeypatch, err):   # T13 N-1
+    """I-4: an OSError (or a journal read failure) on the confirming re-read refuses with no row - never INVALID."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    n = [0]
+
+    def seals(*a, **kw):
+        n[0] += 1
+        if n[0] == 1:
+            raise _qe("slot/x: a file of its QUALIFIED tree is missing")
+        raise PermissionError("locked")
+    monkeypatch.setattr(z, "sampled_seals", seals)
+    before = len(jrows(tmp_path))
+    if err == "journal-reread":
+        real_read, fired = j.read_trial, []
+
+        def read(*a, **kw):
+            if n[0] == 1 and not fired:                                   # the confirming re-read only
+                fired.append(1)
+                raise j.Outage("mailbox locked (simulated)")
+            return real_read(*a, **kw)
+        monkeypatch.setattr(j, "read_trial", read)
+    want = {"oserror-recompute": r"PermissionError", "journal-reread": r"Outage"}[err]
+    with _Clock(st_["now"]), pytest.raises(SystemExit, match=rf"^score refused: a QUALIFIED tree problem could not be "
+                                                             rf"re-read \({want}\): refused with no row \(I-4\)$"):
+        r.score(tmp_path, "score-ack")
+    assert n[0] == (2 if err == "oserror-recompute" else 1)
+    assert len(jrows(tmp_path)) == before and _stage_kinds(tmp_path) == []

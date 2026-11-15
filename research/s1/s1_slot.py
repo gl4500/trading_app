@@ -380,6 +380,8 @@ class Worker:
 
     def __init__(self, gv, slot, day, cal, *, slot_gate, mailbox=None, now=c.now_utc):
         import s1_trial
+        if getattr(slot, "tzinfo", None) is not None:      # A3 H5c (H5a-FIX concern 4): an aware slot is normalized to
+            slot = slot.astimezone(timezone.utc)           # UTC, so names() and the late/ paths are UTC wall time
         self.gv, self.slot, self.day, self.cal, self.now, self.mailbox = gv, slot, day, cal, now, mailbox
         self.subject = j.slot_subject(slot)
         self.op, self.actor = j.new_nonce(), j.new_nonce()
@@ -519,7 +521,10 @@ class Worker:
             s1_trial.invalidate(self.gv.trial, REASON_VIOLATION, rec, root=self.gv.root, mailbox=self.mailbox,
                                 clock=self.now)
         finally:
-            ck._write_abort(self.gv.out, reason, rep, rep.get("snapshot"), receipt_sha)    # first-wins, local
+            try:
+                ck._write_abort(self.gv.out, reason, rep, rep.get("snapshot"), receipt_sha)    # first-wins, local
+            except c.OutputRootGone:        # A3 H5c (H1 M-1): a vanished s1_out never masks the primary Refusal
+                pass                        # (or, after a committed INVALID, the caller's path); never recreated
 
 
 # ---------------------------------------------------------------- A3 Task 7: finalizer, F3 evidence table, seal stages

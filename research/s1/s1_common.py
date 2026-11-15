@@ -27,6 +27,7 @@ import importlib.util
 import json
 import os
 import sqlite3
+import sys
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
@@ -408,12 +409,16 @@ def bundle_gate(out: Path, expected, *, registered: bool, where: str, now=None) 
     if registered:
         t = (now or now_utc)()
         manifest = bundle_manifest()
-        write_abort(out, {"reason": "bundle", "where": where, "expected_bundle_sha256": expected,
-                          "observed_bundle_sha256": observed, "problems": bundle_problems(manifest),
-                          "observed_manifest": manifest, "actual": t.isoformat(), "close": None,
-                          "scheduled": None, "projection_sha256": None, "receipt_sha256": None})
-        raise SystemExit(f"{where} refused: S1 bundle {str(observed)[:12]} differs from the registered "
-                         f"{str(expected)[:12]}: persistent ABORTED-INVALID (reason bundle)")
+        why = (f"{where} refused: S1 bundle {str(observed)[:12]} differs from the registered "
+               f"{str(expected)[:12]}: persistent ABORTED-INVALID (reason bundle)")
+        try:
+            write_abort(out, {"reason": "bundle", "where": where, "expected_bundle_sha256": expected,
+                              "observed_bundle_sha256": observed, "problems": bundle_problems(manifest),
+                              "observed_manifest": manifest, "actual": t.isoformat(), "close": None,
+                              "scheduled": None, "projection_sha256": None, "receipt_sha256": None})
+        except OutputRootGone:                      # A3 H5c (H1 M-1): this site's own refusal, never an OSError
+            raise SystemExit(f"{why} (local abort not published: s1_out is gone)") from None
+        raise SystemExit(why)
     raise SystemExit(f"{where} refused: S1 bundle {str(observed)[:12]} differs from the approved "
                      f"{str(expected)[:12]} (nothing registered yet)")
 
@@ -616,12 +621,15 @@ PREREG_BINDS = ATTEST_BINDS + (("attest_start_sha256", "attest_start.json"),)
 
 def record_refusal(out: Path, where: str, e, now=None) -> None:
     """B3.2: a refused invocation is preserved (one JSON line: where, the refusal text - S1's own messages, built
-    without secret values - and the time)."""
+    without secret values - and the time). A3 H5c (H1 M-2; F6.6, I-3): written only INTO an existing s1_out - never
+    creates it (no mkdir): a root missing on entry or vanished after the caller's check leaves the refusal unrecorded
+    there (its text goes to stderr, as s1_trial._record) and the refusal still stands."""
+    out = Path(out)
     try:
-        out = Path(out)
-        out.mkdir(parents=True, exist_ok=True)
         with (out / "refusals.jsonl").open("a", encoding="utf-8") as f:
             f.write(json.dumps({"where": where, "refused": str(e), "utc": (now or now_utc)().isoformat()}) + "\n")
+    except FileNotFoundError:
+        print(f"S1 {where} refusal not recorded (s1_out absent): {e}", file=sys.stderr)
     except OSError:
         pass                                    # the refusal itself still stands (SystemExit is re-raised)
 
@@ -1223,10 +1231,14 @@ def registration_gate(out: Path, where: str, now=None, *, refuse: bool = True, m
     import s1_trial                                          # (late import) OQ-19: commit the violation first
     s1_trial.invalidate_current(out, "registration-artifact", {"where": where, "problems": probs,
                                                                "observed_utc": t.isoformat()}, mailbox, clock=lambda: t)
-    write_abort(out, {"reason": REGISTRATION_ARTIFACT, "where": where, "problems": probs, "observed_utc": t.isoformat(),
-                      "actual": None, "close": None, "scheduled": None, "projection_sha256": None,
-                      "receipt_sha256": None})
-    if not refuse:
+    why = (f"{where} refused: registration artifact(s) missing or changed: {probs[:3]}: persistent "
+           f"ABORTED-INVALID (reason {REGISTRATION_ARTIFACT})")
+    try:
+        write_abort(out, {"reason": REGISTRATION_ARTIFACT, "where": where, "problems": probs,
+                          "observed_utc": t.isoformat(), "actual": None, "close": None, "scheduled": None,
+                          "projection_sha256": None, "receipt_sha256": None})
+    except OutputRootGone:                          # A3 H5c (H1 M-1): this site's own refusal - also for the two
+        raise SystemExit(f"{why} (local abort not published: s1_out is gone)") from None   # recording commands
+    if not refuse:                                  # (refuse=False): with s1_out gone there is nothing to record into
         return probs
-    raise SystemExit(f"{where} refused: registration artifact(s) missing or changed: {probs[:3]}: persistent "
-                     f"ABORTED-INVALID (reason {REGISTRATION_ARTIFACT})")
+    raise SystemExit(why)

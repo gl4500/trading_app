@@ -345,7 +345,9 @@ def test_eligibility_refusal_triggers_no_finalizer(tmp_path, monkeypatch, case):
     st_ = h.registered(tmp_path)
     sch = h.slot(st_, h.D130)
     w = h.Watch(monkeypatch)
-    h.attempt(h.run, tmp_path, st_, sch, sch + timedelta(seconds=30))
+    got = h.attempt(h.run, tmp_path, st_, sch, sch + timedelta(seconds=30))
+    assert got == ("refused", f"{j.slot_subject(sch)}: SLOT-INTENT refused with no row: "         # H5c (H5a M-2)
+                              f"{h.c2_text(h.D130)}"), got
     if case == "no-missed-timeout-rows":
         assert [k for k, _ in w.appends if k in ("SLOT-MISSED", "SLOT-TIMEOUT")] == [], w.appends
     else:

@@ -1,0 +1,52 @@
+# A3 H5c item 16 re-audit: rg --no-ignore over research/s1 (final H5c source; __pycache__ and s1_evidence excluded), 2026-11-15T08:32:05Z
+# pattern: \.kill\(|kill=True|terminate\(|TerminateProcess|taskkill|os\.kill|signal\.|killpg|send_signal|psutil|Job[Oo]bject|CREATE_NEW_PROCESS_GROUP|CTRL_BREAK|sys\.executable|_base_executable
+research/s1\docs\s1_plan_addendum3.md:11482:PY = sys.executable
+research/s1\docs\s1_plan_addendum3.md:2679:    p = subprocess.Popen([sys.executable, "-I", "-c", script, *map(str, args)], stdin=subprocess.PIPE,
+research/s1\docs\s1_plan_addendum3.md:2686:        p.kill()
+research/s1\docs\s1_plan_addendum3.md:2740:    stop(p, kill=True)                                            # a real crash: the OS releases the handle
+research/s1\docs\s1_plan_addendum3.md:2762:    procs = [subprocess.Popen([sys.executable, "-I", "-c", HOLD, str(HERE), str(tmp_path), TRIAL, "stage-opening"],
+research/s1\docs\s1_plan_addendum3.md:5060:    p = subprocess.run([sys.executable, "-I", "-c", CRASH_AFTER_P, str(HERE), str(tmp_path), str(st_["ledger"].path),
+research/s1\docs\s1_plan_addendum3.md:5764:    p = subprocess.Popen([sys.executable, "-I", "-c", LIVE_WORKER, str(HERE), str(tmp_path), j.slot_subject(sch),
+research/s1\docs\s1_plan_addendum3.md:6230:    args = [sys.executable, "-I", "-c", FINALIZE, str(Path(c.HERE)), str(tmp_path), d.isoformat(), str(cal_p),
+research/s1\docs\s1_plan_addendum3.md:6261:    p = subprocess.run([sys.executable, "-I", "-c", CRASH, str(Path(c.HERE)), str(tmp_path), str(st_["ledger"].path),
+research/s1\docs\s1_plan_addendum3.md:6989:    p = subprocess.Popen([sys.executable, "-I", str(HELPERS), str(root), stage, mode, AT.isoformat()],
+research/s1\docs\s1_plan_addendum3.md:7297:    procs = [subprocess.Popen([sys.executable, "-I", str(HELPERS), str(tmp_path), "final_plan", "recover",
+research/s1\e1_fetch.py:143:            "tzdata": getattr(tzdata, "__version__", None), "executable": sys.executable}
+research/s1\s1_tests\test_s1_a3_abort_recovery.py:145:    p = subprocess.Popen([sys.executable, "-I", "-c", RECOVERER, str(HERE), str(root), at.isoformat()],
+research/s1\s1_tests\test_s1_a3_abort_recovery.py:254:    rc = subprocess.run([sys.executable, "-I", "-c", CRASHER, str(HERE), str(tmp_path), st_["now"].isoformat()],
+research/s1\s1_tests\test_s1_a3_codex_probes.py:197:    args = [sys.executable, "-I", "-c", FINALIZE, str(Path(c.HERE)), str(tmp_path), d.isoformat(), str(cal_p),
+research/s1\s1_tests\test_s1_a3_codex_probes.py:232:    p = subprocess.run([sys.executable, "-I", "-c", CRASH, str(Path(c.HERE)), str(tmp_path), str(st_["ledger"].path),
+research/s1\s1_tests\test_s1_a3_codex_probes.py:44:    p = subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "--collect-only",
+research/s1\s1_tests\test_s1_a3_early_refusal_lock.py:103:    ps = [subprocess.Popen([sys.executable, "-I", CHILD, "append", S1DIR, str(out), str(k), str(N_REC), str(ready[k]),
+research/s1\s1_tests\test_s1_a3_early_refusal_lock.py:113:                p.kill()
+research/s1\s1_tests\test_s1_a3_early_refusal_lock.py:68:        self.p = subprocess.Popen([sys.executable, "-I", CHILD, "hold", str(out), str(LOCK_OFFSET), str(self.held),
+research/s1\s1_tests\test_s1_a3_early_refusal_lock.py:73:            self.p.kill()
+research/s1\s1_tests\test_s1_a3_early_refusal_lock.py:82:            self.p.kill()
+research/s1\s1_tests\test_s1_a3_finalizer.py:126:    p = subprocess.Popen([sys.executable, "-I", "-c", LIVE_WORKER, str(HERE), str(tmp_path), j.slot_subject(sch),
+research/s1\s1_tests\test_s1_a3_locks.py:151:        stop(p, kill=True)                                            # a real crash: the OS releases the handle
+research/s1\s1_tests\test_s1_a3_locks.py:21:EXE = getattr(sys, "_base_executable", None) or sys.executable      # never the venv launcher (PS-1)
+research/s1\s1_tests\test_s1_a3_locks.py:69:            p.kill()
+research/s1\s1_tests\test_s1_a3_locks.py:6:A3 H5c (PS-1, Codex launcher_review_v1.txt): in a venv on Windows sys.executable is the Scripts python.exe launcher,
+research/s1\s1_tests\test_s1_a3_locks.py:7:which runs the real interpreter as a GRANDCHILD - Popen.kill() would kill the launcher, not the lock holder. The
+research/s1\s1_tests\test_s1_a3_locks.py:80:    """kill=True is a real crash (TerminateProcess); otherwise a clean exit on stdin EOF. Either way it is reaped."""
+research/s1\s1_tests\test_s1_a3_locks.py:83:            p.kill()
+research/s1\s1_tests\test_s1_a3_locks.py:8:stdlib-only children are spawned with sys._base_executable (the real interpreter; -I, the product directory passed
+research/s1\s1_tests\test_s1_a3_mutants.py:195:    cmd = [sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", *nodes, "-q", "--tb=line",
+research/s1\s1_tests\test_s1_a3_plan_damage.py:437:    p = subprocess.Popen([sys.executable, "-I", str(Path(h.__file__).resolve()), str(tmp_path), "audit",
+research/s1\s1_tests\test_s1_a3_prestart.py:583:    p = subprocess.Popen([sys.executable, "-I", str(HELPERS), str(tmp_path), stage, "hold-after-intent",
+research/s1\s1_tests\test_s1_a3_seal_once.py:112:    return [sys.executable, "-I", str(script), str(HERE), str(tmp_path), str(st_["ledger"].path), at.isoformat(),
+research/s1\s1_tests\test_s1_a3_seal_once.py:158:            p.kill()
+research/s1\s1_tests\test_s1_a3_slots.py:255:    p = subprocess.run([sys.executable, "-I", "-c", CRASH_AFTER_P, str(HERE), str(tmp_path), str(st_["ledger"].path),
+research/s1\s1_tests\test_s1_a3_slots.py:408:    p = subprocess.Popen([sys.executable, "-I", str(HELPERS), str(tmp_path), stage, "hold-after-intent", at.isoformat()],
+research/s1\s1_tests\test_s1_a3_stage.py:51:    p = subprocess.Popen([sys.executable, "-I", str(HELPERS), str(root), stage, mode, AT.isoformat()],
+research/s1\s1_tests\test_s1_a3_wpend.py:217:    p = subprocess.Popen([sys.executable, "-I", "-c", HOLDER, str(HERE), str(tmp_path), W_SUB],
+research/s1\s1_tests\test_s1_checkpoint.py:432:    res = subprocess.run([sys.executable, str(Path(k.__file__)), "--help"], capture_output=True, text=True,
+research/s1\s1_tests\test_s1_t12_a1.py:241:    a = rc.semantic_receipt(root, root / ".env", Path(sys.executable), roots=ROOTS, contract=rc.contract())
+research/s1\s1_tests\test_s1_t12_a1.py:245:    b = rc.semantic_receipt(root, root / ".env", Path(sys.executable), roots=ROOTS, contract=rc.contract())
+research/s1\s1_tests\test_s1_task11.py:765:        for word in ("Stop-Process", "taskkill", "os.kill", "Restart-", "shutdown"):
+# matches under research/s1/s1_evidence (historical evidence, not code; count by file):
+research/s1/s1_evidence\a3\h5afix_red.txt:2
+research/s1/s1_evidence\a3\h5c_kill_audit.txt:45
+research/s1/s1_evidence\a3\m4_workload\driver.py:2
+research/s1/s1_evidence\a3\t7_red_interface.txt:2
+research/s1/s1_evidence\t12_A1_red.txt:1

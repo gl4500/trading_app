@@ -1,0 +1,97 @@
+# A3 H5c item 15 (H5a M-3) - INVESTIGATION ONLY: deterministic single-fault probe of the two-pass registration scan (s1_common.registration_gate), run 2026-11-15T08:55:19Z from the full scratch copy of the final H5c tree; no load, no contention campaign, no product change.
+# probe source sha256 3df06e1e4f79a665bb8f9e0ec1234e69f43eef82b9952f271db674386c1430ce (scratchpad h5c_item15/test_probe_two_pass.py; reproduced below)
+# result: 13 passed (the probe asserts nothing; it records outcomes)
+
+## results.jsonl
+{"target": "bundle_sha256", "k": 1, "calls_in_pass1": null, "outcome": "OK (no problem on pass 1)", "passes": 1}
+{"target": "bundle_sha256", "k": 2, "calls_in_pass1": null, "outcome": "probe refused: the registration state changed during the gate's scan (a concurrent stage publication): the violation was not confirmed - nothing is aborted", "passes": 2}
+{"target": "bundle_sha256", "k": 3, "calls_in_pass1": null, "outcome": "probe refused: inconsistent pre-registration state ['registry/opening.json', 'witnesses/opening.json', 'registry/attest_start.json', 'witnesses/attest_start.json']: files only a registration produces exist, but no regist", "passes": 1}
+{"target": "bundle_sha256", "k": 4, "calls_in_pass1": null, "outcome": "OK (no problem on pass 1)", "passes": 1}
+{"target": "bundle_sha256", "k": 5, "calls_in_pass1": null, "outcome": "OK (no problem on pass 1)", "passes": 1}
+{"target": "bundle_sha256", "k": 6, "calls_in_pass1": null, "outcome": "OK (no problem on pass 1)", "passes": 1}
+{"target": "_mailbox_rows", "k": 1, "calls_in_pass1": null, "outcome": "OK (no problem on pass 1)", "passes": 1}
+{"target": "_mailbox_rows", "k": 2, "calls_in_pass1": null, "outcome": "OK (no problem on pass 1)", "passes": 1}
+{"target": "_mailbox_rows", "k": 3, "calls_in_pass1": null, "outcome": "OK (no problem on pass 1)", "passes": 1}
+{"target": "_mailbox_rows", "k": 4, "calls_in_pass1": null, "outcome": "OK (no problem on pass 1)", "passes": 1}
+{"target": "_mailbox_rows", "k": 5, "calls_in_pass1": null, "outcome": "OK (no problem on pass 1)", "passes": 1}
+{"target": "_mailbox_rows", "k": 6, "calls_in_pass1": null, "outcome": "OK (no problem on pass 1)", "passes": 1}
+{"healthy_pass_problems": [], "calls": {"bundle_sha256": 2, "_mailbox_rows": 1}}
+
+## probe source
+"""A3 H5c item 15 (H5a M-3), INVESTIGATION ONLY - a scratch probe, never collected by the repo suite and never product
+code. Deterministic single-fault injection (no load, no contention campaign): on a healthy registered state (the
+row-482 scored-after-score fixture: s1_state score_ready=True), registration_gate runs its two-pass scan; the k-th
+call of ONE time/environment-dependent input during PASS 1 only is perturbed, and the outcome is recorded. A result
+"registration state changed during the gate's scan" reproduces the observed flake text and names the input."""
+import json
+import sqlite3
+from pathlib import Path
+
+import pytest
+import s1_common as c
+from conftest import _Clock, s1_state
+
+START = "2026-10-26T13:30:00+00:00"
+OUT = Path(__file__).resolve().parent / "results.jsonl"
+
+
+def _probe(tmp_path, monkeypatch, target, k):
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out, mb = tmp_path / "s1_out", tmp_path / "mailbox.sqlite3"
+    ps = {"pass": 0, "n": 0}
+    real_rp = c.registration_problems
+
+    def rp(*a, **kw):
+        ps["pass"] += 1
+        ps["n"] = 0
+        return real_rp(*a, **kw)
+    monkeypatch.setattr(c, "registration_problems", rp)
+    if target == "bundle_sha256":
+        real = c.bundle_sha256
+
+        def f():
+            if ps["pass"] == 1:
+                ps["n"] += 1
+                if ps["n"] == k:
+                    return "f" * 64                             # one transient bundle reading in pass 1
+            return real()
+        monkeypatch.setattr(c, "bundle_sha256", f)
+    elif target == "_mailbox_rows":
+        real = c._mailbox_rows
+
+        def f(*a, **kw):
+            if ps["pass"] == 1:
+                ps["n"] += 1
+                if ps["n"] == k:
+                    raise sqlite3.OperationalError("database is locked (injected)")
+            return real(*a, **kw)
+        monkeypatch.setattr(c, "_mailbox_rows", f)
+    with _Clock(st_["now"]):
+        try:
+            c.registration_gate(out, "probe", mailbox=mb)
+            got = "OK (no problem on pass 1)"
+        except SystemExit as e:
+            got = " ".join(str(e).split())[:220]
+    rec = {"target": target, "k": k, "calls_in_pass1": None, "outcome": got, "passes": ps["pass"]}
+    with OUT.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(rec) + "\n")
+    return got
+
+
+@pytest.mark.parametrize("k", range(1, 7))
+@pytest.mark.parametrize("target", ["bundle_sha256", "_mailbox_rows"])
+def test_single_fault_in_pass_one(tmp_path, monkeypatch, target, k):
+    _probe(tmp_path, monkeypatch, target, k)
+
+
+def test_call_counts_in_one_healthy_pass(tmp_path, monkeypatch):
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    out, mb = tmp_path / "s1_out", tmp_path / "mailbox.sqlite3"
+    n = {"bundle_sha256": 0, "_mailbox_rows": 0}
+    for name in n:
+        real = getattr(c, name)
+        monkeypatch.setattr(c, name, lambda *a, _r=real, _n=name, **kw: n.__setitem__(_n, n[_n] + 1) or _r(*a, **kw))
+    with _Clock(st_["now"]):
+        probs = c.registration_problems(out, mb)
+    with OUT.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"healthy_pass_problems": probs, "calls": n}) + "\n")

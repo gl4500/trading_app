@@ -388,7 +388,9 @@ def test_no_refusal_triggered_finalizer(tmp_path, monkeypatch, case):
         s = d0_slots(st_)
         h.qualify(tmp_path, st_, s[47])
         w = h.Watch(monkeypatch)
-        h.attempt(h.run, tmp_path, st_, s[49], s[49] + timedelta(seconds=30))
+        got = h.attempt(h.run, tmp_path, st_, s[49], s[49] + timedelta(seconds=30))
+        assert got == ("refused", f"{j.slot_subject(s[49])}: SLOT-INTENT refused with no row: "   # H5c (H5a M-2)
+                                  f"{h.c3_text(h.D0, s[47])}"), got
         assert w.calls == [] and w.written() == [], (w.calls, w.appends)
         return
     st_ = h.registered(tmp_path, score_ready=True, lots=lots_stop_d0(), seal_days=[])

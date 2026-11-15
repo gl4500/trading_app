@@ -160,6 +160,48 @@ def release(p):
     return out
 
 
+def release_together(procs):
+    """A3 H5c (H1 review M-5): every recoverer is held at the barrier (after both witness reads, before BEGIN
+    IMMEDIATE) when ALL are released back to back - no output is read until every stdin has been written - so the
+    transactions really overlap and contend at BEGIN IMMEDIATE (as test_o17_three_way_race)."""
+    for p in procs:
+        p.stdin.write("\n")
+        p.stdin.flush()
+    outs = [p.stdout.readline().strip() for p in procs]
+    for p in procs:
+        p.wait(timeout=60)
+    return outs
+
+
+def test_witness_before_any_journal_row_stays_command_local(tmp_path, monkeypatch):                # OP-15 (H1 M-3)
+    """Ruling OP-15 (record only after rows): a surviving witness on an open trial with ZERO journal rows is NOT
+    recorded by the gate - the gate returns, no TRIAL-INVALID, no row at all, the witness bytes untouched - and the
+    command-local F8.1 refusal (s1_checkpoint._no_local_abort, the helper every capture/finalizer command runs after
+    the gate) still fires. State: the plan and the AUDIT-ACK only (s1_plan_audit journal=False, its hand-written audit
+    files removed - with them the F4 table would INVALIDATE "artifacts with no INTENT"), so the gate reaches the
+    recording point with rows == []. Kills the mutant that deletes the `if not rows: return` guard (h5c_mutants.txt).
+    Retro (the guard exists since H1)."""
+    import s1_checkpoint as ck
+    from conftest import s1_plan_audit
+    s1_plan_audit(tmp_path, START, journal=False)
+    shutil.rmtree(tmp_path / "s1_out" / "audit")
+    tr = t.open_trial(mb(tmp_path))
+    assert j.read_trial(tr.trial_id, tr.genesis, mb(tmp_path)) == []
+    data = put_witness(tmp_path, json.dumps(WITNESS, indent=1).encode("utf-8"))
+    sp = Spies(monkeypatch)
+    try:
+        gv = t.gate(tmp_path, "probe command", mailbox=mb(tmp_path))
+    except SystemExit as e:
+        pytest.fail(f"the gate refused/recorded before any journal row (OP-15): {e}")
+    assert gv.rows == []
+    with pytest.raises(SystemExit, match=r"^probe command refused: s1_out/aborted\.json exists \(an observed "
+                                         r"violation, F8\.1\): no new capture$"):
+        ck._no_local_abort(gv.out, "probe command")
+    assert j.read_trial(tr.trial_id, tr.genesis, mb(tmp_path)) == []             # no TRIAL-INVALID, no row at all
+    assert (tmp_path / "s1_out" / "aborted.json").read_bytes() == data
+    sp.assert_zero()
+
+
 @pytest.mark.parametrize("case", ["same-witness", "different-reason-invalid"])
 def test_concurrent_recovery_arbitration(tmp_path, case):                                     # row 462 (AB-A3)
     """Real processes, real BEGIN IMMEDIATE arbitration (no mocked pre-read). Kills m1 (pre-read-only idempotence)
@@ -169,7 +211,7 @@ def test_concurrent_recovery_arbitration(tmp_path, case):                       
     if case == "same-witness":
         a = recoverer(tmp_path, st_["now"])
         b = recoverer(tmp_path, st_["now"])                         # both have read the witness twice, neither row
-        outs = [release(a), release(b)]
+        outs = release_together([a, b])                             # H5c (H1 M-5): both released, then both read
         inv = invalids(tmp_path)
         assert [x.subject for x in inv] == ["reason/established-violation"]          # exactly one recovery row
         assert sorted(o.split()[0] for o in outs) == ["REFUSED", "REFUSED"]          # both refuse their command

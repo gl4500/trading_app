@@ -929,7 +929,8 @@ def test_opening_finalizer_helper_same_clock_callable(tmp_path, monkeypatch):   
     ck.finalize_opening(tmp_path, now=clk, mailbox=mb(tmp_path))
     assert {n for n, _ in seen} >= {"gate", "append", "stage"}
     assert all(x is clk for n, x in seen if n in ("gate", "stage"))            # by identity, no wrapper
-    assert all(x is clk for n, x in seen if n == "append" and x is not None)  # every journal transaction
+    appends = [x for n, x in seen if n == "append"]                # A3 H5c (H3 M-1): the oracle pins the clock of
+    assert appends and all(x is clk for x in appends)              # EVERY journal transaction - no None admitted
     ats = [c.aware(x.at) for x in jrows(tmp_path) if x.kind in ("SLOT-TIMEOUT", "STAGE-INTENT", "STAGE-CREATED")]
     assert len(ats) >= 3 and ats == sorted(ats) and len(set(ats)) == len(ats)   # an advancing clock observed
 

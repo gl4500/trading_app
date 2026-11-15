@@ -203,15 +203,30 @@ def test_close_candidate_strictly_before_boundary(tmp_path, monkeypatch, prev): 
         assert any("prev is not the latest ACK 'score-ack' created before it" in p for p in trx.problems)
 
 
-@pytest.mark.parametrize("case", ["ack-after-closure", "second-close-after-closure"])
+@pytest.mark.parametrize("case", ["ack-after-closure", "second-close-after-closure", "duplicate-after-closure"])
 def test_first_valid_close_monotone(tmp_path, monkeypatch, case):                         # row 484 (CL-A5)
+    """A3 H5c (H2 re-review N-1): `duplicate-after-closure` - a NORMAL chain closed SCORED, then a duplicate (second)
+    S1-ACQUIRE-ACK created after the CLOSE: it never retroactively refuses the first valid CLOSE (C1.3; kills the
+    mutant dropping the `created < a.created` filter on `dups`)."""
     no_coordination_writes(monkeypatch)
-    st_ = nvs_chain(tmp_path)
+    if case == "duplicate-after-closure":
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        st_["t0"] = st_["now"] - timedelta(days=3)
+    else:
+        st_ = nvs_chain(tmp_path)
     close(tmp_path, st_["t0"] + timedelta(days=5), prev="score-ack", mid="close-1")
     first = the_trial(tmp_path).closed
     assert first is not None
     tr = the_trial(tmp_path)                                           # token() refuses on a closed trial, so the
-    if case == "ack-after-closure":                                    # issuer-shaped lines are written by hand
+    if case == "duplicate-after-closure":
+        con = sqlite3.connect(mb(tmp_path))                            # token() refuses on a closed trial: the
+        (body,) = con.execute("SELECT body FROM messages WHERE id='acq-ack'").fetchone()   # chain ACQUIRE line again
+        con.close()
+        s1_mailbox(tmp_path, "acq-dup", body, st_["t0"] + timedelta(days=6))
+        dup =[a for a in t.scan(mb(tmp_path)) if a.mailbox_id == "acq-dup"]
+        assert len(dup) == 1 and dup[0].official and dup[0].created > first.created
+        assert {a.mailbox_id for a in t.scan(mb(tmp_path)) if a.kind == "S1-ACQUIRE-ACK"} == {"acq-ack", "acq-dup"}
+    elif case == "ack-after-closure":                                  # issuer-shaped lines are written by hand
         vals = {"trial_id": tr.trial_id, "bundle_sha256": tr.bundle, "prev": tr.acks["S1-PREREG-ACK"].mailbox_id,
                 "journal_seq": "1", "journal_head_sha256": j.read_trial(tr.trial_id, tr.genesis, mb(tmp_path))[0].sha}
         line = "S1-ACQUIRE-ACK " + " ".join(f"{n}={vals.get(n, '0' * 64)}" for n in t.ACK_FIELDS["S1-ACQUIRE-ACK"])
@@ -219,8 +234,12 @@ def test_first_valid_close_monotone(tmp_path, monkeypatch, case):               
     else:
         s1_mailbox(tmp_path, "close-2", close_line(tr, "score-ack", "WITHDRAWN"), st_["t0"] + timedelta(days=6))
     tr = the_trial(tmp_path)
-    assert tr.closed.mailbox_id == first.mailbox_id                    # never re-opened
-    assert any("escalate (the trial stays closed, E3.4)" in p for p in tr.problems)
+    assert tr.closed is not None and tr.closed.mailbox_id == first.mailbox_id, tr.problems   # never re-opened
+    if case == "duplicate-after-closure":                              # an escalation of the CLOSED trial only
+        assert tr.problems == [f"2 S1-ACQUIRE-ACK for trial {tr.trial_id} (F7.1; byte-identical included): "
+                               f"escalate"], tr.problems
+        return
+    assert any("escalate (the trial stays closed, E3.4)" in p for p in tr.problems), tr.problems
 
 
 def issue_close_scored(root, at, *, mailbox_root=None):

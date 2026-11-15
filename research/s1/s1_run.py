@@ -763,6 +763,7 @@ def score(root, ack_id: str, *, mailbox=None) -> dict:
     local I/O or journal/mailbox fault is no computation error: it refuses with no row (s1_stage.run; the F4 stage
     table decides on re-entry). An INVALID trial never reaches here (the gate refuses with no work)."""
     import s1_journal as j
+    import s1_slot
     import s1_stage
     gv = s1_trial.gate(root, "score", mailbox=mailbox)                  # A3 F0.6: open trial, state, bundle first
     out = _out(root)
@@ -801,7 +802,9 @@ def score(root, ack_id: str, *, mailbox=None) -> dict:
         else:
             inputs = {"final/manifest.json": c.sha_or_absent(out / "final" / "manifest.json"),
                       "attest_stop.json": c.sha_or_absent(out / "attest_stop.json"), "sampled_history": history}
-    except (OSError, ValueError, KeyError, TypeError) as e:  # (here is a refusal with a reason, nothing written)
+    except s1_slot.QualifiedEvidence:                       # A3 H5c (T13 N-1): the F3 signal (a ValueError), never
+        _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)
+    except (OSError, ValueError, KeyError, TypeError) as e:  # and ListingRefusal propagate (refusals, never caught here)
         raise SystemExit(f"score refused: sampled history unreadable ({type(e).__name__}): "
                          f"nothing written") from None
 
@@ -829,6 +832,28 @@ def score(root, ack_id: str, *, mailbox=None) -> dict:
         return []                         # INSUFFICIENT / INCONCLUSIVE / NO-VALID-SEAL / BLOCKED / numeric: committed
     s1_stage.run(gv, "score", inputs=inputs, acks={"S1-SCORE-ACK": a.sha}, work=work, mailbox=mailbox)
     return _load(out / "score" / "s1.json")
+
+
+def _pre_intent_qualified(gv, out: Path, pr: dict, stop_row, mailbox) -> None:
+    """A3 H5c (T13 N-1; I-1, I-4): a QualifiedEvidence raised by the score's pre-INTENT sampled-history computation (a
+    race past the gate's F3 table) is the F3 signal, confirmed on a re-read before any INVALID: the journal rows are
+    read again and the sampled seals recomputed once over them. A second QualifiedEvidence -> the F3 violation
+    (s1_slot.evidence_violation: TRIAL-INVALID registration-artifact, then the local abort while s1_out exists); a
+    clean recomputation -> refused with no row (not confirmed); an OSError or journal failure on the re-read (or any
+    other error of the recomputation) -> refused with no row, never INVALID. Never catches QualifiedUnreadable or
+    ListingRefusal (SystemExits: they propagate as refusals). Always raises."""
+    import s1_journal as j
+    import s1_slot
+    try:
+        rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox)
+        z.sampled_seals(out, rows, pr["calendar"], c.aware(pr["start"]), upto_seq=stop_row.seq)
+    except s1_slot.QualifiedEvidence as e:
+        s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+        raise                                            # (unreachable: evidence_violation raises its Refusal)
+    except (OSError, j.JournalError, ValueError, KeyError, TypeError) as e:
+        raise SystemExit(f"score refused: a QUALIFIED tree problem could not be re-read ({type(e).__name__}): "
+                         f"refused with no row (I-4)") from None
+    raise SystemExit("score refused: a QUALIFIED tree problem was not confirmed on a re-read: refused with no row")
 
 
 def _snapshot_lower_bound(ack, written_utc):

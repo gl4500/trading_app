@@ -511,8 +511,11 @@ def _qualified_violation(gv, w, out: Path, e: Exception, now) -> None:
     try:
         s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root, mailbox=gv.mailbox, clock=now)
     finally:
-        c.write_abort(out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
-                                projection_sha256=None, receipt_sha256=None))
+        try:                                            # A3 H5c (H1 M-1): a vanished s1_out never masks the primary
+            c.write_abort(out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                    projection_sha256=None, receipt_sha256=None))
+        except c.OutputRootGone:                        # Refusal / INVALID refusal (as evidence_violation; never
+            pass                                        # recreated, F6.6)
     raise SystemExit(f"seal selection refused: {e}: INVALID (registration-artifact)")
 
 
@@ -740,11 +743,14 @@ def _before_opening_seal(out: Path, day_iso: str, seal_sha: str, t: datetime, ro
     if recorded and seal_sha not in recorded:
         probs = [f"seals/{day_iso}.json: the selected opening seal {seal_sha} differs from the recorded opening seal "
                  f"hash(es) {recorded} (a second, different opening seal)"]
-        c.write_abort(out, {"reason": c.REGISTRATION_ARTIFACT, "where": "opening checkpoint", "problems": probs,
-                            "observed_utc": t.isoformat(), "actual": None, "close": None, "scheduled": None,
-                            "projection_sha256": None, "receipt_sha256": None})
-        raise _OpeningSealConflict(f"opening refused: {probs[0]}: persistent ABORTED-INVALID (reason "
-                                   f"{c.REGISTRATION_ARTIFACT})")
+        why = f"opening refused: {probs[0]}: persistent ABORTED-INVALID (reason {c.REGISTRATION_ARTIFACT})"
+        try:
+            c.write_abort(out, {"reason": c.REGISTRATION_ARTIFACT, "where": "opening checkpoint", "problems": probs,
+                                "observed_utc": t.isoformat(), "actual": None, "close": None, "scheduled": None,
+                                "projection_sha256": None, "receipt_sha256": None})
+        except c.OutputRootGone:                         # A3 H5c (H1 M-1): this site's own refusal, never an OSError
+            raise _OpeningSealConflict(f"{why} (local abort not published: s1_out is gone)") from None
+        raise _OpeningSealConflict(why)
 
 
 def _opening_stage(gv, out: Path, day, cal, now, mailbox) -> dict:

@@ -1,7 +1,13 @@
 """Addendum 3 rev 5 F5 (ownership locks): isolated processes, real crashes (killed children), concurrent acquisition;
 no mocked live flag (F5.4). Behavioural RED against the Task 3 stub (s1_evidence/a3/t3_red.txt). Windows only (F5.2:
-share mode + msvcrt.locking); tmp_path only. Every child is `python -I -c <script>` with tmp_path arguments only: it
-never touches the real mailbox, trading.db or the network, and it is killed in a finally block if still running."""
+share mode + msvcrt.locking); tmp_path only. Every child is `<base interpreter> -I -c <script>` with tmp_path
+arguments only: it never touches the real mailbox, trading.db or the network, and it is killed in a finally block if
+still running.
+A3 H5c (PS-1, Codex launcher_review_v1.txt): in a venv on Windows sys.executable is the Scripts python.exe launcher,
+which runs the real interpreter as a GRANDCHILD - Popen.kill() would kill the launcher, not the lock holder. The
+stdlib-only children are spawned with sys._base_executable (the real interpreter; -I, the product directory passed
+explicitly as argv[1] and put on sys.path, so `import s1_locks` - stdlib only - needs no venv), and every child
+reports os.getpid() in its handshake line; the test asserts it equals Popen.pid before relying on kill/wait."""
 import os
 import subprocess
 import sys
@@ -12,34 +18,48 @@ import s1_locks as L
 
 HERE = Path(__file__).resolve().parent.parent
 TRIAL = "3f2b8c1e-5d4a-4b6c-9e7f-0a1b2c3d4e5f"
+EXE = getattr(sys, "_base_executable", None) or sys.executable      # never the venv launcher (PS-1)
 HOLD = r'''
-import sys
+import os, sys
 sys.path.insert(0, sys.argv[1])
 import s1_locks
 try:
     s1_locks.OwnershipLock(sys.argv[2], sys.argv[3], sys.argv[4]).acquire()
-    print("acquired", flush=True)
+    print("acquired", os.getpid(), flush=True)
 except s1_locks.LockHeld:
-    print("held", flush=True)
+    print("held", os.getpid(), flush=True)
     sys.exit(0)
 sys.stdin.readline()
 '''
 OPEN_PLAIN = r'''
-import sys
+import os, sys
 f = open(sys.argv[1], "r+b")
-print("opened", flush=True)
+print("opened", os.getpid(), flush=True)
 sys.stdin.readline()
 '''
 
 
 def spawn(script, *args):
-    return subprocess.Popen([sys.executable, "-I", "-c", script, *map(str, args)], stdin=subprocess.PIPE,
+    return subprocess.Popen([EXE, "-I", "-c", script, *map(str, args)], stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE, text=True)
+
+
+def handshake(p) -> str:
+    """The child's handshake word; asserts the reporting process IS the Popen child (pid equality, PS-1), so a
+    kill/wait below acts on the lock holder itself."""
+    line = p.stdout.readline().split()
+    assert len(line) == 2, line
+    assert int(line[1]) == p.pid, f"handshake pid {line[1]} != Popen.pid {p.pid} (a launcher between them)"
+    return line[0]
 
 
 def child(script, *args):
     p = spawn(script, *args)
-    return p, p.stdout.readline().strip()
+    try:
+        return p, handshake(p)
+    except BaseException:
+        stop(p)                    # a clean stdin-EOF exit (never a kill): reaches a grandchild through the pipe too
+        raise
 
 
 def reap(p):
@@ -157,7 +177,7 @@ def test_concurrent_recovery_exactly_one_acquires(tmp_path):                    
     try:
         for _ in range(2):
             procs.append(spawn(HOLD, HERE, tmp_path, TRIAL, "stage-opening"))
-        said = sorted(p.stdout.readline().strip() for p in procs)
+        said = sorted(handshake(p) for p in procs)
         assert said == ["acquired", "held"]
     finally:
         for p in procs:

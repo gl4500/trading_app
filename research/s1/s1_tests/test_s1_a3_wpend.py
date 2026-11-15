@@ -321,8 +321,36 @@ def test_no_window_extension(tmp_path, monkeypatch):                            
     with _Clock(W_L):
         ok(ck.run_checkpoint, tmp_path, st_["ledger"].path, W_L, sp.receipt(), sp.process(), tmp_path / "c.log",
            now=lambda: W_L, mailbox=mb(tmp_path))                          # exempt: due rows only, never a capture
-    assert sp.n["capture"] == 0 and kinds(tmp_path, W_SUB) in (["SLOT-MISSED"], [])
+    assert sp.n["capture"] == 0 and kinds(tmp_path, W_SUB) == ["SLOT-MISSED"]   # H5c (H3 M-2): deterministic
     assert [d["date"] for d in z.eligible_sessions(c.aware(START), st_["calendar"])][-1] == D129   # d130 never
+
+
+@pytest.mark.parametrize("case", ["first-registered-slot-after-w-last"])
+def test_registered_slot_after_w_last_never_routes(tmp_path, monkeypatch, case):           # rows 412/420 (H3 M-2)
+    """A3 H5c (H3 review M-2): the first registered slot LATER than W_L (d130's first seal slot, a registered slot by
+    _close_for) never enters the provider-free route - only the exact G2.1(2) predicate does (G2.2). Since
+    Clarification 2 it is refused at the post-START slot gate with the pinned reason, with no row, no capture and no
+    route call. Kills the literal r2 mutant `scheduled >= _w_last(cal, start)` (h5c_mutants.txt)."""
+    st_ = history(tmp_path)
+    cal = st_["calendar"]
+    d130 = next(d for d in cal if d["date"] > D129)
+    sch = z.schedule(d130, cal)[0]
+    assert sch > W_L and ck._close_for(sch, cal)["date"] == d130["date"] and ck._w_last(cal, c.aware(START)) == W_L
+    calls = []
+    real = ck._w_last_route
+    monkeypatch.setattr(ck, "_w_last_route", lambda *a, **kw: calls.append(a[4]) or real(*a, **kw))
+    sp = Spies(monkeypatch)
+    before = [x.sha for x in jrows(tmp_path)]
+    at = sch + timedelta(minutes=1)
+    with _Clock(at), pytest.raises(SystemExit, match=rf"^{j.slot_subject(sch)}: SLOT-INTENT refused with no row: "
+                                                     rf"close {d130['date']} is not an A5\.1-eligible session "
+                                                     rf"\(Clarification 2\): no post-START capture$"):
+        ck.run_checkpoint(tmp_path, st_["ledger"].path, sch, sp.receipt(), sp.process(), tmp_path / "c.log",
+                          now=lambda: at, mailbox=mb(tmp_path))
+    assert calls == [] and [x.sha for x in jrows(tmp_path)] == before
+    assert sp.n["capture"] == 0 and not any(p.exists() for p in sl.names(tmp_path / "s1_out", sch,
+                                                                          d130["date"]).values())
+    sp.assert_zero()
 
 
 def test_early_w_last_route_no_attempt(tmp_path, monkeypatch):                              # row 421 (R3-A12)
@@ -338,7 +366,9 @@ def test_early_w_last_route_no_attempt(tmp_path, monkeypatch):                  
     sp.assert_zero()
 
 
-def test_ordinary_early_slot_oq33_unchanged(tmp_path, monkeypatch):                         # row 422 (R3-A13)
+def test_ordinary_early_slot_refused_by_c4_never_routed(tmp_path, monkeypatch):            # row 422 (R3-A13)
+    """A3 H5c (H5a N-1): renamed from test_ordinary_early_slot_oq33_unchanged (h5c_old_new.md) - Clarification 4
+    supersedes OQ-33 here, so the test asserts the C4 refusal, and that the W_L route is never taken."""
     st_ = history(tmp_path)
     day = next(d for d in st_["calendar"] if d["date"] == "2026-10-26")
     s = z.schedule(day, st_["calendar"])[0]
