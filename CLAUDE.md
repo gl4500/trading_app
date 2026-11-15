@@ -28,12 +28,14 @@ and cross-project work the operator has explicitly authorized for that task.
 
 ## Two-Agent Setup
 
-Intended roles (policy as of 2026-11-14; this describes how work should be split, not a measurement of past practice):
+Roles are assigned **per task**, not per agent: either Claude Code or Codex can be the author, and the
+other agent is then the reviewer. The role definitions and the per-task assignment record live in
+`AGENTS.md` ("Roles"). In short (policy as of 2026-11-14):
 
-| Agent | Role |
+| Role | Does |
 |---|---|
-| **Claude Code** (implementation) | Writes the failing test, the code and the docs for each change. May delegate test-writing to a subagent if it says so in the review request. |
-| **Codex** (independent review) | Reviews every change before merge under `~/.coordination/trading_app/PEER_REVIEW.md` and replies APPROVE naming the head SHA, or a numbered defect list. |
+| **Author** (either agent) | Writes the failing test, the code and the docs. May delegate test-writing to a subagent if it says so in the review request. |
+| **Reviewer** (the other agent) | Reviews every change before merge under `~/.coordination/trading_app/PEER_REVIEW.md` and replies APPROVE naming the head SHA, or a numbered defect list. |
 | **Operator** | Clicks merge, restarts the live app. |
 
 The **File Ownership** section below applies only when a separate testing sub-agent session is used.
@@ -68,11 +70,11 @@ Found issues:
 ## TDD Workflow — Required for every change
 
 ```
-1. Write a failing test  →  backend/tests/test_<module>.py   (Claude, or a disclosed delegated subagent)
+1. Write a failing test  →  backend/tests/test_<module>.py   (the task's author, or a delegate the author discloses)
 2. Implement the code
 3. Run tests from the backend\ of the checkout that holds your change (see "Running tests"):
    cd <your checkout>\backend && C:\Users\gl450\trading_app\runtime\python\python.exe run_tests.py -v
-4. Verify GREEN before committing; Codex reviews before merge
+4. Verify GREEN before committing; the task's assigned reviewer (the other agent) signs off on the exact head SHA before merge
 5. Commit:  git commit -m "<msg>" -- tests/<file> <module.py>
 ```
 
