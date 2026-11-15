@@ -1,0 +1,350 @@
+# H4-CX GREEN: base ce4a53b + the H4-CX working tree; run 2026-11-14T22:39:43Z (a first GREEN run found test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes] still patching Path.glob - inert, so failing - it was re-pointed at os.scandir and this file re-recorded)
+# product sha256: 2fb6d0a201addbcbf6d2aa8a5252efa7bf07575825fa2f778e7174dd3dc69e55 *s1_common.py 18e5182354488044184d8e8d480f40586cd0d8e224d68808b37ee2a011519670 *s1_slot.py 1f08573d08166e1e8d3b3757cedd1f6e746379d1f1e5e4b5681cc052160460db *s1_stage.py b69a87137ff6f9119b72b9d0978a58255fb06dab66a714c71d9aa4752d8e7d05 *s1_run.py 4d3967fa2398adf502a78425ba1f70f716af6e7f3895b78564eb1bd4b2f875f2 *s1_seal.py 588a0d148ed1369ea13de488e3cd79ff263b53febb6f6149b43b378c4e2aef71 *s1_checkpoint.py 61edbed7e4b651a2babbb3b88e5b2e3eaf3375f4c57a21687432f1c696ccff10 *s1_trial.py 265269ebd4f465b0905e41b28913b018f6815bc8398ab990736831a6b0a46a8b *s1_evidence/a3/m4_workload/verdict_rule.py 
+# test sha256: 29ecf032261e9ac84ed1cbd282e5f9c39bb741d4a911ae94fb122c72ea49addb *s1_tests/test_s1_a3_strict_enum.py 1668f0e54db0717bb1efc9034cef7f5f7bb24024d14a70f45b5eee87d9a27e18 *s1_tests/test_s1_a3_m4_workload_verdict.py abbf670e781a34499d377770d06d233dd5cacb0025213434c1c54a41bcd1fc14 *s1_tests/test_s1_a3_m4_pass.py 
+# command: PYTHONPATH=research/s1;research/s1/s1_tests testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_strict_enum.py research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py research/s1/s1_tests/test_s1_a3_m4_pass.py -rA --tb=line
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-8.3.3, pluggy-1.6.0
+rootdir: C:\Users\gl450\trading_app-s1
+plugins: anyio-4.15.1, hypothesis-6.112.1
+collected 149 items
+
+research\s1\s1_tests\test_s1_a3_strict_enum.py ......................... [ 16%]
+............................................                             [ 46%]
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py ................. [ 57%]
+...............                                                          [ 67%]
+research\s1\s1_tests\test_s1_a3_m4_pass.py ............................. [ 87%]
+...................                                                      [100%]
+
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_missing_root_is_empty
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_root_enumeration_error_raises[permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_root_enumeration_error_raises[generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[seals-*.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures-*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures-*/*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures-*/*.report.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures/2026-10-26-*.attempt.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures/2026-10-26-*.resolution.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[final_snapshot-attempt-*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[code-s1_*.py]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-captures/*/*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-captures/*/*.attempt.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-seals/*.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-final_snapshot/attempt-*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-audit/**/*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[audit-**/*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_recursive_matches_path_rglob
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_evidence_check_never_takes_the_no_evidence_branch[permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_evidence_check_never_takes_the_no_evidence_branch[generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_evidence_check_never_takes_the_no_evidence_branch[enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[control-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[control-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[control-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[seals-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[seals-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[seals-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[control]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[captures]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common.bundle_manifest]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._day_success]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._post_start_capture[captures]]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._post_start_capture[seals]]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._local_opening_evidence[seals]]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._local_opening_evidence[captures]]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common.opening_orphans]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common.preregistration_problems]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint._seal_files]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint._read_seals]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint._next_attempt]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint.ok_attempts]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._seals]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._ok_attempts]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._restarts]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._capture_notes]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal.pending_closes]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal._seal_index]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal.stop_was_persisted]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal.stop_problems]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_slot._stray_files]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_stage._artifacts_present]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_stage._seals_on_disk]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_bundle_hash_refuses_when_the_code_directory_is_unlistable
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_score_attempt_listing_refusal_is_no_score_abort
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_opening_ack_fields_never_swallow_a_listing_refusal
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_no_product_module_calls_path_glob
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_journal_rows_untouched_by_site_refusals
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_l20_t45_fails_although_t_alone_passes
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_equality_passes
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_just_over_the_cap_fails
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unknown_lateness_is_not_ready
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_fast_refusal_is_not_a_pass
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_negative_l_is_inconsistent_never_clamped
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_max_over_all_runs_and_unresolved_workload
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_labels
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_requires_resolved_workloads_and_injected_cases
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[nan-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[nan-L]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[inf-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[bool-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[string-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[neg-inf-L]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[bool-L]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[nan-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[inf-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[bool-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[string-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[negative-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[nan-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[inf-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[negative-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[bool-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[string-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[nan-cap]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[inf-cap]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[zero-cap]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[negative-cap]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[bool-cap]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_cap_boundary_exact_and_next_float
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_same_size_same_mtime_change_detected_next_gate
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_tree_file_missing_or_added[missing]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_tree_file_missing_or_added[added]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_confirming_pass_rereads_journal[new-row]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_confirming_pass_rereads_journal[lock-reread-head-change]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[scandir]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[read]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_pin_fails_closed[between-gates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_pin_fails_closed[between-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[between-gates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[between-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[unknown-slot]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_pass_counters
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_non_selected_qualified_damage_invalid
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_problem_lists_exact
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[transient-permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[persistent-permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[first-bad-confirm-generic-io]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[direct-missing-member-both-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[confirmed-missing-parent-path]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[changed-confirmed]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[malformed-confirmed]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[unrelated-mandatory-invalid-precedence]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[unrelated-mandatory-invalid-precedence-e55]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[later-healthy-reevaluates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[slot-problems]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[seal-recompute]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[run-seal-stage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[sampled-seals]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[opening-stage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[decide-stop]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_c5_stop_problems_reraises_unreadable
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_c5_score_attempt_reraises_unreadable
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_gate_unreadable_refusal_after_e55
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_stop_gap_unreadable_never_masks_e55[e55-mismatch]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_stop_gap_unreadable_never_masks_e55[e55-healthy]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_qualified_probe_error_never_masks[confirmed-violation]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_qualified_probe_error_never_masks[no-other-damage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[readable]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[missing-once]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[changed-once]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[missing-twice]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[pending-refusal-no-publish]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[pending-refusal-conflict-invalid-wins]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[no-refusal-publishes]
+======================= 149 passed in 409.16s (0:06:49) =======================
+
+# ======== FIX ROUND 1 GREEN (2026-11-15T01:25:08Z) - review I-1 (s1_gates.run_ack_problems re-raises c.ListingRefusal), M-1 (verdict_rule _real: OverflowError -> invalid), M-3 (s1_seal.pending_closes: one strict walk), M-4 (capture-time test), N-1 (docstring)
+# product sha256: b0207884264bc4b14b2421662e55e0ef2247faace03089e5b0992f302010cbd1 *s1_common.py 8d3d967aa028f756f7e35d9a0dd81e615c4745ee53a43d03de48182c27c4c8b6 *s1_gates.py 6225acbf05af0dcd6e1a59ac810013b230db648643983e5f99fd5591eed8a12e *s1_seal.py 18e5182354488044184d8e8d480f40586cd0d8e224d68808b37ee2a011519670 *s1_slot.py 1f08573d08166e1e8d3b3757cedd1f6e746379d1f1e5e4b5681cc052160460db *s1_stage.py b69a87137ff6f9119b72b9d0978a58255fb06dab66a714c71d9aa4752d8e7d05 *s1_run.py 588a0d148ed1369ea13de488e3cd79ff263b53febb6f6149b43b378c4e2aef71 *s1_checkpoint.py 61edbed7e4b651a2babbb3b88e5b2e3eaf3375f4c57a21687432f1c696ccff10 *s1_trial.py ba4d766caa58e6d5ae61ba8d8ae294030ae7f1ae56ad51db0754f7aa748b21d0 *s1_evidence/a3/m4_workload/verdict_rule.py 
+# test sha256: 5902572819a8c6c05969a65bbad52d6b4079716b8cd76f16cc0af568b6920e10 *s1_tests/test_s1_a3_strict_enum.py 1668f0e54db0717bb1efc9034cef7f5f7bb24024d14a70f45b5eee87d9a27e18 *s1_tests/test_s1_a3_m4_workload_verdict.py abbf670e781a34499d377770d06d233dd5cacb0025213434c1c54a41bcd1fc14 *s1_tests/test_s1_a3_m4_pass.py 
+# command: PYTHONPATH=research/s1;research/s1/s1_tests testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_strict_enum.py research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py research/s1/s1_tests/test_s1_a3_m4_pass.py -rA --tb=line
+============================= test session starts =============================
+collected 163 items
+
+research\s1\s1_tests\test_s1_a3_strict_enum.py ......................... [ 15%]
+..........................................................               [ 50%]
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py ................. [ 61%]
+...............                                                          [ 70%]
+research\s1\s1_tests\test_s1_a3_m4_pass.py ............................. [ 88%]
+...................                                                      [100%]
+
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_missing_root_is_empty
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_root_enumeration_error_raises[permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_root_enumeration_error_raises[generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[seals-*.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures-*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures-*/*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures-*/*.report.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures/2026-10-26-*.attempt.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures/2026-10-26-*.resolution.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[final_snapshot-attempt-*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[code-s1_*.py]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-captures/*/*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-captures/*/*.attempt.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-seals/*.json]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-final_snapshot/attempt-*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-audit/**/*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[audit-**/*]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_recursive_matches_path_rglob
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_evidence_check_never_takes_the_no_evidence_branch[permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_evidence_check_never_takes_the_no_evidence_branch[generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_evidence_check_never_takes_the_no_evidence_branch[enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[control-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[control-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[control-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[seals-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[seals-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[seals-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[control]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[captures]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common.bundle_manifest]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._day_success]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._post_start_capture[captures]]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._post_start_capture[seals]]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._local_opening_evidence[seals]]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._local_opening_evidence[captures]]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common.opening_orphans]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common.preregistration_problems]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint._seal_files]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint._read_seals]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint._next_attempt]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint.ok_attempts]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._seals]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._ok_attempts]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._restarts]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._capture_notes]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal.pending_closes]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal._seal_index]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal.stop_was_persisted]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal.stop_problems]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_slot._stray_files]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_stage._artifacts_present]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_stage._seals_on_disk]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_bundle_hash_refuses_when_the_code_directory_is_unlistable
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_score_attempt_listing_refusal_is_no_score_abort
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_opening_ack_fields_never_swallow_a_listing_refusal
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_no_product_module_calls_path_glob
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_journal_rows_untouched_by_site_refusals
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_run_ack_problems_never_turns_a_listing_refusal_into_a_problem
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_score_listing_refusal_in_registration_check_is_no_invalid[control]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_score_listing_refusal_in_registration_check_is_no_invalid[code-directory-in-run-ack-problems]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-T]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-L]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-B]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-cap]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-negative-T]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-negative-L]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-negative-B]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-negative-cap]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_pending_closes_day_vanishing_between_listings_refuses
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_checkpoint_capture_with_unlistable_seals_refuses[control]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_checkpoint_capture_with_unlistable_seals_refuses[seals-at-capture]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_l20_t45_fails_although_t_alone_passes
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_equality_passes
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_just_over_the_cap_fails
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unknown_lateness_is_not_ready
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_fast_refusal_is_not_a_pass
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_negative_l_is_inconsistent_never_clamped
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_max_over_all_runs_and_unresolved_workload
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_labels
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_requires_resolved_workloads_and_injected_cases
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[nan-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[nan-L]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[inf-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[bool-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[string-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[neg-inf-L]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[bool-L]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[nan-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[inf-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[bool-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[string-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[negative-T]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[nan-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[inf-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[negative-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[bool-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[string-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[nan-cap]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[inf-cap]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[zero-cap]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[negative-cap]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[bool-cap]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_cap_boundary_exact_and_next_float
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_same_size_same_mtime_change_detected_next_gate
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_tree_file_missing_or_added[missing]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_tree_file_missing_or_added[added]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_confirming_pass_rereads_journal[new-row]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_confirming_pass_rereads_journal[lock-reread-head-change]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[scandir]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[read]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_pin_fails_closed[between-gates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_pin_fails_closed[between-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[between-gates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[between-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_changed_calendar_fresh_pass[unknown-slot]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_pass_counters
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_non_selected_qualified_damage_invalid
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_problem_lists_exact
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[transient-permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[persistent-permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[first-bad-confirm-generic-io]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[direct-missing-member-both-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[confirmed-missing-parent-path]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[changed-confirmed]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[malformed-confirmed]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[unrelated-mandatory-invalid-precedence]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[unrelated-mandatory-invalid-precedence-e55]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[later-healthy-reevaluates]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[slot-problems]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[seal-recompute]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[run-seal-stage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[sampled-seals]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[opening-stage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_read_classification_all_consumers[decide-stop]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_c5_stop_problems_reraises_unreadable
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_c5_score_attempt_reraises_unreadable
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_gate_unreadable_refusal_after_e55
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_stop_gap_unreadable_never_masks_e55[e55-mismatch]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_stop_gap_unreadable_never_masks_e55[e55-healthy]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_qualified_probe_error_never_masks[confirmed-violation]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_qualified_probe_error_never_masks[no-other-damage]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[permission]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_confirming_pass_unreadable_refuses[readable]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[missing-once]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[changed-once]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix1_opening_stage_confirms_on_reread[missing-twice]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[pending-refusal-no-publish]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[pending-refusal-conflict-invalid-wins]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_fix2_stop_gap_publication_never_on_a_refusal_path[no-refusal-publishes]
+======================= 163 passed in 322.96s (0:05:22) =======================

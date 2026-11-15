@@ -1,0 +1,108 @@
+# FIX ROUND 1 re-run of the full runner (18 mutants: the 15 of fix round 0 + run-ack-problems-swallows-listing-refusal, real-overflow-raises, pending-closes-reanchored-per-day). The fix-round-0 record (15/15 KILLED, after one strengthened killer) is superseded by this file.
+# A3 H4-CX semantic mutants: each applied to a FULL SCRATCH COPY of research/s1 (exact single-occurrence replacement, the file's own line ending), the named killing tests run in a child pytest against the copy (own basetemp, PYTHONDONTWRITEBYTECODE), the file restored byte-for-byte (sha256 asserted). KILLED = a named killing test FAILED. Baseline: every killing test passes unmutated.
+# base HEAD ce4a53b22fc5aa349bb5bd3a97c15b66f13132e9 + the H4-CX working tree; run 2026-11-15T01:30:42Z
+# runner sha256 773dded258ea128d0ac94124d6c0462f4924b860b28f9bd8e976e1c7dc25231c (scratchpad h4cx/mutants.py)
+# sha256 at the run: b0207884264bc4b14b2421662e55e0ef2247faace03089e5b0992f302010cbd1 *s1_common.py 18e5182354488044184d8e8d480f40586cd0d8e224d68808b37ee2a011519670 *s1_slot.py 1f08573d08166e1e8d3b3757cedd1f6e746379d1f1e5e4b5681cc052160460db *s1_stage.py b69a87137ff6f9119b72b9d0978a58255fb06dab66a714c71d9aa4752d8e7d05 *s1_run.py 61edbed7e4b651a2babbb3b88e5b2e3eaf3375f4c57a21687432f1c696ccff10 *s1_trial.py 8d3d967aa028f756f7e35d9a0dd81e615c4745ee53a43d03de48182c27c4c8b6 *s1_gates.py 6225acbf05af0dcd6e1a59ac810013b230db648643983e5f99fd5591eed8a12e *s1_seal.py ba4d766caa58e6d5ae61ba8d8ae294030ae7f1ae56ad51db0754f7aa748b21d0 *s1_evidence/a3/m4_workload/verdict_rule.py 5902572819a8c6c05969a65bbad52d6b4079716b8cd76f16cc0af568b6920e10 *s1_tests/test_s1_a3_strict_enum.py 1668f0e54db0717bb1efc9034cef7f5f7bb24024d14a70f45b5eee87d9a27e18 *s1_tests/test_s1_a3_m4_workload_verdict.py
+== baseline: rc=0 23 passed in 31.98s
+== helper-swallows-nested-oserror [s1_common.py] -> KILLED (rc=1)
+   killers: test_nested_enumeration_error_raises[permission], test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:114: Failed: DID NOT RAISE <class 'OSError'>
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError: an enumeration failure passed the gate (the stray was not seen)
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[permission]
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]
+   2 failed in 4.15s
+== helper-swallows-root-permission [s1_common.py] -> KILLED (rc=1)
+   killers: test_root_enumeration_error_raises[permission]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:99: Failed: DID NOT RAISE <class 'OSError'>
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_root_enumeration_error_raises[permission]
+   1 failed in 0.64s
+== helper-nested-filenotfound-as-absent [s1_common.py] -> KILLED (rc=1)
+   killers: test_nested_enumeration_error_raises[enumeration-filenotfound], test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:114: Failed: DID NOT RAISE <class 'OSError'>
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError: an enumeration failure passed the gate (the stray was not seen)
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[enumeration-filenotfound]
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]
+   2 failed in 4.15s
+== site-file-subjects-reverted-to-path-glob [s1_slot.py] -> KILLED (rc=1)
+   killers: test_evidence_check_never_takes_the_no_evidence_branch[permission], test_no_product_module_calls_path_glob
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:188: AssertionError: set()
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:357: AssertionError: ['s1_slot.py:1016']
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_evidence_check_never_takes_the_no_evidence_branch[permission]
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_no_product_module_calls_path_glob
+   2 failed in 4.16s
+== site-seals-on-disk-reverted-to-path-glob [s1_stage.py] -> KILLED (rc=1)
+   killers: test_site_refuses_on_enumeration_failure[s1_stage._seals_on_disk]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_stage._seals_on_disk: []
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_stage._seals_on_disk]
+   1 failed in 4.01s
+== site-run-seals-reverted-to-path-glob [s1_run.py] -> KILLED (rc=1)
+   killers: test_site_refuses_on_enumeration_failure[s1_run._seals]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_run._seals: []
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._seals]
+   1 failed in 4.01s
+== listing-raises-raw-oserror [s1_common.py] -> KILLED (rc=1)
+   killers: test_site_refuses_on_enumeration_failure[s1_run._seals]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:58: Failed: a raw PermissionError escaped ([Errno 13] listing denied (simulated)): neither a refusal nor a result
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._seals]
+   1 failed in 4.04s
+== gate-does-not-hold-listing-refusal [s1_trial.py] -> KILLED (rc=1)
+   killers: test_gate_listing_refusal_held_until_e55[captures]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:240: AssertionError: []
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[captures]
+   1 failed in 4.08s
+== score-attempt-aborts-on-listing-refusal [s1_run.py] -> KILLED (rc=1)
+   killers: test_score_attempt_listing_refusal_is_no_score_abort
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:332: AssertionError: StageAbort('score-aborted')
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_score_attempt_listing_refusal_is_no_score_abort
+   1 failed in 0.67s
+== opening-derived-swallows-listing-refusal [s1_trial.py] -> KILLED (rc=1)
+   killers: test_opening_ack_fields_never_swallow_a_listing_refusal
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:347: AssertionError: {}
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_opening_ack_fields_never_swallow_a_listing_refusal
+   1 failed in 0.64s
+== post-start-capture-short-circuits [s1_common.py] -> KILLED (rc=1)
+   killers: test_site_refuses_on_enumeration_failure[s1_common._post_start_capture[seals]]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:302: AssertionError: s1_common._post_start_capture[seals]: the injection at C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\bt_post-start-capture-short-circuits\test_site_refuses_on_enumerati0\s1_out\seals was never reached
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._post_start_capture[seals]]
+   1 failed in 4.07s
+== run-c-drops-finite-check [s1_evidence/a3/m4_workload/verdict_rule.py] -> KILLED (rc=1)
+   killers: test_verdict_invalid_observation_is_not_ready[nan-T], test_verdict_invalid_observation_is_not_ready[inf-T]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:116: AssertionError: {'max_C': 2.0, 'max_T': inf, 'reasons': ['run bad: C = L + T not finite (inf)'], 'verdict': 'NOT READY'}
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[inf-T]
+   1 failed, 1 passed in 0.45s
+== run-c-accepts-bool [s1_evidence/a3/m4_workload/verdict_rule.py] -> KILLED (rc=1)
+   killers: test_verdict_invalid_observation_is_not_ready[bool-T]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'max_C': 2.0, 'max_T': 2.0, 'reasons': [], 'verdict': 'READY'}
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[bool-T]
+   1 failed in 0.44s
+== b-conditional-keeps-negative-t [s1_evidence/a3/m4_workload/verdict_rule.py] -> KILLED (rc=1)
+   killers: test_b_conditional_invalid_t_is_not_ready[negative-T]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:128: AssertionError: {'B': 0.0, 'label': 'B-CONDITIONAL NOT READY', 'max_T': -1.0, 'max_T_plus_B': -1.0, ...}
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[negative-T]
+   1 failed in 0.46s
+== cap-not-validated [s1_evidence/a3/m4_workload/verdict_rule.py] -> KILLED (rc=1)
+   killers: test_invalid_cap_is_not_ready_in_both_routes[nan-cap]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'max_C': 1.0, 'max_T': 1.0, 'reasons': [], 'verdict': 'READY'}
+   FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[nan-cap]
+   1 failed in 0.43s
+== run-ack-problems-swallows-listing-refusal [s1_gates.py] -> KILLED (rc=1)
+   killers: test_run_ack_problems_never_turns_a_listing_refusal_into_a_problem, test_score_listing_refusal_in_registration_check_is_no_invalid[code-directory-in-run-ack-problems]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:402: AssertionError: converted into a registration problem: ['RUN-ACK unverifiable: research/s1/s1_*.py could not be listed (OSError: [Errno 5] I/O error (simulated)): refused with no row and no work (a listing error never means empty or absent, G3.4; H4-CX-2)']
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:428: AssertionError: a listing failure in the RUN-ACK check became a score result: {'binding_gaps': [], 'bundle_sha256': '304c7099d772c4cf730b6db5affc3dbf52bb66e50ee0bddacbfecff483785544', 'missed_seals': [], 'nomination': False, 'outcome': 'SCORED', 'protocol_notes': [], 'provenance': 'UNVERIFIED-PROVENANCE', 'quantity_bridge': None, 'quantity_bridge_note': 'not available: no readable frozen final ledger (stop seal)', 'reasons': ['registration not verified: RUN-ACK unverifiable: research/s1/s1_*.py could not be listed (PermissionError: [Errno 13] sharing violation (simulated)): refused with no row and no work (a listing error never means empty or absent, G3.4; H4-CX-2)', 'final snapshot: report.json missing or unreadable (FileNotFoundError) while successful attempt(s) exist: none', 'scored before the trial stopped'], 'receipt_provenance': {'dirty': [], 'heads': ['h'], 'transient': []}, 'refused_captures': [], 'restarts': {'observation_gaps': [], 'observed_in_crash_log_minimum': []}, 'runner_sha256': 'b69a87137ff6f9119b72b9d0978a58255fb06dab66a714c71d9aa4752d8e7d05', 'scored_utc': '2026-11-15T01:32:08.659017+00:00', 'seal_binding_gaps': [], 'start': '2026-10-26T13:30:00+00:00', 'stop': {'missed': [], 'status': 'RUNNING', 'stop_close': None}, 'stop_attestation': {'ok': False, 'present': False, 'problems': ['no stop attestation recorded']}, 'trial_id': '03881769-a11a-4440-b0f2-fb5857ce16b0', 'verdict': 'ABORTED-INVALID'}
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_run_ack_problems_never_turns_a_listing_refusal_into_a_problem
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_score_listing_refusal_in_registration_check_is_no_invalid[code-directory-in-run-ack-problems]
+   2 failed in 7.51s
+== real-overflow-raises [s1_evidence/a3/m4_workload/verdict_rule.py] -> KILLED (rc=1)
+   killers: test_verdict_huge_int_is_not_ready_never_raises[huge-T], test_verdict_huge_int_is_not_ready_never_raises[huge-cap]
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:461: Failed: verdict raised OverflowError for a huge T: int too large to convert to float
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:461: Failed: verdict raised OverflowError for a huge cap: int too large to convert to float
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-T]
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-cap]
+   2 failed in 0.68s
+== pending-closes-reanchored-per-day [s1_seal.py] -> KILLED (rc=1)
+   killers: test_pending_closes_day_vanishing_between_listings_refuses
+   C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\mutscratch\research\s1\s1_tests\test_s1_a3_strict_enum.py:508: AssertionError: a vanished day read as no pending claim: set()
+   FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_pending_closes_day_vanishing_between_listings_refuses
+   1 failed in 0.71s
+== summary: 18/18 KILLED
+# runner exit 0

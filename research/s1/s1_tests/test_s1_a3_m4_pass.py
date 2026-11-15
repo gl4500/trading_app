@@ -137,14 +137,15 @@ def test_listing_error_refuses(tmp_path, monkeypatch, case):                    
     three_qualified(tmp_path)
     target = trees(tmp_path)[0]
     before = [x.sha for x in jrows(tmp_path)]
-    if case == "scandir":
-        real = Path.glob
+    if case == "scandir":                                   # A3 H4-CX (Codex H4-CX-2): the failure is injected at the
+        real = os.scandir                                   # os.scandir layer pathlib's glob used to swallow, no longer
+        cap = tmp_path / "s1_out" / "captures"              # by patching Path.glob above it
 
-        def bad_glob(self, pattern, *a, **kw):
-            if self.name == "captures":
+        def bad_scandir(path="."):
+            if isinstance(path, (str, os.PathLike)) and Path(path) == cap:
                 raise PermissionError(13, "listing denied (simulated)")
-            return real(self, pattern, *a, **kw)
-        monkeypatch.setattr(Path, "glob", bad_glob)
+            return real(path)
+        monkeypatch.setattr(os, "scandir", bad_scandir)
     else:
         real = Path.open
         exc = OSError(5, "read error (simulated)") if case == "read" else PermissionError(13, "denied (simulated)")
@@ -336,13 +337,14 @@ def test_qualified_member_read_classification(tmp_path, monkeypatch, case):     
         shutil.rmtree(member.parent)                                        # the capture dir itself is gone
         want_invalid = True
     elif case == "failed-listing-or-lookup-as-filenotfound-both-passes":
-        real_glob = Path.glob
+        real_scandir = os.scandir                                           # A3 H4-CX: injected at the os.scandir
+        cap = tmp_path / "s1_out" / "captures"                              # layer (a Path.glob patch is inert now)
 
-        def lost_listing(self, pattern, *a, **kw):                          # an enumeration failure, raised as FNF
-            if self.name == "captures":
+        def lost_listing(path="."):                                         # an enumeration failure, raised as FNF
+            if isinstance(path, (str, os.PathLike)) and Path(path) == cap:
                 raise FileNotFoundError(2, "listing failed (simulated)")
-            return real_glob(self, pattern, *a, **kw)
-        monkeypatch.setattr(Path, "glob", lost_listing)
+            return real_scandir(path)
+        monkeypatch.setattr(os, "scandir", lost_listing)
     elif case == "changed-confirmed":
         member.write_bytes(member.read_bytes() + b"x")
         want_invalid = True

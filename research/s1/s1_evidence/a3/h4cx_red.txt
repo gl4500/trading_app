@@ -1,0 +1,253 @@
+# H4-CX behavioural RED: base ce4a53b (H5a) product UNCHANGED (git archive of research/s1 into a scratch copy) + the H4-CX test files copied in; REDs are assertions (B3), no stub
+# HEAD ce4a53b22fc5aa349bb5bd3a97c15b66f13132e9; run 2026-11-14T22:20:34Z
+# product sha256 (base): 9daaf4078286e0559ecee7d87668845df6f79350300ebe1e8df64eb526e3691d *s1_common.py 2e821dc5238c30e91308fd69a9a43058c57ca68fc17855adc55ede8358441354 *s1_slot.py 292665e9385bf1272f9772867da4433ba2bd95ce971f6186003e201907645100 *s1_stage.py f7512ad02e4c9332091e16a513511f4fa08b5b3ba0feb7c41c91f8af65162d75 *s1_run.py 3866ecd90a3962bf7959c3f81dd1830aa78c95f9ea8a7275971da4d88dea7677 *s1_seal.py 67d9d0f6baa4cc8915695c6f2bba75a12c2e750b180ff63e796b1ddfe755c48e *s1_checkpoint.py 6b676fd48a8d152b2402973a8c9f5bc5fb95f42a16592ff1f0b3c8db23785743 *s1_trial.py c7dd5a2000263e3bc5f483dc566904adca4c7f5660e4ec1d20b3e72882930dea *s1_evidence/a3/m4_workload/verdict_rule.py 
+# test sha256: 29ecf032261e9ac84ed1cbd282e5f9c39bb741d4a911ae94fb122c72ea49addb *s1_tests/test_s1_a3_strict_enum.py f70983269abaeece5abb75edc6da8cacb23388e05d009ed2aa581414f14ae53f *s1_tests/test_s1_a3_m4_workload_verdict.py 052048a48315174fbba823544894765886154e86ce1b64bb44289204e5f88a27 *s1_tests/test_s1_a3_m4_pass.py 
+# command (cwd = scratch copy root): PYTHONPATH=research/s1;research/s1/s1_tests testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_strict_enum.py research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses -rA --tb=line
+# (paths below under the scratch copy: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase)
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-8.3.3, pluggy-1.6.0
+rootdir: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase
+plugins: anyio-4.15.1, hypothesis-6.112.1
+collected 104 items
+
+research\s1\s1_tests\test_s1_a3_strict_enum.py FFFFFFFFFFFFFFFFFFFFF...F [ 24%]
+FFFFFFFF...FFF.FFFFFFFFFFFFFFFFFFFFFFFFFFFF.                             [ 66%]
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py .........FFFFF.FF [ 82%]
+FFFFF..FFFFFFF.                                                          [ 97%]
+research\s1\s1_tests\test_s1_a3_m4_pass.py F..                           [100%]
+
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:63: AssertionError: s1_common.strict_glob is missing (H4-CX-2)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError: an enumeration failure passed the gate (the stray was not seen)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError: an enumeration failure passed the gate (the stray was not seen)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError: an enumeration failure passed the gate (the stray was not seen)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError: an enumeration failure passed the gate (the stray was not seen)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError: an enumeration failure passed the gate (the stray was not seen)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError: an enumeration failure passed the gate (the stray was not seen)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:188: AssertionError: set()
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:188: AssertionError: set()
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:188: AssertionError: set()
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:215: AssertionError: a seals/ enumeration failure passed the gate
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:215: AssertionError: a seals/ enumeration failure passed the gate
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:215: AssertionError: a seals/ enumeration failure passed the gate
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:239: AssertionError: None
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_common.bundle_manifest: {'code': {'e1_fetch.py': '401f17deb3551b0a585be64eb49294f50bc0396272ecd48c9f9049acc86984d6', 'e1_sim.py': '68f21ab19d74be27fc855f826a78b667990c2a37b5d75dd12e1a7be1f5a740fb', 's1_books.py': 'a9975dffd27ce602e94daf8b8da8cc504b163c6eeeb9c93c666717f1d4b59491', 's1_checkpoint.py': '67d9d0f6baa4cc8915695c6f2bba75a12c2e750b180ff63e796b1ddfe755c48e', 's1_collect.py': 'a486fbd49b934788eb554a2574a71db3646bf0252ddc5265e5bd5847f3756968', 's1_common.py': '9daaf4078286e0559ecee7d87668845df6f79350300ebe1e8df64eb526e3691d', 's1_gates.py': '944f8b3ab06eef3d0a826fb5a1f20478b99c8fb138875fa2b5cd6eca31b3284e', 's1_journal.py': '79144562c7567ca8bbf880bf95bc55deeab7108bef04cbf8fba0365d9addb97b', 's1_locks.py': '19679475cc42e7b2c52d3f3c534e1736af23f8d444b217ac1af767819dbfb09d', 's1_receipt.py': '860518aea60cae67a79c2e0dea1b73420d927ad0b7843bca050aba790be0bb63', 's1_run.py': 'f7512ad02e4c9332091e16a513511f4fa08b5b3ba0feb7c41c91f8af65162d75', 's1_seal.py': '3866ecd90a3962bf7959c3f81dd1830aa78c95f9ea8a7275971da4d88dea7677', 's1_slot.py': '2e821dc5238c30e91308fd69a9a43058c57ca68fc17855adc55ede8358441354', 's1_snapshot.py': 'b930627620b7f6585fe6f0c0fe86985738b7c3d45826ab9b04966577bef0ddcc', 's1_stage.py': '292665e9385bf1272f9772867da4433ba2bd95ce971f6186003e201907645100', 's1_trial.py': '6b676fd48a8d152b2402973a8c9f5bc5fb95f42a16592ff1f0b3c8db23785743'}, 'unexpected': {}, 'docs': {'docs/s1_design_v5.md': '33c3284072dc51392476f7cae596eab05f1fcbaccd622abbe05c6e6a198cbb9b', 'docs/s1_spec.md': '4b882f52a448dbf2d30583828c5085a636009f6c8db7b18307bc6e9991529c98', 'docs/s1_design_v5_addendum1.md': '6cb89e36840975b8d949ec85debf9d2cedbe45bbeb9dcb374d91343dddc5e590', 'docs/s1_design_v5_addendum2.md': 'c7f0c3ffcd886b0f308c5f09bc0bfaca9977f8edae596bf51b30e28cb9ae3266', 'docs/s1_design_v5_addendum3.md': 'd9dd37595f0e0e73098ade1b8548e8cda2dc47fe49243f4d44735508029b9fb2', 'docs/s1_design_v5_addendum3_erratum1.md': 'b03464669673927fdb057acad9b0dc3258b1f08692d55ec3b0cffd4550f6ca2f', 'docs/s1_design_v5_addendum3_erratum2.md': '883f09be8471b9da7ee2c01c026ea90f9cec37515d79f3863e8c72085caa6d87', 'docs/s1_design_v5_addendum3_erratum2_clarification1.md': '2ccb8a287de533f08dcbf1e919afb04add8d5a60a0088dfd370649689009e10d', 'docs/s1_design_v5_addendum3_erratum2_clarification2.md': 'ba16fdc876030d824818bed4e56abd1c9e4ff1c825c738d34dbf18fc50c07e6c', 'docs/s1_design_v5_addendum3_erratum2_clarification3.md': 'fabac171ec8e6dc2769f9d3040b7acc4abdef607e5cda66de915f466b3ea7a6e', 'docs/s1_design_v5_addendum3_erratum2_clarification4.md': 'c974ed5f988e2922ec9a1ed19099b6b7260b53b27976f29191722bd6fc9c44d8'}}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_common._day_success: False
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_common._post_start_capture[captures]: True
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:302: AssertionError: s1_common._post_start_capture[seals]: the injection at C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\bt_red\test_site_refuses_on_enumerati3\s1_out\seals was never reached
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_common._local_opening_evidence[seals]: ['registry/opening.json', 'witnesses/opening.json', 'captures/2026-10-23/20261023T204500Z', 'captures/2026-10-23/20261023T204500Z.after.json', 'captures/2026-10-23/20261023T204500Z.attempt.json', 'captures/2026-10-23/20261023T204500Z.report.json', 'captures/2026-10-23/20261023T204500Z.resolution.json', 'captures/2026-10-26/20261026T204500Z', 'captures/2026-10-26/20261026T204500Z.attempt.json', 'captures/2026-10-26/20261026T204500Z.report.json', 'captures/2026-10-26/20261026T204500Z.resolution.json', 'captures/2026-10-27/20261027T204500Z', 'captures/2026-10-27/20261027T204500Z.attempt.json', 'captures/2026-10-27/20261027T204500Z.report.json', 'captures/2026-10-27/20261027T204500Z.resolution.json', 'captures/2026-10-28/20261028T204500Z', 'captures/2026-10-28/20261028T204500Z.attempt.json', 'captures/2026-10-28/20261028T204500Z.report.json', 'captures/2026-10-28/20261028T204500Z.resolution.json', 'captures/2026-10-29/20261029T204500Z.attempt.json', 'opening_receipt.json', 'last_process.json']
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_common._local_opening_evidence[captures]: ['seals/2026-10-23.json', 'seals/2026-10-26.json', 'seals/2026-10-27.json', 'seals/2026-10-28.json', 'registry/opening.json', 'witnesses/opening.json', 'opening_receipt.json', 'last_process.json']
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_common.opening_orphans: ['last_process.json exists without any slot claim (an earlier opening attempt)']
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_common.preregistration_problems: []
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_checkpoint._seal_files: []
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_checkpoint._read_seals: ([], None)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_checkpoint._next_attempt: 'attempt-01'
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_checkpoint.ok_attempts: []
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_run._seals: []
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_run._ok_attempts: []
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_run._restarts: {'observed_in_crash_log_minimum': [], 'observation_gaps': []}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_run._capture_notes: {'refused_captures': [], 'binding_gaps': [], 'receipt_provenance': {'heads': [], 'dirty': [], 'transient': []}}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_seal.pending_closes: set()
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_seal._seal_index: []
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_seal.stop_was_persisted: False
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_seal.stop_problems: ['persisted stop (stop.json) was not decided by the registered bundle', "seal seals/2026-10-26.json is not among the persisted stop's frozen slices", "seal seals/2026-10-27.json is not among the persisted stop's frozen slices", "seal seals/2026-10-28.json is not among the persisted stop's frozen slices"]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_slot._stray_files: ['seals/2026-10-23.json']
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_stage._artifacts_present: []
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:303: AssertionError: s1_stage._seals_on_disk: []
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:312: AssertionError: a439ac583c1fa56819555f56e41aad0e434daa837b61bdb008d1e5fc947ef302
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:319: AssertionError: s1_common.ListingRefusal is missing
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:340: AssertionError: s1_common.ListingRefusal is missing
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:357: AssertionError: ['s1_checkpoint.py:75', 's1_checkpoint.py:958', 's1_checkpoint.py:966', 's1_common.py:118', 's1_common.py:679', 's1_common.py:692', ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'max_C': nan, 'max_T': nan, 'reasons': [], 'verdict': 'READY'}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'max_C': nan, 'max_T': 2.0, 'reasons': [], 'verdict': 'READY'}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:116: AssertionError: {'max_C': inf, 'max_T': inf, 'reasons': ['run bad: C = L + T = inf s > 60 s'], 'verdict': 'NOT READY'}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'max_C': 2.0, 'max_T': 2.0, 'reasons': [], 'verdict': 'READY'}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError: raised instead of reporting: TypeError("'<' not supported between instances of 'str' and 'int'")
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'max_C': 2.0, 'max_T': 2.0, 'reasons': [], 'verdict': 'READY'}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'B': 0.0, 'label': 'B-CONDITIONAL READY', 'max_T': nan, 'max_T_plus_B': nan, ...}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:105: AssertionError: ('run bad', ['max(T) + B = inf s > 60 s'])
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'B': 0.0, 'label': 'B-CONDITIONAL READY', 'max_T': 10.0, 'max_T_plus_B': 10.0, ...}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError: raised instead of reporting: TypeError("'>' not supported between instances of 'float' and 'str'")
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'B': 0.0, 'label': 'B-CONDITIONAL READY', 'max_T': 10.0, 'max_T_plus_B': 10.0, ...}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'B': nan, 'label': 'B-CONDITIONAL READY', 'max_T': 1.0, 'max_T_plus_B': nan, ...}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'B': True, 'label': 'B-CONDITIONAL READY', 'max_T': 1.0, 'max_T_plus_B': 2.0, ...}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError: raised instead of reporting: TypeError("'<' not supported between instances of 'str' and 'int'")
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'max_C': 1.0, 'max_T': 1.0, 'reasons': [], 'verdict': 'READY'}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'max_C': 1.0, 'max_T': 1.0, 'reasons': [], 'verdict': 'READY'}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:105: AssertionError: ('cap', ['run r: C = L + T = 1.000 s > 0 s'])
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:105: AssertionError: ('cap', ['run r: C = L + T = 1.000 s > -60 s'])
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError: {'max_C': 1.0, 'max_T': 1.0, 'reasons': [], 'verdict': 'READY'}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_pass.py:159: AssertionError: a listing/read/permission error is never OK
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[control-permission]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[control-generic-oserror]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[control-enumeration-filenotfound]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[control]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_journal_rows_untouched_by_site_refusals
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_l20_t45_fails_although_t_alone_passes
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_equality_passes
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_just_over_the_cap_fails
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unknown_lateness_is_not_ready
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_fast_refusal_is_not_a_pass
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_negative_l_is_inconsistent_never_clamped
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_max_over_all_runs_and_unresolved_workload
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_labels
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_requires_resolved_workloads_and_injected_cases
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[neg-inf-L]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[inf-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[negative-B]
+PASSED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_cap_boundary_exact_and_next_float
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[read]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[permission]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_missing_root_is_empty
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_root_enumeration_error_raises[permission]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_root_enumeration_error_raises[generic-oserror]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[permission]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[generic-oserror]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_nested_enumeration_error_raises[enumeration-filenotfound]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[seals-*.json]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures-*]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures-*/*]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures-*/*.report.json]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures/2026-10-26-*.attempt.json]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[captures/2026-10-26-*.resolution.json]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[final_snapshot-attempt-*]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[code-s1_*.py]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-captures/*/*]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-captures/*/*.attempt.json]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-seals/*.json]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-final_snapshot/attempt-*]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[.-audit/**/*]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_matches_path_glob_on_a_healthy_tree[audit-**/*]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_recursive_matches_path_rglob
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-generic-oserror]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-permission]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-generic-oserror]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-enumeration-filenotfound]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_evidence_check_never_takes_the_no_evidence_branch[permission]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_evidence_check_never_takes_the_no_evidence_branch[generic-oserror]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_evidence_check_never_takes_the_no_evidence_branch[enumeration-filenotfound]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[seals-permission]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[seals-generic-oserror]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_seals_inventory_failure_refuses[seals-enumeration-filenotfound]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[captures]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common.bundle_manifest]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._day_success]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._post_start_capture[captures]]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._post_start_capture[seals]]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._local_opening_evidence[seals]]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common._local_opening_evidence[captures]]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common.opening_orphans]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_common.preregistration_problems]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint._seal_files]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint._read_seals]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint._next_attempt]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_checkpoint.ok_attempts]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._seals]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._ok_attempts]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._restarts]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_run._capture_notes]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal.pending_closes]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal._seal_index]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal.stop_was_persisted]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_seal.stop_problems]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_slot._stray_files]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_stage._artifacts_present]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_site_refuses_on_enumeration_failure[s1_stage._seals_on_disk]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_bundle_hash_refuses_when_the_code_directory_is_unlistable
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_score_attempt_listing_refusal_is_no_score_abort
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_opening_ack_fields_never_swallow_a_listing_refusal
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_no_product_module_calls_path_glob
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[nan-T]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[nan-L]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[inf-T]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[bool-T]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[string-T]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_invalid_observation_is_not_ready[bool-L]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[nan-T]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[inf-T]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[bool-T]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[string-T]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_t_is_not_ready[negative-T]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[nan-B]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[bool-B]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_invalid_b_is_not_ready[string-B]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[nan-cap]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[inf-cap]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[zero-cap]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[negative-cap]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_invalid_cap_is_not_ready_in_both_routes[bool-cap]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[scandir]
+================== 81 failed, 23 passed in 210.56s (0:03:30) ==================
+
+# ADDENDUM 2026-11-14T22:39:17Z: the first GREEN run found a SECOND Path.glob-patching H4 test (row 496, test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes]) inert after the change; it was re-pointed at os.scandir (h4cx_old_new.md) and its RED recorded here on the same base copy, test sha256 abbf670e781a34499d377770d06d233dd5cacb0025213434c1c54a41bcd1fc14
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_pass.py:371: AssertionError: None
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_m4_pass.py:159: AssertionError: a listing/read/permission error is never OK
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[read]
+PASSED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[permission]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_qualified_member_read_classification[failed-listing-or-lookup-as-filenotfound-both-passes]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_listing_error_refuses[scandir]
+======================== 2 failed, 2 passed in 15.74s =========================
+
+# ======== FIX ROUND 1 RED (2026-11-15T01:23:13Z) - task review verdict I-1, M-1, M-3, M-4
+# (a) the H4-CX fix-round-0 working tree (product UNCHANGED since the first GREEN) + the fix-round-1 tests appended to test_s1_a3_strict_enum.py
+# product sha256: 944f8b3ab06eef3d0a826fb5a1f20478b99c8fb138875fa2b5cd6eca31b3284e *s1_gates.py 4d3967fa2398adf502a78425ba1f70f716af6e7f3895b78564eb1bd4b2f875f2 *s1_seal.py 265269ebd4f465b0905e41b28913b018f6815bc8398ab990736831a6b0a46a8b *s1_evidence/a3/m4_workload/verdict_rule.py 
+# test sha256: 5902572819a8c6c05969a65bbad52d6b4079716b8cd76f16cc0af568b6920e10 *s1_tests/test_s1_a3_strict_enum.py
+# command: PYTHONPATH=research/s1;research/s1/s1_tests testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_strict_enum.py -k "run_ack or score_listing or huge_int or pending_closes_day or checkpoint_capture" -rA --tb=line
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:402: AssertionError: converted into a registration problem: ['RUN-ACK unverifiable: research/s1/s1_*.py could not be listed (OSError: [Errno 5] I/O error (simulated)): refused with no row and no work (a listing error never means empty or absent, G3.4; H4-CX-2)']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:428: AssertionError: a listing failure in the RUN-ACK check became a score result: {'binding_gaps': [], 'bundle_sha256': '6282d0ca03fb138d21c713779b3d779a9822b0f827484d3d34019631175c9fb7', 'missed_seals': [], 'nomination': False, 'outcome': 'SCORED', 'protocol_notes': [], 'provenance': 'UNVERIFIED-PROVENANCE', 'quantity_bridge': None, 'quantity_bridge_note': 'not available: no readable frozen final ledger (stop seal)', 'reasons': ['registration not verified: RUN-ACK unverifiable: research/s1/s1_*.py could not be listed (PermissionError: [Errno 13] sharing violation (simulated)): refused with no row and no work (a listing error never means empty or absent, G3.4; H4-CX-2)', 'final snapshot: report.json missing or unreadable (FileNotFoundError) while successful attempt(s) exist: none', 'scored before the trial stopped'], 'receipt_provenance': {'dirty': [], 'heads': ['h'], 'transient': []}, 'refused_captures': [], 'restarts': {'observation_gaps': [], 'observed_in_crash_log_minimum': []}, 'runner_sha256': 'b69a87137ff6f9119b72b9d0978a58255fb06dab66a714c71d9aa4752d8e7d05', 'scored_utc': '2026-11-15T01:23:25.021409+00:00', 'seal_binding_gaps': [], 'start': '2026-10-26T13:30:00+00:00', 'stop': {'missed': [], 'status': 'RUNNING', 'stop_close': None}, 'stop_attestation': {'ok': False, 'present': False, 'problems': ['no stop attestation recorded']}, 'trial_id': 'de5b76e8-5ecd-4232-b6f5-bbec82635dfb', 'verdict': 'ABORTED-INVALID'}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:461: Failed: verdict raised OverflowError for a huge T: int too large to convert to float
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:461: Failed: verdict raised OverflowError for a huge L: int too large to convert to float
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:461: Failed: b_conditional raised OverflowError for a huge B: int too large to convert to float
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:461: Failed: verdict raised OverflowError for a huge cap: int too large to convert to float
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:461: Failed: verdict raised OverflowError for a huge T: int too large to convert to float
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:461: Failed: verdict raised OverflowError for a huge L: int too large to convert to float
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:461: Failed: b_conditional raised OverflowError for a huge B: int too large to convert to float
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:461: Failed: verdict raised OverflowError for a huge cap: int too large to convert to float
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_strict_enum.py:508: AssertionError: a vanished day read as no pending claim: set()
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_score_listing_refusal_in_registration_check_is_no_invalid[control]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_checkpoint_capture_with_unlistable_seals_refuses[control]
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_checkpoint_capture_with_unlistable_seals_refuses[seals-at-capture]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_run_ack_problems_never_turns_a_listing_refusal_into_a_problem
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_score_listing_refusal_in_registration_check_is_no_invalid[code-directory-in-run-ack-problems]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-T]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-L]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-B]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-cap]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-negative-T]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-negative-L]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-negative-B]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_verdict_huge_int_is_not_ready_never_raises[huge-negative-cap]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_pending_closes_day_vanishing_between_listings_refuses
+================ 11 failed, 3 passed, 69 deselected in 14.46s =================
+# (b) M-4 behaviour against the BASE ce4a53b product (git archive scratch copy, as the first RED): the capture-time seals refusal is new behaviour, so the fix-round-0 tree already passes it; test sha256 as (a)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h4cx\redbase\research\s1\s1_tests\test_s1_a3_strict_enum.py:547: AssertionError: the capture did not refuse: {'close': '2026-10-26T20:00:00+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'actual': '2026-10-26T20:45:30+00:00', 'capture_start': '2026-10-26T20:45:30+00:00', 'capture_end': '2026-10-26T20:45:30+00:00', 'eligible_until': '2026-10-26T20:55:00+00:00', 'late': False, 'capture_ok': True, 'consistent': True, 'fence_violations': [], 'receipt_match': True, 'pid': 1, 'process_start': '2026-10-01T09:00:00', 'restart_gaps': [], 'process_starts': {'observed': 0, 'latest': None}, 'entries': 0, 'sold': 0, 'writeoffs': [], 'snapshot': '63327ba39b341c844c03db16024d8e389d19bfe598c37e84ee9189c9828cecdf', 'seal': {'written': True, 'sha256': 'f7dbdcdabb6c5cbfb4f4684fe7639163e822bc4d98364f3781b66061684d0b2b'}, 'stop': {'status': 'RUNNING', 'stop_close': None, 'missed': []}, 'exclusions': 'not evaluated', 'market_coverage': 'not evaluated', 'process_binding': {'status': 'MATCH', 'binding': {'exe': 'C:/app/runtime/python/python.exe', 'cmdline': '"C:/app/runtime/python/python.exe" main.py --port 8000', 'cmdline_sha256': 'd41e34270e8f2c0c02507951ba13dcf39cab962018ddc88b1466d0846a7d91d7'}}, 'candidate': {'projection_sha256': '63327ba39b341c844c03db16024d8e389d19bfe598c37e84ee9189c9828cecdf', 'dir': 'C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\h4cx\\bt_red_fr1\\test_checkpoint_capture_with_u1\\s1_out\\captures\\2026-10-26\\20261026T204500Z', 'max_id': 1, 'capture_start': '2026-10-26T20:45:30+00:00', 'capture_end': '2026-10-26T20:45:30+00:00', 'process': {'pid': 1, 'process_start': '2026-10-01T09:00:00', 'binding': {'exe': 'C:/app/runtime/python/python.exe', 'cmdline': '"C:/app/runtime/python/python.exe" main.py --port 8000', 'cmdline_sha256': 'd41e34270e8f2c0c02507951ba13dcf39cab962018ddc88b1466d0846a7d91d7'}}, 'restart_record': {'starts': [], 'size': None, 'sha256': None, 'prefix_sha256': None}, 'receipt_sha256': '12cb807808b0ff8a65b8eb1b6ef1c298495044341e6d3b304da8fe17a2cfe764', 'receipt_provenance': {'head': 'h', 'dirty': []}, 'bridge': {'bridge_row_ids': [1], 'cohort_era_row_ids': [], 'post_opening_row_ids': [], 'opening_close': '2026-10-23T20:00:00+00:00', 'bridge_sha256': '93087f86d7b7c9be983f4a3d4e88bd7b16d30fb31972af0b068f85d129bd7309'}, 'bundle_sha256': 'a439ac583c1fa56819555f56e41aad0e434daa837b61bdb008d1e5fc947ef302', 'process_binding': {'status': 'MATCH', 'binding': {'exe': 'C:/app/runtime/python/python.exe', 'cmdline': '"C:/app/runtime/python/python.exe" main.py --port 8000', 'cmdline_sha256': 'd41e34270e8f2c0c02507951ba13dcf39cab962018ddc88b1466d0846a7d91d7'}}}, 'resolution': {'outcome': 'SUCCESS', 'published_utc': '2026-10-26T20:45:30+00:00'}, 'journal': {'kind': 'SLOT-QUALIFIED', 'outcome': 'APPEND', 'reason': '', 'R': '2026-10-26T20:45:30+00:00'}, 'deferred': 'earlier slot 2026-10-26T20:47:00+00:00 has no row and its window is open until E 2026-10-26T20:57:00+00:00: the seal waits for slot order (A5.2)'}
+PASSED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_checkpoint_capture_with_unlistable_seals_refuses[control]
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_checkpoint_capture_with_unlistable_seals_refuses[seals-at-capture]
+================= 1 failed, 1 passed, 81 deselected in 4.65s ==================

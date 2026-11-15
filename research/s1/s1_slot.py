@@ -941,10 +941,11 @@ def slot_problems(out, rows, subject, cal, *, ps=None) -> list:
 
 
 def _listing_refusal(what: str, e: OSError):
-    """G3.4: a listing or existence-probe error is never "empty", "absent" or "OK" - a refusal with no row."""
+    """G3.4: a listing or existence-probe error is never "empty", "absent" or "OK" - a refusal with no row. A3 H4-CX:
+    a ListingRefused (a Refusal and a c.ListingRefusal), so the gate holds it until after E5.5 (C5.1 ordering)."""
     import s1_trial
-    return s1_trial.Refusal(f"F3 evidence table: {what} could not be listed or probed ({type(e).__name__}: {e}): "
-                            f"refused with no row (a listing error never means empty or absent, G3.4)")
+    return s1_trial.ListingRefused(f"F3 evidence table: {what} could not be listed or probed ({type(e).__name__}: "
+                                   f"{e}): refused with no row (a listing error never means empty or absent, G3.4)")
 
 
 def _present(n: dict, subject: str) -> list:
@@ -1012,7 +1013,7 @@ def confirmed_close_problems(gv, out, rows, day, cal, mailbox=None, *, ps=None) 
 def _file_subjects(out) -> set:
     got = set()
     try:
-        found = sorted((Path(out) / "captures").glob("*/*"))
+        found = c.strict_glob(Path(out), "captures/*/*")             # A3 H4-CX: strict (glob swallowed it)
     except OSError as e:                                              # G3.4: never "no files"
         raise _listing_refusal("captures/", e) from None
     for p in found:
@@ -1046,7 +1047,7 @@ def evidence_problems(out, rows, cal, *, ps=None) -> list:
             ps.unreadable.append(str(e))
     oday = _opening_date(out)
     try:
-        seals = sorted((out / "seals").glob("*.json"))
+        seals = c.strict_glob(out, "seals/*.json")                    # A3 H4-CX: strict (glob swallowed it)
     except OSError as e:                                              # G3.4: never "no seals"
         raise _listing_refusal("seals/", e) from None
     for seal in seals:
@@ -1128,7 +1129,7 @@ def _stray_files(out: Path) -> list:
     other seals/<date>.json is a seal stage's, judged by s1_stage.evaluate (E2.4/E2.6 r3)."""
     out = Path(out)
     try:
-        found = list((out / "captures").glob("*/*"))
+        found = c.strict_glob(out, "captures/*/*")                    # A3 H4-CX: strict (glob swallowed it)
         oday = _opening_date(out)
         if oday and (out / "seals" / f"{oday}.json").exists():
             found.append(out / "seals" / f"{oday}.json")
@@ -1175,7 +1176,7 @@ def evidence_check(gv) -> list:
     import s1_trial
     out = Path(gv.out)
     try:
-        has_files = any((out / "captures").glob("*/*")) or any((out / "seals").glob("*.json"))
+        has_files = bool(c.strict_glob(out, "captures/*/*")) or bool(c.strict_glob(out, "seals/*.json"))   # H4-CX
     except OSError as e:                                              # G3.4: never "no files"
         raise _listing_refusal("captures/ or seals/", e) from None
     if not has_files and not any(r_.kind in j.SLOT_KINDS for r_ in gv.rows):

@@ -535,8 +535,9 @@ def _artifacts_present(out: Path, stage: str) -> list:
         except (OSError, ValueError, KeyError, TypeError):
             return []
         return [rel] if (out / rel).exists() else []
-    d = out / stage
-    return sorted(p.relative_to(out).as_posix() for p in d.rglob("*") if p.is_file()) if d.is_dir() else []
+    d = out / stage                                       # A3 H4-CX: a strict recursive listing from s1_out (an
+    return sorted(p.relative_to(out).as_posix() for p in c.listing(out, f"{c._lit(stage)}/**/*")  # unlistable tree
+                  if p.is_file()) if d.is_dir() else []                                       # refuses, never "none")
 
 
 def created_problems(gv, stage, m) -> list:
@@ -586,7 +587,7 @@ def _seals_on_disk(out: Path) -> list:
     """Every post-START seal stage name with a seals/<date>.json file on disk (the opening close is the `opening`
     stage); a file name that is no seal stage name belongs to no seal stage."""
     oc = _opening_close(out)
-    names = (f"{SEAL_PREFIX}{p.stem}" for p in sorted((Path(out) / "seals").glob("*.json")) if p.stem != oc)
+    names = (f"{SEAL_PREFIX}{p.stem}" for p in c.listing(Path(out), "seals/*.json") if p.stem != oc)   # H4-CX
     return [n for n in names if _SEAL_NAME.fullmatch(n) and j.stage_name_ok(n)]
 
 

@@ -81,3 +81,71 @@ def test_b_conditional_requires_resolved_workloads_and_injected_cases():
     assert ok["label"] == "B-CONDITIONAL READY" and ok["reasons"] == [], ok
     nb = v.b_conditional(runs, None, workloads_resolved=False, injected_resolved=False)
     assert nb["label"] == "NOT READY" and any("workload" in r for r in nb["reasons"]), nb
+
+
+# --------------------------------------------------------------------- A3 H4-CX (Codex H4-CX-1 / P2): numeric validation
+# T, L and B count only as real, non-bool, finite, >= 0 numbers; the cap must be finite and > 0. Anything else is NOT
+# READY with a reason naming the run and the field - never READY, never an unhandled exception. max_T / max_C are over
+# valid values only. Each call is wrapped (B3: a RED is an assertion, never an escaping TypeError).
+import math  # noqa: E402
+
+
+def call(fn, *a, **kw):
+    try:
+        return fn(*a, **kw)
+    except Exception as e:                                     # noqa: BLE001 - asserted to be absent below
+        return e
+
+
+def not_ready(got, *needles):
+    assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+    label = got.get("verdict", got.get("label"))
+    assert label in ("NOT READY", "B-CONDITIONAL NOT READY"), got
+    for n in needles:
+        assert any(n in x for x in got["reasons"]), (n, got["reasons"])
+    return got
+
+
+@pytest.mark.parametrize("field,value", [("T", float("nan")), ("L", float("nan")), ("T", float("inf")),
+                                         ("T", True), ("T", "5"), ("L", float("-inf")), ("L", False)],
+                         ids=["nan-T", "nan-L", "inf-T", "bool-T", "string-T", "neg-inf-L", "bool-L"])
+def test_verdict_invalid_observation_is_not_ready(field, value):
+    r = run(0.0, 1.0, i="bad")
+    r[field] = value
+    got = not_ready(call(v.verdict, [r, run(0.0, 2.0, i="good")]), "run bad", f"{field} ")
+    assert got["max_T"] == 2.0 and got["max_C"] == 2.0, got                 # over the valid values only
+    assert all(isinstance(x, float) and math.isfinite(x) for x in (got["max_T"], got["max_C"]) if x is not None)
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), True, "5", -1.0],
+                         ids=["nan-T", "inf-T", "bool-T", "string-T", "negative-T"])
+def test_b_conditional_invalid_t_is_not_ready(value):
+    got = not_ready(call(v.b_conditional, [run(None, value, i="bad"), run(None, 10.0, i="good")], 0.0,
+                         workloads_resolved=True, injected_resolved=True), "run bad", "T ")
+    assert got["max_T"] == 10.0, got
+    alone = not_ready(call(v.b_conditional, [run(None, value, i="bad")], 0.0, workloads_resolved=True,
+                           injected_resolved=True), "run bad", "T ")
+    assert alone["max_T"] is None and alone.get("max_T_plus_B") is None, alone      # never computed from it
+
+
+@pytest.mark.parametrize("b", [float("nan"), float("inf"), -1.0, True, "1"],
+                         ids=["nan-B", "inf-B", "negative-B", "bool-B", "string-B"])
+def test_b_conditional_invalid_b_is_not_ready(b):
+    not_ready(call(v.b_conditional, [run(None, 1.0)], b, workloads_resolved=True, injected_resolved=True), "B ")
+
+
+@pytest.mark.parametrize("cap", [float("nan"), float("inf"), 0.0, -60.0, True],
+                         ids=["nan-cap", "inf-cap", "zero-cap", "negative-cap", "bool-cap"])
+def test_invalid_cap_is_not_ready_in_both_routes(cap):
+    not_ready(call(v.verdict, [run(0.0, 1.0)], cap=cap), "cap")
+    not_ready(call(v.b_conditional, [run(None, 1.0)], 0.0, workloads_resolved=True, injected_resolved=True,
+                   cap=cap), "cap")
+
+
+def test_cap_boundary_exact_and_next_float():
+    assert call(v.verdict, [run(0.0, 60.0)])["verdict"] == "READY"
+    not_ready(call(v.verdict, [run(0.0, math.nextafter(60.0, math.inf))]), "> 60 s")
+    ok = call(v.b_conditional, [run(None, 60.0)], 0.0, workloads_resolved=True, injected_resolved=True)
+    assert ok["label"] == "B-CONDITIONAL READY", ok
+    not_ready(call(v.b_conditional, [run(None, math.nextafter(60.0, math.inf))], 0.0, workloads_resolved=True,
+                   injected_resolved=True), "> 60 s")

@@ -72,7 +72,7 @@ def _load(p: Path):
 
 
 def _seal_files(out: Path) -> list:
-    return sorted((out / "seals").glob("*.json"))
+    return c.listing(out, "seals/*.json")                 # A3 H4-CX: strict (a listing error refuses, never "none")
 
 
 def _seals(out: Path) -> list:
@@ -955,7 +955,8 @@ def _trial_state(out: Path, pr: dict, t: datetime, *, mailbox=None) -> tuple:
 
 def _next_attempt(d: Path) -> str:
     """The next attempt directory name under final_snapshot/ (attempt-01, attempt-02, ...)."""
-    used = [int(p.name[len("attempt-"):]) for p in d.glob("attempt-*") if p.name[len("attempt-"):].isdigit()]
+    used = [int(p.name[len("attempt-"):]) for p in c.listing(d.parent, f"{c._lit(d.name)}/attempt-*")   # H4-CX
+            if p.name[len("attempt-"):].isdigit()]
     return f"attempt-{max(used, default=0) + 1:02d}"
 
 
@@ -963,7 +964,7 @@ def ok_attempts(d: Path) -> list:
     """Names of the final_snapshot/attempt-NN directories whose meta.json records a successful capture (ok=True).
     Fix round 1 (I-1): success is decided by these, never by the presence of final_snapshot/report.json."""
     found = []
-    for p in sorted(d.glob("attempt-*")):
+    for p in c.listing(d.parent, f"{c._lit(d.name)}/attempt-*"):           # A3 H4-CX: strict (never "no attempt")
         try:
             if json.loads((p / "meta.json").read_text(encoding="utf-8")).get("ok") is True:
                 found.append(p.name)

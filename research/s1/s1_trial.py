@@ -58,6 +58,11 @@ class MailboxOutage(Refusal):
     """The mailbox could not be read for the trial lookup (F6.3 outage refusal)."""
 
 
+class ListingRefused(Refusal, c.ListingRefusal):
+    """A3 H4-CX (Codex H4-CX-2): the F3 evidence table's listing refusal (s1_slot._listing_refusal) - a Refusal that
+    is also a c.ListingRefusal, so the gate holds it like a C5 refusal (never masking E5.5)."""
+
+
 @dataclass(frozen=True)
 class Ack:
     mailbox_id: str
@@ -479,6 +484,8 @@ def _opening_derived(root, out, rows, given, mailbox) -> dict:
             q = s1_slot.first_qualified(rows, next(d for d in cal if d["date"] == plan["opening_close"]), cal)
             if q is not None:
                 got["opening_slot"] = q.subject
+        except c.ListingRefusal:                         # A3 H4-CX: an unlistable directory is a refusal, never
+            raise                                        # "not derivable" (the field is never silently absent)
         except (s1_gates.Invalid, OSError, ValueError, KeyError, TypeError, StopIteration, SystemExit):
             pass                                         # not derivable: the field stays missing (token: ValueError)
     if "evidence_manifest_sha256" not in given and rows:
@@ -877,13 +884,19 @@ def gate(root, where: str, *, mailbox=None, now=None, defer_pending=False) -> Ga
     import s1_stage                                       # A3 Task 8: the F4 stage-state table (never creates s1_out)
     s1_stage.evaluate(gv, defer_pending=defer_pending)    # A3 Task 6 (N2): the slot paths defer a held stage lock
     import s1_slot                                        # A3 Task 7: the F3 evidence table, after the plan check
-    unreadable = s1_slot.evidence_check(gv) or []         # (Deviation 1, Task 8 D4: a foreign root is never judged)
+    listed = None                                         # A3 H4-CX (Codex H4-CX-2): a listing refusal of the F3
+    try:                                                  # table is an I/O refusal like C5's - held, never masking
+        unreadable = s1_slot.evidence_check(gv) or []     # E5.5 (Deviation 1, Task 8 D4: a foreign root is never judged)
+    except c.ListingRefusal as e:                         # (a confirmed F3 violation is a plain Refusal: it raises)
+        unreadable, listed = [], e
     held = None                                           # A3 H4 fix round 1 (review I-1, Clarification 1 C5.1): an
     try:                                                  # I/O refusal never masks a later mandatory INVALID - the
-        s1_seal.stop_gap_recover(gv, publish=not unreadable)   # C5 refusals (the F3 table's unreadable members, a
-    except s1_slot.QualifiedUnreadable as e:              # QualifiedUnreadable from the F2.3 recompute) are held as
-        held = e                                          # local values, never stored, until E5.5 has run
-    opening_manifest_check(gv)                            # A3 Task 10: E5.5 / F7.3, after the stage and F3 tables
+        s1_seal.stop_gap_recover(gv, publish=not unreadable and listed is None)   # C5 refusals (the F3 table's
+    except (s1_slot.QualifiedUnreadable, c.ListingRefusal) as e:    # unreadable members, a QualifiedUnreadable or (H4-CX)
+        held = e                                          # a listing refusal from the F2.3 recompute) are held as local
+    opening_manifest_check(gv)                            # values, never stored, until E5.5 has run (A3 Task 10: E5.5 /
+    if listed is not None:                                # F7.3, after the stage and F3 tables)
+        raise listed                                      # H4-CX: refused with no row, no work, no INVALID
     s1_slot.refuse_unreadable(unreadable)                 # C5.1: refused with no row, no work, no INVALID
     if held is not None:
         raise held

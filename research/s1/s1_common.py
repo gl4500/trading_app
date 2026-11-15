@@ -94,6 +94,93 @@ def sha256_file(p) -> str:
     return sha256_bytes(Path(p).read_bytes())
 
 
+# ------------------------------------------------- A3 H4-CX (Codex H4-CX-2): strict directory enumeration (G3.4, C5)
+class ListingRefusal(SystemExit):
+    """A3 H4-CX (Codex H4-CX-2 / P1; Erratum 2 r4 G3.4; Clarification 1 r2 C5.1 / O-C5): a directory could not be
+    enumerated. A failed listing never means empty, absent or OK: the invocation refuses with no row and no requested
+    work, and no INVALID is based on that observation. A SystemExit (as s1_slot.QualifiedUnreadable), so no
+    `except OSError` / `except Exception` block on the caller path can turn it into "no files", a problem or an
+    INVALID; a caller that catches SystemExit and would turn it into a problem, an abort or an absence re-raises it
+    (s1_run._score_attempt, s1_trial._opening_derived; the gate holds it until after E5.5)."""
+
+
+def _scan(d) -> list:
+    """os.scandir(d), fully read and closed; every OSError propagates (the layer pathlib's glob swallows)."""
+    with os.scandir(d) as it:
+        return list(it)
+
+
+def strict_glob(root, pattern: str) -> list:
+    """A3 H4-CX: the entries under `root` matching `pattern` (`/`-separated segments, each matched against the entry
+    names with fnmatch.fnmatch - case-insensitive on Windows, as pathlib's glob; dot-names match `*`, as pathlib's
+    glob), as a sorted list of Paths equal to the sorted Path.glob of `pattern` on a healthy tree. A `**` segment is
+    the directory itself and every descendant directory (Path.rglob: `**/<pat>`).
+    Unlike pathlib's glob (CPython 3.12 _WildcardSelector._select_from: `except OSError: pass`), an enumeration
+    failure is never "no entries":
+    - `root` itself missing (FileNotFoundError from the scandir of root) is the typed absence of an optional directory:
+      [] (exactly as glob today);
+    - every other enumeration failure raises: PermissionError or any other OSError on root, and ANY OSError -
+      FileNotFoundError included - on a nested directory that was listed a moment earlier (an ambiguous enumeration,
+      Clarification 1 O-C5). DirEntry.is_dir errors raise too.
+    Links (same as today's glob on CPython 3.12): an intermediate segment descends through a directory symlink or
+    junction (DirEntry.is_dir(), following links, as _WildcardSelector); `**` never enters a directory SYMLINK but
+    does enter a directory junction (DirEntry.is_dir(follow_symlinks=False) is True for a junction), exactly as
+    Path.walk(follow_symlinks=False) under _RecursiveWildcardSelector (H4-CX fix round 1, review N-1).
+    Product callers place `root` at a directory that always exists while the files matter (s1_out, the code
+    directory's parent), so a listed-then-failed subdirectory is a nested failure, never "absent"."""
+    import fnmatch
+    root = Path(root)
+    segs = pattern.split("/")
+    if any(s in ("", ".", "..") or ("**" in s and s != "**") for s in segs) or segs[-1] == "**":
+        raise ValueError(f"strict_glob: unsupported pattern {pattern!r}")
+    try:
+        level = [(root, _scan(root))]
+    except FileNotFoundError:
+        return []                                          # the typed absence of an optional root directory
+    found = []
+    for i, seg in enumerate(segs):
+        last = i == len(segs) - 1
+        if seg == "**":                                    # the directory itself and every descendant (no links)
+            todo, level = level, []
+            while todo:
+                d, entries = todo.pop()
+                level.append((d, entries))
+                todo += [(d / e.name, _scan(d / e.name)) for e in entries if e.is_dir(follow_symlinks=False)]
+            continue
+        nxt = []
+        for d, entries in level:
+            for e in entries:
+                if not fnmatch.fnmatch(e.name, seg):
+                    continue
+                if last:
+                    found.append(d / e.name)
+                elif e.is_dir():
+                    nxt.append((d / e.name, _scan(d / e.name)))    # nested: any OSError raises (O-C5)
+        level = nxt
+    return sorted(set(found))
+
+
+def strict_rglob(root, pattern: str = "*") -> list:
+    """The sorted Path.rglob of `pattern` with strict_glob's enumeration rules (`**/<pattern>`)."""
+    return strict_glob(root, f"**/{pattern}")
+
+
+def listing(root, pattern: str) -> list:
+    """strict_glob for a product site: an enumeration failure is a ListingRefusal (refused with no row, G3.4)."""
+    try:
+        return strict_glob(root, pattern)
+    except OSError as e:
+        raise ListingRefusal(f"{Path(root).name}/{pattern} could not be listed ({type(e).__name__}: {e}): refused "
+                             f"with no row and no work (a listing error never means empty or absent, G3.4; "
+                             f"H4-CX-2)") from None
+
+
+def _lit(name: str) -> str:
+    """A literal path segment inside a strict_glob pattern (a date or a stage name, never a wildcard)."""
+    import glob
+    return glob.escape(name)
+
+
 def canonical(obj) -> bytes:
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
 
@@ -115,7 +202,8 @@ def bundle_manifest() -> dict:
     {s1_*.py present but not listed: sha256}, "docs": {pinned document: sha256 | "missing"}} of the files on disk."""
     listed = set(BUNDLE_CODE)
     return {"code": {n: _sha_or_missing(HERE / n) for n in BUNDLE_CODE},
-            "unexpected": {p.name: sha256_file(p) for p in sorted(HERE.glob("s1_*.py")) if p.name not in listed},
+            "unexpected": {p.name: sha256_file(p) for p in listing(HERE.parent, f"{_lit(HERE.name)}/s1_*.py")
+                           if p.name not in listed},                  # A3 H4-CX: strict (never a silent "none")
             "docs": {d: _sha_or_missing(HERE / d) for d in DOC_PINS}}
 
 
@@ -676,7 +764,7 @@ def _start_day(out: Path):
 
 
 def _day_success(out: Path, day: str) -> bool:
-    for p in sorted((Path(out) / "captures" / day).glob("*.resolution.json")):
+    for p in listing(Path(out), f"captures/{_lit(day)}/*.resolution.json"):          # A3 H4-CX: strict
         try:
             if load_json(p).get("outcome") == "SUCCESS":
                 return True
@@ -689,10 +777,11 @@ def _post_start_capture(out: Path, opening_day) -> bool:
     """A slot claim or seal of a close on/after START (only a verified prereg lets a checkpoint claim one)."""
     out = Path(out)
     sd = _start_day(out)
-    for d in sorted((out / "captures").glob("*")):
-        if d.is_dir() and d.name != opening_day and (sd is None or d.name >= sd) and any(d.glob("*.attempt.json")):
-            return True
-    return any(p.stem != opening_day and (sd is None or p.stem >= sd) for p in (out / "seals").glob("*.json"))
+    claimed = {p.parent.name for p in listing(out, "captures/*/*.attempt.json")}        # A3 H4-CX: strict; both
+    seals = listing(out, "seals/*.json")                                                  # listed before deciding
+    if any(d != opening_day and (sd is None or d >= sd) for d in claimed):
+        return True
+    return any(p.stem != opening_day and (sd is None or p.stem >= sd) for p in seals)
 
 
 def _opening_day_of(out: Path):
@@ -742,9 +831,9 @@ def _local_opening_evidence(out: Path) -> list:
     """Fix round 8 (rule 3): every local file only an opening produces (seals, opening records, capture entries, the
     stored opening receipt, last_process.json)."""
     out = Path(out)
-    got = [p.relative_to(out).as_posix() for p in sorted((out / "seals").glob("*.json"))]
+    got = [p.relative_to(out).as_posix() for p in listing(out, "seals/*.json")]          # A3 H4-CX: strict
     got += [p.relative_to(out).as_posix() for p in stage_records(out, "opening") if p.exists()]
-    got += [p.relative_to(out).as_posix() for p in sorted(out.glob("captures/*/*"))]
+    got += [p.relative_to(out).as_posix() for p in listing(out, "captures/*/*")]
     return got + [n for n in ("opening_receipt.json", "last_process.json") if (out / n).exists()]
 
 
@@ -856,7 +945,7 @@ def opening_orphans(out: Path, oday=None) -> list:
                 probs.append(f"captures/{oday}/{q.name} exists without its slot claim (an earlier opening attempt)")
             if q.name.endswith(".report.json") and not (d / f"{slot}.resolution.json").exists():
                 probs.append(f"captures/{oday}/{q.name} exists without its resolution (an earlier opening attempt)")
-    if (out / "last_process.json").exists() and not any(out.glob("captures/*/*.attempt.json")):
+    if (out / "last_process.json").exists() and not listing(out, "captures/*/*.attempt.json"):   # H4-CX
         probs.append("last_process.json exists without any slot claim (an earlier opening attempt)")
     if (out / "opening_receipt.json").exists() and not _day_success(out, oday):
         probs.append("opening_receipt.json exists without an opening SUCCESS resolution (an earlier opening attempt)")
@@ -1084,7 +1173,7 @@ def preregistration_problems(out: Path, mailbox=None, now=None) -> list:
     if st["registered"]:
         return []
     w = registration_witnesses(out, st["oday"], False)
-    seals = [f"seals/{p.name}" for p in sorted((out / "seals").glob("*.json"))]
+    seals = [f"seals/{p.name}" for p in listing(out, "seals/*.json")]                   # A3 H4-CX: strict
     if not st["local"]:
         return w + seals + opening_orphans(out, st["oday"])
     return [x for x in w if x not in IN_PROGRESS] + seals

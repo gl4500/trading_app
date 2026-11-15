@@ -106,15 +106,14 @@ def pending_closes(out: Path) -> set:
     resolution (or an unreadable one) but no seal is pending too - the success is not applied until the serialized
     close-level selection writes the seal, so no command that did not finalize can freeze a stop across it."""
     out, got = Path(out), set()
-    for day_dir in sorted((out / "captures").glob("*")):
-        if not day_dir.is_dir() or (out / "seals" / f"{day_dir.name}.json").exists():
+    for claim in c.listing(out, "captures/*/*.attempt.json"):     # A3 H4-CX (fix round 1, review M-3): ONE strict
+        day_dir = claim.parent                                   # walk - a day directory listed then gone refuses
+        if day_dir.name in got or (out / "seals" / f"{day_dir.name}.json").exists():
             continue
-        for claim in day_dir.glob("*.attempt.json"):
-            name = claim.name[:-len(".attempt.json")]
-            res = day_dir / f"{name}.resolution.json"
-            if not res.exists() or not _applied_or_unsuccessful(res):
-                got.add(day_dir.name)
-                break
+        name = claim.name[:-len(".attempt.json")]
+        res = day_dir / f"{name}.resolution.json"
+        if not res.exists() or not _applied_or_unsuccessful(res):
+            got.add(day_dir.name)
     return got
 
 
@@ -390,7 +389,7 @@ def stop_decision(seals, start: datetime, calendar, *, today: datetime, pending=
 # from seal files or a wall clock outside that transaction.
 def _seal_index(out: Path) -> list:
     out = Path(out)
-    return [(p, json.loads(p.read_text(encoding="utf-8"))) for p in sorted((out / "seals").glob("*.json"))]
+    return [(p, json.loads(p.read_text(encoding="utf-8"))) for p in c.listing(out, "seals/*.json")]   # H4-CX
 
 
 def persist_stop(out: Path, rec: dict) -> dict:
@@ -421,7 +420,7 @@ def stop_was_persisted(out: Path) -> bool:
     """m-4: some artifact recorded stop.json's hash (a capture report after the stop, the stop attestation, the final
     plan / manifest / snapshot report): stop.json existed."""
     out = Path(out)
-    named = [p for p in (out / "captures").glob("*/*.report.json")]
+    named = c.listing(out, "captures/*/*.report.json")                       # A3 H4-CX: strict
     named += [out / "attest_stop.json", out / "final_plan.json", out / "final" / "manifest.json",
               out / "final_snapshot" / "report.json"]
     if any(p.exists() for p in c.stage_records(out, "stop")):     # fix round 2/3 (B3.1, C-2): both stop records
@@ -846,7 +845,7 @@ def stop_problems(out: Path, start: datetime, calendar, *, recheck: bool = True,
         return ["no persisted stop (s1_out/stop.json)"]
     probs = []
     sj = c.sha256_file(out / "stop.json")                  # fix round 1 (m-4): recorded hashes and the bundle
-    for p in sorted((out / "captures").glob("*/*.report.json")):
+    for p in c.listing(out, "captures/*/*.report.json"):                     # A3 H4-CX: strict
         try:
             v = json.loads(p.read_text(encoding="utf-8")).get("stop_sha256")
         except (OSError, ValueError, AttributeError):

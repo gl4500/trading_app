@@ -144,7 +144,9 @@ def run_ack_problems(out: Path, pr: dict, mailbox=None) -> list:
             probs.append("prereg process binding is not the opening seal's registered reference")
         elif att.get("process_binding_sha256") != c.sha256_bytes(c.canonical(ref)):
             probs.append("the START attestation does not bind prereg's process binding")
-    except SystemExit as e:
+    except c.ListingRefusal:                                 # A3 H4-CX fix round 1 (review I-1): a directory that
+        raise                                                # cannot be listed (bundle_sha256) is a refusal, never a
+    except SystemExit as e:                                  # registration problem (the score would make it INVALID)
         probs.append(f"RUN-ACK unverifiable: {e}")
     except sqlite3.Error as e:
         probs.append(f"RUN-ACK unverifiable: mailbox unreadable ({type(e).__name__})")

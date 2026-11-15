@@ -673,7 +673,7 @@ def _pre_start_day(start) -> str:
 
 
 def _seals(out: Path) -> list:
-    return [(p, _load(p)) for p in sorted((out / "seals").glob("*.json"))]
+    return [(p, _load(p)) for p in c.listing(out, "seals/*.json")]        # A3 H4-CX: strict (a listing error refuses)
 
 
 def _nvs(gv, out: Path, pr: dict, where: str) -> bool:
@@ -909,8 +909,9 @@ def _score_attempt(sw) -> dict:
     import s1_stage
     try:
         return json.loads(_serialise(_score(sw.gv.out, sw.mailbox)))     # ruling M-6: the serialised report
-    except (OSError, s1_slot.QualifiedUnreadable):           # A3 H4 (Clarification 1 C5.1): an unreadable QUALIFIED
-        raise                                                # member is a local fault - a refusal, never score-aborted
+    except (OSError, s1_slot.QualifiedUnreadable, c.ListingRefusal):   # A3 H4 (Clarification 1 C5.1): an unreadable
+        raise                                                # QUALIFIED member - and (A3 H4-CX) a directory that cannot be
+        #                                                      listed - is a local fault: a refusal, never score-aborted
     except (j.JournalError, s1_trial.MailboxOutage) as e:
         raise SystemExit(f"score: journal or mailbox unreadable during the computation ({type(e).__name__}): "
                          f"refused with no PREPARED; the F4 stage table decides on re-entry") from None
@@ -1000,7 +1001,7 @@ def _ok_attempts(d: Path) -> list:
     """final_snapshot/attempt-NN names whose meta.json records ok=True (fix round 1, I-1: success is decided by the
     attempts, not by report.json). Kept here, not imported from s1_checkpoint, so runner_sha covers it."""
     found = []
-    for p in sorted(d.glob("attempt-*")):
+    for p in c.listing(d.parent, f"{c._lit(d.name)}/attempt-*"):           # A3 H4-CX: strict (never "no attempt")
         try:
             if json.loads((p / "meta.json").read_text(encoding="utf-8")).get("ok") is True:
                 found.append(p.name)
@@ -1192,7 +1193,7 @@ def _restarts(opening: dict, stop_seal: dict, out: Path) -> dict:
     seen = {(x["ts"], x["pid"]) for x in (opening.get("restart_record") or {}).get("starts", [])}
     starts = [x for x in (stop_seal.get("restart_record") or {}).get("starts", []) if (x["ts"], x["pid"]) not in seen]
     gaps = []
-    for p in sorted((out / "captures").glob("*/*.report.json")):
+    for p in c.listing(out, "captures/*/*.report.json"):                     # A3 H4-CX: strict
         rep = _load(p)
         gaps += [{"scheduled": rep.get("scheduled"), "gap": g} for g in rep.get("restart_gaps", [])]
     return {"observed_in_crash_log_minimum": starts, "observation_gaps": gaps}
@@ -1203,7 +1204,7 @@ def _capture_notes(out: Path, seals) -> dict:
     and the receipt PROVENANCE observed at the seals (HEAD values, dirty/transient lists): changes are reported, never
     compared."""
     refused, binding = [], []
-    for p in sorted((out / "captures").glob("*/*.report.json")):
+    for p in c.listing(out, "captures/*/*.report.json"):                     # A3 H4-CX: strict
         try:
             rep = _load(p)
         except (OSError, ValueError):
