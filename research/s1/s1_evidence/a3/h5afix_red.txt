@@ -1,0 +1,301 @@
+# A3 H5a-FIX RED: base HEAD 0eaadaed69dc856661dc20befc2b96e72a430c3a (product unchanged; only the new test file + child helper added), run 2026-11-15T03:24:49Z
+# command: PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_early_refusal_lock.py -q -rA
+# every failure is an AssertionError (B3); the 2 missing-root controls pass on the base
+FFFF..FFF                                                                [100%]
+================================== FAILURES ===================================
+___________________ test_concurrent_writers_lose_no_record ____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21546/test_concurrent_writers_lose_n0')
+
+    def test_concurrent_writers_lose_no_record(tmp_path):
+        """4 real processes x 100 calls on one s1_out/early_refusals.jsonl, released together: every call that returned
+        None (recorded) has its record present exactly once as one valid JSON line, no other record is present, and no
+        line is unparseable. (Base ce4a53b / 0eaadae: ~340-355 valid unique of 400 claimed, plus torn lines.)"""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        go = tmp_path / "go.flag"
+        ready = [tmp_path / f"ready{k}.flag" for k in range(N_PROC)]
+        ps = [subprocess.Popen([sys.executable, "-I", CHILD, "append", S1DIR, str(out), str(k), str(N_REC), str(ready[k]),
+                                str(go)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=_env())
+              for k in range(N_PROC)]
+        try:
+            assert all(_wait(r, 120.0) for r in ready), "a writer never became ready"
+            go.touch()
+            res = [p.communicate(timeout=300) for p in ps]
+        finally:
+            for p in ps:
+                if p.poll() is None:
+                    p.kill()
+        assert [p.returncode for p in ps] == [0] * N_PROC, [r[1][-2000:] for r in res]
+        claimed, failed = set(), {}
+        for k, (so, _) in enumerate(res):
+            d = json.loads(so.strip().splitlines()[-1])
+            s = sl.slot_of("slot/20261026T204500Z") + timedelta(minutes=2 * k)
+            for i in d["ok"]:
+                claimed.add((j.slot_subject(s), (s - timedelta(seconds=1, microseconds=i + 1)).isoformat()))
+            failed.update({(k, i): v for i, v in d["fail"].items()})
+        recs, bad = _lines(out / DIAG)
+        keys = [(r["subject"], r["sample"]) for r in recs]
+        summary = (f"claimed={len(claimed)} failed={len(failed)} lines={len(recs)} valid_unique={len(set(keys))} "
+                   f"unparseable={bad}")
+        print(summary)
+        assert bad == 0, summary
+        assert len(keys) == len(set(keys)), summary                 # exactly once
+>       assert set(keys) == claimed, summary                        # every recorded call present, nothing else
+E       AssertionError: claimed=400 failed=0 lines=330 valid_unique=330 unparseable=0
+E       assert {('slot/20261...+00:00'), ...} == {('slot/20261...+00:00'), ...}
+E         
+E         Extra items in the right set:
+E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999970+00:00')
+E         ('slot/20261026T205100Z', '2026-10-26T20:50:58.999900+00:00')
+E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999952+00:00')
+E         ('slot/20261026T205100Z', '2026-10-26T20:50:58.999924+00:00')
+E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999948+00:00')...
+E         
+E         ...Full output truncated (66 lines hidden), use '-vv' to show
+
+research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:129: AssertionError
+---------------------------- Captured stdout call -----------------------------
+claimed=400 failed=0 lines=330 valid_unique=330 unparseable=0
+____________________ test_lock_held_across_write_and_fsync ____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21546/test_lock_held_across_write_an0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024F73C0DE80>
+
+    def test_lock_held_across_write_and_fsync(tmp_path, monkeypatch):
+        """The lock region is held (a second handle cannot lock it) while the encoded line is written - in ONE write of
+        the whole line - and while it is fsynced; afterwards it is free again."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        import msvcrt
+        path = out / DIAG
+        seen = {"write": [], "fsync": []}
+    
+        def held() -> bool:
+            with open(path, "ab", buffering=0) as g:
+                fd = g.fileno()
+                os.lseek(fd, LOCK_OFFSET, os.SEEK_SET)
+                try:
+                    msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                except OSError as e:
+                    assert e.errno in (errno.EACCES, errno.EDEADLOCK), e
+                    return True
+                os.lseek(fd, LOCK_OFFSET, os.SEEK_SET)
+                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+                return False
+    
+        class Proxy:
+            def __init__(self, f):
+                self.f = f
+    
+            def __enter__(self):
+                self.f.__enter__()
+                return self
+    
+            def __exit__(self, *exc):
+                return self.f.__exit__(*exc)
+    
+            def write(self, b):
+                seen["write"].append((bytes(b) if not isinstance(b, str) else b.encode(), held()))
+                return self.f.write(b)
+    
+            def __getattr__(self, name):
+                return getattr(self.f, name)
+    
+        real_open, real_fsync = open, os.fsync
+    
+        def spy_open(*a, **kw):
+            return Proxy(real_open(*a, **kw))
+    
+        def spy_fsync(fd):
+            seen["fsync"].append(held())
+            return real_fsync(fd)
+        monkeypatch.setattr(sl, "open", spy_open, raising=False)
+        monkeypatch.setattr(os, "fsync", spy_fsync)
+        assert sl.record_early_refusal(out, _rec()) is None
+        monkeypatch.undo()
+        line = json.dumps(_rec(), sort_keys=True)
+>       assert [held_ for _, held_ in seen["write"]] == [True], seen
+E       AssertionError: {'fsync': [], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim...0-26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}
+E         ', False)]}
+E       assert [False] == [True]
+E         
+E         At index 0 diff: False != True
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:191: AssertionError
+___________ test_lock_timeout_records_nothing_and_returns_the_class ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21546/test_lock_timeout_records_noth0')
+
+    def test_lock_timeout_records_nothing_and_returns_the_class(tmp_path):
+        """Another process holds the region: the call returns "LockTimeout" within the fixed small bound (never None,
+        never blocking indefinitely, never raising) and the file is unchanged; once released, the next call records."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        with Holder(tmp_path, out):
+            before = hashlib.sha256((out / DIAG).read_bytes()).hexdigest()
+            t0 = time.monotonic()
+            got = sl.record_early_refusal(out, _rec())
+            el = time.monotonic() - t0
+>           assert got == "LockTimeout", got
+E           AssertionError: None
+E           assert None == 'LockTimeout'
+
+research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:209: AssertionError
+___________ test_lock_timeout_worker_refuses_and_discloses_the_gap ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21546/test_lock_timeout_worker_refus0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024F73C0F050>
+
+    def test_lock_timeout_worker_refuses_and_discloses_the_gap(tmp_path, monkeypatch):
+        """End to end (run_checkpoint, an early sample): with the region held by another process, the worker still
+        refuses with the pinned C4 reason, no journal row, no claim/capture/work, and its refusal text states the
+        LockTimeout recording gap (Clarification 4 C4.3.4)."""
+        st_ = h.registered(tmp_path)
+        s45 = h.slot(st_, h.D0)
+        out = tmp_path / "s1_out"
+        w = h.Watch(monkeypatch)
+        before = h.shas(tmp_path)
+        with Holder(tmp_path, out):
+            with pytest.raises(SystemExit, match=h.refused(s45, h.c4_text(s45))) as ex:
+                h.run(tmp_path, st_, s45, s45 - SEC, receipt=w.receipt(), process=w.process())
+>       assert re.search(GAP, str(ex.value)), str(ex.value)
+E       AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl
+E       assert None
+E        +  where None = <function search at 0x0000024F71A272E0>('early\\-refusal\\ diagnostic\\ NOT\\ recorded\\ \\(LockTimeout\\):\\ recording\\ gap\\ \\(Clarification\\ 4\\ C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl')
+E        +    where <function search at 0x0000024F71A272E0> = re.search
+E        +    and   'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' = str(SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl'))
+E        +      where SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl') = <ExceptionInfo SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requ...eduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl') tblen=4>.value
+
+research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:230: AssertionError
+_________________________ test_no_new_file_in_s1_out __________________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21546/test_no_new_file_in_s1_out0')
+
+    def test_no_new_file_in_s1_out(tmp_path):
+        """The lock is a region of the jsonl itself: after a record (and after a timeout) s1_out holds exactly the
+        jsonl - no lock file that an s1_out inventory could pick up."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        assert sl.record_early_refusal(out, _rec()) is None
+        with Holder(tmp_path, out):
+>           assert sl.record_early_refusal(out, _rec(1)) == "LockTimeout"
+E           AssertionError: assert None == 'LockTimeout'
+E            +  where None = <function record_early_refusal at 0x0000024F737689A0>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21546/test_no_new_file_in_s1_out0/s1_out'), {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'})
+E            +    where <function record_early_refusal at 0x0000024F737689A0> = sl.record_early_refusal
+E            +    and   {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(1)
+
+research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:254: AssertionError
+______________ test_non_utc_slot_diagnostic[diagnostic-recorded] ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21546/test_non_utc_slot_diagnostic_d0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024F73C88680>
+case = 'diagnostic-recorded'
+
+    @pytest.mark.parametrize("case", ["diagnostic-recorded", "gap-disclosed"])
+    def test_non_utc_slot_diagnostic(tmp_path, monkeypatch, case):
+        """A direct caller passes the registered slot as an aware -04:00 instant: the early refusal is the pinned C4
+        reason (UTC instant), and the C4.3 diagnostic line is written (keyed on the UTC registered instant) - or, on a
+        write failure, the refusal discloses the gap. (Base: '' - nothing recorded and no gap stated.)"""
+        st_ = h.registered(tmp_path)
+        s45 = h.slot(st_, h.D0)
+        local = s45.astimezone(NY4)
+        assert local.isoformat().endswith("-04:00") and local == s45
+        at = s45 - SEC
+        w = h.Watch(monkeypatch)
+        if case == "gap-disclosed":
+            def denied(*a, **kw):
+                raise PermissionError(13, "diagnostic write denied (simulated)")
+            monkeypatch.setattr(sl, "open", denied, raising=False)
+        with pytest.raises(SystemExit, match=h.refused(s45, h.c4_text(s45))) as ex:
+            h.run(tmp_path, st_, local, at, receipt=w.receipt(), process=w.process())
+        msg = str(ex.value)
+        w.assert_no_work()
+        if case == "diagnostic-recorded":
+>           assert f"early-refusal diagnostic recorded in s1_out/{DIAG}" in msg, msg
+E           AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)
+E           assert 'early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' in 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)'
+
+research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:282: AssertionError
+_________________ test_non_utc_slot_diagnostic[gap-disclosed] _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21546/test_non_utc_slot_diagnostic_g0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024F73CAA0F0>
+case = 'gap-disclosed'
+
+    @pytest.mark.parametrize("case", ["diagnostic-recorded", "gap-disclosed"])
+    def test_non_utc_slot_diagnostic(tmp_path, monkeypatch, case):
+        """A direct caller passes the registered slot as an aware -04:00 instant: the early refusal is the pinned C4
+        reason (UTC instant), and the C4.3 diagnostic line is written (keyed on the UTC registered instant) - or, on a
+        write failure, the refusal discloses the gap. (Base: '' - nothing recorded and no gap stated.)"""
+        st_ = h.registered(tmp_path)
+        s45 = h.slot(st_, h.D0)
+        local = s45.astimezone(NY4)
+        assert local.isoformat().endswith("-04:00") and local == s45
+        at = s45 - SEC
+        w = h.Watch(monkeypatch)
+        if case == "gap-disclosed":
+            def denied(*a, **kw):
+                raise PermissionError(13, "diagnostic write denied (simulated)")
+            monkeypatch.setattr(sl, "open", denied, raising=False)
+        with pytest.raises(SystemExit, match=h.refused(s45, h.c4_text(s45))) as ex:
+            h.run(tmp_path, st_, local, at, receipt=w.receipt(), process=w.process())
+        msg = str(ex.value)
+        w.assert_no_work()
+        if case == "diagnostic-recorded":
+            assert f"early-refusal diagnostic recorded in s1_out/{DIAG}" in msg, msg
+            assert _lines(tmp_path / "s1_out" / DIAG) == ([{"subject": j.slot_subject(s45), "scheduled": s45.isoformat(),
+                                                             "sample": at.isoformat(), "reason": h.c4_text(s45)}], 0)
+        else:
+>           assert re.search(r"early-refusal diagnostic NOT recorded \(PermissionError\): recording gap "
+                             r"\(Clarification 4 C4\.3\.4\)", msg), msg
+E           AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)
+E           assert None
+E            +  where None = <function search at 0x0000024F71A272E0>('early-refusal diagnostic NOT recorded \\(PermissionError\\): recording gap \\(Clarification 4 C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)')
+E            +    where <function search at 0x0000024F71A272E0> = re.search
+
+research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:286: AssertionError
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_missing_root_is_never_created[root-missing]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_missing_root_is_never_created[ancestor-missing]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[diagnostic-recorded]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[gap-disclosed]
+7 failed, 2 passed in 6.13s
+
+# ======== FIX ROUND 1 RED (2026-11-15T05:34:04Z) ========
+# Mutant-kill RED, stated explicitly: the product (s1_slot.py, unchanged, sha256 16d33a03...b6b0) already rolls back failed writes/fsyncs, completes short writes and unlocks the locked region, so the 4 new nodes PASS on the product; their RED is each one FAILING (assertion) against the mutant that removes the behaviour, run on a full scratch copy by the mutant runner (h5afix_mutants.txt). Excerpt of those 3 mutants:
+== no-ftruncate [s1_slot.py] -> KILLED (rc=1)
+   killers: test_write_or_fsync_failure_rolls_back
+   >       assert path.read_bytes() == before                           # byte-identical: nothing of the failed call remains
+   E       assert b'{"reason": ..."}\r\n{"reaso' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         Use -v to get more diff
+   >       assert path.read_bytes() == before                           # byte-identical: nothing of the failed call remains
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[partial-write-failure]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[fsync-failure]
+   2 failed in 0.66s
+== wrong-unlock-offset [s1_slot.py] -> KILLED (rc=1)
+   killers: test_region_unlocked_before_the_handle_closes
+   E       AssertionError: [False]
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_region_unlocked_before_the_handle_closes
+   1 failed in 0.63s
+== short-write-not-completed [s1_slot.py] -> KILLED (rc=1)
+   killers: test_short_writes_complete_one_line
+   E       assert 1 > 1
+   E        +  where 1 = <test_s1_a3_early_refusal_lock._FailingFile object at 0x000001723E8A8620>.calls
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_short_writes_complete_one_line
+   1 failed in 0.65s

@@ -5,10 +5,13 @@ SLOT-QUALIFIED commit, R < D) or a SLOT-FAILED; T (a finalizer's SLOT-TIMEOUT, T
 across read-work-append (F5.1 as amended by E1.1); terminal decisions are arbitrated by the journal transaction,
 never by a lock (E1.2). Every JSON record a worker writes carries its op and actor; its capture directory carries
 them through its claim (OQ-10). A loser (LOST-RACE) moves only its own uncommitted files to late/ and re-checks."""
+import errno
 import json
 import os
 import re
 import shutil
+import sys
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -184,6 +187,48 @@ C2_REASON = "close {close} is not an A5.1-eligible session (Clarification 2): no
 C3_REASON = ("close {close} has a committed QUALIFIED at an earlier registered slot {q}: no later slot attempt "
              "(Clarification 3)")
 EARLY_REFUSALS = "early_refusals.jsonl"          # Clarification 4 C4.3 (O-C4-1): the reviewed diagnostic path
+# A3 H5a-FIX (Codex H5A-CX-1): the cross-process serialization of that append. A 1-byte byte-range lock (msvcrt.locking)
+# on a FIXED region of the jsonl file itself - far past any realistic end of the file, so it is never read or written
+# and blocks no reader - acquired within EARLY_LOCK_WAIT_S or not at all (a "LockTimeout": nothing recorded, the gap
+# disclosed). The lock is a region of the existing file: no lock file, no directory, nothing new in s1_out.
+EARLY_LOCK_OFFSET = 0x7FFFFFF0
+EARLY_LOCK_WAIT_S = 2.0
+EARLY_LOCK_POLL_S = 0.005
+
+
+class LockTimeout(OSError):
+    """The early-refusal diagnostic lock was not acquired within EARLY_LOCK_WAIT_S (nothing recorded, C4.3.4)."""
+
+
+class LockUnavailable(OSError):
+    """No OS byte-range lock on this platform (msvcrt): fail closed, nothing recorded (C4.3.4)."""
+
+
+def _lock_diag(fd: int) -> None:
+    """Lock the fixed region of `fd` (non-blocking attempts, polled until the bound): LockTimeout at the bound; any
+    other locking error propagates (an OSError: the caller's failure class)."""
+    import msvcrt
+    deadline = time.monotonic() + EARLY_LOCK_WAIT_S
+    while True:
+        os.lseek(fd, EARLY_LOCK_OFFSET, os.SEEK_SET)
+        try:
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+            return
+        except OSError as e:
+            if e.errno not in (errno.EACCES, errno.EDEADLOCK):
+                raise
+        if time.monotonic() >= deadline:
+            raise LockTimeout(f"{EARLY_REFUSALS}: lock not acquired within {EARLY_LOCK_WAIT_S} s")
+        time.sleep(EARLY_LOCK_POLL_S)
+
+
+def _unlock_diag(fd: int) -> None:
+    import msvcrt
+    try:
+        os.lseek(fd, EARLY_LOCK_OFFSET, os.SEEK_SET)
+        msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+    except OSError:
+        pass                                     # closing the handle releases the region anyway (the line is durable)
 
 
 def _earlier_qualified(rows, s, day, cal):
@@ -245,12 +290,41 @@ def record_early_refusal(out, rec: dict):
     JSON line (the registered slot, the in-transaction sample, the reason) appended to s1_out/early_refusals.jsonl,
     outside the journal. It never creates s1_out or any ancestor: the existing directory is required and the file is
     only opened for append (a missing directory fails the open). Returns None when recorded, else the failure's class
-    (the caller still refuses, does no work and discloses the gap, C4.3.4)."""
+    (the caller still refuses, does no work and discloses the gap, C4.3.4).
+    A3 H5a-FIX (Codex H5A-CX-1): separate slot workers append concurrently, and a CRT O_APPEND write on Windows is
+    seek-then-write, not atomic (4 x 100 concurrent calls lost ~12% of the records, each call claiming success). So the
+    line is encoded once, the file is opened for binary unbuffered append, and the fixed EARLY_LOCK_OFFSET region is
+    locked (bounded: EARLY_LOCK_WAIT_S, else LockTimeout) across the seek to the end, the write of the whole line and
+    the fsync; then released. None is returned only after the fsync under the lock; every failure - the bound
+    included - returns its class (a short write is completed under the same lock; a failed write or fsync truncates
+    the file back to its end before this call, best effort, still under the lock)."""
+    line = (json.dumps(rec, sort_keys=True) + "\r\n").encode("utf-8")      # the bytes text mode wrote on Windows
     try:
+        if sys.platform != "win32":
+            raise LockUnavailable("the early-refusal diagnostic lock requires msvcrt (Windows): fail closed")
         if not Path(out).is_dir():
             raise FileNotFoundError(f"{Path(out).name} is absent")
-        with open(Path(out) / EARLY_REFUSALS, "a", encoding="utf-8") as f:
-            f.write(json.dumps(rec, sort_keys=True) + "\n")
+        with open(Path(out) / EARLY_REFUSALS, "ab", buffering=0) as f:
+            fd = f.fileno()
+            _lock_diag(fd)
+            try:
+                end = os.lseek(fd, 0, os.SEEK_END)
+                try:
+                    view = memoryview(line)
+                    while view:
+                        n = f.write(view)
+                        if not n:
+                            raise OSError(errno.EIO, f"{EARLY_REFUSALS}: write made no progress")
+                        view = view[n:]
+                    os.fsync(fd)
+                except OSError:
+                    try:
+                        os.ftruncate(fd, end)            # still under the lock: no torn line of this call is left
+                    except OSError:
+                        pass
+                    raise
+            finally:
+                _unlock_diag(fd)
     except OSError as e:
         return type(e).__name__
     return None
@@ -340,10 +414,14 @@ class Worker:
         """A3 H5a (Clarification 4 C4.3): an early refusal (the C4 reason for this slot) is an unauthorized invocation,
         not a capture attempt: its diagnostic (slot, in-transaction sample, reason) goes to the reviewed path
         (record_early_refusal) - never a journal row; the refusal text says whether it was recorded or states the
-        recording gap. '' for every other refusal."""
-        if res.reason != j.C4_REASON.format(slot=self.slot.isoformat()):
+        recording gap. '' for every other refusal.
+        A3 H5a-FIX (H5a M-1): the reason is matched against - and the record carries - the slot's registered UTC
+        instant (j.slot_instant of the subject, as the journal formats it), never self.slot.isoformat(): a direct caller
+        passing an aware non-UTC slot (-04:00) still gets its diagnostic or its gap disclosure."""
+        sch = j.slot_instant(self.subject)
+        if res.reason != j.C4_REASON.format(slot=sch.isoformat()):
             return ""
-        gap = record_early_refusal(self.gv.out, {"subject": self.subject, "scheduled": self.slot.isoformat(),
+        gap = record_early_refusal(self.gv.out, {"subject": self.subject, "scheduled": sch.isoformat(),
                                                  "sample": res.now.isoformat() if res.now else None,
                                                  "reason": res.reason})
         if gap is None:

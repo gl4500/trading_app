@@ -1,0 +1,254 @@
+# FIX ROUND 1 (2026-11-15T05:34:04Z) re-run of the whole runner: 8 mutants = the 5 of round 0 + no-ftruncate (review I-1), wrong-unlock-offset (review m-1), short-write-not-completed. Product s1_slot.py unchanged since round 0 (same sha256); only the test file grew (9 -> 13 nodes). The round-0 record (5/5 KILLED) follows below, superseded.
+# A3 H5a-FIX semantic mutants: each applied to a FULL SCRATCH COPY of research/s1 (C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5afix\mutscratch), exact single-occurrence replacement in binary (the file's own line ending), the named killing tests run in a child pytest against the copy (own basetemp, PYTHONDONTWRITEBYTECODE), the file restored byte-for-byte (sha256 asserted). KILLED = a named killing test FAILED. Baseline: every killing test passes unmutated.
+# run 2026-11-15T05:33:07Z; runner sha256 b19d85ed980eb49dde5d55af36b433d83aab6a7f4bfff43f138ad19025f5cec0
+# sha256 at the run: 16d33a03c4f877405d77ba9c452b6a16e45be4bdb2c5915492f58d6caf4bb6b0 *s1_slot.py 6264087543f8bab0bf79b18294f63e41371a9cf84d3a82bb157260559adf4df1 *s1_tests/test_s1_a3_early_refusal_lock.py
+== baseline: rc=0 11 passed in 13.09s
+== no-ftruncate [s1_slot.py] -> KILLED (rc=1)
+   killers: test_write_or_fsync_failure_rolls_back
+   >       assert path.read_bytes() == before                           # byte-identical: nothing of the failed call remains
+   E       assert b'{"reason": ..."}\r\n{"reaso' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         Use -v to get more diff
+   >       assert path.read_bytes() == before                           # byte-identical: nothing of the failed call remains
+   E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+   E         
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[partial-write-failure]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[fsync-failure]
+   2 failed in 0.66s
+== wrong-unlock-offset [s1_slot.py] -> KILLED (rc=1)
+   killers: test_region_unlocked_before_the_handle_closes
+   E       AssertionError: [False]
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_region_unlocked_before_the_handle_closes
+   1 failed in 0.63s
+== short-write-not-completed [s1_slot.py] -> KILLED (rc=1)
+   killers: test_short_writes_complete_one_line
+   E       assert 1 > 1
+   E        +  where 1 = <test_s1_a3_early_refusal_lock._FailingFile object at 0x000001723E8A8620>.calls
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_short_writes_complete_one_line
+   1 failed in 0.65s
+== lock-removed [s1_slot.py] -> KILLED (rc=1)
+   killers: test_concurrent_writers_lose_no_record, test_lock_held_across_write_and_fsync, test_lock_timeout_records_nothing_and_returns_the_class, test_lock_timeout_worker_refuses_and_discloses_the_gap, test_no_new_file_in_s1_out
+           claimed, failed = set(), {}
+               failed.update({(k, i): v for i, v in d["fail"].items()})
+           summary = (f"claimed={len(claimed)} failed={len(failed)} lines={len(recs)} valid_unique={len(set(keys))} "
+   E       AssertionError: claimed=400 failed=0 lines=378 valid_unique=378 unparseable=0
+   E       assert {('slot/20261...+00:00'), ...} == {('slot/20261...+00:00'), ...}
+   E         
+   E         Extra items in the right set:
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999907+00:00')
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999934+00:00')
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999970+00:00')
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999972+00:00')
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999917+00:00')...
+   E         
+   E         ...Full output truncated (18 lines hidden), use '-vv' to show
+   claimed=400 failed=0 lines=378 valid_unique=378 unparseable=0
+   E       AssertionError: {'fsync': [False], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no ...26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', False)]}
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   E           AssertionError: None
+   E           assert None == 'LockTimeout'
+   E       AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl
+   E       assert None
+   E        +  where None = <function search at 0x00000201E04072E0>('early\\-refusal\\ diagnostic\\ NOT\\ recorded\\ \\(LockTimeout\\):\\ recording\\ gap\\ \\(Clarification\\ 4\\ C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its
+   E        +    where <function search at 0x00000201E04072E0> = re.search
+   E        +    and   'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' = str(SystemExit('slot/20261026T204500Z: SLOT-INTENT refus
+   E        +      where SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl') = <ExceptionInfo SystemExit('slot/20261026T2
+   E           AssertionError: assert None == 'LockTimeout'
+   E            +  where None = <function record_early_refusal at 0x00000201E2161BC0>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix/mutscratch/bt/lock-removed/test_no_new_file_in_s1_out0/s1_out'), {'reason': 'slot 2026-10-2
+   E            +    where <function record_early_refusal at 0x00000201E2161BC0> = sl.record_early_refusal
+   E            +    and   {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(1)
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+   5 failed in 2.97s
+== lock-released-before-write [s1_slot.py] -> KILLED (rc=1)
+   killers: test_concurrent_writers_lose_no_record, test_lock_held_across_write_and_fsync
+           claimed, failed = set(), {}
+               failed.update({(k, i): v for i, v in d["fail"].items()})
+           summary = (f"claimed={len(claimed)} failed={len(failed)} lines={len(recs)} valid_unique={len(set(keys))} "
+   E       AssertionError: claimed=400 failed=0 lines=394 valid_unique=394 unparseable=0
+   E       assert {('slot/20261...+00:00'), ...} == {('slot/20261...+00:00'), ...}
+   E         
+   E         Extra items in the right set:
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999914+00:00')
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999902+00:00')
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999999+00:00')
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999998+00:00')
+   E         ('slot/20261026T205100Z', '2026-10-26T20:50:58.999983+00:00')
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999998+00:00')
+   E         Use -v to get more diff
+   claimed=400 failed=0 lines=394 valid_unique=394 unparseable=0
+   E       AssertionError: {'fsync': [False], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no ...26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', False)]}
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   2 failed in 1.09s
+== timeout-returns-none-claimed-success [s1_slot.py] -> KILLED (rc=1)
+   killers: test_lock_timeout_records_nothing_and_returns_the_class, test_lock_timeout_worker_refuses_and_discloses_the_gap, test_no_new_file_in_s1_out
+   E           AssertionError: None
+   E           assert None == 'LockTimeout'
+   E       AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl
+   E       assert None
+   E        +  where None = <function search at 0x0000021F841A72E0>('early\\-refusal\\ diagnostic\\ NOT\\ recorded\\ \\(LockTimeout\\):\\ recording\\ gap\\ \\(Clarification\\ 4\\ C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its
+   E        +    where <function search at 0x0000021F841A72E0> = re.search
+   E        +    and   'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' = str(SystemExit('slot/20261026T204500Z: SLOT-INTENT refus
+   E        +      where SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl') = <ExceptionInfo SystemExit('slot/20261026T2
+   E           AssertionError: assert None == 'LockTimeout'
+   E            +  where None = <function record_early_refusal at 0x0000021F860256C0>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix/mutscratch/bt/timeout-returns-none-claimed-success/test_no_new_file_in_s1_out0/s1_out'), {'
+   E            +    where <function record_early_refusal at 0x0000021F860256C0> = sl.record_early_refusal
+   E            +    and   {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(1)
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+   3 failed in 8.75s
+== no-fsync [s1_slot.py] -> KILLED (rc=1)
+   killers: test_lock_held_across_write_and_fsync
+   E       AssertionError: {'fsync': [], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim...-26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', True)]}
+   E       assert [] == [True]
+   E         
+   E         Right contains one more item: True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   1 failed in 0.74s
+== m1-reverted-self-slot [s1_slot.py] -> KILLED (rc=1)
+   killers: test_non_utc_slot_diagnostic
+   E           AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)
+   E           assert 'early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' in 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)'
+   E           AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)
+   E           assert None
+   E            +  where None = <function search at 0x000002155896B2E0>('early-refusal diagnostic NOT recorded \\(PermissionError\\): recording gap \\(Clarification 4 C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled i
+   E            +    where <function search at 0x000002155896B2E0> = re.search
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[diagnostic-recorded]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[gap-disclosed]
+   2 failed in 4.13s
+== 8/8 KILLED
+
+# ======== ROUND 0 RECORD (superseded by the fix-round-1 run above) ========
+# Supersedes a first runner attempt at 2026-11-15T03:31:12Z whose child pytests all errored (the --basetemp parent directory did not exist: FileNotFoundError at setup, 0/5 'KILLED', baseline rc=1) - a runner defect, not a test result; the runner then created the parent (one added line) and this run is the record.
+# A3 H5a-FIX semantic mutants: each applied to a FULL SCRATCH COPY of research/s1 (C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5afix\mutscratch), exact single-occurrence replacement in binary (the file's own line ending), the named killing tests run in a child pytest against the copy (own basetemp, PYTHONDONTWRITEBYTECODE), the file restored byte-for-byte (sha256 asserted). KILLED = a named killing test FAILED. Baseline: every killing test passes unmutated.
+# run 2026-11-15T03:31:35Z; runner sha256 9ca3ffa351d63d8e09b58eeb61138d095e1dca9d3a8aae52a617c0cc2718f518
+# sha256 at the run: 16d33a03c4f877405d77ba9c452b6a16e45be4bdb2c5915492f58d6caf4bb6b0 *s1_slot.py 877d66e2ead941edb0fd6248de9ab23fe9066df8ebe127a5cd1d195d67d9084e *s1_tests/test_s1_a3_early_refusal_lock.py
+== baseline: rc=0 7 passed in 14.52s
+== lock-removed [s1_slot.py] -> KILLED (rc=1)
+   killers: test_concurrent_writers_lose_no_record, test_lock_held_across_write_and_fsync, test_lock_timeout_records_nothing_and_returns_the_class, test_lock_timeout_worker_refuses_and_discloses_the_gap, test_no_new_file_in_s1_out
+           claimed, failed = set(), {}
+               failed.update({(k, i): v for i, v in d["fail"].items()})
+           summary = (f"claimed={len(claimed)} failed={len(failed)} lines={len(recs)} valid_unique={len(set(keys))} "
+   E       AssertionError: claimed=400 failed=0 lines=372 valid_unique=372 unparseable=0
+   E       assert {('slot/20261...+00:00'), ...} == {('slot/20261...+00:00'), ...}
+   E         
+   E         Extra items in the right set:
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999903+00:00')
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999999+00:00')
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999933+00:00')
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999923+00:00')
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999913+00:00')...
+   E         
+   E         ...Full output truncated (24 lines hidden), use '-vv' to show
+   claimed=400 failed=0 lines=372 valid_unique=372 unparseable=0
+   E       AssertionError: {'fsync': [False], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no ...26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', False)]}
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   E           AssertionError: None
+   E           assert None == 'LockTimeout'
+   E       AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl
+   E       assert None
+   E        +  where None = <function search at 0x00000201924972E0>('early\\-refusal\\ diagnostic\\ NOT\\ recorded\\ \\(LockTimeout\\):\\ recording\\ gap\\ \\(Clarification\\ 4\\ C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its
+   E        +    where <function search at 0x00000201924972E0> = re.search
+   E        +    and   'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' = str(SystemExit('slot/20261026T204500Z: SLOT-INTENT refus
+   E        +      where SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl') = <ExceptionInfo SystemExit('slot/20261026T2
+   E           AssertionError: assert None == 'LockTimeout'
+   E            +  where None = <function record_early_refusal at 0x00000201941F6160>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix/mutscratch/bt/lock-removed/test_no_new_file_in_s1_out0/s1_out'), {'reason': 'slot 2026-10-2
+   E            +    where <function record_early_refusal at 0x00000201941F6160> = sl.record_early_refusal
+   E            +    and   {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(1)
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+   5 failed in 3.54s
+== lock-released-before-write [s1_slot.py] -> KILLED (rc=1)
+   killers: test_concurrent_writers_lose_no_record, test_lock_held_across_write_and_fsync
+           claimed, failed = set(), {}
+               failed.update({(k, i): v for i, v in d["fail"].items()})
+           summary = (f"claimed={len(claimed)} failed={len(failed)} lines={len(recs)} valid_unique={len(set(keys))} "
+   E       AssertionError: claimed=400 failed=0 lines=389 valid_unique=389 unparseable=0
+   E       assert {('slot/20261...+00:00'), ...} == {('slot/20261...+00:00'), ...}
+   E         
+   E         Extra items in the right set:
+   E         ('slot/20261026T204700Z', '2026-10-26T20:46:58.999931+00:00')
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999966+00:00')
+   E         ('slot/20261026T204900Z', '2026-10-26T20:48:58.999975+00:00')
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999916+00:00')
+   E         ('slot/20261026T204500Z', '2026-10-26T20:44:58.999999+00:00')...
+   E         
+   E         ...Full output truncated (7 lines hidden), use '-vv' to show
+   claimed=400 failed=0 lines=389 valid_unique=389 unparseable=0
+   E       AssertionError: {'fsync': [False], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no ...26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', False)]}
+   E       assert [False] == [True]
+   E         
+   E         At index 0 diff: False != True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   2 failed in 1.26s
+== timeout-returns-none-claimed-success [s1_slot.py] -> KILLED (rc=1)
+   killers: test_lock_timeout_records_nothing_and_returns_the_class, test_lock_timeout_worker_refuses_and_discloses_the_gap, test_no_new_file_in_s1_out
+   E           AssertionError: None
+   E           assert None == 'LockTimeout'
+   E       AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl
+   E       assert None
+   E        +  where None = <function search at 0x000001E47F4372E0>('early\\-refusal\\ diagnostic\\ NOT\\ recorded\\ \\(LockTimeout\\):\\ recording\\ gap\\ \\(Clarification\\ 4\\ C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its
+   E        +    where <function search at 0x000001E47F4372E0> = re.search
+   E        +    and   'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' = str(SystemExit('slot/20261026T204500Z: SLOT-INTENT refus
+   E        +      where SystemExit('slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4); early-refusal diagnostic recorded in s1_out/early_refusals.jsonl') = <ExceptionInfo SystemExit('slot/20261026T2
+   E           AssertionError: assert None == 'LockTimeout'
+   E            +  where None = <function record_early_refusal at 0x000001E4021C1C60>(WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/h5afix/mutscratch/bt/timeout-returns-none-claimed-success/test_no_new_file_in_s1_out0/s1_out'), {'
+   E            +    where <function record_early_refusal at 0x000001E4021C1C60> = sl.record_early_refusal
+   E            +    and   {'reason': 'slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)', 'sample': '2026-10-26T20:44:58.999998+00:00', 'scheduled': '2026-10-26T20:45:00+00:00', 'subject': 'slot/20261026T204500Z'} = _rec(1)
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+   3 failed in 9.31s
+== no-fsync [s1_slot.py] -> KILLED (rc=1)
+   killers: test_lock_held_across_write_and_fsync
+   E       AssertionError: {'fsync': [], 'write': [(b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim...-26T20:44:58.999999+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+   E         ', True)]}
+   E       assert [] == [True]
+   E         
+   E         Right contains one more item: True
+   E         Use -v to get more diff
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+   1 failed in 0.68s
+== m1-reverted-self-slot [s1_slot.py] -> KILLED (rc=1)
+   killers: test_non_utc_slot_diagnostic
+   E           AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)
+   E           assert 'early-refusal diagnostic recorded in s1_out/early_refusals.jsonl' in 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)'
+   E           AssertionError: slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)
+   E           assert None
+   E            +  where None = <function search at 0x0000020975A7B2E0>('early-refusal diagnostic NOT recorded \\(PermissionError\\): recording gap \\(Clarification 4 C4\\.3\\.4\\)', 'slot/20261026T204500Z: SLOT-INTENT refused with no row: slot 2026-10-26T20:45:00+00:00 requested before its scheduled i
+   E            +    where <function search at 0x0000020975A7B2E0> = re.search
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[diagnostic-recorded]
+   FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[gap-disclosed]
+   2 failed in 4.47s
+== 5/5 KILLED
