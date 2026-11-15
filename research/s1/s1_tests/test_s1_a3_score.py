@@ -661,16 +661,19 @@ def test_h5cfix_a_missing_or_invalid_identity_never_confirms(tmp_path, monkeypat
 
 @pytest.mark.parametrize("fresh", ["unreadable", "differs"])
 def test_h5cfix_confirming_pass_calendar_is_fresh(tmp_path, monkeypatch, fresh):         # G3.1 (fresh calendar)
+    """The caller branch (None or different -> refused with no row). H5c-FIX2 (X-17): the confirming pass reads the
+    calendar through the strict s1_slot._confirming_calendar, so that is the read this test replaces; the real
+    read-failure path is test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row."""
     import s1_slot
     st_ = s1_state(tmp_path, START, score_ready=True)
-    real, flipped = s1_slot._calendar, []
+    real, flipped = s1_slot._confirming_calendar, []
 
     def cal(gv):
         got = real(gv)
         if not flipped:
             return got
         return None if fresh == "unreadable" else [dict(d, close="12:00") for d in got]
-    monkeypatch.setattr(s1_slot, "_calendar", cal)
+    monkeypatch.setattr(s1_slot, "_confirming_calendar", cal)
     calls = _two_observations(monkeypatch, _diff(D1), _diff(D1), after_first=lambda: flipped.append(1))
     _score_refused_no_row(tmp_path, st_, CAL_REFUSAL)
     assert len(calls) == 1                                                # refused before the confirming recompute
@@ -837,3 +840,31 @@ def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, mon
     for k in (1, 2):                                                                       # A3: no memo crosses
         assert any(ph == k and subj == q1.subject for ph, subj, _ in manifests), (k, manifests)
     assert all(ps is None for ph, _, ps in manifests if ph in (1, 2)), manifests
+
+
+# ---------------------------------------------------------------- A3 H5c-FIX2 (Codex X-17 / H5CFIX-CX-1)
+def _deny_registered_calendar(monkeypatch, root, armed):
+    """c.sha256_file raises PermissionError for the REAL audit/calendar.json path once `armed` is non-empty (the
+    injection is at the hash-read boundary: no calendar function's output is replaced). Returns the denied paths."""
+    calendar, real, denied = Path(root) / "s1_out" / "audit" / "calendar.json", c.sha256_file, []
+
+    def sha(p):
+        if armed and Path(p) == calendar:
+            denied.append(str(p))
+            raise PermissionError(13, "injected registered-calendar read failure")
+        return real(p)
+    monkeypatch.setattr(c, "sha256_file", sha)
+    return denied
+
+
+def test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row(tmp_path, monkeypatch):   # X-17 (Codex probe)
+    """The registered calendar's hash read fails ONLY after the first QualifiedEvidence observation: the confirming
+    pass refuses with no row and no TRIAL-INVALID - never a fallback calendar that lets the INVALID through."""
+    st_ = s1_state(tmp_path, START, score_ready=True)
+    armed = []
+    denied = _deny_registered_calendar(monkeypatch, tmp_path, armed)
+    calls = _two_observations(monkeypatch, _diff(D1), _diff(D1), after_first=lambda: armed.append(1))
+    _score_refused_no_row(tmp_path, st_, CAL_REFUSAL)
+    assert denied, "the registered-calendar read failure must be exercised after the first observation"
+    assert len(calls) == 1                                                # refused before the confirming recompute
+    assert all(x.kind != "TRIAL-INVALID" for x in jrows(tmp_path))

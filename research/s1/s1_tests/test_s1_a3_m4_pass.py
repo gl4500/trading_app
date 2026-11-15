@@ -680,3 +680,96 @@ def test_fix2_stop_gap_publication_never_on_a_refusal_path(tmp_path, monkeypatch
         t.gate(tmp_path, "gap")                                          # healthy: the gap is recovered
         assert j.detail_of(json.loads((out / "stop.json").read_text(encoding="utf-8"))) == stop.detail
         assert _new_invalids(tmp_path, before) == []
+
+
+# ---------------------------------------------------------------- A3 H5c-FIX2 (Codex X-17 / H5CFIX-CX-1)
+# The confirming pass reads the registered calendar strictly (s1_slot._confirming_calendar): audit/calendar.json hashing
+# to the audit manifest's record, no fallback; any failure refuses with no row and no INVALID.
+CLOSE_CAL = (r"^close 2026-10-2\d: the registered calendar is unreadable or differs from the command's in the "
+             r"confirming pass: refused with no row \(G3\.1, fail closed\)$")
+
+
+def test_h5cfix2_close_confirming_calendar_read_failure_refuses(tmp_path, monkeypatch):     # X-17 (close path)
+    """confirmed_close_problems: a problem seen in pass 1, then the registered calendar's hash read fails (injected at
+    the real c.sha256_file boundary for audit/calendar.json, only after the first pass): refused with no row, never the
+    prereg fallback confirming the problem."""
+    st_ = three_qualified(tmp_path)
+    cal, out = st_["calendar"], tmp_path / "s1_out"
+    member = trees(tmp_path)[0]
+    member.write_bytes(member.read_bytes() + b"x")                        # pass 1: changed (a problem)
+    day = sl.day_for(sl.slot_of("slot/" + member.parent.name), cal)
+    calendar, real_sha, denied, passes = out / "audit" / "calendar.json", c.sha256_file, [], []
+
+    def sha(p):
+        if passes and Path(p) == calendar:
+            denied.append(str(p))
+            raise PermissionError(13, "injected registered-calendar read failure")
+        return real_sha(p)
+    real_cp = sl.close_problems
+
+    def cp(*a, **kw):
+        got = real_cp(*a, **kw)
+        passes.append(1)                                                  # armed after the first pass
+        return got
+    monkeypatch.setattr(c, "sha256_file", sha)
+    monkeypatch.setattr(sl, "close_problems", cp)
+    before = [x.sha for x in jrows(tmp_path)]
+    gv = _gv(tmp_path)
+    with pytest.raises(t.Refusal, match=CLOSE_CAL):
+        got = sl.confirmed_close_problems(gv, out, jrows(tmp_path), day, cal, mb(tmp_path))
+        assert got is None, f"the confirming pass confirmed {got} on an unreadable registered calendar"   # (B3)
+    assert denied, "the registered-calendar read failure must be exercised in the confirming pass"
+    assert passes == [1]                                                  # refused before the confirming scan
+    assert [x.sha for x in jrows(tmp_path)] == before                    # no row
+    assert _new_invalids(tmp_path, before) == []
+
+
+def _cal_gv(root):
+    from types import SimpleNamespace
+    return SimpleNamespace(out=str(Path(root) / "s1_out"), mailbox=mb(root))
+
+
+@pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
+                                  "manifest-no-entry", "calendar-malformed", "permission"])
+def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):                    # X-17 (helper)
+    """s1_slot._confirming_calendar over a real audit: healthy -> the rows _calendar returns; any failure -> None (the
+    callers' no-row refusal), never prereg.json's calendar or the verified audit's."""
+    s1_state(tmp_path, START)                                             # a real audit; no prereg yet
+    out = tmp_path / "s1_out"
+    (out / "prereg.json").write_text(json.dumps({"calendar": [{"date": "2026-10-26", "open": "09:30",
+                                                               "close": "16:00"}]}), encoding="utf-8")
+    cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+    gv = _cal_gv(tmp_path)
+    strict = getattr(sl, "_confirming_calendar", None)
+    assert callable(strict), "s1_slot._confirming_calendar (the strict confirming-pass read) does not exist"   # (B3)
+    healthy = sl._calendar(gv)
+    assert healthy and len(healthy) > 1                                   # the audit's calendar, not the prereg stub
+    if case == "healthy":
+        assert strict(gv) == healthy
+        return
+    if case == "hash-mismatch":
+        raw = json.loads(cal_p.read_bytes())
+        cal_p.write_text(json.dumps(raw[:-1]), encoding="utf-8")         # well-formed, but not the manifest's record
+    elif case == "calendar-missing":
+        cal_p.unlink()
+    elif case == "manifest-missing":
+        man_p.unlink()
+    elif case == "manifest-no-entry":
+        m = json.loads(man_p.read_bytes())
+        del m["files"]["calendar.json"]
+        man_p.write_text(json.dumps(m), encoding="utf-8")
+    elif case == "calendar-malformed":
+        cal_p.write_bytes(b"{not json")
+        m = json.loads(man_p.read_bytes())
+        m["files"]["calendar.json"] = c.sha256_file(cal_p)               # hashes to the record, yet unparseable
+        man_p.write_text(json.dumps(m), encoding="utf-8")
+    else:
+        real = c.sha256_file
+
+        def sha(p):
+            if Path(p) == cal_p:
+                raise PermissionError(13, "injected registered-calendar read failure")
+            return real(p)
+        monkeypatch.setattr(c, "sha256_file", sha)
+    assert sl._calendar(gv) is not None                                   # the lenient read still finds a fallback
+    assert strict(gv) is None

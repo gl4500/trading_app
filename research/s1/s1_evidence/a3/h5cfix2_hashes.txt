@@ -1,0 +1,8 @@
+# H5c-FIX2 sha256 of changed source, test and evidence files (this file excluded)
+57a5b24674b36cf23c412b8ebd96d30bda8e090ca6fcccdf4b1508cb9a57cceb *research/s1/s1_slot.py
+0d945a77aa8c2bb33f1ca2ea08db103098bc61f9d908c2b543a6850eeba9afd6 *research/s1/s1_run.py
+b38a3b3da85d484bed1ce4e425ff1634510fe881dfd4069a4fd269cb9873b9db *research/s1/s1_tests/test_s1_a3_score.py
+4e5b72478071f49053075e3175bdf1e8c703e10088df9c8781fd37a785b1f481 *research/s1/s1_tests/test_s1_a3_m4_pass.py
+437a669ca30826f7c19a0b629f0ab5d6c300f2e42fea98601f34c75932da8f3e *research/s1/s1_evidence/a3/h5cfix2_red.txt
+0679005d5ccb968458bc2df863bfcb150481f4e72b334bbc40c5bd4d5743024c *research/s1/s1_evidence/a3/h5cfix2_green.txt
+877434aa368b44eed39477837f71995323b70147054b3f52994267c157bd96b4 *research/s1/s1_evidence/a3/h5cfix2_mutants.txt

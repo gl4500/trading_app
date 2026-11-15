@@ -1174,7 +1174,7 @@ def confirmed_close_problems(gv, out, rows, day, cal, mailbox=None, *, ps=None) 
             raise QualifiedUnreadable(f"close {day.get('date')}: {ps.unreadable[0]}")
         return []
     again = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox if mailbox is None else mailbox)
-    fresh = _calendar(gv)
+    fresh = _confirming_calendar(gv)                                  # H5c-FIX2 (X-17): strict, no fallback
     if fresh is None or fresh != cal:
         raise s1_trial.Refusal(f"close {day.get('date')}: the registered calendar is unreadable or differs from the "
                                f"command's in the confirming pass: refused with no row (G3.1, fail closed)")
@@ -1275,6 +1275,23 @@ def _calendar(gv):
         import s1_gates
         return s1_gates.verified_audit(gv.out, gv.mailbox)["calendar"]
     except Exception:                                   # noqa: BLE001 - no verified calendar yet: no slot can exist
+        return None
+
+
+def _confirming_calendar(gv):
+    """A3 H5c-FIX2 (Codex X-17 / H5CFIX-CX-1; Erratum 2 r4 G3.1): the STRICT registered-calendar read of a confirming
+    pass - the audit's pinned calendar.json, only when it hashes to the audit manifest's record. No fallback of any
+    kind (not prereg.json's calendar, not the verified audit's: a failed authoritative read never becomes a different
+    copy). Any failure - an OSError of any kind, a missing file, a hash mismatch, a malformed manifest or calendar -
+    is None: the caller refuses with no row and no INVALID (I-2, I-4). Used ONLY by the confirming passes of
+    confirmed_close_problems and s1_run._pre_intent_qualified; every other reader keeps _calendar."""
+    out = Path(gv.out)
+    try:
+        man = c.load_json(out / "audit" / "manifest.json")
+        if man["files"]["calendar.json"] != c.sha256_file(out / "audit" / "calendar.json"):
+            return None
+        return z.calendar_rows(c.load_json(out / "audit" / "calendar.json"))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return None
 
 

@@ -1,0 +1,324 @@
+# H5c-FIX2 RED at base b0684a5 (tests added, product unchanged)
+# cmd: PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_score.py research/s1/s1_tests/test_s1_a3_m4_pass.py -k h5cfix2 -q
+FFFFFFFFF                                                                [100%]
+================================== FAILURES ===================================
+______ test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row ______
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend0/s1_out'),...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend0/s1_out'),...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
+kw = {'upto_seq': 94}
+e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
+
+    def seals(*a, **kw):
+        calls.append(a[1])
+        e = first if len(calls) == 1 else second
+        if len(calls) == 1 and after_first is not None:
+            after_first()
+        if e is not None:
+>           raise e
+E           s1_slot.QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)
+
+research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+        with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+>           r.score(tmp_path, "score-ack")
+
+research\s1\s1_tests\test_s1_a3_score.py:573: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:806: in score
+    _pre_intent_qualified(gv, out, pr, stop_row, mailbox,      # "unreadable"; QualifiedUnreadable (a SystemExit)
+research\s1\s1_run.py:881: in _pre_intent_qualified
+    s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend0'... mailbox_id='85d6ad23-de8b-4aba-b373-a28d9a0c558f', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
+where = 'score', mailbox = None, clock = None
+
+    def evidence_violation(gv, probs, where, mailbox=None, clock=None):
+        """F3 violation: TRIAL-INVALID (registration-artifact) first, then the local abort; refused with no work."""
+        import s1_trial
+        rec = {"where": where, "problems": list(probs[:20])}
+        s1_trial.invalidate(gv.trial, "registration-artifact", rec, root=gv.root,
+                            mailbox=gv.mailbox if mailbox is None else mailbox, clock=clock)
+        if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)
+            try:
+                c.write_abort(gv.out, dict(rec, reason=c.REGISTRATION_ARTIFACT, actual=None, close=None, scheduled=None,
+                                           projection_sha256=None, receipt_sha256=None))
+            except OSError:
+                pass
+>       raise s1_trial.Refusal(f"{where}: slot evidence violation {list(probs[:3])}: INVALID (registration-artifact)")
+E       s1_trial.Refusal: score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)
+
+research\s1\s1_slot.py:1293: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002154C007F50>
+
+    def test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row(tmp_path, monkeypatch):   # X-17 (Codex probe)
+        """The registered calendar's hash read fails ONLY after the first QualifiedEvidence observation: the confirming
+        pass refuses with no row and no TRIAL-INVALID - never a fallback calendar that lets the INVALID through."""
+        st_ = s1_state(tmp_path, START, score_ready=True)
+        armed = []
+        denied = _deny_registered_calendar(monkeypatch, tmp_path, armed)
+        calls = _two_observations(monkeypatch, _diff(D1), _diff(D1), after_first=lambda: armed.append(1))
+>       _score_refused_no_row(tmp_path, st_, CAL_REFUSAL)
+
+research\s1\s1_tests\test_s1_a3_score.py:864: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend0')
+st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
+match = "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+
+    def _score_refused_no_row(tmp_path, st_, match):
+        before = len(jrows(tmp_path))
+>       with _Clock(st_["now"]), pytest.raises(SystemExit, match=match):
+E       AssertionError: Regex pattern did not match.
+E        Regex: "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+
+research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
+_________ test_h5cfix2_close_confirming_calendar_read_failure_refuses _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_close_confirming_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002154C747620>
+
+    def test_h5cfix2_close_confirming_calendar_read_failure_refuses(tmp_path, monkeypatch):     # X-17 (close path)
+        """confirmed_close_problems: a problem seen in pass 1, then the registered calendar's hash read fails (injected at
+        the real c.sha256_file boundary for audit/calendar.json, only after the first pass): refused with no row, never the
+        prereg fallback confirming the problem."""
+        st_ = three_qualified(tmp_path)
+        cal, out = st_["calendar"], tmp_path / "s1_out"
+        member = trees(tmp_path)[0]
+        member.write_bytes(member.read_bytes() + b"x")                        # pass 1: changed (a problem)
+        day = sl.day_for(sl.slot_of("slot/" + member.parent.name), cal)
+        calendar, real_sha, denied, passes = out / "audit" / "calendar.json", c.sha256_file, [], []
+    
+        def sha(p):
+            if passes and Path(p) == calendar:
+                denied.append(str(p))
+                raise PermissionError(13, "injected registered-calendar read failure")
+            return real_sha(p)
+        real_cp = sl.close_problems
+    
+        def cp(*a, **kw):
+            got = real_cp(*a, **kw)
+            passes.append(1)                                                  # armed after the first pass
+            return got
+        monkeypatch.setattr(c, "sha256_file", sha)
+        monkeypatch.setattr(sl, "close_problems", cp)
+        before = [x.sha for x in jrows(tmp_path)]
+        gv = _gv(tmp_path)
+        with pytest.raises(t.Refusal, match=CLOSE_CAL):
+            got = sl.confirmed_close_problems(gv, out, jrows(tmp_path), day, cal, mb(tmp_path))
+>           assert got is None, f"the confirming pass confirmed {got} on an unreadable registered calendar"   # (B3)
+E           AssertionError: the confirming pass confirmed ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)'] on an unreadable registered calendar
+E           assert ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)'] is None
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:720: AssertionError
+______________ test_h5cfix2_confirming_calendar_helper[healthy] _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002154C72AED0>
+case = 'healthy'
+
+    @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
+                                      "manifest-no-entry", "calendar-malformed", "permission"])
+    def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):                    # X-17 (helper)
+        """s1_slot._confirming_calendar over a real audit: healthy -> the rows _calendar returns; any failure -> None (the
+        callers' no-row refusal), never prereg.json's calendar or the verified audit's."""
+        s1_state(tmp_path, START)                                             # a real audit; no prereg yet
+        out = tmp_path / "s1_out"
+        (out / "prereg.json").write_text(json.dumps({"calendar": [{"date": "2026-10-26", "open": "09:30",
+                                                                   "close": "16:00"}]}), encoding="utf-8")
+        cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+        gv = _cal_gv(tmp_path)
+        strict = getattr(sl, "_confirming_calendar", None)
+>       assert callable(strict), "s1_slot._confirming_calendar (the strict confirming-pass read) does not exist"   # (B3)
+E       AssertionError: s1_slot._confirming_calendar (the strict confirming-pass read) does not exist
+E       assert False
+E        +  where False = callable(None)
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:744: AssertionError
+___________ test_h5cfix2_confirming_calendar_helper[hash-mismatch] ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002154C6A1130>
+case = 'hash-mismatch'
+
+    @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
+                                      "manifest-no-entry", "calendar-malformed", "permission"])
+    def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):                    # X-17 (helper)
+        """s1_slot._confirming_calendar over a real audit: healthy -> the rows _calendar returns; any failure -> None (the
+        callers' no-row refusal), never prereg.json's calendar or the verified audit's."""
+        s1_state(tmp_path, START)                                             # a real audit; no prereg yet
+        out = tmp_path / "s1_out"
+        (out / "prereg.json").write_text(json.dumps({"calendar": [{"date": "2026-10-26", "open": "09:30",
+                                                                   "close": "16:00"}]}), encoding="utf-8")
+        cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+        gv = _cal_gv(tmp_path)
+        strict = getattr(sl, "_confirming_calendar", None)
+>       assert callable(strict), "s1_slot._confirming_calendar (the strict confirming-pass read) does not exist"   # (B3)
+E       AssertionError: s1_slot._confirming_calendar (the strict confirming-pass read) does not exist
+E       assert False
+E        +  where False = callable(None)
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:744: AssertionError
+__________ test_h5cfix2_confirming_calendar_helper[calendar-missing] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002154C744290>
+case = 'calendar-missing'
+
+    @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
+                                      "manifest-no-entry", "calendar-malformed", "permission"])
+    def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):                    # X-17 (helper)
+        """s1_slot._confirming_calendar over a real audit: healthy -> the rows _calendar returns; any failure -> None (the
+        callers' no-row refusal), never prereg.json's calendar or the verified audit's."""
+        s1_state(tmp_path, START)                                             # a real audit; no prereg yet
+        out = tmp_path / "s1_out"
+        (out / "prereg.json").write_text(json.dumps({"calendar": [{"date": "2026-10-26", "open": "09:30",
+                                                                   "close": "16:00"}]}), encoding="utf-8")
+        cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+        gv = _cal_gv(tmp_path)
+        strict = getattr(sl, "_confirming_calendar", None)
+>       assert callable(strict), "s1_slot._confirming_calendar (the strict confirming-pass read) does not exist"   # (B3)
+E       AssertionError: s1_slot._confirming_calendar (the strict confirming-pass read) does not exist
+E       assert False
+E        +  where False = callable(None)
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:744: AssertionError
+__________ test_h5cfix2_confirming_calendar_helper[manifest-missing] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002154C746480>
+case = 'manifest-missing'
+
+    @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
+                                      "manifest-no-entry", "calendar-malformed", "permission"])
+    def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):                    # X-17 (helper)
+        """s1_slot._confirming_calendar over a real audit: healthy -> the rows _calendar returns; any failure -> None (the
+        callers' no-row refusal), never prereg.json's calendar or the verified audit's."""
+        s1_state(tmp_path, START)                                             # a real audit; no prereg yet
+        out = tmp_path / "s1_out"
+        (out / "prereg.json").write_text(json.dumps({"calendar": [{"date": "2026-10-26", "open": "09:30",
+                                                                   "close": "16:00"}]}), encoding="utf-8")
+        cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+        gv = _cal_gv(tmp_path)
+        strict = getattr(sl, "_confirming_calendar", None)
+>       assert callable(strict), "s1_slot._confirming_calendar (the strict confirming-pass read) does not exist"   # (B3)
+E       AssertionError: s1_slot._confirming_calendar (the strict confirming-pass read) does not exist
+E       assert False
+E        +  where False = callable(None)
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:744: AssertionError
+_________ test_h5cfix2_confirming_calendar_helper[manifest-no-entry] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend5')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002154C6D6D50>
+case = 'manifest-no-entry'
+
+    @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
+                                      "manifest-no-entry", "calendar-malformed", "permission"])
+    def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):                    # X-17 (helper)
+        """s1_slot._confirming_calendar over a real audit: healthy -> the rows _calendar returns; any failure -> None (the
+        callers' no-row refusal), never prereg.json's calendar or the verified audit's."""
+        s1_state(tmp_path, START)                                             # a real audit; no prereg yet
+        out = tmp_path / "s1_out"
+        (out / "prereg.json").write_text(json.dumps({"calendar": [{"date": "2026-10-26", "open": "09:30",
+                                                                   "close": "16:00"}]}), encoding="utf-8")
+        cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+        gv = _cal_gv(tmp_path)
+        strict = getattr(sl, "_confirming_calendar", None)
+>       assert callable(strict), "s1_slot._confirming_calendar (the strict confirming-pass read) does not exist"   # (B3)
+E       AssertionError: s1_slot._confirming_calendar (the strict confirming-pass read) does not exist
+E       assert False
+E        +  where False = callable(None)
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:744: AssertionError
+_________ test_h5cfix2_confirming_calendar_helper[calendar-malformed] _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend6')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002154C758800>
+case = 'calendar-malformed'
+
+    @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
+                                      "manifest-no-entry", "calendar-malformed", "permission"])
+    def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):                    # X-17 (helper)
+        """s1_slot._confirming_calendar over a real audit: healthy -> the rows _calendar returns; any failure -> None (the
+        callers' no-row refusal), never prereg.json's calendar or the verified audit's."""
+        s1_state(tmp_path, START)                                             # a real audit; no prereg yet
+        out = tmp_path / "s1_out"
+        (out / "prereg.json").write_text(json.dumps({"calendar": [{"date": "2026-10-26", "open": "09:30",
+                                                                   "close": "16:00"}]}), encoding="utf-8")
+        cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+        gv = _cal_gv(tmp_path)
+        strict = getattr(sl, "_confirming_calendar", None)
+>       assert callable(strict), "s1_slot._confirming_calendar (the strict confirming-pass read) does not exist"   # (B3)
+E       AssertionError: s1_slot._confirming_calendar (the strict confirming-pass read) does not exist
+E       assert False
+E        +  where False = callable(None)
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:744: AssertionError
+_____________ test_h5cfix2_confirming_calendar_helper[permission] _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21646/test_h5cfix2_confirming_calend7')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002154C6D7D10>
+case = 'permission'
+
+    @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
+                                      "manifest-no-entry", "calendar-malformed", "permission"])
+    def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):                    # X-17 (helper)
+        """s1_slot._confirming_calendar over a real audit: healthy -> the rows _calendar returns; any failure -> None (the
+        callers' no-row refusal), never prereg.json's calendar or the verified audit's."""
+        s1_state(tmp_path, START)                                             # a real audit; no prereg yet
+        out = tmp_path / "s1_out"
+        (out / "prereg.json").write_text(json.dumps({"calendar": [{"date": "2026-10-26", "open": "09:30",
+                                                                   "close": "16:00"}]}), encoding="utf-8")
+        cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+        gv = _cal_gv(tmp_path)
+        strict = getattr(sl, "_confirming_calendar", None)
+>       assert callable(strict), "s1_slot._confirming_calendar (the strict confirming-pass read) does not exist"   # (B3)
+E       AssertionError: s1_slot._confirming_calendar (the strict confirming-pass read) does not exist
+E       assert False
+E        +  where False = callable(None)
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:744: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_close_confirming_calendar_read_failure_refuses
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[healthy]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[hash-mismatch]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[calendar-missing]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[manifest-missing]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[manifest-no-entry]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[calendar-malformed]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[permission]
+9 failed, 113 deselected in 21.58s

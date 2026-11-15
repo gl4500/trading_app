@@ -864,7 +864,7 @@ def _pre_intent_qualified(gv, out: Path, pr: dict, stop_row, mailbox, *, first) 
     import s1_slot
     try:
         rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, gv.mailbox)
-        fresh = s1_slot._calendar(gv)
+        fresh = s1_slot._confirming_calendar(gv)             # H5c-FIX2 (X-17): strict, no fallback
         if fresh is None or fresh != pr["calendar"]:
             raise SystemExit("score refused: the registered calendar is unreadable or differs from the command's in "
                              "the confirming pass: refused with no row (G3.1, fail closed)")

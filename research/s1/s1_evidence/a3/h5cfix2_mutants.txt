@@ -1,0 +1,53 @@
+# H5c-FIX2 mutants: each applied to its own full scratch copy of research/s1 (cp -r), tests run from that copy:
+# testenv python -m pytest -p conftest -p no:cacheprovider s1_tests/test_s1_a3_score.py s1_tests/test_s1_a3_m4_pass.py -k 'h5cfix2 or calendar_is_fresh' -q -rf (filtered to FAILED/summary/assertion lines)
+# (a) s1_run._pre_intent_qualified: s1_slot._confirming_calendar(gv) -> s1_slot._calendar(gv)
+# (b) s1_slot.confirmed_close_problems: _confirming_calendar(gv) -> _calendar(gv)
+# (c) s1_slot._confirming_calendar: the manifest-hash check (if ... != c.sha256_file(...): return None) deleted
+# (d) s1_slot._confirming_calendar: 'except OSError: return c.load_json(out / "prereg.json")["calendar"]' inserted before the catch-all
+=== mutant a
+E       AssertionError: Regex pattern did not match.
+E        Regex: "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+E       AssertionError: Regex pattern did not match.
+E        Regex: "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+E       AssertionError: Regex pattern did not match.
+E        Regex: "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+FAILED s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[unreadable]
+FAILED s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[differs]
+FAILED s1_tests/test_s1_a3_score.py::test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row
+3 failed, 8 passed, 111 deselected in 45.28s
+=== mutant b
+E           AssertionError: the confirming pass confirmed ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)'] on an unreadable registered calendar
+FAILED s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_close_confirming_calendar_read_failure_refuses
+1 failed, 10 passed, 111 deselected in 43.34s
+=== mutant c
+E       AssertionError: Regex pattern did not match.
+E        Regex: "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+E           AssertionError: the confirming pass confirmed ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)'] on an unreadable registered calendar
+E       AssertionError: assert [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] is None
+E       AssertionError: assert [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] is None
+E       AssertionError: assert [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] is None
+FAILED s1_tests/test_s1_a3_score.py::test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row
+FAILED s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_close_confirming_calendar_read_failure_refuses
+FAILED s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[hash-mismatch]
+FAILED s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[manifest-no-entry]
+FAILED s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[permission]
+5 failed, 6 passed, 111 deselected in 44.00s
+=== mutant d
+E       AssertionError: Regex pattern did not match.
+E        Regex: "^score refused: the registered calendar is unreadable or differs from the command's in the confirming pass: refused with no row \\(G3\\.1, fail closed\\)$"
+E        Input: "score: slot evidence violation ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']: INVALID (registration-artifact)"
+E           AssertionError: the confirming pass confirmed ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (a required file missing, changed or unparseable, F3)'] on an unreadable registered calendar
+E       AssertionError: assert [{'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}] is None
+E       AssertionError: assert [{'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}] is None
+E       AssertionError: assert [{'close': '16:00', 'date': '2026-10-26', 'open': '09:30'}] is None
+FAILED s1_tests/test_s1_a3_score.py::test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row
+FAILED s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_close_confirming_calendar_read_failure_refuses
+FAILED s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[calendar-missing]
+FAILED s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[manifest-missing]
+FAILED s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[permission]
+5 failed, 6 passed, 111 deselected in 44.57s
+# verdict: a KILLED (3 failed), b KILLED (1), c KILLED (5), d KILLED (5)

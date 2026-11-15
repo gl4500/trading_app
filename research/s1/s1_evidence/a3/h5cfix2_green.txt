@@ -1,0 +1,8 @@
+# H5c-FIX2 GREEN (working tree on base b0684a5, uncommitted)
+# cmd: PYTHONPATH="research/s1;research/s1/s1_tests" C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_score.py research/s1/s1_tests/test_s1_a3_m4_pass.py research/s1/s1_tests/test_s1_a3_finalizer.py -q
+# files: score (incl. new X-17 score test + retargeted test_h5cfix_confirming_pass_calendar_is_fresh), m4_pass (the only test file referencing confirmed_close_problems; holds the new close + helper tests), finalizer (indirect: finalize_close -> _opening_stage -> confirmed_close_problems; the _calendar None tests)
+........................................................................ [ 39%]
+........................................................................ [ 79%]
+......................................                                   [100%]
+182 passed in 870.91s (0:14:30)
+# collect-only research/s1/s1_tests: 5761 tests collected (base 5752, delta +9: 1 score + 1 close + 7 helper params)
