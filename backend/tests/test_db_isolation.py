@@ -234,6 +234,13 @@ class TestBootstrapFreshInterpreter(unittest.TestCase):
         self.sentinel = os.path.join(self.work, "sentinel_inherited", "trading.db")
         self.env = dict(os.environ)
         self.env["DATABASE_URL"] = self.sentinel
+        # Children inherit the environment, not the parent's in-memory sys.path
+        # (run_tests.py puts backend/ and the repo site-packages on sys.path only),
+        # so hand dependency-needing children the parent's existing sys.path dirs
+        # followed by any ambient PYTHONPATH. Case (b) drops this entirely.
+        entries = [p for p in sys.path if p and os.path.isdir(p)]
+        entries += [p for p in os.environ.get("PYTHONPATH", "").split(os.pathsep) if p]
+        self.env["PYTHONPATH"] = os.pathsep.join(dict.fromkeys(entries))
         # Private temp root so child bootstrap dirs are countable and cleaned up.
         self.child_tmp = os.path.join(self.work, "tmproot")
         os.makedirs(self.child_tmp)
