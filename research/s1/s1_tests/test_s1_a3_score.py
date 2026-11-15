@@ -452,6 +452,9 @@ def test_pre_intent_qualified_evidence_is_invalid_when_confirmed(tmp_path, monke
     assert [x.subject for x in rows[n:]] == ["reason/registration-artifact"]
     assert j.subject_rows(rows, "stage/score") == [] and _stage_kinds(tmp_path) == []
     assert not (tmp_path / "s1_out" / "score").exists()
+    ab = json.loads((tmp_path / "s1_out" / "aborted.json").read_text(encoding="utf-8"))    # H5d (H5c verdict f7): the
+    assert ab["reason"] == c.REGISTRATION_ARTIFACT and ab["where"] == "score", ab           # local abort is published
+    assert ab["problems"] == ["slot/x: QUALIFIED tree differs from the committed detail (F3)"], ab
 
 
 def test_pre_intent_qualified_evidence_unconfirmed_refuses_with_no_row(tmp_path, monkeypatch):   # T13 N-1

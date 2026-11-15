@@ -1,0 +1,87 @@
+# NOTE: m2b and m2d are CONTROLS, expected to SURVIVE: with the launcher back AND the pid assertion removed nothing else detects the launcher
+# (the lock/pid-sensitive behaviour passes through it), which shows the pid assertion is the only detector - m2a/m2c (assertion kept) are KILLED.
+# The scratch copy was taken before a comment-only docstring edit of a3_h5afix_child.py (the final bytes are in h5d_hashes.txt).
+# Runner: scratchpad mutrun.py (one full scratch copy of research/s1; exact single-occurrence replacement; byte-for-byte restore with sha asserted).
+# A3 H5d semantic mutants. Source tree: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src (full scratch copy of the final H5d research/s1), 2026-11-15T10:57:37Z
+
+## m1-names-no-utc (item 20)
+# research/s1/s1_slot.py: <<< '        slot = slot.astimezone(timezone.utc)               # wall time here too, not only through Worker.__init__\n' >>> '        pass                                               # MUTANT\n'
+# cmd: pytest research/s1/s1_tests/test_s1_a3_carried_minors.py::test_names_converts_an_aware_slot_to_utc_directly
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_carried_minors.py:215: AssertionError: assert {'after': Win...t.json'), ...} == {'after': Win...t.json'), ...}
+FAILED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_names_converts_an_aware_slot_to_utc_directly
+1 failed in 2.09s
+VERDICT m1-names-no-utc: KILLED (rc=1)
+
+## m2a-early-refusal-launcher-back (item 18)
+# research/s1/s1_tests/test_s1_a3_early_refusal_lock.py: <<< 'EXE = getattr(sys, "_base_executable", None) or sys.executable      # never the venv launcher (PS-1)' >>> 'EXE = sys.executable'
+# cmd: pytest research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:53: AssertionError: child pid 8292 != Popen.pid 35320 (a launcher between them)
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+1 failed in 0.74s
+VERDICT m2a-early-refusal-launcher-back: KILLED (rc=1)
+
+## m2b-early-refusal-launcher-back-pid-check-removed (item 18 (control: the pid assertion is the only detector))
+# research/s1/s1_tests/test_s1_a3_early_refusal_lock.py: <<< 'EXE = getattr(sys, "_base_executable", None) or sys.executable      # never the venv launcher (PS-1)' >>> 'EXE = sys.executable' | <<< '    assert got == p.pid, f"child pid {got} != Popen.pid {p.pid} (a launcher between them)"\n' >>> '    pass\n'
+# cmd: pytest research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+1 passed in 2.77s
+VERDICT m2b-early-refusal-launcher-back-pid-check-removed: SURVIVED (rc=0)
+
+## m2c-seal-once-launcher-back (item 18)
+# research/s1/s1_tests/test_s1_a3_seal_once.py: <<< 'EXE = getattr(sys, "_base_executable", None) or sys.executable      # never the venv launcher (PS-1)' >>> 'EXE = sys.executable'
+# cmd: pytest research/s1/s1_tests/test_s1_a3_seal_once.py::test_transaction_barrier_around_q_commit[intent-after-q-commit-refused]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_seal_once.py:165: AssertionError: child pid 33304 != Popen.pid 20652 (a launcher between them)
+FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_transaction_barrier_around_q_commit[intent-after-q-commit-refused]
+1 failed in 2.93s
+VERDICT m2c-seal-once-launcher-back: KILLED (rc=1)
+
+## m2d-seal-once-launcher-back-pid-check-removed (item 18 (control))
+# research/s1/s1_tests/test_s1_a3_seal_once.py: <<< 'EXE = getattr(sys, "_base_executable", None) or sys.executable      # never the venv launcher (PS-1)' >>> 'EXE = sys.executable' | <<< '        assert got == p.pid, f"child pid {got} != Popen.pid {p.pid} (a launcher between them)"\n' >>> '        pass\n'
+# cmd: pytest research/s1/s1_tests/test_s1_a3_seal_once.py::test_transaction_barrier_around_q_commit[intent-after-q-commit-refused]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_transaction_barrier_around_q_commit[intent-after-q-commit-refused]
+1 passed in 3.96s
+VERDICT m2d-seal-once-launcher-back-pid-check-removed: SURVIVED (rc=0)
+
+## m3-pre-intent-no-reread (item 21 / verdict f3 (direct evidence_violation, no re-read))
+# research/s1/s1_run.py: <<< '        _pre_intent_qualified(gv, out, pr, stop_row, mailbox)      # "unreadable"; QualifiedUnreadable (a SystemExit)' >>> '        __import__("s1_slot").evidence_violation(gv, [str(__import__("sys").exc_info()[1])], "score", mailbox)  # MUTANT'
+# cmd: pytest research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_unconfirmed_refuses_with_no_row
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_score.py:471: AssertionError: Regex pattern did not match.
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_unconfirmed_refuses_with_no_row
+1 failed in 10.64s
+VERDICT m3-pre-intent-no-reread: KILLED (rc=1)
+
+## m4-evidence-violation-no-local-abort (item 21 / verdict f7)
+# research/s1/s1_slot.py: <<< '    if Path(gv.out).is_dir():                                       # (never recreates a lost s1_out)\n' >>> '    if False:                                                       # MUTANT\n'
+# cmd: pytest research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_is_invalid_when_confirmed
+C:\Users\gl450\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21635\\test_pre_intent_qualified_evid0\\s1_out\\aborted.json'
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_is_invalid_when_confirmed
+1 failed in 10.53s
+VERDICT m4-evidence-violation-no-local-abort: KILLED (rc=1)
+
+## m5-lock-io-message-changed (item 22)
+# research/s1/s1_locks.py: <<< 'raise LockError(f"{path.name}: lock I/O error (Windows error {err})")' >>> 'raise LockError(f"{path.name}: lock problem (Windows error {err})")'
+# cmd: pytest research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_locks.py:217: AssertionError: Regex pattern did not match.
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]
+1 failed, 1 passed in 0.47s
+VERDICT m5-lock-io-message-changed: KILLED (rc=1)
+
+## m6-lock-held-message-changed (item 22)
+# research/s1/s1_locks.py: <<< 'raise LockHeld(f"{path.name}: held by another process (Windows error {err})")' >>> 'raise LockHeld(f"{path.name}: busy (Windows error {err})")'
+# cmd: pytest research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_locks.py:112: AssertionError: Regex pattern did not match.
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process
+1 failed in 0.47s
+VERDICT m6-lock-held-message-changed: KILLED (rc=1)
+
+## m7-bad-name-wrong-error-text (item 22)
+# research/s1/s1_locks.py: <<< 'raise LockError("lock trial_id is not a uuid4")' >>> 'raise LockError("lock trial_id is bad")'
+# cmd: pytest research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_locks.py:242: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_locks.py:242: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_locks.py:242: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_locks.py:242: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_mut_src\research\s1\s1_tests\test_s1_a3_locks.py:242: AssertionError: Regex pattern did not match.
+FAILED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bad-trial]
+VERDICT m7-bad-name-wrong-error-text: KILLED (rc=1)

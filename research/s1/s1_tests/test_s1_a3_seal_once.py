@@ -7,8 +7,10 @@ cases use real child processes and BEGIN IMMEDIATE arbitration with file barrier
 docstrings."""
 import json
 import sqlite3
+import os
 import subprocess
 import sys
+import sysconfig
 import time
 from datetime import timedelta
 from pathlib import Path
@@ -27,6 +29,7 @@ from test_s1_a3_eligibility import PRECEDENCE, assert_precedence
 START = h.START
 HERE = Path(__file__).resolve().parent.parent
 SEC = timedelta(seconds=1)
+EXE = getattr(sys, "_base_executable", None) or sys.executable      # never the venv launcher (PS-1)
 
 
 def d0_slots(st_):
@@ -75,7 +78,7 @@ def sg_created(rows_, stage) -> bool:
 
 # ---------------------------------------------------------------- row 522 (SO-A3): real processes + barrier
 CHILD = r'''
-import json, sys, time
+import json, os, sys, time
 from pathlib import Path
 here, root, ledger, at_iso, sch_iso, ready, go = sys.argv[1:8]
 sys.path.insert(0, here); sys.path.insert(0, here + "/s1_tests")
@@ -87,7 +90,8 @@ c.now_utc = lambda: at
 real = j.append
 def paused(trial_id, gen, req, ctx_fn, **kw):
     if req.kind == "SLOT-INTENT" and go != "-":            # barrier: after the gate's read, before the INTENT txn
-        Path(ready).write_text("ready", encoding="utf-8")
+        Path(ready + ".tmp").write_text(str(os.getpid()), encoding="ascii")      # PS-1: the child's own pid, atomically
+        os.replace(ready + ".tmp", ready)
         t0 = time.time()
         while not Path(go).exists():
             if time.time() - t0 > 120:
@@ -106,10 +110,18 @@ print(json.dumps({"ok": True}))
 '''
 
 
+def child_env() -> dict:
+    """A3 H5d (PS-1): the child runs under the BASE interpreter (no venv launcher), so it cannot see the venv's
+    site-packages (pytest, which conftest imports) unless PYTHONPATH names them: the product directory, the test
+    directory and this interpreter's purelib, passed explicitly (no -I: -I would ignore PYTHONPATH)."""
+    paths = [str(HERE), str(HERE / "s1_tests"), sysconfig.get_paths()["purelib"]]
+    return dict(os.environ, PYTHONPATH=os.pathsep.join(paths), PYTHONDONTWRITEBYTECODE="1")
+
+
 def child_cmd(tmp_path, st_, sch, at, ready="-", go="-"):
     script = tmp_path / "child_slot.py"
     script.write_text(CHILD, encoding="utf-8")
-    return [sys.executable, "-I", str(script), str(HERE), str(tmp_path), str(st_["ledger"].path), at.isoformat(),
+    return [EXE, str(script), str(HERE), str(tmp_path), str(st_["ledger"].path), at.isoformat(),
             sch.isoformat(), str(ready), str(go)]
 
 
@@ -130,7 +142,7 @@ def test_transaction_barrier_around_q_commit(tmp_path, monkeypatch, case):
         def paused_before_j(self, req):
             if req.kind == "SLOT-QUALIFIED" and req.subject == j.slot_subject(s[47]) and "p" not in seen:
                 seen["p"] = subprocess.run(child_cmd(tmp_path, st_, s[49], at49), capture_output=True, text=True,
-                                           timeout=300)
+                                           timeout=300, env=child_env())
             return real(self, req)
         monkeypatch.setattr(sl.Worker, "_append", paused_before_j)
         h.run(tmp_path, st_, s[47], s[47] + timedelta(seconds=30))
@@ -142,13 +154,15 @@ def test_transaction_barrier_around_q_commit(tmp_path, monkeypatch, case):
         return
     ready, go = tmp_path / "ready.flag", tmp_path / "go.flag"
     p = subprocess.Popen(child_cmd(tmp_path, st_, s[49], at49, ready, go), stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE, text=True)
+                         stderr=subprocess.PIPE, text=True, env=child_env())
     try:
         t0 = time.time()
         while not ready.exists():
             assert p.poll() is None, p.communicate()
             assert time.time() - t0 < 120, "the child never reached its barrier"
             time.sleep(0.05)
+        got = int(ready.read_text(encoding="ascii"))            # A3 H5d (PS-1): the pid the child reports is Popen's
+        assert got == p.pid, f"child pid {got} != Popen.pid {p.pid} (a launcher between them)"
         h.qualify(tmp_path, st_, s[47])                         # q commits while the child is paused
         before = h.shas(tmp_path)
         go.write_text("go", encoding="utf-8")

@@ -1,0 +1,1 @@
+# A3 H5d full serial suite: PENDING - to be run by the controller's instruction (baseline 5721 + new tests: 2 in carried_minors)

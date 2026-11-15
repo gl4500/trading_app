@@ -29,6 +29,7 @@ S1DIR = str(Path(sl.__file__).resolve().parent)           # the product director
 N_PROC, N_REC = 4, 100
 LOCK_OFFSET = 0x7FFFFFF0     # the fixed lock region of the contract (a test literal; the product constant must equal it)
 SEC = timedelta(seconds=1)
+EXE = getattr(sys, "_base_executable", None) or sys.executable      # never the venv launcher (PS-1)
 GAP = re.escape("early-refusal diagnostic NOT recorded (LockTimeout): recording gap (Clarification 4 C4.3.4)")
 
 
@@ -43,6 +44,13 @@ def _wait(p: Path, limit: float) -> bool:
             return False
         time.sleep(0.01)
     return True
+
+
+def _assert_child_pid(flag: Path, p) -> None:
+    """A3 H5d (PS-1): the child announced its own os.getpid() in <flag>; it must equal Popen.pid, so a kill/wait on
+    `p` acts on the process that holds the lock or appends (no launcher between them)."""
+    got = int(flag.read_text(encoding="ascii"))
+    assert got == p.pid, f"child pid {got} != Popen.pid {p.pid} (a launcher between them)"
 
 
 def _lines(path: Path):
@@ -65,13 +73,19 @@ class Holder:
 
     def __init__(self, tmp_path, out):
         self.held, self.release = tmp_path / "held.flag", tmp_path / "release.flag"
-        self.p = subprocess.Popen([sys.executable, "-I", CHILD, "hold", str(out), str(LOCK_OFFSET), str(self.held),
+        self.p = subprocess.Popen([EXE, "-I", CHILD, "hold", str(out), str(LOCK_OFFSET), str(self.held),
                                    str(self.release)], env=_env())
 
     def __enter__(self):
         if not _wait(self.held, 60.0):
             self.p.kill()
             raise AssertionError(f"the holder never locked the region (rc={self.p.poll()})")
+        try:
+            _assert_child_pid(self.held, self.p)
+        except BaseException:
+            self.release.touch()
+            self.p.wait(timeout=60)
+            raise
         return self
 
     def __exit__(self, *exc):
@@ -100,11 +114,13 @@ def test_concurrent_writers_lose_no_record(tmp_path):
     out.mkdir()
     go = tmp_path / "go.flag"
     ready = [tmp_path / f"ready{k}.flag" for k in range(N_PROC)]
-    ps = [subprocess.Popen([sys.executable, "-I", CHILD, "append", S1DIR, str(out), str(k), str(N_REC), str(ready[k]),
+    ps = [subprocess.Popen([EXE, "-I", CHILD, "append", S1DIR, str(out), str(k), str(N_REC), str(ready[k]),
                             str(go)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=_env())
           for k in range(N_PROC)]
     try:
         assert all(_wait(r, 120.0) for r in ready), "a writer never became ready"
+        for r, p in zip(ready, ps):
+            _assert_child_pid(r, p)
         go.touch()
         res = [p.communicate(timeout=300) for p in ps]
     finally:

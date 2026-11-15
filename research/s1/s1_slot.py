@@ -75,6 +75,8 @@ def slot_times(cal):
 
 
 def names(out, slot, day_iso) -> dict:
+    if getattr(slot, "tzinfo", None) is not None:          # A3 H5d (H5c verdict f6): an aware slot is named by its UTC
+        slot = slot.astimezone(timezone.utc)               # wall time here too, not only through Worker.__init__
     n = slot.strftime("%Y%m%dT%H%M%SZ")
     d = Path(out) / "captures" / day_iso
     return {"claim": d / f"{n}.attempt.json", "report": d / f"{n}.report.json",

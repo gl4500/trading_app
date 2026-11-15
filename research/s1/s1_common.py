@@ -1199,8 +1199,10 @@ def registration_gate(out: Path, where: str, now=None, *, refuse: bool = True, m
     """B3.3: once a registration exists, an observed missing / changed / unparseable REQUIRED artifact records
     sanitized immutable failure evidence and the first-wins aborted.json (reason "registration artifact"; an earlier
     abort keeps its reason); restoration never resumes (aborted.json persists). The command then stops (SystemExit),
-    except the two recording commands - the score and the final snapshot (`refuse=False`) - which go on and record the
-    trial as ABORTED-INVALID with their own integrity findings (A2.3). The abort records its observation time
+    except the two recording commands - the score and the final snapshot (`refuse=False`) - which, once the abort is
+    published, go on and record the trial as ABORTED-INVALID with their own integrity findings (A2.3). A3 H5c: if
+    s1_out has vanished before the abort is published (OutputRootGone), there is no tree to record into (F6.6), so
+    these commands refuse too ("local abort not published: s1_out is gone") instead of returning the problems. The abort records its observation time
     (observed_utc) and no trial end (`actual` None: no capture ended the trial). Fix round 3: a stage
     publication in progress (stage.lock) and an inconsistent pre-registration state (I-2) are preserved refusals,
     never an abort. Fix round 4 (N-1): a violation is CONFIRMED before the abort - stage.lock is re-checked after the

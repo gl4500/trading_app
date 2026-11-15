@@ -199,3 +199,25 @@ def test_non_utc_slot_late_paths_use_utc_wall_time(tmp_path, monkeypatch):      
     assert [p.name for p in late.iterdir()] == [_utc_name(s45)]
     moved = sorted(p.name for p in (late / _utc_name(s45)).iterdir())
     assert moved and all(x.startswith(_utc_name(s45)) for x in moved), moved
+
+
+# ---------------------------------------------------------------- H5d item 20 (H5c verdict finding 6): names() itself
+def test_names_converts_an_aware_slot_to_utc_directly(tmp_path):                                    # H5c verdict f6
+    """names() called directly (no Worker) with an aware -04:00 slot names every file by the UTC wall time, the same
+    names as the UTC instant gets. (Before H5d only Worker.__init__ normalized: names() formatted local wall time.)"""
+    st_ = h.registered(tmp_path)
+    s45 = h.slot(st_, h.D0)
+    local = s45.astimezone(NY4)
+    assert local.isoformat().endswith("-04:00") and local == s45
+    assert _utc_name(local) != local.strftime("%Y%m%dT%H%M%SZ")
+    out = tmp_path / "s1_out"
+    got = sl.names(out, local, h.D0)
+    assert got == sl.names(out, s45, h.D0)
+    assert all(p.name.startswith(_utc_name(s45)) for p in got.values()), {k_: p.name for k_, p in got.items()}
+
+
+def test_names_keeps_a_naive_slot_as_given(tmp_path):                                               # H5c verdict f6
+    """Naive slots are not converted or refused (no production caller passes one; the old behaviour is kept)."""
+    naive = c.aware("2026-10-26T20:45:00+00:00").replace(tzinfo=None)
+    got = sl.names(tmp_path / "s1_out", naive, "2026-10-26")
+    assert got["capture"].name == "20261026T204500Z" and got["claim"].name == "20261026T204500Z.attempt.json"

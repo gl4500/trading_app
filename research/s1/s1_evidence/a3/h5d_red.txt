@@ -1,0 +1,41 @@
+# A3 H5d behavioural RED: full scratch copy of base 2b9beef research/s1 (git archive HEAD) + the final H5d test files, with EXE = sys.executable in the two item-18 files (the old launcher); run 2026-11-15T10:56:37Z
+F.....FF..F...F.............F.                                           [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_red\research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:53: AssertionError: child pid 33412 != Popen.pid 36460 (a launcher between them)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_red\research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:53: AssertionError: child pid 19884 != Popen.pid 25376 (a launcher between them)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_red\research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:53: AssertionError: child pid 34668 != Popen.pid 34752 (a launcher between them)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_red\research\s1\s1_tests\test_s1_a3_early_refusal_lock.py:53: AssertionError: child pid 2016 != Popen.pid 16440 (a launcher between them)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_red\research\s1\s1_tests\test_s1_a3_seal_once.py:165: AssertionError: child pid 22960 != Popen.pid 16508 (a launcher between them)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5d_red\research\s1\s1_tests\test_s1_a3_carried_minors.py:215: AssertionError: assert {'after': Win...t.json'), ...} == {'after': Win...t.json'), ...}
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_concurrent_writers_lose_no_record
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_records_nothing_and_returns_the_class
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_timeout_worker_refuses_and_discloses_the_gap
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_no_new_file_in_s1_out
+FAILED research/s1/s1_tests/test_s1_a3_seal_once.py::test_transaction_barrier_around_q_commit[intent-after-q-commit-refused]
+FAILED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_names_converts_an_aware_slot_to_utc_directly
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_lock_held_across_write_and_fsync
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[partial-write-failure]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_write_or_fsync_failure_rolls_back[fsync-failure]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_short_writes_complete_one_line
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_region_unlocked_before_the_handle_closes
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_missing_root_is_never_created[root-missing]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_missing_root_is_never_created[ancestor-missing]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[diagnostic-recorded]
+PASSED research/s1/s1_tests/test_s1_a3_early_refusal_lock.py::test_non_utc_slot_diagnostic[gap-disclosed]
+PASSED research/s1/s1_tests/test_s1_a3_seal_once.py::test_transaction_barrier_around_q_commit[intent-before-q-commit-allowed]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome[qualified-violation-journal-down]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome[qualified-violation-committed]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome[worker-violation-journal-down]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome[worker-violation-committed]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome[opening-seal-conflict]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome[bundle-gate]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome[registration-gate]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_write_abort_callers_root_gone_keeps_the_original_outcome[registration-gate-no-refuse]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_record_refusal_never_creates_s1_out[root-missing-at-entry]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_record_refusal_never_creates_s1_out[root-vanishes-after-the-caller-check]
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_record_refusal_appends_into_an_existing_root
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_non_utc_slot_names_files_by_utc_wall_time
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_non_utc_slot_late_paths_use_utc_wall_time
+PASSED research/s1/s1_tests/test_s1_a3_carried_minors.py::test_names_keeps_a_naive_slot_as_given
+6 failed, 24 passed in 19.04s

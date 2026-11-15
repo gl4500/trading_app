@@ -1,0 +1,34 @@
+# A3 H5d item 18 re-audit: rg --no-ignore over research/s1 (final H5d source; __pycache__ and s1_evidence excluded), 2026-11-15
+# pattern: \.kill\(|kill=True|terminate\(|TerminateProcess|taskkill|os\.kill|signal\.|killpg|send_signal|psutil|Job[Oo]bject|CREATE_NEW_PROCESS_GROUP|CTRL_BREAK|sys\.executable|_base_executable
+# (docs/s1_plan_addendum3.md also matches: frozen plan text containing the same sample code; never executed, not edited.)
+# Result: every executable `.kill(` / `kill=True` / `terminate(` match is in one of three files, all now on sys._base_executable
+# with a pid handshake; no terminate(, os.kill, taskkill, signal., killpg, send_signal, psutil, JobObject match anywhere
+# except the string-list guard in test_s1_task11.py:765 (below).
+
+## .kill( / kill=True / terminate( matches (the lines below are the 2026-11-15 H5d tree)
+test_s1_a3_locks.py:73          p.kill()                  reap(): last-resort cleanup. Child spawned with EXE=_base_executable (H5c item 16), pid asserted == Popen.pid in handshake()  -> OK
+test_s1_a3_locks.py:87          p.kill()                  stop(kill=True): the real-crash test. Same pattern                                              -> OK
+test_s1_a3_locks.py:155         stop(p, kill=True)        test_killed_owner_frees_the_lock. Same pattern                                                  -> OK
+test_s1_a3_early_refusal_lock.py:81   self.p.kill()       Holder.__enter__: "holder never locked the region" failure path. NOW EXE=_base_executable (H5d item 18); a pid is announced in the held flag and asserted == Popen.pid after the flag appears and before the test relies on the holder. On a failure path before the flag exists no pid is known: kill acts on a base-interpreter Popen (no launcher), so it is the holder itself -> OK (fixed)
+test_s1_a3_early_refusal_lock.py:96   self.p.kill()       Holder.__exit__: TimeoutExpired cleanup (after release). Same                                  -> OK (fixed)
+test_s1_a3_early_refusal_lock.py:129  p.kill()             test_concurrent_writers_lose_no_record finally: cleanup of a still-running writer. Same; pids asserted before "go" -> OK (fixed)
+test_s1_a3_seal_once.py:172           p.kill()             test_transaction_barrier_around_q_commit finally: cleanup of a still-running child. NOW EXE=_base_executable; the child's ready flag holds os.getpid() and the test asserts it == Popen.pid before h.qualify / go -> OK (fixed)
+
+## sys.executable matches (not a kill, but the same spawn question)
+test_s1_a3_locks.py:6,8,21      docstring and EXE fallback                                                    -> OK (H5c)
+test_s1_a3_early_refusal_lock.py:32   EXE = getattr(sys, "_base_executable", None) or sys.executable           -> OK (H5d)
+test_s1_a3_seal_once.py:32            same                                                                      -> OK (H5d)
+   (seal_once children import conftest -> pytest, so they need the venv's site-packages: spawned WITHOUT -I, PYTHONPATH passed explicitly = product dir, test dir, this interpreter's purelib; the early-refusal children import only the stdlib and the product dir (sys.path.insert from argv, still -I))
+test_s1_a3_seal_once.py (child_cmd)   the subprocess.run() variant ("intent-before-q-commit-allowed") has no kill and no way to observe the pid (run() hides Popen); it now also uses the base interpreter, so a subprocess.run timeout kill would act on the real process -> OK (no pid assertion possible; disposition recorded)
+test_s1_a3_abort_recovery.py:145 Popen RECOVERER; :254 run CRASHER          no kill/terminate, no pid reliance; the child is waited on / communicate()d  -> out of scope (unchanged)
+test_s1_a3_finalizer.py:126      Popen LIVE_WORKER                          no kill in file; waited on                                                 -> out of scope (unchanged)
+test_s1_a3_plan_damage.py:437    Popen audit helper                          no kill in file                                                           -> out of scope (unchanged)
+test_s1_a3_prestart.py:583, test_s1_a3_slots.py:408   Popen hold-after-intent no kill in either file; released by the helper's own flag/wait            -> out of scope (unchanged)
+test_s1_a3_stage.py:51           Popen helper                                no kill in file                                                           -> out of scope (unchanged)
+test_s1_a3_wpend.py:217          Popen HOLDER                                no kill in file; reaped by wait/communicate                               -> out of scope (unchanged)
+test_s1_a3_slots.py:255, test_s1_a3_codex_probes.py:197,232, test_s1_a3_codex_probes.py:44   subprocess.run, no kill (timeouts only)       -> out of scope (unchanged)
+test_s1_a3_mutants.py:195        child pytest (the mutant runner)           no kill                                                                    -> out of scope (unchanged)
+test_s1_checkpoint.py:432        `s1_checkpoint.py --help` via run()          no kill                                                                    -> out of scope (unchanged)
+test_s1_t12_a1.py:241,245        Path(sys.executable) as a receipt input      not a spawn                                                                -> not a launch site
+e1_fetch.py:143                  records sys.executable in a manifest        not a spawn                                                                -> not a launch site
+test_s1_task11.py:765            word list ("Stop-Process", "taskkill", "os.kill", ...) scanned for in product text   a negative guard, not a call               -> not a kill
