@@ -18,7 +18,6 @@ A3 H4-CX (Codex H4-CX-1 / P2): in both routes T, L and B count only as a real nu
 naming the run and the field - never READY and never an unhandled exception; an invalid cap is NOT READY with a
 reason. max_T / max_C are computed over valid values only (an invalid one is listed in the reasons instead)."""
 import math
-import numbers
 
 CAP = 60.0
 
@@ -26,10 +25,41 @@ CAP = 60.0
 def _real(x) -> bool:
     """A finite real number that is not a bool (the sign is checked by the caller). H4-CX fix round 1 (review M-1):
     an int beyond the float range (math.isfinite raises OverflowError) is no usable value either."""
-    try:
-        return isinstance(x, numbers.Real) and not isinstance(x, bool) and math.isfinite(x)
+    try:                                                     # fix round 1 M-3: builtin int / float ONLY (exact type);
+        return type(x) in (int, float) and math.isfinite(x)  # numpy fixed-width ints wrap, subclasses may override +
     except OverflowError:
         return False
+
+
+_TEXT_MAX = 200
+
+
+def _r(x) -> str:
+    """repr that never raises and is length-capped (A3 H4-CX fix2, X-13 + fix round 1 M-1): repr of an int beyond 4300
+    digits raises ValueError, a container holding one raises too, and an object's own __repr__ may raise anything."""
+    try:
+        t = repr(x)
+    except Exception:                                        # noqa: BLE001 - a reason text must never raise
+        return f"<unprintable {type(x).__name__}>"
+    return t if len(t) <= _TEXT_MAX else t[:_TEXT_MAX] + "..."
+
+
+def _s(x) -> str:
+    """A run id as reason text (fix round 1 M-2): a str as is (length-capped), anything else through `_r`."""
+    return (x if len(x) <= _TEXT_MAX else x[:_TEXT_MAX] + "...") if type(x) is str else _r(x)
+
+
+def _add(a, b):
+    """(a + b, None) when the exact sum converts to a finite float, else (None, why). A3 H4-CX fix2 (X-13): two valid
+    ints can sum beyond the float range (math.isfinite raises OverflowError) and two finite floats can sum to
+    inf. The exact sum is returned unchanged when it is usable; an unusable one is never returned."""
+    try:
+        s = a + b
+        if math.isfinite(s):
+            return s, None
+        return None, "not finite"
+    except OverflowError:
+        return None, "overflows the float range"
 
 
 def valid(x) -> bool:
@@ -39,7 +69,7 @@ def valid(x) -> bool:
 
 def cap_problem(cap):
     """None for a usable cap (real, not bool, finite, > 0); else the NOT READY reason."""
-    return None if _real(cap) and cap > 0 else f"cap invalid ({cap!r}): not a finite real number > 0"
+    return None if _real(cap) and cap > 0 else f"cap invalid ({_r(cap)}): not a finite real number > 0"
 
 
 def _t_problem(t):
@@ -47,8 +77,8 @@ def _t_problem(t):
     if valid(t):
         return None
     if t is None or (_real(t) and t < 0):
-        return f"invocation duration T unavailable or negative ({t!r})"
-    return f"invocation duration T invalid ({t!r}): not a finite real number"
+        return f"invocation duration T unavailable or negative ({_r(t)})"
+    return f"invocation duration T invalid ({_r(t)}): not a finite real number"
 
 
 def run_c(run: dict):
@@ -58,7 +88,7 @@ def run_c(run: dict):
     if t is not None and not _real(t):
         return None, _t_problem(t)
     if lat is not None and not _real(lat):
-        return None, f"dispatch delay L invalid ({lat!r}): not a finite real number"
+        return None, f"dispatch delay L invalid ({_r(lat)}): not a finite real number"
     if not run.get("control_ok"):
         return None, "success control not completed (a fast refusal or skip is not a pass)"
     if _t_problem(t) is not None:
@@ -66,10 +96,10 @@ def run_c(run: dict):
     if lat is None:
         return None, "dispatch delay L unknown"
     if lat < 0:
-        return None, f"dispatch delay L negative ({lat!r}): inconsistent (never clamped)"
-    c = lat + t
-    if not math.isfinite(c):
-        return None, f"C = L + T not finite ({c!r})"
+        return None, f"dispatch delay L negative ({_r(lat)}): inconsistent (never clamped)"
+    c, why = _add(lat, t)                                   # A3 H4-CX fix2 (X-13): overflow-safe sum
+    if c is None:
+        return None, f"C = L + T {why} (L = {_r(lat)}, T = {_r(t)})"
     return c, None
 
 
@@ -84,11 +114,11 @@ def verdict(runs: list, *, workloads_resolved: bool = True, cap: float = CAP) ->
     for i, r in enumerate(runs):
         c, why = run_c(r)
         if why is not None:
-            reasons.append(f"run {r.get('id', i)}: {why}")
+            reasons.append(f"run {_s(r.get('id', i))}: {why}")
         else:
             cs.append(c)
             if bad_cap is None and c > cap:
-                reasons.append(f"run {r.get('id', i)}: C = L + T = {c:.3f} s > {cap:g} s")
+                reasons.append(f"run {_s(r.get('id', i))}: C = L + T = {c:.3f} s > {cap:g} s")
     if not workloads_resolved:
         reasons.append("a declared workload bound is unresolved")
     ts = [r["T"] for r in runs if valid(r.get("T"))]        # A3 H4-CX: valid values only
@@ -103,7 +133,7 @@ def b_conditional(runs: list, b, *, workloads_resolved: bool = False, injected_r
     H4 fix round 1 (review M-5): the label is never READY while a declared workload bound (`workloads_resolved`) or
     the injected cases (`injected_resolved`) are unresolved. Both default to False (unresolved: fail closed), so a
     caller must state them explicitly to obtain "B-CONDITIONAL READY"."""
-    invalid = [f"run {r.get('id', i)}: {_t_problem(r.get('T'))}" for i, r in enumerate(runs)    # A3 H4-CX: an
+    invalid = [f"run {_s(r.get('id', i))}: {_t_problem(r.get('T'))}" for i, r in enumerate(runs)    # A3 H4-CX: an
                if r.get("T") is not None and not valid(r.get("T"))]                                 # invalid T named
     ok = [r for r in runs if r.get("control_ok") and valid(r.get("T"))]                             # valid T only
     bad = [r.get("id", i) for i, r in enumerate(runs) if not (r.get("control_ok") and r.get("T") is not None)]
@@ -114,20 +144,23 @@ def b_conditional(runs: list, b, *, workloads_resolved: bool = False, injected_r
     if b is None:
         return {"label": "NOT READY", "max_T": max_t, "B": None,
                 "reasons": ["no predeclared, justified dispatch-lateness bound B: R-3 unresolved"]
-                + [f"run {x}: success control not completed" for x in bad] + invalid + bad_cap + open_}
+                + [f"run {_s(x)}: success control not completed" for x in bad] + invalid + bad_cap + open_}
     if not _real(b):                                         # A3 H4-CX: NaN / inf / bool / non-number B
         return {"label": "NOT READY", "max_T": max_t, "B": b,
-                "reasons": [f"B invalid ({b!r}): not a finite real number"] + invalid + bad_cap + open_}
+                "reasons": [f"B invalid ({_r(b)}): not a finite real number"] + invalid + bad_cap + open_}
     if b < 0:
-        return {"label": "NOT READY", "max_T": max_t, "B": b, "reasons": [f"B negative ({b!r}): inconsistent"]
+        return {"label": "NOT READY", "max_T": max_t, "B": b, "reasons": [f"B negative ({_r(b)}): inconsistent"]
                 + invalid + bad_cap + open_}
     if bad_cap:                                              # A3 H4-CX: never compared against an invalid cap
         return {"label": "NOT READY", "max_T": max_t, "B": b, "reasons": bad_cap + invalid + open_}
-    reasons = [f"run {x}: success control not completed" for x in bad] + invalid
+    reasons = [f"run {_s(x)}: success control not completed" for x in bad] + invalid
     if max_t is None:
         reasons.append("no completed healthy run")
-    elif max_t + b > cap:
-        reasons.append(f"max(T) + B = {max_t + b:.3f} s > {cap:g} s")
+    tb, why = (None, None) if max_t is None else _add(max_t, b)      # A3 H4-CX fix2 (X-13): overflow-safe sum
+    if tb is None and max_t is not None:
+        reasons.append(f"max(T) + B {why} (max(T) = {_r(max_t)}, B = {_r(b)})")
+    elif tb is not None and tb > cap:
+        reasons.append(f"max(T) + B = {tb:.3f} s > {cap:g} s")
     reasons += open_
     return {"label": "B-CONDITIONAL NOT READY" if reasons else "B-CONDITIONAL READY", "max_T": max_t, "B": b,
-            "max_T_plus_B": None if max_t is None else max_t + b, "reasons": reasons}
+            "max_T_plus_B": tb, "reasons": reasons}

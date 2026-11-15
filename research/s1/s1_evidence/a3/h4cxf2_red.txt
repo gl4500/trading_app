@@ -1,0 +1,447 @@
+................................FF..FFFFFFF.                             [100%]
+================================== FAILURES ===================================
+_ test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[codex-int-int] _
+
+lat = 100000000000000000...0000000000000000000
+t = 100000000000000000...0000000000000000000
+
+    @pytest.mark.parametrize("lat,t", [(BIG, BIG), (10 ** 308, 10 ** 308 + 1), HUGE_SUM_FLOATS, (1e308, BIG)],
+                             ids=["codex-int-int", "int-int-odd", "float-float", "float-int"])
+    def test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity(lat, t):
+>       got = not_ready(call(v.verdict, [run(lat, t, i="ovf"), run(1.0, 2.0, i="good")]), "run ovf", "L + T")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = OverflowError('int too large to convert to float')
+needles = ('run ovf', 'L + T'), @py_assert3 = False
+@py_format5 = "raised instead of reporting: OverflowError('int too large to convert to float')\n>assert False\n{False = isinstance(OverflowError('int too large to convert to float'), dict)\n}"
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: OverflowError('int too large to convert to float')
+E       assert False
+E        +  where False = isinstance(OverflowError('int too large to convert to float'), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+_ test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[int-int-odd] _
+
+lat = 100000000000000000...0000000000000000000
+t = 100000000000000000...0000000000000000001
+
+    @pytest.mark.parametrize("lat,t", [(BIG, BIG), (10 ** 308, 10 ** 308 + 1), HUGE_SUM_FLOATS, (1e308, BIG)],
+                             ids=["codex-int-int", "int-int-odd", "float-float", "float-int"])
+    def test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity(lat, t):
+>       got = not_ready(call(v.verdict, [run(lat, t, i="ovf"), run(1.0, 2.0, i="good")]), "run ovf", "L + T")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = OverflowError('int too large to convert to float')
+needles = ('run ovf', 'L + T'), @py_assert3 = False
+@py_format5 = "raised instead of reporting: OverflowError('int too large to convert to float')\n>assert False\n{False = isinstance(OverflowError('int too large to convert to float'), dict)\n}"
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: OverflowError('int too large to convert to float')
+E       assert False
+E        +  where False = isinstance(OverflowError('int too large to convert to float'), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+__________ test_verdict_overflow_alone_has_no_max_c_and_never_ready ___________
+
+    def test_verdict_overflow_alone_has_no_max_c_and_never_ready():
+>       got = not_ready(call(v.verdict, [run(BIG, BIG, i="ovf")]), "run ovf", "L + T")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = OverflowError('int too large to convert to float')
+needles = ('run ovf', 'L + T'), @py_assert3 = False
+@py_format5 = "raised instead of reporting: OverflowError('int too large to convert to float')\n>assert False\n{False = isinstance(OverflowError('int too large to convert to float'), dict)\n}"
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: OverflowError('int too large to convert to float')
+E       assert False
+E        +  where False = isinstance(OverflowError('int too large to convert to float'), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+_______ test_b_conditional_max_t_plus_b_overflow_is_not_ready[int-int] ________
+
+t = 100000000000000000...0000000000000000000
+b = 100000000000000000...0000000000000000000
+
+    @pytest.mark.parametrize("t,b", [(BIG, BIG), HUGE_SUM_FLOATS, (BIG, 1e308)], ids=["int-int", "float-float", "int-float"])
+    def test_b_conditional_max_t_plus_b_overflow_is_not_ready(t, b):
+>       got = not_ready(b_ready([run(None, t, i="ovf")], b), "max(T) + B")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:177: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = OverflowError('int too large to convert to float')
+needles = ('max(T) + B',), @py_assert3 = False
+@py_format5 = "raised instead of reporting: OverflowError('int too large to convert to float')\n>assert False\n{False = isinstance(OverflowError('int too large to convert to float'), dict)\n}"
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: OverflowError('int too large to convert to float')
+E       assert False
+E        +  where False = isinstance(OverflowError('int too large to convert to float'), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+_____ test_b_conditional_max_t_plus_b_overflow_is_not_ready[float-float] ______
+
+t = 1e+308, b = 1e+308
+
+    @pytest.mark.parametrize("t,b", [(BIG, BIG), HUGE_SUM_FLOATS, (BIG, 1e308)], ids=["int-int", "float-float", "int-float"])
+    def test_b_conditional_max_t_plus_b_overflow_is_not_ready(t, b):
+        got = not_ready(b_ready([run(None, t, i="ovf")], b), "max(T) + B")
+>       assert got["label"] == "B-CONDITIONAL NOT READY" and got["max_T_plus_B"] is None, got
+E       AssertionError: {'B': 1e+308, 'label': 'B-CONDITIONAL NOT READY', 'max_T': 1e+308, 'max_T_plus_B': inf, ...}
+E       assert ('B-CONDITIONAL NOT READY' == 'B-CONDITIONAL NOT READY'
+E         
+E           B-CONDITIONAL NOT READY and inf is None)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:178: AssertionError
+______ test_b_conditional_max_t_plus_b_overflow_is_not_ready[int-float] _______
+
+t = 100000000000000000...0000000000000000000, b = 1e+308
+
+    @pytest.mark.parametrize("t,b", [(BIG, BIG), HUGE_SUM_FLOATS, (BIG, 1e308)], ids=["int-int", "float-float", "int-float"])
+    def test_b_conditional_max_t_plus_b_overflow_is_not_ready(t, b):
+        got = not_ready(b_ready([run(None, t, i="ovf")], b), "max(T) + B")
+>       assert got["label"] == "B-CONDITIONAL NOT READY" and got["max_T_plus_B"] is None, got
+E       AssertionError: {'B': 1e+308, 'label': 'B-CONDITIONAL NOT READY', 'max_T': 100000000000000000...0000000000000000000, 'max_T_plus_B': inf, ...}
+E       assert ('B-CONDITIONAL NOT READY' == 'B-CONDITIONAL NOT READY'
+E         
+E           B-CONDITIONAL NOT READY and inf is None)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:178: AssertionError
+________ test_huge_int_cap_with_small_values_never_raises_never_ready _________
+
+    def test_huge_int_cap_with_small_values_never_raises_never_ready():
+        for cap in (10 ** 400, 10 ** 5000):
+>           not_ready(call(v.verdict, [run(1.0, 2.0)], cap=cap), "cap")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:183: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit')
+needles = ('cap',), @py_assert3 = False
+@py_format5 = "raised instead of reporting: ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_i... limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit'), dict)\n}"
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit')
+E       assert False
+E        +  where False = isinstance(ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit'), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+_________ test_big_but_float_representable_cap_still_compares_exactly _________
+
+    def test_big_but_float_representable_cap_still_compares_exactly():
+        assert call(v.verdict, [run(1.0, 2.0)], cap=BIG)["verdict"] == "READY"
+        assert b_ready([run(None, 2.0)], 1.0, cap=BIG)["label"] == "B-CONDITIONAL READY"
+>       not_ready(call(v.verdict, [run(BIG, BIG)], cap=BIG), "L + T")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = OverflowError('int too large to convert to float'), needles = ('L + T',)
+@py_assert3 = False
+@py_format5 = "raised instead of reporting: OverflowError('int too large to convert to float')\n>assert False\n{False = isinstance(OverflowError('int too large to convert to float'), dict)\n}"
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: OverflowError('int too large to convert to float')
+E       assert False
+E        +  where False = isinstance(OverflowError('int too large to convert to float'), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+_____ test_huge_int_values_beyond_float_range_never_raise_even_in_reasons _____
+
+    def test_huge_int_values_beyond_float_range_never_raise_even_in_reasons():
+        for bad in (10 ** 400, 10 ** 5000):                                   # repr(10**5000) itself raises ValueError
+>           not_ready(call(v.verdict, [run(0.0, bad, i="x")]), "run x")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:195: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit')
+needles = ('run x',), @py_assert3 = False
+@py_format5 = "raised instead of reporting: ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_i... limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit'), dict)\n}"
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit')
+E       assert False
+E        +  where False = isinstance(ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit'), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[codex-int-int]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[int-int-odd]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_verdict_overflow_alone_has_no_max_c_and_never_ready
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_max_t_plus_b_overflow_is_not_ready[int-int]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_max_t_plus_b_overflow_is_not_ready[float-float]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_b_conditional_max_t_plus_b_overflow_is_not_ready[int-float]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_huge_int_cap_with_small_values_never_raises_never_ready
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_big_but_float_representable_cap_still_compares_exactly
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_huge_int_values_beyond_float_range_never_raise_even_in_reasons
+9 failed, 35 passed in 1.12s
+
+# ===== FIX ROUND 1 (red: product = fix2 round 0, new tests) =====
+............................................FFFF.FFFFF...FF.             [100%]
+================================== FAILURES ===================================
+______ test_unprintable_or_container_values_never_raise_in_reasons[list] ______
+
+bad = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] list object at 0x191e339b480>
+
+    @pytest.mark.parametrize("bad", [[10 ** 5000], {"k": 10 ** 5000}, (10 ** 5000,), _BadRepr(), object(), b"x" * 10 ** 6,
+                                     "s" * 10 ** 6], ids=["list", "dict", "tuple", "bad-repr", "object", "bytes", "str"])
+    def test_unprintable_or_container_values_never_raise_in_reasons(bad):
+        for r in ({"id": "x", "L": 0.0, "T": bad, "control_ok": True}, {"id": "x", "L": bad, "T": 1.0, "control_ok": True}):
+>           got = not_ready(call(v.verdict, [r]), "run x")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:229: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = AttributeError("'list' object has no attribute 'bit_length'")
+needles = ('run x',), @py_assert3 = False
+@py_format5 = 'raised instead of reporting: AttributeError("\'list\' object has no attribute \'bit_length\'")\n>assert False\n{False = isinstance(AttributeError("\'list\' object has no attribute \'bit_length\'"), dict)\n}'
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: AttributeError("'list' object has no attribute 'bit_length'")
+E       assert False
+E        +  where False = isinstance(AttributeError("'list' object has no attribute 'bit_length'"), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+______ test_unprintable_or_container_values_never_raise_in_reasons[dict] ______
+
+bad = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] dict object at 0x191e325b000>
+
+    @pytest.mark.parametrize("bad", [[10 ** 5000], {"k": 10 ** 5000}, (10 ** 5000,), _BadRepr(), object(), b"x" * 10 ** 6,
+                                     "s" * 10 ** 6], ids=["list", "dict", "tuple", "bad-repr", "object", "bytes", "str"])
+    def test_unprintable_or_container_values_never_raise_in_reasons(bad):
+        for r in ({"id": "x", "L": 0.0, "T": bad, "control_ok": True}, {"id": "x", "L": bad, "T": 1.0, "control_ok": True}):
+>           got = not_ready(call(v.verdict, [r]), "run x")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:229: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = AttributeError("'dict' object has no attribute 'bit_length'")
+needles = ('run x',), @py_assert3 = False
+@py_format5 = 'raised instead of reporting: AttributeError("\'dict\' object has no attribute \'bit_length\'")\n>assert False\n{False = isinstance(AttributeError("\'dict\' object has no attribute \'bit_length\'"), dict)\n}'
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: AttributeError("'dict' object has no attribute 'bit_length'")
+E       assert False
+E        +  where False = isinstance(AttributeError("'dict' object has no attribute 'bit_length'"), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+_____ test_unprintable_or_container_values_never_raise_in_reasons[tuple] ______
+
+bad = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] tuple object at 0x191e31a4d30>
+
+    @pytest.mark.parametrize("bad", [[10 ** 5000], {"k": 10 ** 5000}, (10 ** 5000,), _BadRepr(), object(), b"x" * 10 ** 6,
+                                     "s" * 10 ** 6], ids=["list", "dict", "tuple", "bad-repr", "object", "bytes", "str"])
+    def test_unprintable_or_container_values_never_raise_in_reasons(bad):
+        for r in ({"id": "x", "L": 0.0, "T": bad, "control_ok": True}, {"id": "x", "L": bad, "T": 1.0, "control_ok": True}):
+>           got = not_ready(call(v.verdict, [r]), "run x")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:229: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = AttributeError("'tuple' object has no attribute 'bit_length'")
+needles = ('run x',), @py_assert3 = False
+@py_format5 = 'raised instead of reporting: AttributeError("\'tuple\' object has no attribute \'bit_length\'")\n>assert False\n{False = isinstance(AttributeError("\'tuple\' object has no attribute \'bit_length\'"), dict)\n}'
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: AttributeError("'tuple' object has no attribute 'bit_length'")
+E       assert False
+E        +  where False = isinstance(AttributeError("'tuple' object has no attribute 'bit_length'"), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+____ test_unprintable_or_container_values_never_raise_in_reasons[bad-repr] ____
+
+bad = <[RuntimeError('no repr') raised in repr()] _BadRepr object at 0x191e267ed20>
+
+    @pytest.mark.parametrize("bad", [[10 ** 5000], {"k": 10 ** 5000}, (10 ** 5000,), _BadRepr(), object(), b"x" * 10 ** 6,
+                                     "s" * 10 ** 6], ids=["list", "dict", "tuple", "bad-repr", "object", "bytes", "str"])
+    def test_unprintable_or_container_values_never_raise_in_reasons(bad):
+        for r in ({"id": "x", "L": 0.0, "T": bad, "control_ok": True}, {"id": "x", "L": bad, "T": 1.0, "control_ok": True}):
+>           got = not_ready(call(v.verdict, [r]), "run x")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:229: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = RuntimeError('no repr'), needles = ('run x',), @py_assert3 = False
+@py_format5 = "raised instead of reporting: RuntimeError('no repr')\n>assert False\n{False = isinstance(RuntimeError('no repr'), dict)\n}"
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: RuntimeError('no repr')
+E       assert False
+E        +  where False = isinstance(RuntimeError('no repr'), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+_____ test_unprintable_or_container_values_never_raise_in_reasons[bytes] ______
+
+bad = b'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+    @pytest.mark.parametrize("bad", [[10 ** 5000], {"k": 10 ** 5000}, (10 ** 5000,), _BadRepr(), object(), b"x" * 10 ** 6,
+                                     "s" * 10 ** 6], ids=["list", "dict", "tuple", "bad-repr", "object", "bytes", "str"])
+    def test_unprintable_or_container_values_never_raise_in_reasons(bad):
+        for r in ({"id": "x", "L": 0.0, "T": bad, "control_ok": True}, {"id": "x", "L": bad, "T": 1.0, "control_ok": True}):
+            got = not_ready(call(v.verdict, [r]), "run x")
+>           assert all(len(x) < 2000 for x in got["reasons"]), "reason text is length-capped"
+E           AssertionError: reason text is length-capped
+E           assert False
+E            +  where False = all(<generator object test_unprintable_or_container_values_never_raise_in_reasons.<locals>.<genexpr> at 0x00000191E374F440>)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:230: AssertionError
+______ test_unprintable_or_container_values_never_raise_in_reasons[str] _______
+
+bad = 'sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss...ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss'
+
+    @pytest.mark.parametrize("bad", [[10 ** 5000], {"k": 10 ** 5000}, (10 ** 5000,), _BadRepr(), object(), b"x" * 10 ** 6,
+                                     "s" * 10 ** 6], ids=["list", "dict", "tuple", "bad-repr", "object", "bytes", "str"])
+    def test_unprintable_or_container_values_never_raise_in_reasons(bad):
+        for r in ({"id": "x", "L": 0.0, "T": bad, "control_ok": True}, {"id": "x", "L": bad, "T": 1.0, "control_ok": True}):
+            got = not_ready(call(v.verdict, [r]), "run x")
+>           assert all(len(x) < 2000 for x in got["reasons"]), "reason text is length-capped"
+E           AssertionError: reason text is length-capped
+E           assert False
+E            +  where False = all(<generator object test_unprintable_or_container_values_never_raise_in_reasons.<locals>.<genexpr> at 0x00000191E374F9F0>)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:230: AssertionError
+_______________ test_run_id_of_any_type_never_raises[huge-int] ________________
+
+rid = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] int object at 0x191e1ef3410>
+
+    @pytest.mark.parametrize("rid", [10 ** 5000, [10 ** 5000], _BadRepr(), None, 7], ids=["huge-int", "list", "bad-repr", "none", "int"])
+    def test_run_id_of_any_type_never_raises(rid):
+>       not_ready(call(v.verdict, [{"id": rid, "L": 0.0, "T": 99.0, "control_ok": True}]), "run ")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit')
+needles = ('run ',), @py_assert3 = False
+@py_format5 = "raised instead of reporting: ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_i... limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit'), dict)\n}"
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit')
+E       assert False
+E        +  where False = isinstance(ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit'), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+_________________ test_run_id_of_any_type_never_raises[list] __________________
+
+rid = <[ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit') raised in repr()] list object at 0x191e339b580>
+
+    @pytest.mark.parametrize("rid", [10 ** 5000, [10 ** 5000], _BadRepr(), None, 7], ids=["huge-int", "list", "bad-repr", "none", "int"])
+    def test_run_id_of_any_type_never_raises(rid):
+>       not_ready(call(v.verdict, [{"id": rid, "L": 0.0, "T": 99.0, "control_ok": True}]), "run ")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit')
+needles = ('run ',), @py_assert3 = False
+@py_format5 = "raised instead of reporting: ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_i... limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit'), dict)\n}"
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit')
+E       assert False
+E        +  where False = isinstance(ValueError('Exceeds the limit (4300 digits) for integer string conversion; use sys.set_int_max_str_digits() to increase the limit'), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+_______________ test_run_id_of_any_type_never_raises[bad-repr] ________________
+
+rid = <[RuntimeError('no repr') raised in repr()] _BadRepr object at 0x191e3099040>
+
+    @pytest.mark.parametrize("rid", [10 ** 5000, [10 ** 5000], _BadRepr(), None, 7], ids=["huge-int", "list", "bad-repr", "none", "int"])
+    def test_run_id_of_any_type_never_raises(rid):
+>       not_ready(call(v.verdict, [{"id": rid, "L": 0.0, "T": 99.0, "control_ok": True}]), "run ")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = TypeError("'NoneType' object is not callable"), needles = ('run ',)
+@py_assert3 = False
+@py_format5 = 'raised instead of reporting: TypeError("\'NoneType\' object is not callable")\n>assert False\n{False = isinstance(TypeError("\'NoneType\' object is not callable"), dict)\n}'
+
+    def not_ready(got, *needles):
+>       assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+E       AssertionError: raised instead of reporting: TypeError("'NoneType' object is not callable")
+E       assert False
+E        +  where False = isinstance(TypeError("'NoneType' object is not callable"), dict)
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:101: AssertionError
+_____________ test_numpy_fixed_width_ints_fail_closed_never_ready _____________
+
+    def test_numpy_fixed_width_ints_fail_closed_never_ready():
+        np = pytest.importorskip("numpy")
+        big = np.int64(2 ** 62)
+>       not_ready(call(v.verdict, [run(big, big, i="np")]), "run np")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:254: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = {'max_C': np.int64(-9223372036854775808), 'max_T': np.int64(4611686018427387904), 'reasons': [], 'verdict': 'READY'}
+needles = ('run np',), @py_assert3 = None, label = 'READY'
+
+    def not_ready(got, *needles):
+        assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+        label = got.get("verdict", got.get("label"))
+>       assert label in ("NOT READY", "B-CONDITIONAL NOT READY"), got
+E       AssertionError: {'max_C': np.int64(-9223372036854775808), 'max_T': np.int64(4611686018427387904), 'reasons': [], 'verdict': 'READY'}
+E       assert 'READY' in ('NOT READY', 'B-CONDITIONAL NOT READY')
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError
+________ test_int_subclass_with_wrapping_add_is_not_ready_never_ready _________
+
+    def test_int_subclass_with_wrapping_add_is_not_ready_never_ready():
+        w = _WrapInt(2 ** 62)
+>       not_ready(call(v.verdict, [run(w, w, i="w")]), "run w")
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:263: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+got = {'max_C': -9223372036854775808, 'max_T': 4611686018427387904, 'reasons': [], 'verdict': 'READY'}
+needles = ('run w',), @py_assert3 = None, label = 'READY'
+
+    def not_ready(got, *needles):
+        assert isinstance(got, dict), f"raised instead of reporting: {got!r}"
+        label = got.get("verdict", got.get("label"))
+>       assert label in ("NOT READY", "B-CONDITIONAL NOT READY"), got
+E       AssertionError: {'max_C': -9223372036854775808, 'max_T': 4611686018427387904, 'reasons': [], 'verdict': 'READY'}
+E       assert 'READY' in ('NOT READY', 'B-CONDITIONAL NOT READY')
+
+research\s1\s1_tests\test_s1_a3_m4_workload_verdict.py:103: AssertionError
+============================== warnings summary ===============================
+research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_numpy_fixed_width_ints_fail_closed_never_ready
+  C:\Users\gl450\trading_app-s1\research\s1\s1_evidence\a3\m4_workload\verdict_rule.py:48: RuntimeWarning: overflow encountered in scalar add
+    s = a + b
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unprintable_or_container_values_never_raise_in_reasons[list]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unprintable_or_container_values_never_raise_in_reasons[dict]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unprintable_or_container_values_never_raise_in_reasons[tuple]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unprintable_or_container_values_never_raise_in_reasons[bad-repr]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unprintable_or_container_values_never_raise_in_reasons[bytes]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_unprintable_or_container_values_never_raise_in_reasons[str]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_run_id_of_any_type_never_raises[huge-int]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_run_id_of_any_type_never_raises[list]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_run_id_of_any_type_never_raises[bad-repr]
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_numpy_fixed_width_ints_fail_closed_never_ready
+FAILED research/s1/s1_tests/test_s1_a3_m4_workload_verdict.py::test_int_subclass_with_wrapping_add_is_not_ready_never_ready
+11 failed, 49 passed, 1 warning in 1.30s

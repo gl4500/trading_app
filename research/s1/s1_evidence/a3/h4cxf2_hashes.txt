@@ -1,0 +1,7 @@
+# A3 H4-CX fix2 hashes (sha256), base a42ea8b826b0b19da84738397b7ab15ebd92094d + working tree (after fix round 1); explicit list, never lists itself
+e9528b1c49a93440f932142a4caebca945db4e71503cbea6a086a7247dc95a97 *s1_evidence/a3/m4_workload/verdict_rule.py
+be7de7388a07f34c8073f99f3bb26bbf46ff30cd56431f409cb385b9e11f340c *s1_tests/test_s1_a3_m4_workload_verdict.py
+8bb13ecad09cd3884112990ee60df2308235325641db357efd4077406bb879fc *s1_evidence/a3/h4cxf2_red.txt
+acc70e98b2a96e5394ed5dcc1b4ba33f61a6d0bc5524d3008b51f2900edb4b32 *s1_evidence/a3/h4cxf2_green.txt
+a9372e7fc375e46cac1cfeb2a5769bd7987841454457fb2f8efe490f03036025 *s1_evidence/a3/h4cxf2_mutants.txt
+db2a290a4cfe05e1a4fdca2249f007e5f735a03492e805dc9ff3fe0790dcc2f9 *s1_evidence/a3/h4cxf2_old_new.md

@@ -149,3 +149,122 @@ def test_cap_boundary_exact_and_next_float():
     assert ok["label"] == "B-CONDITIONAL READY", ok
     not_ready(call(v.b_conditional, [run(None, math.nextafter(60.0, math.inf))], 0.0, workloads_resolved=True,
                    injected_resolved=True), "> 60 s")
+
+
+# ---- A3 H4-CX fix2 (Codex X-13): individually valid values whose arithmetic overflows ------------------------------
+BIG = 10 ** 308                                  # a valid (finite as float) int; BIG + BIG is not a float
+HUGE_SUM_FLOATS = (1e308, 1e308)                 # two finite floats whose sum is inf
+
+
+def b_ready(runs, b, **kw):
+    return call(v.b_conditional, runs, b, workloads_resolved=True, injected_resolved=True, **kw)
+
+
+@pytest.mark.parametrize("lat,t", [(BIG, BIG), (10 ** 308, 10 ** 308 + 1), HUGE_SUM_FLOATS, (1e308, BIG)],
+                         ids=["codex-int-int", "int-int-odd", "float-float", "float-int"])
+def test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity(lat, t):
+    got = not_ready(call(v.verdict, [run(lat, t, i="ovf"), run(1.0, 2.0, i="good")]), "run ovf", "L + T")
+    assert got["max_C"] == 3.0 and got["max_T"] is not None, got          # the overflowing C is left out of max_C
+
+
+def test_verdict_overflow_alone_has_no_max_c_and_never_ready():
+    got = not_ready(call(v.verdict, [run(BIG, BIG, i="ovf")]), "run ovf", "L + T")
+    assert got["max_C"] is None and got["max_T"] == BIG, got              # max_T = the exact valid value
+
+
+@pytest.mark.parametrize("t,b", [(BIG, BIG), HUGE_SUM_FLOATS, (BIG, 1e308)], ids=["int-int", "float-float", "int-float"])
+def test_b_conditional_max_t_plus_b_overflow_is_not_ready(t, b):
+    got = not_ready(b_ready([run(None, t, i="ovf")], b), "max(T) + B")
+    assert got["label"] == "B-CONDITIONAL NOT READY" and got["max_T_plus_B"] is None, got
+
+
+def test_huge_int_cap_with_small_values_never_raises_never_ready():
+    for cap in (10 ** 400, 10 ** 5000):
+        not_ready(call(v.verdict, [run(1.0, 2.0)], cap=cap), "cap")
+        not_ready(b_ready([run(None, 2.0)], 1.0, cap=cap), "cap")
+
+
+def test_big_but_float_representable_cap_still_compares_exactly():
+    assert call(v.verdict, [run(1.0, 2.0)], cap=BIG)["verdict"] == "READY"
+    assert b_ready([run(None, 2.0)], 1.0, cap=BIG)["label"] == "B-CONDITIONAL READY"
+    not_ready(call(v.verdict, [run(BIG, BIG)], cap=BIG), "L + T")
+
+
+def test_huge_int_values_beyond_float_range_never_raise_even_in_reasons():
+    for bad in (10 ** 400, 10 ** 5000):                                   # repr(10**5000) itself raises ValueError
+        not_ready(call(v.verdict, [run(0.0, bad, i="x")]), "run x")
+        not_ready(call(v.verdict, [run(bad, 1.0, i="x")]), "run x")
+        not_ready(b_ready([run(None, bad, i="x")], 1.0), "run x")
+        not_ready(b_ready([run(None, 1.0)], bad), "B ")
+        not_ready(call(v.verdict, [run(0.0, 1.0)], cap=bad), "cap")
+
+
+def test_arithmetic_and_format_guard_keeps_ordinary_sums_exact():
+    got = call(v.verdict, [run(20.0, 45.0)])
+    assert got["max_C"] == 65.0 and any("65.000 s > 60 s" in x for x in got["reasons"]), got
+    ok = b_ready([run(None, 50.0)], 10.0)
+    assert ok["label"] == "B-CONDITIONAL READY" and ok["max_T_plus_B"] == 60.0, ok
+
+
+# ---- A3 H4-CX fix2 fix round 1: reason helpers never raise; fixed-width numerics fail closed ------------------------
+class _BadRepr:
+    def __repr__(self):
+        raise RuntimeError("no repr")
+
+    __format__ = None
+
+
+class _WrapInt(int):
+    """Models a fixed-width integer (numpy.int64): the sum wraps instead of growing."""
+    def __add__(self, other):
+        return _WrapInt((int(self) + int(other) + 2 ** 63) % 2 ** 64 - 2 ** 63)
+
+    __radd__ = __add__
+
+
+@pytest.mark.parametrize("bad", [[10 ** 5000], {"k": 10 ** 5000}, (10 ** 5000,), _BadRepr(), object(), b"x" * 10 ** 6,
+                                 "s" * 10 ** 6], ids=["list", "dict", "tuple", "bad-repr", "object", "bytes", "str"])
+def test_unprintable_or_container_values_never_raise_in_reasons(bad):
+    for r in ({"id": "x", "L": 0.0, "T": bad, "control_ok": True}, {"id": "x", "L": bad, "T": 1.0, "control_ok": True}):
+        got = not_ready(call(v.verdict, [r]), "run x")
+        assert all(len(x) < 2000 for x in got["reasons"]), "reason text is length-capped"
+    not_ready(call(v.verdict, [run(0.0, 1.0)], cap=bad), "cap")
+    not_ready(b_ready([run(None, 1.0)], bad), "B ")
+    not_ready(b_ready([run(None, bad, i="x")], 1.0), "run x")
+
+
+@pytest.mark.parametrize("rid", [10 ** 5000, [10 ** 5000], _BadRepr(), None, 7], ids=["huge-int", "list", "bad-repr", "none", "int"])
+def test_run_id_of_any_type_never_raises(rid):
+    not_ready(call(v.verdict, [{"id": rid, "L": 0.0, "T": 99.0, "control_ok": True}]), "run ")
+    not_ready(call(v.verdict, [{"id": rid, "L": 0.0, "T": 1.0, "control_ok": False}]), "run ")
+    not_ready(call(v.verdict, [{"id": rid, "L": 0.0, "T": float("nan"), "control_ok": True}]), "run ")
+    got = not_ready(call(v.b_conditional, [{"id": rid, "T": 1.0, "control_ok": False}], 1.0), "run ")
+    not_ready(call(v.b_conditional, [{"id": rid, "T": float("nan"), "control_ok": True}], 1.0), "run ")
+    assert got["max_T"] is None
+
+
+def test_run_id_text_unchanged_for_strings():
+    got = call(v.verdict, [run(20.0, 45.0, i="r7")])
+    assert any(x.startswith("run r7: ") for x in got["reasons"]), got
+
+
+def test_numpy_fixed_width_ints_fail_closed_never_ready():
+    np = pytest.importorskip("numpy")
+    big = np.int64(2 ** 62)
+    not_ready(call(v.verdict, [run(big, big, i="np")]), "run np")
+    not_ready(call(v.verdict, [run(np.float64(1.0), np.float64(2.0), i="np")]), "run np")
+    not_ready(b_ready([run(None, big, i="np")], big), "run np")
+    not_ready(b_ready([run(None, 1.0)], np.int64(1)), "B ")
+    not_ready(call(v.verdict, [run(0.0, 1.0)], cap=np.int64(60)), "cap")
+
+
+def test_int_subclass_with_wrapping_add_is_not_ready_never_ready():
+    w = _WrapInt(2 ** 62)
+    not_ready(call(v.verdict, [run(w, w, i="w")]), "run w")
+    not_ready(b_ready([run(None, w, i="w")], w), "run w")
+    not_ready(b_ready([run(None, 1.0)], w), "B ")
+
+
+def test_builtin_int_and_float_still_accepted():
+    assert call(v.verdict, [run(1, 2)])["verdict"] == "READY"
+    assert call(v.verdict, [run(0.5, 2.5)], cap=60)["verdict"] == "READY"

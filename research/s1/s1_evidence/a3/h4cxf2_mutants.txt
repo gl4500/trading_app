@@ -1,0 +1,87 @@
+== baseline: rc=0 44 passed in 0.82s
+== overflow-guard-removed (_add = bare a + b) -> KILLED (rc=1)
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[codex-int-int]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[int-int-odd]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[float-float]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[float-int]
+   test_verdict_overflow_alone_has_no_max_c_and_never_ready
+   test_b_conditional_max_t_plus_b_overflow_is_not_ready[int-int]
+   9 failed, 35 passed in 0.84s
+== overflow-except-removed (OverflowError uncaught) -> KILLED (rc=1)
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[codex-int-int]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[int-int-odd]
+   test_verdict_overflow_alone_has_no_max_c_and_never_ready
+   test_b_conditional_max_t_plus_b_overflow_is_not_ready[int-int]
+   test_big_but_float_representable_cap_still_compares_exactly
+   5 failed, 39 passed in 0.81s
+== isfinite-check-removed (inf sums pass) -> KILLED (rc=1)
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[codex-int-int]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[int-int-odd]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[float-float]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[float-int]
+   test_verdict_overflow_alone_has_no_max_c_and_never_ready
+   test_b_conditional_max_t_plus_b_overflow_is_not_ready[int-int]
+   9 failed, 35 passed in 0.85s
+== repr-guard-removed (_r = repr) -> KILLED (rc=1)
+   test_huge_int_cap_with_small_values_never_raises_never_ready
+   test_huge_int_values_beyond_float_range_never_raise_even_in_reasons
+   2 failed, 42 passed in 0.85s
+
+# ===== FIX ROUND 1: full runner re-run (9 mutants: the 4 of round 0, one re-pointed at the new _r, plus 5 new fr1-*); supersedes the list above =====
+== baseline: rc=0 60 passed in 1.05s
+== overflow-guard-removed (_add = bare a + b) -> KILLED (rc=1)
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[codex-int-int]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[int-int-odd]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[float-float]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[float-int]
+   test_verdict_overflow_alone_has_no_max_c_and_never_ready
+   test_b_conditional_max_t_plus_b_overflow_is_not_ready[int-int]
+   9 failed, 51 passed in 1.13s
+== overflow-except-removed (OverflowError uncaught) -> KILLED (rc=1)
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[codex-int-int]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[int-int-odd]
+   test_verdict_overflow_alone_has_no_max_c_and_never_ready
+   test_b_conditional_max_t_plus_b_overflow_is_not_ready[int-int]
+   test_big_but_float_representable_cap_still_compares_exactly
+   5 failed, 55 passed in 1.07s
+== isfinite-check-removed (inf sums pass) -> KILLED (rc=1)
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[codex-int-int]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[int-int-odd]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[float-float]
+   test_verdict_l_plus_t_overflow_is_not_ready_naming_run_and_quantity[float-int]
+   test_verdict_overflow_alone_has_no_max_c_and_never_ready
+   test_b_conditional_max_t_plus_b_overflow_is_not_ready[int-int]
+   9 failed, 51 passed in 1.08s
+== repr-guard-removed (_r = repr) -> KILLED (rc=1)
+   test_huge_int_cap_with_small_values_never_raises_never_ready
+   test_huge_int_values_beyond_float_range_never_raise_even_in_reasons
+   test_unprintable_or_container_values_never_raise_in_reasons[list]
+   test_unprintable_or_container_values_never_raise_in_reasons[dict]
+   test_unprintable_or_container_values_never_raise_in_reasons[tuple]
+   test_unprintable_or_container_values_never_raise_in_reasons[bad-repr]
+   9 failed, 51 passed in 1.04s
+== fr1-r-catches-only-valueerror (bit_length fallback) -> KILLED (rc=1)
+   test_unprintable_or_container_values_never_raise_in_reasons[list]
+   test_unprintable_or_container_values_never_raise_in_reasons[dict]
+   test_unprintable_or_container_values_never_raise_in_reasons[tuple]
+   test_unprintable_or_container_values_never_raise_in_reasons[bad-repr]
+   test_run_id_of_any_type_never_raises[list]
+   test_run_id_of_any_type_never_raises[bad-repr]
+   6 failed, 54 passed in 1.05s
+== fr1-run-id-raw-str (no _s) -> KILLED (rc=1)
+   test_run_id_of_any_type_never_raises[huge-int]
+   test_run_id_of_any_type_never_raises[list]
+   test_run_id_of_any_type_never_raises[bad-repr]
+   3 failed, 57 passed in 1.05s
+== fr1-real-accepts-numpy-ints (type check relaxed) -> KILLED (rc=1)
+   test_numpy_fixed_width_ints_fail_closed_never_ready
+   test_int_subclass_with_wrapping_add_is_not_ready_never_ready
+   2 failed, 58 passed, 1 warning in 1.08s
+== fr1-real-accepts-int-subclasses -> KILLED (rc=1)
+   test_numpy_fixed_width_ints_fail_closed_never_ready
+   test_int_subclass_with_wrapping_add_is_not_ready_never_ready
+   2 failed, 58 passed in 1.03s
+== fr1-text-uncapped -> KILLED (rc=1)
+   test_unprintable_or_container_values_never_raise_in_reasons[bytes]
+   test_unprintable_or_container_values_never_raise_in_reasons[str]
+   2 failed, 58 passed in 1.05s
