@@ -3,3 +3,4 @@ s1_out/
 __pycache__/
 *.sqlite3
 *.db
+.hypothesis/

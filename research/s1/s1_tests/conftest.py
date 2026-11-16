@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -10,6 +11,20 @@ import pytest
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE.parent))
 sys.path.insert(0, str(_HERE))
+
+
+def pytest_configure(config):
+    """PS-1: isolate Hypothesis storage per run and process, before test import.
+
+    Workers already isolate module globals and pytest tmp_path. Hypothesis uses
+    the working directory by default, so give it a separate home too. Keep every
+    test's existing settings (examples, deadlines, database=None) unchanged.
+    """
+    from hypothesis.configuration import set_hypothesis_home_dir
+
+    worker = getattr(config, "workerinput", {}).get("workerid", "serial")
+    home = Path(os.environ.get("S1_HYPOTHESIS_ROOT", str(_HERE.parent / ".hypothesis")))
+    set_hypothesis_home_dir(home / worker)
 
 SCHEMA = [
     """CREATE TABLE agents (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, strategy TEXT,

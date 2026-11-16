@@ -8,3 +8,11 @@ Offline research toolchain. **Not imported by the app** and never run against li
 - Tests: `C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m pytest s1_tests -q -p no:cacheprovider`
   (run from this folder; isolated test env with hypothesis/cosmic-ray, no app dependencies).
 - Runtime outputs go to `s1_out/` (git-ignored). Mailbox ACKs are read from the coordination folder at run time.
+
+- Optional Windows parallel tests: use a **separate** CPython 3.12.12 venv with
+  [requirements-test-xdist.txt](requirements-test-xdist.txt) (pytest-xdist 3.6.1 / execnet 2.1.1).
+  From an isolated repo root, set `PYTHONPATH=research/s1;research/s1/s1_tests`, `S1_MATRIX_FULL=0`,
+  and a fresh run-local `S1_HYPOTHESIS_ROOT`; run `<venv>/Scripts/python.exe -m pytest -p conftest
+  -p no:cacheprovider research/s1/s1_tests -q -n auto --dist loadfile` with a fresh `--basetemp`
+  outside the real `.coordination/trading_app` subtree. PS-1 with this test patch at `e3d7bc9` matched 5,763 passing nodes
+  in one serial and three 12-worker runs; other heads need their own baseline/equivalence check.

@@ -257,8 +257,8 @@ def test_class_style_config_keys(tmp_path):
 
 def test_real_backend_mr_keys_include_max_position_size():
     """Retrospective (Task 4 review fix round 2). Read-only; key names only, no .env read, no values."""
-    be = Path("C:/Users/gl450/trading_app-s1/backend")
+    be = Path(__file__).resolve().parents[3] / "backend"
     if not (be / "config.py").exists():
-        pytest.skip("real backend worktree not present (trading_app-s1/backend)")
+        pytest.skip("backend sources not present beside research/s1")
     rels = r.closure(be, r.MR_ROOTS)
     assert "MAX_POSITION_SIZE" in r._mr_config_keys(be, rels)
