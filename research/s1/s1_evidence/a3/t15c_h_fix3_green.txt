@@ -1,0 +1,79 @@
+A3 Task 15c-H fix round 3 GREEN (2026-11-16T08:02:46-05:00); HEAD 192e47c44a0e8ca416b4b5177e439437e5d7ccaf + uncommitted harness (final bytes, LF)
+cmd: PYTHONPATH=research/s1;research/s1/s1_tests <testenv> -m pytest -p conftest -p no:cacheprovider test_s1_a3_cr_guard.py test_s1_a3_cr_completion.py -q -rf (serial)
+result: 119 passed (61 cr_guard + 58 completion).
+test changes after the RED: the binding test now expects containment at the attempt level (the binding is identity-only); two pinning tests added (inputs changing between planning and execution; merge never recomputes the binding).
+files run (sha256):
+e0d7f6ccaa84c4f13aeebd0cbbf1c5fb316ad0837ca6f0d6d343ba7d33854ec9 *research/s1/s1_tests/test_s1_a3_cr_guard.py
+86898126b144e8b8f52bfd180a3d6daf078db7df4f5d409b1cdeb77154431fc4 *research/s1/s1_tests/test_s1_a3_cr_completion.py
+e76896cd5f4fa333cae27ca69a2731a88ddbe8fa5c7ca8bd8e39064034155f7a *research/s1/s1_tests/cr_coord.py
+1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+
+==== deletion checks (each new guard deleted in a SCRATCH copy scratchpad/t15c_work/deletion_fix3/<id>/). Code identical to the final cr_coord except the docstring bullet added afterwards.
+round 1:
+D0_control NOT CAUGHT ['118 passed in 37.66s'] []
+F1_cached_drift_raise caught ['4 failed, 114 passed in 37.81s'] ['test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[command]', 'test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[helper]', 'test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[env]']
+F2_prepass_call_removed caught ['4 failed, 114 passed in 37.93s'] ['test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[command]', 'test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[helper]', 'test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[env]']
+F3_screening_source_check caught ['1 failed, 117 passed in 37.80s'] ['test_X23_screening_label_is_not_reused_across_source_or_harness_drift[source]']
+F4_screening_harness_check caught ['1 failed, 117 passed in 38.34s'] ['test_X23_screening_label_is_not_reused_across_source_or_harness_drift[harness]']
+F5_env_from_parent_not_child caught ['1 failed, 117 passed in 37.87s'] ['test_X24_binding_env_is_the_child_env_not_the_parent_env']
+F6_merge_recomputes_binding NOT CAUGHT ['118 passed in 37.73s'] []
+F7_binding_not_persisted caught ['23 failed, 95 passed in 41.08s'] ['test_kill_in_shard_2_of_3_settles_killed_and_stops_the_rest', 'test_all_completion_shards_guard_clean_survived_gives_survived', 'test_guard_error_in_one_shard_is_unresolved_with_its_exact_status']
+F8_executed_vs_planned caught ['1 failed, 117 passed in 39.47s'] ['test_X23_inputs_changing_between_planning_and_execution_are_not_merged']
+F9_planned_binding_not_recorded caught ['3 failed, 115 passed in 37.96s'] ['test_I2_fence_refused_shard_resumes_in_a_later_session', 'test_X23_binding_is_persisted_with_the_attempt_at_execution_time', 'test_X23_refused_shard_resume_with_drifted_inputs_is_refused']
+F11_explicit_source_vs_persisted NOT CAUGHT ['118 passed in 38.73s'] []
+F12_copied_source_not_recorded caught ['26 failed, 92 passed in 39.06s'] ['test_kill_in_shard_2_of_3_settles_killed_and_stops_the_rest', 'test_all_completion_shards_guard_clean_survived_gives_survived', 'test_guard_error_in_one_shard_is_unresolved_with_its_exact_status']
+round 2 (after adding the never-recompute pin):
+D0_control NOT CAUGHT ['119 passed in 38.81s'] []
+F6_merge_recomputes_binding caught ['1 failed, 118 passed in 39.01s'] ['test_X23_merge_reads_the_persisted_binding_and_never_recomputes_it']
+F11_explicit_source_vs_persisted NOT CAUGHT ['119 passed in 38.01s'] []
+NOT CAUGHT: D0 = unmodified control. F11 (explicit source_sha256 vs the persisted completion binding) is equivalent defence-in-depth: _check_screening_context refuses first whenever the expected source differs from the screened source or the current source, and the executed-vs-planned check guarantees every persisted completion binding has the current source; no reachable state distinguishes it without hand-editing records.
+
+==== replay of Codex probe_resume_binding_v3 cases against this harness (scratchpad/x23x24/replay_v3_fixed.py)
+{
+  "harness_sha256": {
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d",
+    "cr_coord.py": "e76896cd5f4fa333cae27ca69a2731a88ddbe8fa5c7ca8bd8e39064034155f7a",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00"
+  },
+  "command": {
+    "first_label": "survived",
+    "second": "refused: completion attempt c1 (c1) executed binding drift in ['test_command_sha256']: the cached result is not merged and nothing is relabelled - use a fresh completion root",
+    "exec_calls_c1": 1,
+    "state_unchanged": true,
+    "records": [
+      "completion_record.json"
+    ]
+  },
+  "source": {
+    "first_label": "survived",
+    "second": "refused: screening of j1 (batch_b000_state.json) ran on source_sha256 0bf74a33a13a0762f71ab0ae2ed21a3a8c9c403ce2add070509c168bd75323e4; the current source is 024d170f7bd3833f7203b59b9e05b6d98f4894a7c11384b8dd03cb65db33b5fb and the expected source_sha256 is 0bf74a33a13a0762f71ab0ae2ed21a3a8c9c403ce2add070509c168bd75323e4: the screening label is not reused",
+    "exec_calls_c1": 1,
+    "state_unchanged": true,
+    "records": [
+      "completion_record.json"
+    ]
+  },
+  "helper": {
+    "first_label": "survived",
+    "second": "refused: completion attempt c1 (c1) executed binding drift in ['helpers_sha256']: the cached result is not merged and nothing is relabelled - use a fresh completion root",
+    "exec_calls_c1": 1,
+    "state_unchanged": true,
+    "records": [
+      "completion_record.json"
+    ]
+  },
+  "effective_env": {
+    "parent_PYTHONDONTWRITEBYTECODE": null,
+    "binding_PYTHONDONTWRITEBYTECODE": "1",
+    "child_env_PYTHONDONTWRITEBYTECODE": "1"
+  }
+}
+
+==== pytest output
+........................................................................ [ 60%]
+...............................................                          [100%]
+119 passed in 37.73s

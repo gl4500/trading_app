@@ -16,6 +16,7 @@ import inspect
 import json
 import math
 import os
+import shutil
 
 import pytest
 
@@ -76,7 +77,8 @@ def _shards(src, per_shard: dict, extra_pool=()):
     calls = {n: [] for n in per_shard}
     specs = [{"name": n, "cfg": cr_coord.CRConfig(python=PY, module_rel="pkg/m.py",
                                                   guard_args=["--control", f"{n}.json", f"@{n}.txt"],
-                                                  target_module="pkg.m"), "copy_paths": ["pkg"]}
+                                                  target_module="pkg.m"),
+              "copy_paths": ["pkg", f"{n}.json", f"{n}.txt"]}
              for n in per_shard]
 
     def factory(cfg):
@@ -309,6 +311,7 @@ def test_completion_attempt_binds_executable_env_helpers_nodes_and_control(tmp_p
     (src / "conftest.py").write_text("# helper\n", encoding="utf-8")
     monkeypatch.setenv("PYTHONHASHSEED", "0")
     specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    specs[0]["copy_paths"].append("conftest.py")
     res = _complete(src, by_id, work, specs, factory, pool)
     b = (res.get("attempts") or [{}])[0].get("binding") or {}
     assert b.get("python") == str(PY) and b.get("harness_sha256") == cr_coord.harness_hashes()
@@ -317,7 +320,8 @@ def test_completion_attempt_binds_executable_env_helpers_nodes_and_control(tmp_p
     assert b.get("control_sha256") == sha(src / "c1.json")
     assert b.get("source_sha256") == sha(src / "pkg" / "m.py")
     assert (b.get("env") or {}).get("PYTHONHASHSEED") == "0" and b.get("pythonpath_rel") == ["."]
-    assert b.get("test_command_sha256") and b.get("containment") == {"exec_status": "ok", "cleanup_verified": True}
+    assert b.get("test_command_sha256") and "containment" not in b, "the binding is identity only (fix round 3)"
+    assert res["attempts"][0].get("containment") == {"exec_status": "ok", "cleanup_verified": True}
 
 
 # ----------------------------------------------------------------------------------------------- frozen pool union
@@ -424,6 +428,14 @@ def _identity(tmp_path, tag):
     return cr_coord.config_identity(cfg, toml, config_id=f"pkg.m/{tag}"), cfg, toml
 
 
+def _inv_for(tmp_path, cfg, by_id):
+    """fix round 4 (R3-N3): the inventory a direct run_batch(config=...) identity is verified against."""
+    inv = tmp_path / "identity_inventory.json"
+    inv.write_text(json.dumps({"module_rel": "pkg/m.py", "test_command": cr_coord.test_command(cfg),
+                               "items": cr_coord.order_items(list(by_id.values()))}), encoding="utf-8")
+    return inv
+
+
 def test_I3_cap_is_bound_to_one_config_and_reverified_on_use(tmp_path):
     src, by_id = _many(tmp_path, 60)
     ids = sorted(by_id)
@@ -436,9 +448,9 @@ def test_I3_cap_is_bound_to_one_config_and_reverified_on_use(tmp_path):
     def seam(item, copy_root, job_dir):
         now[0] += 100.0 if item["job_id"] != "j05" else 150.0     # measured per-item cost (fake monotonic clock)
         return dict(CLEAN_SURV)
-    work = tmp_path / "w"
+    work, inv = tmp_path / "w", _inv_for(tmp_path, cfg_a, by_id)
     st = cr_coord.run_batch(ids[:24], by_id, batch_id="cal", src_root=src, copy_paths=["pkg"], work_root=work,
-                            exec_seam=seam, clock=lambda: now[0], config=ida)
+                            exec_seam=seam, clock=lambda: now[0], config=ida, inventory_path=inv)
     assert st.get("item_s", {}).get("j05") == 150.0 and st.get("config") == ida
     state = work / "batch_cal_state.json"
     short = tmp_path / "short_state.json"
@@ -465,9 +477,10 @@ def test_I3_cap_is_bound_to_one_config_and_reverified_on_use(tmp_path):
         cr_coord.plan_batches(ids, size=99, cap_record=cap_path, identity=ida)
     with pytest.raises(cr_coord.PartitionError, match=r"over the 24 cap"):
         cr_coord.run_batch(ids[24:54], by_id, batch_id="b1", src_root=src, copy_paths=["pkg"], work_root=work,
-                           exec_seam=seam, clock=lambda: now[0], config=ida)
+                           exec_seam=seam, clock=lambda: now[0], config=ida, inventory_path=inv)
     st2 = cr_coord.run_batch(ids[24:54], by_id, batch_id="b1", src_root=src, copy_paths=["pkg"], work_root=work,
-                             exec_seam=seam, clock=lambda: now[0], config=ida, cap_record=cap_path)
+                             exec_seam=seam, clock=lambda: now[0], config=ida, cap_record=cap_path,
+                             inventory_path=inv)
     assert len(st2.get("done", [])) == 30
     toml_a.write_text(toml_a.read_text(encoding="utf-8").replace("timeout = 300.0", "timeout = 301.0"),
                       encoding="utf-8")
@@ -503,7 +516,7 @@ def test_R1_I1_resolved_unclean_kill_does_not_short_circuit_a_later_clean_kill(t
 def _cap_setup(tmp_path):
     src, by_id = _many(tmp_path, 60)
     ids = sorted(by_id)
-    ida, _, _ = _identity(tmp_path, "a")
+    ida, cfg_a, _ = _identity(tmp_path, "a")
     now = [0.0]
 
     def seam(item, copy_root, job_dir):
@@ -511,7 +524,8 @@ def _cap_setup(tmp_path):
         return dict(CLEAN_SURV)
     work = tmp_path / "w"
     cr_coord.run_batch(ids[:24], by_id, batch_id="cal", src_root=src, copy_paths=["pkg"], work_root=work,
-                       exec_seam=seam, clock=lambda: now[0], config=ida)
+                       exec_seam=seam, clock=lambda: now[0], config=ida,
+                       inventory_path=_inv_for(tmp_path, cfg_a, by_id))
     cap_path = work / "derived_cap.json"
     cr_coord.derive_cap(work / "batch_cal_state.json", out=cap_path, identity=ida)
     return src, by_id, ids, ida, cap_path, seam, now, work
@@ -609,3 +623,364 @@ def test_R1_N3_run_manifest_refuses_an_identity_for_another_test_command(tmp_pat
     st = cr_coord.run_manifest(m0, inv, src_root=src, copy_paths=["pkg"], work_root=work / "s1",
                                exec_seam=_seam({}, calls), config=ida)
     assert st.get("done") == ["j1"] and st.get("config") == ida
+
+
+# =============================================================================================== 15c-H fix round 3
+# Codex exact-head review of 192e47c: X23 (a cached completion attempt was merged under a binding recomputed from the
+# CURRENT inputs) and X24 (the binding env was read from os.environ, not the env _env gives the child). Rulings: bind
+# at execution time from the child's inputs, persist it with the attempt, compare it field by field on reuse/resume
+# (drift fails closed, nothing is relabelled), check an explicit source_sha256, and close the screening-reuse path.
+def _x23(tmp_path, monkeypatch):
+    """One screened survivor + one clean completion attempt c1, with a helper on the copied path."""
+    monkeypatch.setenv("PYTHONHASHSEED", "0")
+    src, by_id, work = _screened(tmp_path)
+    (src / "conftest.py").write_text("# helper v1\n", encoding="utf-8")
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    specs[0]["copy_paths"].append("conftest.py")
+    r1 = _complete(src, by_id, work, specs, factory, pool)
+    assert r1.get("label") == "survived" and calls["c1"] == ["j1"], r1
+    state = work / "completion" / "j1" / "c1" / "batch_c1_state.json"
+    return src, by_id, work, specs, factory, calls, pool, state
+
+
+def _drift(case, src, specs, monkeypatch):
+    if case == "command":                                     # Codex: command-only drift
+        specs[0]["cfg"].guard_args = specs[0]["cfg"].guard_args + ["-k", "no_such_test"]
+    elif case == "source":                                    # Codex: source-only drift
+        (src / "pkg" / "m.py").write_text("X = 1\nY = 2\nZ = 3\nDRIFT = 1\n", encoding="utf-8")
+    elif case == "helper":                                    # Codex: helper-only drift
+        (src / "conftest.py").write_text("# helper v2\n", encoding="utf-8")
+    else:                                                     # env drift
+        monkeypatch.setenv("PYTHONHASHSEED", "1")
+
+
+_DRIFT_FIELD = {"command": r"test_command_sha256", "source": r"source_sha256", "helper": r"helpers_sha256",
+                "env": r"env\.PYTHONHASHSEED"}
+
+
+@pytest.mark.parametrize("case", ["command", "source", "helper", "env"])
+def test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled(tmp_path, monkeypatch, case):
+    src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+    before = state.read_bytes()
+    _drift(case, src, specs, monkeypatch)
+    with pytest.raises(cr_coord.CoordError, match=_DRIFT_FIELD[case]):
+        _complete(src, by_id, work, specs, factory, pool)
+    assert calls["c1"] == ["j1"], "no attempt was re-run"
+    assert state.read_bytes() == before, "the persisted attempt (and its binding) is unchanged"
+    assert not list((work / "completion" / "j1").glob("completion_record_*.json")), "no relabelled record written"
+
+
+def test_X23_unchanged_context_reuses_the_cached_attempt_with_its_original_binding(tmp_path, monkeypatch):
+    src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+    r2 = _complete(src, by_id, work, specs, factory, pool)
+    persisted = json.loads(state.read_text(encoding="utf-8")).get("bindings", {}).get("j1")
+    assert r2.get("label") == "survived" and calls["c1"] == ["j1"]
+    assert r2["attempts"][0].get("binding") == persisted
+
+
+def test_X23_binding_is_persisted_with_the_attempt_at_execution_time(tmp_path, monkeypatch):
+    src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+    st = json.loads(state.read_text(encoding="utf-8"))
+    b = (st.get("bindings") or {}).get("j1") or {}
+    assert b.get("source_sha256") == sha(src / "pkg" / "m.py") and b.get("helpers_sha256") == \
+        {"conftest.py": sha(src / "conftest.py")}
+    assert st.get("planned_binding") == b, "what ran equals what was planned from the source tree"
+    rec = json.loads((work / "completion" / "j1" / "completion_record.json").read_text(encoding="utf-8"))
+    assert rec["attempts"][0]["binding"] == b
+
+
+def test_X23_explicit_source_sha256_is_checked_against_the_persisted_binding(tmp_path, monkeypatch):
+    src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+    with pytest.raises(cr_coord.CoordError, match=r"source_sha256"):
+        _complete(src, by_id, work, specs, factory, pool, source_sha256={"pkg/m.py": "0" * 64})
+    assert calls["c1"] == ["j1"]
+
+
+def test_X23_refused_shard_resume_with_drifted_inputs_is_refused(tmp_path, monkeypatch):
+    monkeypatch.setenv("PYTHONHASHSEED", "0")
+    src, by_id, work = _screened(tmp_path)
+    started = json.loads((work / "session.json").read_text(encoding="utf-8"))["started"]
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    _complete(src, by_id, work, specs, factory, pool, clock=lambda: started + B["session_length_s"] - 1.0)
+    cr_coord.resolve_stop(work / "completion" / "j1" / "c1", "c1", by="controller", note="session ended")
+    specs[0]["cfg"].guard_args = specs[0]["cfg"].guard_args + ["-k", "no_such_test"]
+    with pytest.raises(cr_coord.CoordError, match=r"test_command_sha256"):
+        _complete(src, by_id, work, specs, factory, pool, session_root=tmp_path / "s2", clock=lambda: 5.0)
+    assert calls["c1"] == []
+
+
+@pytest.mark.parametrize("case", ["source", "harness"])
+def test_X23_screening_label_is_not_reused_across_source_or_harness_drift(tmp_path, monkeypatch, case):
+    src, by_id, work = _screened(tmp_path)
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    if case == "source":
+        (src / "pkg" / "m.py").write_text("X = 1\nY = 2\nZ = 3\nDRIFT = 1\n", encoding="utf-8")
+        pattern = r"screening of j1 .*source_sha256"
+    else:
+        real = cr_coord.harness_hashes()
+        monkeypatch.setattr(cr_coord, "harness_hashes", lambda: dict(real, **{"cr_coord.py": "0" * 64}))
+        pattern = r"screening of j1 .*harness"
+    with pytest.raises(cr_coord.CoordError, match=pattern):
+        _complete(src, by_id, work, specs, factory, pool)
+    assert calls["c1"] == [] and not (work / "completion").exists()
+
+
+def test_X24_binding_env_is_the_child_env_not_the_parent_env(tmp_path, monkeypatch):
+    monkeypatch.delenv("PYTHONDONTWRITEBYTECODE", raising=False)
+    monkeypatch.setenv("PYTHONHASHSEED", "7")
+    src, by_id, work = _screened(tmp_path)
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    res = _complete(src, by_id, work, specs, factory, pool)
+    env = ((res.get("attempts") or [{}])[0].get("binding") or {}).get("env") or {}
+    assert env.get("PYTHONDONTWRITEBYTECODE") == "1", "the child gets 1 from _env whatever the parent has"
+    assert env.get("PYTHONHASHSEED") == "7" and env.get("PYTHONPATH") == [".", ".cr_harness"], env
+
+
+def test_X23_inputs_changing_between_planning_and_execution_are_not_merged(tmp_path, monkeypatch):
+    """A helper rewritten after the completion was planned but before the attempt's copy was made: the executed
+    (copy) binding differs from the planned one, so the result is not merged."""
+    src, by_id, work = _screened(tmp_path)
+    (src / "conftest.py").write_text("# helper v1\n", encoding="utf-8")
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    specs[0]["copy_paths"].append("conftest.py")
+
+    def racing_factory(cfg):
+        (src / "conftest.py").write_text("# helper changed mid-run\n", encoding="utf-8")
+        return factory(cfg)
+    with pytest.raises(cr_coord.CoordError, match=r"executed binding differs from the planned one in \['helpers"):
+        _complete(src, by_id, work, specs, racing_factory, pool)
+    assert not list((work / "completion" / "j1").glob("completion_record*.json"))
+
+
+def test_X23_merge_reads_the_persisted_binding_and_never_recomputes_it(tmp_path, monkeypatch):
+    """Ruling 1: the merge / completion record take the binding persisted with the attempt. On a cached reuse the
+    only binding computation is the one planned comparison per shard (white-box spy on _attempt_binding)."""
+    src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+    seen = []
+    real = cr_coord._attempt_binding
+
+    def spy(cfg, root, nodes, copy_paths):
+        seen.append(str(root))
+        return real(cfg, root, nodes, copy_paths)
+    monkeypatch.setattr(cr_coord, "_attempt_binding", spy)
+    r2 = _complete(src, by_id, work, specs, factory, pool)
+    assert r2.get("label") == "survived" and seen == [str(src)], seen
+    assert r2["attempts"][0]["binding"] == json.loads(state.read_text(encoding="utf-8"))["bindings"]["j1"]
+
+
+# =============================================================================================== 15c-H fix round 4
+# Re-review 3: R3-I1 (the child inherited every PYTHON*/PYTEST*/HYPOTHESIS*/COV* variable of the parent while only 7
+# were bound), R3-N1 (six fix-3 guards survived deletion alone), R3-N2 (the drift errors named a remedy that does not
+# exist), R3-N3 (direct run_batch(config=...) trusted the identity it was given), R3-N4 (_in_completion_area's
+# completion_of branch was unpinned).
+_PREFIXES = ("PYTHON", "PYTEST", "HYPOTHESIS", "COV")
+
+
+def _capturing(factory, seen: list):
+    """Wrap a stub exec factory: each seam call also records the env real_exec would give the CR child (the same
+    production call real_exec makes: _env(copy_root, cfg, job_dir, job_id))."""
+    def fac(cfg):
+        inner = factory(cfg)
+
+        def seam(item, copy_root, job_dir):
+            seen.append((copy_root, job_dir, cr_coord._env(copy_root, cfg, job_dir, item["job_id"])))
+            return inner(item, copy_root, job_dir)
+        return seam
+    return fac
+
+
+@pytest.mark.parametrize("name,value", [("PYTHONOPTIMIZE", "1"), ("PYTEST_PLUGINS", "x"), ("PYTHONWARNINGS", "error"),
+                                        ("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")])
+def test_R3_I1_outcome_changing_parent_env_does_not_reach_the_child(tmp_path, monkeypatch, name, value):
+    """Ruling 1 (scrub branch): the variable set in the parent is not in the child's env, so it is not in the binding
+    either, and setting/unsetting it between two run_completion calls cannot change what a reused attempt ran on."""
+    monkeypatch.setenv(name, value)
+    src, by_id, work = _screened(tmp_path)
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    seen = []
+    res = _complete(src, by_id, work, specs, _capturing(factory, seen), pool)
+    ((_, _, child),) = seen
+    assert name.upper() not in {k.upper() for k in child}, f"{name} reached the CR child"
+    assert name.upper() not in {k.upper() for k in res["attempts"][0]["binding"]["env"]}
+    monkeypatch.delenv(name)
+    r2 = _complete(src, by_id, work, specs, factory, pool)
+    assert r2.get("label") == "survived" and calls["c1"] == ["j1"], r2
+
+
+def test_R3_I1_child_env_equals_the_binding_for_every_prefixed_variable(tmp_path, monkeypatch):
+    for k, v in {"PYTHONHASHSEED": "5", "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "PYTHONOPTIMIZE": "1",
+                 "PYTHONSAFEPATH": "1", "PYTEST_ADDOPTS": "-x", "HYPOTHESIS_STORAGE_DIRECTORY": "h",
+                 "COVERAGE_PROCESS_START": "c", "S1_HYPOTHESIS_ROOT": "parent_hyp",
+                 cr_guard.NODES_ENV: "parent_nodes"}.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.delenv("PYTHONDONTWRITEBYTECODE", raising=False)
+    src, by_id, work = _screened(tmp_path)
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    seen = []
+    res = _complete(src, by_id, work, specs, _capturing(factory, seen), pool)
+    ((copy_root, job_dir, child),) = seen
+    bound = res["attempts"][0]["binding"]["env"]
+    child_pref = {k: v for k, v in child.items() if k.upper().startswith(_PREFIXES) and k.upper() != "PYTHONPATH"}
+    bound_pref = {k: v for k, v in bound.items() if k not in ("PYTHONPATH", "TZ")}
+    assert child_pref == bound_pref, (child_pref, bound_pref)
+    assert child_pref == {"PYTHONHASHSEED": "5", "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8",
+                          "PYTHONDONTWRITEBYTECODE": "1"}, "only the pass list and _env's own values reach the child"
+    assert [cr_coord._rel_entry(x, copy_root) for x in child["PYTHONPATH"].split(os.pathsep) if x] == \
+        bound["PYTHONPATH"] == [".", ".cr_harness"]
+    assert "TZ" in bound, "TZ stays bound"
+    assert child["S1_HYPOTHESIS_ROOT"] == str(job_dir / "hypothesis"), "the parent's value never reaches the child"
+    assert cr_guard.NODES_ENV not in child
+
+
+def test_R3_I1_scrub_and_pass_list_match_names_case_insensitively(tmp_path, monkeypatch):
+    """Windows env names are case-insensitive (os.environ upper-cases them there, so a mixed-case parent name cannot
+    be set through it): a plain mapping stands in for os.environ to exercise the comparison itself."""
+    fake = {"pythonOptimize": "1", "Pytest_Plugins": "x", "hypothesis_x": "1", "cov_core_source": "s",
+            "PythonHashSeed": "3", "PATH": os.environ.get("PATH", "")}
+    monkeypatch.setattr(cr_coord.os, "environ", fake)
+    env = cr_coord._env(tmp_path, _cfg())
+    assert {k.upper() for k in env if k.upper().startswith(_PREFIXES)} == \
+        {"PYTHONHASHSEED", "PYTHONDONTWRITEBYTECODE", "PYTHONPATH"}, env
+    assert env.get("PythonHashSeed") == "3" and "PATH" in env
+
+
+# --- R3-N1: each fix-3 guard that survived deletion is pinned alone -----------------------------------------------
+def test_R3_N1_X2_screening_check_alone_refuses_a_pin_other_than_the_screened_source(tmp_path):
+    """No cached attempt: without the screening `want` conjunct the attempt would run and stop on source_drift."""
+    src, by_id, work = _screened(tmp_path)
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    with pytest.raises(cr_coord.CoordError, match=r"screening of j1 .*expected source_sha256 is 0{64}"):
+        _complete(src, by_id, work, specs, factory, pool, source_sha256={"pkg/m.py": "0" * 64})
+    assert calls["c1"] == [] and not (work / "completion").exists()
+
+
+def test_R3_N1_X7_cached_check_alone_refuses_a_persisted_source_other_than_the_pin(tmp_path, monkeypatch):
+    """The screening check refuses first through run_completion, so the cached-attempt check is pinned directly."""
+    src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+    nodes = cr_coord.shard_nodes(specs[0]["cfg"], src, "c1")
+    planned = cr_coord._attempt_binding(specs[0]["cfg"], src, nodes, specs[0]["copy_paths"])
+    cr_coord._check_cached_attempts("j1", "c1", state.parent, planned, None)
+    cr_coord._check_cached_attempts("j1", "c1", state.parent, planned, sha(src / "pkg" / "m.py"))
+    with pytest.raises(cr_coord.CoordError, match=r"binding drift in \['source_sha256\(expected\)'\]"):
+        cr_coord._check_cached_attempts("j1", "c1", state.parent, planned, "0" * 64)
+
+
+def test_R3_N1_X6_legacy_attempt_state_without_a_binding_is_refused(tmp_path, monkeypatch):
+    src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+    st = json.loads(state.read_text(encoding="utf-8"))
+    st.pop("bindings")                                        # a state written before fix round 3
+    state.write_text(json.dumps(st), encoding="utf-8")
+    with pytest.raises(cr_coord.CoordError, match=r"has no persisted executed binding.*screen j1 again in a fresh "
+                                                  r"work_root"):
+        _complete(src, by_id, work, specs, factory, pool)
+    assert calls["c1"] == ["j1"]
+
+
+def test_R3_N1_X9_binding_is_on_disk_before_the_exec_seam_runs(tmp_path):
+    src, by_id, work = _screened(tmp_path)
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    seen = {}
+
+    def fac(cfg):
+        inner = factory(cfg)
+
+        def seam(item, copy_root, job_dir):
+            st = json.loads((job_dir.parent.parent / "batch_c1_state.json").read_text(encoding="utf-8"))
+            seen["binding"] = (st.get("bindings") or {}).get("j1")
+            return inner(item, copy_root, job_dir)
+        return seam
+    res = _complete(src, by_id, work, specs, fac, pool)
+    assert seen.get("binding") and seen["binding"] == res["attempts"][0]["binding"], seen
+
+
+def test_R3_N1_X12_a_helper_outside_the_copy_is_not_bound(tmp_path):
+    src, by_id, work = _screened(tmp_path)
+    (src / "conftest.py").write_text("# on the source tree, never copied\n", encoding="utf-8")
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    res = _complete(src, by_id, work, specs, factory, pool)
+    assert res.get("label") == "survived" and res["attempts"][0]["binding"]["helpers_sha256"] == {}, res
+
+
+def test_R3_N1_X15_binding_is_taken_from_the_copy_not_the_source_tree(tmp_path, monkeypatch):
+    """A copy that differs from the source tree (simulated by wrapping make_copy) is what the child runs on, so the
+    executed binding must come from the copy and then differ from the planned one."""
+    src, by_id, work = _screened(tmp_path)
+    (src / "conftest.py").write_text("# helper v1\n", encoding="utf-8")
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    specs[0]["copy_paths"].append("conftest.py")
+    real = cr_coord.make_copy
+
+    def diverging_copy(src_root, copy_paths, dest):
+        out = real(src_root, copy_paths, dest)
+        (dest / "conftest.py").write_text("# the copy differs\n", encoding="utf-8")
+        return out
+    monkeypatch.setattr(cr_coord, "make_copy", diverging_copy)
+    with pytest.raises(cr_coord.CoordError, match=r"executed binding differs from the planned one in "
+                                                  r"\['helpers_sha256'\]"):
+        _complete(src, by_id, work, specs, factory, pool)
+
+
+# --- R3-N2: the drift errors name a remedy that exists, and the remedy works ---------------------------------------
+def test_R3_N2_cached_drift_error_names_an_existing_remedy_and_it_works(tmp_path, monkeypatch):
+    src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+    _drift("helper", src, specs, monkeypatch)
+    with pytest.raises(cr_coord.CoordError, match=r"restore the bound inputs, or screen j1 again in a fresh "
+                                                  r"work_root and complete it there"):
+        _complete(src, by_id, work, specs, factory, pool)
+    w2 = tmp_path / "w2"                                       # the named remedy, through the existing API only
+    cr_coord.run_batch(["j1"], by_id, batch_id="b000", src_root=src, copy_paths=["pkg"], work_root=w2,
+                       exec_seam=_seam({}, []))
+    r = _complete(src, by_id, w2, specs, factory, pool)
+    assert r.get("label") == "survived" and calls["c1"] == ["j1", "j1"], r
+
+
+def test_R3_N2_mid_run_drift_error_names_an_existing_remedy(tmp_path):
+    src, by_id, work = _screened(tmp_path)
+    (src / "conftest.py").write_text("# helper v1\n", encoding="utf-8")
+    specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+    specs[0]["copy_paths"].append("conftest.py")
+
+    def racing_factory(cfg):
+        (src / "conftest.py").write_text("# helper changed mid-run\n", encoding="utf-8")
+        return factory(cfg)
+    with pytest.raises(cr_coord.CoordError, match=r"not merged.*screen j1 again in a fresh work_root"):
+        _complete(src, by_id, work, specs, racing_factory, pool)
+
+
+# --- R3-N3: direct run_batch(config=...) verifies the identity against the inventory -------------------------------
+def test_R3_N3_direct_run_batch_verifies_a_config_identity_against_the_inventory(tmp_path):
+    src, items = _three(tmp_path)
+    by_id = {i["job_id"]: i for i in items}
+    ida, cfg_a, _ = _identity(tmp_path, "a")
+    idb, _, _ = _identity(tmp_path, "b")
+    inv = tmp_path / "inventory.json"
+    inv.write_text(json.dumps({"module_rel": "pkg/m.py", "source_sha256": sha(src / "pkg" / "m.py"),
+                               "test_command": cr_coord.test_command(cfg_a), "items": cr_coord.order_items(items)}),
+                   encoding="utf-8")
+    work, calls = tmp_path / "w", []
+    with pytest.raises(cr_coord.CoordError, match=r"identity pkg\.m/a is only accepted with the inventory"):
+        cr_coord.run_batch(["j1"], by_id, batch_id="b0", src_root=src, copy_paths=["pkg"], work_root=work,
+                           exec_seam=_seam({}, calls), config=ida)
+    with pytest.raises(cr_coord.CoordError, match=r"identity pkg\.m/b: not this inventory's test_command"):
+        cr_coord.run_batch(["j1"], by_id, batch_id="b0", src_root=src, copy_paths=["pkg"], work_root=work,
+                           exec_seam=_seam({}, calls), config=idb, inventory_path=inv)
+    assert calls == [] and not list(work.glob("batch_*_state.json"))
+    st = cr_coord.run_batch(["j1"], by_id, batch_id="b0", src_root=src, copy_paths=["pkg"], work_root=work,
+                            exec_seam=_seam({}, calls), config=ida, inventory_path=inv)
+    assert st.get("done") == ["j1"] and st.get("config") == ida
+
+
+# --- R3-N4: the completion_of branch of _in_completion_area ---------------------------------------------------------
+def test_R3_N4_a_moved_completion_shard_dir_is_refused_by_its_completion_of_record(tmp_path):
+    src, by_id, work = _screened(tmp_path)
+    specs, factory, calls, pool = _shards(src, {"c1": GUARD_TIMEOUT})
+    _complete(src, by_id, work, specs, factory, pool)
+    moved = tmp_path / "moved" / "c1"
+    moved.parent.mkdir()
+    shutil.move(str(work / "completion" / "j1" / "c1"), str(moved))
+    assert "completion" not in (moved.name, moved.parent.name, moved.parent.parent.name)
+    rcalls = []
+    with pytest.raises(cr_coord.CoordError, match=r"run_retry refuses a completion-shard directory"):
+        cr_coord.run_retry("j1", by_id, _cfg(), src_root=src, copy_paths=["pkg"], work_root=moved,
+                           exec_factory=lambda c: _seam({}, rcalls))
+    assert rcalls == [] and not (moved / "retries").exists()

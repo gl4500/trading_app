@@ -26,6 +26,15 @@
   run_completion verifies the declared shards against the frozen pool.json, resumes fence-refused shards after
   resolve_stop, and binds each attempt's executable/env/helpers/nodes/control; cap records are bound to one config
   (config_identity) and re-verified on every use; run_retry refuses completion-shard directories.
+* 15c-H fix round 3 (Codex X23/X24 on 192e47c): a completion attempt's binding is computed at EXECUTION time from
+  its copy and the child env _env builds, persisted in the state before the exec seam runs, and the merge reads only
+  that; every cached/refused completion state is compared field by field with the current context before anything
+  runs (drift raises; nothing is relabelled); the screening label is reused only if the screening item ran on the
+  current source (run_batch records copied_source_sha256 per item) under the current harness.
+* 15c-H fix round 4 (re-review 3): _env drops every inherited PYTHON*/PYTEST*/HYPOTHESIS*/COV* variable except a
+  deliberate pass list, and the binding records every such variable the child receives (child env == bound env);
+  drift errors name recoveries the API has; a direct run_batch(config=...) verifies the identity against its
+  inventory like run_manifest.
 
 Part of the mutation harness: excluded from every inventory and hashed separately.
 """
@@ -147,7 +156,7 @@ def make_copy(src_root: Path, copy_paths, dest: Path) -> dict:
     return {_posix(p.relative_to(dest)): _sha(p) for p in sorted(dest.rglob("*")) if p.is_file()}
 
 
-def _copy_harness(copy_root: Path, cfg: CRConfig) -> list[str]:
+def _copy_harness(copy_root: Path, cfg: CRConfig, create: bool = True) -> list[str]:
     """I4: the copy is self-sufficient. If a pythonpath dir of the copy already carries cr_guard.py (a real S1 copy
     has research/s1/s1_tests/cr_guard.py; run_batch has checked it is byte-identical) nothing is added. Otherwise
     the reviewed cr_guard.py ALONE is copied to <copy>/.cr_harness. The worktree s1_tests dir (conftest, helpers,
@@ -155,13 +164,28 @@ def _copy_harness(copy_root: Path, cfg: CRConfig) -> list[str]:
     if any((Path(copy_root) / r / "cr_guard.py").is_file() for r in cfg.pythonpath_rel):
         return []
     h = Path(copy_root) / ".cr_harness"
+    if not create:                                 # fix round 3: predict the entry (binding), copy nothing
+        return [str(h.resolve())]
     h.mkdir(exist_ok=True)
     shutil.copy2(HARNESS_DIR / "cr_guard.py", h / "cr_guard.py")
     return [str(h.resolve())]
 
 
+# fix round 4 (R3-I1): inherited variables with these name prefixes can change a test outcome (PYTHONOPTIMIZE strips
+# asserts, PYTEST_PLUGINS / PYTEST_ADDOPTS / PYTHONWARNINGS change the run, HYPOTHESIS_* / COV* change plugins or
+# storage). _env drops every inherited one (names compared upper-case: Windows env names are case-insensitive) except
+# _ENV_PASS, which is passed deliberately; _env then sets its own PYTHONDONTWRITEBYTECODE and PYTHONPATH. Every
+# prefixed variable the child receives is bound (_child_env_binding), so the child env == the bound env for this set.
+_ENV_PREFIXES = ("PYTHON", "PYTEST", "HYPOTHESIS", "COV")
+_ENV_PASS = ("PYTHONHASHSEED", "PYTHONUTF8", "PYTHONIOENCODING")
+
+
+def _outcome_var(name: str) -> bool:
+    return name.upper().startswith(_ENV_PREFIXES)
+
+
 def _env(copy_root: Path, cfg: CRConfig, job_dir: Path | None = None, job_id: str | None = None) -> dict:
-    env = dict(os.environ)
+    env = {k: v for k, v in os.environ.items() if not _outcome_var(k) or k.upper() in _ENV_PASS}
     paths = [str((Path(copy_root) / r).resolve()) for r in cfg.pythonpath_rel]
     if job_dir is not None:
         paths += _copy_harness(copy_root, cfg)
@@ -569,32 +593,127 @@ def _screen_labels(job: str, work_root: Path) -> list:
     return out
 
 
-_BINDING_ENV = ("PYTHONHASHSEED", "PYTHONDONTWRITEBYTECODE", "PYTHONUTF8", "PYTHONIOENCODING", "PYTEST_ADDOPTS",
-                "HYPOTHESIS_PROFILE", "TZ")
+def _rel_entry(path: str, root: Path) -> str:
+    try:
+        rel = Path(path).resolve().relative_to(Path(root).resolve())
+    except ValueError:
+        return _posix(path)
+    return "." if str(rel) in ("", ".") else _posix(rel)
 
 
-def _attempt_binding(cfg: CRConfig, src_root: Path, nodes: list, result: dict) -> dict:
-    """Codex early number check (e): what a completion attempt ran WITH - executable, test-command, exact node set,
-    control file, target source, harness + helper file hashes (conftest.py / *helpers*.py on the pythonpath dirs of
-    the source tree the copy is made from), the env-relevant variables, and the containment verdict."""
-    src_root = Path(src_root)
+def _child_env_binding(root: Path, cfg: CRConfig) -> dict:
+    """fix round 3 (X24) + fix round 4 (R3-I1): EVERY PYTHON*/PYTEST*/HYPOTHESIS*/COV* variable the CR child of a
+    copy at ``root`` actually gets from _env (after its scrub, including its overrides PYTHONDONTWRITEBYTECODE=1 and
+    PYTHONPATH), plus TZ - not the parent's os.environ. PYTHONPATH is recorded relative to the copy root, with the
+    .cr_harness entry real_exec's _env would add predicted rather than created.
+
+    Deliberately NOT bound (fix round 4 ruling 1): the per-attempt variables _env sets from the job dir
+    (CR_GUARD_JOB_DIR, CR_GUARD_JOB_ID, S1_HYPOTHESIS_ROOT = <job dir>/hypothesis) and the ones cr_guard sets for its
+    pytest child (CR_GUARD_NODES_OUT / _ATTEMPT / _TARGETS, its own per-attempt S1_HYPOTHESIS_ROOT). _env always pops
+    or overwrites them, so no parent value reaches the child; their values are absolute per-attempt paths whose only
+    content is the attempt layout, which cr_coord.py / cr_guard.py (both hash-bound) fix. Path-relative they would
+    be constants that bind nothing the harness hashes do not already bind."""
+    env = _env(root, cfg)
+    paths = [x for x in env.get("PYTHONPATH", "").split(os.pathsep) if x] + _copy_harness(root, cfg, create=False)
+    out = {k: v for k, v in env.items() if _outcome_var(k) and k.upper() != "PYTHONPATH"}
+    out["TZ"] = env.get("TZ")
+    out["PYTHONPATH"] = [_rel_entry(x, root) for x in paths]
+    return out
+
+
+def _in_copy(rel: str, copy_paths) -> bool:
+    rel = _posix(rel)
+    return any(rel == c or rel.startswith(c.rstrip("/") + "/") for c in map(_posix, copy_paths))
+
+
+def _attempt_binding(cfg: CRConfig, root: Path, nodes: list, copy_paths) -> dict:
+    """Codex early number check (e) + fix round 3 (X23/X24): the identity of what a completion attempt runs - the
+    executable, test-command, exact node set, control file, target source, harness + helper hashes (conftest.py /
+    *helpers*.py on the pythonpath dirs) and the child's allowlisted env (_child_env_binding). Computed from ``root``
+    restricted to ``copy_paths``: at EXECUTION time ``root`` is the attempt's disposable copy (what the child sees;
+    run_batch persists it before the exec seam runs); for a reuse/resume check ``root`` is the source tree the next
+    copy would be made from, so an unchanged context reproduces the persisted binding exactly."""
+    root = Path(root)
     args = [str(a) for a in cfg.guard_args]
     ctl = args[args.index("--control") + 1] if "--control" in args[:-1] else None
     helpers = {}
     for rel in cfg.pythonpath_rel:
-        d = src_root / rel
+        d = root / rel
         for p in sorted(list(d.glob("conftest.py")) + list(d.glob("*helpers*.py"))):
-            helpers[_posix(p.relative_to(src_root))] = _sha(p)
-    src = src_root / cfg.module_rel
+            r = _posix(p.relative_to(root))
+            if _in_copy(r, copy_paths):
+                helpers[r] = _sha(p)
+    src_rel = _posix(cfg.module_rel)
+    src = root / src_rel
     return {"python": str(cfg.python),
             "test_command_sha256": hashlib.sha256(test_command(cfg).encode("utf-8")).hexdigest(),
             "node_set_sha256": pool_sha256(nodes), "nodes": len(nodes),
-            "control_sha256": _sha(src_root / ctl) if ctl and (src_root / ctl).is_file() else None,
-            "source_sha256": _sha(src) if src.is_file() else None, "harness_sha256": harness_hashes(),
-            "helpers_sha256": helpers, "pythonpath_rel": list(cfg.pythonpath_rel),
-            "env": {k: os.environ.get(k) for k in _BINDING_ENV},
-            "containment": {"exec_status": result.get("exec_status"),
-                            "cleanup_verified": result.get("cleanup_verified")}}
+            "control_sha256": (_sha(root / ctl) if ctl and _in_copy(ctl, copy_paths) and (root / ctl).is_file()
+                               else None),
+            "source_sha256": _sha(src) if _in_copy(src_rel, copy_paths) and src.is_file() else None,
+            "harness_sha256": harness_hashes(), "helpers_sha256": helpers, "pythonpath_rel": list(cfg.pythonpath_rel),
+            "env": _child_env_binding(root, cfg)}
+
+
+def _binding_drift(old: dict, new: dict) -> list:
+    """Field-by-field differences of two bindings (env compared per variable, as env.<NAME>)."""
+    out = []
+    for k in sorted(set(old) | set(new)):
+        if k == "env":
+            oe, ne = old.get("env") or {}, new.get("env") or {}
+            out += [f"env.{v}" for v in sorted(set(oe) | set(ne)) if oe.get(v) != ne.get(v)]
+        elif old.get(k) != new.get(k):
+            out.append(k)
+    return out
+
+
+def _check_screening_context(job: str, item: dict, work_root: Path, src_root: Path, source_sha256) -> None:
+    """fix round 3 (X23, screening path): the screening label is consumed only if the screening attempt ran on the
+    module source the completion will run on (and on the explicit ``source_sha256``, when given), under the current
+    harness. run_batch records the copied source sha per executed item; batch states are write-once."""
+    mod_rel = _posix(item["module_path"])
+    cur = _sha(Path(src_root) / mod_rel)
+    want = (source_sha256 or {}).get(mod_rel)
+    for p in sorted(Path(work_root).glob("batch_*_state.json")):
+        s = json.loads(p.read_text(encoding="utf-8"))
+        if job not in s.get("labels", {}):
+            continue
+        ran = (s.get("copied_source_sha256") or {}).get(job)
+        if ran is None or ran != cur or (want is not None and ran != want):
+            raise CoordError(f"screening of {job} ({p.name}) ran on source_sha256 {ran}; the current source is {cur}"
+                             + (f" and the expected source_sha256 is {want}" if want else "")
+                             + ": the screening label is not reused")
+        if s.get("harness_sha256") != harness_hashes():
+            raise CoordError(f"screening of {job} ({p.name}) ran under another harness than the current one: the "
+                             f"screening label is not reused")
+
+
+def _check_cached_attempts(job: str, name: str, sroot: Path, planned: dict, want_source) -> None:
+    """fix round 3 (X23): every existing attempt state of a completion shard is compared, field by field, with the
+    binding the current context would give - an executed attempt's persisted execution-time binding, a refused
+    attempt's persisted planned binding - and with the explicit expected source. Any drift raises (naming the fields):
+    the cached result is not merged and nothing is relabelled. fix round 4 (R3-N2): the errors name the recoveries the
+    API has - restore the bound inputs (the attempt is then reused), or screen the job again in a fresh work_root
+    (run_batch / run_manifest) and complete it there; run_completion's completion root is fixed per work_root."""
+    for st in _attempt_states(sroot, name):
+        s = json.loads(st.read_text(encoding="utf-8"))
+        executed = job in s.get("labels", {})
+        persisted = (s.get("bindings") or {}).get(job) if executed else s.get("planned_binding")
+        what = "executed" if executed else "planned"
+        if not persisted:
+            raise CoordError(f"completion attempt {name} ({s.get('batch_id')}) has no persisted {what} binding: "
+                             f"it is not reused - {_fresh_screen(job)}")
+        drift = _binding_drift(persisted, planned)
+        if want_source is not None and persisted.get("source_sha256") != want_source:
+            drift.append("source_sha256(expected)")
+        if drift:
+            raise CoordError(f"completion attempt {name} ({s.get('batch_id')}) {what} binding drift in {drift}: the "
+                             f"cached result is not merged and nothing is relabelled - restore the bound inputs, or "
+                             f"{_fresh_screen(job)}")
+
+
+def _fresh_screen(job: str) -> str:
+    return f"screen {job} again in a fresh work_root and complete it there"
 
 
 def _attempt_states(sroot: Path, name: str) -> list:
@@ -658,7 +777,14 @@ def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_
         b = blocked[0]
         raise CoordError(f"{describe_stop(b)} and is unresolved; record a resolution with "
                          f"resolve_stop({b['_root']!r}, {b['batch_id']!r}, ...) before completing {job}")
+    _check_screening_context(job, items_by_id[job], work_root, src_root, source_sha256)
     croot = Path(work_root) / "completion" / job
+    planned = {spec["name"]: _attempt_binding(spec["cfg"], src_root, nodes, spec["copy_paths"])
+               for spec, nodes in zip(shards, node_sets)}
+    mod_rel = _posix(items_by_id[job]["module_path"])
+    for spec in shards:                                     # fix round 3 (X23): never reuse under drifted inputs
+        _check_cached_attempts(job, spec["name"], croot / spec["name"], planned[spec["name"]],
+                               (source_sha256 or {}).get(mod_rel))
     attempts, refused, pending, not_run = [], [], [], []
     for n, (spec, nodes) in enumerate(zip(shards, node_sets)):
         name, cfg = spec["name"], spec["cfg"]
@@ -675,8 +801,17 @@ def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_
                       work_root=sroot, exec_seam=exec_factory(cfg), source_sha256=source_sha256, clock=clock,
                       session_root=Path(session_root or work_root), io_margin_s=io_margin_s,
                       item_outer_s=cfg.timeout_s + BUDGETS["cleanup_reserve_s"],
-                      extra={"completion_of": job, "shard": name, "test_command": test_command(cfg)})
+                      binding_fn=lambda item, copy_root, job_dir, _c=cfg, _n=nodes, _p=spec["copy_paths"]:
+                      _attempt_binding(_c, copy_root, _n, _p),
+                      extra={"completion_of": job, "shard": name, "test_command": test_command(cfg),
+                             "planned_binding": planned[name]})
             states = _attempt_states(sroot, name)
+            ran = json.loads(states[-1].read_text(encoding="utf-8"))
+            if job in ran.get("labels", {}):
+                drift = _binding_drift(planned[name], (ran.get("bindings") or {}).get(job) or {})
+                if drift:
+                    raise CoordError(f"completion attempt {name} ({ran['batch_id']}): the executed binding differs "
+                                     f"from the planned one in {drift}; it is not merged - {_fresh_screen(job)}")
         state = states[-1]
         s = json.loads(state.read_text(encoding="utf-8"))
         if job not in s.get("labels", {}):                  # refused before starting (fence / clock): pending
@@ -685,12 +820,14 @@ def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_
             pending = names[n:]
             break
         res = s["results"].get(job, {})
+        bound = (s.get("bindings") or {}).get(job) or {}      # the persisted execution-time binding, never recomputed
         attempts.append({"shard": name, "attempt_batch": s["batch_id"], "label": s["labels"][job],
                          "guard_status": res.get("guard_status"), "exec_status": res.get("exec_status"),
                          "cleanup_verified": res.get("cleanup_verified"), "stopped": bool(s.get("stopped")),
                          "stop_reason": s.get("stop_reason"), "state_sha256": _sha(state),
-                         "test_command_sha256": hashlib.sha256(test_command(cfg).encode("utf-8")).hexdigest(),
-                         "binding": _attempt_binding(cfg, src_root, nodes, res)})
+                         "test_command_sha256": bound.get("test_command_sha256"), "binding": bound,
+                         "containment": {"exec_status": res.get("exec_status"),
+                                         "cleanup_verified": res.get("cleanup_verified")}})
         if s.get("stopped") and not _resolution_path(sroot, s["batch_id"]).exists():
             pending = names[n + 1:]
             break
@@ -709,7 +846,8 @@ def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_
 def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_paths, work_root: Path, exec_seam,
               source_sha256: dict | None = None, clock=time.monotonic, extra: dict | None = None,
               session_root: Path | None = None, io_margin_s: float = IO_MARGIN_S, item_outer_s: float | None = None,
-              cap_record=None, config: dict | None = None) -> dict:
+              cap_record=None, config: dict | None = None, binding_fn=None,
+              inventory_path: Path | None = None) -> dict:
     """Execute a batch strictly sequentially, one WorkItem per fresh disposable copy. Stops (quarantining the copy)
     on the first timeout / cleanup uncertainty / drift / unrestored source / exec exception; pending IDs are kept.
 
@@ -721,10 +859,18 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
     so nested retry/completion runs share their parent session's clock. HARD fence: a candidate starts only if the
     remaining session time is >= fence_s(item_outer_s, io_margin_s); a clock reading before the session start
     (e.g. after a reboot) refuses with session_clock_invalid. Each item's measured duration is kept in
-    ``item_s`` (calibration input). More than BUDGETS["batch_max"] items needs a calibration ``cap_record``."""
+    ``item_s`` (calibration input). More than BUDGETS["batch_max"] items needs a calibration ``cap_record``.
+
+    fix round 4 (R3-N3): a ``config`` identity is accepted only with the ``inventory_path`` it is verified against,
+    exactly as run_manifest verifies it (_check_identity: the inventory's test-command sha256)."""
     batch = list(batch)
     if not _BATCH_ID.match(str(batch_id)):
         raise CoordError(f"invalid batch id {batch_id!r}")
+    if config is not None:
+        if inventory_path is None:
+            raise CoordError(f"identity {config.get('config_id')} is only accepted with the inventory it is verified "
+                             f"against (inventory_path)")
+        _check_identity(config, json.loads(Path(inventory_path).read_text(encoding="utf-8")))
     cap = batch_cap(cap_record, config)
     if len(batch) > cap or len(set(batch)) != len(batch):
         raise PartitionError(f"batch of {len(batch)} items is over the {cap} cap or has duplicates")
@@ -748,6 +894,7 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
           "pending": list(batch), "stopped": False, "stop_reason": None, "labels": {}, "results": {},
           "session_started": started, "session_root": str(session_root), "fence_s": fence,
           "io_margin_s": io_margin_s, "batch_cap": cap, "item_s": {}, "config": config,
+          "copied_source_sha256": {}, "bindings": {},
           "harness_sha256": harness_hashes(),
           **(extra or {})}
 
@@ -796,7 +943,11 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
             stop(job, "job_dir_reused", copy_root)
             break
         job_dir.mkdir()
+        st["copied_source_sha256"][job] = copied[mod_rel]          # fix round 3: what this item actually ran on
         try:
+            if binding_fn is not None:                              # fix round 3: bound at execution time, persisted
+                st["bindings"][job] = binding_fn(item, copy_root, job_dir)
+            _dump(state_path, st)
             result = exec_seam(item, copy_root, job_dir)
         except Exception as exc:                        # noqa: BLE001 - any failure here is a stop, never a label
             st["results"][job] = {"exception": f"{type(exc).__name__}: {exc}"}
@@ -833,15 +984,21 @@ def run_manifest(manifest: Path, inventory_path: Path, *, src_root: Path, copy_p
     if unknown:
         raise CoordError(f"manifest items not in the inventory: {unknown}")
     if config is not None:
-        tc = inv.get("test_command")
-        if not tc or hashlib.sha256(tc.encode("utf-8")).hexdigest() != config.get("test_command_sha256"):
-            raise CoordError(f"identity {config.get('config_id')}: not this inventory's test_command")
+        _check_identity(config, inv)
     return run_batch(man["items"], items_by_id, batch_id=f"{int(man['batch_index']):03d}", src_root=src_root,
                      copy_paths=copy_paths, work_root=work_root, exec_seam=exec_seam,
                      source_sha256={inv["module_rel"]: inv["source_sha256"]}, clock=clock,
                      session_root=session_root, cap_record=cap_record, config=config,
+                     inventory_path=inventory_path,
                      extra={"manifest": str(manifest), "manifest_sha256": _sha(manifest),
                             "inventory_sha256": inv_sha})
+
+
+def _check_identity(config: dict, inv: dict) -> None:
+    """R1-N3 / fix round 4 (R3-N3): a config identity is used only for the inventory whose test-command it hashes."""
+    tc = inv.get("test_command")
+    if not tc or hashlib.sha256(tc.encode("utf-8")).hexdigest() != config.get("test_command_sha256"):
+        raise CoordError(f"identity {config.get('config_id')}: not this inventory's test_command")
 
 
 def real_exec(cfg: CRConfig):

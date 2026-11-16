@@ -1,32 +1,41 @@
 # A3 Task 15c-prep + 15c-H: Cosmic Ray configs, baselines, scopes, inventories, completion shards and session plan (NO mutant executed)
 
-**Version.** This is v4, updated for 15c-H fix round 2, which addresses re-review 1 in `task-15c-h-review-verdict.md`.
-- v3 was regenerated for fix round 1.
-- v2 was regenerated for Task 15c-H.
+**Version.** This is v7, updated for 15c-H fix round 5. That round addresses re-review 4
+(`task-15c-h-review-verdict.md` → "Re-review 4": R4-I1, R4-N1, R4-N2) and adds the controller's pre-flight and
+counting rulings. It makes **no harness change**: `cr_coord.py` stays at 43008a7f….
+- v6 covered fix round 4: re-review 3 of fix round 3 (R3-I1, R3-N1 to R3-N4), with the controller's rulings 1–5.
+- v5 covered fix round 3: Codex's exact-head review of the committed 192e47c
+  (`C:/Users/gl450/.coordination/trading_app/t15ch_192e47c_review_20261116/REVIEW.txt`, CHANGES_REQUIRED / NO-GO,
+  X23 and X24) and the controller's rulings in `C:/Users/gl450/.coordination/trading_app/t15c_x23_x24_confirm_claude.md`.
+- v4 covered fix round 2 (re-review 1).
+- v3 covered fix round 1.
+- v2 covered Task 15c-H.
 - v1 is what Codex reviewed as `t15c_prep_review_20261116`.
-- Changes are marked **[15c-H]**, **[fix-1]** and **[fix-2]**.
+- Changes are marked **[15c-H]**, **[fix-1]**, **[fix-2]**, **[fix-3]**, **[fix-4]** and **[fix-5]**.
 
 **Sources.**
 - Briefs: `task-15c-prep-brief.md`, the 15c-H coordinator message (rulings 1–7 adopting Codex's
-  `t15c_prep_review_20261116/REVIEW.txt`), and the fix-round-1 message, which carries rulings 1–7 on the task review
-  `task-15c-h-review-verdict.md`.
+  `t15c_prep_review_20261116/REVIEW.txt`), the fix-round-1 message (rulings 1–7 on the task review
+  `task-15c-h-review-verdict.md`), the fix-round-2 message (re-review 1), the fix-round-3 message (X23/X24) and the
+  fix-round-4 message (re-review 3).
 - The fix-round-1 addendum, rulings (a)–(e), draws on Codex's early number check:
   `C:/Users/gl450/.coordination/trading_app/t15ch_early_numbers_20261116/EARLY_NUMBER_CHECK.txt`.
 
-**Head.** HEAD is 2a4bdd1. The 7 product modules, `research/s1/docs`, `conftest.py`, `a3_helpers.py` and the 12
-selector test files are byte-identical to BASE 02db5b9.
+**Head.** HEAD is **192e47c**, which holds 15c-prep and 15c-H with rounds 1–2. Its parent is 2a4bdd1. The 7 product
+modules, `research/s1/docs`, `conftest.py`, `a3_helpers.py` and the 12 selector test files are byte-identical to BASE
+02db5b9.
 
-**Nothing was executed against a mutant.** The only Cosmic Ray command run was `cosmic-ray init`, on scratch copies,
-through `cr_launch.py`. Product source is untouched. The harness changes are uncommitted, and `git status` shows only
-these:
-- `cr_coord.py`, `cr_reconcile.py`;
-- the new `test_s1_a3_cr_completion.py`;
+**Nothing was executed against a mutant, and no calibration ran.** The only Cosmic Ray command run was
+`cosmic-ray init`, on scratch copies, through `cr_launch.py`. Product source is untouched. The fix-3 and fix-4
+changes are uncommitted on top of 192e47c:
+- `cr_coord.py`;
+- `test_s1_a3_cr_completion.py`;
 - the evidence under `s1_evidence/`.
 
 **Interpreter.** The testenv is 3.12.12, with Cosmic Ray 8.3.15 and pytest 8.3.3. Everything ran serially, with no
 xdist and a single lane (ruling 3).
 
-## Harness changes (15c-H rulings 1–3 + fix round 1)
+## Harness changes (15c-H rulings 1–3 + fix rounds 1–4)
 
 **Evidence files.**
 
@@ -37,7 +46,130 @@ xdist and a single lane (ruling 3).
 | `a3/t15c_h_fix1_green.txt` | fix-1 GREEN | **97 passed.** Also holds the deletion checks, plus a fix-2 **correction** (R1-I1). |
 | `a3/t15c_h_fix2_red.txt` | fix-2 RED | **4 failed**: 1 AssertionError + 3 `DID NOT RAISE`. 102 passed. |
 | `a3/t15c_h_fix2_green.txt` | fix-2 GREEN | **106 passed.** Also holds the fix-2 deletion checks. |
-| `a3/t15c_h_green.txt` | regenerated GREEN | Same final files: **106 passed**. |
+| `a3/t15c_h_fix3_red.txt` | fix-3 RED | **11 failed**: 3 AssertionError + 8 `DID NOT RAISE`. 106 passed. |
+| `a3/t15c_h_fix3_green.txt` | fix-3 GREEN | **119 passed.** Also holds the deletion checks and the replay of Codex's v3 probe. |
+| `a3/t15c_h_fix4_red.txt` | fix-4 RED | **9 failed**, all assertion-type: 5 AssertionError, 3 regex mismatch, 1 `DID NOT RAISE`. 125 passed. Plus a supplementary RED (1 AssertionError) for the case-insensitivity test, written after the main RED. |
+| `a3/t15c_h_fix4_green.txt` | fix-4 GREEN | **135 passed.** |
+| `a3/t15c_h_fix5_check.txt` | fix-5 plan check | 12/12 plans calibration-first and bound; `check_plans()` refuses a plain plan. No harness or test change, so there is no new RED/GREEN. |
+| `a3/t15c_h_green.txt` | regenerated GREEN | Same final files: **135 passed**. |
+
+**[fix-3] Changes in this round** (X23/X24; controller rulings 1–7):
+- **Bind at execution time (X23, ruling 1).**
+  - `run_batch(binding_fn=...)` computes the binding of each item inside its disposable copy, immediately before the
+    exec seam runs. It persists the binding in the state (`bindings[<job>]`) before execution.
+  - The completion binding (`_attempt_binding(cfg, root, nodes, copy_paths)`) covers: python, test-command sha256,
+    node-set sha256, control sha256, target source sha256, harness hashes, helper hashes (`conftest.py` /
+    `*helpers*.py` on the pythonpath dirs), `pythonpath_rel`, and the child env (below).
+  - Files outside `copy_paths` are ignored, so the binding is the same whether it is computed in the copy or in the
+    source tree.
+  - The merge and the completion record read **only** the persisted binding. A white-box test pins that the merge
+    never recomputes it.
+  - The containment verdict sits at attempt level, beside the identity-only binding.
+- **Check identity on reuse or resume (X23, ruling 2).** Before anything runs, `run_completion` takes every existing
+  attempt state of every shard: an executed attempt's persisted binding, or a refused attempt's persisted
+  `planned_binding`. It compares each one field by field (env per variable) with the binding the current context
+  would give.
+  - Any drift raises `CoordError` naming the fields, for example `['test_command_sha256']` or `['env.PYTHONHASHSEED']`.
+  - No exec runs, the state stays byte-identical, no record is written, and a fresh completion root is required.
+  - A new attempt whose executed (copy) binding differs from its planned one, for example because inputs changed
+    mid-run, is not merged.
+  - An unchanged context reuses the cached attempt, keeping its original binding.
+- **Explicit `source_sha256` (ruling 3).** It is checked against the screening item's recorded source and against
+  each persisted completion binding.
+- **Screening path (ruling 4): the same gap existed, and is fixed.**
+  - The screening EXECUTION never reuses a result. A batch state is write-once: an existing `batch_<id>_state.json`
+    is refused. Every item runs in a fresh copy, and pending items after a stop run only in a new batch, so they are
+    executed fresh. `run_manifest` writes a new batch id per manifest.
+  - But `run_completion` reused the screening **label** through `_screen_labels` without checking it.
+  - Now `run_batch` records `copied_source_sha256[<job>]` for every executed item. `_check_screening_context` refuses
+    the screening label if that source differs from the current source (or from the explicit `source_sha256`), or if
+    the screening batch's recorded harness differs from the current one. Both cases are tested.
+- **Effective child env (X24).** `_child_env_binding` records the allowlisted variables from the env `_env` builds
+  for the child, including its enforced overrides, not `os.environ`.
+  - Allowlist (**superseded in fix 4** by the prefix scrub + full prefixed binding; see [fix-4] below):
+    PYTHONHASHSEED, PYTHONDONTWRITEBYTECODE, PYTHONUTF8, PYTHONIOENCODING, PYTEST_ADDOPTS,
+    HYPOTHESIS_PROFILE, TZ.
+  - PYTHONPATH is recorded relative to the copy root, with the `.cr_harness` entry predicted by a new side-effect-free
+    `_copy_harness(..., create=False)`.
+  - Job-specific values (job dir, job id, per-job Hypothesis root) are not identity.
+  - Tested: with the parent's PYTHONDONTWRITEBYTECODE unset, the binding records the child's `"1"`.
+- **The fix-2 `-k` assurance is corrected.** A narrowed command on a NEW attempt still fails closed through the guard
+  (`node_set_mismatch`). A narrowed command against a CACHED attempt is now refused as `test_command_sha256` drift,
+  where before it relabelled the cached result.
+
+**[fix-3] Deletion checks.** I deleted 11 guards in scratch copies (`deletion_fix3/`).
+- **Caught (10):**
+  - the cached-drift raise and the pre-pass call;
+  - the screening source check and the screening harness check;
+  - child-env-vs-parent;
+  - merge-never-recomputes;
+  - binding persisted;
+  - executed-vs-planned;
+  - planned_binding recorded;
+  - copied source recorded.
+- **Not caught (1, equivalent):** the explicit `source_sha256` check against the persisted completion binding. It is
+  defence in depth: the screening check refuses first whenever the expected source differs, and executed-vs-planned
+  keeps every persisted completion source equal to the current one.
+
+**[fix-4] Changes in this round** (re-review 3: R3-I1, R3-N1 to R3-N4; controller rulings 1–5):
+- **R3-I1, child env == bound env.** This supersedes the fix-3 allowlist above.
+  - `_env` now drops every inherited variable whose name starts with PYTHON, PYTEST, HYPOTHESIS or COV (compared
+    upper-case, since Windows env names are case-insensitive). The exceptions are a deliberate pass list
+    (`_ENV_PASS`: PYTHONHASHSEED, PYTHONUTF8, PYTHONIOENCODING) and the two variables `_env` sets itself
+    (PYTHONDONTWRITEBYTECODE=1, PYTHONPATH).
+  - PYTEST_ADDOPTS and HYPOTHESIS_PROFILE, bound in fix 3, are now **scrubbed**, not passed. So are PYTHONOPTIMIZE,
+    PYTHONWARNINGS, PYTEST_PLUGINS, PYTEST_DISABLE_PLUGIN_AUTOLOAD, PYTHONSAFEPATH, PYTHONHOME, PYTHONSTARTUP,
+    PYTEST_CURRENT_TEST, COVERAGE_* and the rest.
+  - The binding (`_child_env_binding`) records **every** prefixed variable the child receives (from the same `_env`
+    call), plus TZ, with PYTHONPATH relative to the copy. It no longer uses a fixed key list.
+  - **Not bound, by choice:** CR_GUARD_JOB_DIR / JOB_ID and S1_HYPOTHESIS_ROOT (set by `_env` from the job dir) and
+    CR_GUARD_NODES_OUT / ATTEMPT / TARGETS (popped by `_env`, set by `cr_guard` for its pytest child). `_env` always
+    pops or overwrites them, so no parent value reaches the child (tested). Their values are absolute per-attempt
+    paths whose only content is the attempt layout, which the hash-bound `cr_coord.py` and `cr_guard.py` fix.
+    Path-relative, they would be constants that bind nothing new.
+  - Tests: each of PYTHONOPTIMIZE=1, PYTEST_PLUGINS=x, PYTHONWARNINGS=error and PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 set
+    in the parent is absent from the child env (captured with the production `_env(copy, cfg, job_dir, job)` call)
+    and from the binding, and unsetting it before a second run reuses the attempt. The child's prefixed set equals
+    the binding's. Case-insensitive matching is tested with a plain mapping standing in for `os.environ`.
+- **R3-N1.** Each of the six fix-3 guards that survived deletion alone is now pinned alone:
+  - X2 (screening `want`): a pin that differs from the screened source, with no cached attempt.
+  - X7 (explicit source vs persisted binding): pinned directly on `_check_cached_attempts`, because through
+    `run_completion` the screening check always refuses first. This replaces the fix-3 "equivalent" entry in §G.
+  - X6 (missing persisted binding): a legacy state without `bindings` raises the intended `CoordError`.
+  - X9 (`_dump` before the exec seam): the seam reads the state from disk and finds the binding.
+  - X12 (`_in_copy` helper filter): a helper on the source tree but outside `copy_paths` is not bound.
+  - X15 (binding from the copy): a copy that differs from the source (a wrapped `make_copy`) gives executed ≠
+    planned.
+- **R3-N2.** Drift errors no longer say "use a fresh completion root", which no API offers. They now name
+  "restore the bound inputs" (cached drift only; the attempt is then reused) and "screen <job> again in a fresh
+  work_root and complete it there". A test runs that second remedy through the existing API and gets `survived`.
+- **R3-N3.** `run_batch(config=...)` now needs `inventory_path=` and verifies the identity's test-command sha256
+  against that inventory (`_check_identity`, shared with `run_manifest`, which now passes its inventory through).
+  Without the inventory, or with another config's identity, it refuses before any state is written.
+- **R3-N4.** A completion shard directory moved out from under `completion/` is still refused by `run_retry`
+  through its `completion_of` record (test).
+
+**[fix-4] Deletion checks.** 17 guards were deleted, one at a time, in scratch copies outside the repo
+(`_prep/tools/deletion_fix4.py`). The log is in `t15c_h_fix4_green.txt`.
+- **Caught (16):**
+  - the prefix scrub, the full prefixed binding (vs a fixed key list), case-insensitive prefix matching,
+    case-insensitive pass-list matching, the pass list itself, and TZ bound;
+  - the remedy text;
+  - run_batch's no-inventory refusal and its identity check;
+  - the six fix-3 guards X2, X6, X7, X9, X12 and X15;
+  - the `completion_of` branch.
+- **Not caught (1, equivalent):** `run_manifest`'s own identity check (G10). `run_batch` repeats it on the same
+  inventory before any state is written. It is kept as defence in depth.
+- An earlier pass was stopped after five mutants because it showed the fixed-key-list binding (G2) surviving. The
+  agreement test was then strengthened (PYTHONUTF8 and PYTHONIOENCODING set, exact prefixed set asserted), and all
+  17 were re-run against the final files.
+
+**[fix-3] Replay of Codex's v3 cases.** I replayed `probe_resume_binding_v3.py`, original `source_sha256` included,
+against this harness (`scratchpad/x23x24/replay_v3_fixed.py`):
+- command, source and helper drift are each refused, with 1 exec in total and the state unchanged;
+- the binding records PYTHONDONTWRITEBYTECODE `"1"` while the parent has it unset.
+
+Output: `t15c_h_fix3_green.txt`.
 
 **[fix-2] Changes in this round** (re-review 1):
 - **R1-I1:** a test pins the kill short-circuit's clean conjunct. An unclean kill whose stop was resolved must not
@@ -58,6 +190,8 @@ xdist and a single lane (ruling 3).
   - All real completion `control.json` files equal their `nodes.txt`.
   - An extra selector after the argfile (`-k`) still passes the pool check. The guard would then report
     `node_set_mismatch`, giving `untested` and therefore `unresolved`, never a false kill or survivor.
+  - **[fix-3] Correction (Codex X23):** that assurance held only for NEW attempts. A narrowed command against a
+    CACHED attempt used to relabel the cached result. It is now refused as `test_command_sha256` drift.
 
 **[fix-2] Deletion checks.** I deleted 8 guards in scratch copies (`deletion_fix2/`): G10, G14, G16b, G21, both N2
 guards, N3 and N4. All **8 were caught**.
@@ -168,7 +302,7 @@ The clock and the margin:
 
 | File | sha256 | Status |
 |---|---|---|
-| `cr_coord.py` | 235e5285fc9cbd82dc7cdbf1b6ecb18acf4cb8a1656a7eeba4cd7b37a5ea4019 | changed (fix-2) |
+| `cr_coord.py` | 43008a7fedf68d52789daa75265089bee412bb77c50eb54fcfc8070c0b49c1b2 | changed (fix-4; fix-3 was e76896cd…) |
 | `cr_reconcile.py` | 1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d | changed (fix-1; not changed in fix-2) |
 | `cr_guard.py` | 54e88df7…7f76 | unchanged |
 | `cr_launch.py` | b6aa8d2a…2f00 | unchanged |
@@ -283,6 +417,58 @@ time with a genuine `cosmic-ray init` that executed nothing. It took **41.0 s** 
 
   Comparison: `_prep/reinit_compare_fix2.json`.
 - **Baselines were still not re-run**, for the same reason as fix-1.
+
+**[fix-3] Re-initialised a third time with the fix-3 final harness.** All 12 screening inventories were re-created
+by a genuine `cosmic-ray init` that executed nothing. It took **42.3 s** in total.
+- **Old files kept.** The fix-2 files were moved **unedited** to `cr_a3/_superseded/inventories_pre_fix3/<config>/`.
+- **Specs identical.** The normalized specs are identical and in the same order for all 12 configs: 6318
+  candidates.
+- **What changed.** `job_id`s are fresh, so the filtered inventories and batch plans were regenerated. Otherwise
+  only `harness_sha256` (`cr_coord` e76896cd…), `session_sha256` and the `copied` entries for `cr_coord.py` and
+  `test_s1_a3_cr_completion.py` changed.
+
+  Comparison: `_prep/reinit_compare_fix3.json`.
+- **Baselines were not re-run.** `cr_guard.py`, every `cr.toml` test-command and every `control.json` are
+  unchanged.
+
+**[fix-4] Re-initialised a fourth time with the fix-4 final harness.** All 12 screening inventories were re-created
+by a genuine `cosmic-ray init` (`_prep/tools/reinit.py fix4`, then `reinit_copied_diff.py fix4`) that executed
+nothing. It took **41.2 s** in total.
+- **Old files kept.** The fix-3 files were moved **unedited** to `cr_a3/_superseded/inventories_pre_fix4/<config>/`.
+  Each moved file's sha256 equals its entry in the fix-3 hash manifest.
+- **Specs identical.** The normalized specs are identical and in the same order for all 12 configs: 15685 before the
+  filter, **6318 kept**. The kept spec sequences are identical too.
+- **What changed.** `job_id`s are fresh, so the filtered inventories and batch plans were regenerated. Otherwise
+  only `harness_sha256` (`cr_coord` 43008a7f…), `session_sha256` and the `copied` entries for `cr_coord.py` and
+  `test_s1_a3_cr_completion.py` changed. Every sidecar matches, and every filtered inventory and plan is bound to its
+  new `inventory.json`.
+
+  Comparison: `_prep/reinit_compare_fix4.json`.
+- **[fix-5] Correction (R4-I1): the batch plans regressed in this step.**
+  - **What went wrong.** The re-init ran `inventory.py`, which writes a *plain* plan (`batches` of 24). It skipped
+    `_prep/tools/plan_sessions.py`, the 15c-H ruling-2 step that rewrites each plan calibration-first.
+  - **The effect.** The fix-4 plans lacked `calibration_batch`, `pending_after_calibration`, `derived_cap`,
+    `derived_cap_rule` and `scenario`, so the runbook's references in steps 3 and 5 did not resolve.
+  - **Fixed in fix 5.** `plan_sessions.py` was re-run; it executes nothing. All 12 plans now have exactly the key set
+    of the 192e47c plans, and a superset of the `pre_fix4` keys. Each is bound to its current `inventory.json`.
+    `calibration_batch` is the first 24 kept ids, and `calibration_batch` + `pending_after_calibration` equals the
+    kept ids in `cr_coord.order_items` order. `scenario` and `derived_cap_rule` equal 192e47c's, and `derived_cap`
+    is null.
+  - **Guarded from now on.** `finalize.py hashes` runs `check_plans()` first. It refuses to write the manifest unless
+    all 12 plans are calibration-first, bound to their inventory, and cover the kept ids in order. A scratch
+    demonstration with one plain plan substituted was refused. Evidence: `a3/t15c_h_fix5_check.txt`.
+- **Baselines were not re-run.** `cr_guard.py`, every `cr.toml` test-command and every `control.json` are
+  unchanged.
+- **The env scrub can change what a baseline child received.** `baseline.py` built the guard child's env with
+  `cr_coord._env`, which before fix 4 passed the whole parent env through. The baselines recorded no env, so I cannot
+  prove what that parent held. They were launched by `run_baselines.sh` from the agent's bash, which sets no such
+  variable. The same kind of shell today has no PYTHON*/PYTEST*/HYPOTHESIS*/COV* variable (`env` checked
+  2026-11-16). If that held then, the baseline children received exactly what fix 4's `_env` gives: PYTHONPATH and
+  PYTHONDONTWRITEBYTECODE=1, which `_env` set then too. **The controller rules on whether baselines need re-running.**
+  - **[fix-5] Ruling.** The baselines are not re-run now. Instead, after any Codex GO, one guard baseline runs per
+    active config (all 21) under the fix-4 env with the frozen `--control` file. A screening config runs it before its
+    calibration; a completion config runs it before its first use. See runbook step 3a.
+    A config whose pre-flight is not clean is not calibrated.
 
 **Coverage evidence.** For each config, `selector_coverage_detail.json` is a parent-process `sys.monitoring` reach run
 on the final selector. It does not observe child or import-time code.
@@ -403,7 +589,7 @@ id per line, and the baselines show the selected set equals the control.
 **F. [fix-1, N5] Reboot, sleep and hibernate limit of the monotonic session clock.** See the fence section. It is not
 fixed; the operational rule is a new session root after any reboot, sleep or hibernate.
 
-**G. Equivalent deletion mutants: one remains.**
+**G. Equivalent deletion mutants: two remain (zero-shard check; fix-3 explicit source_sha256 re-check).**
 - Only the explicit zero-shard check survives deletion, and it is equivalent: `load_pool` refuses an empty pool, so
   `check_pool_union(pool, [])` always reports missing nodes.
 - **[fix-2] Correction:** fix-1 also listed the clean conjunct of the kill short-circuit as equivalent. That was
@@ -412,6 +598,53 @@ fixed; the operational rule is a new session root after any reboot, sleep or hib
   - The guard is now pinned by `test_R1_I1_resolved_unclean_kill_does_not_short_circuit_a_later_clean_kill`, and
     deletion G10 is caught.
   - The fix-1 record keeps its original text, with a correction appended.
+- **[fix-3]** The explicit `source_sha256` check against a persisted completion binding is also equivalent, as
+  defence in depth. The screening-context check refuses first whenever the expected source differs, and
+  executed-vs-planned keeps every persisted completion source equal to the current one. See
+  `t15c_h_fix3_green.txt`.
+  - **[fix-4] Superseded.** Re-review 3 showed the pair (screening `want` conjunct, explicit check) was covered only
+    jointly. Each is now pinned alone: the screening conjunct through `run_completion` with no cached attempt, the
+    explicit check directly on `_check_cached_attempts` (through `run_completion` it stays unreachable, as stated).
+    Both deletions are caught.
+- **[fix-4]** `run_manifest`'s own identity check is now equivalent: `run_batch` repeats the same check
+  (`_check_identity`) on the inventory `run_manifest` passes through, before any state is written. It is kept as
+  defence in depth.
+
+**H. [fix-3] Scope of the binding.**
+- **Recorded:** the binding records the env that `_env` gives the CR child (allowlisted variables plus PYTHONPATH,
+  relative to the copy).
+  - **[fix-4]** It now records every PYTHON*/PYTEST*/HYPOTHESIS*/COV* variable the child receives, plus TZ, and
+    `_env` scrubs every other inherited one, so for that set the child env equals the bound env.
+  - **[fix-4] Still not bound:** variables outside those prefixes, such as PATH, SystemRoot and TEMP. They are
+    inherited as before. Of the per-attempt variables, CR_GUARD_* and S1_HYPOTHESIS_ROOT are excluded on purpose
+    (see the fix-4 changes).
+  - **[fix-5] Known limit (R4-N1): LANG and LC_* reach the child unbound.** They are not scrubbed and not bound.
+    Nothing in scope reads them:
+    - the re-reviewer's grep of `research/s1` for `os.environ`, `getenv` and `setenv` found no read in the 12 selector
+      test files or the 7 mutated modules;
+    - the only env read in `conftest.py` is `S1_HYPOTHESIS_ROOT`, which `_env` and the guard overwrite;
+    - on Windows, Python's locale and encoding come from the OS and from PYTHONUTF8/PYTHONIOENCODING, which are
+      bound.
+
+    Per the controller's ruling, the harness is not changed for this. A future selector or module that reads the
+    locale would need LANG/LC_* added to the bound set beside TZ.
+- **Not bound as identity:** the guard's own per-job additions for its pytest child, which are its job-dir paths, the
+  per-attempt Hypothesis home and its own directory appended to PYTHONPATH. They are fixed by `cr_guard.py`, whose
+  sha is in `harness_sha256`.
+- **No security boundary:** none is claimed against deliberately hand-edited state files. The state, its sha in
+  the completion record and the hashes manifest make edits detectable, not impossible.
+
+**I. [fix-5] Counting rule across work_roots (R4-N2; the controller's ruling).**
+- **Each `job_id` counts exactly once.**
+- **Re-screening supersedes.** A candidate may be screened again in a fresh work_root, which is the R3-N2 remedy after
+  a binding drift. The earlier work_root's result for that job is then **superseded**:
+  - it is kept unedited, and nothing in it is moved or rewritten;
+  - it is listed in a **superseded-results ledger**, with the old work_root, the new work_root and the reason, which
+    is the drifted fields named by the refusing `CoordError`.
+- **15d tallies the latest result only.** It counts each job from the latest work_root in which that job has a
+  result, and from no other.
+- **Final counts keep both views.** They distinguish unique candidates (one per `job_id`) from attempts (every
+  execution, superseded ones included).
 
 ## Exact commands for 15c (after peer agreement on this head; none of this was run)
 
@@ -443,6 +676,28 @@ A reviewed 15c driver, run by the testenv interpreter from a script file, does t
    - Completion: the same, with `<CE>/control.json` + `<CE>/nodes.txt`.
 
    `src_root` is a clean checkout at the agreed head, and the module sha256 must equal `inventory.json.source_sha256`.
+
+3a. **[fix-5] Pre-flight guard baseline** (the controller's ruling). This runs after any Codex GO and covers **all 21
+    active configs**.
+    - **Screening configs (12):** each is pre-flighted before its calibration.
+    - **Completion configs (9):** each is pre-flighted before its first use by any `run_completion` (re-review 5,
+      R5-I1). Their 27 baselines also ran before the fix-4 scrub. An unmutated control failing under the scrubbed env
+      would be labelled `killed` by the guard, giving a guard-clean false kill to every survivor that reaches that shard.
+    - A config that is not clean is neither calibrated nor used for completion.
+    - **Driver.** The pre-flight driver is not yet written. It must be task-reviewed, and Codex-reviewed at exact head,
+      before it runs (R5-N1).
+    - **What runs.** A fresh copy (step 2's copy paths) and the exact `cr.toml` test-command, which carries
+      `--control <E>/control.json`, the frozen control. It runs under `cr_guard.run_contained`, with the CR timeout
+      as the outer deadline and the env from the production `cr_coord._env(copy, cfg, job_dir, job_id)`, which is the
+      fix-4 env.
+    - **Recorded.** The run records `cr_coord._child_env_binding(copy, cfg)`, `guard.json` and the sha256 of the
+      control file.
+    - **Not changed.** No mutation is applied, and `control.json` is never rewritten.
+    - **Do not reuse `baseline.py` as-is.** Its first step re-collects and rewrites `control.json` (`--collect-only`).
+      Only its single guard-run step applies, against the frozen file, whose sha256 must equal the committed one.
+    - **Clean means** guard status `survived`, the node set equal to the control, no node-set mismatch, verified
+      cleanup, the source unchanged, and the outer wall time within the selector budget.
+    - **A config whose pre-flight is not clean is not calibrated.**
 3. **Calibration session** (one session root per session):
 
    ```
@@ -475,19 +730,24 @@ A reviewed 15c driver, run by the testenv interpreter from a script file, does t
 
    Then build the remaining manifests with `cr_coord.plan_batches(pending_after_calibration, size=<derived cap>,
    cap_record=<root>/<C>/derived_cap.json, identity=identity)`. Run each with
-   `run_manifest(..., cap_record=<that path>, config=identity)` in its own session root. The record is re-verified on
-   every use, and the fence, not the cap, bounds every session.
+   `run_manifest(..., cap_record=<that path>, config=identity)` in its own session root. **[fix-4]** A direct
+   `run_batch(config=identity)` also needs `inventory_path=<E>/inventory.json`; `run_manifest` passes it. The record
+   is re-verified on every use, and the fence, not the cap, bounds every session.
+   - **[fix-5]** `calibration_batch` and `pending_after_calibration` are the keys of `<E>/batch_plan.json`, which is
+     calibration-first again (see Method → Inventories). Its `batches` key is gone, so no driver can improvise from it.
 6. **Timeouts and reports.**
    - Screening timeouts: `cr_coord.run_retry(job, ..., session_root=<current session root>)`, with a 705 s fence.
    - Completion timeouts stay `unresolved` (open item A).
    - Reports: `<testenv> research/s1/s1_tests/cr_launch.py cr-report <session.sqlite>` per job, plus
      `classification.json` and `completion_record*.json` (merged label: killed / unresolved / deferred / survived),
      consolidated into `a3/t15_cr_<module>.txt`.
+   - **[fix-5] Counting:** apply open item I. Each `job_id` counts once, from its latest work_root. Superseded
+     results are listed in the superseded-results ledger with their drifted fields.
 
 ## Files
 
 **Per screening config:** `cr.toml`, `control.json`, `collect_only.json`, `baseline/{run1..3, timings.json}`,
-`inventory.json` (+ `.sha256`) and `inventory_filtered.json` (both re-initialised in fix-1 and fix-2), `batch_plan.json`
+`inventory.json` (+ `.sha256`) and `inventory_filtered.json` (both re-initialised in fix-1, fix-2, fix-3 and fix-4), `batch_plan.json`
 (a calibration-first proposal with no manifest) and `selector_coverage_detail.json`. Shards also have `nodes.txt`,
 `ranges.json` and `selection.json`.
 
@@ -499,13 +759,15 @@ collect.
 
 **Audit trail:** `cr_a3/_prep/`, which is unreviewed tooling and not tests. It holds:
 - `budget_v2.json`, the source of the numbers above;
-- `pool_check_pre.json`, `pool_check_post.json`, `measure_io.json`, `reinit_compare.json` and
-  `reinit_compare_fix2.json`.
+- `pool_check_pre.json`, `pool_check_post.json`, `measure_io.json`, `reinit_compare.json`,
+  `reinit_compare_fix2.json`, `reinit_compare_fix3.json` and `reinit_compare_fix4.json`.
 
 **Superseded (kept unedited):**
 - `cr_a3/_superseded/s1_collect_v1/`;
 - `cr_a3/_superseded/inventories_pre_fix1/`;
-- `cr_a3/_superseded/inventories_pre_fix2/`.
+- `cr_a3/_superseded/inventories_pre_fix2/`;
+- `cr_a3/_superseded/inventories_pre_fix3/`;
+- `cr_a3/_superseded/inventories_pre_fix4/`.
 
 **Hashes:** `a3/t15c_prep_hashes.txt`, LF line endings and `sha256sum -c` compatible. It covers every file under
 `cr_a3/`, this document, the RED/GREEN records and the harness and test files.

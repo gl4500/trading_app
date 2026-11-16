@@ -1,0 +1,211 @@
+A3 Task 15c-H fix round 3 RED (2026-11-16T07:45:55-05:00); HEAD 192e47c44a0e8ca416b4b5177e439437e5d7ccaf (= the committed rounds 1-2) + uncommitted test changes only (harness = HEAD: cr_coord 235e5285, cr_reconcile 1e1c07fd)
+cmd: PYTHONPATH=research/s1;research/s1/s1_tests <testenv> -m pytest -p conftest -p no:cacheprovider test_s1_a3_cr_guard.py test_s1_a3_cr_completion.py -q -rf (serial)
+result: 11 failed = 3 AssertionError + 8 'Failed: DID NOT RAISE'; 106 passed (all pre-existing tests still pass after the helper changes)
+new tests: X23 drift x4 (command -k no_such_test / source / helper / env), unchanged-context reuse, binding persisted at execution, explicit source_sha256, refused-shard resume drift, screening reuse x2 (source / harness), X24 child env (parent PYTHONDONTWRITEBYTECODE unset -> 1). Test-side helper changes: shard copies carry their control + nodes files (as the real configs), and the binding test puts its helper on the copied path.
+files run (sha256):
+e0d7f6ccaa84c4f13aeebd0cbbf1c5fb316ad0837ca6f0d6d343ba7d33854ec9 *research/s1/s1_tests/test_s1_a3_cr_guard.py
+c58303a5d8fc80ba05182a63c4925a91fbbb0023d641d816f400fabf1dee1df8 *research/s1/s1_tests/test_s1_a3_cr_completion.py
+235e5285fc9cbd82dc7cdbf1b6ecb18acf4cb8a1656a7eeba4cd7b37a5ea4019 *research/s1/s1_tests/cr_coord.py
+1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+====
+........................................................................ [ 61%]
+..................................FFFFFFFFFFF                            [100%]
+================================== FAILURES ===================================
+_ test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[command] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_cached_attempt_with_d0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002780005C200>
+case = 'command'
+
+    @pytest.mark.parametrize("case", ["command", "source", "helper", "env"])
+    def test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled(tmp_path, monkeypatch, case):
+        src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+        before = state.read_bytes()
+        _drift(case, src, specs, monkeypatch)
+>       with pytest.raises(cr_coord.CoordError, match=_DRIFT_FIELD[case]):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:654: Failed
+_ test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[source] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_cached_attempt_with_d1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027800029910>
+case = 'source'
+
+    @pytest.mark.parametrize("case", ["command", "source", "helper", "env"])
+    def test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled(tmp_path, monkeypatch, case):
+        src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+        before = state.read_bytes()
+        _drift(case, src, specs, monkeypatch)
+>       with pytest.raises(cr_coord.CoordError, match=_DRIFT_FIELD[case]):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:654: Failed
+_ test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[helper] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_cached_attempt_with_d2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027800054980>
+case = 'helper'
+
+    @pytest.mark.parametrize("case", ["command", "source", "helper", "env"])
+    def test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled(tmp_path, monkeypatch, case):
+        src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+        before = state.read_bytes()
+        _drift(case, src, specs, monkeypatch)
+>       with pytest.raises(cr_coord.CoordError, match=_DRIFT_FIELD[case]):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:654: Failed
+_ test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[env] __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_cached_attempt_with_d3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000278000572C0>
+case = 'env'
+
+    @pytest.mark.parametrize("case", ["command", "source", "helper", "env"])
+    def test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled(tmp_path, monkeypatch, case):
+        src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+        before = state.read_bytes()
+        _drift(case, src, specs, monkeypatch)
+>       with pytest.raises(cr_coord.CoordError, match=_DRIFT_FIELD[case]):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:654: Failed
+_ test_X23_unchanged_context_reuses_the_cached_attempt_with_its_original_binding _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_unchanged_context_reu0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002780002AED0>
+
+    def test_X23_unchanged_context_reuses_the_cached_attempt_with_its_original_binding(tmp_path, monkeypatch):
+        src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+        r2 = _complete(src, by_id, work, specs, factory, pool)
+        persisted = json.loads(state.read_text(encoding="utf-8")).get("bindings", {}).get("j1")
+        assert r2.get("label") == "survived" and calls["c1"] == ["j1"]
+>       assert r2["attempts"][0].get("binding") == persisted
+E       AssertionError: assert {'containment': {'cleanup_verified': True, 'exec_status': 'ok'}, 'control_sha256': '2c5262dcc373df75187abb163f1c90a332...3c31df9bad3a43ec643f2f00', 'cr_reconcile.py': '1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d'}, ...} == None
+E        +  where {'containment': {'cleanup_verified': True, 'exec_status': 'ok'}, 'control_sha256': '2c5262dcc373df75187abb163f1c90a332...3c31df9bad3a43ec643f2f00', 'cr_reconcile.py': '1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d'}, ...} = <built-in method get of dict object at 0x000002780033F640>('binding')
+E        +    where <built-in method get of dict object at 0x000002780033F640> = {'attempt_batch': 'c1', 'binding': {'containment': {'cleanup_verified': True, 'exec_status': 'ok'}, 'control_sha256': ...fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d'}, ...}, 'cleanup_verified': True, 'exec_status': 'ok', ...}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:666: AssertionError
+______ test_X23_binding_is_persisted_with_the_attempt_at_execution_time _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_binding_is_persisted_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027800055220>
+
+    def test_X23_binding_is_persisted_with_the_attempt_at_execution_time(tmp_path, monkeypatch):
+        src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+        st = json.loads(state.read_text(encoding="utf-8"))
+        b = (st.get("bindings") or {}).get("j1") or {}
+>       assert b.get("source_sha256") == sha(src / "pkg" / "m.py") and b.get("helpers_sha256") == \
+            {"conftest.py": sha(src / "conftest.py")}
+E       AssertionError: assert (None == '0bf74a33a13a0762f71ab0ae2ed21a3a8c9c403ce2add070509c168bd75323e4')
+E        +  where None = <built-in method get of dict object at 0x000002780037F0C0>('source_sha256')
+E        +    where <built-in method get of dict object at 0x000002780037F0C0> = {}.get
+E        +  and   '0bf74a33a13a0762f71ab0ae2ed21a3a8c9c403ce2add070509c168bd75323e4' = sha(((WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_binding_is_persisted_0/src') / 'pkg') / 'm.py'))
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:673: AssertionError
+__ test_X23_explicit_source_sha256_is_checked_against_the_persisted_binding ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_explicit_source_sha250')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000278000552B0>
+
+    def test_X23_explicit_source_sha256_is_checked_against_the_persisted_binding(tmp_path, monkeypatch):
+        src, by_id, work, specs, factory, calls, pool, state = _x23(tmp_path, monkeypatch)
+>       with pytest.raises(cr_coord.CoordError, match=r"source_sha256"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:682: Failed
+________ test_X23_refused_shard_resume_with_drifted_inputs_is_refused _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_refused_shard_resume_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002780005F200>
+
+    def test_X23_refused_shard_resume_with_drifted_inputs_is_refused(tmp_path, monkeypatch):
+        monkeypatch.setenv("PYTHONHASHSEED", "0")
+        src, by_id, work = _screened(tmp_path)
+        started = json.loads((work / "session.json").read_text(encoding="utf-8"))["started"]
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+        _complete(src, by_id, work, specs, factory, pool, clock=lambda: started + B["session_length_s"] - 1.0)
+        cr_coord.resolve_stop(work / "completion" / "j1" / "c1", "c1", by="controller", note="session ended")
+        specs[0]["cfg"].guard_args = specs[0]["cfg"].guard_args + ["-k", "no_such_test"]
+>       with pytest.raises(cr_coord.CoordError, match=r"test_command_sha256"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:695: Failed
+_ test_X23_screening_label_is_not_reused_across_source_or_harness_drift[source] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_screening_label_is_no0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002780005C7D0>
+case = 'source'
+
+    @pytest.mark.parametrize("case", ["source", "harness"])
+    def test_X23_screening_label_is_not_reused_across_source_or_harness_drift(tmp_path, monkeypatch, case):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+        if case == "source":
+            (src / "pkg" / "m.py").write_text("X = 1\nY = 2\nZ = 3\nDRIFT = 1\n", encoding="utf-8")
+            pattern = r"screening of j1 .*source_sha256"
+        else:
+            real = cr_coord.harness_hashes()
+            monkeypatch.setattr(cr_coord, "harness_hashes", lambda: dict(real, **{"cr_coord.py": "0" * 64}))
+            pattern = r"screening of j1 .*harness"
+>       with pytest.raises(cr_coord.CoordError, match=pattern):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:711: Failed
+_ test_X23_screening_label_is_not_reused_across_source_or_harness_drift[harness] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X23_screening_label_is_no1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002780005FEF0>
+case = 'harness'
+
+    @pytest.mark.parametrize("case", ["source", "harness"])
+    def test_X23_screening_label_is_not_reused_across_source_or_harness_drift(tmp_path, monkeypatch, case):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+        if case == "source":
+            (src / "pkg" / "m.py").write_text("X = 1\nY = 2\nZ = 3\nDRIFT = 1\n", encoding="utf-8")
+            pattern = r"screening of j1 .*source_sha256"
+        else:
+            real = cr_coord.harness_hashes()
+            monkeypatch.setattr(cr_coord, "harness_hashes", lambda: dict(real, **{"cr_coord.py": "0" * 64}))
+            pattern = r"screening of j1 .*harness"
+>       with pytest.raises(cr_coord.CoordError, match=pattern):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:711: Failed
+__________ test_X24_binding_env_is_the_child_env_not_the_parent_env ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix3_red/test_X24_binding_env_is_the_ch0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002780009E900>
+
+    def test_X24_binding_env_is_the_child_env_not_the_parent_env(tmp_path, monkeypatch):
+        monkeypatch.delenv("PYTHONDONTWRITEBYTECODE", raising=False)
+        monkeypatch.setenv("PYTHONHASHSEED", "7")
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+        res = _complete(src, by_id, work, specs, factory, pool)
+        env = ((res.get("attempts") or [{}])[0].get("binding") or {}).get("env") or {}
+>       assert env.get("PYTHONDONTWRITEBYTECODE") == "1", "the child gets 1 from _env whatever the parent has"
+E       AssertionError: the child gets 1 from _env whatever the parent has
+E       assert None == '1'
+E        +  where None = <built-in method get of dict object at 0x000002780011B9C0>('PYTHONDONTWRITEBYTECODE')
+E        +    where <built-in method get of dict object at 0x000002780011B9C0> = {'HYPOTHESIS_PROFILE': None, 'PYTEST_ADDOPTS': None, 'PYTHONDONTWRITEBYTECODE': None, 'PYTHONHASHSEED': '7', ...}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:723: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[command]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[source]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[helper]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X23_cached_attempt_with_drifted_inputs_is_refused_not_relabelled[env]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X23_unchanged_context_reuses_the_cached_attempt_with_its_original_binding
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X23_binding_is_persisted_with_the_attempt_at_execution_time
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X23_explicit_source_sha256_is_checked_against_the_persisted_binding
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X23_refused_shard_resume_with_drifted_inputs_is_refused
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X23_screening_label_is_not_reused_across_source_or_harness_drift[source]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X23_screening_label_is_not_reused_across_source_or_harness_drift[harness]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_X24_binding_env_is_the_child_env_not_the_parent_env
+11 failed, 106 passed in 39.63s

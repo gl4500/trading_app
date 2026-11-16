@@ -1,0 +1,36 @@
+A3 Task 15c-H fix round 5 (R4-I1) plan check (2026-11-16T08:51:43-05:00); no harness change (cr_coord 43008a7f), nothing executed.
+step: scratchpad/t15c_work/tools/plan_sessions.py (= _prep/tools/plan_sessions.py, byte-identical) re-run; it only rewrites batch_plan.json from inventory_filtered.json + _prep/budget_v2.json.
+
+==== verify_plans.py (scratchpad/fix4): each plan vs _superseded/inventories_pre_fix4 and vs 192e47c (git show HEAD:...) ====
+s1_collect__audit 406 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_collect__final 446 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_journal 720 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_locks 159 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_seal__check 77 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_seal__decide 101 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_seal__record 114 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_seal__sampled 42 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_slot__finalizer 1397 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_slot__slots 300 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_stage 774 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+s1_trial 1782 {'keys_superset_of_pre_fix4': True, 'keys_superset_of_192e47c': True, 'keys_equal_192e47c': True, 'bound_to_new_inventory': True, 'cal_plus_pending_eq_kept_in_order': True, 'calibration_is_first_24': True, 'candidates': True, 'derived_cap_null': True, 'scenario_eq_192e47c': True, 'rule_eq_192e47c': True}
+ALL OK
+
+==== demo_check_plans.py (scratchpad/fix4): finalize.check_plans on a scratch tree, current plans vs one plain plan substituted ====
+12 calibration-first plans OK
+None -> accepted
+s1_locks -> REFUSED: batch plans not calibration-first / not bound (12 found): ['cr_a3/s1_locks/batch_plan.json'] - run plan_sessions.py after any re-init
+
+==== plan files (sha256) ====
+160fe4e2bec125e65378f8508adb14c1669c1c322f9106f05d9e5927e9beb02d *research/s1/s1_evidence/cr_a3/s1_collect/audit/batch_plan.json
+ce4fee647ca580787b2be677c782d1052c3cd41a0e95b2853a26e83ac8ad02ba *research/s1/s1_evidence/cr_a3/s1_collect/final/batch_plan.json
+7fee5cc91e069436e76927aef4702e590d117789824bcbce7970870439485096 *research/s1/s1_evidence/cr_a3/s1_journal/batch_plan.json
+daf5a9048fc25b7dd62a7218c17a2a49ffe72bad027aace6ddc63e96122cee57 *research/s1/s1_evidence/cr_a3/s1_locks/batch_plan.json
+f9b580a07175fee9e3d0ba6b68eaa9d4bb500a8db0650386c125d3e021e06981 *research/s1/s1_evidence/cr_a3/s1_seal/check/batch_plan.json
+1522c0db499ec2b84bb557c6e4752ad956142aa88a8e3a0895db35a329476f16 *research/s1/s1_evidence/cr_a3/s1_seal/decide/batch_plan.json
+1a369d065ac7d316579d0c78313a8700206a71fcfc2ec89357206f3a0da7efd0 *research/s1/s1_evidence/cr_a3/s1_seal/record/batch_plan.json
+3ccc2aad8383bf5d3ca27860487cf8725809b83211ee1bc9e3b573a5b790f0bd *research/s1/s1_evidence/cr_a3/s1_seal/sampled/batch_plan.json
+3a98d7315acb8b6ea05bcbb42d948362d791067a30953ce6a5618fd603d13ace *research/s1/s1_evidence/cr_a3/s1_slot/finalizer/batch_plan.json
+455540242ef9cecaa6731d9bb75c29e297a0da4c66eaec6ad5a65e1e68c08f2f *research/s1/s1_evidence/cr_a3/s1_slot/slots/batch_plan.json
+6244395741fcd334ef819bf61b6fe52320c4f768dfce7acd9dee54d25ac5e311 *research/s1/s1_evidence/cr_a3/s1_stage/batch_plan.json
+52eacd27a1b5dbbbdf4c914dab52cd70ec84831700ef5e04947ba6e369ccab43 *research/s1/s1_evidence/cr_a3/s1_trial/batch_plan.json
