@@ -1,0 +1,100 @@
+{
+ "delegation_edges": [
+  {
+   "callee": "_sampled_seals",
+   "caller": "sampled_seals",
+   "lines": [
+    598,
+    599
+   ]
+  },
+  {
+   "callee": "_by_subject",
+   "caller": "_sampled_seals",
+   "lines": [
+    611
+   ]
+  },
+  {
+   "callee": "_close_state",
+   "caller": "_sampled_seals",
+   "lines": [
+    614
+   ]
+  }
+ ],
+ "expanded": [
+  "_stop_record",
+  "_sampled_seals",
+  "_decide_locked",
+  "_read_stop_json",
+  "_by_subject",
+  "_close_state",
+  "_count_sold",
+  "_first",
+  "_stop_context",
+  "stop_ready",
+  "_stop_ready"
+ ],
+ "expansion_rule": "expand: module-level function g directly called (ast.Call with func=ast.Name(g)) from an in-scope body (nested defs/methods included) is added iff ALL module-level scopes referencing g (call or Name load; module-level statements count as '<module>') are in scope; iterate to a fixed point; never cross modules; g referenced from any out-of-scope scope -> controller decision, not added",
+ "module_rel": "research/s1/s1_seal.py",
+ "named": [
+  "stop_record",
+  "decide_stop",
+  "stop_check",
+  "sampled_seals",
+  "sampled_history"
+ ],
+ "public_names_added_by_walk": [
+  "stop_ready"
+ ],
+ "row_ranges": {
+  "file": "s1_seal_ranges.json",
+  "sha256": "345be120e66a785bb3667a572ba1c0c3b74db3ce764d26f2dd88e08741b88c55"
+ },
+ "rule": "keep a WorkItem iff its mutation line span overlaps a named scope's [start,end] (decorators..last body line, nested defs and methods included); others skipped-by-scope",
+ "ruled_delegations": [
+  {
+   "also_referenced_out_of_scope_by": [
+    "_nvs"
+   ],
+   "basis": "controller ruling 2026-11-15 (known delegation, binding)",
+   "callee": "_stop_record"
+  },
+  {
+   "also_referenced_out_of_scope_by": [
+    "_nvs"
+   ],
+   "basis": "controller ruling 2026-11-15 (known delegation, binding)",
+   "callee": "_sampled_seals"
+  },
+  {
+   "also_referenced_out_of_scope_by": [],
+   "basis": "controller ruling 2026-11-15 (known delegation, binding)",
+   "callee": "_decide_locked"
+  }
+ ],
+ "schema": "a3-t15a-ranges/1",
+ "scopes": {
+  "_sampled_seals": {
+   "end": 618,
+   "kind": "function",
+   "qualname": "_sampled_seals",
+   "start": 602
+  },
+  "sampled_history": {
+   "end": 627,
+   "kind": "function",
+   "qualname": "sampled_history",
+   "start": 621
+  },
+  "sampled_seals": {
+   "end": 599,
+   "kind": "function",
+   "qualname": "sampled_seals",
+   "start": 590
+  }
+ },
+ "sha256": "af3e13af0ba38adc52bc2808c04349a7c4b3c053bd80708866a61f7f0070284f",
+ "source": "C:/Users/gl450/trading_app-s1/research/s1/s1_seal.py"
+}

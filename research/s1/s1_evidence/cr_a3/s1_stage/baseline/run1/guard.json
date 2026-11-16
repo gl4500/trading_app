@@ -1,0 +1,500 @@
+{
+ "argv": [
+  "--deadline",
+  "240",
+  "--target",
+  "s1_stage",
+  "--control",
+  "research/s1/s1_evidence/cr_a3/s1_stage/control.json",
+  "-p",
+  "conftest",
+  "research/s1/s1_tests/test_s1_a3_stage.py"
+ ],
+ "attempt": "e163aac5f9e540a9a1554194289c492b",
+ "attempt_dir": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_stage\\run1\\job\\attempt-e163aac5f9e540a9a1554194289c492b",
+ "cleanup": {
+  "active_after": 0,
+  "method": "win32-job-object(kill_on_job_close, terminate_job_object)",
+  "pid_list_overflow": false,
+  "stray_after_exit": 0,
+  "survivors": [],
+  "terminated": false,
+  "unheld_members": [],
+  "verified": true
+ },
+ "collect_errors": [],
+ "control": [
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_created_seal_deleted_is_stage_replaced_and_never_recreated",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_foreign_root_is_refused_by_the_plan_check_before_the_stage_table",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_completed_after_a_rowless_snapshot_is_not_an_artifact",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_file_with_no_prepared_row_is_a_registration_artifact",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_stage_without_its_gate_or_selection_check_fails_closed[extra_gate]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_stage_without_its_gate_or_selection_check_fails_closed[stage_check]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_commit_delete_detect_restore_is_still_invalid_with_zero_callbacks",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_committed_commitment_is_verified_against_its_prepared_row",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_completion_append_failure_keeps_evidence_and_no_next_stage_runs",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_concurrent_recovery_appends_exactly_one_created",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_crash_after_prepared_recovery_by_b_appends_created_without_recompute",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_created_failure_then_restart_recovers_without_recreation",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_created_member_missing_changed_or_unparseable_is_invalid[changed]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_created_member_missing_changed_or_unparseable_is_invalid[missing]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_created_member_missing_changed_or_unparseable_is_invalid[unparseable]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_every_stage_append_hands_real_gate_callables_to_the_context",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_every_stage_artifact_records_and_is_validated_against_the_trial_id",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_every_stage_is_enforced_by_the_gate",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_intent_at_field_equals_the_intent_row",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_intent_or_prepared_json_lost_after_created_is_invalid[intent-deleted]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_intent_or_prepared_json_lost_after_created_is_invalid[prepared-changed]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_intent_precedes_any_work_and_the_envelope_is_exact",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_lock_io_error_refuses_with_no_row_and_no_liveness_verdict",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_manifest_projection_rule",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_member_bytes_do_not_depend_on_the_prepared_or_created_clock[distinct-ticks]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_member_bytes_do_not_depend_on_the_prepared_or_created_clock[same-tick]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_no_intent_in_a_stale_snapshot_is_re_read_under_the_lock_before_invalid",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_no_intent_in_a_stale_snapshot_with_a_live_owner_is_pending",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_pause_after_intent_with_a_live_owner_is_pending",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_pre_intent_outage_makes_no_request_and_no_artifact",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_commitment_format[single-with-two-members-refused]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_commitment_format[single]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_commitment_format[tree]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_detail_comes_from_memory_even_if_prepared_json_is_altered",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_json_is_written_before_prepared_and_never_trusted_alone",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_publication_is_exclusive_then_created_repeats_the_prepared_detail",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recover_refuses_unless_this_process_holds_the_stage_lock",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_appends_created_with_a_op_and_b_actor_under_the_lock",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[foreign-op]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[member-absent]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[member-changed]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[missing-prepared]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[prepared-json-mismatch]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_never_appends_prepared_for_another_actors_op",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_never_creates_s1_out",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_publishes_only_missing_members_and_never_overwrites",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_unexpected_error_appends_nothing",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_repeat_stage_intent_is_invalid",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_run_never_creates_s1_out",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_run_publication_never_overwrites_an_existing_member[other-bytes-refused]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_run_publication_never_overwrites_an_existing_member[same-bytes-accepted]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_files_on_disk_are_evaluated_once_the_seal_family_is_enforced",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_intent_without_prepared_in_a_stale_snapshot_is_re_read_under_the_lock",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_intent_without_prepared_in_a_stale_snapshot_with_a_live_owner_is_pending",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_stage_family_in_the_engine[created]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_stage_family_in_the_engine[gate-refuses]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_stage_family_in_the_engine[selection-invalid]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[audit]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[final]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[final_plan]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[opening]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[prereg]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[score]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[start_attest]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[stop_attest]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_kinds_are_the_frozen_f48_kinds",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_lock_is_taken_before_the_journal_read",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[intent-lock-free]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[intent-lock-held]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-after-audit-ack]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-before-audit-ack]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-held]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_work_writes_only_to_staging_outside_s1_out"
+ ],
+ "control_sha256": "8b7ff93cd1b1e246755988589e0383cce9f403b35bcc64c74c3dfc755e3bb3a2",
+ "counts": {
+  "errors": 0,
+  "failures": 0,
+  "passed": 74,
+  "skipped": 0,
+  "tests": 74
+ },
+ "cwd": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_stage\\copy1",
+ "deadline_s": 240,
+ "elapsed_s": 11.187,
+ "exit_code": 0,
+ "failed": [],
+ "failed_types": {},
+ "finished": "2026-11-16T07:06:01.703759+00:00",
+ "guard_sha256": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+ "holder_pids": [
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 952,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 5360,
+   "ppid": 29444,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 7652,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 7712,
+   "ppid": 16776,
+   "role": "descendant"
+  },
+  {
+   "exe": null,
+   "held": true,
+   "pid": 10868,
+   "ppid": null,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 11048,
+   "ppid": 31876,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 12488,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 14516,
+   "ppid": 18616,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 14632,
+   "ppid": 36408,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 16776,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 18616,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 19516,
+   "ppid": 26936,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 19652,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 20900,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 23108,
+   "ppid": 19652,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 24304,
+   "ppid": 30868,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 24540,
+   "ppid": 33492,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 25260,
+   "ppid": 20900,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 26936,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 26940,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 29444,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 30692,
+   "ppid": 12488,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 30868,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 31036,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 31876,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 32516,
+   "ppid": 34624,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 32952,
+   "ppid": 7652,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 33492,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 33904,
+   "ppid": 36048,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 33952,
+   "ppid": 27320,
+   "role": "launcher"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 34604,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 34624,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 36048,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 36160,
+   "ppid": 34604,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 36408,
+   "ppid": 36744,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 36656,
+   "ppid": 26940,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 36744,
+   "ppid": 33952,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 36788,
+   "ppid": 36744,
+   "role": "descendant"
+  }
+ ],
+ "imports": {
+  "s1_stage": {
+   "file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_stage\\copy1\\research\\s1\\s1_stage.py",
+   "under_root": true
+  }
+ },
+ "job_id": "baseline-s1_stage-1",
+ "junit_sha256": "8ffb4385088d6eb3dbe078ecacd326274a0f8efae67de647350e16f9f6bcb0c1",
+ "launcher_pid": 33952,
+ "node_set": null,
+ "nodes": [
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_intent_precedes_any_work_and_the_envelope_is_exact",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_work_writes_only_to_staging_outside_s1_out",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_commitment_format[single]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_commitment_format[tree]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_commitment_format[single-with-two-members-refused]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_json_is_written_before_prepared_and_never_trusted_alone",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_publication_is_exclusive_then_created_repeats_the_prepared_detail",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_intent_at_field_equals_the_intent_row",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_member_bytes_do_not_depend_on_the_prepared_or_created_clock[distinct-ticks]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_member_bytes_do_not_depend_on_the_prepared_or_created_clock[same-tick]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_stage_family_in_the_engine[created]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_stage_family_in_the_engine[gate-refuses]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_stage_family_in_the_engine[selection-invalid]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_stage_without_its_gate_or_selection_check_fails_closed[extra_gate]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_stage_without_its_gate_or_selection_check_fails_closed[stage_check]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_every_stage_append_hands_real_gate_callables_to_the_context",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_kinds_are_the_frozen_f48_kinds",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_intent_or_prepared_json_lost_after_created_is_invalid[intent-deleted]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_intent_or_prepared_json_lost_after_created_is_invalid[prepared-changed]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_committed_commitment_is_verified_against_its_prepared_row",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_prepared_detail_comes_from_memory_even_if_prepared_json_is_altered",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_crash_after_prepared_recovery_by_b_appends_created_without_recompute",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_appends_created_with_a_op_and_b_actor_under_the_lock",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[member-absent]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[member-changed]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[prepared-json-mismatch]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[foreign-op]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_failures_are_invalid[missing-prepared]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_never_appends_prepared_for_another_actors_op",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_publishes_only_missing_members_and_never_overwrites",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_unexpected_error_appends_nothing",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_concurrent_recovery_appends_exactly_one_created",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-after-audit-ack]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-before-audit-ack]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[intent-lock-held]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[intent-lock-free]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-held]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_created_member_missing_changed_or_unparseable_is_invalid[missing]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_created_member_missing_changed_or_unparseable_is_invalid[changed]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_created_member_missing_changed_or_unparseable_is_invalid[unparseable]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_pre_intent_outage_makes_no_request_and_no_artifact",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_completion_append_failure_keeps_evidence_and_no_next_stage_runs",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[audit]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[opening]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[start_attest]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[prereg]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[stop_attest]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[final_plan]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[final]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_intent_refused_until_predecessor_created_and_ack[score]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_repeat_stage_intent_is_invalid",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_commit_delete_detect_restore_is_still_invalid_with_zero_callbacks",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_pause_after_intent_with_a_live_owner_is_pending",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_created_failure_then_restart_recovers_without_recreation",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_lock_io_error_refuses_with_no_row_and_no_liveness_verdict",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_lock_is_taken_before_the_journal_read",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_every_stage_is_enforced_by_the_gate",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_manifest_projection_rule",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_every_stage_artifact_records_and_is_validated_against_the_trial_id",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_file_with_no_prepared_row_is_a_registration_artifact",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_created_seal_deleted_is_stage_replaced_and_never_recreated",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_files_on_disk_are_evaluated_once_the_seal_family_is_enforced",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_foreign_root_is_refused_by_the_plan_check_before_the_stage_table",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_no_intent_in_a_stale_snapshot_is_re_read_under_the_lock_before_invalid",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_no_intent_in_a_stale_snapshot_with_a_live_owner_is_pending",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_intent_without_prepared_in_a_stale_snapshot_is_re_read_under_the_lock",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_seal_intent_without_prepared_in_a_stale_snapshot_with_a_live_owner_is_pending",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_a_seal_completed_after_a_rowless_snapshot_is_not_an_artifact",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recovery_never_creates_s1_out",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_run_never_creates_s1_out",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_run_publication_never_overwrites_an_existing_member[other-bytes-refused]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_run_publication_never_overwrites_an_existing_member[same-bytes-accepted]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_recover_refuses_unless_this_process_holds_the_stage_lock"
+ ],
+ "nodes_record_sha256": "9a4c814e1dea828395decfe7968cfe63edd175d2df700c27416c22ca0c8d7047",
+ "pytest_cmd": [
+  "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+  "-m",
+  "pytest",
+  "-p",
+  "cr_guard",
+  "-p",
+  "no:cacheprovider",
+  "-q",
+  "-rA",
+  "--junitxml=C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_stage\\run1\\job\\attempt-e163aac5f9e540a9a1554194289c492b\\junit.xml",
+  "--basetemp=C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_stage\\run1\\job\\attempt-e163aac5f9e540a9a1554194289c492b\\basetemp",
+  "-p",
+  "conftest",
+  "research/s1/s1_tests/test_s1_a3_stage.py"
+ ],
+ "python": "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+ "pythonpath": [
+  "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_stage\\copy1\\research\\s1",
+  "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_stage\\copy1\\research\\s1\\s1_tests",
+  "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_stage\\copy1\\research\\s1\\s1_tests"
+ ],
+ "rc": 0,
+ "schema": "a3-t15a-guard/1",
+ "skipped": [],
+ "started": "2026-11-16T07:05:50.504804+00:00",
+ "status": "survived"
+}

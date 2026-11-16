@@ -1,0 +1,21 @@
+{
+ "cleanup_verified": true,
+ "cmd": [
+  "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+  "-m",
+  "pytest",
+  "-p",
+  "cr_guard",
+  "-p",
+  "no:cacheprovider",
+  "-p",
+  "conftest",
+  "--collect-only",
+  "-q",
+  "research/s1/s1_tests/test_s1_a3_locks.py"
+ ],
+ "control_sha256": "3db62fd00006dc53170d2fd5d65f1a92e6c99196315a140aea2f7eea2d451967",
+ "count": 47,
+ "cwd": "<fresh copy root>",
+ "rc": 0
+}

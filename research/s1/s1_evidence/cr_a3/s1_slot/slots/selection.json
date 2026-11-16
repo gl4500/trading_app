@@ -1,0 +1,119 @@
+{
+ "candidate_pool": "whole plan selector (shard owns module-level statements and/or scopes with no observed reaching test - e.g. reached only in child processes, which the recorder cannot see)",
+ "candidate_time_s": 163.31,
+ "candidates": 94,
+ "cap_s": 135.0,
+ "explore_junit_sha256": "f5910240fa86a87d399579717c09bcf150895953e186b0480a4e706382a83d9e",
+ "method": "bounded selection (forced cover, diversity, round-robin) under cap",
+ "module": "s1_slot",
+ "omitted": [
+  {
+   "explore_s": 1.88,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-ok]"
+  },
+  {
+   "explore_s": 1.96,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-partial-capture]"
+  },
+  {
+   "explore_s": 1.79,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-report-changed]"
+  },
+  {
+   "explore_s": 1.7,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-foreign-op]"
+  },
+  {
+   "explore_s": 1.69,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[missed-clean]"
+  },
+  {
+   "explore_s": 1.66,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-capture]"
+  },
+  {
+   "explore_s": 1.65,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-claim]"
+  },
+  {
+   "explore_s": 1.98,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-changed]"
+  },
+  {
+   "explore_s": 1.89,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-deleted]"
+  },
+  {
+   "explore_s": 2.28,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-changed]"
+  },
+  {
+   "explore_s": 2.03,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-late-extra]"
+  },
+  {
+   "explore_s": 2.14,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-missing]"
+  },
+  {
+   "explore_s": 2.09,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-ok]"
+  },
+  {
+   "explore_s": 2.13,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-unparseable]"
+  },
+  {
+   "explore_s": 1.88,
+   "node": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[timeout-seal-cites]"
+  }
+ ],
+ "prefer": [
+  "test_s1_a3_slots"
+ ],
+ "reach_sha256": "de5c77fd115e03f52057b082dee3c79fb7ae28a4422ba8d7cbe14fba38824130",
+ "scopes": [
+  "<module-level>",
+  "qualified_subjects",
+  "_carries",
+  "committed_paths",
+  "move_own_late",
+  "LockTimeout",
+  "LockUnavailable",
+  "_lock_diag",
+  "_tail_completion",
+  "_unlock_diag",
+  "record_early_refusal",
+  "QualifiedUnreadable",
+  "_unreadable",
+  "EvidencePass",
+  "_listing_refusal",
+  "_stray_files",
+  "_judge_without_calendar"
+ ],
+ "scopes_uncovered_by_selection": [
+  "qualified_subjects",
+  "LockTimeout",
+  "LockUnavailable",
+  "QualifiedUnreadable",
+  "_unreadable",
+  "EvidencePass",
+  "_listing_refusal",
+  "_stray_files",
+  "_judge_without_calendar"
+ ],
+ "scopes_without_reaching_test": [
+  "qualified_subjects",
+  "LockTimeout",
+  "LockUnavailable",
+  "QualifiedUnreadable",
+  "_unreadable",
+  "EvidencePass",
+  "_listing_refusal",
+  "_stray_files",
+  "_judge_without_calendar"
+ ],
+ "selected": 79,
+ "selected_time_s": 134.57,
+ "shard": "slots"
+}

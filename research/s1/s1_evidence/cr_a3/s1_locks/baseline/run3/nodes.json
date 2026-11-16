@@ -1,0 +1,297 @@
+{
+ "attempt": "23e436d5f04d414196351ff9fe39ae66",
+ "call_exc": {},
+ "collect_errors": [],
+ "exitstatus": 0,
+ "imports": {
+  "s1_locks": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_locks\\copy3\\research\\s1\\s1_locks.py"
+ },
+ "internal_error": false,
+ "phases": {
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_concurrent_recovery_exactly_one_acquires": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[audit]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final_plan]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[opening]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[prereg]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[score]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2026-10-27]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2028-02-29]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[start_attest]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[stop_attest]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_held_and_error_are_distinct_results": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_held_lock_cannot_be_deleted_renamed_or_replaced": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_lives_outside_s1_out": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[backslash-name]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bad-trial]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bare-dotdot]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[dotdot-name]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[embedded-traversal]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[empty]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[fullwidth-digits]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[non-str-name]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-feb-30]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-month-13]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-not-a-date]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[slash-name]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trailing-newline]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-trailing-newline]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-traversal]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-upper]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-uuid1]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[unknown-stage]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[upper-case]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/../x]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/20261102T214500Z/x]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[stage/audit]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  }
+ },
+ "selected": [
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_lives_outside_s1_out",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[audit]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[opening]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[start_attest]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[prereg]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[stop_attest]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final_plan]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[score]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2026-10-27]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2028-02-29]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_held_lock_cannot_be_deleted_renamed_or_replaced",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_concurrent_recovery_exactly_one_acquires",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_held_and_error_are_distinct_results",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[dotdot-name]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[slash-name]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[unknown-stage]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bad-trial]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-not-a-date]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-month-13]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-feb-30]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bare-dotdot]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[backslash-name]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[embedded-traversal]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trailing-newline]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[upper-case]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[empty]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[fullwidth-digits]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[non-str-name]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-traversal]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-upper]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-trailing-newline]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-uuid1]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[stage/audit]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/../x]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/20261102T214500Z/x]",
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe"
+ ],
+ "xfail": []
+}

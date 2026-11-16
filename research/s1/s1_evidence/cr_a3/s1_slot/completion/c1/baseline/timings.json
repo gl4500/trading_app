@@ -1,0 +1,81 @@
+{
+ "all_survived": true,
+ "module": "s1_slot",
+ "node_count": 49,
+ "outer_wall_max_s": 92.665,
+ "outer_wall_median_s": 85.965,
+ "pytest_elapsed_max_s": 92.25,
+ "pytest_elapsed_median_s": 85.609,
+ "runs": [
+  {
+   "counts": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 49,
+    "skipped": 0,
+    "tests": 49
+   },
+   "guard_cleanup_verified": true,
+   "guard_exit": 0,
+   "node_count": 49,
+   "outer_cleanup_verified": true,
+   "outer_rc": 0,
+   "outer_timed_out": false,
+   "outer_wall_s": 92.665,
+   "pytest_elapsed_s": 92.25,
+   "run": 1,
+   "source_unchanged": true,
+   "status": "survived"
+  },
+  {
+   "counts": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 49,
+    "skipped": 0,
+    "tests": 49
+   },
+   "guard_cleanup_verified": true,
+   "guard_exit": 0,
+   "node_count": 49,
+   "outer_cleanup_verified": true,
+   "outer_rc": 0,
+   "outer_timed_out": false,
+   "outer_wall_s": 85.459,
+   "pytest_elapsed_s": 85.093,
+   "run": 2,
+   "source_unchanged": true,
+   "status": "survived"
+  },
+  {
+   "counts": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 49,
+    "skipped": 0,
+    "tests": 49
+   },
+   "guard_cleanup_verified": true,
+   "guard_exit": 0,
+   "node_count": 49,
+   "outer_cleanup_verified": true,
+   "outer_rc": 0,
+   "outer_timed_out": false,
+   "outer_wall_s": 85.965,
+   "pytest_elapsed_s": 85.609,
+   "run": 3,
+   "source_unchanged": true,
+   "status": "survived"
+  }
+ ],
+ "selector_args": [
+  "@research/s1/s1_evidence/cr_a3/s1_slot/completion/c1/nodes.txt"
+ ],
+ "shard": "completion/c1",
+ "targets": {
+  "max_le_s": 240,
+  "median_le_s": 180
+ },
+ "test_command": "C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m cr_guard --deadline 240 --target s1_slot --control research/s1/s1_evidence/cr_a3/s1_slot/completion/c1/control.json -p conftest @research/s1/s1_evidence/cr_a3/s1_slot/completion/c1/nodes.txt",
+ "within_budget": true
+}

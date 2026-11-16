@@ -17,6 +17,15 @@
 * real_exec: runs the installed CR through cr_launch.py with the explicit testenv interpreter (never
   ``python -m cosmic_ray``, never -c or stdin), contained in a Win32 Job Object (cr_guard.run_contained), then
   reconciles the one-item session with the guard sidecar (cr_reconcile).
+* 15c-H (controller rulings on Codex t15c_prep_review_20261116): run_completion re-runs a screening survivor against
+  every completion shard (merged by cr_reconcile.merge_attempts); check_pool_union pins completion shards to the frozen
+  full node pool; run_batch enforces a HARD monotonic session fence (fence_s: outer item path + nested cleanup +
+  measured I/O margin) on a session clock shared by nested retry/completion runs, records per-item costs, and accepts
+  more than 24 items only with a calibration-derived cap record (derive_cap / read_cap_record). Sequential only.
+* 15c-H fix round 1: only GUARD-CLEAN attempts count (cr_reconcile.attempt_clean; anything else -> "unresolved");
+  run_completion verifies the declared shards against the frozen pool.json, resumes fence-refused shards after
+  resolve_stop, and binds each attempt's executable/env/helpers/nodes/control; cap records are bound to one config
+  (config_identity) and re-verified on every use; run_retry refuses completion-shard directories.
 
 Part of the mutation harness: excluded from every inventory and hashed separately.
 """
@@ -295,26 +304,93 @@ def order_items(items, priority: dict | None = None) -> list[dict]:
                                         tuple(i["end"]), i["operator"], i["occurrence"], i["job_id"]))
 
 
-def plan_batches(ids, size: int = BUDGETS["batch_max"]) -> list[list[str]]:
-    if not 1 <= size <= BUDGETS["batch_max"]:
-        raise PartitionError(f"batch size {size} exceeds the {BUDGETS['batch_max']} cap (or is < 1)")
+def pool_sha256(nodes) -> str:
+    """sha256 of the canonical node list (sorted, compact JSON) - the frozen completion pool's identity."""
+    return hashlib.sha256(json.dumps(sorted(nodes), separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def load_pool(pool_path: Path) -> list:
+    """fix round 1 (ruling 2 / review I1): the frozen full node pool (pool.json), refused unless its node list is
+    non-empty, duplicate-free and matches its recorded nodes_sha256."""
+    pool_path = Path(pool_path)
+    doc = json.loads(pool_path.read_text(encoding="utf-8"))
+    nodes = list(doc.get("nodes") or [])
+    if not nodes or len(set(nodes)) != len(nodes) or doc.get("nodes_sha256") != pool_sha256(nodes):
+        raise CoordError(f"{pool_path.name} does not match its nodes_sha256 (or is empty / has duplicates)")
+    return nodes
+
+
+def shard_nodes(cfg: CRConfig, src_root: Path, name: str = "?") -> list:
+    """The exact node list a completion shard's test-command runs: its single ``@argfile`` (relative to the copy
+    root, read here from ``src_root``). One source of truth for what the pool check and the run see."""
+    files = [str(a)[1:] for a in cfg.guard_args if str(a).startswith("@")]
+    if len(files) != 1:
+        raise CoordError(f"completion shard {name} has no single @nodes argfile in its test-command")
+    return [ln for ln in (Path(src_root) / files[0]).read_text(encoding="utf-8").splitlines() if ln.strip()]
+
+
+def config_identity(cfg: CRConfig, cr_toml: Path, config_id: str) -> dict:
+    """fix round 1 (ruling 4 / review I3): the identity a calibration cap is bound to - config id, module, the
+    test-command sha256, the cr.toml path + sha256 (which must render exactly this config) and the harness hashes."""
+    import tomllib
+    cr_toml = Path(cr_toml)
+    doc = tomllib.loads(cr_toml.read_text(encoding="utf-8")).get("cosmic-ray", {})
+    if (doc.get("test-command") != test_command(cfg) or doc.get("module-path") != _posix(cfg.module_rel)
+            or float(doc.get("timeout", -1)) != float(cfg.timeout_s)):
+        raise CoordError(f"{cr_toml.name}: cr.toml does not match the config {config_id}")
+    return {"config_id": config_id, "module_rel": _posix(cfg.module_rel),
+            "test_command_sha256": hashlib.sha256(test_command(cfg).encode("utf-8")).hexdigest(),
+            "cr_toml": str(cr_toml.resolve()), "cr_toml_sha256": _sha(cr_toml), "harness_sha256": harness_hashes()}
+
+
+def batch_cap(cap_record=None, identity: dict | None = None) -> int:
+    """15c-H (ruling 2) + fix round 1 (ruling 4): the batch cap is BUDGETS["batch_max"] (24) unless a calibration
+    cap record FILE is given; it is re-verified on every use (read_cap_record: sha256 sidecar, calibration state bytes,
+    the bound cr.toml + harness on disk, and the caller's current config identity). A bare dict is refused. The
+    derived cap is an efficiency estimate; the HARD session fence in run_batch stays the safety bound either way."""
+    if cap_record is None:
+        return BUDGETS["batch_max"]
+    if not isinstance(cap_record, (str, Path)):
+        raise CoordError("cap record must be a recorded file path (derive_cap output), not a bare dict")
+    if not identity:
+        raise CoordError("a cap record is only usable with the current config identity (config_identity)")
+    return int(read_cap_record(cap_record, identity=identity)["derived_cap"])
+
+
+def plan_batches(ids, size: int = BUDGETS["batch_max"], cap_record=None,
+                 identity: dict | None = None) -> list[list[str]]:
+    cap = batch_cap(cap_record, identity)
+    if not 1 <= size <= cap:
+        raise PartitionError(f"batch size {size} exceeds the {cap} cap (or is < 1)")
     ids = list(ids)
     if len(set(ids)) != len(ids):
         raise PartitionError("duplicated ids in the ordered inventory")
     batches = [ids[i:i + size] for i in range(0, len(ids), size)]
-    check_partition(ids, batches)
+    check_partition(ids, batches, cap=cap)
     return batches
 
 
-def check_partition(ids, batches) -> None:
+def check_partition(ids, batches, cap: int | None = None) -> None:
     flat = [j for b in batches for j in b]
     lost = sorted(set(ids) - set(flat))
     dup = sorted({j for j in flat if flat.count(j) > 1})
     unknown = sorted(set(flat) - set(ids))
-    over = [len(b) for b in batches if len(b) > BUDGETS["batch_max"]]
+    over = [len(b) for b in batches if len(b) > (cap or BUDGETS["batch_max"])]
     if lost or dup or unknown or over:
         raise PartitionError(f"batch partition invalid: lost: {lost}, duplicated: {dup}, unknown: {unknown}, "
                              f"oversized: {over}")
+
+
+def check_pool_union(pool, shards) -> None:
+    """15c-H (ruling 1): completion shards must cover the frozen full intended node pool EXACTLY - no node missing,
+    none unknown, none in two shards."""
+    flat = [n for s in shards for n in s]
+    missing = sorted(set(pool) - set(flat))
+    unknown = sorted(set(flat) - set(pool))
+    dup = sorted({n for n in flat if flat.count(n) > 1})
+    if missing or unknown or dup or len(set(pool)) != len(list(pool)):
+        raise PartitionError(f"completion pool union != frozen pool: missing: {missing}, unknown: {unknown}, "
+                             f"duplicated: {dup}")
 
 
 def write_manifests(work_root: Path, batches, inventory_sha256: str) -> list[Path]:
@@ -367,11 +443,13 @@ def describe_stop(s: dict) -> str:
 
 def unresolved_stops(work_root: Path) -> list[dict]:
     """Every batch that STOPPED, or was interrupted with items pending (R1-M1), and has no recorded resolution
-    artifact next to its state: the batches in ``work_root`` AND every retry session under ``work_root``/retries/
+    artifact next to its state: the batches in ``work_root``, every completion run under ``work_root``/completion/
+    AND every retry session under ``work_root``/retries/
     (R2-M1: a retry's own stop, e.g. cleanup_uncertain, gates the parent work_root too). Each returned state carries
     its directory as ``_root`` (in memory only), which is where resolve_stop must record the resolution."""
     root = Path(work_root)
-    paths = sorted(root.glob("batch_*_state.json")) + sorted(root.glob("retries/*/batch_*_state.json"))
+    paths = (sorted(root.glob("batch_*_state.json")) + sorted(root.glob("retries/*/batch_*_state.json"))
+             + sorted(root.glob("completion/*/*/batch_*_state.json")))   # 15c-H: completion attempts gate too
     out = []
     for p in paths:
         s = json.loads(p.read_text(encoding="utf-8"))
@@ -406,23 +484,251 @@ def _session_start(work_root: Path, clock) -> float:
     if p.is_file():
         return float(json.loads(p.read_text(encoding="utf-8"))["started"])
     now = float(clock())
+    p.parent.mkdir(parents=True, exist_ok=True)              # a fresh session root of a later session (fix round 1)
     _dump(p, {"schema": SCHEMA, "started": now, "session_length_s": BUDGETS["session_length_s"]})
     return now
 
 
+# 15c-H (ruling 2): measured per-item coordinator I/O outside the Cosmic Ray process (fresh S1 copy, source + harness
+# hashing, job dir, state dumps, rmtree, cr.toml + one-item WorkDB + reconcile): max 0.5 s, median 0.16 s over 12 S1
+# items (prep tool measure_io.py, 2026-11-16, evidence cr_a3/_prep/measure_io.json). The margin is 30x the measured
+# max, for cold caches / AV scanning; it is recorded in every batch state.
+IO_MARGIN_S = 15.0
+
+
+def fence_s(item_outer_s: float | None = None, io_margin_s: float = IO_MARGIN_S) -> float:
+    """15c-H (ruling 2) HARD session fence: the REAL maximum remaining one-item path. real_exec's outer
+    run_contained deadline (CR timeout + cleanup reserve = 345 s, or the retry 600 + 45) PLUS run_contained's own
+    nested cleanup verification (cleanup reserve, 45 s) PLUS the measured I/O margin. A candidate starts only if at
+    least this much of the session remains."""
+    outer = BUDGETS["cr_timeout_s"] + BUDGETS["cleanup_reserve_s"] if item_outer_s is None else item_outer_s
+    return float(outer + BUDGETS["cleanup_reserve_s"] + io_margin_s)
+
+
+def derive_cap(calibration_state: Path, *, out: Path, identity: dict, min_items: int | None = None,
+               item_outer_s: float | None = None, io_margin_s: float = IO_MARGIN_S) -> dict:
+    """15c-H (ruling 2) + fix round 1 (ruling 4): from ONE calibration batch state of ONE config (its recorded
+    ``config`` must equal ``identity``) with >= BUDGETS["batch_max"] measured items, derive and RECORD the batch cap
+    floor((session length - fence) / max measured item). The record binds the config identity and the calibration
+    state's path + sha256, gets a sha256 sidecar and is never overwritten. An efficiency estimate only: the fence stays
+    the safety bound."""
+    out, calibration_state = Path(out), Path(calibration_state)
+    if out.exists():
+        raise CoordError(f"{out.name} already exists: a cap record is never overwritten")
+    s = json.loads(calibration_state.read_text(encoding="utf-8"))
+    if not identity or s.get("config") != identity:
+        raise CoordError(f"calibration state is from a different config ({(s.get('config') or {}).get('config_id')}"
+                         f", not {(identity or {}).get('config_id')})")
+    need = BUDGETS["batch_max"] if min_items is None else int(min_items)
+    costs = {job: float(sec) for job, sec in (s.get("item_s") or {}).items() if job in s.get("batch", [])}
+    if len(costs) < need:
+        raise CoordError(f"calibration needs at least {need} measured items, got {len(costs)}")
+    fence = fence_s(item_outer_s, io_margin_s)
+    worst = max(costs.values())
+    cap = max(1, int((BUDGETS["session_length_s"] - fence) // worst)) if worst > 0 else BUDGETS["batch_max"]
+    rec = {"schema": SCHEMA, "config": identity,
+           "calibration_state": {"path": str(calibration_state.resolve()), "sha256": _sha(calibration_state),
+                                 "batch_id": s.get("batch_id")},
+           "measured_items": len(costs), "max_item_s": worst,
+           "median_item_s": sorted(costs.values())[len(costs) // 2], "fence_s": fence, "io_margin_s": io_margin_s,
+           "session_length_s": BUDGETS["session_length_s"], "derived_cap": cap,
+           "rule": "floor((session_length_s - fence_s) / max_item_s) from one calibration state of this config; "
+                   "efficiency estimate, the fence is the bound"}
+    _dump(out, rec)
+    out.with_name(out.name + ".sha256").write_bytes(f"{_sha(out)} *{out.name}\n".encode("utf-8"))
+    return rec
+
+
+def read_cap_record(path: Path, identity: dict | None = None) -> dict:
+    """A cap record, re-verified: its sha256 sidecar, the calibration state bytes it was derived from, the bound
+    cr.toml and harness files as they are on disk now, and (when given) the caller's current config identity."""
+    path = Path(path)
+    side = path.with_name(path.name + ".sha256")
+    if not side.is_file() or side.read_text(encoding="utf-8").split()[0] != _sha(path):
+        raise CoordError(f"{path.name} does not match its sha256 sidecar")
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    cal = rec.get("calibration_state") or {}
+    if not cal.get("path") or not Path(cal["path"]).is_file() or _sha(Path(cal["path"])) != cal.get("sha256"):
+        raise CoordError(f"calibration state {cal.get('path')} changed since the cap was derived")
+    cfg = rec.get("config") or {}
+    if (not cfg.get("cr_toml") or not Path(cfg["cr_toml"]).is_file()
+            or _sha(Path(cfg["cr_toml"])) != cfg.get("cr_toml_sha256")
+            or cfg.get("harness_sha256") != harness_hashes()):
+        raise CoordError(f"config files of {cfg.get('config_id')} changed since the cap was derived")
+    if identity is not None and cfg != identity:
+        raise CoordError(f"cap record is bound to config {cfg.get('config_id')}, not {identity.get('config_id')}")
+    return rec
+
+
+def _screen_labels(job: str, work_root: Path) -> list:
+    out = []
+    for p in sorted(Path(work_root).glob("batch_*_state.json")):
+        labels = json.loads(p.read_text(encoding="utf-8")).get("labels", {})
+        if job in labels:
+            out.append(labels[job])
+    return out
+
+
+_BINDING_ENV = ("PYTHONHASHSEED", "PYTHONDONTWRITEBYTECODE", "PYTHONUTF8", "PYTHONIOENCODING", "PYTEST_ADDOPTS",
+                "HYPOTHESIS_PROFILE", "TZ")
+
+
+def _attempt_binding(cfg: CRConfig, src_root: Path, nodes: list, result: dict) -> dict:
+    """Codex early number check (e): what a completion attempt ran WITH - executable, test-command, exact node set,
+    control file, target source, harness + helper file hashes (conftest.py / *helpers*.py on the pythonpath dirs of
+    the source tree the copy is made from), the env-relevant variables, and the containment verdict."""
+    src_root = Path(src_root)
+    args = [str(a) for a in cfg.guard_args]
+    ctl = args[args.index("--control") + 1] if "--control" in args[:-1] else None
+    helpers = {}
+    for rel in cfg.pythonpath_rel:
+        d = src_root / rel
+        for p in sorted(list(d.glob("conftest.py")) + list(d.glob("*helpers*.py"))):
+            helpers[_posix(p.relative_to(src_root))] = _sha(p)
+    src = src_root / cfg.module_rel
+    return {"python": str(cfg.python),
+            "test_command_sha256": hashlib.sha256(test_command(cfg).encode("utf-8")).hexdigest(),
+            "node_set_sha256": pool_sha256(nodes), "nodes": len(nodes),
+            "control_sha256": _sha(src_root / ctl) if ctl and (src_root / ctl).is_file() else None,
+            "source_sha256": _sha(src) if src.is_file() else None, "harness_sha256": harness_hashes(),
+            "helpers_sha256": helpers, "pythonpath_rel": list(cfg.pythonpath_rel),
+            "env": {k: os.environ.get(k) for k in _BINDING_ENV},
+            "containment": {"exec_status": result.get("exec_status"),
+                            "cleanup_verified": result.get("cleanup_verified")}}
+
+
+def _attempt_states(sroot: Path, name: str) -> list:
+    """Every attempt state of one completion shard, in order: batch ids <name>, <name>-a1, <name>-a2, ..."""
+    out, k = [], 0
+    while True:
+        p = _state_path(sroot, name if k == 0 else f"{name}-a{k}")
+        if not p.is_file():
+            return out
+        out.append(p)
+        k += 1
+
+
+def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_root: Path, work_root: Path,
+                   exec_factory=None, session_root: Path | None = None, source_sha256: dict | None = None,
+                   clock=time.monotonic, io_margin_s: float = IO_MARGIN_S) -> dict:
+    """15c-H (ruling 1) + fix round 1 (rulings 1-3): re-run a screening SURVIVOR against every completion shard, in
+    order, each as its own one-item guard-verified attempt (run_batch) under ``work_root``/completion/<job>/<shard>/,
+    on the PARENT session clock (``session_root``, default ``work_root``) and the same HARD fence.
+
+    * The declared shards' node sets (each config's single @argfile, read from ``src_root``) must cover the frozen
+      ``pool_path`` (pool.json, sha-verified) EXACTLY; zero shards or a subset is refused before anything runs.
+    * Only a GUARD-CLEAN kill (cr_reconcile.attempt_clean) stops the remaining shards.
+    * Any stop leaves the remaining shards pending and blocks every batch until resolve_stop.
+    * A shard the fence refused (state without the job started) is pending; once that stop is resolved it is re-run
+      in a later session as a new attempt (<shard>-a<k>), the refused state is kept. A shard that did run is never
+      re-run.
+    * The merge (cr_reconcile.merge_attempts: killed / unresolved / deferred / survived), every attempt with its
+      binding, and the pool sha256 are written to a new completion_record*.json.
+
+    ``shards``: [{"name", "cfg": CRConfig, "copy_paths"}]."""
+    exec_factory = exec_factory or real_exec
+    if job not in items_by_id:
+        raise CoordError(f"unknown job {job} (not in the inventory)")
+    labels = _screen_labels(job, work_root)
+    if labels != ["survived"]:
+        raise CoordError(f"{job} is not a screening survivor: labels {labels}")
+    pool = load_pool(pool_path)
+    names = [s["name"] for s in shards]
+    if len(set(names)) != len(names):
+        raise CoordError(f"duplicate completion shard names {names}")
+    node_sets = [shard_nodes(s["cfg"], src_root, s["name"]) for s in shards]
+    for spec, nodes in zip(shards, node_sets):
+        args = [str(a) for a in spec["cfg"].guard_args]
+        ctl = Path(src_root) / args[args.index("--control") + 1] if "--control" in args[:-1] else None
+        try:
+            control = set(json.loads(ctl.read_text(encoding="utf-8"))["nodes"]) if ctl else None
+        except (OSError, ValueError, KeyError, TypeError):
+            control = None
+        if control != set(nodes):
+            raise CoordError(f"completion shard {spec['name']}: control node set != its @argfile node set "
+                             f"({ctl}); the guard would run the control, not the pool-checked list")
+    try:
+        if not shards:
+            raise PartitionError("no completion shards declared")
+        check_pool_union(pool, node_sets)
+    except PartitionError as exc:
+        raise CoordError(f"completion shards do not cover the frozen pool {Path(pool_path).name}: {exc}") from None
+    blocked = unresolved_stops(work_root)
+    if blocked:
+        b = blocked[0]
+        raise CoordError(f"{describe_stop(b)} and is unresolved; record a resolution with "
+                         f"resolve_stop({b['_root']!r}, {b['batch_id']!r}, ...) before completing {job}")
+    croot = Path(work_root) / "completion" / job
+    attempts, refused, pending, not_run = [], [], [], []
+    for n, (spec, nodes) in enumerate(zip(shards, node_sets)):
+        name, cfg = spec["name"], spec["cfg"]
+        if attempts and attempts[-1]["label"] == "killed" and cr_reconcile.attempt_clean(attempts[-1]):
+            not_run = names[n:]
+            break
+        sroot = croot / name                                # one work dir per shard (jobs/<job> is per root)
+        states = _attempt_states(sroot, name)
+        latest = json.loads(states[-1].read_text(encoding="utf-8")) if states else None
+        if latest is None or (job not in latest.get("labels", {})
+                              and _resolution_path(sroot, latest["batch_id"]).exists()):
+            bid = name if not states else f"{name}-a{len(states)}"
+            run_batch([job], items_by_id, batch_id=bid, src_root=src_root, copy_paths=spec["copy_paths"],
+                      work_root=sroot, exec_seam=exec_factory(cfg), source_sha256=source_sha256, clock=clock,
+                      session_root=Path(session_root or work_root), io_margin_s=io_margin_s,
+                      item_outer_s=cfg.timeout_s + BUDGETS["cleanup_reserve_s"],
+                      extra={"completion_of": job, "shard": name, "test_command": test_command(cfg)})
+            states = _attempt_states(sroot, name)
+        state = states[-1]
+        s = json.loads(state.read_text(encoding="utf-8"))
+        if job not in s.get("labels", {}):                  # refused before starting (fence / clock): pending
+            refused.append({"shard": name, "attempt_batch": s["batch_id"], "stop_reason": s.get("stop_reason"),
+                            "state_sha256": _sha(state)})
+            pending = names[n:]
+            break
+        res = s["results"].get(job, {})
+        attempts.append({"shard": name, "attempt_batch": s["batch_id"], "label": s["labels"][job],
+                         "guard_status": res.get("guard_status"), "exec_status": res.get("exec_status"),
+                         "cleanup_verified": res.get("cleanup_verified"), "stopped": bool(s.get("stopped")),
+                         "stop_reason": s.get("stop_reason"), "state_sha256": _sha(state),
+                         "test_command_sha256": hashlib.sha256(test_command(cfg).encode("utf-8")).hexdigest(),
+                         "binding": _attempt_binding(cfg, src_root, nodes, res)})
+        if s.get("stopped") and not _resolution_path(sroot, s["batch_id"]).exists():
+            pending = names[n + 1:]
+            break
+    merged = cr_reconcile.merge_attempts("survived", attempts, names)
+    rec = {"schema": SCHEMA, "job_id": job, "screening_label": "survived", "required": names,
+           "pool": str(Path(pool_path)), "pool_sha256": pool_sha256(pool), "attempts": attempts, "refused": refused,
+           "not_run": not_run, "pending_shards": pending, **merged}
+    croot.mkdir(parents=True, exist_ok=True)
+    out, k = croot / "completion_record.json", 1
+    while out.exists():
+        out, k = croot / f"completion_record_{k}.json", k + 1
+    _dump(out, rec)
+    return rec
+
+
 def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_paths, work_root: Path, exec_seam,
-              source_sha256: dict | None = None, clock=time.time, extra: dict | None = None) -> dict:
+              source_sha256: dict | None = None, clock=time.monotonic, extra: dict | None = None,
+              session_root: Path | None = None, io_margin_s: float = IO_MARGIN_S, item_outer_s: float | None = None,
+              cap_record=None, config: dict | None = None) -> dict:
     """Execute a batch strictly sequentially, one WorkItem per fresh disposable copy. Stops (quarantining the copy)
     on the first timeout / cleanup uncertainty / drift / unrestored source / exec exception; pending IDs are kept.
 
     Fix round 1 (I2): the state lives in ``batch_<batch_id>_state.json`` and is never overwritten; a batch refuses
     to start while any earlier batch in the same work_root is STOPPED without a recorded resolution (resolve_stop).
-    ``source_sha256`` ({module_rel: sha256}, normally from inventory.json) is what each copy must match."""
+    ``source_sha256`` ({module_rel: sha256}, normally from inventory.json) is what each copy must match.
+
+    15c-H (ruling 2): ``clock`` is MONOTONIC and the session clock lives in ``session_root`` (default ``work_root``),
+    so nested retry/completion runs share their parent session's clock. HARD fence: a candidate starts only if the
+    remaining session time is >= fence_s(item_outer_s, io_margin_s); a clock reading before the session start
+    (e.g. after a reboot) refuses with session_clock_invalid. Each item's measured duration is kept in
+    ``item_s`` (calibration input). More than BUDGETS["batch_max"] items needs a calibration ``cap_record``."""
     batch = list(batch)
     if not _BATCH_ID.match(str(batch_id)):
         raise CoordError(f"invalid batch id {batch_id!r}")
-    if len(batch) > BUDGETS["batch_max"] or len(set(batch)) != len(batch):
-        raise PartitionError(f"batch of {len(batch)} items is over the {BUDGETS['batch_max']} cap or has duplicates")
+    cap = batch_cap(cap_record, config)
+    if len(batch) > cap or len(set(batch)) != len(batch):
+        raise PartitionError(f"batch of {len(batch)} items is over the {cap} cap or has duplicates")
+    fence = fence_s(item_outer_s, io_margin_s)
     work_root, src_root = Path(work_root), Path(src_root)
     work_root.mkdir(parents=True, exist_ok=True)
     state_path = _state_path(work_root, batch_id)
@@ -433,13 +739,17 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
         b = blocked[0]
         raise CoordError(f"{describe_stop(b)} and is unresolved; record a resolution "
                          f"with resolve_stop({b['_root']!r}, {b['batch_id']!r}, ...) before running batch {batch_id}")
-    started = _session_start(work_root, clock)
+    session_root = Path(session_root) if session_root is not None else work_root
+    started = _session_start(session_root, clock)
     copies, jobs, quarantine = work_root / "copies", work_root / "jobs", work_root / "quarantine"
     for d in (copies, jobs, quarantine):
         d.mkdir(parents=True, exist_ok=True)
     st = {"schema": SCHEMA, "batch_id": batch_id, "batch": batch, "done": [], "quarantined": [],
           "pending": list(batch), "stopped": False, "stop_reason": None, "labels": {}, "results": {},
-          "session_started": started, "harness_sha256": harness_hashes(), **(extra or {})}
+          "session_started": started, "session_root": str(session_root), "fence_s": fence,
+          "io_margin_s": io_margin_s, "batch_cap": cap, "item_s": {}, "config": config,
+          "harness_sha256": harness_hashes(),
+          **(extra or {})}
 
     def stop(job, reason, copy_root=None):
         if copy_root is not None and copy_root.exists():
@@ -454,8 +764,12 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
 
     _dump(state_path, st)
     for job in batch:
-        needed = BUDGETS["cr_timeout_s"] + BUDGETS["cleanup_reserve_s"]
-        if clock() - started + needed > BUDGETS["session_length_s"]:
+        t_item = clock()
+        if t_item < started:
+            st.update(stopped=True, stop_reason=f"session_clock_invalid: {job}")
+            _dump(state_path, st)
+            break
+        if BUDGETS["session_length_s"] - (t_item - started) < fence:
             st.update(stopped=True, stop_reason=f"session_budget: {job}")
             _dump(state_path, st)
             break
@@ -493,9 +807,11 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
         restored = (copy_root / mod_rel).is_file() and _sha(copy_root / mod_rel) == copied[mod_rel]
         reason = _stop_reason(result, restored)
         if reason:
+            st["item_s"][job] = round(clock() - t_item, 3)
             stop(job, reason, copy_root)
             break
         shutil.rmtree(copy_root)                        # disposable: evidence lives in jobs/<id>/, not in the copy
+        st["item_s"][job] = round(clock() - t_item, 3)  # measured whole-item cost (calibration input)
         st["done"].append(job)
         st["pending"].remove(job)
         _dump(state_path, st)
@@ -503,8 +819,10 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
 
 
 def run_manifest(manifest: Path, inventory_path: Path, *, src_root: Path, copy_paths, work_root: Path, exec_seam,
-                 clock=time.time) -> dict:
-    """Run one batch manifest against the EXACT inventory bytes it was written for (I5)."""
+                 clock=time.monotonic, session_root: Path | None = None, cap_record=None,
+                 config: dict | None = None) -> dict:
+    """Run one batch manifest against the EXACT inventory bytes it was written for (I5). 15c-H: a manifest of more
+    than BUDGETS["batch_max"] items needs the calibration ``cap_record`` (read_cap_record)."""
     man = json.loads(Path(manifest).read_text(encoding="utf-8"))
     inv_sha = _sha(inventory_path)
     if inv_sha != man["inventory_sha256"]:
@@ -514,9 +832,14 @@ def run_manifest(manifest: Path, inventory_path: Path, *, src_root: Path, copy_p
     unknown = sorted(set(man["items"]) - set(items_by_id))
     if unknown:
         raise CoordError(f"manifest items not in the inventory: {unknown}")
+    if config is not None:
+        tc = inv.get("test_command")
+        if not tc or hashlib.sha256(tc.encode("utf-8")).hexdigest() != config.get("test_command_sha256"):
+            raise CoordError(f"identity {config.get('config_id')}: not this inventory's test_command")
     return run_batch(man["items"], items_by_id, batch_id=f"{int(man['batch_index']):03d}", src_root=src_root,
                      copy_paths=copy_paths, work_root=work_root, exec_seam=exec_seam,
                      source_sha256={inv["module_rel"]: inv["source_sha256"]}, clock=clock,
+                     session_root=session_root, cap_record=cap_record, config=config,
                      extra={"manifest": str(manifest), "manifest_sha256": _sha(manifest),
                             "inventory_sha256": inv_sha})
 
@@ -586,12 +909,36 @@ def retry_eligibility(job: str, items_by_id: dict, work_root: Path) -> tuple[lis
     return initial, basis
 
 
+def _in_completion_area(work_root: Path) -> bool:
+    """True for <root>/completion, <root>/completion/<job> and <root>/completion/<job>/<shard> where <root> is a
+    coordinator work root (it has session.json or batch_*_state.json), or for any dir whose batch states record
+    ``completion_of``. A screening root that merely sits under a directory named "completion" is not one."""
+    p = Path(work_root).resolve()
+    for s in p.glob("batch_*_state.json"):
+        try:
+            if json.loads(s.read_text(encoding="utf-8")).get("completion_of"):
+                return True
+        except ValueError:
+            return True
+    for up in (p, p.parent, p.parent.parent):
+        if up.name == "completion":
+            root = up.parent
+            if (root / "session.json").is_file() or any(root.glob("batch_*_state.json")):
+                return True
+    return False
+
+
 def run_retry(job: str, items_by_id: dict, cfg: CRConfig, *, src_root: Path, copy_paths, work_root: Path,
-              exec_factory=real_exec, source_sha256: dict | None = None, clock=time.time) -> dict:
+              exec_factory=real_exec, source_sha256: dict | None = None, clock=time.monotonic,
+              session_root: Path | None = None) -> dict:
     """The ONE retry (R4/R5): a separately recorded one-item session under ``work_root``/retries/<job> with the
     retry budgets (CR 600 s, inner 540 s), only for an eligible timeout (retry_eligibility; the basis is recorded).
     The initial labels are copied from every batch state that holds the job (never modified); a second retry of the
-    same job is refused."""
+    same job is refused. 15c-H: the retry runs on the PARENT session clock (``session_root``, default
+    ``work_root``) with the retry item path (600 + 45 s) in its HARD fence."""
+    if _in_completion_area(work_root):
+        raise CoordError(f"run_retry refuses a completion-shard directory ({work_root}): a completion timeout stays "
+                         f"unresolved (retry allowance for completion attempts is not agreed)")
     rroot = Path(work_root) / "retries" / job
     if rroot.exists():
         raise CoordError(f"{job} was already retried ({rroot}); one retry only")
@@ -599,6 +946,8 @@ def run_retry(job: str, items_by_id: dict, cfg: CRConfig, *, src_root: Path, cop
     rcfg = retry_config(cfg)
     return run_batch([job], items_by_id, batch_id="retry", src_root=src_root, copy_paths=copy_paths,
                      work_root=rroot, exec_seam=exec_factory(rcfg), source_sha256=source_sha256, clock=clock,
+                     session_root=Path(session_root or work_root),
+                     item_outer_s=rcfg.timeout_s + BUDGETS["cleanup_reserve_s"],
                      extra={"retry_of": job, "initial_labels": initial, "eligibility": basis,
                             "retry_budgets": {"cr_timeout_s": rcfg.timeout_s,
                                               "guard_deadline_s": rcfg.guard_deadline_s}})

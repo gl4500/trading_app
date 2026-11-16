@@ -1,0 +1,38 @@
+............................                                             [100%]
+=================================== PASSES ====================================
+_________ test_the_finalize_mode_dispatches_to_the_finalizer_command __________
+---------------------------- Captured stderr call -----------------------------
+usage: __main__.py [-h] [--scheduled SCHEDULED] [--opening] [--final-snapshot]
+                   [--finalize]
+__main__.py: error: --finalize takes no other mode (exactly one mode per call)
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15c_work\baseline\s1_seal__completion\c1\run2\job\attempt-26d9b993eb3842828755b6f19eb68015\junit.xml -
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_publication_gap_with_different_history_is_stop_conflict
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_final_plan_before_stop_attest_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_post_stop_sampled_slot_is_excluded_from_the_sampled_history
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-blocks]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[lots-later-not-chosen@2026-10-27T12:00:00]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_damaged_ineligible_seal_is_invalid[no-valid-seal-ineligible-seal-corrupt]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_follows_the_in_transaction_clock[txn<W<=pre]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_preflight_clock_mutant_is_killed[pre<W<=txn]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_d130_checkpoint_refused_then_finalizer_recovers_the_eligible_timeout[run-finalizer-recovers-timeout]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_the_finalize_mode_dispatches_to_the_finalizer_command
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_stop_json_read_error_is_confirmed_and_never_invalidates[persistent]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_damaged_slot_tree_in_the_gap_is_judged_by_the_evidence_table
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_persist_stop_never_recreates_a_lost_s1_out
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_envelope_inputs_and_members
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[wrong-prev]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_authorized_post_stop_prices_are_used_for_valuation
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_second_computation_error_after_an_integrity_verdict_keeps_the_first_reasons
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_aborted_record_write_error_still_records_the_anomaly_reason
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_unconfirmed_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_reread_failure_refuses_with_no_row[oserror-recompute]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_reread_failure_refuses_with_no_row[journal-reread]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[differs-then-missing]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[unknown-kind]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-unknown-category]
+28 passed in 125.96s (0:02:05)

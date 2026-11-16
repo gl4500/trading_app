@@ -1,0 +1,34 @@
+{
+ "items": 12,
+ "max_s": 0.5,
+ "median_s": 0.164,
+ "note": "real run_batch per item (copy, drift+harness hashing, job dir, state dumps, rmtree) + stub seam doing real_exec's non-CR I/O (cr.toml, one-item WorkDB, reconcile); no Cosmic Ray process, no mutation",
+ "per_item_s": [
+  0.5,
+  0.203,
+  0.156,
+  0.157,
+  0.187,
+  0.172,
+  0.172,
+  0.156,
+  0.156,
+  0.157,
+  0.156,
+  0.172
+ ],
+ "seam_io_s": {
+  "18e0794991f54befab5f672792bdea28": 0.016,
+  "23afa0c72e484105a00f63e39c0d0595": 0.016,
+  "40859a008fb447c7bb65447d02d8f53f": 0.015,
+  "412b9f8e3dd04756b66de0b0bc8bc1e6": 0.016,
+  "715ac1cef2bc40acab6c1aa551d0f9f1": 0.016,
+  "721717dd669d4c9dbd1fd9fb6a91d6e7": 0.016,
+  "97d8fe2c8cdd4e36a1f7bdf54f2d7891": 0.344,
+  "988ae41b6cb04340b07d17d9172bb44e": 0.015,
+  "b3ebc24fce2c4efc8062fa16dfed471b": 0.032,
+  "b8638df4ca214c488ef019a90cb3d077": 0.016,
+  "c3d42f7399df48d3942d5bcab8ce2425": 0.016,
+  "d57fbf1b0ae047f8b989a424e4a43a2c": 0.016
+ }
+}

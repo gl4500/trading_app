@@ -1,0 +1,207 @@
+{
+ "delegation_edges": [
+  {
+   "callee": "_utc_z",
+   "caller": "final_policy",
+   "lines": [
+    610,
+    611
+   ]
+  },
+  {
+   "callee": "_attempt_files",
+   "caller": "do_final",
+   "lines": [
+    676
+   ]
+  },
+  {
+   "callee": "_corporate_actions",
+   "caller": "do_final",
+   "lines": [
+    661,
+    663
+   ]
+  },
+  {
+   "callee": "_headers",
+   "caller": "do_final",
+   "lines": [
+    660
+   ]
+  },
+  {
+   "callee": "_provider_abort",
+   "caller": "do_final",
+   "lines": [
+    670
+   ]
+  },
+  {
+   "callee": "_require_no_redirects",
+   "caller": "do_final",
+   "lines": [
+    627
+   ]
+  },
+  {
+   "callee": "_earliest_acquire",
+   "caller": "do_final",
+   "lines": [
+    646
+   ]
+  },
+  {
+   "callee": "_parse_bars",
+   "caller": "do_final",
+   "lines": [
+    671
+   ]
+  },
+  {
+   "callee": "reconcile_actions",
+   "caller": "do_final",
+   "lines": [
+    672
+   ]
+  },
+  {
+   "callee": "_is_num",
+   "caller": "_validate_bars_page",
+   "lines": [
+    273
+   ]
+  },
+  {
+   "callee": "_is_num",
+   "caller": "_parse_bars",
+   "lines": [
+    299
+   ]
+  },
+  {
+   "callee": "_ny_instant",
+   "caller": "final_policy",
+   "lines": [
+    599,
+    600
+   ]
+  },
+  {
+   "callee": "_ny_instant",
+   "caller": "_earliest_acquire",
+   "lines": [
+    586
+   ]
+  },
+  {
+   "callee": "_identity_view",
+   "caller": "reconcile_actions",
+   "lines": [
+    340,
+    340
+   ]
+  }
+ ],
+ "expanded": [
+  "_validate_bars_page",
+  "_utc_z",
+  "_attempt_files",
+  "_corporate_actions",
+  "_headers",
+  "_provider_abort",
+  "_require_no_redirects",
+  "_validate_calendar",
+  "_earliest_acquire",
+  "_parse_bars",
+  "reconcile_actions",
+  "_is_num",
+  "_ny_instant",
+  "_identity_view"
+ ],
+ "expansion_rule": "expand: module-level function g directly called (ast.Call with func=ast.Name(g)) from an in-scope body (nested defs/methods included) is added iff ALL module-level scopes referencing g (call or Name load; module-level statements count as '<module>') are in scope; iterate to a fixed point; never cross modules; g referenced from any out-of-scope scope -> controller decision, not added",
+ "module_rel": "research/s1/s1_collect.py",
+ "named": [
+  "audit_policy",
+  "final_policy",
+  "_Authorizer",
+  "_get",
+  "_paged",
+  "do_audit",
+  "do_final"
+ ],
+ "public_names_added_by_walk": [
+  "reconcile_actions"
+ ],
+ "row_ranges": {
+  "file": "ranges.json",
+  "sha256": "756791ae6f83630c55ae8405d051866fa35427e5caad18632574c38152ecfbea"
+ },
+ "rule": "keep a WorkItem iff its mutation line span overlaps a named scope's [start,end] (decorators..last body line, nested defs and methods included); others skipped-by-scope",
+ "ruled_delegations": [
+  {
+   "also_referenced_out_of_scope_by": [],
+   "basis": "controller 15c-H ruling 4 (D4, Codex t15c_prep_review: callback passed by value, only in-scope referrer)",
+   "callee": "_validate_bars_page"
+  }
+ ],
+ "schema": "a3-t15a-ranges/1",
+ "scopes": {
+  "_earliest_acquire": {
+   "end": 588,
+   "kind": "function",
+   "qualname": "_earliest_acquire",
+   "start": 581
+  },
+  "_identity_view": {
+   "end": 317,
+   "kind": "function",
+   "qualname": "_identity_view",
+   "start": 315
+  },
+  "_is_num": {
+   "end": 255,
+   "kind": "function",
+   "qualname": "_is_num",
+   "start": 254
+  },
+  "_parse_bars": {
+   "end": 308,
+   "kind": "function",
+   "qualname": "_parse_bars",
+   "start": 281
+  },
+  "_utc_z": {
+   "end": 592,
+   "kind": "function",
+   "qualname": "_utc_z",
+   "start": 591
+  },
+  "_validate_bars_page": {
+   "end": 278,
+   "kind": "function",
+   "qualname": "_validate_bars_page",
+   "start": 258
+  },
+  "do_final": {
+   "end": 696,
+   "kind": "function",
+   "qualname": "do_final",
+   "start": 618
+  },
+  "final_policy": {
+   "end": 615,
+   "kind": "function",
+   "qualname": "final_policy",
+   "start": 595
+  },
+  "reconcile_actions": {
+   "end": 350,
+   "kind": "function",
+   "qualname": "reconcile_actions",
+   "start": 320
+  }
+ },
+ "sha256": "a486fbd49b934788eb554a2574a71db3646bf0252ddc5265e5bd5847f3756968",
+ "source": "C:/Users/gl450/trading_app-s1/research/s1/s1_collect.py"
+}

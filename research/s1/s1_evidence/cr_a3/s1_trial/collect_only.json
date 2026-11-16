@@ -1,0 +1,22 @@
+{
+ "cleanup_verified": true,
+ "cmd": [
+  "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+  "-m",
+  "pytest",
+  "-p",
+  "cr_guard",
+  "-p",
+  "no:cacheprovider",
+  "-p",
+  "conftest",
+  "--collect-only",
+  "-q",
+  "research/s1/s1_tests/test_s1_a3_trial.py",
+  "research/s1/s1_tests/test_s1_a3_gate.py"
+ ],
+ "control_sha256": "14cea99769b730e382153b5c8e7b2f681fdf4cb763f56b987826e06c711cd9e3",
+ "count": 123,
+ "cwd": "<fresh copy root>",
+ "rc": 0
+}

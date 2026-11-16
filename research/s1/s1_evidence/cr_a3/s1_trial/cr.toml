@@ -1,0 +1,8 @@
+[cosmic-ray]
+module-path = "research/s1/s1_trial.py"
+timeout = 300.0
+excluded-modules = []
+test-command = "C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m cr_guard --deadline 240 --target s1_trial --control research/s1/s1_evidence/cr_a3/s1_trial/control.json -p conftest research/s1/s1_tests/test_s1_a3_trial.py research/s1/s1_tests/test_s1_a3_gate.py"
+
+[cosmic-ray.distributor]
+name = "local"

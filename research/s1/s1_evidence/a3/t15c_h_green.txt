@@ -1,0 +1,14 @@
+A3 Task 15c-H GREEN - REGENERATED in fix round 2 (2026-11-16T07:15:11-05:00) for the final 15c-H + fix-1 + fix-2 harness and tests (supersedes the fix-1 regeneration, 97 passed)
+cmd: PYTHONPATH=research/s1;research/s1/s1_tests <testenv> -m pytest -p conftest -p no:cacheprovider test_s1_a3_cr_guard.py test_s1_a3_cr_completion.py -q -rf (serial)
+files run (sha256):
+e0d7f6ccaa84c4f13aeebd0cbbf1c5fb316ad0837ca6f0d6d343ba7d33854ec9 *research/s1/s1_tests/test_s1_a3_cr_guard.py
+92bca1440577fda10db5105dc3dc1241049127ec21cae44b66266b6b561d5e7a *research/s1/s1_tests/test_s1_a3_cr_completion.py
+235e5285fc9cbd82dc7cdbf1b6ecb18acf4cb8a1656a7eeba4cd7b37a5ea4019 *research/s1/s1_tests/cr_coord.py
+1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+====
+........................................................................ [ 67%]
+..................................                                       [100%]
+106 passed in 36.51s

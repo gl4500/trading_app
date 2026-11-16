@@ -1,0 +1,22 @@
+{
+ "cleanup_verified": true,
+ "cmd": [
+  "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+  "-m",
+  "pytest",
+  "-p",
+  "cr_guard",
+  "-p",
+  "no:cacheprovider",
+  "-p",
+  "conftest",
+  "--collect-only",
+  "-q",
+  "research/s1/s1_tests/test_s1_a3_journal.py",
+  "research/s1/s1_tests/test_s1_a3_precedence.py"
+ ],
+ "control_sha256": "d7fa0ec4e29ebb73969b6f75d0b6b5d1e7697c0e64e644a6c1b4f1a56f2feab8",
+ "count": 163,
+ "cwd": "<fresh copy root>",
+ "rc": 0
+}

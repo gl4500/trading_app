@@ -1,0 +1,21 @@
+{
+ "cleanup_verified": true,
+ "cmd": [
+  "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+  "-m",
+  "pytest",
+  "-p",
+  "cr_guard",
+  "-p",
+  "no:cacheprovider",
+  "-p",
+  "conftest",
+  "--collect-only",
+  "-q",
+  "@research/s1/s1_evidence/cr_a3/s1_slot/finalizer/nodes.txt"
+ ],
+ "control_sha256": "357e1821822926e28a6bfc61f3a737ed750fa872e6919794186132d35b356117",
+ "count": 78,
+ "cwd": "<fresh copy root>",
+ "rc": 0
+}

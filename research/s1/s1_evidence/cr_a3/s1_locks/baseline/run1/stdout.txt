@@ -1,0 +1,52 @@
+...............................................                          [100%]
+=================================== PASSES ====================================
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15c_work\baseline\s1_locks\run1\job\attempt-c96f369ca6bb4fb085defd570e2ece7c\junit.xml -
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_lives_outside_s1_out
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[audit]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[opening]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[start_attest]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[prereg]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[stop_attest]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final_plan]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[score]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2026-10-27]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2028-02-29]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_held_lock_cannot_be_deleted_renamed_or_replaced
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_concurrent_recovery_exactly_one_acquires
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_held_and_error_are_distinct_results
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[dotdot-name]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[slash-name]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[unknown-stage]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bad-trial]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-not-a-date]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-month-13]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-feb-30]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bare-dotdot]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[backslash-name]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[embedded-traversal]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trailing-newline]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[upper-case]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[empty]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[fullwidth-digits]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[non-str-name]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-traversal]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-upper]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-trailing-newline]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-uuid1]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[stage/audit]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/../x]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/20261102T214500Z/x]
+PASSED research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe
+47 passed in 1.20s

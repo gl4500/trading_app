@@ -1,0 +1,56 @@
+{
+ "candidate_time_s": 202.85,
+ "candidates": 28,
+ "cap_s": 150.0,
+ "explore_junit_sha256": "87dc541f91ef1af40bfa4167535d9a3e85ff0d1c1c454a96e4a30fb83b300e72",
+ "method": "bounded selection (forced cover, diversity, round-robin) under cap",
+ "module": "s1_seal",
+ "omitted": [
+  {
+   "explore_s": 7.14,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed]"
+  },
+  {
+   "explore_s": 7.33,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]"
+  },
+  {
+   "explore_s": 7.23,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs]"
+  },
+  {
+   "explore_s": 7.13,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs]"
+  },
+  {
+   "explore_s": 7.33,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed]"
+  },
+  {
+   "explore_s": 9.16,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_non_integrity_dispositions_stay_valid[INCONCLUSIVE]"
+  },
+  {
+   "explore_s": 4.3,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_post_stop_sampled_slot_is_excluded_from_the_sampled_history"
+  },
+  {
+   "explore_s": 7.15,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_the_score_threads_its_mailbox_into_the_stop_read"
+  }
+ ],
+ "prefer": [
+  "test_s1_a3_score"
+ ],
+ "reach_sha256": "f89c20cf20cb13445e7628f4a80d0b16a1620165859aca129cc5ed92ce750e79",
+ "scopes": [
+  "sampled_seals",
+  "_sampled_seals",
+  "sampled_history"
+ ],
+ "scopes_uncovered_by_selection": [],
+ "scopes_without_reaching_test": [],
+ "selected": 20,
+ "selected_time_s": 146.07,
+ "shard": "sampled"
+}

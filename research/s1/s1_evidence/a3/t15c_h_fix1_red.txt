@@ -1,0 +1,570 @@
+A3 Task 15c-H fix round 1 RED (2026-11-16T06:25:57-05:00); HEAD 2a4bdd12d48109f9888532207f1238739c5ddd03 + uncommitted harness
+harness = 15c-H code (cr_coord e9358a65 / cr_reconcile 2b3deaee) + signature-only stubs (pool_sha256, config_identity, new kwargs) - no behaviour change
+cmd: PYTHONPATH=research/s1;research/s1/s1_tests <testenv> -m pytest -p conftest -p no:cacheprovider test_s1_a3_cr_guard.py test_s1_a3_cr_completion.py -q -rf (serial)
+result: 23 failed = 15 AssertionError + 8 'Failed: DID NOT RAISE'; 72 passed (61 cr_guard + 11 completion tests that pin behaviour already correct: their guards are proven by the deletion checks in t15c_h_fix1_green.txt)
+files run (sha256):
+e0d7f6ccaa84c4f13aeebd0cbbf1c5fb316ad0837ca6f0d6d343ba7d33854ec9 *research/s1/s1_tests/test_s1_a3_cr_guard.py
+658082275a006023d2b2ebf6e4341cc9650f3c832ef7842d591b8f4723669e7a *research/s1/s1_tests/test_s1_a3_cr_completion.py
+ded8290569ea5f17858ddb94b0d59209429315b05ca7a99760fed4d9ace634d9 *research/s1/s1_tests/cr_coord.py
+2b3deaee24a094544f39554dfec1d55c59dff66c03360f40aade3693414777ed *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+====
+.............................................................F.FFFFFFFFF [ 75%]
+FF..FF..FFFFFF.F.....FF                                                  [100%]
+================================== FAILURES ===================================
+_________ test_kill_in_shard_2_of_3_settles_killed_and_stops_the_rest _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_kill_in_shard_2_of_3_sett0')
+
+    def test_kill_in_shard_2_of_3_settles_killed_and_stops_the_rest(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV, "c2": CLEAN_KILL, "c3": CLEAN_SURV})
+        res = _complete(src, by_id, work, specs, factory, pool)
+        assert res.get("label") == "killed", res
+        assert (res.get("basis") or {}).get("killed_by") == "c2"
+        assert calls == {"c1": ["j1"], "c2": ["j1"], "c3": []}, "a guard-clean kill stops the remaining shards early"
+        assert [a["shard"] for a in res.get("attempts", [])] == ["c1", "c2"]
+        assert res.get("not_run") == ["c3"] and res.get("screening_label") == "survived"
+>       assert res.get("pool_sha256") == json.loads(pool.read_text(encoding="utf-8"))["nodes_sha256"]
+E       AssertionError: assert None == ''
+E        +  where None = <built-in method get of dict object at 0x00000169B256A3C0>('pool_sha256')
+E        +    where <built-in method get of dict object at 0x00000169B256A3C0> = {'attempts': [{'guard_status': 'survived', 'label': 'survived', 'shard': 'c1', 'state_sha256': '81ddfb069d06adf7368265...5eeacce63472df3b87f4698e0', ...}], 'basis': {'killed_by': 'c2', 'nonkill': []}, 'job_id': 'j1', 'label': 'killed', ...}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:104: AssertionError
+______ test_guard_error_in_one_shard_is_unresolved_with_its_exact_status ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_guard_error_in_one_shard_0')
+
+    def test_guard_error_in_one_shard_is_unresolved_with_its_exact_status(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV, "c2": GUARD_ERROR, "c3": CLEAN_SURV})
+        res = _complete(src, by_id, work, specs, factory, pool)
+>       assert res.get("label") == "unresolved" and res.get("resolution") == "unresolved", res
+E       AssertionError: {'attempts': [{'guard_status': 'survived', 'label': 'survived', 'shard': 'c1', 'state_sha256': 'ef9308509fe44dc78fa5d8...kill': [{'guard_status': 'error:collection', 'label': 'error', 'shard': 'c2'}]}, 'job_id': 'j1', 'label': 'error', ...}
+E       assert ('error' == 'unresolved'
+E         
+E         - unresolved
+E         + error)
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:123: AssertionError
+_ test_completion_timeout_is_unresolved_stops_with_the_rest_pending_and_blocks _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_completion_timeout_is_unr0')
+
+    def test_completion_timeout_is_unresolved_stops_with_the_rest_pending_and_blocks(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": GUARD_TIMEOUT, "c2": CLEAN_KILL, "c3": CLEAN_SURV})
+        res = _complete(src, by_id, work, specs, factory, pool)
+>       assert res.get("label") == "unresolved", res
+E       AssertionError: {'attempts': [{'guard_status': 'timeout', 'label': 'timeout', 'shard': 'c1', 'state_sha256': 'aa1ba9ba04f8c89ed47a4f25...{'nonkill': [{'guard_status': 'timeout', 'label': 'timeout', 'shard': 'c1'}]}, 'job_id': 'j1', 'label': 'timeout', ...}
+E       assert 'timeout' == 'unresolved'
+E         
+E         - unresolved
+E         + timeout
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:133: AssertionError
+___ test_resumed_completion_after_a_resolved_stop_keeps_the_earlier_nonkill ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_resumed_completion_after_0')
+
+    def test_resumed_completion_after_a_resolved_stop_keeps_the_earlier_nonkill(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": GUARD_TIMEOUT, "c2": CLEAN_KILL, "c3": CLEAN_SURV})
+        _complete(src, by_id, work, specs, factory, pool)
+        assert (work / "completion" / "j1" / "c1" / "batch_c1_state.json").is_file(), "the c1 attempt left a state"
+        cr_coord.resolve_stop(work / "completion" / "j1" / "c1", "c1", by="controller", note="c1 timeout reviewed")
+        res = _complete(src, by_id, work, specs, factory, pool)
+        assert res.get("label") == "killed" and calls["c1"] == ["j1"], "c1 is never re-run by a resumption"
+        nk = (res.get("basis") or {}).get("nonkill") or [{}]
+>       assert [(n.get("shard"), n.get("label"), n.get("stop_reason")) for n in nk] == [("c1", "timeout", "timeout: j1")]
+E       AssertionError: assert [('c1', 'timeout', None)] == [('c1', 'time...timeout: j1')]
+E         
+E         At index 0 diff: ('c1', 'timeout', None) != ('c1', 'timeout', 'timeout: j1')
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:153: AssertionError
+_ test_C1_last_shard_cleanup_uncertain_survivor_is_unresolved_never_survived __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_C1_last_shard_cleanup_unc0')
+
+    def test_C1_last_shard_cleanup_uncertain_survivor_is_unresolved_never_survived(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV, "c2": UNCERTAIN_SURV})
+        res = _complete(src, by_id, work, specs, factory, pool)
+>       assert res.get("label") == "unresolved", res
+E       AssertionError: {'attempts': [{'guard_status': 'survived', 'label': 'survived', 'shard': 'c1', 'state_sha256': 'c15e0e62dda877d1b87757...9e7deb2320f3cf30b3', ...}], 'basis': {'all_required_survived': ['c1', 'c2']}, 'job_id': 'j1', 'label': 'survived', ...}
+E       assert 'survived' == 'unresolved'
+E         
+E         - unresolved
+E         + survived
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:162: AssertionError
+_ test_C1_middle_shard_cleanup_uncertain_stays_unresolved_after_its_resolution _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_C1_middle_shard_cleanup_u0')
+
+    def test_C1_middle_shard_cleanup_uncertain_stays_unresolved_after_its_resolution(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": UNCERTAIN_SURV, "c2": CLEAN_SURV, "c3": CLEAN_SURV})
+        r1 = _complete(src, by_id, work, specs, factory, pool)
+>       assert r1.get("label") == "unresolved" and r1.get("pending_shards") == ["c2", "c3"], r1
+E       AssertionError: {'attempts': [{'guard_status': 'survived', 'label': 'survived', 'shard': 'c1', 'state_sha256': '5fcd2719d81cc9c52df6d8...5f00f1eaa0cd', ...}], 'basis': {'missing': ['c2', 'c3'], 'survived': ['c1']}, 'job_id': 'j1', 'label': 'deferred', ...}
+E       assert ('deferred' == 'unresolved'
+E         
+E         - unresolved
+E         + deferred)
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:172: AssertionError
+____________ test_C1_cr_exit_error_on_the_only_shard_is_unresolved ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_C1_cr_exit_error_on_the_o0')
+
+    def test_C1_cr_exit_error_on_the_only_shard_is_unresolved(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CRERR_SURV})
+        res = _complete(src, by_id, work, specs, factory, pool)
+>       assert res.get("label") == "unresolved", res
+E       AssertionError: {'attempts': [{'guard_status': 'survived', 'label': 'survived', 'shard': 'c1', 'state_sha256': '9367c6ddc3f3ccf319a964...404ee01409ecce579f1c6b95', ...}], 'basis': {'all_required_survived': ['c1']}, 'job_id': 'j1', 'label': 'survived', ...}
+E       assert 'survived' == 'unresolved'
+E         
+E         - unresolved
+E         + survived
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:183: AssertionError
+____ test_C2_kill_whose_cleanup_was_not_verified_is_unresolved_not_killed _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_C2_kill_whose_cleanup_was0')
+
+    def test_C2_kill_whose_cleanup_was_not_verified_is_unresolved_not_killed(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": UNCERTAIN_KILL, "c2": CLEAN_SURV})
+        res = _complete(src, by_id, work, specs, factory, pool)
+>       assert res.get("label") == "unresolved", res
+E       AssertionError: {'attempts': [{'guard_status': 'killed', 'label': 'killed', 'shard': 'c1', 'state_sha256': 'fcf94294b0640748e87ca71ee1...97bcf1114f620c82aff825671', ...}], 'basis': {'killed_by': 'c1', 'nonkill': []}, 'job_id': 'j1', 'label': 'killed', ...}
+E       assert 'killed' == 'unresolved'
+E         
+E         - unresolved
+E         + killed
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:191: AssertionError
+________ test_merge_counts_only_guard_clean_attempts[stopped_survivor] ________
+
+case = 'stopped_survivor'
+
+    @pytest.mark.parametrize("case", ["stopped_survivor", "kill_guard_mismatch", "survivor_guard_mismatch",
+                                      "kill_cleanup_unverified", "clean_kill_after_nonkill", "pending_only",
+                                      "empty_required", "unknown_shard", "bad_screen"])
+    def test_merge_counts_only_guard_clean_attempts(case):
+        def a(s, label, guard=None, **kw):
+            out = {"shard": s, "label": label, "guard_status": guard if guard is not None else _GUARD.get(label, label),
+                   "stopped": False, "stop_reason": None, "exec_status": "ok", "cleanup_verified": True}
+            out.update(kw)
+            return out
+        m = cr_reconcile.merge_attempts
+        if case == "stopped_survivor":
+            r = m("survived", [a("c1", "survived", stopped=True, stop_reason="source_not_restored: j1")], ["c1"])
+>           assert r.get("label") == "unresolved", r
+E           AssertionError: {'basis': {'all_required_survived': ['c1']}, 'label': 'survived'}
+E           assert 'survived' == 'unresolved'
+E             
+E             - unresolved
+E             + survived
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:207: AssertionError
+______ test_merge_counts_only_guard_clean_attempts[kill_guard_mismatch] _______
+
+case = 'kill_guard_mismatch'
+
+    @pytest.mark.parametrize("case", ["stopped_survivor", "kill_guard_mismatch", "survivor_guard_mismatch",
+                                      "kill_cleanup_unverified", "clean_kill_after_nonkill", "pending_only",
+                                      "empty_required", "unknown_shard", "bad_screen"])
+    def test_merge_counts_only_guard_clean_attempts(case):
+        def a(s, label, guard=None, **kw):
+            out = {"shard": s, "label": label, "guard_status": guard if guard is not None else _GUARD.get(label, label),
+                   "stopped": False, "stop_reason": None, "exec_status": "ok", "cleanup_verified": True}
+            out.update(kw)
+            return out
+        m = cr_reconcile.merge_attempts
+        if case == "stopped_survivor":
+            r = m("survived", [a("c1", "survived", stopped=True, stop_reason="source_not_restored: j1")], ["c1"])
+            assert r.get("label") == "unresolved", r
+        elif case == "kill_guard_mismatch":          # pins the guard_status conjunct of a kill
+            r = m("survived", [a("c1", "killed", guard="error:junit_error"), a("c2", "survived")], ["c1", "c2"])
+>           assert r.get("label") == "unresolved", r
+E           AssertionError: {'basis': {'nonkill': [{'guard_status': 'error:junit_error', 'label': 'killed', 'shard': 'c1'}]}, 'label': 'error'}
+E           assert 'error' == 'unresolved'
+E             
+E             - unresolved
+E             + error
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:210: AssertionError
+____ test_merge_counts_only_guard_clean_attempts[survivor_guard_mismatch] _____
+
+case = 'survivor_guard_mismatch'
+
+    @pytest.mark.parametrize("case", ["stopped_survivor", "kill_guard_mismatch", "survivor_guard_mismatch",
+                                      "kill_cleanup_unverified", "clean_kill_after_nonkill", "pending_only",
+                                      "empty_required", "unknown_shard", "bad_screen"])
+    def test_merge_counts_only_guard_clean_attempts(case):
+        def a(s, label, guard=None, **kw):
+            out = {"shard": s, "label": label, "guard_status": guard if guard is not None else _GUARD.get(label, label),
+                   "stopped": False, "stop_reason": None, "exec_status": "ok", "cleanup_verified": True}
+            out.update(kw)
+            return out
+        m = cr_reconcile.merge_attempts
+        if case == "stopped_survivor":
+            r = m("survived", [a("c1", "survived", stopped=True, stop_reason="source_not_restored: j1")], ["c1"])
+            assert r.get("label") == "unresolved", r
+        elif case == "kill_guard_mismatch":          # pins the guard_status conjunct of a kill
+            r = m("survived", [a("c1", "killed", guard="error:junit_error"), a("c2", "survived")], ["c1", "c2"])
+            assert r.get("label") == "unresolved", r
+        elif case == "survivor_guard_mismatch":      # pins the guard_status conjunct of a survivor
+            r = m("survived", [a("c1", "survived", guard="skip")], ["c1"])
+>           assert r.get("label") == "unresolved", r
+E           AssertionError: {'basis': {'nonkill': [{'guard_status': 'skip', 'label': 'survived', 'shard': 'c1'}]}, 'label': 'error'}
+E           assert 'error' == 'unresolved'
+E             
+E             - unresolved
+E             + error
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:213: AssertionError
+____ test_merge_counts_only_guard_clean_attempts[kill_cleanup_unverified] _____
+
+case = 'kill_cleanup_unverified'
+
+    @pytest.mark.parametrize("case", ["stopped_survivor", "kill_guard_mismatch", "survivor_guard_mismatch",
+                                      "kill_cleanup_unverified", "clean_kill_after_nonkill", "pending_only",
+                                      "empty_required", "unknown_shard", "bad_screen"])
+    def test_merge_counts_only_guard_clean_attempts(case):
+        def a(s, label, guard=None, **kw):
+            out = {"shard": s, "label": label, "guard_status": guard if guard is not None else _GUARD.get(label, label),
+                   "stopped": False, "stop_reason": None, "exec_status": "ok", "cleanup_verified": True}
+            out.update(kw)
+            return out
+        m = cr_reconcile.merge_attempts
+        if case == "stopped_survivor":
+            r = m("survived", [a("c1", "survived", stopped=True, stop_reason="source_not_restored: j1")], ["c1"])
+            assert r.get("label") == "unresolved", r
+        elif case == "kill_guard_mismatch":          # pins the guard_status conjunct of a kill
+            r = m("survived", [a("c1", "killed", guard="error:junit_error"), a("c2", "survived")], ["c1", "c2"])
+            assert r.get("label") == "unresolved", r
+        elif case == "survivor_guard_mismatch":      # pins the guard_status conjunct of a survivor
+            r = m("survived", [a("c1", "survived", guard="skip")], ["c1"])
+            assert r.get("label") == "unresolved", r
+        elif case == "kill_cleanup_unverified":
+            r = m("survived", [a("c1", "killed", cleanup_verified=False, exec_status="cleanup_uncertain")], ["c1"])
+>           assert r.get("label") == "unresolved", r
+E           AssertionError: {'basis': {'killed_by': 'c1', 'nonkill': []}, 'label': 'killed'}
+E           assert 'killed' == 'unresolved'
+E             
+E             - unresolved
+E             + killed
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:216: AssertionError
+_________ test_merge_counts_only_guard_clean_attempts[empty_required] _________
+
+case = 'empty_required'
+
+    @pytest.mark.parametrize("case", ["stopped_survivor", "kill_guard_mismatch", "survivor_guard_mismatch",
+                                      "kill_cleanup_unverified", "clean_kill_after_nonkill", "pending_only",
+                                      "empty_required", "unknown_shard", "bad_screen"])
+    def test_merge_counts_only_guard_clean_attempts(case):
+        def a(s, label, guard=None, **kw):
+            out = {"shard": s, "label": label, "guard_status": guard if guard is not None else _GUARD.get(label, label),
+                   "stopped": False, "stop_reason": None, "exec_status": "ok", "cleanup_verified": True}
+            out.update(kw)
+            return out
+        m = cr_reconcile.merge_attempts
+        if case == "stopped_survivor":
+            r = m("survived", [a("c1", "survived", stopped=True, stop_reason="source_not_restored: j1")], ["c1"])
+            assert r.get("label") == "unresolved", r
+        elif case == "kill_guard_mismatch":          # pins the guard_status conjunct of a kill
+            r = m("survived", [a("c1", "killed", guard="error:junit_error"), a("c2", "survived")], ["c1", "c2"])
+            assert r.get("label") == "unresolved", r
+        elif case == "survivor_guard_mismatch":      # pins the guard_status conjunct of a survivor
+            r = m("survived", [a("c1", "survived", guard="skip")], ["c1"])
+            assert r.get("label") == "unresolved", r
+        elif case == "kill_cleanup_unverified":
+            r = m("survived", [a("c1", "killed", cleanup_verified=False, exec_status="cleanup_uncertain")], ["c1"])
+            assert r.get("label") == "unresolved", r
+        elif case == "clean_kill_after_nonkill":
+            r = m("survived", [a("c1", "timeout", stopped=True, stop_reason="timeout: j1"), a("c2", "killed")],
+                  ["c1", "c2", "c3"])
+            assert r.get("label") == "killed" and [n["shard"] for n in r["basis"]["nonkill"]] == ["c1"], r
+        elif case == "pending_only":
+            r = m("survived", [a("c1", "survived"), a("c2", "survived")], ["c1", "c2", "c3"])
+            assert r.get("label") == "deferred" and (r.get("basis") or {}).get("missing") == ["c3"], r
+        elif case == "empty_required":
+>           with pytest.raises(ValueError, match=r"no required completion shards"):
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:225: Failed
+_________ test_merge_counts_only_guard_clean_attempts[unknown_shard] __________
+
+case = 'unknown_shard'
+
+    @pytest.mark.parametrize("case", ["stopped_survivor", "kill_guard_mismatch", "survivor_guard_mismatch",
+                                      "kill_cleanup_unverified", "clean_kill_after_nonkill", "pending_only",
+                                      "empty_required", "unknown_shard", "bad_screen"])
+    def test_merge_counts_only_guard_clean_attempts(case):
+        def a(s, label, guard=None, **kw):
+            out = {"shard": s, "label": label, "guard_status": guard if guard is not None else _GUARD.get(label, label),
+                   "stopped": False, "stop_reason": None, "exec_status": "ok", "cleanup_verified": True}
+            out.update(kw)
+            return out
+        m = cr_reconcile.merge_attempts
+        if case == "stopped_survivor":
+            r = m("survived", [a("c1", "survived", stopped=True, stop_reason="source_not_restored: j1")], ["c1"])
+            assert r.get("label") == "unresolved", r
+        elif case == "kill_guard_mismatch":          # pins the guard_status conjunct of a kill
+            r = m("survived", [a("c1", "killed", guard="error:junit_error"), a("c2", "survived")], ["c1", "c2"])
+            assert r.get("label") == "unresolved", r
+        elif case == "survivor_guard_mismatch":      # pins the guard_status conjunct of a survivor
+            r = m("survived", [a("c1", "survived", guard="skip")], ["c1"])
+            assert r.get("label") == "unresolved", r
+        elif case == "kill_cleanup_unverified":
+            r = m("survived", [a("c1", "killed", cleanup_verified=False, exec_status="cleanup_uncertain")], ["c1"])
+            assert r.get("label") == "unresolved", r
+        elif case == "clean_kill_after_nonkill":
+            r = m("survived", [a("c1", "timeout", stopped=True, stop_reason="timeout: j1"), a("c2", "killed")],
+                  ["c1", "c2", "c3"])
+            assert r.get("label") == "killed" and [n["shard"] for n in r["basis"]["nonkill"]] == ["c1"], r
+        elif case == "pending_only":
+            r = m("survived", [a("c1", "survived"), a("c2", "survived")], ["c1", "c2", "c3"])
+            assert r.get("label") == "deferred" and (r.get("basis") or {}).get("missing") == ["c3"], r
+        elif case == "empty_required":
+            with pytest.raises(ValueError, match=r"no required completion shards"):
+                m("survived", [a("c1", "survived")], [])
+        elif case == "unknown_shard":
+>           with pytest.raises(ValueError, match=r"attempt for unknown shard 'cX'"):
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:228: Failed
+_ test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[subset] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_I1_completion_refuses_sha0')
+case = 'subset'
+
+    @pytest.mark.parametrize("case", ["subset", "zero", "extra_pool_node", "tampered_pool", "no_argfile"])
+    def test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool(tmp_path, case):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV, "c2": CLEAN_SURV},
+                                              extra_pool=["t.py::orphan"] if case == "extra_pool_node" else ())
+        pattern = r"completion shards do not cover the frozen pool"
+        if case == "subset":
+            specs = specs[:1]
+        elif case == "zero":
+            specs = []
+        elif case == "tampered_pool":
+            d = json.loads(pool.read_text(encoding="utf-8"))
+            pool.write_text(json.dumps(dict(d, nodes=d["nodes"][:-1])), encoding="utf-8")
+            pattern = r"pool\.json does not match its nodes_sha256"
+        elif case == "no_argfile":
+            specs[0]["cfg"].guard_args = ["--control", "c1.json", "c1.py"]
+            pattern = r"completion shard c1 has no single @nodes argfile"
+>       with pytest.raises(cr_coord.CoordError, match=pattern):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:261: Failed
+__ test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[zero] __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_I1_completion_refuses_sha1')
+case = 'zero'
+
+    @pytest.mark.parametrize("case", ["subset", "zero", "extra_pool_node", "tampered_pool", "no_argfile"])
+    def test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool(tmp_path, case):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV, "c2": CLEAN_SURV},
+                                              extra_pool=["t.py::orphan"] if case == "extra_pool_node" else ())
+        pattern = r"completion shards do not cover the frozen pool"
+        if case == "subset":
+            specs = specs[:1]
+        elif case == "zero":
+            specs = []
+        elif case == "tampered_pool":
+            d = json.loads(pool.read_text(encoding="utf-8"))
+            pool.write_text(json.dumps(dict(d, nodes=d["nodes"][:-1])), encoding="utf-8")
+            pattern = r"pool\.json does not match its nodes_sha256"
+        elif case == "no_argfile":
+            specs[0]["cfg"].guard_args = ["--control", "c1.json", "c1.py"]
+            pattern = r"completion shard c1 has no single @nodes argfile"
+>       with pytest.raises(cr_coord.CoordError, match=pattern):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:261: Failed
+_ test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[extra_pool_node] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_I1_completion_refuses_sha2')
+case = 'extra_pool_node'
+
+    @pytest.mark.parametrize("case", ["subset", "zero", "extra_pool_node", "tampered_pool", "no_argfile"])
+    def test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool(tmp_path, case):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV, "c2": CLEAN_SURV},
+                                              extra_pool=["t.py::orphan"] if case == "extra_pool_node" else ())
+        pattern = r"completion shards do not cover the frozen pool"
+        if case == "subset":
+            specs = specs[:1]
+        elif case == "zero":
+            specs = []
+        elif case == "tampered_pool":
+            d = json.loads(pool.read_text(encoding="utf-8"))
+            pool.write_text(json.dumps(dict(d, nodes=d["nodes"][:-1])), encoding="utf-8")
+            pattern = r"pool\.json does not match its nodes_sha256"
+        elif case == "no_argfile":
+            specs[0]["cfg"].guard_args = ["--control", "c1.json", "c1.py"]
+            pattern = r"completion shard c1 has no single @nodes argfile"
+>       with pytest.raises(cr_coord.CoordError, match=pattern):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:261: Failed
+_ test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[tampered_pool] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_I1_completion_refuses_sha3')
+case = 'tampered_pool'
+
+    @pytest.mark.parametrize("case", ["subset", "zero", "extra_pool_node", "tampered_pool", "no_argfile"])
+    def test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool(tmp_path, case):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV, "c2": CLEAN_SURV},
+                                              extra_pool=["t.py::orphan"] if case == "extra_pool_node" else ())
+        pattern = r"completion shards do not cover the frozen pool"
+        if case == "subset":
+            specs = specs[:1]
+        elif case == "zero":
+            specs = []
+        elif case == "tampered_pool":
+            d = json.loads(pool.read_text(encoding="utf-8"))
+            pool.write_text(json.dumps(dict(d, nodes=d["nodes"][:-1])), encoding="utf-8")
+            pattern = r"pool\.json does not match its nodes_sha256"
+        elif case == "no_argfile":
+            specs[0]["cfg"].guard_args = ["--control", "c1.json", "c1.py"]
+            pattern = r"completion shard c1 has no single @nodes argfile"
+>       with pytest.raises(cr_coord.CoordError, match=pattern):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:261: Failed
+_ test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[no_argfile] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_I1_completion_refuses_sha4')
+case = 'no_argfile'
+
+    @pytest.mark.parametrize("case", ["subset", "zero", "extra_pool_node", "tampered_pool", "no_argfile"])
+    def test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool(tmp_path, case):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV, "c2": CLEAN_SURV},
+                                              extra_pool=["t.py::orphan"] if case == "extra_pool_node" else ())
+        pattern = r"completion shards do not cover the frozen pool"
+        if case == "subset":
+            specs = specs[:1]
+        elif case == "zero":
+            specs = []
+        elif case == "tampered_pool":
+            d = json.loads(pool.read_text(encoding="utf-8"))
+            pool.write_text(json.dumps(dict(d, nodes=d["nodes"][:-1])), encoding="utf-8")
+            pattern = r"pool\.json does not match its nodes_sha256"
+        elif case == "no_argfile":
+            specs[0]["cfg"].guard_args = ["--control", "c1.json", "c1.py"]
+            pattern = r"completion shard c1 has no single @nodes argfile"
+>       with pytest.raises(cr_coord.CoordError, match=pattern):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:261: Failed
+___________ test_I2_fence_refused_shard_resumes_in_a_later_session ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_I2_fence_refused_shard_re0')
+
+    def test_I2_fence_refused_shard_resumes_in_a_later_session(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        started = json.loads((work / "session.json").read_text(encoding="utf-8"))["started"]
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV, "c2": CLEAN_SURV})
+        late = lambda: started + B["session_length_s"] - 1.0  # noqa: E731
+        r1 = _complete(src, by_id, work, specs, factory, pool, clock=late)
+        assert r1.get("label") == "deferred" and r1.get("pending_shards") == ["c1", "c2"] and calls["c1"] == []
+        st1 = json.loads((work / "completion" / "j1" / "c1" / "batch_c1_state.json").read_text(encoding="utf-8"))
+        assert st1["pending"] == ["j1"] and st1["stop_reason"] == "session_budget: j1"
+        cr_coord.resolve_stop(work / "completion" / "j1" / "c1", "c1", by="controller", note="session ended")
+        s2 = tmp_path / "session2"
+        r2 = _complete(src, by_id, work, specs, factory, pool, session_root=s2, clock=lambda: 5.0)
+>       assert r2.get("label") == "survived", r2
+E       AssertionError: {'attempts': [], 'basis': {'missing': ['c1', 'c2'], 'survived': []}, 'job_id': 'j1', 'label': 'deferred', ...}
+E       assert 'deferred' == 'survived'
+E         
+E         - survived
+E         + deferred
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:279: AssertionError
+___ test_completion_attempt_binds_executable_env_helpers_nodes_and_control ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_completion_attempt_binds_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000169B255B1D0>
+
+    def test_completion_attempt_binds_executable_env_helpers_nodes_and_control(tmp_path, monkeypatch):
+        src, by_id, work = _screened(tmp_path)
+        (src / "conftest.py").write_text("# helper\n", encoding="utf-8")
+        (src / "c1.json").write_text('{"nodes": []}', encoding="utf-8")
+        monkeypatch.setenv("PYTHONHASHSEED", "0")
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+        res = _complete(src, by_id, work, specs, factory, pool)
+        b = (res.get("attempts") or [{}])[0].get("binding") or {}
+>       assert b.get("python") == str(PY) and b.get("harness_sha256") == cr_coord.harness_hashes()
+E       AssertionError: assert (None == 'C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe')
+E        +  where None = <built-in method get of dict object at 0x00000169B27EAD00>('python')
+E        +    where <built-in method get of dict object at 0x00000169B27EAD00> = {}.get
+E        +  and   'C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe' = str(WindowsPath('C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe'))
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:306: AssertionError
+___________ test_N1_run_retry_refuses_a_completion_shard_directory ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_N1_run_retry_refuses_a_co0')
+
+    def test_N1_run_retry_refuses_a_completion_shard_directory(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls, pool = _shards(src, {"c1": GUARD_TIMEOUT})
+        _complete(src, by_id, work, specs, factory, pool)
+        sroot = work / "completion" / "j1" / "c1"
+>       with pytest.raises(cr_coord.CoordError, match=r"run_retry refuses a completion-shard directory"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:396: Failed
+__________ test_I3_cap_is_bound_to_one_config_and_reverified_on_use ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_fix1_red/test_I3_cap_is_bound_to_one_co0')
+
+    def test_I3_cap_is_bound_to_one_config_and_reverified_on_use(tmp_path):
+        src, by_id = _many(tmp_path, 60)
+        ids = sorted(by_id)
+        ida, cfg_a, toml_a = _identity(tmp_path, "a")
+        idb, _, _ = _identity(tmp_path, "b")
+>       assert ida.get("config_id") == "pkg.m/a" and ida.get("cr_toml_sha256") == sha(toml_a)
+E       AssertionError: assert (None == 'pkg.m/a')
+E        +  where None = <built-in method get of dict object at 0x00000169B267B9C0>('config_id')
+E        +    where <built-in method get of dict object at 0x00000169B267B9C0> = {}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:424: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_kill_in_shard_2_of_3_settles_killed_and_stops_the_rest
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_guard_error_in_one_shard_is_unresolved_with_its_exact_status
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_completion_timeout_is_unresolved_stops_with_the_rest_pending_and_blocks
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_resumed_completion_after_a_resolved_stop_keeps_the_earlier_nonkill
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_C1_last_shard_cleanup_uncertain_survivor_is_unresolved_never_survived
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_C1_middle_shard_cleanup_uncertain_stays_unresolved_after_its_resolution
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_C1_cr_exit_error_on_the_only_shard_is_unresolved
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_C2_kill_whose_cleanup_was_not_verified_is_unresolved_not_killed
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_merge_counts_only_guard_clean_attempts[stopped_survivor]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_merge_counts_only_guard_clean_attempts[kill_guard_mismatch]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_merge_counts_only_guard_clean_attempts[survivor_guard_mismatch]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_merge_counts_only_guard_clean_attempts[kill_cleanup_unverified]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_merge_counts_only_guard_clean_attempts[empty_required]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_merge_counts_only_guard_clean_attempts[unknown_shard]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[subset]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[zero]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[extra_pool_node]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[tampered_pool]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[no_argfile]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_I2_fence_refused_shard_resumes_in_a_later_session
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_completion_attempt_binds_executable_env_helpers_nodes_and_control
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_N1_run_retry_refuses_a_completion_shard_directory
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_I3_cap_is_bound_to_one_config_and_reverified_on_use
+23 failed, 72 passed in 35.87s

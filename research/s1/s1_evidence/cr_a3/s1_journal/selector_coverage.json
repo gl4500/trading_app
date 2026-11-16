@@ -1,0 +1,50 @@
+{
+ "module": "s1_journal",
+ "shards": {
+  "_": {
+   "detail_sha256": "5723c9291d99a8f9fab2fff544aa5f3130a4d9e35da6bf6ef56b3b7819f9f1bd",
+   "functions": {
+    "Row.instant": 0,
+    "Row.sha": 83,
+    "_connect_rw": 16,
+    "_insert": 9,
+    "_path": 30,
+    "_requested_detail": 9,
+    "_ro": 20,
+    "_rows_from": 28,
+    "_slot": 48,
+    "_stage": 20,
+    "_stop": 10,
+    "_uri": 30,
+    "append": 25,
+    "decide": 100,
+    "detail_of": 2,
+    "detail_ok": 92,
+    "first": 78,
+    "fmt_at": 83,
+    "format_line": 124,
+    "genesis": 1,
+    "invalid_subject": 1,
+    "line_sha256": 85,
+    "new_nonce": 0,
+    "parse_line": 123,
+    "read_all": 20,
+    "read_trial": 16,
+    "slot_instant": 11,
+    "slot_subject": 0,
+    "stage_name_ok": 49,
+    "stage_subject": 12,
+    "subject_ok": 118,
+    "subject_rows": 78,
+    "trial_state": 91,
+    "validate_request": 38,
+    "verify_chain": 24
+   },
+   "uncovered": [
+    "Row.instant",
+    "new_nonce",
+    "slot_subject"
+   ]
+  }
+ }
+}

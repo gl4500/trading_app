@@ -1,0 +1,49 @@
+{
+ "module": "s1_collect",
+ "shards": {
+  "audit": {
+   "detail_sha256": "a6c35c82c0cbfc702ba02ea0265cd61f6da5f7241755b470faa7160818e70a4d",
+   "functions": {
+    "_Authorizer.__init__": 59,
+    "_Authorizer._current": 59,
+    "_Authorizer.authorize": 59,
+    "_Authorizer.finished": 44,
+    "_Authorizer.page_done": 56,
+    "_Authorizer.record": 58,
+    "_attempt_files": 43,
+    "_corporate_actions": 54,
+    "_get": 58,
+    "_headers": 58,
+    "_ny_instant": 61,
+    "_paged": 53,
+    "_provider_abort": 10,
+    "_require_no_redirects": 58,
+    "_validate_calendar": 37,
+    "audit_policy": 63,
+    "do_audit": 38,
+    "do_audit.work": 38
+   },
+   "uncovered": []
+  },
+  "final": {
+   "detail_sha256": "da2a11e1696e3cebc5771d8779ad44f6746f47d1e9c43ad5f3bd51477abcb30d",
+   "functions": {
+    "_earliest_acquire": 22,
+    "_identity_view": 0,
+    "_is_num": 0,
+    "_parse_bars": 16,
+    "_utc_z": 21,
+    "_validate_bars_page": 18,
+    "do_final": 23,
+    "do_final.work": 19,
+    "final_policy": 21,
+    "final_policy.ca": 21,
+    "reconcile_actions": 16
+   },
+   "uncovered": [
+    "_is_num",
+    "_identity_view"
+   ]
+  }
+ }
+}

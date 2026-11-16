@@ -1,0 +1,10 @@
+{
+ "active_after": 0,
+ "method": "win32-job-object(kill_on_job_close, terminate_job_object)",
+ "pid_list_overflow": false,
+ "stray_after_exit": 0,
+ "survivors": [],
+ "terminated": false,
+ "unheld_members": [],
+ "verified": true
+}

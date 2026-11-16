@@ -1,0 +1,46 @@
+{
+ "module": "s1_seal",
+ "shards": {
+  "check": {
+   "detail_sha256": "3a24bbe2d62a57ca3da441b9245bb438afc9aa7eba57829a8c42da4f79dc7643",
+   "functions": {
+    "_read_stop_json": 15,
+    "stop_check": 40
+   },
+   "uncovered": []
+  },
+  "decide": {
+   "detail_sha256": "6cd9e1f6a9406dc5e0564c40fecf925190ef2696c26154c481a007738a4b1254",
+   "functions": {
+    "_decide_locked": 34,
+    "_stop_context": 32,
+    "_stop_context.detail": 32,
+    "_stop_ready": 33,
+    "decide_stop": 34,
+    "stop_ready": 33
+   },
+   "uncovered": []
+  },
+  "record": {
+   "detail_sha256": "f2efdd6d67751e6da2e55477d19cce43fdaa73342de69c6c348a0c7f00fee3a2",
+   "functions": {
+    "_by_subject": 37,
+    "_close_state": 37,
+    "_count_sold": 30,
+    "_first": 37,
+    "_stop_record": 37,
+    "stop_record": 36
+   },
+   "uncovered": []
+  },
+  "sampled": {
+   "detail_sha256": "c32eb89d2c4a445599b7490c00e0a863cea8cd30c1469bb54bbce1fd6ef5a322",
+   "functions": {
+    "_sampled_seals": 20,
+    "sampled_history": 17,
+    "sampled_seals": 20
+   },
+   "uncovered": []
+  }
+ }
+}

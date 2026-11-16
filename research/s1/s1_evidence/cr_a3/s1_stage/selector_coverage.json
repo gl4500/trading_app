@@ -1,0 +1,61 @@
+{
+ "module": "s1_stage",
+ "shards": {
+  "_": {
+   "detail_sha256": "a868a391023cdbfb23ee5624ad6a69f9c0d49f7c36b8602dae483bc87efca632",
+   "functions": {
+    "StageAbort.__init__": 0,
+    "StageWork.__init__": 31,
+    "StageWork.files": 5,
+    "StageWork.intent_at": 27,
+    "StageWork.put": 9,
+    "StageWork.put_json": 27,
+    "StageWork.trial_id": 26,
+    "_Staging.__init__": 31,
+    "_Staging.put": 31,
+    "_append": 40,
+    "_artifacts_present": 70,
+    "_check_created": 11,
+    "_decide_locked": 18,
+    "_gates": 40,
+    "_gates.allowed": 34,
+    "_gates.stage_gate": 34,
+    "_holds": 12,
+    "_invalid": 5,
+    "_is_seal": 70,
+    "_load_committed": 22,
+    "_lock": 55,
+    "_member_problems": 31,
+    "_need": 39,
+    "_no_selection": 27,
+    "_nvs_of": 0,
+    "_opening_close": 70,
+    "_publish_one": 29,
+    "_release": 49,
+    "_require_out": 36,
+    "_resolve": 12,
+    "_seals_on_disk": 70,
+    "commitment": 30,
+    "committed_commitment": 1,
+    "created_problems": 11,
+    "envelope": 32,
+    "evaluate": 70,
+    "manifest_projection": 1,
+    "permitted": 42,
+    "publish_hooks": 7,
+    "recover": 12,
+    "run": 36,
+    "run.detail_fn": 32,
+    "seal_stages": 70,
+    "single_member": 70,
+    "spec": 70,
+    "stage_rows": 70,
+    "staging_dir": 42
+   },
+   "uncovered": [
+    "StageAbort.__init__",
+    "_nvs_of"
+   ]
+  }
+ }
+}

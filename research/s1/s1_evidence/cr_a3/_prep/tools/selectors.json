@@ -1,0 +1,148 @@
+{
+ "s1_journal": {
+  "_": {
+   "args": [
+    "research/s1/s1_tests/test_s1_a3_journal.py",
+    "research/s1/s1_tests/test_s1_a3_precedence.py"
+   ]
+  }
+ },
+ "s1_locks": {
+  "_": {
+   "args": [
+    "research/s1/s1_tests/test_s1_a3_locks.py"
+   ]
+  }
+ },
+ "s1_trial": {
+  "_": {
+   "args": [
+    "research/s1/s1_tests/test_s1_a3_trial.py",
+    "research/s1/s1_tests/test_s1_a3_gate.py"
+   ]
+  }
+ },
+ "s1_stage": {
+  "_": {
+   "args": [
+    "research/s1/s1_tests/test_s1_a3_stage.py"
+   ]
+  }
+ },
+ "s1_slot": {
+  "finalizer": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_slot/finalizer/nodes.txt"
+   ],
+   "ranges": "research/s1/s1_evidence/cr_a3/s1_slot/finalizer/ranges.json"
+  },
+  "slots": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_slot/slots/nodes.txt"
+   ],
+   "ranges": "research/s1/s1_evidence/cr_a3/s1_slot/slots/ranges.json"
+  },
+  "completion/c1": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_slot/completion/c1/nodes.txt"
+   ],
+   "completion": true
+  },
+  "completion/c2": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_slot/completion/c2/nodes.txt"
+   ],
+   "completion": true
+  }
+ },
+ "s1_seal": {
+  "check": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_seal/check/nodes.txt"
+   ],
+   "ranges": "research/s1/s1_evidence/cr_a3/s1_seal/check/ranges.json"
+  },
+  "decide": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_seal/decide/nodes.txt"
+   ],
+   "ranges": "research/s1/s1_evidence/cr_a3/s1_seal/decide/ranges.json"
+  },
+  "record": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_seal/record/nodes.txt"
+   ],
+   "ranges": "research/s1/s1_evidence/cr_a3/s1_seal/record/ranges.json"
+  },
+  "sampled": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_seal/sampled/nodes.txt"
+   ],
+   "ranges": "research/s1/s1_evidence/cr_a3/s1_seal/sampled/ranges.json"
+  },
+  "completion/c1": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_seal/completion/c1/nodes.txt"
+   ],
+   "completion": true
+  },
+  "completion/c2": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_seal/completion/c2/nodes.txt"
+   ],
+   "completion": true
+  },
+  "completion/c3": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_seal/completion/c3/nodes.txt"
+   ],
+   "completion": true
+  },
+  "completion/c4": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_seal/completion/c4/nodes.txt"
+   ],
+   "completion": true
+  },
+  "completion/c5": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_seal/completion/c5/nodes.txt"
+   ],
+   "completion": true
+  }
+ },
+ "s1_collect": {
+  "audit": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_collect/audit/nodes.txt"
+   ],
+   "ranges": "research/s1/s1_evidence/cr_a3/s1_collect/audit/ranges.json"
+  },
+  "final": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_collect/final/nodes.txt"
+   ],
+   "ranges": "research/s1/s1_evidence/cr_a3/s1_collect/final/ranges.json"
+  },
+  "completion/c1": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_collect/completion/c1/nodes.txt"
+   ],
+   "completion": true
+  },
+  "completion/c2": {
+   "args": [
+    "@research/s1/s1_evidence/cr_a3/s1_collect/completion/c2/nodes.txt"
+   ],
+   "completion": true
+  }
+ },
+ "_superseded": {
+  "s1_slot": {
+   "args": [
+    "research/s1/s1_tests/test_s1_a3_slots.py",
+    "research/s1/s1_tests/test_s1_a3_finalizer.py"
+   ]
+  }
+ }
+}

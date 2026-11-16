@@ -1,0 +1,31 @@
+..........................                                               [100%]
+=================================== PASSES ====================================
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15c_work\baseline\s1_seal__completion\c2\run1\job\attempt-d4eb68a85bc147aca95384f6c909e186\junit.xml -
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_rule_not_met_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_attest_envelope_and_member
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_in_flight_slot_started_before_the_stop_completes_but_never_enters_final_or_score
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_no_new_seal_after_the_stop
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal-ineligible-seal]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_early_w_failed_commits_no_stop
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_damaged_ineligible_seal_is_invalid[deadline-instant-eligibility-corrupt]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_damaged_ineligible_seal_is_invalid[no-valid-seal-ineligible-seal-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_preflight_clock_mutant_is_killed[txn<W<=pre]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_d130_checkpoint_refused_then_finalizer_recovers_the_eligible_timeout[d130-refused-no-new-work]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_gap_whose_recompute_raises_is_never_left_silent
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_busy_stop_lock_defers_but_another_lock_error_is_a_refusal
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_invalid_never_reaches_a_numeric_score
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[head-forked]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_member_changed_is_invalid
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[receipt]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_integrity_violation_persists_trial_invalid
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_missing_or_changed_is_invalid_not_a_fallback[missing]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[PermissionError]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_binding_no_snapshot_with_a_report_on_disk_is_a_refusal
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_different_slots_do_not_confirm_each_other
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[commitment]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_identity_twice_is_invalid[differs-from-detail]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[untagged]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed]
+26 passed in 126.44s (0:02:06)

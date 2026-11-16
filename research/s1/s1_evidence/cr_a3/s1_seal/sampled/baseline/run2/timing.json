@@ -1,0 +1,20 @@
+{
+ "counts": {
+  "errors": 0,
+  "failures": 0,
+  "passed": 20,
+  "skipped": 0,
+  "tests": 20
+ },
+ "guard_cleanup_verified": true,
+ "guard_exit": 0,
+ "node_count": 20,
+ "outer_cleanup_verified": true,
+ "outer_rc": 0,
+ "outer_timed_out": false,
+ "outer_wall_s": 144.288,
+ "pytest_elapsed_s": 143.906,
+ "run": 2,
+ "source_unchanged": true,
+ "status": "survived"
+}

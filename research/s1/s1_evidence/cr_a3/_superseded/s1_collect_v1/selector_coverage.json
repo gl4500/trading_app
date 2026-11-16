@@ -1,0 +1,48 @@
+{
+ "module": "s1_collect",
+ "shards": {
+  "audit": {
+   "detail": "research\\s1\\s1_evidence\\cr_a3\\s1_collect\\audit\\selector_coverage_detail.json",
+   "detail_sha256": "afc9500c666eb2a0003b961ef88c798a04dcc1cfcf05110c774123a8695e9849",
+   "functions": {
+    "_Authorizer.__init__": 59,
+    "_Authorizer._current": 59,
+    "_Authorizer.authorize": 59,
+    "_Authorizer.finished": 44,
+    "_Authorizer.page_done": 56,
+    "_Authorizer.record": 58,
+    "_attempt_files": 43,
+    "_corporate_actions": 54,
+    "_get": 58,
+    "_headers": 58,
+    "_ny_instant": 61,
+    "_paged": 53,
+    "_provider_abort": 10,
+    "_require_no_redirects": 58,
+    "_validate_calendar": 37,
+    "audit_policy": 63,
+    "do_audit": 38,
+    "do_audit.work": 38
+   },
+   "uncovered": []
+  },
+  "final": {
+   "detail": "research\\s1\\s1_evidence\\cr_a3\\s1_collect\\final\\selector_coverage_detail.json",
+   "detail_sha256": "5e5ebbc9b3723be95658f0aaf774c4296966c57edd77cb8e13be66f0ff1b7e1c",
+   "functions": {
+    "_earliest_acquire": 23,
+    "_identity_view": 0,
+    "_parse_bars": 17,
+    "_utc_z": 22,
+    "do_final": 24,
+    "do_final.work": 20,
+    "final_policy": 22,
+    "final_policy.ca": 22,
+    "reconcile_actions": 17
+   },
+   "uncovered": [
+    "_identity_view"
+   ]
+  }
+ }
+}

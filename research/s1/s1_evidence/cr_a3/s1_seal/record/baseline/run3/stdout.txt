@@ -1,0 +1,42 @@
+.....................................                                    [100%]
+=================================== PASSES ====================================
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15c_work\baseline\s1_seal__record\run3\job\attempt-02811b312d154ca7bde744c30719fab5\junit.xml -
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_bound_snapshot_is_confirmed_on_a_second_read_before_any_invalid[differs-once]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_raise_site_texts_and_identity_are_pinned
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_invalid_never_reaches_a_numeric_score
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[wrong-prev]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_computation_error_is_invalid_score_aborted_with_no_numeric_score
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_busy_stop_lock_defers_but_another_lock_error_is_a_refusal
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_damaged_slot_tree_in_the_gap_is_judged_by_the_evidence_table
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_gap_whose_recompute_raises_is_never_left_silent
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_publication_failure_after_the_stop_row_is_reported_truthfully
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_stop_json_read_error_is_confirmed_and_never_invalidates[persistent]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_a_stop_with_a_different_detail_is_invalid_stop_conflict
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_completing_row_at_is_provenance_not_commit_time
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_d130_checkpoint_refused_then_finalizer_recovers_the_eligible_timeout[run-finalizer-recovers-timeout]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_early_w_failed_commits_no_stop
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_final_plan_before_stop_attest_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_final_plan_envelope_and_member
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_in_flight_slot_started_before_the_stop_completes_but_never_enters_final_or_score
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_later_close_qualified_before_stop_with_unchanged_record_is_fenced
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_no_new_seal_after_the_stop
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_post_stop_sampled_slot_is_excluded_from_the_sampled_history
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_preflight_clock_mutant_is_killed[txn<W<=pre]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_publication_gap_recovers_matching_bytes
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_sealed_last_close_reaches_its_timeout_through_the_finalizer_command
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_attest_envelope_and_member
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[early-w-failed]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[changed]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_lock_is_taken_before_the_journal_read
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_operation_runs_pending_seal_stages_before_trial_stop
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_outcome_is_fixed_by_the_journal
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_follows_the_in_transaction_clock[pre<W<=txn]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[early-w-failed@2027-04-23T20:47:00]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_record_is_a_pure_function_of_committed_history
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_rule_not_met_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_the_finalizer_command_decides_on_the_append_clock_not_its_start_instant[txn<W<=pre]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_trial_stop_is_appended_before_stop_json_is_published
+37 passed in 171.11s (0:02:51)

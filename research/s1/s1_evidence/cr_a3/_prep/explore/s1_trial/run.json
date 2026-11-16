@@ -1,0 +1,48 @@
+{
+ "cleanup": {
+  "active_after": 0,
+  "method": "win32-job-object(kill_on_job_close, terminate_job_object)",
+  "pid_list_overflow": false,
+  "stray_after_exit": 0,
+  "survivors": [],
+  "terminated": false,
+  "unheld_members": [],
+  "verified": true
+ },
+ "cmd": [
+  "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+  "-m",
+  "pytest",
+  "-p",
+  "conftest",
+  "-p",
+  "no:cacheprovider",
+  "-q",
+  "-rA",
+  "--junitxml=C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\explore\\s1_trial\\junit.xml",
+  "--basetemp=C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\explore\\s1_trial\\bt",
+  "research/s1/s1_tests/test_s1_a3_trial.py",
+  "research/s1/s1_tests/test_s1_a3_gate.py"
+ ],
+ "elapsed_s": 41.516,
+ "holder_pids": [
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 35484,
+   "ppid": 16988,
+   "role": "launcher"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 36656,
+   "ppid": 35484,
+   "role": "descendant"
+  }
+ ],
+ "launcher_pid": 35484,
+ "rc": 0,
+ "timed_out": false,
+ "wall_s": 41.503
+}

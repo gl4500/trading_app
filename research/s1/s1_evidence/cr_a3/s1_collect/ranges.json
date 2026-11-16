@@ -1,0 +1,446 @@
+{
+ "base_commit": "02db5b9fa94ab21c4433b2655cab12782ba5bc13",
+ "decisions": [
+  {
+   "called_from_in_scope": "final_policy",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_ny_date",
+   "lines": [
+    598
+   ],
+   "out_of_scope_referrers": [
+    "final_plan_record",
+    "write_plan"
+   ]
+  },
+  {
+   "called_from_in_scope": "do_audit",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_ny_date",
+   "lines": [
+    446
+   ],
+   "out_of_scope_referrers": [
+    "final_plan_record",
+    "write_plan"
+   ]
+  },
+  {
+   "called_from_in_scope": "do_audit",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_out",
+   "lines": [
+    399
+   ],
+   "out_of_scope_referrers": [
+    "acquire_token",
+    "audit_token",
+    "final_plan_record",
+    "write_final_plan",
+    "write_plan"
+   ]
+  },
+  {
+   "called_from_in_scope": "do_final",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_nvs_nothing_to_acquire",
+   "lines": [
+    630
+   ],
+   "out_of_scope_referrers": [
+    "write_final_plan"
+   ]
+  },
+  {
+   "called_from_in_scope": "do_final",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_ny_date",
+   "lines": [
+    651,
+    694
+   ],
+   "out_of_scope_referrers": [
+    "final_plan_record",
+    "write_plan"
+   ]
+  },
+  {
+   "called_from_in_scope": "do_final",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_out",
+   "lines": [
+    628
+   ],
+   "out_of_scope_referrers": [
+    "acquire_token",
+    "audit_token",
+    "final_plan_record",
+    "write_final_plan",
+    "write_plan"
+   ]
+  },
+  {
+   "called_from_in_scope": "do_final",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_stop_attestation",
+   "lines": [
+    642
+   ],
+   "out_of_scope_referrers": [
+    "write_final_plan"
+   ]
+  },
+  {
+   "called_from_in_scope": "do_final",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "final_plan_record",
+   "lines": [
+    639
+   ],
+   "out_of_scope_referrers": [
+    "write_final_plan"
+   ]
+  },
+  {
+   "called_from_in_scope": "_validate_calendar",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_ny_date",
+   "lines": [
+    364
+   ],
+   "out_of_scope_referrers": [
+    "final_plan_record",
+    "write_plan"
+   ]
+  }
+ ],
+ "delegation_edges": [
+  {
+   "callee": "_utc_z",
+   "caller": "final_policy",
+   "lines": [
+    610,
+    611
+   ]
+  },
+  {
+   "callee": "_attempt_files",
+   "caller": "do_audit",
+   "lines": [
+    436
+   ]
+  },
+  {
+   "callee": "_attempt_files",
+   "caller": "do_final",
+   "lines": [
+    676
+   ]
+  },
+  {
+   "callee": "_corporate_actions",
+   "caller": "do_audit",
+   "lines": [
+    425
+   ]
+  },
+  {
+   "callee": "_corporate_actions",
+   "caller": "do_final",
+   "lines": [
+    661,
+    663
+   ]
+  },
+  {
+   "callee": "_headers",
+   "caller": "do_audit",
+   "lines": [
+    418
+   ]
+  },
+  {
+   "callee": "_headers",
+   "caller": "do_final",
+   "lines": [
+    660
+   ]
+  },
+  {
+   "callee": "_headers",
+   "caller": "_corporate_actions",
+   "lines": [
+    249
+   ]
+  },
+  {
+   "callee": "_provider_abort",
+   "caller": "do_audit",
+   "lines": [
+    432
+   ]
+  },
+  {
+   "callee": "_provider_abort",
+   "caller": "do_final",
+   "lines": [
+    670
+   ]
+  },
+  {
+   "callee": "_require_no_redirects",
+   "caller": "do_audit",
+   "lines": [
+    398
+   ]
+  },
+  {
+   "callee": "_require_no_redirects",
+   "caller": "do_final",
+   "lines": [
+    627
+   ]
+  },
+  {
+   "callee": "_validate_calendar",
+   "caller": "do_audit",
+   "lines": [
+    420
+   ]
+  },
+  {
+   "callee": "_earliest_acquire",
+   "caller": "do_final",
+   "lines": [
+    646
+   ]
+  },
+  {
+   "callee": "_parse_bars",
+   "caller": "do_final",
+   "lines": [
+    671
+   ]
+  },
+  {
+   "callee": "reconcile_actions",
+   "caller": "do_final",
+   "lines": [
+    672
+   ]
+  },
+  {
+   "callee": "_is_num",
+   "caller": "_validate_bars_page",
+   "lines": [
+    273
+   ]
+  },
+  {
+   "callee": "_is_num",
+   "caller": "_parse_bars",
+   "lines": [
+    299
+   ]
+  },
+  {
+   "callee": "_ny_instant",
+   "caller": "final_policy",
+   "lines": [
+    599,
+    600
+   ]
+  },
+  {
+   "callee": "_ny_instant",
+   "caller": "_validate_calendar",
+   "lines": [
+    362
+   ]
+  },
+  {
+   "callee": "_ny_instant",
+   "caller": "_earliest_acquire",
+   "lines": [
+    586
+   ]
+  },
+  {
+   "callee": "_identity_view",
+   "caller": "reconcile_actions",
+   "lines": [
+    340,
+    340
+   ]
+  }
+ ],
+ "expanded": [
+  "_validate_bars_page",
+  "_utc_z",
+  "_attempt_files",
+  "_corporate_actions",
+  "_headers",
+  "_provider_abort",
+  "_require_no_redirects",
+  "_validate_calendar",
+  "_earliest_acquire",
+  "_parse_bars",
+  "reconcile_actions",
+  "_is_num",
+  "_ny_instant",
+  "_identity_view"
+ ],
+ "expansion_rule": "expand: module-level function g directly called (ast.Call with func=ast.Name(g)) from an in-scope body (nested defs/methods included) is added iff ALL module-level scopes referencing g (call or Name load; module-level statements count as '<module>') are in scope; iterate to a fixed point; never cross modules; g referenced from any out-of-scope scope -> controller decision, not added",
+ "module_rel": "research/s1/s1_collect.py",
+ "named": [
+  "audit_policy",
+  "final_policy",
+  "_Authorizer",
+  "_get",
+  "_paged",
+  "do_audit",
+  "do_final"
+ ],
+ "public_names_added_by_walk": [
+  "reconcile_actions"
+ ],
+ "rule": "keep a WorkItem iff its mutation line span overlaps a named scope's [start,end] (decorators..last body line, nested defs and methods included); others skipped-by-scope",
+ "ruled_delegations": [
+  {
+   "also_referenced_out_of_scope_by": [],
+   "basis": "controller 15c-H ruling 4 (D4, Codex t15c_prep_review: callback passed by value, only in-scope referrer)",
+   "callee": "_validate_bars_page"
+  }
+ ],
+ "schema": "a3-t15a-ranges/1",
+ "scopes": {
+  "_Authorizer": {
+   "end": 116,
+   "kind": "class",
+   "qualname": "_Authorizer",
+   "start": 56
+  },
+  "_attempt_files": {
+   "end": 377,
+   "kind": "function",
+   "qualname": "_attempt_files",
+   "start": 371
+  },
+  "_corporate_actions": {
+   "end": 251,
+   "kind": "function",
+   "qualname": "_corporate_actions",
+   "start": 242
+  },
+  "_earliest_acquire": {
+   "end": 588,
+   "kind": "function",
+   "qualname": "_earliest_acquire",
+   "start": 581
+  },
+  "_get": {
+   "end": 224,
+   "kind": "function",
+   "qualname": "_get",
+   "start": 205
+  },
+  "_headers": {
+   "end": 202,
+   "kind": "function",
+   "qualname": "_headers",
+   "start": 201
+  },
+  "_identity_view": {
+   "end": 317,
+   "kind": "function",
+   "qualname": "_identity_view",
+   "start": 315
+  },
+  "_is_num": {
+   "end": 255,
+   "kind": "function",
+   "qualname": "_is_num",
+   "start": 254
+  },
+  "_ny_instant": {
+   "end": 149,
+   "kind": "function",
+   "qualname": "_ny_instant",
+   "start": 148
+  },
+  "_paged": {
+   "end": 239,
+   "kind": "function",
+   "qualname": "_paged",
+   "start": 227
+  },
+  "_parse_bars": {
+   "end": 308,
+   "kind": "function",
+   "qualname": "_parse_bars",
+   "start": 281
+  },
+  "_provider_abort": {
+   "end": 387,
+   "kind": "function",
+   "qualname": "_provider_abort",
+   "start": 380
+  },
+  "_require_no_redirects": {
+   "end": 198,
+   "kind": "function",
+   "qualname": "_require_no_redirects",
+   "start": 194
+  },
+  "_utc_z": {
+   "end": 592,
+   "kind": "function",
+   "qualname": "_utc_z",
+   "start": 591
+  },
+  "_validate_bars_page": {
+   "end": 278,
+   "kind": "function",
+   "qualname": "_validate_bars_page",
+   "start": 258
+  },
+  "_validate_calendar": {
+   "end": 368,
+   "kind": "function",
+   "qualname": "_validate_calendar",
+   "start": 354
+  },
+  "audit_policy": {
+   "end": 53,
+   "kind": "function",
+   "qualname": "audit_policy",
+   "start": 41
+  },
+  "do_audit": {
+   "end": 448,
+   "kind": "function",
+   "qualname": "do_audit",
+   "start": 390
+  },
+  "do_final": {
+   "end": 696,
+   "kind": "function",
+   "qualname": "do_final",
+   "start": 618
+  },
+  "final_policy": {
+   "end": 615,
+   "kind": "function",
+   "qualname": "final_policy",
+   "start": 595
+  },
+  "reconcile_actions": {
+   "end": 350,
+   "kind": "function",
+   "qualname": "reconcile_actions",
+   "start": 320
+  }
+ },
+ "sha256": "a486fbd49b934788eb554a2574a71db3646bf0252ddc5265e5bd5847f3756968",
+ "source": "C:/Users/gl450/trading_app-s1/research/s1/s1_collect.py"
+}

@@ -1,0 +1,2 @@
+{"audit": {"scopes": ["audit_policy", "do_audit", "_validate_calendar", "_provider_abort", "_Authorizer", "_get", "_paged", "_headers", "_require_no_redirects", "_corporate_actions", "_attempt_files", "_ny_instant"], "prefer": ["test_s1_a3_audit"]},
+ "final": {"scopes": ["final_policy", "do_final", "_earliest_acquire", "_utc_z", "_parse_bars", "reconcile_actions", "_identity_view", "_validate_bars_page", "_is_num"], "prefer": ["test_s1_a3_final"]}}

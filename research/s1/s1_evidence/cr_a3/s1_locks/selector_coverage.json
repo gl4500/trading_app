@@ -1,0 +1,22 @@
+{
+ "module": "s1_locks",
+ "shards": {
+  "_": {
+   "detail_sha256": "94f4c730d3061ece5efd2c1c7ceb1e3f444cc6456768f097a61e08b550cf50d5",
+   "functions": {
+    "OwnershipLock.__enter__": 4,
+    "OwnershipLock.__exit__": 4,
+    "OwnershipLock.__init__": 28,
+    "OwnershipLock.acquire": 9,
+    "OwnershipLock.release": 5,
+    "_name_ok": 35,
+    "_open_exclusive": 8,
+    "lock_acquirable": 22,
+    "lock_path": 40,
+    "slot_lock_name": 6,
+    "stage_lock_name": 11
+   },
+   "uncovered": []
+  }
+ }
+}

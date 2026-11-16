@@ -1,0 +1,31 @@
+..........................                                               [100%]
+=================================== PASSES ====================================
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15c_work\baseline\s1_seal__completion\c5\run2\job\attempt-c46edf74a116421e9a2c25ea30c6a16e\junit.xml -
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_record_is_a_pure_function_of_committed_history
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[deleted]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_lock_is_taken_before_the_journal_read
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_final_plan_envelope_and_member
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[stop_attest]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[final]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_operation_runs_pending_seal_stages_before_trial_stop
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-after-timeout]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[timeout-last-sealed@2027-04-26T12:00:00]
+PASSED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[lots-later-not-chosen@2026-10-27T11:59:59]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_positive_path_isolated
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_score_computation_error_is_invalid_score_aborted_with_no_numeric_score
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[snapshot-report]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_only_in_stopped
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_unconfirmed_integrity_verdict_refuses_with_no_invalid
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[KeyError]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_bound_snapshot_is_confirmed_on_a_second_read_before_any_invalid[unreadable]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_identity_twice_is_invalid[missing-or-unreadable]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[differs-no-commitment]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[unreadable]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]
+PASSED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row
+26 passed in 127.14s (0:02:07)

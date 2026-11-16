@@ -1,0 +1,753 @@
+{
+ "attempt": "d5cccb2dde264144a4331ce869aea5e3",
+ "call_exc": {},
+ "collect_errors": [],
+ "exitstatus": 0,
+ "imports": {
+  "s1_trial": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_trial\\copy2\\research\\s1\\s1_trial.py"
+ },
+ "internal_error": false,
+ "phases": {
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_a_plan_without_trial_id_refuses[attest_start]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_a_plan_without_trial_id_refuses[attest_stop]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_a_plan_without_trial_id_refuses[prereg]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_a_plan_without_trial_id_refuses[score]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_a_raw_context_without_slot_gate_or_stage_check_fails_closed": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_an_invalid_trial_adds_no_repeat_invalid_rows_on_re_entry": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_before_the_audit_ack_the_opening_and_start_are_blocked": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_bundle_mismatch_after_any_journal_row_is_invalid_bundle": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_bundle_mismatch_before_any_journal_row_is_a_refusal": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_closure_never_erases_invalidity_or_reuses_the_journal": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[attest_start]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[attest_stop]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[checkpoint]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[do_audit]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[final]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[final_plan]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[final_snapshot]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[opening]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[prereg]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[score]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_explicit_mailbox_is_used_for_token_and_ack": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_final_snapshot_after_its_own_detection_captures_nothing": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_gate_invalid_rows_use_a_fresh_operation_identity": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[broken-prev]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[close-before-audit]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[closed-trial-same-bundle-ack]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[duplicate-seq]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[duplicate-trial-id]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[identical-duplicate-ack]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[journal-fork]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[journal-gap]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[plan-trial-id-differs]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[two-open]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[two-opening-acks]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[wrong-bundle-close]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[zero-open]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_invalid_is_irreversible": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_journal_state_governs_over_local_files": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[bundle-no-row]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[outage]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[plan-gone]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[zero-open]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_one_valid_open_trial_authorizes_a_stage": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_product_context_fails_closed_without_a_slot_gate_or_stage_check": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_product_context_reads_closed_inside_the_transaction": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_registration_violation_commits_trial_invalid_first": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[attest_start]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[attest_stop]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[checkpoint]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[do_audit]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[final]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[final_plan]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[final_snapshot]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[opening]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[prereg]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[score]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_total_loss_is_invalid_lost_and_restoring_stays_invalid": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_total_loss_then_outage_then_mailbox_back_never_resumes": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_total_loss_with_a_bundle_mismatch_is_lost_and_never_recreates_s1_out": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_wrong_role_close_is_ignored_and_the_trial_stays_open": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_a_valid_close_is_permanent_whatever_the_mailbox_adds_later[later-chain-ack]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_a_valid_close_is_permanent_whatever_the_mailbox_adds_later[repost-identical-close]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_a_valid_close_is_permanent_whatever_the_mailbox_adds_later[second-different-close]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[no-predecessor]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[ok]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[prev-not-predecessor]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[wrong-bundle]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_created_not_after_its_predecessor_or_referenced_row_refuses[before-row]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_created_not_after_its_predecessor_or_referenced_row_refuses[equal-pred]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[bad-hex]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[bad-uuid]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[extra]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[missing]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[reordered]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-ACQUIRE-ACK]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-AUDIT-ACK]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-CLOSE-ACK]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-OPENING-ACK]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-PREREG-ACK]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-RUN-ACK]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-SCORE-ACK]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_attribution_grammar_is_the_e43_grammar": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_blocked_is_validated_like_every_close[ok]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_blocked_is_validated_like_every_close[wrong-bundle]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_blocked_is_validated_like_every_close[wrong-prev]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_evidence_hashes[INVALID]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_evidence_hashes[SCORED]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_evidence_hashes[WITHDRAWN]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[before-audit]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[duplicate]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[prev-not-latest]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[valid]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[wrong-bundle]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_closed_in_reads_the_closes_on_the_given_connection": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_closed_is_layered_on_the_journal_state": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_duplicate_trial_id_refuses_every_trial_with_that_id": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[forked]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[ok]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[seq-beyond]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_malformed_candidate_refuses_its_own_trial_or_all[attributable]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_malformed_candidate_refuses_its_own_trial_or_all[names-another-trial]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_malformed_candidate_refuses_its_own_trial_or_all[unattributable]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[historical-other-trial]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[indented-line]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[peer-draft]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[quoted-line]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-key-close]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-role-close]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[one]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[outage]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[two]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[zero]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_opening_receipt_sha256_is_the_raw_file_hash": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_other_trials_acks_and_rows_never_count_even_with_the_same_bundle": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_second_ack_of_a_kind_refuses_even_byte_identical[distinct]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_second_ack_of_a_kind_refuses_even_byte_identical[identical]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_token_builds_the_exact_line_and_refuses_without_a_predecessor": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_verify_ack_binds_the_expected_fields_and_refuses_a_future_ack": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_write_plan_records_a_uuid4_trial_id_and_makes_no_request_callback_or_journal_write": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_write_plan_refuses_with_an_open_trial_or_an_unreadable_mailbox[open]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_write_plan_refuses_with_an_open_trial_or_an_unreadable_mailbox[outage]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  }
+ },
+ "selected": [
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_write_plan_records_a_uuid4_trial_id_and_makes_no_request_callback_or_journal_write",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_write_plan_refuses_with_an_open_trial_or_an_unreadable_mailbox[open]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_write_plan_refuses_with_an_open_trial_or_an_unreadable_mailbox[outage]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-ACQUIRE-ACK]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-AUDIT-ACK]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-CLOSE-ACK]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-OPENING-ACK]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-PREREG-ACK]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-RUN-ACK]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_lines_have_exactly_the_listed_fields_in_order[S1-SCORE-ACK]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[extra]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[missing]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[reordered]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[bad-hex]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_line_deviation_refuses[bad-uuid]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[one]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[zero]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[two]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_open_trial_cases[outage]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_duplicate_trial_id_refuses_every_trial_with_that_id",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_second_ack_of_a_kind_refuses_even_byte_identical[distinct]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_second_ack_of_a_kind_refuses_even_byte_identical[identical]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[ok]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[prev-not-predecessor]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[wrong-bundle]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_chain_prev_is_the_predecessor_mailbox_id[no-predecessor]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_created_not_after_its_predecessor_or_referenced_row_refuses[equal-pred]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_ack_created_not_after_its_predecessor_or_referenced_row_refuses[before-row]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[ok]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[seq-beyond]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[forked]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[valid]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[prev-not-latest]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[before-audit]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[wrong-bundle]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_refused_cases[duplicate]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_closed_is_layered_on_the_journal_state",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_evidence_hashes[SCORED]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_evidence_hashes[INVALID]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_evidence_hashes[WITHDRAWN]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_other_trials_acks_and_rows_never_count_even_with_the_same_bundle",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_verify_ack_binds_the_expected_fields_and_refuses_a_future_ack",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_closed_in_reads_the_closes_on_the_given_connection",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_token_builds_the_exact_line_and_refuses_without_a_predecessor",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-role-close]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-key-close]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[peer-draft]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[indented-line]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[quoted-line]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[historical-other-trial]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_malformed_candidate_refuses_its_own_trial_or_all[attributable]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_malformed_candidate_refuses_its_own_trial_or_all[unattributable]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_malformed_candidate_refuses_its_own_trial_or_all[names-another-trial]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_attribution_grammar_is_the_e43_grammar",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_blocked_is_validated_like_every_close[ok]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_blocked_is_validated_like_every_close[wrong-prev]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_close_blocked_is_validated_like_every_close[wrong-bundle]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_a_valid_close_is_permanent_whatever_the_mailbox_adds_later[repost-identical-close]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_a_valid_close_is_permanent_whatever_the_mailbox_adds_later[later-chain-ack]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_a_valid_close_is_permanent_whatever_the_mailbox_adds_later[second-different-close]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_opening_receipt_sha256_is_the_raw_file_hash",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[do_audit]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[opening]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[attest_start]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[prereg]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[checkpoint]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[attest_stop]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[final_plan]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[final]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[final_snapshot]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_every_command_reads_trial_state_and_bundle_before_any_callback[score]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_one_valid_open_trial_authorizes_a_stage",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_wrong_role_close_is_ignored_and_the_trial_stays_open",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_gate_invalid_rows_use_a_fresh_operation_identity",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[broken-prev]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[close-before-audit]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[closed-trial-same-bundle-ack]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[duplicate-seq]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[duplicate-trial-id]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[identical-duplicate-ack]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[journal-fork]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[journal-gap]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[plan-trial-id-differs]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[two-open]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[two-opening-acks]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[wrong-bundle-close]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_identity_refusals_have_zero_callbacks[zero-open]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_bundle_mismatch_before_any_journal_row_is_a_refusal",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_bundle_mismatch_after_any_journal_row_is_invalid_bundle",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_total_loss_is_invalid_lost_and_restoring_stays_invalid",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_invalid_is_irreversible",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_journal_state_governs_over_local_files",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_closure_never_erases_invalidity_or_reuses_the_journal",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_before_the_audit_ack_the_opening_and_start_are_blocked",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_product_context_fails_closed_without_a_slot_gate_or_stage_check",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_product_context_reads_closed_inside_the_transaction",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_a_plan_without_trial_id_refuses[attest_start]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_a_plan_without_trial_id_refuses[prereg]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_a_plan_without_trial_id_refuses[attest_stop]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_a_plan_without_trial_id_refuses[score]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_explicit_mailbox_is_used_for_token_and_ack",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_registration_violation_commits_trial_invalid_first",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_total_loss_then_outage_then_mailbox_back_never_resumes",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_total_loss_with_a_bundle_mismatch_is_lost_and_never_recreates_s1_out",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[zero-open]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[outage]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[bundle-no-row]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_no_gate_refusal_writes_into_a_missing_s1_out[plan-gone]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_an_invalid_trial_adds_no_repeat_invalid_rows_on_re_entry",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[do_audit]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[opening]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[attest_start]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[prereg]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[checkpoint]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[attest_stop]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[final_plan]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[final]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[final_snapshot]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_the_gate_is_the_first_call_of_every_command[score]",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_a_raw_context_without_slot_gate_or_stage_check_fails_closed",
+  "research/s1/s1_tests/test_s1_a3_gate.py::test_final_snapshot_after_its_own_detection_captures_nothing"
+ ],
+ "xfail": []
+}

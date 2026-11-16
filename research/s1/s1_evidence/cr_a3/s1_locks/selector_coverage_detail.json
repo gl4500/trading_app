@@ -1,0 +1,528 @@
+{
+ "cleanup_verified": true,
+ "cmd": [
+  "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+  "-m",
+  "pytest",
+  "-p",
+  "conftest",
+  "-p",
+  "t15c_reach",
+  "-p",
+  "no:cacheprovider",
+  "-q",
+  "--junitxml=C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\reach\\s1_locks_____selector_coverage_detail\\junit.xml",
+  "--basetemp=C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\reach\\s1_locks_____selector_coverage_detail\\bt",
+  "research/s1/s1_tests/test_s1_a3_locks.py"
+ ],
+ "elapsed_s": 1.969,
+ "functions": {
+  "OwnershipLock.__enter__": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness"
+   ],
+   "tests": 4
+  },
+  "OwnershipLock.__exit__": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness"
+   ],
+   "tests": 4
+  },
+  "OwnershipLock.__init__": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[backslash-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bad-trial]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bare-dotdot]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[dotdot-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[embedded-traversal]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[empty]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[fullwidth-digits]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[non-str-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-feb-30]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-month-13]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-not-a-date]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[slash-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trailing-newline]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-trailing-newline]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-traversal]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-upper]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-uuid1]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[unknown-stage]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[upper-case]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held"
+   ],
+   "tests": 28
+  },
+  "OwnershipLock.acquire": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held"
+   ],
+   "tests": 9
+  },
+  "OwnershipLock.release": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe"
+   ],
+   "tests": 5
+  },
+  "_name_ok": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[audit]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final_plan]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[opening]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[prereg]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[score]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2026-10-27]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2028-02-29]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[start_attest]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[stop_attest]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_held_lock_cannot_be_deleted_renamed_or_replaced",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_lives_outside_s1_out",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[backslash-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bare-dotdot]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[dotdot-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[embedded-traversal]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[empty]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[fullwidth-digits]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[non-str-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-feb-30]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-month-13]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-not-a-date]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[slash-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trailing-newline]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[unknown-stage]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[upper-case]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held"
+   ],
+   "tests": 35
+  },
+  "_open_exclusive": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held"
+   ],
+   "tests": 8
+  },
+  "lock_acquirable": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[backslash-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bad-trial]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bare-dotdot]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[dotdot-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[embedded-traversal]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[empty]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[fullwidth-digits]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[non-str-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-feb-30]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-month-13]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-not-a-date]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[slash-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trailing-newline]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-trailing-newline]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-traversal]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-upper]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-uuid1]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[unknown-stage]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[upper-case]"
+   ],
+   "tests": 22
+  },
+  "lock_path": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[audit]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final_plan]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[opening]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[prereg]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[score]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2026-10-27]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2028-02-29]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[start_attest]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[stop_attest]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_held_lock_cannot_be_deleted_renamed_or_replaced",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_lives_outside_s1_out",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[backslash-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bad-trial]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bare-dotdot]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[dotdot-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[embedded-traversal]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[empty]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[fullwidth-digits]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[non-str-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-feb-30]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-month-13]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-not-a-date]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[slash-name]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trailing-newline]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-trailing-newline]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-traversal]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-upper]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-uuid1]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[unknown-stage]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[upper-case]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held"
+   ],
+   "tests": 40
+  },
+  "slot_lock_name": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_lives_outside_s1_out",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/../x]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/20261102T214500Z/x]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[stage/audit]"
+   ],
+   "tests": 6
+  },
+  "stage_lock_name": {
+   "reached_by": [
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[audit]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final_plan]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[opening]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[prereg]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[score]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2026-10-27]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2028-02-29]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[start_attest]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[stop_attest]",
+    "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_lives_outside_s1_out"
+   ],
+   "tests": 11
+  }
+ },
+ "limitations": [
+  "child-process execution is not observed",
+  "module-level statements run at import, not per test"
+ ],
+ "method": "sys.monitoring PY_START (tools/t15c_reach.py)",
+ "module": "s1_locks",
+ "per_test": {
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_acquire_release_and_reacquire_in_one_process": [
+   "OwnershipLock.__enter__",
+   "OwnershipLock.__exit__",
+   "OwnershipLock.__init__",
+   "OwnershipLock.acquire",
+   "OwnershipLock.release",
+   "_name_ok",
+   "_open_exclusive",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_concurrent_recovery_exactly_one_acquires": [],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_deleted_lock_file_is_recreated_and_is_not_evidence": [
+   "OwnershipLock.__enter__",
+   "OwnershipLock.__exit__",
+   "OwnershipLock.__init__",
+   "OwnershipLock.acquire",
+   "OwnershipLock.release",
+   "_name_ok",
+   "_open_exclusive",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[audit]": [
+   "_name_ok",
+   "lock_path",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final]": [
+   "_name_ok",
+   "lock_path",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[final_plan]": [
+   "_name_ok",
+   "lock_path",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[opening]": [
+   "_name_ok",
+   "lock_path",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[prereg]": [
+   "_name_ok",
+   "lock_path",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[score]": [
+   "_name_ok",
+   "lock_path",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2026-10-27]": [
+   "_name_ok",
+   "lock_path",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[seal/2028-02-29]": [
+   "_name_ok",
+   "lock_path",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[start_attest]": [
+   "_name_ok",
+   "lock_path",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_every_journal_stage_has_a_valid_lock_name[stop_attest]": [
+   "_name_ok",
+   "lock_path",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_held_and_error_are_distinct_results": [],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_held_by_another_process_is_held_not_dead": [
+   "OwnershipLock.__init__",
+   "OwnershipLock.acquire",
+   "_name_ok",
+   "_open_exclusive",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_held_lock_cannot_be_deleted_renamed_or_replaced": [
+   "_name_ok",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[directory-at-lock-path]": [
+   "OwnershipLock.__init__",
+   "OwnershipLock.acquire",
+   "_name_ok",
+   "_open_exclusive",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_io_error_is_error_not_held_or_free[file-at-locks-dir]": [
+   "OwnershipLock.__init__",
+   "OwnershipLock.acquire",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_killed_owner_frees_the_lock": [
+   "OwnershipLock.__enter__",
+   "OwnershipLock.__exit__",
+   "OwnershipLock.__init__",
+   "OwnershipLock.acquire",
+   "OwnershipLock.release",
+   "_name_ok",
+   "_open_exclusive",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_leftover_acquirable_lock_file_is_no_liveness": [
+   "OwnershipLock.__enter__",
+   "OwnershipLock.__exit__",
+   "OwnershipLock.__init__",
+   "OwnershipLock.acquire",
+   "OwnershipLock.release",
+   "_name_ok",
+   "_open_exclusive",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_acquirable_probe": [
+   "OwnershipLock.__init__",
+   "OwnershipLock.acquire",
+   "OwnershipLock.release",
+   "_name_ok",
+   "_open_exclusive",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_lives_outside_s1_out": [
+   "_name_ok",
+   "lock_path",
+   "slot_lock_name",
+   "stage_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[backslash-name]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bad-trial]": [
+   "OwnershipLock.__init__",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[bare-dotdot]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[dotdot-name]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[embedded-traversal]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[empty]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[fullwidth-digits]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[non-str-name]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-feb-30]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-month-13]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[seal-not-a-date]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[slash-name]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trailing-newline]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-trailing-newline]": [
+   "OwnershipLock.__init__",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-traversal]": [
+   "OwnershipLock.__init__",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-upper]": [
+   "OwnershipLock.__init__",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[trial-uuid1]": [
+   "OwnershipLock.__init__",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[unknown-stage]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_lock_names_and_trial_ids_are_validated[upper-case]": [
+   "OwnershipLock.__init__",
+   "_name_ok",
+   "lock_acquirable",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_sharing_violation_from_any_holder_is_held": [
+   "OwnershipLock.__init__",
+   "OwnershipLock.acquire",
+   "_name_ok",
+   "_open_exclusive",
+   "lock_path"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/../x]": [
+   "slot_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/20261102T214500Z/x]": [
+   "slot_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot/]": [
+   "slot_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[slot]": [
+   "slot_lock_name"
+  ],
+  "research/s1/s1_tests/test_s1_a3_locks.py::test_slot_lock_name_rejects_a_non_slot_subject[stage/audit]": [
+   "slot_lock_name"
+  ]
+ },
+ "ranges": null,
+ "rc": 0,
+ "selector_args": [
+  "research/s1/s1_tests/test_s1_a3_locks.py"
+ ],
+ "selector_key": "_",
+ "tests": 47,
+ "uncovered": []
+}

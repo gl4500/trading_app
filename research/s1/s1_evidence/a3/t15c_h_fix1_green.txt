@@ -1,0 +1,51 @@
+A3 Task 15c-H fix round 1 GREEN (2026-11-16T06:48:14-05:00); HEAD 2a4bdd12d48109f9888532207f1238739c5ddd03 + uncommitted harness (final bytes, LF)
+cmd: PYTHONPATH=research/s1;research/s1/s1_tests <testenv> -m pytest -p conftest -p no:cacheprovider test_s1_a3_cr_guard.py test_s1_a3_cr_completion.py -q -rf (serial)
+result: 97 passed (61 cr_guard + 36 completion). After the RED, two pure-merge cases were added (exec_error_unstopped, cleanup_unverified_unstopped) to pin D4/D5 below; and the RED-time test factory keyed shards by --control (test-side fix made before the recorded RED).
+files run (sha256):
+e0d7f6ccaa84c4f13aeebd0cbbf1c5fb316ad0837ca6f0d6d343ba7d33854ec9 *research/s1/s1_tests/test_s1_a3_cr_guard.py
+b8337ba7de97fb48c75e45ff097e9594e33ef1f9983bae25e9c6612a85bfd82c *research/s1/s1_tests/test_s1_a3_cr_completion.py
+998e60a4f2fb35b757d59786d24efaa2e354dfe8740a61c0f88da801df39526e *research/s1/s1_tests/cr_coord.py
+1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+
+==== deletion checks (ruling 5): each guard deleted in a SCRATCH copy (scratchpad/t15c_work/deletion_fix1/<id>/), focused tests run there
+round 1 (all 19, harness as committed here):
+D0_control NOT CAUGHT ['95 passed in 36.20s'] []
+D1_kill_guard_conjunct caught ['1 failed, 94 passed in 36.44s'] ['test_merge_counts_only_guard_clean_attempts[kill_guard_mismatch]']
+D2_survived_guard_conjunct caught ['1 failed, 94 passed in 36.32s'] ['test_merge_counts_only_guard_clean_attempts[survivor_guard_mismatch]']
+D1b_guard_pair_check_removed caught ['2 failed, 93 passed in 35.89s'] ['test_merge_counts_only_guard_clean_attempts[kill_guard_mismatch]', 'test_merge_counts_only_guard_clean_attempts[survivor_guard_mismatch]']
+D3_clean_not_stopped caught ['1 failed, 94 passed in 36.06s'] ['test_merge_counts_only_guard_clean_attempts[stopped_survivor]']
+D4_clean_exec_ok NOT CAUGHT ['95 passed in 36.04s'] []
+D5_clean_cleanup_verified NOT CAUGHT ['95 passed in 36.15s'] []
+D6_pool_union_check caught ['2 failed, 93 passed in 36.52s'] ['test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[subset]', 'test_I1_completion_refuses_shards_that_do_not_cover_the_frozen_pool[extra_pool_node]']
+D7_zero_shards NOT CAUGHT ['95 passed in 37.36s'] []
+D8_refused_shard_resume caught ['1 failed, 94 passed in 38.21s'] ['test_I2_fence_refused_shard_resumes_in_a_later_session']
+D9_cap_bare_dict caught ['1 failed, 94 passed in 35.96s'] ['test_I3_cap_is_bound_to_one_config_and_reverified_on_use']
+D10_cap_identity_bound caught ['1 failed, 94 passed in 36.09s'] ['test_I3_cap_is_bound_to_one_config_and_reverified_on_use']
+D11_cap_state_config caught ['1 failed, 94 passed in 36.16s'] ['test_I3_cap_is_bound_to_one_config_and_reverified_on_use']
+D12_cap_state_sha caught ['1 failed, 94 passed in 36.02s'] ['test_I3_cap_is_bound_to_one_config_and_reverified_on_use']
+D13_retry_parent_clock caught ['1 failed, 94 passed in 36.13s'] ['test_I4_retry_uses_the_parent_session_clock_and_the_retry_fence']
+D14_retry_outer_in_fence caught ['1 failed, 94 passed in 36.04s'] ['test_I4_retry_uses_the_parent_session_clock_and_the_retry_fence']
+D15_retry_refuses_completion_dir caught ['1 failed, 94 passed in 35.99s'] ['test_N1_run_retry_refuses_a_completion_shard_directory']
+D16_merge_required_nonempty caught ['1 failed, 94 passed in 36.40s'] ['test_merge_counts_only_guard_clean_attempts[empty_required]']
+D17_binding_helpers caught ['1 failed, 94 passed in 35.99s'] ['test_completion_attempt_binds_executable_env_helpers_nodes_and_control']
+D18_kill_short_circuit_clean NOT CAUGHT ['95 passed in 36.10s'] []
+round 2 (after adding the two merge cases):
+D0_control NOT CAUGHT ['97 passed in 35.78s'] []
+D4_clean_exec_ok caught ['1 failed, 96 passed in 36.41s'] ['test_merge_counts_only_guard_clean_attempts[exec_error_unstopped]']
+D5_clean_cleanup_verified caught ['1 failed, 96 passed in 36.22s'] ['test_merge_counts_only_guard_clean_attempts[cleanup_unverified_unstopped]']
+D7_zero_shards NOT CAUGHT ['97 passed in 35.94s'] []
+D18_kill_short_circuit_clean NOT CAUGHT ['97 passed in 36.51s'] []
+
+[exited with code 0]
+NOT CAUGHT and why: D0 = unmodified control (expected). D7 zero-shard check: equivalent - check_pool_union(pool, []) refuses zero shards anyway (missing = whole pool). D18 kill short-circuit's clean conjunct: equivalent under real_exec records - every unclean kill (exec_status != ok or cleanup unverified) also STOPS run_batch, so the loop already breaks with the rest pending; a label killed with a non-killed guard status is not a record real_exec/cr_reconcile can produce.
+
+==== pytest output
+........................................................................ [ 74%]
+.........................                                                [100%]
+97 passed in 36.02s
+
+==== CORRECTION appended in 15c-H fix round 2 (re-review 1, R1-I1); the record above is otherwise unchanged
+The claim above that D18 (the kill short-circuit's clean conjunct) is equivalent is WRONG. Counter-example (reviewer probe test_N_unclean_kill_resolved_then_later_clean_kill): c1 is an uncertain kill and stops; its stop is resolved; on the resumed call the real code runs c2 and settles killed, while with the conjunct deleted c1's unclean kill short-circuits, c2 never runs and the result is unresolved. The error direction was conservative (a false unresolved), but the guard was unpinned. Fix round 2 adds test_R1_I1_resolved_unclean_kill_does_not_short_circuit_a_later_clean_kill; deletion G10 is now caught (t15c_h_fix2_green.txt). The D7 zero-shard equivalence (load_pool refuses an empty pool, so check_pool_union(pool, []) always reports the whole pool missing) stands.

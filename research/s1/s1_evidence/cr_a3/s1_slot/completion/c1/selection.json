@@ -1,0 +1,8 @@
+{
+ "cap_s": 135.0,
+ "completion_shard": "c1",
+ "explore_time_s": 81.68,
+ "module": "s1_slot",
+ "nodes": 49,
+ "pool_sha256": "63a261af6dd124af1787cb60a36f5c6b3cd6fcfbe0fd26c8ca3f5562437eaf6e"
+}

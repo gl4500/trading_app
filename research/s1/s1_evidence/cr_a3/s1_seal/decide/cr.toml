@@ -1,0 +1,8 @@
+[cosmic-ray]
+module-path = "research/s1/s1_seal.py"
+timeout = 300.0
+excluded-modules = []
+test-command = "C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m cr_guard --deadline 240 --target s1_seal --control research/s1/s1_evidence/cr_a3/s1_seal/decide/control.json -p conftest @research/s1/s1_evidence/cr_a3/s1_seal/decide/nodes.txt"
+
+[cosmic-ray.distributor]
+name = "local"

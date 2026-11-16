@@ -1,0 +1,285 @@
+{
+ "attempt": "644af16a5b12431a8f5848254cf62037",
+ "call_exc": {},
+ "collect_errors": [],
+ "exitstatus": 0,
+ "imports": {
+  "s1_slot": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_slot__completion\\c2\\copy3\\research\\s1\\s1_slot.py"
+ },
+ "internal_error": false,
+ "phases": {
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_journal_read_error_in_the_gate_hook_is_a_refusal": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_seal_stage_recheck_is_not_a_violation[legitimate-start]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_seal_stage_recheck_is_not_a_violation[stray-claim-control]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_access_denied_on_the_seal_stage_lock_is_a_refusal": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_access_denied_on_the_slot_lock_refuses_the_cleanup_with_no_invalid": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_late_r_refuses_with_no_row_then_timeout": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[early-r]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[late-r]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_against_an_in_flight_slot_refuses_then_timeout_at_d": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[final snapshot]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[stop attestation]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_premature_finalizer_before_e_or_d_refuses_with_no_row": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_file_without_prepared_is_invalid": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_from_the_first_qualified_slot_in_schedule_order_after_earlier_slots_terminal": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_is_an_f4_stage": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_seals_enforced_is_on": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-ok]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-report-changed]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-capture-dir-not-named-by-claim]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-foreign-op]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-own-partial]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[missed-clean]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[missed-stray]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-claim]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-missing]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-ok]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[timeout-seal-cites]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_cleanup_waits_for_the_work_lock": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_a_damaged_qualified_tree_on_another_pending_close_is_invalid": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_a_held_stage_lock_never_blocks_the_slot_path_or_the_deadline_rows": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_a_missing_slot_gate_fails_closed": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_a_stage_lock_error_is_never_deferred": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_after_json_is_display_only[deleted]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_after_json_is_display_only[tampered]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_claim_names_its_capture_dir_and_the_report_is_bound": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[E]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_established_violation_is_external_first_with_subtype[receipt]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_finalize_pending_never_seals_a_slot_without_a_qualified_row": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_post_start_capture_requires_the_prereg_ack": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_slot_intent_at_or_after_e_refuses_with_no_row_and_no_capture": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_slot_lock_is_taken_before_the_journal_read": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  }
+ },
+ "selected": [
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_claim_names_its_capture_dir_and_the_report_is_bound",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_after_json_is_display_only[deleted]",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_after_json_is_display_only[tampered]",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_established_violation_is_external_first_with_subtype[receipt]",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[E]",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_slot_intent_at_or_after_e_refuses_with_no_row_and_no_capture",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_post_start_capture_requires_the_prereg_ack",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_slot_lock_is_taken_before_the_journal_read",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_a_missing_slot_gate_fails_closed",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_a_held_stage_lock_never_blocks_the_slot_path_or_the_deadline_rows",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_a_stage_lock_error_is_never_deferred",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_finalize_pending_never_seals_a_slot_without_a_qualified_row",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_a_damaged_qualified_tree_on_another_pending_close_is_invalid",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_premature_finalizer_before_e_or_d_refuses_with_no_row",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_against_an_in_flight_slot_refuses_then_timeout_at_d",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[late-r]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_live_worker_after_timeout_is_lost_race_whatever_r_and_its_files_stay[early-r]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_cleanup_waits_for_the_work_lock",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_is_an_f4_stage",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_file_without_prepared_is_invalid",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_seals_enforced_is_on",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_late_r_refuses_with_no_row_then_timeout",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-claim]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-own-partial]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-foreign-op]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[in-flight-capture-dir-not-named-by-claim]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-ok]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-missing]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-ok]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-report-changed]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[timeout-seal-cites]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[missed-clean]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[missed-stray]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_from_the_first_qualified_slot_in_schedule_order_after_earlier_slots_terminal",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_stalled_stage_lock_never_delays_the_finalizers_deadline_rows",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[stop attestation]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[final snapshot]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_final_snapshot_trial_state_refuses_a_damaged_tree_without_a_traceback",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_access_denied_on_the_slot_lock_refuses_the_cleanup_with_no_invalid",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_access_denied_on_the_seal_stage_lock_is_a_refusal",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_seal_stage_recheck_is_not_a_violation[legitimate-start]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_seal_stage_recheck_is_not_a_violation[stray-claim-control]",
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_journal_read_error_in_the_gate_hook_is_a_refusal"
+ ],
+ "xfail": []
+}

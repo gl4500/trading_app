@@ -1,0 +1,286 @@
+A3 Task 15c-H RED (2026-11-16T04:37:42-05:00), harness stubs (signatures only) + new test file; HEAD 2a4bdd12d48109f9888532207f1238739c5ddd03
+cmd: PYTHONPATH=research/s1;research/s1/s1_tests <testenv> -m pytest -p conftest -p no:cacheprovider test_s1_a3_cr_guard.py test_s1_a3_cr_completion.py -q -rf (serial)
+failure types: 12 AssertionError + 3 'Failed: DID NOT RAISE' (pytest.raises); existing 61 pass
+147097adf571b046a3d6061ef9e905203ed7abd94f2c7d008f77c31d17e17ae8 *research/s1/s1_tests/cr_coord.py
+a6f534f3cd834b9b2c33354d8a4ab198b20d0517652bd01e4649e9dbdc664ad3 *research/s1/s1_tests/cr_reconcile.py
+9b0149313ebe1bab3d910a0554f168a56e653b730fd4e3cbbd88a8801649cf5d *research/s1/s1_tests/test_s1_a3_cr_completion.py
+====
+.............................................................FFFFFFFFFFF [ 94%]
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+_________ test_kill_in_shard_2_of_3_settles_killed_and_stops_the_rest _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_kill_in_shard_2_of_3_sett0')
+
+    def test_kill_in_shard_2_of_3_settles_killed_and_stops_the_rest(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls = _shards({"c1": "survived", "c2": "killed", "c3": "survived"})
+        res = cr_coord.run_completion("j1", by_id, specs, src_root=src, work_root=work, exec_factory=factory)
+>       assert res.get("label") == "killed", res
+E       AssertionError: {}
+E       assert None == 'killed'
+E        +  where None = <built-in method get of dict object at 0x000001A2252D60C0>('label')
+E        +    where <built-in method get of dict object at 0x000001A2252D60C0> = {}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:63: AssertionError
+______________ test_all_completion_shards_survive_gives_survived ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_all_completion_shards_sur0')
+
+    def test_all_completion_shards_survive_gives_survived(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls = _shards({"c1": "survived", "c2": "survived", "c3": "survived"})
+        res = cr_coord.run_completion("j1", by_id, specs, src_root=src, work_root=work, exec_factory=factory)
+>       assert res.get("label") == "survived", res
+E       AssertionError: {}
+E       assert None == 'survived'
+E        +  where None = <built-in method get of dict object at 0x000001A225396B00>('label')
+E        +    where <built-in method get of dict object at 0x000001A225396B00> = {}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:80: AssertionError
+_________ test_error_in_one_shard_is_a_non_kill_with_its_exact_status _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_error_in_one_shard_is_a_n0')
+
+    def test_error_in_one_shard_is_a_non_kill_with_its_exact_status(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls = _shards({"c1": "survived", "c2": "error", "c3": "survived"})
+        res = cr_coord.run_completion("j1", by_id, specs, src_root=src, work_root=work, exec_factory=factory)
+>       assert res.get("label") == "error", res
+E       AssertionError: {}
+E       assert None == 'error'
+E        +  where None = <built-in method get of dict object at 0x000001A2253B4AC0>('label')
+E        +    where <built-in method get of dict object at 0x000001A2253B4AC0> = {}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:89: AssertionError
+_ test_timeout_in_one_shard_stops_with_the_rest_pending_and_blocks_until_resolved _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_timeout_in_one_shard_stop0')
+
+    def test_timeout_in_one_shard_stops_with_the_rest_pending_and_blocks_until_resolved(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls = _shards({"c1": "timeout", "c2": "killed", "c3": "survived"})
+        res = cr_coord.run_completion("j1", by_id, specs, src_root=src, work_root=work, exec_factory=factory)
+>       assert res.get("label") == "timeout", res
+E       AssertionError: {}
+E       assert None == 'timeout'
+E        +  where None = <built-in method get of dict object at 0x000001A22538B7C0>('label')
+E        +    where <built-in method get of dict object at 0x000001A22538B7C0> = {}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:99: AssertionError
+___ test_resumed_completion_after_a_resolved_stop_keeps_the_earlier_nonkill ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_resumed_completion_after_0')
+
+    def test_resumed_completion_after_a_resolved_stop_keeps_the_earlier_nonkill(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        specs, factory, calls = _shards({"c1": "timeout", "c2": "killed", "c3": "survived"})
+        cr_coord.run_completion("j1", by_id, specs, src_root=src, work_root=work, exec_factory=factory)
+>       assert (work / "completion" / "j1" / "batch_c1_state.json").is_file(), "the c1 attempt left a state"
+E       AssertionError: the c1 attempt left a state
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = (((WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_resumed_completion_after_0/w') / 'completion') / 'j1') / 'batch_c1_state.json').is_file
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:114: AssertionError
+_____ test_completion_refuses_a_candidate_that_did_not_survive_screening ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_completion_refuses_a_cand0')
+
+    def test_completion_refuses_a_candidate_that_did_not_survive_screening(tmp_path):
+        src, by_id, work = _screened(tmp_path, label="killed")
+        specs, factory, calls = _shards({"c1": "survived"})
+>       with pytest.raises(cr_coord.CoordError, match=r"j1 is not a screening survivor: labels \['killed'\]"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:126: Failed
+_ test_merge_rules_never_turn_a_nonkill_or_a_gap_into_survived[cleanup_then_kill] _
+
+case = 'cleanup_then_kill'
+
+    @pytest.mark.parametrize("case", ["cleanup_then_kill", "missing_shard", "bad_screen"])
+    def test_merge_rules_never_turn_a_nonkill_or_a_gap_into_survived(case):
+        a = lambda s, lab, st=None: {"shard": s, "label": lab, "guard_status": st or _STATUS.get(lab, lab)}  # noqa: E731
+        if case == "cleanup_then_kill":
+            m = cr_reconcile.merge_attempts("survived", [a("c1", "error", "cleanup_uncertain"), a("c2", "killed")],
+                                            ["c1", "c2", "c3"])
+>           assert m.get("label") == "killed" and (m.get("basis") or {}).get("nonkill") == [{"shard": "c1", "label": "error",
+E           AssertionError: assert ('deferred' == 'killed'
+E             
+E             - killed
+E             + deferred)
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:137: AssertionError
+_ test_merge_rules_never_turn_a_nonkill_or_a_gap_into_survived[missing_shard] _
+
+case = 'missing_shard'
+
+    @pytest.mark.parametrize("case", ["cleanup_then_kill", "missing_shard", "bad_screen"])
+    def test_merge_rules_never_turn_a_nonkill_or_a_gap_into_survived(case):
+        a = lambda s, lab, st=None: {"shard": s, "label": lab, "guard_status": st or _STATUS.get(lab, lab)}  # noqa: E731
+        if case == "cleanup_then_kill":
+            m = cr_reconcile.merge_attempts("survived", [a("c1", "error", "cleanup_uncertain"), a("c2", "killed")],
+                                            ["c1", "c2", "c3"])
+            assert m.get("label") == "killed" and (m.get("basis") or {}).get("nonkill") == [{"shard": "c1", "label": "error",
+                                                                            "guard_status": "cleanup_uncertain"}]
+        elif case == "missing_shard":
+            m = cr_reconcile.merge_attempts("survived", [a("c1", "survived"), a("c2", "survived")], ["c1", "c2", "c3"])
+>           assert m.get("label") == "deferred" and (m.get("basis") or {}).get("missing") == ["c3"]
+E           AssertionError: assert ('deferred' == 'deferred'
+E             
+E               deferred and None == ['c3'])
+E            +  where None = <built-in method get of dict object at 0x000001A22545C880>('missing')
+E            +    where <built-in method get of dict object at 0x000001A22545C880> = (None or {}).get
+E            +      where None = <built-in method get of dict object at 0x000001A22545C3C0>('basis')
+E            +        where <built-in method get of dict object at 0x000001A22545C3C0> = {'label': 'deferred'}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:141: AssertionError
+__ test_merge_rules_never_turn_a_nonkill_or_a_gap_into_survived[bad_screen] ___
+
+case = 'bad_screen'
+
+    @pytest.mark.parametrize("case", ["cleanup_then_kill", "missing_shard", "bad_screen"])
+    def test_merge_rules_never_turn_a_nonkill_or_a_gap_into_survived(case):
+        a = lambda s, lab, st=None: {"shard": s, "label": lab, "guard_status": st or _STATUS.get(lab, lab)}  # noqa: E731
+        if case == "cleanup_then_kill":
+            m = cr_reconcile.merge_attempts("survived", [a("c1", "error", "cleanup_uncertain"), a("c2", "killed")],
+                                            ["c1", "c2", "c3"])
+            assert m.get("label") == "killed" and (m.get("basis") or {}).get("nonkill") == [{"shard": "c1", "label": "error",
+                                                                            "guard_status": "cleanup_uncertain"}]
+        elif case == "missing_shard":
+            m = cr_reconcile.merge_attempts("survived", [a("c1", "survived"), a("c2", "survived")], ["c1", "c2", "c3"])
+            assert m.get("label") == "deferred" and (m.get("basis") or {}).get("missing") == ["c3"]
+        else:
+>           with pytest.raises(ValueError, match=r"screening label 'killed' is not a survivor"):
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:143: Failed
+________ test_completion_pool_union_must_equal_the_frozen_pool_exactly ________
+
+    def test_completion_pool_union_must_equal_the_frozen_pool_exactly():
+        pool = ["t.py::a", "t.py::b", "t.py::c", "u.py::d"]
+        cr_coord.check_pool_union(pool, [["t.py::a", "t.py::b"], ["t.py::c", "u.py::d"]])
+>       with pytest.raises(cr_coord.PartitionError, match=r"missing: \['u\.py::d'\]"):
+E       Failed: DID NOT RAISE <class 'cr_coord.PartitionError'>
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:151: Failed
+_ test_fence_is_outer_plus_cleanup_plus_measured_io_and_the_clock_is_monotonic _
+
+    def test_fence_is_outer_plus_cleanup_plus_measured_io_and_the_clock_is_monotonic():
+        assert cr_coord.IO_MARGIN_S > 0
+>       assert cr_coord.fence_s() == B["cr_timeout_s"] + B["cleanup_reserve_s"] + B["cleanup_reserve_s"] + \
+            cr_coord.IO_MARGIN_S
+E       assert 345.0 == (((300 + 45) + 45) + 15.0)
+E        +  where 345.0 = <function fence_s at 0x000001A2232E0540>()
+E        +    where <function fence_s at 0x000001A2232E0540> = cr_coord.fence_s
+E        +  and   15.0 = cr_coord.IO_MARGIN_S
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:162: AssertionError
+__ test_candidate_is_refused_at_the_fence_boundary_and_pending_is_preserved ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_candidate_is_refused_at_t0')
+
+    def test_candidate_is_refused_at_the_fence_boundary_and_pending_is_preserved(tmp_path):
+        src, items = _three(tmp_path)
+        by_id = {i["job_id"]: i for i in items}
+        work, now = tmp_path / "w", [1000.0]
+        clock = lambda: now[0]  # noqa: E731
+        calls = []
+        cr_coord.run_batch(["j1"], by_id, batch_id="b000", src_root=src, copy_paths=["pkg"], work_root=work,
+                           exec_seam=_seam({}, calls), clock=clock)
+        fence = cr_coord.fence_s()
+        now[0] = 1000.0 + B["session_length_s"] - fence + 0.001          # remaining is just under the fence
+        st = cr_coord.run_batch(["j2", "j3"], by_id, batch_id="b001", src_root=src, copy_paths=["pkg"], work_root=work,
+                                exec_seam=_seam({}, calls), clock=clock)
+        assert calls == ["j1"], "no candidate starts with less than the fence remaining"
+        assert st.get("stopped") is True and str(st.get("stop_reason")).startswith("session_budget: j2")
+        assert st.get("pending") == ["j2", "j3"] and st.get("done") == []
+>       assert st.get("fence_s") == fence
+E       AssertionError: assert None == 345.0
+E        +  where None = <built-in method get of dict object at 0x000001A225346780>('fence_s')
+E        +    where <built-in method get of dict object at 0x000001A225346780> = {'batch': ['j2', 'j3'], 'batch_id': 'b001', 'done': [], 'harness_sha256': {'cr_coord.py': '147097adf571b046a3d6061ef9e...3c31df9bad3a43ec643f2f00', 'cr_reconcile.py': 'a6f534f3cd834b9b2c33354d8a4ab198b20d0517652bd01e4649e9dbdc664ad3'}, ...}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:184: AssertionError
+______________ test_a_clock_before_the_session_start_is_refused _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_a_clock_before_the_sessio0')
+
+    def test_a_clock_before_the_session_start_is_refused(tmp_path):
+        src, items = _three(tmp_path)
+        by_id = {i["job_id"]: i for i in items}
+        work, now, calls = tmp_path / "w", [1000.0], []
+        cr_coord.run_batch(["j1"], by_id, batch_id="b000", src_root=src, copy_paths=["pkg"], work_root=work,
+                           exec_seam=_seam({}, calls), clock=lambda: now[0])
+        now[0] = 10.0                                                    # e.g. a reboot reset the monotonic clock
+        st = cr_coord.run_batch(["j2"], by_id, batch_id="b001", src_root=src, copy_paths=["pkg"], work_root=work,
+                                exec_seam=_seam({}, calls), clock=lambda: now[0])
+>       assert calls == ["j1"] and str(st.get("stop_reason")).startswith("session_clock_invalid: j2")
+E       AssertionError: assert (['j1', 'j2'] == ['j1']
+E         
+E         Left contains one more item: 'j2'
+E         Use -v to get more diff)
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:201: AssertionError
+__________ test_completion_attempts_run_on_the_parent_session_clock ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_completion_attempts_run_o0')
+
+    def test_completion_attempts_run_on_the_parent_session_clock(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        started = json.loads((work / "session.json").read_text(encoding="utf-8"))["started"]
+        specs, factory, calls = _shards({"c1": "survived", "c2": "survived"})
+        late = lambda: started + B["session_length_s"] - 1.0  # noqa: E731
+        res = cr_coord.run_completion("j1", by_id, specs, src_root=src, work_root=work, exec_factory=factory, clock=late)
+        assert calls == {"c1": [], "c2": []}, "the nested completion run must not get a fresh session clock"
+        assert not (work / "completion" / "j1" / "session.json").exists()
+>       assert res.get("label") == "deferred" and res.get("pending_shards") == ["c1", "c2"]
+E       AssertionError: assert (None == 'deferred')
+E        +  where None = <built-in method get of dict object at 0x000001A225420040>('label')
+E        +    where <built-in method get of dict object at 0x000001A225420040> = {}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:212: AssertionError
+__ test_cap_is_derived_only_from_a_full_calibration_and_gates_bigger_batches __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15c_work/bt_red/test_cap_is_derived_only_from_0')
+
+    def test_cap_is_derived_only_from_a_full_calibration_and_gates_bigger_batches(tmp_path):
+        src, by_id = _many(tmp_path, 60)
+        ids = sorted(by_id)
+        now = [0.0]
+    
+        def seam(item, copy_root, job_dir):
+            now[0] += 100.0 if item["job_id"] != "j05" else 150.0     # measured per-item cost (fake monotonic clock)
+            return {"guard_status": "survived", "raw_timeout": False, "exec_status": "ok", "cleanup_verified": True,
+                    "label": "survived"}
+        work = tmp_path / "w"
+        st = cr_coord.run_batch(ids[:24], by_id, batch_id="cal", src_root=src, copy_paths=["pkg"], work_root=work,
+                                exec_seam=seam, clock=lambda: now[0])
+>       assert st.get("item_s", {}).get("j05") == 150.0 and len(st["item_s"]) == 24
+E       AssertionError: assert (None == 150.0)
+E        +  where None = <built-in method get of dict object at 0x000001A2254335C0>('j05')
+E        +    where <built-in method get of dict object at 0x000001A2254335C0> = {}.get
+E        +      where {} = <built-in method get of dict object at 0x000001A22544AC00>('item_s', {})
+E        +        where <built-in method get of dict object at 0x000001A22544AC00> = {'batch': ['j00', 'j01', 'j02', 'j03', 'j04', 'j05', ...], 'batch_id': 'cal', 'done': ['j00', 'j01', 'j02', 'j03', 'j0...3c31df9bad3a43ec643f2f00', 'cr_reconcile.py': 'a6f534f3cd834b9b2c33354d8a4ab198b20d0517652bd01e4649e9dbdc664ad3'}, ...}.get
+
+research\s1\s1_tests\test_s1_a3_cr_completion.py:237: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_kill_in_shard_2_of_3_settles_killed_and_stops_the_rest
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_all_completion_shards_survive_gives_survived
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_error_in_one_shard_is_a_non_kill_with_its_exact_status
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_timeout_in_one_shard_stops_with_the_rest_pending_and_blocks_until_resolved
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_resumed_completion_after_a_resolved_stop_keeps_the_earlier_nonkill
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_completion_refuses_a_candidate_that_did_not_survive_screening
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_merge_rules_never_turn_a_nonkill_or_a_gap_into_survived[cleanup_then_kill]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_merge_rules_never_turn_a_nonkill_or_a_gap_into_survived[missing_shard]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_merge_rules_never_turn_a_nonkill_or_a_gap_into_survived[bad_screen]
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_completion_pool_union_must_equal_the_frozen_pool_exactly
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_fence_is_outer_plus_cleanup_plus_measured_io_and_the_clock_is_monotonic
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_candidate_is_refused_at_the_fence_boundary_and_pending_is_preserved
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_a_clock_before_the_session_start_is_refused
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_completion_attempts_run_on_the_parent_session_clock
+FAILED research/s1/s1_tests/test_s1_a3_cr_completion.py::test_cap_is_derived_only_from_a_full_calibration_and_gates_bigger_batches
+15 failed, 61 passed in 35.23s
+
+==== annotation added in 15c-H fix round 1 (N4; the record above is otherwise unchanged)
+test files this RED ran: test_s1_a3_cr_completion.py sha256 9b014931... (header above; the file the RED ran, before the post-RED layout change disclosed in the report) and test_s1_a3_cr_guard.py sha256 e0d7f6ccaa84c4f13aeebd0cbbf1c5fb316ad0837ca6f0d6d343ba7d33854ec9 (unchanged since 5b4fe84, still byte-identical to HEAD).
+the 15c-H tests were later reworked by fix round 1: see t15c_h_fix1_red.txt / t15c_h_fix1_green.txt.

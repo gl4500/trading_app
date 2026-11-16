@@ -1,0 +1,320 @@
+{
+ "cleanup": {
+  "active_after": 0,
+  "method": "win32-job-object(kill_on_job_close, terminate_job_object)",
+  "pid_list_overflow": false,
+  "stray_after_exit": 0,
+  "survivors": [],
+  "terminated": false,
+  "unheld_members": [],
+  "verified": true
+ },
+ "cmd": [
+  "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+  "-m",
+  "pytest",
+  "-p",
+  "conftest",
+  "-p",
+  "no:cacheprovider",
+  "-q",
+  "-rA",
+  "--junitxml=C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\explore\\s1_stage\\junit.xml",
+  "--basetemp=C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\explore\\s1_stage\\bt",
+  "research/s1/s1_tests/test_s1_a3_stage.py"
+ ],
+ "elapsed_s": 9.875,
+ "holder_pids": [
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 2628,
+   "ppid": 36408,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 3560,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 5324,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 6460,
+   "ppid": 19716,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 6668,
+   "ppid": 7512,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 7284,
+   "ppid": 35680,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 7512,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 7796,
+   "ppid": 12960,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 8268,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 9604,
+   "ppid": 25168,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 10020,
+   "ppid": 20532,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 12172,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 12960,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 13024,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 17224,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 19716,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 20108,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 20532,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 20624,
+   "ppid": 30868,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 23932,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 24944,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 25168,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 25344,
+   "ppid": 17224,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 29732,
+   "ppid": 3560,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 29892,
+   "ppid": 5324,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 29920,
+   "ppid": 34560,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 30868,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 31376,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 32244,
+   "ppid": 24944,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 32448,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 33156,
+   "ppid": 13024,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 33788,
+   "ppid": 12172,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 33988,
+   "ppid": 31376,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 34480,
+   "ppid": 32448,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 34560,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 34572,
+   "ppid": 23932,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 34852,
+   "ppid": 34908,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 34908,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 35680,
+   "ppid": 16988,
+   "role": "launcher"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 36408,
+   "ppid": 7284,
+   "role": "descendant"
+  },
+  {
+   "exe": "python.exe",
+   "held": true,
+   "pid": 36708,
+   "ppid": 20108,
+   "role": "descendant"
+  }
+ ],
+ "launcher_pid": 35680,
+ "rc": 0,
+ "timed_out": false,
+ "wall_s": 9.881
+}

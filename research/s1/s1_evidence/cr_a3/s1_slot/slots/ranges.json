@@ -1,0 +1,550 @@
+{
+ "module_level_note": "synthetic line intervals outside every top-level def/class (imports, constants, decorators excluded), so module-level mutants are owned by exactly one shard",
+ "module_rel": "research/s1/s1_slot.py",
+ "rule": "keep a WorkItem iff its mutation line span overlaps a named scope's [start,end] (decorators..last body line, nested defs and methods included); others skipped-by-scope",
+ "schema": "a3-t15a-ranges/1",
+ "scopes": {
+  "<module-level>@1-28": {
+   "end": 28,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1
+  },
+  "<module-level>@1001-1002": {
+   "end": 1002,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1001
+  },
+  "<module-level>@1018-1019": {
+   "end": 1019,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1018
+  },
+  "<module-level>@1034-1035": {
+   "end": 1035,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1034
+  },
+  "<module-level>@1055-1056": {
+   "end": 1056,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1055
+  },
+  "<module-level>@1122-1123": {
+   "end": 1123,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1122
+  },
+  "<module-level>@1130-1131": {
+   "end": 1131,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1130
+  },
+  "<module-level>@1138-1139": {
+   "end": 1139,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1138
+  },
+  "<module-level>@1152-1153": {
+   "end": 1153,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1152
+  },
+  "<module-level>@118-119": {
+   "end": 119,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 118
+  },
+  "<module-level>@1192-1193": {
+   "end": 1193,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1192
+  },
+  "<module-level>@1205-1206": {
+   "end": 1206,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1205
+  },
+  "<module-level>@124-125": {
+   "end": 125,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 124
+  },
+  "<module-level>@1255-1256": {
+   "end": 1256,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1255
+  },
+  "<module-level>@1279-1280": {
+   "end": 1280,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1279
+  },
+  "<module-level>@130-131": {
+   "end": 131,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 130
+  },
+  "<module-level>@1300-1301": {
+   "end": 1301,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1300
+  },
+  "<module-level>@1315-1316": {
+   "end": 1316,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1315
+  },
+  "<module-level>@1325-1326": {
+   "end": 1326,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1325
+  },
+  "<module-level>@1341-1342": {
+   "end": 1342,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1341
+  },
+  "<module-level>@136-137": {
+   "end": 137,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 136
+  },
+  "<module-level>@1362-1363": {
+   "end": 1363,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1362
+  },
+  "<module-level>@1404-1405": {
+   "end": 1405,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 1404
+  },
+  "<module-level>@144-145": {
+   "end": 145,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 144
+  },
+  "<module-level>@163-164": {
+   "end": 164,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 163
+  },
+  "<module-level>@184-200": {
+   "end": 200,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 184
+  },
+  "<module-level>@203-204": {
+   "end": 204,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 203
+  },
+  "<module-level>@207-208": {
+   "end": 208,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 207
+  },
+  "<module-level>@225-226": {
+   "end": 226,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 225
+  },
+  "<module-level>@249-250": {
+   "end": 250,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 249
+  },
+  "<module-level>@258-259": {
+   "end": 259,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 258
+  },
+  "<module-level>@284-285": {
+   "end": 285,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 284
+  },
+  "<module-level>@31-32": {
+   "end": 32,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 31
+  },
+  "<module-level>@312-313": {
+   "end": 313,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 312
+  },
+  "<module-level>@362-363": {
+   "end": 363,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 362
+  },
+  "<module-level>@376-377": {
+   "end": 377,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 376
+  },
+  "<module-level>@530-543": {
+   "end": 543,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 530
+  },
+  "<module-level>@546-547": {
+   "end": 547,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 546
+  },
+  "<module-level>@583-584": {
+   "end": 584,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 583
+  },
+  "<module-level>@591-592": {
+   "end": 592,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 591
+  },
+  "<module-level>@600-601": {
+   "end": 601,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 600
+  },
+  "<module-level>@606-607": {
+   "end": 607,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 606
+  },
+  "<module-level>@628-629": {
+   "end": 629,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 628
+  },
+  "<module-level>@634-635": {
+   "end": 635,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 634
+  },
+  "<module-level>@639-640": {
+   "end": 640,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 639
+  },
+  "<module-level>@66-67": {
+   "end": 67,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 66
+  },
+  "<module-level>@662-663": {
+   "end": 663,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 662
+  },
+  "<module-level>@671-672": {
+   "end": 672,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 671
+  },
+  "<module-level>@675-676": {
+   "end": 676,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 675
+  },
+  "<module-level>@695-696": {
+   "end": 696,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 695
+  },
+  "<module-level>@702-703": {
+   "end": 703,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 702
+  },
+  "<module-level>@706-707": {
+   "end": 707,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 706
+  },
+  "<module-level>@716-717": {
+   "end": 717,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 716
+  },
+  "<module-level>@733-734": {
+   "end": 734,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 733
+  },
+  "<module-level>@737-738": {
+   "end": 738,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 737
+  },
+  "<module-level>@744-745": {
+   "end": 745,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 744
+  },
+  "<module-level>@75-76": {
+   "end": 76,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 75
+  },
+  "<module-level>@757-758": {
+   "end": 758,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 757
+  },
+  "<module-level>@763-764": {
+   "end": 764,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 763
+  },
+  "<module-level>@790-791": {
+   "end": 791,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 790
+  },
+  "<module-level>@798-799": {
+   "end": 799,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 798
+  },
+  "<module-level>@828-829": {
+   "end": 829,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 828
+  },
+  "<module-level>@84-85": {
+   "end": 85,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 84
+  },
+  "<module-level>@844-845": {
+   "end": 845,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 844
+  },
+  "<module-level>@850-851": {
+   "end": 851,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 850
+  },
+  "<module-level>@88-89": {
+   "end": 89,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 88
+  },
+  "<module-level>@905-906": {
+   "end": 906,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 905
+  },
+  "<module-level>@909-910": {
+   "end": 910,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 909
+  },
+  "<module-level>@918-919": {
+   "end": 919,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 918
+  },
+  "<module-level>@929-930": {
+   "end": 930,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 929
+  },
+  "<module-level>@93-94": {
+   "end": 94,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 93
+  },
+  "<module-level>@972-973": {
+   "end": 973,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 972
+  },
+  "<module-level>@989-990": {
+   "end": 990,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 989
+  },
+  "<module-level>@996-997": {
+   "end": 997,
+   "kind": "module-level",
+   "qualname": "<module-level>",
+   "start": 996
+  },
+  "EvidencePass": {
+   "end": 661,
+   "kind": "class",
+   "qualname": "EvidencePass",
+   "start": 641
+  },
+  "LockTimeout": {
+   "end": 202,
+   "kind": "class",
+   "qualname": "LockTimeout",
+   "start": 201
+  },
+  "LockUnavailable": {
+   "end": 206,
+   "kind": "class",
+   "qualname": "LockUnavailable",
+   "start": 205
+  },
+  "QualifiedUnreadable": {
+   "end": 590,
+   "kind": "class",
+   "qualname": "QualifiedUnreadable",
+   "start": 585
+  },
+  "_carries": {
+   "end": 143,
+   "kind": "function",
+   "qualname": "_carries",
+   "start": 138
+  },
+  "_judge_without_calendar": {
+   "end": 1361,
+   "kind": "function",
+   "qualname": "_judge_without_calendar",
+   "start": 1343
+  },
+  "_listing_refusal": {
+   "end": 1129,
+   "kind": "function",
+   "qualname": "_listing_refusal",
+   "start": 1124
+  },
+  "_lock_diag": {
+   "end": 224,
+   "kind": "function",
+   "qualname": "_lock_diag",
+   "start": 209
+  },
+  "_stray_files": {
+   "end": 1340,
+   "kind": "function",
+   "qualname": "_stray_files",
+   "start": 1327
+  },
+  "_tail_completion": {
+   "end": 248,
+   "kind": "function",
+   "qualname": "_tail_completion",
+   "start": 227
+  },
+  "_unlock_diag": {
+   "end": 257,
+   "kind": "function",
+   "qualname": "_unlock_diag",
+   "start": 251
+  },
+  "_unreadable": {
+   "end": 605,
+   "kind": "function",
+   "qualname": "_unreadable",
+   "start": 602
+  },
+  "committed_paths": {
+   "end": 162,
+   "kind": "function",
+   "qualname": "committed_paths",
+   "start": 146
+  },
+  "move_own_late": {
+   "end": 183,
+   "kind": "function",
+   "qualname": "move_own_late",
+   "start": 165
+  },
+  "qualified_subjects": {
+   "end": 92,
+   "kind": "function",
+   "qualname": "qualified_subjects",
+   "start": 90
+  },
+  "record_early_refusal": {
+   "end": 361,
+   "kind": "function",
+   "qualname": "record_early_refusal",
+   "start": 314
+  }
+ },
+ "sha256": "b8cafebf98c5b1f212e862d539150209ce2fd0fdb25cee78a37bde763f901d7f",
+ "source": "C:/Users/gl450/trading_app-s1/research/s1/s1_slot.py"
+}

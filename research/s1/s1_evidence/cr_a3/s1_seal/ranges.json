@@ -1,0 +1,593 @@
+{
+ "base_commit": "02db5b9fa94ab21c4433b2655cab12782ba5bc13",
+ "decisions": [
+  {
+   "called_from_in_scope": "stop_record",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "seal_pass",
+   "lines": [
+    640
+   ],
+   "out_of_scope_referrers": [
+    "eligible_sessions",
+    "nvs"
+   ]
+  },
+  {
+   "called_from_in_scope": "sampled_seals",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_live",
+   "lines": [
+    599
+   ],
+   "out_of_scope_referrers": [
+    "_eligible",
+    "_nvs",
+    "pinned"
+   ]
+  },
+  {
+   "called_from_in_scope": "sampled_seals",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "seal_pass",
+   "lines": [
+    597
+   ],
+   "out_of_scope_referrers": [
+    "eligible_sessions",
+    "nvs"
+   ]
+  },
+  {
+   "called_from_in_scope": "_stop_record",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_close",
+   "lines": [
+    668,
+    670,
+    690,
+    698
+   ],
+   "out_of_scope_referrers": [
+    "_eligible",
+    "close_of",
+    "opening_close_of",
+    "schedule",
+    "stop_decision"
+   ]
+  },
+  {
+   "called_from_in_scope": "_stop_record",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_eligible",
+   "lines": [
+    655
+   ],
+   "out_of_scope_referrers": [
+    "_nvs",
+    "eligible_sessions"
+   ]
+  },
+  {
+   "called_from_in_scope": "_stop_record",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_live",
+   "lines": [
+    647
+   ],
+   "out_of_scope_referrers": [
+    "_eligible",
+    "_nvs",
+    "pinned"
+   ]
+  },
+  {
+   "called_from_in_scope": "_stop_record",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "cohort",
+   "lines": [
+    693
+   ],
+   "out_of_scope_referrers": [
+    "count_sold"
+   ]
+  },
+  {
+   "called_from_in_scope": "_stop_record",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "pinned",
+   "lines": [
+    668,
+    670,
+    676,
+    690,
+    698
+   ],
+   "out_of_scope_referrers": [
+    "_eligible"
+   ]
+  },
+  {
+   "called_from_in_scope": "_stop_record",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "schedule",
+   "lines": [
+    676
+   ],
+   "out_of_scope_referrers": [
+    "choose_seal"
+   ]
+  },
+  {
+   "called_from_in_scope": "_sampled_seals",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_close",
+   "lines": [
+    617
+   ],
+   "out_of_scope_referrers": [
+    "_eligible",
+    "close_of",
+    "opening_close_of",
+    "schedule",
+    "stop_decision"
+   ]
+  },
+  {
+   "called_from_in_scope": "_sampled_seals",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_eligible",
+   "lines": [
+    613
+   ],
+   "out_of_scope_referrers": [
+    "_nvs",
+    "eligible_sessions"
+   ]
+  },
+  {
+   "called_from_in_scope": "_sampled_seals",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_live",
+   "lines": [
+    604
+   ],
+   "out_of_scope_referrers": [
+    "_eligible",
+    "_nvs",
+    "pinned"
+   ]
+  },
+  {
+   "called_from_in_scope": "_sampled_seals",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "pinned",
+   "lines": [
+    617
+   ],
+   "out_of_scope_referrers": [
+    "_eligible"
+   ]
+  },
+  {
+   "called_from_in_scope": "_decide_locked",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "eligible_sessions",
+   "lines": [
+    829
+   ],
+   "out_of_scope_referrers": [
+    "stop_decision",
+    "stop_problems"
+   ]
+  },
+  {
+   "called_from_in_scope": "_decide_locked",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "persist_stop",
+   "lines": [
+    845
+   ],
+   "out_of_scope_referrers": [
+    "stop_gap_recover"
+   ]
+  },
+  {
+   "called_from_in_scope": "_decide_locked",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "seal_pass",
+   "lines": [
+    830
+   ],
+   "out_of_scope_referrers": [
+    "eligible_sessions",
+    "nvs"
+   ]
+  },
+  {
+   "called_from_in_scope": "_close_state",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_live",
+   "lines": [
+    567
+   ],
+   "out_of_scope_referrers": [
+    "_eligible",
+    "_nvs",
+    "pinned"
+   ]
+  },
+  {
+   "called_from_in_scope": "_close_state",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "pinned",
+   "lines": [
+    568
+   ],
+   "out_of_scope_referrers": [
+    "_eligible"
+   ]
+  },
+  {
+   "called_from_in_scope": "_close_state",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "schedule",
+   "lines": [
+    568
+   ],
+   "out_of_scope_referrers": [
+    "choose_seal"
+   ]
+  },
+  {
+   "called_from_in_scope": "_count_sold",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_live",
+   "lines": [
+    388
+   ],
+   "out_of_scope_referrers": [
+    "_eligible",
+    "_nvs",
+    "pinned"
+   ]
+  },
+  {
+   "called_from_in_scope": "_count_sold",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "cohort",
+   "lines": [
+    390
+   ],
+   "out_of_scope_referrers": [
+    "count_sold"
+   ]
+  },
+  {
+   "called_from_in_scope": "stop_ready",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "seal_pass",
+   "lines": [
+    708
+   ],
+   "out_of_scope_referrers": [
+    "eligible_sessions",
+    "nvs"
+   ]
+  },
+  {
+   "called_from_in_scope": "_stop_ready",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_eligible",
+   "lines": [
+    718
+   ],
+   "out_of_scope_referrers": [
+    "_nvs",
+    "eligible_sessions"
+   ]
+  },
+  {
+   "called_from_in_scope": "_stop_ready",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "_live",
+   "lines": [
+    714
+   ],
+   "out_of_scope_referrers": [
+    "_eligible",
+    "_nvs",
+    "pinned"
+   ]
+  },
+  {
+   "called_from_in_scope": "_stop_ready",
+   "disposition": "NOT added (also referenced out of scope) - controller decision",
+   "helper": "window_end",
+   "lines": [
+    719,
+    721
+   ],
+   "out_of_scope_referrers": [
+    "eligible_until",
+    "schedule",
+    "stop_decision"
+   ]
+  }
+ ],
+ "delegation_edges": [
+  {
+   "callee": "_stop_record",
+   "caller": "stop_record",
+   "lines": [
+    641
+   ]
+  },
+  {
+   "callee": "_stop_record",
+   "caller": "_stop_ready",
+   "lines": [
+    715
+   ]
+  },
+  {
+   "callee": "_sampled_seals",
+   "caller": "sampled_seals",
+   "lines": [
+    598,
+    599
+   ]
+  },
+  {
+   "callee": "_decide_locked",
+   "caller": "decide_stop",
+   "lines": [
+    808
+   ]
+  },
+  {
+   "callee": "_read_stop_json",
+   "caller": "stop_check",
+   "lines": [
+    886,
+    889
+   ]
+  },
+  {
+   "callee": "_by_subject",
+   "caller": "_stop_record",
+   "lines": [
+    654
+   ]
+  },
+  {
+   "callee": "_by_subject",
+   "caller": "_sampled_seals",
+   "lines": [
+    611
+   ]
+  },
+  {
+   "callee": "_by_subject",
+   "caller": "_decide_locked",
+   "lines": [
+    828
+   ]
+  },
+  {
+   "callee": "_close_state",
+   "caller": "_stop_record",
+   "lines": [
+    660
+   ]
+  },
+  {
+   "callee": "_close_state",
+   "caller": "_sampled_seals",
+   "lines": [
+    614
+   ]
+  },
+  {
+   "callee": "_close_state",
+   "caller": "_decide_locked",
+   "lines": [
+    831
+   ]
+  },
+  {
+   "callee": "_count_sold",
+   "caller": "_stop_record",
+   "lines": [
+    670,
+    696
+   ]
+  },
+  {
+   "callee": "_first",
+   "caller": "_stop_record",
+   "lines": [
+    677
+   ]
+  },
+  {
+   "callee": "_first",
+   "caller": "_close_state",
+   "lines": [
+    572,
+    574,
+    585,
+    586
+   ]
+  },
+  {
+   "callee": "_stop_context",
+   "caller": "_decide_locked",
+   "lines": [
+    840
+   ]
+  },
+  {
+   "callee": "stop_ready",
+   "caller": "_stop_context",
+   "lines": [
+    785
+   ]
+  },
+  {
+   "callee": "_stop_ready",
+   "caller": "stop_ready",
+   "lines": [
+    709
+   ]
+  }
+ ],
+ "expanded": [
+  "_stop_record",
+  "_sampled_seals",
+  "_decide_locked",
+  "_read_stop_json",
+  "_by_subject",
+  "_close_state",
+  "_count_sold",
+  "_first",
+  "_stop_context",
+  "stop_ready",
+  "_stop_ready"
+ ],
+ "expansion_rule": "expand: module-level function g directly called (ast.Call with func=ast.Name(g)) from an in-scope body (nested defs/methods included) is added iff ALL module-level scopes referencing g (call or Name load; module-level statements count as '<module>') are in scope; iterate to a fixed point; never cross modules; g referenced from any out-of-scope scope -> controller decision, not added",
+ "module_rel": "research/s1/s1_seal.py",
+ "named": [
+  "stop_record",
+  "decide_stop",
+  "stop_check",
+  "sampled_seals",
+  "sampled_history"
+ ],
+ "public_names_added_by_walk": [
+  "stop_ready"
+ ],
+ "rule": "keep a WorkItem iff its mutation line span overlaps a named scope's [start,end] (decorators..last body line, nested defs and methods included); others skipped-by-scope",
+ "ruled_delegations": [
+  {
+   "also_referenced_out_of_scope_by": [
+    "_nvs"
+   ],
+   "basis": "controller ruling 2026-11-15 (known delegation, binding)",
+   "callee": "_stop_record"
+  },
+  {
+   "also_referenced_out_of_scope_by": [
+    "_nvs"
+   ],
+   "basis": "controller ruling 2026-11-15 (known delegation, binding)",
+   "callee": "_sampled_seals"
+  },
+  {
+   "also_referenced_out_of_scope_by": [],
+   "basis": "controller ruling 2026-11-15 (known delegation, binding)",
+   "callee": "_decide_locked"
+  }
+ ],
+ "schema": "a3-t15a-ranges/1",
+ "scopes": {
+  "_by_subject": {
+   "end": 552,
+   "kind": "function",
+   "qualname": "_by_subject",
+   "start": 548
+  },
+  "_close_state": {
+   "end": 587,
+   "kind": "function",
+   "qualname": "_close_state",
+   "start": 559
+  },
+  "_count_sold": {
+   "end": 391,
+   "kind": "function",
+   "qualname": "_count_sold",
+   "start": 385
+  },
+  "_decide_locked": {
+   "end": 854,
+   "kind": "function",
+   "qualname": "_decide_locked",
+   "start": 816
+  },
+  "_first": {
+   "end": 556,
+   "kind": "function",
+   "qualname": "_first",
+   "start": 555
+  },
+  "_read_stop_json": {
+   "end": 869,
+   "kind": "function",
+   "qualname": "_read_stop_json",
+   "start": 860
+  },
+  "_sampled_seals": {
+   "end": 618,
+   "kind": "function",
+   "qualname": "_sampled_seals",
+   "start": 602
+  },
+  "_stop_context": {
+   "end": 785,
+   "kind": "function",
+   "qualname": "_stop_context",
+   "start": 775
+  },
+  "_stop_ready": {
+   "end": 726,
+   "kind": "function",
+   "qualname": "_stop_ready",
+   "start": 712
+  },
+  "_stop_record": {
+   "end": 699,
+   "kind": "function",
+   "qualname": "_stop_record",
+   "start": 644
+  },
+  "decide_stop": {
+   "end": 813,
+   "kind": "function",
+   "qualname": "decide_stop",
+   "start": 788
+  },
+  "sampled_history": {
+   "end": 627,
+   "kind": "function",
+   "qualname": "sampled_history",
+   "start": 621
+  },
+  "sampled_seals": {
+   "end": 599,
+   "kind": "function",
+   "qualname": "sampled_seals",
+   "start": 590
+  },
+  "stop_check": {
+   "end": 902,
+   "kind": "function",
+   "qualname": "stop_check",
+   "start": 872
+  },
+  "stop_ready": {
+   "end": 709,
+   "kind": "function",
+   "qualname": "stop_ready",
+   "start": 702
+  },
+  "stop_record": {
+   "end": 641,
+   "kind": "function",
+   "qualname": "stop_record",
+   "start": 630
+  }
+ },
+ "sha256": "af3e13af0ba38adc52bc2808c04349a7c4b3c053bd80708866a61f7f0070284f",
+ "source": "C:/Users/gl450/trading_app-s1/research/s1/s1_seal.py"
+}

@@ -1,0 +1,8 @@
+{
+ "cap_s": 150.0,
+ "completion_shard": "c2",
+ "explore_time_s": 128.82,
+ "module": "s1_collect",
+ "nodes": 38,
+ "pool_sha256": "4ff0ea443476db8b0eb5f64a999c6580c0eafdb7735e3d021f53f024511f46e0"
+}

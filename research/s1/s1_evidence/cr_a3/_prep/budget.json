@@ -1,0 +1,444 @@
+{
+ "copy_creation_s": 0.1,
+ "cr_item_reserve_s_assumed": 30.0,
+ "modules": {
+  "s1_collect": {
+   "candidates": 829,
+   "duplicate_mutations_across_shards": 0,
+   "partition_equal_row_scope": true,
+   "row_scope_candidates": 829,
+   "sessions": 35,
+   "shards": {
+    "audit": {
+     "all_survived": true,
+     "est_item_s": 167.4,
+     "est_session_s": 4018.7,
+     "est_total_exec_s": 67982.3,
+     "max_s": 137.344,
+     "median_s": 135.733,
+     "nodes": 65,
+     "post": 406,
+     "post_by_family": {
+      "AddNot": 29,
+      "ExceptionReplacer": 4,
+      "NumberReplacer": 54,
+      "ReplaceAndWithOr": 5,
+      "ReplaceBinaryOperator": 132,
+      "ReplaceComparisonOperator": 165,
+      "ReplaceFalseWithTrue": 3,
+      "ReplaceOrWithAnd": 1,
+      "ReplaceTrueWithFalse": 2,
+      "ReplaceUnaryOperator": 8,
+      "ZeroIterationForLoop": 3
+     },
+     "pre": 1160,
+     "pytest_max_s": 136.906,
+     "pytest_median_s": 135.329,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_collect/audit/nodes.txt"
+     ],
+     "sessions": 17,
+     "within_budget": true,
+     "worst_session_s": 8280
+    },
+    "final": {
+     "all_survived": true,
+     "est_item_s": 157.5,
+     "est_session_s": 3779.3,
+     "est_total_exec_s": 66609.8,
+     "max_s": 127.37,
+     "median_s": 126.681,
+     "nodes": 26,
+     "post": 423,
+     "post_by_family": {
+      "AddNot": 14,
+      "ExceptionReplacer": 6,
+      "NumberReplacer": 22,
+      "ReplaceAndWithOr": 5,
+      "ReplaceBinaryOperator": 220,
+      "ReplaceComparisonOperator": 119,
+      "ReplaceContinueWithBreak": 6,
+      "ReplaceFalseWithTrue": 2,
+      "ReplaceOrWithAnd": 11,
+      "ReplaceTrueWithFalse": 5,
+      "ReplaceUnaryOperator": 5,
+      "ZeroIterationForLoop": 8
+     },
+     "pre": 1160,
+     "pytest_max_s": 126.984,
+     "pytest_median_s": 126.313,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_collect/final/nodes.txt"
+     ],
+     "sessions": 18,
+     "within_budget": true,
+     "worst_session_s": 8280
+    }
+   }
+  },
+  "s1_journal": {
+   "candidates": 720,
+   "duplicate_mutations_across_shards": 0,
+   "sessions": 30,
+   "shards": {
+    "_": {
+     "all_survived": true,
+     "est_item_s": 34.8,
+     "est_session_s": 835.1,
+     "est_total_exec_s": 25052.4,
+     "max_s": 4.695,
+     "median_s": 4.553,
+     "nodes": 163,
+     "post": 720,
+     "post_by_family": {
+      "AddNot": 90,
+      "ExceptionReplacer": 8,
+      "NumberReplacer": 16,
+      "RemoveDecorator": 7,
+      "ReplaceAndWithOr": 24,
+      "ReplaceBinaryOperator": 110,
+      "ReplaceComparisonOperator": 417,
+      "ReplaceFalseWithTrue": 8,
+      "ReplaceOrWithAnd": 18,
+      "ReplaceTrueWithFalse": 6,
+      "ReplaceUnaryOperator": 14,
+      "ZeroIterationForLoop": 2
+     },
+     "pre": 720,
+     "pytest_max_s": 4.328,
+     "pytest_median_s": 4.172,
+     "selector": [
+      "research/s1/s1_tests/test_s1_a3_journal.py",
+      "research/s1/s1_tests/test_s1_a3_precedence.py"
+     ],
+     "sessions": 30,
+     "within_budget": true,
+     "worst_session_s": 8280
+    }
+   }
+  },
+  "s1_locks": {
+   "candidates": 159,
+   "duplicate_mutations_across_shards": 0,
+   "sessions": 7,
+   "shards": {
+    "_": {
+     "all_survived": true,
+     "est_item_s": 32.7,
+     "est_session_s": 784.0,
+     "est_total_exec_s": 5193.9,
+     "max_s": 2.566,
+     "median_s": 2.484,
+     "nodes": 47,
+     "post": 159,
+     "post_by_family": {
+      "AddNot": 15,
+      "ExceptionReplacer": 6,
+      "NumberReplacer": 26,
+      "ReplaceBinaryOperator": 66,
+      "ReplaceComparisonOperator": 27,
+      "ReplaceFalseWithTrue": 4,
+      "ReplaceOrWithAnd": 2,
+      "ReplaceTrueWithFalse": 5,
+      "ReplaceUnaryOperator": 8
+     },
+     "pre": 159,
+     "pytest_max_s": 2.11,
+     "pytest_median_s": 2.094,
+     "selector": [
+      "research/s1/s1_tests/test_s1_a3_locks.py"
+     ],
+     "sessions": 7,
+     "within_budget": true,
+     "worst_session_s": 8280
+    }
+   }
+  },
+  "s1_seal": {
+   "candidates": 334,
+   "duplicate_mutations_across_shards": 0,
+   "partition_equal_row_scope": true,
+   "row_scope_candidates": 334,
+   "sessions": 16,
+   "shards": {
+    "check": {
+     "all_survived": true,
+     "est_item_s": 200.9,
+     "est_session_s": 4821.7,
+     "est_total_exec_s": 15469.6,
+     "max_s": 170.804,
+     "median_s": 165.862,
+     "nodes": 40,
+     "post": 77,
+     "post_by_family": {
+      "AddNot": 8,
+      "ExceptionReplacer": 2,
+      "ReplaceAndWithOr": 3,
+      "ReplaceBinaryOperator": 11,
+      "ReplaceComparisonOperator": 51,
+      "ReplaceUnaryOperator": 2
+     },
+     "pre": 1634,
+     "pytest_max_s": 170.422,
+     "pytest_median_s": 165.39,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/check/nodes.txt"
+     ],
+     "sessions": 4,
+     "within_budget": true,
+     "worst_session_s": 8280
+    },
+    "decide": {
+     "all_survived": true,
+     "est_item_s": 195.1,
+     "est_session_s": 4681.4,
+     "est_total_exec_s": 19700.9,
+     "max_s": 164.958,
+     "median_s": 164.564,
+     "nodes": 35,
+     "post": 101,
+     "post_by_family": {
+      "AddNot": 13,
+      "ExceptionReplacer": 12,
+      "NumberReplacer": 4,
+      "ReplaceAndWithOr": 3,
+      "ReplaceBinaryOperator": 11,
+      "ReplaceComparisonOperator": 51,
+      "ReplaceOrWithAnd": 1,
+      "ReplaceUnaryOperator": 4,
+      "ZeroIterationForLoop": 2
+     },
+     "pre": 1634,
+     "pytest_max_s": 164.578,
+     "pytest_median_s": 164.204,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/decide/nodes.txt"
+     ],
+     "sessions": 5,
+     "within_budget": true,
+     "worst_session_s": 8280
+    },
+    "record": {
+     "all_survived": true,
+     "est_item_s": 203.0,
+     "est_session_s": 4871.9,
+     "est_total_exec_s": 23141.3,
+     "max_s": 172.894,
+     "median_s": 171.341,
+     "nodes": 37,
+     "post": 114,
+     "post_by_family": {
+      "AddNot": 15,
+      "NumberReplacer": 12,
+      "ReplaceBinaryOperator": 11,
+      "ReplaceBreakWithContinue": 1,
+      "ReplaceComparisonOperator": 54,
+      "ReplaceContinueWithBreak": 2,
+      "ReplaceFalseWithTrue": 1,
+      "ReplaceTrueWithFalse": 1,
+      "ReplaceUnaryOperator": 14,
+      "ZeroIterationForLoop": 3
+     },
+     "pre": 1634,
+     "pytest_max_s": 172.469,
+     "pytest_median_s": 170.953,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/record/nodes.txt"
+     ],
+     "sessions": 5,
+     "within_budget": true,
+     "worst_session_s": 8280
+    },
+    "sampled": {
+     "all_survived": true,
+     "est_item_s": 180.1,
+     "est_session_s": 4321.7,
+     "est_total_exec_s": 7563.0,
+     "max_s": 149.971,
+     "median_s": 146.553,
+     "nodes": 20,
+     "post": 42,
+     "post_by_family": {
+      "AddNot": 4,
+      "ReplaceBinaryOperator": 11,
+      "ReplaceComparisonOperator": 25,
+      "ReplaceOrWithAnd": 1,
+      "ZeroIterationForLoop": 1
+     },
+     "pre": 1634,
+     "pytest_max_s": 149.593,
+     "pytest_median_s": 146.172,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/sampled/nodes.txt"
+     ],
+     "sessions": 2,
+     "within_budget": true,
+     "worst_session_s": 8280
+    }
+   }
+  },
+  "s1_slot": {
+   "candidates": 1697,
+   "duplicate_mutations_across_shards": 0,
+   "sessions": 72,
+   "shards": {
+    "finalizer": {
+     "all_survived": true,
+     "est_item_s": 175.3,
+     "est_session_s": 4206.4,
+     "est_total_exec_s": 244849.4,
+     "max_s": 145.168,
+     "median_s": 142.185,
+     "nodes": 78,
+     "post": 1397,
+     "post_by_family": {
+      "AddNot": 132,
+      "ExceptionReplacer": 77,
+      "NumberReplacer": 28,
+      "RemoveDecorator": 1,
+      "ReplaceAndWithOr": 23,
+      "ReplaceBinaryOperator": 539,
+      "ReplaceBreakWithContinue": 3,
+      "ReplaceComparisonOperator": 510,
+      "ReplaceContinueWithBreak": 12,
+      "ReplaceFalseWithTrue": 10,
+      "ReplaceOrWithAnd": 21,
+      "ReplaceTrueWithFalse": 10,
+      "ReplaceUnaryOperator": 16,
+      "ZeroIterationForLoop": 15
+     },
+     "pre": 1697,
+     "pytest_max_s": 144.75,
+     "pytest_median_s": 141.828,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_slot/finalizer/nodes.txt"
+     ],
+     "sessions": 59,
+     "within_budget": true,
+     "worst_session_s": 8280
+    },
+    "slots": {
+     "all_survived": true,
+     "est_item_s": 175.7,
+     "est_session_s": 4216.4,
+     "est_total_exec_s": 52705.5,
+     "max_s": 145.585,
+     "median_s": 143.883,
+     "nodes": 79,
+     "post": 300,
+     "post_by_family": {
+      "AddNot": 19,
+      "ExceptionReplacer": 9,
+      "NumberReplacer": 22,
+      "RemoveDecorator": 1,
+      "ReplaceAndWithOr": 3,
+      "ReplaceBinaryOperator": 165,
+      "ReplaceComparisonOperator": 59,
+      "ReplaceContinueWithBreak": 3,
+      "ReplaceFalseWithTrue": 5,
+      "ReplaceOrWithAnd": 2,
+      "ReplaceTrueWithFalse": 5,
+      "ReplaceUnaryOperator": 5,
+      "ZeroIterationForLoop": 2
+     },
+     "pre": 1697,
+     "pytest_max_s": 145.203,
+     "pytest_median_s": 143.516,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_slot/slots/nodes.txt"
+     ],
+     "sessions": 13,
+     "within_budget": true,
+     "worst_session_s": 8280
+    }
+   }
+  },
+  "s1_stage": {
+   "candidates": 774,
+   "duplicate_mutations_across_shards": 0,
+   "sessions": 33,
+   "shards": {
+    "_": {
+     "all_survived": true,
+     "est_item_s": 41.7,
+     "est_session_s": 1001.9,
+     "est_total_exec_s": 32310.6,
+     "max_s": 11.645,
+     "median_s": 11.595,
+     "nodes": 74,
+     "post": 774,
+     "post_by_family": {
+      "AddNot": 61,
+      "ExceptionReplacer": 40,
+      "NumberReplacer": 16,
+      "RemoveDecorator": 3,
+      "ReplaceAndWithOr": 17,
+      "ReplaceBinaryOperator": 396,
+      "ReplaceComparisonOperator": 203,
+      "ReplaceContinueWithBreak": 4,
+      "ReplaceFalseWithTrue": 2,
+      "ReplaceOrWithAnd": 16,
+      "ReplaceTrueWithFalse": 1,
+      "ReplaceUnaryOperator": 8,
+      "ZeroIterationForLoop": 7
+     },
+     "pre": 774,
+     "pytest_max_s": 11.235,
+     "pytest_median_s": 11.187,
+     "selector": [
+      "research/s1/s1_tests/test_s1_a3_stage.py"
+     ],
+     "sessions": 33,
+     "within_budget": true,
+     "worst_session_s": 8280
+    }
+   }
+  },
+  "s1_trial": {
+   "candidates": 1782,
+   "duplicate_mutations_across_shards": 0,
+   "sessions": 75,
+   "shards": {
+    "_": {
+     "all_survived": true,
+     "est_item_s": 77.7,
+     "est_session_s": 1865.1,
+     "est_total_exec_s": 138486.3,
+     "max_s": 47.614,
+     "median_s": 46.323,
+     "nodes": 123,
+     "post": 1782,
+     "post_by_family": {
+      "AddNot": 156,
+      "ExceptionReplacer": 57,
+      "NumberReplacer": 88,
+      "RemoveDecorator": 6,
+      "ReplaceAndWithOr": 32,
+      "ReplaceBinaryOperator": 704,
+      "ReplaceBreakWithContinue": 1,
+      "ReplaceComparisonOperator": 625,
+      "ReplaceContinueWithBreak": 2,
+      "ReplaceFalseWithTrue": 7,
+      "ReplaceOrWithAnd": 19,
+      "ReplaceTrueWithFalse": 6,
+      "ReplaceUnaryOperator": 65,
+      "ZeroIterationForLoop": 14
+     },
+     "pre": 1782,
+     "pytest_max_s": 47.172,
+     "pytest_median_s": 45.922,
+     "selector": [
+      "research/s1/s1_tests/test_s1_a3_trial.py",
+      "research/s1/s1_tests/test_s1_a3_gate.py"
+     ],
+     "sessions": 75,
+     "within_budget": true,
+     "worst_session_s": 8280
+    }
+   }
+  }
+ },
+ "over_budget": [],
+ "total_candidates": 6295,
+ "total_sessions": 268
+}

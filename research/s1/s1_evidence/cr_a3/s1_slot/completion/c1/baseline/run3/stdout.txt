@@ -1,0 +1,54 @@
+.................................................                        [100%]
+=================================== PASSES ====================================
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15c_work\baseline\s1_slot__completion\c1\run3\job\attempt-f3a5913854464dddb53b2dfbe908e6c1\junit.xml -
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_established_violation_is_external_first_with_subtype[binding]
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_established_violation_is_external_first_with_subtype[fence]
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[s-1us]
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[s]
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[E-1us]
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_clock_boundaries_before_capture[E+1us]
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_failed_detail_binds_the_claim_and_the_failure_report
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_lost_race_moves_only_own_uncommitted_files_to_late
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_restart_after_a_worker_crash_never_appends_qualified
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_post_stop_new_slot_intent_is_lost_race_with_no_capture
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_post_stop_repeat_slot_intent_is_invalid_repeat_attempt
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_new_slot_intent_after_a_terminal_row_is_invalid_repeat_attempt
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[no-intent]
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-op]
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-actor]
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_a_held_slot_lock_is_pending_with_no_row_and_no_work
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_slot_lock_access_denied_is_a_refusal_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_an_opening_slot_after_the_opening_is_decided_is_refused_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_an_opening_slot_needs_the_created_audit_stage
+PASSED research/s1/s1_tests/test_s1_a3_slots.py::test_an_in_flight_earlier_slot_defers_the_seal_even_past_its_d
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_carries_the_intent_op_and_the_finalizer_actor
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_decision_never_touches_the_work_lock
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_no_seal_after_stop_even_for_a_pre_stop_qualified
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_invalid_between_active_read_and_prepared
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_stage_and_stop_orders[publish-first]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_seal_stage_and_stop_orders[stop-first]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_deleted_created_seal_is_invalid_and_never_recreated[after-stop]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_deleted_created_seal_is_invalid_and_never_recreated[while-active]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_stale_finalizer_moves_none_of_the_winners_files_and_the_recheck_passes
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-clean]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[no-row-stray-capture]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-changed]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-unparseable]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-late-extra]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-changed]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[qualified-backup-deleted]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[failed-partial-capture]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_evidence_table[timeout-leftovers]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_late_files_are_never_selectable_for_a_seal
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_unexpected_error_appends_nothing
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_evidence_check_runs_after_the_plan_check
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_damaged_qualified_tree_behind_an_in_flight_slot_is_invalid_at_the_gate
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_post_stop_commands_invalidate_a_damaged_qualified_tree[final plan]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_opening_recheck_is_not_a_violation[legitimate-start]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_a_worker_starting_during_the_opening_recheck_is_not_a_violation[stray-claim-control]
+PASSED research/s1/s1_tests/test_s1_a3_finalizer.py::test_slot_rows_without_a_calendar_fail_closed
+49 passed in 84.41s (0:01:24)

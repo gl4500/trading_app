@@ -1,0 +1,357 @@
+{
+ "module_rel": "research/s1/s1_slot.py",
+ "rule": "keep a WorkItem iff its mutation line span overlaps a named scope's [start,end] (decorators..last body line, nested defs and methods included); others skipped-by-scope",
+ "schema": "a3-t15a-ranges/1",
+ "scopes": {
+  "QualifiedEvidence": {
+   "end": 582,
+   "kind": "class",
+   "qualname": "QualifiedEvidence",
+   "start": 548
+  },
+  "Worker": {
+   "end": 529,
+   "kind": "class",
+   "qualname": "Worker",
+   "start": 378
+  },
+  "_calendar": {
+   "end": 1278,
+   "kind": "function",
+   "qualname": "_calendar",
+   "start": 1257
+  },
+  "_classify": {
+   "end": 627,
+   "kind": "function",
+   "qualname": "_classify",
+   "start": 608
+  },
+  "_cleanup": {
+   "end": 843,
+   "kind": "function",
+   "qualname": "_cleanup",
+   "start": 830
+  },
+  "_close_on": {
+   "end": 715,
+   "kind": "function",
+   "qualname": "_close_on",
+   "start": 708
+  },
+  "_confirming_calendar": {
+   "end": 1299,
+   "kind": "function",
+   "qualname": "_confirming_calendar",
+   "start": 1281
+  },
+  "_earlier_qualified": {
+   "end": 283,
+   "kind": "function",
+   "qualname": "_earlier_qualified",
+   "start": 260
+  },
+  "_empty": {
+   "end": 736,
+   "kind": "function",
+   "qualname": "_empty",
+   "start": 735
+  },
+  "_file_subjects": {
+   "end": 1204,
+   "kind": "function",
+   "qualname": "_file_subjects",
+   "start": 1194
+  },
+  "_finalizer_append": {
+   "end": 849,
+   "kind": "function",
+   "qualname": "_finalizer_append",
+   "start": 846
+  },
+  "_identity_text": {
+   "end": 545,
+   "kind": "function",
+   "qualname": "_identity_text",
+   "start": 544
+  },
+  "_index": {
+   "end": 670,
+   "kind": "function",
+   "qualname": "_index",
+   "start": 664
+  },
+  "_member_fault": {
+   "end": 1033,
+   "kind": "function",
+   "qualname": "_member_fault",
+   "start": 1020
+  },
+  "_member_name": {
+   "end": 599,
+   "kind": "function",
+   "qualname": "_member_name",
+   "start": 593
+  },
+  "_member_sha": {
+   "end": 638,
+   "kind": "function",
+   "qualname": "_member_sha",
+   "start": 636
+  },
+  "_mine": {
+   "end": 701,
+   "kind": "function",
+   "qualname": "_mine",
+   "start": 697
+  },
+  "_opening_date": {
+   "end": 995,
+   "kind": "function",
+   "qualname": "_opening_date",
+   "start": 991
+  },
+  "_pass_of": {
+   "end": 674,
+   "kind": "function",
+   "qualname": "_pass_of",
+   "start": 673
+  },
+  "_path_key": {
+   "end": 1000,
+   "kind": "function",
+   "qualname": "_path_key",
+   "start": 998
+  },
+  "_present": {
+   "end": 1137,
+   "kind": "function",
+   "qualname": "_present",
+   "start": 1132
+  },
+  "_qualified_manifest": {
+   "end": 1017,
+   "kind": "function",
+   "qualname": "_qualified_manifest",
+   "start": 1003
+  },
+  "_read_member": {
+   "end": 633,
+   "kind": "function",
+   "qualname": "_read_member",
+   "start": 630
+  },
+  "_read_op": {
+   "end": 797,
+   "kind": "function",
+   "qualname": "_read_op",
+   "start": 792
+  },
+  "_read_rows": {
+   "end": 1324,
+   "kind": "function",
+   "qualname": "_read_rows",
+   "start": 1317
+  },
+  "_rel": {
+   "end": 87,
+   "kind": "function",
+   "qualname": "_rel",
+   "start": 86
+  },
+  "_resolution_evidence": {
+   "end": 1054,
+   "kind": "function",
+   "qualname": "_resolution_evidence",
+   "start": 1036
+  },
+  "_sched_on": {
+   "end": 732,
+   "kind": "function",
+   "qualname": "_sched_on",
+   "start": 718
+  },
+  "_schedule": {
+   "end": 743,
+   "kind": "function",
+   "qualname": "_schedule",
+   "start": 739
+  },
+  "_sim_of": {
+   "end": 705,
+   "kind": "function",
+   "qualname": "_sim_of",
+   "start": 704
+  },
+  "close_problems": {
+   "end": 1151,
+   "kind": "function",
+   "qualname": "close_problems",
+   "start": 1140
+  },
+  "confirmed_close_problems": {
+   "end": 1191,
+   "kind": "function",
+   "qualname": "confirmed_close_problems",
+   "start": 1154
+  },
+  "day_for": {
+   "end": 65,
+   "kind": "function",
+   "qualname": "day_for",
+   "start": 33
+  },
+  "determined": {
+   "end": 762,
+   "kind": "function",
+   "qualname": "determined",
+   "start": 759
+  },
+  "evidence_check": {
+   "end": 1403,
+   "kind": "function",
+   "qualname": "evidence_check",
+   "start": 1364
+  },
+  "evidence_problems": {
+   "end": 1254,
+   "kind": "function",
+   "qualname": "evidence_problems",
+   "start": 1207
+  },
+  "evidence_violation": {
+   "end": 1314,
+   "kind": "function",
+   "qualname": "evidence_violation",
+   "start": 1302
+  },
+  "failed_tree": {
+   "end": 135,
+   "kind": "function",
+   "qualname": "failed_tree",
+   "start": 132
+  },
+  "finalize_close": {
+   "end": 904,
+   "kind": "function",
+   "qualname": "finalize_close",
+   "start": 852
+  },
+  "first_qualified": {
+   "end": 756,
+   "kind": "function",
+   "qualname": "first_qualified",
+   "start": 746
+  },
+  "move_leftovers": {
+   "end": 827,
+   "kind": "function",
+   "qualname": "move_leftovers",
+   "start": 800
+  },
+  "names": {
+   "end": 83,
+   "kind": "function",
+   "qualname": "names",
+   "start": 77
+  },
+  "new_pass": {
+   "end": 694,
+   "kind": "function",
+   "qualname": "new_pass",
+   "start": 677
+  },
+  "opening_gate": {
+   "end": 375,
+   "kind": "function",
+   "qualname": "opening_gate",
+   "start": 364
+  },
+  "post_start_gate": {
+   "end": 311,
+   "kind": "function",
+   "qualname": "post_start_gate",
+   "start": 286
+  },
+  "qualified_tree": {
+   "end": 129,
+   "kind": "function",
+   "qualname": "qualified_tree",
+   "start": 126
+  },
+  "refuse_unreadable": {
+   "end": 1414,
+   "kind": "function",
+   "qualname": "refuse_unreadable",
+   "start": 1406
+  },
+  "required_seals": {
+   "end": 117,
+   "kind": "function",
+   "qualname": "required_seals",
+   "start": 95
+  },
+  "run_seal_stage": {
+   "end": 971,
+   "kind": "function",
+   "qualname": "run_seal_stage",
+   "start": 931
+  },
+  "seal_bytes": {
+   "end": 789,
+   "kind": "function",
+   "qualname": "seal_bytes",
+   "start": 765
+  },
+  "seal_check": {
+   "end": 928,
+   "kind": "function",
+   "qualname": "seal_check",
+   "start": 920
+  },
+  "seal_gate": {
+   "end": 917,
+   "kind": "function",
+   "qualname": "seal_gate",
+   "start": 911
+  },
+  "seal_stage_name": {
+   "end": 908,
+   "kind": "function",
+   "qualname": "seal_stage_name",
+   "start": 907
+  },
+  "slot_of": {
+   "end": 30,
+   "kind": "function",
+   "qualname": "slot_of",
+   "start": 29
+  },
+  "slot_problems": {
+   "end": 1121,
+   "kind": "function",
+   "qualname": "slot_problems",
+   "start": 1057
+  },
+  "slot_times": {
+   "end": 74,
+   "kind": "function",
+   "qualname": "slot_times",
+   "start": 68
+  },
+  "stop_fence": {
+   "end": 988,
+   "kind": "function",
+   "qualname": "stop_fence",
+   "start": 974
+  },
+  "tree_manifest": {
+   "end": 123,
+   "kind": "function",
+   "qualname": "tree_manifest",
+   "start": 120
+  }
+ },
+ "sha256": "b8cafebf98c5b1f212e862d539150209ce2fd0fdb25cee78a37bde763f901d7f",
+ "source": "C:/Users/gl450/trading_app-s1/research/s1/s1_slot.py"
+}

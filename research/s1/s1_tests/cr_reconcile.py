@@ -128,6 +128,51 @@ def label_for(raw: dict | None, side: dict | None, job: str) -> tuple[str, str]:
     return "error", f"unrecognised raw outcome {raw}"
 
 
+_CLEAN_PAIRS = {("killed", "killed"), ("survived", "survived")}
+
+
+def attempt_clean(a: dict) -> bool:
+    """15c-H fix round 1 (ruling 1, review C1/C2): an attempt COUNTS only if it is guard-clean - its batch did not
+    stop on it, real_exec's exec_status is "ok", the containment cleanup was verified, and the guard status is a
+    clean one matching the reconciled label (killed/killed or survived/survived)."""
+    return (not a.get("stopped") and a.get("exec_status") == "ok" and a.get("cleanup_verified") is True
+            and (a.get("label"), a.get("guard_status")) in _CLEAN_PAIRS)
+
+
+def merge_attempts(screen_label: str, attempts: list, required: list) -> dict:
+    """15c-H + fix round 1 (ruling 1): merge a screening SURVIVOR's completion attempts into one label. Pure.
+
+    ``attempts``: [{"shard", "label" (reconciled), "guard_status", "stopped", "stop_reason", "exec_status",
+    "cleanup_verified", ...}] in run order; ``required``: every completion shard name (non-empty).
+    * killed     iff >= 1 guard-clean kill (attempt_clean and label killed); earlier non-kill records are kept;
+    * unresolved iff no guard-clean kill and >= 1 attempt that is not guard-clean (stopped, exec/containment failure,
+                 timeout, guard error/skip/mismatch...) - every exact status is kept; it feeds 15d triage;
+    * deferred   iff every attempt so far is a guard-clean survivor but some required shard has none yet (pending);
+    * survived   iff EVERY required shard has a guard-clean survived attempt.
+    Never survived from a gap or an unclean attempt, never killed from an unclean kill."""
+    if screen_label != "survived":
+        raise ValueError(f"screening label {screen_label!r} is not a survivor; completion applies to survivors only")
+    if not required:
+        raise ValueError("no required completion shards: a merge needs the frozen shard set")
+    for a in attempts:
+        if a["shard"] not in required:
+            raise ValueError(f"attempt for unknown shard {a['shard']!r} (required {list(required)})")
+    kills = [a["shard"] for a in attempts if attempt_clean(a) and a["label"] == "killed"]
+    survived = [a["shard"] for a in attempts if attempt_clean(a) and a["label"] == "survived"]
+    nonkill = [{k: a.get(k) for k in ("shard", "label", "guard_status", "exec_status", "cleanup_verified", "stopped",
+                                      "stop_reason")}
+               for a in attempts if not attempt_clean(a)]
+    if kills:
+        return {"label": "killed", "resolution": "killed", "basis": {"killed_by": kills[0], "nonkill": nonkill}}
+    if nonkill:
+        return {"label": "unresolved", "resolution": "unresolved", "feeds": "15d triage",
+                "basis": {"nonkill": nonkill, "survived": survived}}
+    missing = [s for s in required if s not in survived]
+    if missing:
+        return {"label": "deferred", "resolution": "pending", "basis": {"missing": missing, "survived": survived}}
+    return {"label": "survived", "resolution": "survived", "basis": {"all_required_survived": list(required)}}
+
+
 def reconcile(session_db: Path, jobs_root: Path, out: Path) -> dict:
     """Write ``out`` (classification.json) with raw and reconciled labels side by side; return the same dict."""
     items = []

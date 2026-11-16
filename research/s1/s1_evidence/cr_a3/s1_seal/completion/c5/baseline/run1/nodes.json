@@ -1,0 +1,171 @@
+{
+ "attempt": "7b699732d2fb4e2a9e94247e21545788",
+ "call_exc": {},
+ "collect_errors": [],
+ "exitstatus": 0,
+ "imports": {
+  "s1_seal": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_seal__completion\\c5\\copy1\\research\\s1\\s1_seal.py"
+ },
+ "internal_error": false,
+ "phases": {
+  "research/s1/s1_tests/test_s1_a3_score.py::test_bound_snapshot_is_confirmed_on_a_second_read_before_any_invalid[unreadable]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[snapshot-report]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_only_in_stopped": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[differs-no-commitment]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[unreadable]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_identity_twice_is_invalid[missing-or-unreadable]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[KeyError]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_score_computation_error_is_invalid_score_aborted_with_no_numeric_score": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_score_positive_path_isolated": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_score.py::test_unconfirmed_integrity_verdict_refuses_with_no_invalid": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_final_plan_envelope_and_member": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[final]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[stop_attest]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-after-timeout]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[deleted]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_lock_is_taken_before_the_journal_read": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_operation_runs_pending_seal_stages_before_trial_stop": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[lots-later-not-chosen@2026-10-27T11:59:59]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[timeout-last-sealed@2027-04-26T12:00:00]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_record_is_a_pure_function_of_committed_history": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  }
+ },
+ "selected": [
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_record_is_a_pure_function_of_committed_history",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[deleted]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_lock_is_taken_before_the_journal_read",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_final_plan_envelope_and_member",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[stop_attest]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_finalization_stages_are_refused_while_active[final]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_operation_runs_pending_seal_stages_before_trial_stop",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-after-timeout]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[timeout-last-sealed@2027-04-26T12:00:00]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[lots-later-not-chosen@2026-10-27T11:59:59]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_score_positive_path_isolated",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_score_computation_error_is_invalid_score_aborted_with_no_numeric_score",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[snapshot-report]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_only_in_stopped",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_unconfirmed_integrity_verdict_refuses_with_no_invalid",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[KeyError]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_bound_snapshot_is_confirmed_on_a_second_read_before_any_invalid[unreadable]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_identity_twice_is_invalid[missing-or-unreadable]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[differs-no-commitment]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[unreadable]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row"
+ ],
+ "xfail": []
+}

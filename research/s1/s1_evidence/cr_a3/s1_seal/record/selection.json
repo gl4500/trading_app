@@ -1,0 +1,353 @@
+{
+ "candidate_time_s": 661.99,
+ "candidates": 119,
+ "cap_s": 150.0,
+ "explore_junit_sha256": "87dc541f91ef1af40bfa4167535d9a3e85ff0d1c1c454a96e4a30fb83b300e72",
+ "method": "bounded selection (forced cover, diversity, round-robin) under cap",
+ "module": "s1_seal",
+ "omitted": [
+  {
+   "explore_s": 7.01,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_aborted_record_write_error_still_records_the_anomaly_reason"
+  },
+  {
+   "explore_s": 10.3,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_authorized_post_stop_prices_are_used_for_valuation"
+  },
+  {
+   "explore_s": 6.64,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_bound_snapshot_is_confirmed_on_a_second_read_before_any_invalid[unreadable]"
+  },
+  {
+   "explore_s": 7.05,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_damaged_capture_backup_is_invalid_before_scoring"
+  },
+  {
+   "explore_s": 7.12,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[receipt]"
+  },
+  {
+   "explore_s": 8.29,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_damaged_receipt_or_final_snapshot_is_invalid_before_scoring[snapshot-report]"
+  },
+  {
+   "explore_s": 8.03,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_missing_or_changed_is_invalid_not_a_fallback[changed]"
+  },
+  {
+   "explore_s": 7.75,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_final_snapshot_missing_or_changed_is_invalid_not_a_fallback[missing]"
+  },
+  {
+   "explore_s": 7.23,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix2_confirming_calendar_read_failure_refuses_with_no_row"
+  },
+  {
+   "explore_s": 7.15,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[differs-no-commitment]"
+  },
+  {
+   "explore_s": 6.98,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[empty-subject]"
+  },
+  {
+   "explore_s": 6.83,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-no-category]"
+  },
+  {
+   "explore_s": 7.03,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-no-member]"
+  },
+  {
+   "explore_s": 6.93,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[missing-unknown-category]"
+  },
+  {
+   "explore_s": 6.97,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[no-subject]"
+  },
+  {
+   "explore_s": 7.29,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[unknown-kind]"
+  },
+  {
+   "explore_s": 7.03,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_a_missing_or_invalid_identity_never_confirms[untagged]"
+  },
+  {
+   "explore_s": 7.2,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[differs]"
+  },
+  {
+   "explore_s": 6.87,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_calendar_is_fresh[unreadable]"
+  },
+  {
+   "explore_s": 7.33,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_checks_the_bundle"
+  },
+  {
+   "explore_s": 6.84,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_verifies_the_pin_again"
+  },
+  {
+   "explore_s": 6.64,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_different_slots_do_not_confirm_each_other"
+  },
+  {
+   "explore_s": 7.14,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed]"
+  },
+  {
+   "explore_s": 7.33,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]"
+  },
+  {
+   "explore_s": 7.23,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs]"
+  },
+  {
+   "explore_s": 7.05,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member]"
+  },
+  {
+   "explore_s": 7.13,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs]"
+  },
+  {
+   "explore_s": 7.33,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed]"
+  },
+  {
+   "explore_s": 6.98,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_identity_twice_is_invalid[differs-from-detail]"
+  },
+  {
+   "explore_s": 7.51,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_identity_twice_is_invalid[missing-or-unreadable]"
+  },
+  {
+   "explore_s": 7.08,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[category]"
+  },
+  {
+   "explore_s": 7.21,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[commitment]"
+  },
+  {
+   "explore_s": 7.14,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_evidence_does_not_confirm[member]"
+  },
+  {
+   "explore_s": 7.2,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[differs-then-missing]"
+  },
+  {
+   "explore_s": 7.34,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]"
+  },
+  {
+   "explore_s": 7.46,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_journal_outage_in_the_score_refuses_with_no_row_never_score_aborted"
+  },
+  {
+   "explore_s": 7.32,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_local_oserror_in_the_score_refuses_with_no_row_never_score_aborted"
+  },
+  {
+   "explore_s": 7.12,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_lot_count_stop_reaches_a_numeric_score_with_no_invalid_row"
+  },
+  {
+   "explore_s": 9.16,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_non_integrity_dispositions_stay_valid[INCONCLUSIVE]"
+  },
+  {
+   "explore_s": 8.88,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_non_integrity_dispositions_stay_valid[INSUFFICIENT]"
+  },
+  {
+   "explore_s": 7.35,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_is_invalid_when_confirmed"
+  },
+  {
+   "explore_s": 7.13,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_reread_failure_refuses_with_no_row[journal-reread]"
+  },
+  {
+   "explore_s": 6.88,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_reread_failure_refuses_with_no_row[oserror-recompute]"
+  },
+  {
+   "explore_s": 7.06,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_qualified_evidence_unconfirmed_refuses_with_no_row"
+  },
+  {
+   "explore_s": 6.91,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[KeyError]"
+  },
+  {
+   "explore_s": 6.89,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[PermissionError]"
+  },
+  {
+   "explore_s": 6.9,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_pre_intent_sampled_history_error_is_a_refusal_not_a_traceback[ValueError]"
+  },
+  {
+   "explore_s": 6.68,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_binding_no_snapshot_with_a_report_on_disk_is_a_refusal"
+  },
+  {
+   "explore_s": 5.56,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[head-forked]"
+  },
+  {
+   "explore_s": 7.91,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[ok]"
+  },
+  {
+   "explore_s": 5.54,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[wrong-final]"
+  },
+  {
+   "explore_s": 5.55,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_score_ack_fields_are_verified[wrong-stop-line]"
+  },
+  {
+   "explore_s": 7.59,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_score_envelope_inputs_and_members"
+  },
+  {
+   "explore_s": 7.35,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_score_integrity_violation_persists_trial_invalid"
+  },
+  {
+   "explore_s": 9.3,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_score_member_changed_is_invalid"
+  },
+  {
+   "explore_s": 6.99,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_score_positive_path_isolated"
+  },
+  {
+   "explore_s": 6.68,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_second_computation_error_after_an_integrity_verdict_keeps_the_first_reasons"
+  },
+  {
+   "explore_s": 6.91,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_six_month_stop_reaches_a_numeric_score_with_no_invalid_row"
+  },
+  {
+   "explore_s": 8.27,
+   "node": "research/s1/s1_tests/test_s1_a3_score.py::test_unconfirmed_integrity_verdict_refuses_with_no_invalid"
+  },
+  {
+   "explore_s": 3.64,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_a_stop_json_read_error_is_confirmed_and_never_invalidates[transient]"
+  },
+  {
+   "explore_s": 2.92,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_preflight_clock_mutant_is_killed[pre<W<=txn]"
+  },
+  {
+   "explore_s": 3.87,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[deadline-instant-eligibility]"
+  },
+  {
+   "explore_s": 2.95,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[delayed-qualified-clock]"
+  },
+  {
+   "explore_s": 2.81,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]"
+  },
+  {
+   "explore_s": 3.65,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-later-not-chosen]"
+  },
+  {
+   "explore_s": 3.44,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal-ineligible-seal]"
+  },
+  {
+   "explore_s": 3.53,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal]"
+  },
+  {
+   "explore_s": 2.84,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-after-timeout]"
+  },
+  {
+   "explore_s": 2.64,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-excluded]"
+  },
+  {
+   "explore_s": 4.7,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[timeout-last-sealed]"
+  },
+  {
+   "explore_s": 2.81,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-blocks]"
+  },
+  {
+   "explore_s": 3.01,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-resolved-by-missed]"
+  },
+  {
+   "explore_s": 4.03,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[deleted]"
+  },
+  {
+   "explore_s": 4.01,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_json_damaged_after_a_finalization_intent_is_invalid[unparseable]"
+  },
+  {
+   "explore_s": 3.19,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_follows_the_in_transaction_clock[txn<W<=pre]"
+  },
+  {
+   "explore_s": 2.51,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[early-w-failed@2027-04-26T12:00:00]"
+  },
+  {
+   "explore_s": 3.84,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[lots-later-not-chosen@2026-10-27T11:59:59]"
+  },
+  {
+   "explore_s": 3.59,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[lots-later-not-chosen@2026-10-27T12:00:00]"
+  },
+  {
+   "explore_s": 4.6,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[timeout-last-sealed@2027-04-26T11:59:59]"
+  },
+  {
+   "explore_s": 4.65,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_readiness_is_the_transaction_clock[timeout-last-sealed@2027-04-26T12:00:00]"
+  },
+  {
+   "explore_s": 4.29,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_the_finalizer_command_decides_on_the_append_clock_not_its_start_instant[pre<W<=txn]"
+  },
+  {
+   "explore_s": 7.15,
+   "node": "research/s1/s1_tests/test_s1_a3_stop.py::test_the_score_threads_its_mailbox_into_the_stop_read"
+  }
+ ],
+ "prefer": [],
+ "reach_sha256": "f89c20cf20cb13445e7628f4a80d0b16a1620165859aca129cc5ed92ce750e79",
+ "scopes": [
+  "stop_record",
+  "_stop_record",
+  "_count_sold",
+  "_by_subject",
+  "_close_state",
+  "_first"
+ ],
+ "scopes_uncovered_by_selection": [],
+ "scopes_without_reaching_test": [],
+ "selected": 37,
+ "selected_time_s": 149.76,
+ "shard": "record"
+}

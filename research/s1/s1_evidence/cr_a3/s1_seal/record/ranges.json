@@ -1,0 +1,177 @@
+{
+ "delegation_edges": [
+  {
+   "callee": "_stop_record",
+   "caller": "stop_record",
+   "lines": [
+    641
+   ]
+  },
+  {
+   "callee": "_stop_record",
+   "caller": "_stop_ready",
+   "lines": [
+    715
+   ]
+  },
+  {
+   "callee": "_by_subject",
+   "caller": "_stop_record",
+   "lines": [
+    654
+   ]
+  },
+  {
+   "callee": "_by_subject",
+   "caller": "_sampled_seals",
+   "lines": [
+    611
+   ]
+  },
+  {
+   "callee": "_by_subject",
+   "caller": "_decide_locked",
+   "lines": [
+    828
+   ]
+  },
+  {
+   "callee": "_close_state",
+   "caller": "_stop_record",
+   "lines": [
+    660
+   ]
+  },
+  {
+   "callee": "_close_state",
+   "caller": "_sampled_seals",
+   "lines": [
+    614
+   ]
+  },
+  {
+   "callee": "_close_state",
+   "caller": "_decide_locked",
+   "lines": [
+    831
+   ]
+  },
+  {
+   "callee": "_count_sold",
+   "caller": "_stop_record",
+   "lines": [
+    670,
+    696
+   ]
+  },
+  {
+   "callee": "_first",
+   "caller": "_stop_record",
+   "lines": [
+    677
+   ]
+  },
+  {
+   "callee": "_first",
+   "caller": "_close_state",
+   "lines": [
+    572,
+    574,
+    585,
+    586
+   ]
+  }
+ ],
+ "expanded": [
+  "_stop_record",
+  "_sampled_seals",
+  "_decide_locked",
+  "_read_stop_json",
+  "_by_subject",
+  "_close_state",
+  "_count_sold",
+  "_first",
+  "_stop_context",
+  "stop_ready",
+  "_stop_ready"
+ ],
+ "expansion_rule": "expand: module-level function g directly called (ast.Call with func=ast.Name(g)) from an in-scope body (nested defs/methods included) is added iff ALL module-level scopes referencing g (call or Name load; module-level statements count as '<module>') are in scope; iterate to a fixed point; never cross modules; g referenced from any out-of-scope scope -> controller decision, not added",
+ "module_rel": "research/s1/s1_seal.py",
+ "named": [
+  "stop_record",
+  "decide_stop",
+  "stop_check",
+  "sampled_seals",
+  "sampled_history"
+ ],
+ "public_names_added_by_walk": [
+  "stop_ready"
+ ],
+ "row_ranges": {
+  "file": "s1_seal_ranges.json",
+  "sha256": "345be120e66a785bb3667a572ba1c0c3b74db3ce764d26f2dd88e08741b88c55"
+ },
+ "rule": "keep a WorkItem iff its mutation line span overlaps a named scope's [start,end] (decorators..last body line, nested defs and methods included); others skipped-by-scope",
+ "ruled_delegations": [
+  {
+   "also_referenced_out_of_scope_by": [
+    "_nvs"
+   ],
+   "basis": "controller ruling 2026-11-15 (known delegation, binding)",
+   "callee": "_stop_record"
+  },
+  {
+   "also_referenced_out_of_scope_by": [
+    "_nvs"
+   ],
+   "basis": "controller ruling 2026-11-15 (known delegation, binding)",
+   "callee": "_sampled_seals"
+  },
+  {
+   "also_referenced_out_of_scope_by": [],
+   "basis": "controller ruling 2026-11-15 (known delegation, binding)",
+   "callee": "_decide_locked"
+  }
+ ],
+ "schema": "a3-t15a-ranges/1",
+ "scopes": {
+  "_by_subject": {
+   "end": 552,
+   "kind": "function",
+   "qualname": "_by_subject",
+   "start": 548
+  },
+  "_close_state": {
+   "end": 587,
+   "kind": "function",
+   "qualname": "_close_state",
+   "start": 559
+  },
+  "_count_sold": {
+   "end": 391,
+   "kind": "function",
+   "qualname": "_count_sold",
+   "start": 385
+  },
+  "_first": {
+   "end": 556,
+   "kind": "function",
+   "qualname": "_first",
+   "start": 555
+  },
+  "_stop_record": {
+   "end": 699,
+   "kind": "function",
+   "qualname": "_stop_record",
+   "start": 644
+  },
+  "stop_record": {
+   "end": 641,
+   "kind": "function",
+   "qualname": "stop_record",
+   "start": 630
+  }
+ },
+ "sha256": "af3e13af0ba38adc52bc2808c04349a7c4b3c053bd80708866a61f7f0070284f",
+ "source": "C:/Users/gl450/trading_app-s1/research/s1/s1_seal.py"
+}

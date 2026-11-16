@@ -1,0 +1,4 @@
+{"check": {"scopes": ["stop_check", "_read_stop_json"], "prefer": ["test_s1_a3_stop"]},
+ "decide": {"scopes": ["decide_stop", "_decide_locked", "_stop_context", "stop_ready", "_stop_ready"], "prefer": ["test_s1_a3_stop"]},
+ "record": {"scopes": ["stop_record", "_stop_record", "_count_sold", "_by_subject", "_close_state", "_first"], "prefer": []},
+ "sampled": {"scopes": ["sampled_seals", "_sampled_seals", "sampled_history"], "prefer": ["test_s1_a3_score"]}}

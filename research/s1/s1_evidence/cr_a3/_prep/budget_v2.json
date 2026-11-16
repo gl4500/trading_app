@@ -1,0 +1,628 @@
+{
+ "calibration_items": 24,
+ "calibration_sessions": 12,
+ "cr_overhead_s_assumed": 30.0,
+ "est_screening_exec_h": 196.19,
+ "fence_s": 405.0,
+ "io_max_s_measured": 0.5,
+ "modules": {
+  "s1_collect": {
+   "calibration_sessions": 2,
+   "candidates": 852,
+   "completion": {
+    "completion/c1": {
+     "all_survived": true,
+     "est_item_s": 162.0,
+     "max_s": 131.5,
+     "median_s": 131.498,
+     "nodes": 51,
+     "pytest_max_s": 131.11,
+     "pytest_median_s": 131.078,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_collect/completion/c1/nodes.txt"
+     ],
+     "within_budget": true
+    },
+    "completion/c2": {
+     "all_survived": true,
+     "est_item_s": 163.7,
+     "max_s": 133.159,
+     "median_s": 132.473,
+     "nodes": 38,
+     "pytest_max_s": 132.781,
+     "pytest_median_s": 132.079,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_collect/completion/c2/nodes.txt"
+     ],
+     "within_budget": true
+    }
+   },
+   "completion_per_survivor_baseline_maxima_scenario_s": 325.7,
+   "completion_pool": {
+    "count": 89,
+    "nodes_sha256": "4ff0ea443476db8b0eb5f64a999c6580c0eafdb7735e3d021f53f024511f46e0",
+    "union_equals_pool": true
+   },
+   "duplicates_across_shards": 0,
+   "est_exec_s": 139604.4,
+   "partition_equal_row_scope": true,
+   "row_scope_candidates": 852,
+   "scenario_sessions": 15,
+   "screening": {
+    "audit": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 65122.4,
+     "est_item_s": 160.4,
+     "max_s": 129.909,
+     "median_s": 127.844,
+     "nodes": 65,
+     "post": 406,
+     "post_by_family": {
+      "AddNot": 29,
+      "ExceptionReplacer": 4,
+      "NumberReplacer": 54,
+      "ReplaceAndWithOr": 5,
+      "ReplaceBinaryOperator": 132,
+      "ReplaceComparisonOperator": 165,
+      "ReplaceFalseWithTrue": 3,
+      "ReplaceOrWithAnd": 1,
+      "ReplaceTrueWithFalse": 2,
+      "ReplaceUnaryOperator": 8,
+      "ZeroIterationForLoop": 3
+     },
+     "pre": 1160,
+     "pytest_max_s": 129.563,
+     "pytest_median_s": 127.406,
+     "scenario_derived_cap": 64,
+     "scenario_sessions": 7,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_collect/audit/nodes.txt"
+     ],
+     "sessions_at_24": 17,
+     "within_budget": true
+    },
+    "final": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 74482.0,
+     "est_item_s": 167.0,
+     "max_s": 136.513,
+     "median_s": 133.474,
+     "nodes": 72,
+     "post": 446,
+     "post_by_family": {
+      "AddNot": 20,
+      "ExceptionReplacer": 8,
+      "NumberReplacer": 22,
+      "ReplaceAndWithOr": 8,
+      "ReplaceBinaryOperator": 220,
+      "ReplaceComparisonOperator": 120,
+      "ReplaceContinueWithBreak": 6,
+      "ReplaceFalseWithTrue": 2,
+      "ReplaceOrWithAnd": 13,
+      "ReplaceTrueWithFalse": 5,
+      "ReplaceUnaryOperator": 12,
+      "ZeroIterationForLoop": 10
+     },
+     "pre": 1160,
+     "pytest_max_s": 136.141,
+     "pytest_median_s": 133.063,
+     "scenario_derived_cap": 62,
+     "scenario_sessions": 8,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_collect/final/nodes.txt"
+     ],
+     "sessions_at_24": 19,
+     "within_budget": true
+    }
+   },
+   "sessions_at_24": 36
+  },
+  "s1_journal": {
+   "calibration_sessions": 1,
+   "candidates": 720,
+   "completion": {},
+   "duplicates_across_shards": 0,
+   "est_exec_s": 25344.0,
+   "scenario_sessions": 4,
+   "screening": {
+    "_": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 25344.0,
+     "est_item_s": 35.2,
+     "max_s": 4.695,
+     "median_s": 4.553,
+     "nodes": 163,
+     "post": 720,
+     "post_by_family": {
+      "AddNot": 90,
+      "ExceptionReplacer": 8,
+      "NumberReplacer": 16,
+      "RemoveDecorator": 7,
+      "ReplaceAndWithOr": 24,
+      "ReplaceBinaryOperator": 110,
+      "ReplaceComparisonOperator": 417,
+      "ReplaceFalseWithTrue": 8,
+      "ReplaceOrWithAnd": 18,
+      "ReplaceTrueWithFalse": 6,
+      "ReplaceUnaryOperator": 14,
+      "ZeroIterationForLoop": 2
+     },
+     "pre": 720,
+     "pytest_max_s": 4.328,
+     "pytest_median_s": 4.172,
+     "scenario_derived_cap": 295,
+     "scenario_sessions": 4,
+     "selector": [
+      "research/s1/s1_tests/test_s1_a3_journal.py",
+      "research/s1/s1_tests/test_s1_a3_precedence.py"
+     ],
+     "sessions_at_24": 30,
+     "within_budget": true
+    }
+   },
+   "sessions_at_24": 30
+  },
+  "s1_locks": {
+   "calibration_sessions": 1,
+   "candidates": 159,
+   "completion": {},
+   "duplicates_across_shards": 0,
+   "est_exec_s": 5262.9,
+   "scenario_sessions": 2,
+   "screening": {
+    "_": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 5262.9,
+     "est_item_s": 33.1,
+     "max_s": 2.566,
+     "median_s": 2.484,
+     "nodes": 47,
+     "post": 159,
+     "post_by_family": {
+      "AddNot": 15,
+      "ExceptionReplacer": 6,
+      "NumberReplacer": 26,
+      "ReplaceBinaryOperator": 66,
+      "ReplaceComparisonOperator": 27,
+      "ReplaceFalseWithTrue": 4,
+      "ReplaceOrWithAnd": 2,
+      "ReplaceTrueWithFalse": 5,
+      "ReplaceUnaryOperator": 8
+     },
+     "pre": 159,
+     "pytest_max_s": 2.11,
+     "pytest_median_s": 2.094,
+     "scenario_derived_cap": 314,
+     "scenario_sessions": 2,
+     "selector": [
+      "research/s1/s1_tests/test_s1_a3_locks.py"
+     ],
+     "sessions_at_24": 7,
+     "within_budget": true
+    }
+   },
+   "sessions_at_24": 7
+  },
+  "s1_seal": {
+   "calibration_sessions": 4,
+   "candidates": 334,
+   "completion": {
+    "completion/c1": {
+     "all_survived": true,
+     "est_item_s": 157.9,
+     "max_s": 127.428,
+     "median_s": 127.38,
+     "nodes": 28,
+     "pytest_max_s": 127.031,
+     "pytest_median_s": 126.953,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/completion/c1/nodes.txt"
+     ],
+     "within_budget": true
+    },
+    "completion/c2": {
+     "all_survived": true,
+     "est_item_s": 158.4,
+     "max_s": 127.872,
+     "median_s": 126.36,
+     "nodes": 26,
+     "pytest_max_s": 127.5,
+     "pytest_median_s": 125.968,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/completion/c2/nodes.txt"
+     ],
+     "within_budget": true
+    },
+    "completion/c3": {
+     "all_survived": true,
+     "est_item_s": 167.9,
+     "max_s": 137.352,
+     "median_s": 133.188,
+     "nodes": 26,
+     "pytest_max_s": 136.969,
+     "pytest_median_s": 132.843,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/completion/c3/nodes.txt"
+     ],
+     "within_budget": true
+    },
+    "completion/c4": {
+     "all_survived": true,
+     "est_item_s": 161.2,
+     "max_s": 130.716,
+     "median_s": 130.716,
+     "nodes": 26,
+     "pytest_max_s": 130.359,
+     "pytest_median_s": 130.328,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/completion/c4/nodes.txt"
+     ],
+     "within_budget": true
+    },
+    "completion/c5": {
+     "all_survived": true,
+     "est_item_s": 176.7,
+     "max_s": 146.215,
+     "median_s": 128.601,
+     "nodes": 26,
+     "pytest_max_s": 145.843,
+     "pytest_median_s": 128.218,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/completion/c5/nodes.txt"
+     ],
+     "within_budget": true
+    }
+   },
+   "completion_per_survivor_baseline_maxima_scenario_s": 822.1,
+   "completion_pool": {
+    "count": 132,
+    "nodes_sha256": "31d810aba3fb95eb879ae5f95019b54ea511506762deadadd7b906c50439374f",
+    "union_equals_pool": true
+   },
+   "duplicates_across_shards": 0,
+   "est_exec_s": 66014.2,
+   "partition_equal_row_scope": true,
+   "row_scope_candidates": 334,
+   "scenario_sessions": 11,
+   "screening": {
+    "check": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 15500.1,
+     "est_item_s": 201.3,
+     "max_s": 170.804,
+     "median_s": 165.862,
+     "nodes": 40,
+     "post": 77,
+     "post_by_family": {
+      "AddNot": 8,
+      "ExceptionReplacer": 2,
+      "ReplaceAndWithOr": 3,
+      "ReplaceBinaryOperator": 11,
+      "ReplaceComparisonOperator": 51,
+      "ReplaceUnaryOperator": 2
+     },
+     "pre": 1634,
+     "pytest_max_s": 170.422,
+     "pytest_median_s": 165.39,
+     "scenario_derived_cap": 51,
+     "scenario_sessions": 3,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/check/nodes.txt"
+     ],
+     "sessions_at_24": 4,
+     "within_budget": true
+    },
+    "decide": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 19745.5,
+     "est_item_s": 195.5,
+     "max_s": 164.958,
+     "median_s": 164.564,
+     "nodes": 35,
+     "post": 101,
+     "post_by_family": {
+      "AddNot": 13,
+      "ExceptionReplacer": 12,
+      "NumberReplacer": 4,
+      "ReplaceAndWithOr": 3,
+      "ReplaceBinaryOperator": 11,
+      "ReplaceComparisonOperator": 51,
+      "ReplaceOrWithAnd": 1,
+      "ReplaceUnaryOperator": 4,
+      "ZeroIterationForLoop": 2
+     },
+     "pre": 1634,
+     "pytest_max_s": 164.578,
+     "pytest_median_s": 164.204,
+     "scenario_derived_cap": 53,
+     "scenario_sessions": 3,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/decide/nodes.txt"
+     ],
+     "sessions_at_24": 5,
+     "within_budget": true
+    },
+    "record": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 23187.6,
+     "est_item_s": 203.4,
+     "max_s": 172.894,
+     "median_s": 171.341,
+     "nodes": 37,
+     "post": 114,
+     "post_by_family": {
+      "AddNot": 15,
+      "NumberReplacer": 12,
+      "ReplaceBinaryOperator": 11,
+      "ReplaceBreakWithContinue": 1,
+      "ReplaceComparisonOperator": 54,
+      "ReplaceContinueWithBreak": 2,
+      "ReplaceFalseWithTrue": 1,
+      "ReplaceTrueWithFalse": 1,
+      "ReplaceUnaryOperator": 14,
+      "ZeroIterationForLoop": 3
+     },
+     "pre": 1634,
+     "pytest_max_s": 172.469,
+     "pytest_median_s": 170.953,
+     "scenario_derived_cap": 51,
+     "scenario_sessions": 3,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/record/nodes.txt"
+     ],
+     "sessions_at_24": 5,
+     "within_budget": true
+    },
+    "sampled": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 7581.0,
+     "est_item_s": 180.5,
+     "max_s": 149.971,
+     "median_s": 146.553,
+     "nodes": 20,
+     "post": 42,
+     "post_by_family": {
+      "AddNot": 4,
+      "ReplaceBinaryOperator": 11,
+      "ReplaceComparisonOperator": 25,
+      "ReplaceOrWithAnd": 1,
+      "ZeroIterationForLoop": 1
+     },
+     "pre": 1634,
+     "pytest_max_s": 149.593,
+     "pytest_median_s": 146.172,
+     "scenario_derived_cap": 57,
+     "scenario_sessions": 2,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_seal/sampled/nodes.txt"
+     ],
+     "sessions_at_24": 2,
+     "within_budget": true
+    }
+   },
+   "sessions_at_24": 16
+  },
+  "s1_slot": {
+   "calibration_sessions": 2,
+   "candidates": 1697,
+   "completion": {
+    "completion/c1": {
+     "all_survived": true,
+     "est_item_s": 123.2,
+     "max_s": 92.665,
+     "median_s": 85.965,
+     "nodes": 49,
+     "pytest_max_s": 92.25,
+     "pytest_median_s": 85.609,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_slot/completion/c1/nodes.txt"
+     ],
+     "within_budget": true
+    },
+    "completion/c2": {
+     "all_survived": true,
+     "est_item_s": 117.8,
+     "max_s": 87.32,
+     "median_s": 86.63,
+     "nodes": 45,
+     "pytest_max_s": 86.906,
+     "pytest_median_s": 86.25,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_slot/completion/c2/nodes.txt"
+     ],
+     "within_budget": true
+    }
+   },
+   "completion_per_survivor_baseline_maxima_scenario_s": 241.0,
+   "completion_pool": {
+    "count": 94,
+    "nodes_sha256": "63a261af6dd124af1787cb60a36f5c6b3cd6fcfbe0fd26c8ca3f5562437eaf6e",
+    "union_equals_pool": true
+   },
+   "duplicates_across_shards": 0,
+   "est_exec_s": 298282.9,
+   "scenario_sessions": 31,
+   "screening": {
+    "finalizer": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 245452.9,
+     "est_item_s": 175.7,
+     "max_s": 145.168,
+     "median_s": 142.185,
+     "nodes": 78,
+     "post": 1397,
+     "post_by_family": {
+      "AddNot": 132,
+      "ExceptionReplacer": 77,
+      "NumberReplacer": 28,
+      "RemoveDecorator": 1,
+      "ReplaceAndWithOr": 23,
+      "ReplaceBinaryOperator": 539,
+      "ReplaceBreakWithContinue": 3,
+      "ReplaceComparisonOperator": 510,
+      "ReplaceContinueWithBreak": 12,
+      "ReplaceFalseWithTrue": 10,
+      "ReplaceOrWithAnd": 21,
+      "ReplaceTrueWithFalse": 10,
+      "ReplaceUnaryOperator": 16,
+      "ZeroIterationForLoop": 15
+     },
+     "pre": 1697,
+     "pytest_max_s": 144.75,
+     "pytest_median_s": 141.828,
+     "scenario_derived_cap": 59,
+     "scenario_sessions": 25,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_slot/finalizer/nodes.txt"
+     ],
+     "sessions_at_24": 59,
+     "within_budget": true
+    },
+    "slots": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 52830.0,
+     "est_item_s": 176.1,
+     "max_s": 145.585,
+     "median_s": 143.883,
+     "nodes": 79,
+     "post": 300,
+     "post_by_family": {
+      "AddNot": 19,
+      "ExceptionReplacer": 9,
+      "NumberReplacer": 22,
+      "RemoveDecorator": 1,
+      "ReplaceAndWithOr": 3,
+      "ReplaceBinaryOperator": 165,
+      "ReplaceComparisonOperator": 59,
+      "ReplaceContinueWithBreak": 3,
+      "ReplaceFalseWithTrue": 5,
+      "ReplaceOrWithAnd": 2,
+      "ReplaceTrueWithFalse": 5,
+      "ReplaceUnaryOperator": 5,
+      "ZeroIterationForLoop": 2
+     },
+     "pre": 1697,
+     "pytest_max_s": 145.203,
+     "pytest_median_s": 143.516,
+     "scenario_derived_cap": 59,
+     "scenario_sessions": 6,
+     "selector": [
+      "@research/s1/s1_evidence/cr_a3/s1_slot/slots/nodes.txt"
+     ],
+     "sessions_at_24": 13,
+     "within_budget": true
+    }
+   },
+   "sessions_at_24": 72
+  },
+  "s1_stage": {
+   "calibration_sessions": 1,
+   "candidates": 774,
+   "completion": {},
+   "duplicates_across_shards": 0,
+   "est_exec_s": 32585.4,
+   "scenario_sessions": 5,
+   "screening": {
+    "_": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 32585.4,
+     "est_item_s": 42.1,
+     "max_s": 11.645,
+     "median_s": 11.595,
+     "nodes": 74,
+     "post": 774,
+     "post_by_family": {
+      "AddNot": 61,
+      "ExceptionReplacer": 40,
+      "NumberReplacer": 16,
+      "RemoveDecorator": 3,
+      "ReplaceAndWithOr": 17,
+      "ReplaceBinaryOperator": 396,
+      "ReplaceComparisonOperator": 203,
+      "ReplaceContinueWithBreak": 4,
+      "ReplaceFalseWithTrue": 2,
+      "ReplaceOrWithAnd": 16,
+      "ReplaceTrueWithFalse": 1,
+      "ReplaceUnaryOperator": 8,
+      "ZeroIterationForLoop": 7
+     },
+     "pre": 774,
+     "pytest_max_s": 11.235,
+     "pytest_median_s": 11.187,
+     "scenario_derived_cap": 246,
+     "scenario_sessions": 5,
+     "selector": [
+      "research/s1/s1_tests/test_s1_a3_stage.py"
+     ],
+     "sessions_at_24": 33,
+     "within_budget": true
+    }
+   },
+   "sessions_at_24": 33
+  },
+  "s1_trial": {
+   "calibration_sessions": 1,
+   "candidates": 1782,
+   "completion": {},
+   "duplicates_across_shards": 0,
+   "est_exec_s": 139174.2,
+   "scenario_sessions": 15,
+   "screening": {
+    "_": {
+     "all_survived": true,
+     "calibration_items": 24,
+     "est_exec_s": 139174.2,
+     "est_item_s": 78.1,
+     "max_s": 47.614,
+     "median_s": 46.323,
+     "nodes": 123,
+     "post": 1782,
+     "post_by_family": {
+      "AddNot": 156,
+      "ExceptionReplacer": 57,
+      "NumberReplacer": 88,
+      "RemoveDecorator": 6,
+      "ReplaceAndWithOr": 32,
+      "ReplaceBinaryOperator": 704,
+      "ReplaceBreakWithContinue": 1,
+      "ReplaceComparisonOperator": 625,
+      "ReplaceContinueWithBreak": 2,
+      "ReplaceFalseWithTrue": 7,
+      "ReplaceOrWithAnd": 19,
+      "ReplaceTrueWithFalse": 6,
+      "ReplaceUnaryOperator": 65,
+      "ZeroIterationForLoop": 14
+     },
+     "pre": 1782,
+     "pytest_max_s": 47.172,
+     "pytest_median_s": 45.922,
+     "scenario_derived_cap": 133,
+     "scenario_sessions": 15,
+     "selector": [
+      "research/s1/s1_tests/test_s1_a3_trial.py",
+      "research/s1/s1_tests/test_s1_a3_gate.py"
+     ],
+     "sessions_at_24": 75,
+     "within_budget": true
+    }
+   },
+   "sessions_at_24": 75
+  }
+ },
+ "over_budget": [],
+ "scenario_sessions": 83,
+ "session_length_s": 10800,
+ "sessions_at_24": 269,
+ "total_candidates": 6318
+}

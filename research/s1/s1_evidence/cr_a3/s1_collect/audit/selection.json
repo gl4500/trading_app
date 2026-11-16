@@ -1,0 +1,102 @@
+{
+ "candidate_pool": "tests reaching the shard's scopes",
+ "candidate_time_s": 257.17,
+ "candidates": 82,
+ "cap_s": 150.0,
+ "explore_junit_sha256": "ff246fe0d4e606015971798689884b8e032ae86e0f0ae0e3ba1af1ddf8746480",
+ "method": "bounded selection (forced cover, diversity, round-robin) under cap",
+ "module": "s1_collect",
+ "omitted": [
+  {
+   "explore_s": 1.82,
+   "node": "research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[over-max-pages]"
+  },
+  {
+   "explore_s": 7.04,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[before-lag]"
+  },
+  {
+   "explore_s": 6.19,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[ok]"
+  },
+  {
+   "explore_s": 6.7,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/bar_problems.json]"
+  },
+  {
+   "explore_s": 6.93,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/bars.json]"
+  },
+  {
+   "explore_s": 6.88,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/ca_problems.json]"
+  },
+  {
+   "explore_s": 6.55,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/corporate_actions.json]"
+  },
+  {
+   "explore_s": 6.8,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/manifest.json]"
+  },
+  {
+   "explore_s": 6.51,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages/bars_page000.json]"
+  },
+  {
+   "explore_s": 6.45,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages/ca_000_page000.json]"
+  },
+  {
+   "explore_s": 7.09,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages_full/ca_000_page000.json]"
+  },
+  {
+   "explore_s": 6.66,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/bar_problems.json]"
+  },
+  {
+   "explore_s": 6.52,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/bars.json]"
+  },
+  {
+   "explore_s": 6.67,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/manifest.json]"
+  },
+  {
+   "explore_s": 6.64,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages/bars_page000.json]"
+  },
+  {
+   "explore_s": 6.57,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages_full/ca_000_page000.json]"
+  },
+  {
+   "explore_s": 6.57,
+   "node": "research/s1/s1_tests/test_s1_a3_final.py::test_final_extra_page_or_orphan_provenance_is_invalid[extra-full-page]"
+  }
+ ],
+ "prefer": [
+  "test_s1_a3_audit"
+ ],
+ "reach_sha256": "0df78e95b160e9e1ca96f4d72cb9ae6a29a6a11f22df1a263ef7206a741688e1",
+ "scopes": [
+  "audit_policy",
+  "do_audit",
+  "_validate_calendar",
+  "_provider_abort",
+  "_Authorizer",
+  "_get",
+  "_paged",
+  "_headers",
+  "_require_no_redirects",
+  "_corporate_actions",
+  "_attempt_files",
+  "_ny_instant"
+ ],
+ "scopes_uncovered_by_selection": [],
+ "scopes_without_reaching_test": [],
+ "selected": 65,
+ "selected_time_s": 148.56,
+ "shard": "audit"
+}

@@ -1,0 +1,321 @@
+{
+ "attempt": "4114111a43f445dd8eabcd0ab42c4595",
+ "call_exc": {},
+ "collect_errors": [],
+ "exitstatus": 0,
+ "imports": {
+  "s1_collect": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15c_work\\baseline\\s1_collect__completion\\c1\\copy2\\research\\s1\\s1_collect.py"
+ },
+ "internal_error": false,
+ "phases": {
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_audit_policy_is_exactly_the_f49_audit_rows": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_audit_runs_as_a_stage_only_after_the_audit_ack": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_cross_trial_substitution_is_invalid[attempt]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_cross_trial_substitution_is_invalid[commitment]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_cross_trial_substitution_is_invalid[page]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[changed-audit/pages/ca_000_page000.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[changed-audit/pages/calendar.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/calendar.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/manifest.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/pages/ca_000_page000.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/pages/calendar.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_empty_ca_symbols_send_no_ca_request_and_the_audit_completes": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_every_sent_request_is_in_provenance": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_extra_page_or_orphan_provenance_is_invalid[extra-page]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_manifest_shape_is_preserved_and_its_projection_equals_the_members": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_members_are_the_fixed_names_plus_one_page_per_request": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_normal_audit_authorizes_calendar_and_ca_batches_and_commits_every_member": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_request_order_is_the_collector_order": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_retrieved_utc_is_the_actual_observation_instant": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_stray_slot_files_before_the_audit_calendar_are_judged_invalid[report]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[changed-base]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[over-max-pages]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[redirect]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[wrong-endpoint]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_the_n1_confirm_on_re_read_branches[legitimate-intent]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_the_n1_confirm_on_re_read_branches[stray-control]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_the_opening_close_seal_with_no_row_is_judged_by_the_stage_table": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides[audit/calendar_source.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_valid_pagination_and_empty_families_are_not_anomalous[empty-families]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_valid_pagination_and_empty_families_are_not_anomalous[multi-page]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_a_sent_request_is_recorded_in_provenance_before_its_page_write": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_aborted_record_write_error_still_records_the_provider_structural_reason": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[before-attest]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[wrong-stop-line]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_cutoff_is_the_intent_new_york_date_across_midnight": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/bar_problems.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/ca_problems.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/corporate_actions.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages_full/ca_000_page000.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/bar_problems.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/bars.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/ca_problems.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages/ca_000_page000.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages_full/ca_000_page000.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_empty_ca_family_sends_no_request_and_final_completes[both]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_final_extra_page_or_orphan_provenance_is_invalid[extra-page]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_final_manifest_projection_equals_the_members": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_normal_final_commits_every_member": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides[final/bars.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  },
+  "research/s1/s1_tests/test_s1_a3_final.py::test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides[final/pages/bars_page000.json]": {
+   "call": "passed",
+   "setup": "passed",
+   "teardown": "passed"
+  }
+ },
+ "selected": [
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_audit_policy_is_exactly_the_f49_audit_rows",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_normal_audit_authorizes_calendar_and_ca_batches_and_commits_every_member",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[over-max-pages]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[redirect]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[wrong-endpoint]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_structural_refusals_send_no_further_request_then_invalid[changed-base]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_every_sent_request_is_in_provenance",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_retrieved_utc_is_the_actual_observation_instant",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_manifest_shape_is_preserved_and_its_projection_equals_the_members",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_empty_ca_symbols_send_no_ca_request_and_the_audit_completes",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_request_order_is_the_collector_order",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_audit_runs_as_a_stage_only_after_the_audit_ack",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_members_are_the_fixed_names_plus_one_page_per_request",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[changed-audit/pages/calendar.json]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[changed-audit/pages/ca_000_page000.json]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/calendar.json]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/pages/calendar.json]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/manifest.json]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_damaged_audit_member_is_invalid_before_use[deleted-audit/pages/ca_000_page000.json]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_extra_page_or_orphan_provenance_is_invalid[extra-page]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_cross_trial_substitution_is_invalid[commitment]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_cross_trial_substitution_is_invalid[attempt]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_cross_trial_substitution_is_invalid[page]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_valid_pagination_and_empty_families_are_not_anomalous[multi-page]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_valid_pagination_and_empty_families_are_not_anomalous[empty-families]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_stray_slot_files_before_the_audit_calendar_are_judged_invalid[report]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_the_n1_confirm_on_re_read_branches[legitimate-intent]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_the_n1_confirm_on_re_read_branches[stray-control]",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_the_opening_close_seal_with_no_row_is_judged_by_the_stage_table",
+  "research/s1/s1_tests/test_s1_a3_audit.py::test_transient_local_oserror_in_the_audit_refuses_with_no_row_then_the_table_decides[audit/calendar_source.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_normal_final_commits_every_member",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_final_manifest_projection_equals_the_members",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[before-attest]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_acquire_ack_binds_prev_stop_line_and_is_not_before_the_lag[wrong-stop-line]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_empty_ca_family_sends_no_request_and_final_completes[both]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_cutoff_is_the_intent_new_york_date_across_midnight",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/bar_problems.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/corporate_actions.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/ca_problems.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[changed-final/pages_full/ca_000_page000.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/bars.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/bar_problems.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/ca_problems.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages/ca_000_page000.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_damaged_final_member_is_invalid_before_valuation_with_zero_valuation_calls[deleted-final/pages_full/ca_000_page000.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_final_extra_page_or_orphan_provenance_is_invalid[extra-page]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides[final/pages/bars_page000.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_transient_local_oserror_after_the_intent_refuses_with_no_row_then_the_table_decides[final/bars.json]",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_a_sent_request_is_recorded_in_provenance_before_its_page_write",
+  "research/s1/s1_tests/test_s1_a3_final.py::test_aborted_record_write_error_still_records_the_provider_structural_reason"
+ ],
+ "xfail": []
+}
