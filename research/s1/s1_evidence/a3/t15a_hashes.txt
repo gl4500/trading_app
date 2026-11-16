@@ -1,0 +1,8 @@
+# A3 Task 15a sha256 of the harness, test and evidence files after FIX ROUND 3 (an explicit list; this file excluded). Base 03787389c71f26857d84ad65e6f10ba9b463e50e. The harness files are excluded from every mutation inventory.
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+332ed49c530c6e33a193f3ff608cf17c20d3015516922febabd0b630b7d7da16 *research/s1/s1_tests/cr_reconcile.py
+9a7c08e4ac060f413e4b2dd6df42f86ebc13154cbc8f3c7150d0b5c7d43d78af *research/s1/s1_tests/cr_coord.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+e0d7f6ccaa84c4f13aeebd0cbbf1c5fb316ad0837ca6f0d6d343ba7d33854ec9 *research/s1/s1_tests/test_s1_a3_cr_guard.py
+7c87fec3f42dd1d1ac3aa68fcdc7bc78e3a082180ffecffa1be0b06676c9e33e *research/s1/s1_evidence/a3/t15a_red.txt
+f81b0417fb680169c3b21ed6c4a04f9a99cd107a8e49fa081057582950e5a103 *research/s1/s1_evidence/a3/t15a_green.txt

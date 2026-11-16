@@ -1,0 +1,446 @@
+# A3 Task 15a RED at base 03787389c71f26857d84ad65e6f10ba9b463e50e (git rev-parse HEAD = BASE). Run 2026-11-16T03:04:09Z
+# Tests written first (test_s1_a3_cr_guard.py); cr_guard.py / cr_reconcile.py / cr_coord.py were MINIMAL STUBS (names only, wrong values) so every RED is an assertion, not an ImportError. cr_launch.py (the CR entry-point launcher) already existed: it was written before the RED to inspect the real CR 8.3.15 inventory of the E2E module (2 WorkItems: core/AddNot, core/ReplaceComparisonOperator_Is_IsNot).
+# stub sha256: cr_guard.py 93c6ae932ff8ff516529c4db718b93207fdf4f28602a6172fc5be45661cab669, cr_reconcile.py be8fb5e9e4b49caf557d6bdb3a96725fb7209986acb2f4987d5d94ded514b1e4, cr_coord.py 7123d5c500c4163e90628f3543521d36587a125e55b57ab3c1416a4782634752; test file 8bdc6842e3ae33a66d1138e672f068b052ab013a64fd1e45bd05c98b6fec14d0
+# cmd (worktree root, bash): S1_HYPOTHESIS_ROOT=<scratch>/hyp_red PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_cr_guard.py -q --tb=line --basetemp=<scratch>/bt_red
+# Tally: 22 failed, 0 passed. 20 are AssertionError; the other 2 are pytest.raises' own assertion 'Failed: DID NOT RAISE <class cr_coord.ScopeError>' (the zero/multiple range-resolution cases; the stub does not raise). No NameError/ImportError/AttributeError/FileNotFoundError.
+FFFFFFFFFFFFFFFFFFFFFF                                                   [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:54: AssertionError: guard wrote no sidecar (rc=0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:54: AssertionError: guard wrote no sidecar (rc=0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:54: AssertionError: guard wrote no sidecar (rc=0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:54: AssertionError: guard wrote no sidecar (rc=0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:54: AssertionError: guard wrote no sidecar (rc=0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:54: AssertionError: guard wrote no sidecar (rc=0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:54: AssertionError: guard wrote no sidecar (rc=0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:54: AssertionError: guard wrote no sidecar (rc=0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:54: AssertionError: guard wrote no sidecar (rc=0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:144: AssertionError:
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:54: AssertionError: guard wrote no sidecar (rc=0)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:247: AssertionError: assert False
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:262: AssertionError: assert () == ('killed', 's... 'crash', ...)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:306: AssertionError: ranges.json recorded
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:329: AssertionError: assert ({} == {'b': 'skipped'}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:335: Failed: DID NOT RAISE <class 'cr_coord.ScopeError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:342: Failed: DID NOT RAISE <class 'cr_coord.ScopeError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:349: AssertionError: assert {} == {'batch_max':..._s': 240, ...}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:369: AssertionError: assert ['j3', 'j1', 'j2'] == ['j1', 'j2', 'j3']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:397: AssertionError: j3 never started
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:397: AssertionError: j3 never started
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:421: AssertionError: assert [] == ['core/AddNot...tor_Is_IsNot']
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_assertion_failure_exits_1_and_records_killed
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_collection_error_anywhere_exits_0_even_with_a_failure
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_setup_fixture_error_exits_0
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_teardown_error_exits_0
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_empty_selection_exits_0
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_skip_present_exits_0_and_is_recorded
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_node_set_differing_from_declared_control_exits_0
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_crash_without_junit_exits_0
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_write_control_records_the_clean_node_set
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_job_dir_env_unset_refuses_with_exit_0
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_grandchild_past_the_deadline_is_contained_and_verified_dead
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_reconciler_overrides_raw_cosmic_ray_labels
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_reconciler_vocabulary_is_the_plan_label_set
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_filter_keeps_only_named_scopes_including_nested_and_methods
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_filter_marks_excluded_items_in_the_workdb
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_name_resolving_zero_times_raises
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_name_resolving_more_than_once_raises
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_budgets_are_the_controller_values_in_one_place
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_ordering_is_deterministic_and_batches_partition_exactly
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_coordinator_quarantines_and_stops_with_pending_preserved[cleanup_uncertain]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_coordinator_quarantines_and_stops_with_pending_preserved[timeout]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_end_to_end_real_cosmic_ray_with_guard_and_reconciler
+22 failed in 1.00s
+
+# ================================================================ FIX ROUND 1 RED (review CHANGES_REQUIRED, task-15a-review-verdict.md). Run 2026-11-16T03:29:13Z
+# Against the round-0 harness (sha256 cr_guard 4022e8c239da764c9a58fe5c3ce0ccf8514bb2b9c82136f39c2c5bf311de125b, cr_reconcile 9f2f52f911a782da20177c7e77c252ed478a6ea2a82eaad65ebbeea55db30cc1, cr_coord 488e051a28494a7c0cf02c385976371d4fd622a7f8bd9e5f603b9eb83248cbc0) plus API-surface-only stubs in cr_coord.py so every RED is an assertion: CRConfig.target_module=None, run_batch accepts batch_id/source_sha256 and ignores them, resolve_stop no-op, run_manifest -> {}, run_retry(exec_factory=...) -> {}. Stubbed cr_coord sha256 2e18065a045224f6a7ebde2281a332d5a61e444359ca477900c961ed9593feb5; test file sha256 de3b18eb2fb42a6fcbb21733ad2a6d05b94f673c0e7a3ca3c416a5fba6a5e848.
+# Tally: 22 failed, 19 passed. 21 failures are AssertionError, 1 is pytest.raises' 'Failed: DID NOT RAISE' (test_config_without_a_target_module_is_refused). No Import/Name/Attribute/Type/FileNotFound/KeyError.
+# The 19 passes are the unchanged round-0 tests plus 5 new characterisation tests of paths the review said were UNTESTED but not broken (they pin behaviour, they are not REDs): test_clean_failure_without_a_declared_control_is_not_killed (M4/I3 no_control pin), test_stray_descendant_after_a_normal_exit_is_terminated_and_verified (P5), test_drift_and_exception_stops[harness_drift] and [exec_exception], test_cr_report_through_the_launcher.
+# Existing tests changed for the fix (and failing here by assertion): killed test reads artifacts from the per-attempt dir (I1); collection/setup/teardown tests now pass --control and assert error:collection / error:setup / error:teardown (I3); reconciler test binds sidecars by attempt (M3); quarantine test reads batch_b000_state.json (I2); E2E asserts import identity and no worktree s1_tests on PYTHONPATH (I4).
+FFFF........F.......FFFFFF.FFFFFFFF.F.FF.                                [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:70: AssertionError: WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/bt_red2/test_assertion_failure_exits_10/job1/no-attempt-dir')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:85: AssertionError: assert (0, 'error:pytest_exit_2') == (0, 'error:collection')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:95: AssertionError: assert (0, 'error:co..._or_teardown') == (0, 'error:setup')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:105: AssertionError: assert (0, 'error:co..._or_teardown') == (0, 'error:teardown')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:274: AssertionError: {'cr_to': 'timeout', 'k_err': 'error', 'k_noatt': 'killed', 'k_none': 'error', ...}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:428: AssertionError: per-batch state file
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:428: AssertionError: per-batch state file
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:468: AssertionError: {}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:489: AssertionError: assert (1, 'killed', 1) == (0, 'crash', 1)
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:498: AssertionError: assert (1, 'killed') == (0, 'error:xpass_strict')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:511: AssertionError: assert (0, 'error:pytest_exit_4') == (0, 'error:im...ot_from_copy')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:562: AssertionError: assert (0, 'survived') == (0, 'cleanup_uncertain')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:570: AssertionError: assert -1 == 0
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:579: AssertionError: error:no_control
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:600: AssertionError: M1: unverified cleanup outranks timeout
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:633: AssertionError: per-batch state file
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:659: AssertionError: per-batch state file
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:686: AssertionError: session start persisted
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:712: AssertionError: assert (None == ['j1', 'j2'])
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:739: AssertionError: None
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:752: AssertionError: KeyError('zz')
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:769: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+=================================== PASSES ====================================
+_________ test_clean_failure_without_a_declared_control_is_not_killed _________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=error:no_control exit=0 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red2\test_clean_failure_without_a_d0\job\guard.json
+________________________ test_empty_selection_exits_0 _________________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=empty exit=0 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red2\test_empty_selection_exits_00\job\guard.json
+__________________ test_skip_present_exits_0_and_is_recorded __________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=skip exit=0 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red2\test_skip_present_exits_0_and_0\job\guard.json
+____________ test_node_set_differing_from_declared_control_exits_0 ____________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=node_set_mismatch exit=0 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red2\test_node_set_differing_from_d0\job\guard.json
+______________________ test_crash_without_junit_exits_0 _______________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=crash exit=0 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red2\test_crash_without_junit_exits0\job\guard.json
+________________ test_write_control_records_the_clean_node_set ________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=control:ok exit=0 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red2\test_write_control_records_the0\job\guard.json
+______ test_grandchild_past_the_deadline_is_contained_and_verified_dead _______
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=timeout exit=0 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red2\test_grandchild_past_the_deadl0\job\guard.json
+____ test_stray_descendant_after_a_normal_exit_is_terminated_and_verified _____
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=survived exit=0 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red2\test_stray_descendant_after_a_0\job\guard.json
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_clean_failure_without_a_declared_control_is_not_killed
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_empty_selection_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_skip_present_exits_0_and_is_recorded
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_node_set_differing_from_declared_control_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_crash_without_junit_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_write_control_records_the_clean_node_set
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_job_dir_env_unset_refuses_with_exit_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_grandchild_past_the_deadline_is_contained_and_verified_dead
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_reconciler_vocabulary_is_the_plan_label_set
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_filter_keeps_only_named_scopes_including_nested_and_methods
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_filter_marks_excluded_items_in_the_workdb
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_name_resolving_zero_times_raises
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_name_resolving_more_than_once_raises
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_budgets_are_the_controller_values_in_one_place
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_ordering_is_deterministic_and_batches_partition_exactly
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_stray_descendant_after_a_normal_exit_is_terminated_and_verified
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_drift_and_exception_stops[harness_drift]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_drift_and_exception_stops[exec_exception]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_cr_report_through_the_launcher
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_assertion_failure_exits_1_and_records_killed
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_collection_error_anywhere_exits_0_even_with_a_failure
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_setup_fixture_error_exits_0
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_teardown_error_exits_0
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_reconciler_overrides_raw_cosmic_ray_labels
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_coordinator_quarantines_and_stops_with_pending_preserved[cleanup_uncertain]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_coordinator_quarantines_and_stops_with_pending_preserved[timeout]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_end_to_end_real_cosmic_ray_with_guard_and_reconciler
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_stale_artifacts_in_the_job_dir_never_give_killed
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_strict_xpass_is_not_killed
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_target_module_imported_from_outside_the_copy_is_refused
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_pid_list_overflow_is_cleanup_uncertain
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_open_member_refuses_a_process_outside_the_job
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_duplicate_guard_option_is_a_usage_error
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_classifier_pins_precedence_and_consistency_rules
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_stopped_batch_blocks_the_work_root_until_resolved
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_run_retry_is_one_separate_session_keeping_the_initial_label
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_session_budget_spans_batches
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_write_manifests_and_run_manifest_bind_the_inventory
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_drift_and_exception_stops[source_drift]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_unknown_item_and_existing_copy_write_a_stop_record
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_config_without_a_target_module_is_refused
+22 failed, 19 passed in 34.47s
+
+# ================================================================ FIX ROUND 2 RED (re-review 1: R1-I1, R1-M1, R1-N1, R1-N2, R1-N3). Run 2026-11-16T03:47:19Z
+# Against the fix-round-1 harness UNCHANGED (sha256 cr_guard 55c32a7326814b13a5e534ef4f334883bb3e07d696ce07c400781a0716973cf2, cr_reconcile 796905731ab7e212ca25b370d726770eac8dd4b4b3d48653027a9505df92aaa1, cr_coord c7da026a0faacb68c8964f982e8e9440af2732d95cc7e3121feea26aa7a558e4); no stubs were needed. Test file sha256 d034793b19b15eff4a1897cd8076c586f2184d642f3696941453724b108acdb8.
+# Tally: 20 failed, 39 passed. 8 AssertionError (including pytest.raises' 'Regex pattern did not match' for unknown_job: the old code raised CoordError 'unknown item zz', not the new 'unknown job zz' refusal) and 12 pytest.raises 'Failed: DID NOT RAISE <class cr_coord.CoordError>' (the 5 ineligible-retry cases, the interrupted batch, the 6 harness module_rel cases). No Import/Name/Attribute/Type/Key errors.
+# Existing tests changed: the reconciler helper _out now writes the attempt-first guard line (R1-N3), and test_run_retry_... also asserts the recorded eligibility basis (R1-I1).
+............F...................F........FFFFFFFFFFFFFFFFFF              [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:274: AssertionError: {'cr_to': 'timeout', 'k_err': 'error', 'k_noatt': 'error', 'k_none': 'error', ...}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:671: AssertionError: None
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:830: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:830: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:830: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:830: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:830: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:830: AssertionError: Regex pattern did not match.
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:846: AssertionError: assert None == {'basis': 'resolved', 'resolution_sha256': '3f96abe5d590cd61bc94791a4ab94271b1c7b0d32b6bffead17979d4d81d7b9c', 'timeout_batch': 'b000'}
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:868: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:880: AssertionError: assert ['pkg.t.C.test_x[a', 'b]'] == ['pkg.t.C', 'test_x[a::b]']
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:888: AssertionError: assert 'killed' == 'error:junit_node_unmodelled'
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:900: AssertionError: error:junit_node_mismatch
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:909: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:909: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:909: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:909: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:909: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:909: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:916: AssertionError: assert None == 'ab12'
+=================================== PASSES ====================================
+______________ test_assertion_failure_exits_1_and_records_killed ______________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=killed exit=1 attempt=38839edc3f7145059a73dd8af33fa429 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_assertion_failure_exits_10\job1\guard.json
+_________ test_collection_error_anywhere_exits_0_even_with_a_failure __________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=error:collection exit=0 attempt=100c9206c3a84e34bbaf1fa2e1c0718f sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_collection_error_anywhere0\job\guard.json
+______________________ test_setup_fixture_error_exits_0 _______________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=error:setup exit=0 attempt=0203c3966e204194ad97fd5b3a77f47d sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_setup_fixture_error_exits0\job\guard.json
+_________________________ test_teardown_error_exits_0 _________________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=error:teardown exit=0 attempt=3fe526801bfd4c898a406062b63c3131 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_teardown_error_exits_00\job\guard.json
+_________ test_clean_failure_without_a_declared_control_is_not_killed _________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=error:no_control exit=0 attempt=30c6faaefe784e4780a61a970f5dc1d1 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_clean_failure_without_a_d0\job\guard.json
+________________________ test_empty_selection_exits_0 _________________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=empty exit=0 attempt=fd67d01b24ee4b5386a1b367e43d7374 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_empty_selection_exits_00\job\guard.json
+__________________ test_skip_present_exits_0_and_is_recorded __________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=skip exit=0 attempt=d5296afc040b43c1970248548a861902 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_skip_present_exits_0_and_0\job\guard.json
+____________ test_node_set_differing_from_declared_control_exits_0 ____________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=node_set_mismatch exit=0 attempt=a00bf99ed882456699ad450b460a1cbc sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_node_set_differing_from_d0\job\guard.json
+______________________ test_crash_without_junit_exits_0 _______________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=crash exit=0 attempt=030490d238fa40b7ae95f6fb5e82ce75 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_crash_without_junit_exits0\job\guard.json
+________________ test_write_control_records_the_clean_node_set ________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=control:ok exit=0 attempt=a2efb9b22d7b4b3b880209e26e639d68 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_write_control_records_the0\job\guard.json
+______ test_grandchild_past_the_deadline_is_contained_and_verified_dead _______
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=timeout exit=0 attempt=3549d9ddf30b4f5ebaed13e619f6411a sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_grandchild_past_the_deadl0\job\guard.json
+____________ test_stale_artifacts_in_the_job_dir_never_give_killed ____________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=killed exit=1 attempt=b974be7324fa46e6b26d5babdeae8f35 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_stale_artifacts_in_the_jo0\jobA\guard.json
+cr_guard: status=crash exit=0 attempt=6d6e2868c0764deb93593563950e18b2 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_stale_artifacts_in_the_jo0\jobB\guard.json
+_______________________ test_strict_xpass_is_not_killed _______________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=error:xpass_strict exit=0 attempt=7847f6023f7648e189b9394cfb2b846b sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_strict_xpass_is_not_kille0\job\guard.json
+________ test_target_module_imported_from_outside_the_copy_is_refused _________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=error:import_not_from_copy exit=0 attempt=e60de781506f489eb140f611461781ba sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_target_module_imported_fr0\job1\guard.json
+cr_guard: status=killed exit=1 attempt=b3ec9105b02646e49c221381a07f4ff5 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_target_module_imported_fr0\job2\guard.json
+____ test_stray_descendant_after_a_normal_exit_is_terminated_and_verified _____
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=survived exit=0 attempt=a216dff36a9846a3b4b90a37e8ec11ee sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_stray_descendant_after_a_0\job\guard.json
+_________________ test_pid_list_overflow_is_cleanup_uncertain _________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=cleanup_uncertain exit=0 attempt=861f91974ebd4398a1927006803a3841 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_pid_list_overflow_is_clea0\job\guard.json
+________________ test_duplicate_guard_option_is_a_usage_error _________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: status=error:usage:duplicate --deadline exit=0 attempt=7df0dca9fd764ffe9534f9522649e0f8 sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red3\test_duplicate_guard_option_is0\job\guard.json
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_assertion_failure_exits_1_and_records_killed
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_collection_error_anywhere_exits_0_even_with_a_failure
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_setup_fixture_error_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_teardown_error_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_clean_failure_without_a_declared_control_is_not_killed
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_empty_selection_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_skip_present_exits_0_and_is_recorded
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_node_set_differing_from_declared_control_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_crash_without_junit_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_write_control_records_the_clean_node_set
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_job_dir_env_unset_refuses_with_exit_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_grandchild_past_the_deadline_is_contained_and_verified_dead
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_reconciler_vocabulary_is_the_plan_label_set
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_filter_keeps_only_named_scopes_including_nested_and_methods
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_filter_marks_excluded_items_in_the_workdb
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_name_resolving_zero_times_raises
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_name_resolving_more_than_once_raises
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_budgets_are_the_controller_values_in_one_place
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_ordering_is_deterministic_and_batches_partition_exactly
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_coordinator_quarantines_and_stops_with_pending_preserved[cleanup_uncertain]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_coordinator_quarantines_and_stops_with_pending_preserved[timeout]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_end_to_end_real_cosmic_ray_with_guard_and_reconciler
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_stale_artifacts_in_the_job_dir_never_give_killed
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_strict_xpass_is_not_killed
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_target_module_imported_from_outside_the_copy_is_refused
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_stray_descendant_after_a_normal_exit_is_terminated_and_verified
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_pid_list_overflow_is_cleanup_uncertain
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_open_member_refuses_a_process_outside_the_job
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_duplicate_guard_option_is_a_usage_error
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_classifier_pins_precedence_and_consistency_rules
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_stopped_batch_blocks_the_work_root_until_resolved
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_session_budget_spans_batches
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_write_manifests_and_run_manifest_bind_the_inventory
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_drift_and_exception_stops[harness_drift]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_drift_and_exception_stops[source_drift]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_drift_and_exception_stops[exec_exception]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_unknown_item_and_existing_copy_write_a_stop_record
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_config_without_a_target_module_is_refused
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_cr_report_through_the_launcher
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_reconciler_overrides_raw_cosmic_ray_labels
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_run_retry_is_one_separate_session_keeping_the_initial_label
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[killed]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[survived]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[cleanup_uncertain]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[error]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[other_unresolved_stop]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[unknown_job]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_of_a_resolved_timeout_runs_and_keeps_the_initial_label
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_interrupted_batch_blocks_the_next_until_resolved
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_junit_id_models_param_colons_and_xml_escapes
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_junit_ids_unmodelled_is_refused_explicitly
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_real_run_with_awkward_param_ids_is_not_a_false_mismatch
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[research/s1/s1_tests/cr_guard.py]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[cr_reconcile.py]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[cr_coord.py]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[tools/cr_launch.py]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[research/s1/s1_tests/conftest.py]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[copy/.cr_harness/anything.py]
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_attempt_binding_survives_spaces_in_the_status
+20 failed, 39 passed in 36.27s
+
+# ================================================================ FIX ROUND 3 RED (re-review 2: R2-M1, R2-M2). Run 2026-11-16T03:57:59Z
+# Against the fix-round-2 harness UNCHANGED (sha256 cr_guard 821c1bf4db867d13cc97dffe93e0b4118eb9020f7ab3468190bc735e537974f7, cr_reconcile 332ed49c530c6e33a193f3ff608cf17c20d3015516922febabd0b630b7d7da16, cr_coord d6b01068d1487bde455a72d491e0406714a3f16767a1d6e79e323956bc24d0df). Test file sha256 e0d7f6ccaa84c4f13aeebd0cbbf1c5fb316ad0837ca6f0d6d343ba7d33854ec9.
+# Tally: 1 failed, 60 passed. The failure is R2-M1 (P13) test_unresolved_retry_stop_blocks_the_next_original_batch: pytest.raises 'Failed: DID NOT RAISE <class cr_coord.CoordError>' (the next original batch ran past the retry's unresolved cleanup_uncertain stop).
+# R2-M2 (P16) test_timeout_label_with_a_cleanup_uncertain_stop_needs_a_resolution_before_retry PASSES here by design: the code is correct and the finding was that this branch was unpinned. Its RED is the revert check below.
+...........................................................F.            [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\trading_app-s1\research\s1\s1_tests\test_s1_a3_cr_guard.py:941: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+=================================== PASSES ====================================
+______________ test_assertion_failure_exits_1_and_records_killed ______________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=24954b6830b445aca26449c01d5a5a9f exit=1 status=killed sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_assertion_failure_exits_10\job1\guard.json
+_________ test_collection_error_anywhere_exits_0_even_with_a_failure __________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=5b91e676a54e46ab81830531de4ac93b exit=0 status=error:collection sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_collection_error_anywhere0\job\guard.json
+______________________ test_setup_fixture_error_exits_0 _______________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=ba44522d9d90451ca635430ff7150b33 exit=0 status=error:setup sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_setup_fixture_error_exits0\job\guard.json
+_________________________ test_teardown_error_exits_0 _________________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=60f88cb21c6f40fe8b108b88aa53a407 exit=0 status=error:teardown sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_teardown_error_exits_00\job\guard.json
+_________ test_clean_failure_without_a_declared_control_is_not_killed _________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=868164ab8d4041298405ce0b912c4236 exit=0 status=error:no_control sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_clean_failure_without_a_d0\job\guard.json
+________________________ test_empty_selection_exits_0 _________________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=f94b84e35ff347bc808850b4958b59d2 exit=0 status=empty sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_empty_selection_exits_00\job\guard.json
+__________________ test_skip_present_exits_0_and_is_recorded __________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=ab1b5ab9894c46e6a8bd5cd403b1393f exit=0 status=skip sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_skip_present_exits_0_and_0\job\guard.json
+____________ test_node_set_differing_from_declared_control_exits_0 ____________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=d5f77b02d8cb4aedabfb5f60092a9a2a exit=0 status=node_set_mismatch sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_node_set_differing_from_d0\job\guard.json
+______________________ test_crash_without_junit_exits_0 _______________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=e13ada895fd84e75b3eb803bfc09b88e exit=0 status=crash sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_crash_without_junit_exits0\job\guard.json
+________________ test_write_control_records_the_clean_node_set ________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=dd2c4b9423c54d2592779064986e635e exit=0 status=control:ok sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_write_control_records_the0\job\guard.json
+______ test_grandchild_past_the_deadline_is_contained_and_verified_dead _______
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=8539c0d6739f42c7bb5993abd600cfba exit=0 status=timeout sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_grandchild_past_the_deadl0\job\guard.json
+____________ test_stale_artifacts_in_the_job_dir_never_give_killed ____________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=572be6ea30d84aeda11985f9e9bb3ccb exit=1 status=killed sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_stale_artifacts_in_the_jo0\jobA\guard.json
+cr_guard: attempt=006e96f70ff44cb7982dfae2e33bc29d exit=0 status=crash sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_stale_artifacts_in_the_jo0\jobB\guard.json
+_______________________ test_strict_xpass_is_not_killed _______________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=80c53bc00b544b988fe0f25e51e5a516 exit=0 status=error:xpass_strict sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_strict_xpass_is_not_kille0\job\guard.json
+________ test_target_module_imported_from_outside_the_copy_is_refused _________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=71e43075c428428dadf4133d8459eb15 exit=0 status=error:import_not_from_copy sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_target_module_imported_fr0\job1\guard.json
+cr_guard: attempt=c892be4cb7d141c59f35d35a216e4df5 exit=1 status=killed sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_target_module_imported_fr0\job2\guard.json
+____ test_stray_descendant_after_a_normal_exit_is_terminated_and_verified _____
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=ae031a22215746ae87736f35dcf822a3 exit=0 status=survived sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_stray_descendant_after_a_0\job\guard.json
+_________________ test_pid_list_overflow_is_cleanup_uncertain _________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=27478d58b20e4236ae508f4a259b6c3e exit=0 status=cleanup_uncertain sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_pid_list_overflow_is_clea0\job\guard.json
+________________ test_duplicate_guard_option_is_a_usage_error _________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=775c2c3cd5f74782aa4fa84444f7a002 exit=0 status=error:usage:duplicate --deadline sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_duplicate_guard_option_is0\job\guard.json
+________ test_real_run_with_awkward_param_ids_is_not_a_false_mismatch _________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=86bc3ff052404c1a92368eaf2b4198f5 exit=1 status=killed sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\bt_red4\test_real_run_with_awkward_par0\job\guard.json
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_assertion_failure_exits_1_and_records_killed
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_collection_error_anywhere_exits_0_even_with_a_failure
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_setup_fixture_error_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_teardown_error_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_clean_failure_without_a_declared_control_is_not_killed
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_empty_selection_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_skip_present_exits_0_and_is_recorded
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_node_set_differing_from_declared_control_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_crash_without_junit_exits_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_write_control_records_the_clean_node_set
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_job_dir_env_unset_refuses_with_exit_0
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_grandchild_past_the_deadline_is_contained_and_verified_dead
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_reconciler_overrides_raw_cosmic_ray_labels
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_reconciler_vocabulary_is_the_plan_label_set
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_filter_keeps_only_named_scopes_including_nested_and_methods
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_filter_marks_excluded_items_in_the_workdb
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_name_resolving_zero_times_raises
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_range_name_resolving_more_than_once_raises
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_budgets_are_the_controller_values_in_one_place
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_ordering_is_deterministic_and_batches_partition_exactly
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_coordinator_quarantines_and_stops_with_pending_preserved[cleanup_uncertain]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_coordinator_quarantines_and_stops_with_pending_preserved[timeout]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_end_to_end_real_cosmic_ray_with_guard_and_reconciler
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_stale_artifacts_in_the_job_dir_never_give_killed
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_strict_xpass_is_not_killed
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_target_module_imported_from_outside_the_copy_is_refused
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_stray_descendant_after_a_normal_exit_is_terminated_and_verified
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_pid_list_overflow_is_cleanup_uncertain
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_open_member_refuses_a_process_outside_the_job
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_duplicate_guard_option_is_a_usage_error
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_classifier_pins_precedence_and_consistency_rules
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_stopped_batch_blocks_the_work_root_until_resolved
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_run_retry_is_one_separate_session_keeping_the_initial_label
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_session_budget_spans_batches
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_write_manifests_and_run_manifest_bind_the_inventory
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_drift_and_exception_stops[harness_drift]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_drift_and_exception_stops[source_drift]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_drift_and_exception_stops[exec_exception]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_unknown_item_and_existing_copy_write_a_stop_record
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_config_without_a_target_module_is_refused
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_cr_report_through_the_launcher
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[killed]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[survived]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[cleanup_uncertain]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[error]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[other_unresolved_stop]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[unknown_job]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_retry_of_a_resolved_timeout_runs_and_keeps_the_initial_label
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_interrupted_batch_blocks_the_next_until_resolved
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_junit_id_models_param_colons_and_xml_escapes
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_junit_ids_unmodelled_is_refused_explicitly
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_real_run_with_awkward_param_ids_is_not_a_false_mismatch
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[research/s1/s1_tests/cr_guard.py]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[cr_reconcile.py]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[cr_coord.py]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[tools/cr_launch.py]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[research/s1/s1_tests/conftest.py]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_module_rel_naming_a_harness_file_is_refused[copy/.cr_harness/anything.py]
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_attempt_binding_survives_spaces_in_the_status
+PASSED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_timeout_label_with_a_cleanup_uncertain_stop_needs_a_resolution_before_retry
+FAILED research/s1/s1_tests/test_s1_a3_cr_guard.py::test_unresolved_retry_stop_blocks_the_next_original_batch
+1 failed, 60 passed in 36.31s
+
+# ---- R2-M2 revert check, 2026-11-16T03:58:47Z: scratch copy <scratch>/r3_ib of the harness + this test file, with ONLY the 'own timeout stop OR resolved' branch of cr_coord.retry_eligibility disabled:
+572c572
+<     elif tb.get("stopped") and tb.get("stop_reason") == f"timeout: {job}":
+---
+>     elif True:                                                  # REVERT-MUTANT r3_ib: branch disabled
+# cmd (from <scratch>/r3_ib): PYTHONPATH=<scratch>/r3_ib testenv python -m pytest -p no:cacheprovider test_s1_a3_cr_guard.py -q -rA --tb=line -k 'cleanup_uncertain_stop_needs_a_resolution or retry'
+# Result: the P16 test FAILS against the mutant (line 968, DID NOT RAISE: the retry was let through). All 8 earlier retry tests still pass against it, which reproduces the reviewer's r2_ib finding. (The P13 test also fails there, for R2-M1, which is not yet fixed.)
+........FF                                                               [100%]
+================================== FAILURES ===================================
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\r3_ib\test_s1_a3_cr_guard.py:941: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\r3_ib\test_s1_a3_cr_guard.py:968: Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED test_s1_a3_cr_guard.py::test_run_retry_is_one_separate_session_keeping_the_initial_label
+PASSED test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[killed]
+PASSED test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[survived]
+PASSED test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[cleanup_uncertain]
+PASSED test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[error]
+PASSED test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[other_unresolved_stop]
+PASSED test_s1_a3_cr_guard.py::test_retry_is_refused_unless_the_job_is_an_eligible_timeout[unknown_job]
+PASSED test_s1_a3_cr_guard.py::test_retry_of_a_resolved_timeout_runs_and_keeps_the_initial_label
+FAILED test_s1_a3_cr_guard.py::test_unresolved_retry_stop_blocks_the_next_original_batch
+FAILED test_s1_a3_cr_guard.py::test_timeout_label_with_a_cleanup_uncertain_stop_needs_a_resolution_before_retry
+2 failed, 8 passed, 51 deselected in 0.58s
