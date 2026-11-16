@@ -1,0 +1,70 @@
+{
+ "label": "killed",
+ "target": "s1_seal._sampled_seals",
+ "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary",
+ "agreed": {
+  "basis": "T15-F12 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: the sampled history is fixed at (and includes) the STOP",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary",
+  "oracle_kind": "assert",
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary",
+  "source_line": "assert [pair[0].sha for pair in selected.values()] == [q.sha]  # ORACLE:F12",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop",
+   "oracle_kind": "assert",
+   "source_line": "assert before == after and list(before[\"seals\"]) == sorted(before[\"seals\"])",
+   "terminal": "research/s1/s1_tests/test_s1_a3_score.py:252"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:149"
+ },
+ "selftests": {
+  "junit_sha256": "d7e4d1a6480278a4bca48a78d6de8eabb90d7e1d7236a7db7e56931ae802f65e",
+  "cases": 39
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_seal._sampled_seals",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_seal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "14314db73dd80aa719058fb9043f483dcc89730c0990b9961e3929cd09d8fc8d",
+  "mutated_sha256": "b1dc4c5ab1dc30f05a1bac3f61e98a439481096aa8b0e7348a9d5299af6b38a0",
+  "first_line": 602
+ },
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   149,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   149,
+   "AssertionError"
+  ]
+ },
+ "control": {
+  "junit.xml": "de42a65771264600d4b25c5e78882886827070a27bd15a06f5e2995d88b8aaae",
+  "installed.json": null,
+  "crash.json": null,
+  "pytest-output.txt": "035f237bb810eaf953ce3fa50dee2cd7b530ec23256fca0f8dcbb03b12ca8e2e",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
+ },
+ "mutant": {
+  "junit.xml": "336adbd0fb1e223f4aeb7767f20de381fddbf52854ad2bdf2bff44969902005f",
+  "installed.json": "4edb89987c0da939518963016717621b109a35046dcf0426b382d6360de5340d",
+  "crash.json": "c7ac31b61ff06b43029495d3a544cf67c54b7fc9ed038253ad6b047fe47469c3",
+  "pytest-output.txt": "a5676236dabf0b3dc2e46c7d07fc1ec71ec43a8689c6c8bb240a28eeaa97d6c0",
+  "s1_mutant_plugin.py": "98ff24e8f6b1ceafa5ff6037657d54b0aae0082aa3b304058f14e53bd2d3891b"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary"
+ ],
+ "finding": "T15-F12: survived: excluding the STOP row itself from the sampled prefix changes no seal (the STOP row is no slot row); killer cannot see it. Codex REJECTED full-domain equivalence (upto_seq = a post-START QUALIFIED seq 85: close 2026-10-26 vs none): a meaningful survivor for 15d (t15_equivalence_drafts.md)"
+}

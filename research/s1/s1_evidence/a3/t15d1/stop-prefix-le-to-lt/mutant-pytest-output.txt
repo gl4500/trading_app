@@ -1,0 +1,26 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________ test_t15d_f12_sampled_prefix_includes_its_qualified_boundary _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15w0/m34/mutant/bt/test_t15d_f12_sampled_prefix_i0')
+
+    def test_t15d_f12_sampled_prefix_includes_its_qualified_boundary(tmp_path):
+        state = s1_state(tmp_path, START, score_ready=True, seal_days=[0], stop_attest=False, final=False, stop=False)
+        tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+        rows = j.read_trial(tr.trial_id, tr.genesis, tmp_path / "mailbox.sqlite3")
+        q = next(row for row in rows if row.kind == "SLOT-QUALIFIED" and sl.slot_of(row.subject) >= state["start"])
+        out = tmp_path / "s1_out"
+        before = z.sampled_seals(out, rows, state["calendar"], state["start"], upto_seq=q.seq - 1)
+        assert before == {}
+        selected = z.sampled_seals(out, rows, state["calendar"], state["start"], upto_seq=q.seq)
+>       assert [pair[0].sha for pair in selected.values()] == [q.sha]  # ORACLE:F12
+E       AssertionError: assert [] == ['425fdf2f0c4...daf0ae13e79c']
+E         
+E         Right contains one more item: '425fdf2f0c4c06b8a071f0bc0d904709337173460912d094cf59daf0ae13e79c'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:149: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15d1\run\bt\t15w0\m34\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary
+1 failed in 3.19s

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.684" timestamp="2026-11-16T12:10:25.062776-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_t15d_killers" name="test_t15d_f9_fifo_includes_the_current_sell" time="0.021"><failure message="AssertionError: assert {} == {1: {'sell_id...34:00+00:00'}}&#10;  &#10;  Right contains 2 more items:&#10;  {1: {'sell_id': 4, 'sold_at': '2026-10-26T14:33:00+00:00'},&#10;   2: {'sell_id': 5, 'sold_at': '2026-10-26T14:34:00+00:00'}}&#10;  Use -v to get more diff">def test_t15d_f9_fifo_includes_the_current_sell():
+        trades = [
+            {"id": 5, "symbol": "B", "action": "SELL", "shares": 3, "price": 8, "ts": "2026-10-26T14:34:00+00:00"},
+            {"id": 2, "symbol": "B", "action": "BUY", "shares": 3, "price": 7, "ts": "2026-10-26T14:31:00+00:00"},
+            {"id": 4, "symbol": "A", "action": "SELL", "shares": 1, "price": 12, "ts": "2026-10-26T14:33:00+00:00"},
+            {"id": 1, "symbol": "A", "action": "BUY", "shares": 2, "price": 10, "ts": "2026-10-26T14:30:00+00:00"},
+            {"id": 3, "symbol": "A", "action": "SELL", "shares": 1, "price": 11, "ts": "2026-10-26T14:32:00+00:00"},
+        ]
+        expected = {1: {"sold_at": "2026-10-26T14:33:00+00:00", "sell_id": 4},
+                    2: {"sold_at": "2026-10-26T14:34:00+00:00", "sell_id": 5}}
+        with z.seal_pass() as px:
+            observed = b._sold_events(trades, px)
+&gt;       assert observed == expected  # ORACLE:F9
+E       AssertionError: assert {} == {1: {'sell_id...34:00+00:00'}}
+E         
+E         Right contains 2 more items:
+E         {1: {'sell_id': 4, 'sold_at': '2026-10-26T14:33:00+00:00'},
+E          2: {'sell_id': 5, 'sold_at': '2026-10-26T14:34:00+00:00'}}
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:101: AssertionError</failure></testcase></testsuite></testsuites>

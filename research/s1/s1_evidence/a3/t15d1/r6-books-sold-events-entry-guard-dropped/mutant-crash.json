@@ -1,0 +1,30 @@
+{
+ "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[ended]": {
+  "call": {
+   "innermost": {
+    "line": 118,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "terminal": {
+    "line": 118,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[missing]": {
+  "call": {
+   "innermost": {
+    "line": 118,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "terminal": {
+    "line": 118,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ }
+}

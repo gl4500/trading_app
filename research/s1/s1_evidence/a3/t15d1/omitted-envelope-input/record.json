@@ -1,0 +1,70 @@
+{
+ "label": "killed",
+ "target": "s1_run.attest_start",
+ "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input",
+ "agreed": {
+  "basis": "T15-F4 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: the envelope inputs must include opening_books.json",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input",
+  "oracle_kind": "assert",
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input",
+  "source_line": "assert inputs.get(\"opening_books.json\") == c.sha256_file(gv.out / \"opening_books.json\")  # ORACLE:F4",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_envelope_and_single_member",
+   "oracle_kind": "assert",
+   "source_line": "assert set(e[\"inputs\"]) == {\"plan.json\", \"audit/manifest.json\", f\"seals/{oc}.json\", \"opening_receipt.json\",",
+   "terminal": "research/s1/s1_tests/test_s1_a3_prestart.py:137"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:60"
+ },
+ "selftests": {
+  "junit_sha256": "d7e4d1a6480278a4bca48a78d6de8eabb90d7e1d7236a7db7e56931ae802f65e",
+  "cases": 39
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_run.attest_start",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_run.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "eb25868a0dc209790d178e887b8528b050ab4139b91e048da2d6029944208d4d",
+  "mutated_sha256": "d443adf85b1fe8671a9475373968060073e05221a348b89c17c2442b07df343e",
+  "first_line": 444
+ },
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   60,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   60,
+   "AssertionError"
+  ]
+ },
+ "control": {
+  "junit.xml": "c07df2fde067b254a0c96e63dbb8f254e3451fc5a1a9a89cd1a5b6dfe83d038f",
+  "installed.json": null,
+  "crash.json": null,
+  "pytest-output.txt": "572f9d8561656e7692ef50ae30baa338cd5c820b68004511a2979981f2bd51ec",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
+ },
+ "mutant": {
+  "junit.xml": "7e5fc090ab8383a472fc32e3b2eb62b0fe22eab2acec9a6e2dcaedeb24a24721",
+  "installed.json": "853266e9dc219a6d736c9fae6d7a7f9d96568b16d03bd82401fc57009d905fec",
+  "crash.json": "054bf87de2df5ae2d5017a13fbad0942875c38cd720d676c5eec00b2bdd2d5d8",
+  "pytest-output.txt": "b7525184949fe1396ce0f1063cc82a6a8cd441cf98536b1575c0d2aa3bc7d9c3",
+  "s1_mutant_plugin.py": "406ac4567d1c01ea80ca749c2c6bbd921285ac43e13b680dee5ca83f196b3e27"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input"
+ ],
+ "finding": "T15-F4: failed-elsewhere: KeyError in the publish hooks (s1_run.py:515) before the agreed envelope assertion prestart.py:137"
+}

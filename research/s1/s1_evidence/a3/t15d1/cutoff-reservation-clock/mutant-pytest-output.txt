@@ -1,0 +1,42 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_t15d_f1_audit_completes_with_the_intent_cutoff _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15w0/m00/mutant/bt/test_t15d_f1_audit_completes_w0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002275ADDF1A0>
+
+    def test_t15d_f1_audit_completes_with_the_intent_cutoff(tmp_path, monkeypatch):
+        pre_at = datetime(2026, 10, 13, 3, 59, 59, 999999, tzinfo=timezone.utc)
+        expected_day = "2026-10-12"
+        au.setup(tmp_path, ("A",), now=pre_at - timedelta(minutes=1))
+        post_at = pre_at + timedelta(microseconds=2)
+        now, append = [pre_at - timedelta(seconds=10)], j.append
+    
+        def at_intent(trial_id, genesis, req, ctx_fn, **kw):
+            if req.kind == "STAGE-INTENT":
+                kw["clock"] = lambda: pre_at
+                result = append(trial_id, genesis, req, ctx_fn, **kw)
+                now[0] = post_at
+                return result
+            return append(trial_id, genesis, req, ctx_fn, **kw)
+    
+        monkeypatch.setattr(j, "append", at_intent)
+        provider, spies, refusal = au.Provider(), Spies(monkeypatch), None
+        with au._clock(lambda: now[0]):
+            try:
+                manifest = k.do_audit(tmp_path, "audit-ack", spies.client(provider), au.KEYS)
+                observed = ("returned", manifest["outcome"], manifest["publication_cutoff"])
+            except SystemExit as exc:
+                refusal, observed = str(exc), ("refused", None, None)
+>       assert observed == ("returned", "COMPLETE", expected_day), refusal  # ORACLE:F1
+E       AssertionError: stage audit: INVALID (provider-structural)
+E       assert ('refused', None, None) == ('returned', ... '2026-10-12')
+E         
+E         At index 0 diff: 'refused' != 'returned'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:49: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15d1\run\bt\t15w0\m00\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff
+1 failed in 0.75s

@@ -1,10 +1,17 @@
 {
  "cutoff-reservation-clock": {
-  "basis": "the cutoff is the INTENT's New York date, not the reservation clock's",
-  "nodeid": "research/s1/s1_tests/test_s1_a3_audit.py::test_cutoff_is_the_intent_new_york_date_across_midnight[midnight]",
+  "basis": "T15-F1 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: the cutoff is the INTENT's New York date, not the reservation clock's",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff",
   "oracle_kind": "assert",
-  "source_line": "assert m[\"publication_cutoff\"] == date_ != c.aware(reserved).astimezone(c.NY).date().isoformat()",
-  "terminal": "research/s1/s1_tests/test_s1_a3_audit.py:270"
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff",
+  "source_line": "assert observed == (\"returned\", \"COMPLETE\", expected_day), refusal  # ORACLE:F1",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_audit.py::test_cutoff_is_the_intent_new_york_date_across_midnight[midnight]",
+   "oracle_kind": "assert",
+   "source_line": "assert m[\"publication_cutoff\"] == date_ != c.aware(reserved).astimezone(c.NY).date().isoformat()",
+   "terminal": "research/s1/s1_tests/test_s1_a3_audit.py:270"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:49"
  },
  "deadline-intent-ge-to-gt": {
   "basis": "SLOT-INTENT at now == E must be REFUSE; '>' appends",
@@ -14,11 +21,18 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_precedence.py:180"
  },
  "deadline-missed-lt-to-le": {
-  "basis": "MISSED must commit at now == E; '<=' refuses it",
-  "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files",
+  "basis": "T15-F2 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: MISSED must commit at now == E; '<=' refuses it",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-m-at-e]",
   "oracle_kind": "assert",
-  "source_line": "assert [k_ for k_, *_ in got] == [\"SLOT-MISSED\"]",
-  "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:51"
+  "selection": "test_s1_a3_precedence.py::test_precedence_table",
+  "source_line": "assert dec.outcome == outcome, (cid, dec)",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files",
+   "oracle_kind": "assert",
+   "source_line": "assert [k_ for k_, *_ in got] == [\"SLOT-MISSED\"]",
+   "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:51"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_precedence.py:180"
  },
  "deadline-qualified-ge-to-gt": {
   "basis": "R == D must not seal; '>' lets QUALIFIED commit (killer renamed/moved: map)",
@@ -84,11 +98,18 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_trial.py:256"
  },
  "omitted-envelope-input": {
-  "basis": "the envelope inputs must include opening_books.json",
-  "nodeid": "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_envelope_and_single_member",
+  "basis": "T15-F4 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: the envelope inputs must include opening_books.json",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input",
   "oracle_kind": "assert",
-  "source_line": "assert set(e[\"inputs\"]) == {\"plan.json\", \"audit/manifest.json\", f\"seals/{oc}.json\", \"opening_receipt.json\",",
-  "terminal": "research/s1/s1_tests/test_s1_a3_prestart.py:137"
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input",
+  "source_line": "assert inputs.get(\"opening_books.json\") == c.sha256_file(gv.out / \"opening_books.json\")  # ORACLE:F4",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_envelope_and_single_member",
+   "oracle_kind": "assert",
+   "source_line": "assert set(e[\"inputs\"]) == {\"plan.json\", \"audit/manifest.json\", f\"seals/{oc}.json\", \"opening_receipt.json\",",
+   "terminal": "research/s1/s1_tests/test_s1_a3_prestart.py:137"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:60"
  },
  "omitted-evidence-manifest": {
   "basis": "a wrong E5.5 manifest hash must be INVALID (registration-artifact) (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
@@ -112,11 +133,18 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_slots.py:320"
  },
  "owner-recovery-own-op": {
-  "basis": "recovery must append CREATED with the stage's own op",
-  "nodeid": "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]",
+  "basis": "T15-F7 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: recovery must append CREATED with the stage's own op",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f7_recovery_creates_with_the_intents_own_op",
   "oracle_kind": "assert",
-  "source_line": "assert stage_kinds(tmp_path, \"final_plan\")[-1] == \"STAGE-CREATED\"",
-  "terminal": "research/s1/s1_tests/test_s1_a3_stage.py:466"
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f7_recovery_creates_with_the_intents_own_op",
+  "source_line": "assert observed == (\"created\", intent.op, prepared.detail), refusal  # ORACLE:F7",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]",
+   "oracle_kind": "assert",
+   "source_line": "assert stage_kinds(tmp_path, \"final_plan\")[-1] == \"STAGE-CREATED\"",
+   "terminal": "research/s1/s1_tests/test_s1_a3_stage.py:466"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:85"
  },
  "owner-timeout-op-removed": {
   "basis": "a foreign-op TIMEOUT must be INVALIDATE contradictory-finalizer",
@@ -140,18 +168,32 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:530"
  },
  "r6-books-fifo-prefix-off-by-one": {
-  "basis": "the pass-scoped replay equals the public sold_events",
-  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events",
+  "basis": "T15-F9 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: the pass-scoped replay equals the public sold_events",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell",
   "oracle_kind": "assert",
-  "source_line": "assert fn(trades, px) == b.sold_events(trades)",
-  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:548"
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell",
+  "source_line": "assert observed == expected  # ORACLE:F9",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events",
+   "oracle_kind": "assert",
+   "source_line": "assert fn(trades, px) == b.sold_events(trades)",
+   "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:548"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:101"
  },
  "r6-books-sold-events-entry-guard-dropped": {
-  "basis": "a missing pass refuses with the NO_PASS text (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
-  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._sold_events]",
-  "oracle_kind": "pytest.raises",
-  "source_line": "with pytest.raises(SystemExit, match=NO_PASS):",
-  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:480"
+  "basis": "T15-F10 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: a missing pass refuses with the NO_PASS text (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[missing]",
+  "oracle_kind": "assert",
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades",
+  "source_line": "assert observed == (\"pass-refusal\", z.PASS_REFUSAL)  # ORACLE:F10",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._sold_events]",
+   "oracle_kind": "pytest.raises",
+   "source_line": "with pytest.raises(SystemExit, match=NO_PASS):",
+   "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:480"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:118"
  },
  "r6-books-sold-events-foreign-module": {
   "basis": "exactly one fresh module per pass: another module is another verification",
@@ -231,17 +273,31 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:370"
  },
  "stop-pending-removed": {
-  "basis": "a pending eligible close must make stop_record None",
-  "nodeid": "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop",
+  "basis": "T15-F11 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: a pending eligible close must make stop_record None",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
   "oracle_kind": "assert",
-  "source_line": "assert z.stop_record(gv.out, gv.rows, st_[\"start\"], st_[\"calendar\"], gv.trial.bundle) is None",
-  "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:162"
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
+  "source_line": "assert q is not None and q.kind == \"SLOT-QUALIFIED\", \"pending close is not a committed QUALIFIED selection\"  # ORACLE:F11",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop",
+   "oracle_kind": "assert",
+   "source_line": "assert z.stop_record(gv.out, gv.rows, st_[\"start\"], st_[\"calendar\"], gv.trial.bundle) is None",
+   "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:162"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:130"
  },
  "stop-prefix-le-to-lt": {
-  "basis": "the sampled history is fixed at (and includes) the STOP",
-  "nodeid": "research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop",
+  "basis": "T15-F12 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: the sampled history is fixed at (and includes) the STOP",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary",
   "oracle_kind": "assert",
-  "source_line": "assert before == after and list(before[\"seals\"]) == sorted(before[\"seals\"])",
-  "terminal": "research/s1/s1_tests/test_s1_a3_score.py:252"
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary",
+  "source_line": "assert [pair[0].sha for pair in selected.values()] == [q.sha]  # ORACLE:F12",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop",
+   "oracle_kind": "assert",
+   "source_line": "assert before == after and list(before[\"seals\"]) == sorted(before[\"seals\"])",
+   "terminal": "research/s1/s1_tests/test_s1_a3_score.py:252"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:149"
  }
 }

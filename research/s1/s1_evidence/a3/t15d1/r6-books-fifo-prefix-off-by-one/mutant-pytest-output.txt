@@ -1,0 +1,29 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________ test_t15d_f9_fifo_includes_the_current_sell _________________
+
+    def test_t15d_f9_fifo_includes_the_current_sell():
+        trades = [
+            {"id": 5, "symbol": "B", "action": "SELL", "shares": 3, "price": 8, "ts": "2026-10-26T14:34:00+00:00"},
+            {"id": 2, "symbol": "B", "action": "BUY", "shares": 3, "price": 7, "ts": "2026-10-26T14:31:00+00:00"},
+            {"id": 4, "symbol": "A", "action": "SELL", "shares": 1, "price": 12, "ts": "2026-10-26T14:33:00+00:00"},
+            {"id": 1, "symbol": "A", "action": "BUY", "shares": 2, "price": 10, "ts": "2026-10-26T14:30:00+00:00"},
+            {"id": 3, "symbol": "A", "action": "SELL", "shares": 1, "price": 11, "ts": "2026-10-26T14:32:00+00:00"},
+        ]
+        expected = {1: {"sold_at": "2026-10-26T14:33:00+00:00", "sell_id": 4},
+                    2: {"sold_at": "2026-10-26T14:34:00+00:00", "sell_id": 5}}
+        with z.seal_pass() as px:
+            observed = b._sold_events(trades, px)
+>       assert observed == expected  # ORACLE:F9
+E       AssertionError: assert {} == {1: {'sell_id...34:00+00:00'}}
+E         
+E         Right contains 2 more items:
+E         {1: {'sell_id': 4, 'sold_at': '2026-10-26T14:33:00+00:00'},
+E          2: {'sell_id': 5, 'sold_at': '2026-10-26T14:34:00+00:00'}}
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:101: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15d1\run\bt\t15w0\m20\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell
+1 failed in 0.68s

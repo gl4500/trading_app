@@ -1,0 +1,70 @@
+{
+ "label": "failed-elsewhere",
+ "target": "s1_seal._stop_record",
+ "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
+ "agreed": {
+  "basis": "T15-F11 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: a pending eligible close must make stop_record None",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
+  "oracle_kind": "assert",
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
+  "source_line": "assert q is not None and q.kind == \"SLOT-QUALIFIED\", \"pending close is not a committed QUALIFIED selection\"  # ORACLE:F11",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop",
+   "oracle_kind": "assert",
+   "source_line": "assert z.stop_record(gv.out, gv.rows, st_[\"start\"], st_[\"calendar\"], gv.trial.bundle) is None",
+   "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:162"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:130"
+ },
+ "selftests": {
+  "junit_sha256": "d7e4d1a6480278a4bca48a78d6de8eabb90d7e1d7236a7db7e56931ae802f65e",
+  "cases": 39
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_seal._stop_record",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_seal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "e2d66c4a20152d67acd2c1ddc27b4308d1589dd6c66334e29e179f3a7de75ef2",
+  "mutated_sha256": "387cd730fc3fcad512b1df7484a9f79a7ec598c35cd25a42aedbc8ddf6b49cd5",
+  "first_line": 644
+ },
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_seal.py",
+   663,
+   "builtins.TypeError"
+  ],
+  "text": [
+   "research/s1/s1_seal.py",
+   663,
+   "TypeError"
+  ]
+ },
+ "control": {
+  "junit.xml": "526cc2544e4ddafeca5a08ad589c314a5580630ab2ceab14d18012b8a0c7be18",
+  "installed.json": null,
+  "crash.json": null,
+  "pytest-output.txt": "0262de7ffbfc4322c80204301dc807ffdf57ca8caed9aa6a6014b506225f4f5c",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
+ },
+ "mutant": {
+  "junit.xml": "e4ecf74cda79f98c2d94f42b0d0a2f6677305a4cafbcf81052c6c08c5692f6cb",
+  "installed.json": "10a31069758bc73f599da244f66b9330cb66e653ab40ff331786c9c31db1995b",
+  "crash.json": "ee25fa2801073c3a20e419c17d7649dcee6fbc225d28a743afd23b91ce72e74a",
+  "pytest-output.txt": "8f8e61108768dcc7e513f2963227e4aaa7604013b9fded4fecaaa259782c20c9",
+  "s1_mutant_plugin.py": "3a891ae87a91d0f448b34068af2fe1729628cb4023b9e03a8ea18517b47db72d"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence"
+ ],
+ "finding": "T15-F11: failed-elsewhere: a pending close falls through to _resolution_evidence with no QUALIFIED row (s1_seal.py:663 TypeError), not the agreed stop.py:162"
+}

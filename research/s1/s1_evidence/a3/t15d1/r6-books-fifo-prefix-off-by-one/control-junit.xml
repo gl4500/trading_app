@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.570" timestamp="2026-11-16T12:10:22.275774-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_t15d_killers" name="test_t15d_f9_fifo_includes_the_current_sell" time="0.016" /></testsuite></testsuites>

@@ -1,0 +1,429 @@
+[
+ {
+  "id": "F1",
+  "mutant": "cutoff-reservation-clock",
+  "label": "killed",
+  "control_valid": true,
+  "control_rc": 0,
+  "control_cases": {
+   "test_t15d_f1_audit_completes_with_the_intent_cutoff": "pass"
+  },
+  "mutant_rc": 1,
+  "mutant_timeout": false,
+  "installed": {
+   "anchor_found": true,
+   "anchor_count": 1,
+   "installed": true,
+   "original_sha256": "ee3a565232b7cedaa2ef194f8c034b77194cd896e59930e41620fe9f265cefb7",
+   "mutated_sha256": "e67b79d91ba1c5e7f7e89269da44c4a3ee28dc6563cd2c79dc4a99215991f62d"
+  },
+  "agreed_nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff",
+  "agreed_terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:49",
+  "agreed_case_status": "failure",
+  "crash_json_call_frame": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:49 builtins.AssertionError",
+  "crash_json_raw": {
+   "innermost": {
+    "line": 49,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "terminal": {
+    "line": 49,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  },
+  "frame_found": {
+   "structural": [
+    "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    49,
+    "builtins.AssertionError"
+   ],
+   "text": [
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    49,
+    "AssertionError"
+   ]
+  },
+  "text_frame": "research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:49 AssertionError",
+  "terminal_equals_agreed": true,
+  "other_mutant_cases": {},
+  "same_nodeids": true,
+  "n_nodeids": 1,
+  "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff"
+ },
+ {
+  "id": "F2",
+  "mutant": "deadline-missed-lt-to-le",
+  "label": "killed",
+  "control_valid": true,
+  "control_rc": 0,
+  "control_cases": "69/69 pass",
+  "mutant_rc": 1,
+  "mutant_timeout": false,
+  "installed": {
+   "anchor_found": true,
+   "anchor_count": 1,
+   "installed": true,
+   "original_sha256": "a2f9aa26f69bad2ccde7ecffa444c47de8200d8ea21900e3275c6d5e4401d5d0",
+   "mutated_sha256": "f7fdda5140fd8fd36c4654798a62d809d7e34479ed704702c440f25598434764"
+  },
+  "agreed_nodeid": "research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-m-at-e]",
+  "agreed_terminal": "research/s1/s1_tests/test_s1_a3_precedence.py:180",
+  "agreed_case_status": "failure",
+  "crash_json_call_frame": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_precedence.py:180 builtins.AssertionError",
+  "crash_json_raw": {
+   "innermost": {
+    "line": 180,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_precedence.py"
+   },
+   "terminal": {
+    "line": 180,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_precedence.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  },
+  "frame_found": {
+   "structural": [
+    "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_precedence.py",
+    180,
+    "builtins.AssertionError"
+   ],
+   "text": [
+    "research/s1/s1_tests/test_s1_a3_precedence.py",
+    180,
+    "AssertionError"
+   ]
+  },
+  "text_frame": "research\\s1\\s1_tests\\test_s1_a3_precedence.py:180 AssertionError",
+  "terminal_equals_agreed": true,
+  "other_mutant_cases": {
+   "pass": 68
+  },
+  "same_nodeids": true,
+  "n_nodeids": 69,
+  "selection": "research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table"
+ },
+ {
+  "id": "F4",
+  "mutant": "omitted-envelope-input",
+  "label": "killed",
+  "control_valid": true,
+  "control_rc": 0,
+  "control_cases": {
+   "test_t15d_f4_opening_books_is_an_envelope_input": "pass"
+  },
+  "mutant_rc": 1,
+  "mutant_timeout": false,
+  "installed": {
+   "anchor_found": true,
+   "anchor_count": 1,
+   "installed": true,
+   "original_sha256": "eb25868a0dc209790d178e887b8528b050ab4139b91e048da2d6029944208d4d",
+   "mutated_sha256": "d443adf85b1fe8671a9475373968060073e05221a348b89c17c2442b07df343e"
+  },
+  "agreed_nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input",
+  "agreed_terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:60",
+  "agreed_case_status": "failure",
+  "crash_json_call_frame": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:60 builtins.AssertionError",
+  "crash_json_raw": {
+   "innermost": {
+    "line": 60,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "terminal": {
+    "line": 60,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  },
+  "frame_found": {
+   "structural": [
+    "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    60,
+    "builtins.AssertionError"
+   ],
+   "text": [
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    60,
+    "AssertionError"
+   ]
+  },
+  "text_frame": "research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:60 AssertionError",
+  "terminal_equals_agreed": true,
+  "other_mutant_cases": {},
+  "same_nodeids": true,
+  "n_nodeids": 1,
+  "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input"
+ },
+ {
+  "id": "F7",
+  "mutant": "owner-recovery-own-op",
+  "label": "killed",
+  "control_valid": true,
+  "control_rc": 0,
+  "control_cases": {
+   "test_t15d_f7_recovery_creates_with_the_intents_own_op": "pass"
+  },
+  "mutant_rc": 1,
+  "mutant_timeout": false,
+  "installed": {
+   "anchor_found": true,
+   "anchor_count": 1,
+   "installed": true,
+   "original_sha256": "b036b6822ce73eedb61267dc48bac7716cd06551548a5b93cad4151721181e14",
+   "mutated_sha256": "a7e2d91890d1eeb41b77d097201f7c399383cddc7a2f07842261d3520f7c0717"
+  },
+  "agreed_nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f7_recovery_creates_with_the_intents_own_op",
+  "agreed_terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:85",
+  "agreed_case_status": "failure",
+  "crash_json_call_frame": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:85 builtins.AssertionError",
+  "crash_json_raw": {
+   "innermost": {
+    "line": 85,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "terminal": {
+    "line": 85,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  },
+  "frame_found": {
+   "structural": [
+    "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    85,
+    "builtins.AssertionError"
+   ],
+   "text": [
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    85,
+    "AssertionError"
+   ]
+  },
+  "text_frame": "research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:85 AssertionError",
+  "terminal_equals_agreed": true,
+  "other_mutant_cases": {},
+  "same_nodeids": true,
+  "n_nodeids": 1,
+  "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f7_recovery_creates_with_the_intents_own_op"
+ },
+ {
+  "id": "F9",
+  "mutant": "r6-books-fifo-prefix-off-by-one",
+  "label": "killed",
+  "control_valid": true,
+  "control_rc": 0,
+  "control_cases": {
+   "test_t15d_f9_fifo_includes_the_current_sell": "pass"
+  },
+  "mutant_rc": 1,
+  "mutant_timeout": false,
+  "installed": {
+   "anchor_found": true,
+   "anchor_count": 1,
+   "installed": true,
+   "original_sha256": "f9fcfcec64906842dc847a3ed6bd5a47362300a93afb863ac65fb8ca7de2bbaf",
+   "mutated_sha256": "d33704c8f0ca349160835c7b0bf26e1c61591e63848006dcffecb1b4ebc2b4f5"
+  },
+  "agreed_nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell",
+  "agreed_terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:101",
+  "agreed_case_status": "failure",
+  "crash_json_call_frame": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:101 builtins.AssertionError",
+  "crash_json_raw": {
+   "innermost": {
+    "line": 101,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "terminal": {
+    "line": 101,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  },
+  "frame_found": {
+   "structural": [
+    "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    101,
+    "builtins.AssertionError"
+   ],
+   "text": [
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    101,
+    "AssertionError"
+   ]
+  },
+  "text_frame": "research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:101 AssertionError",
+  "terminal_equals_agreed": true,
+  "other_mutant_cases": {},
+  "same_nodeids": true,
+  "n_nodeids": 1,
+  "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell"
+ },
+ {
+  "id": "F10",
+  "mutant": "r6-books-sold-events-entry-guard-dropped",
+  "label": "killed",
+  "control_valid": true,
+  "control_rc": 0,
+  "control_cases": {
+   "test_t15d_f10_invalid_pass_precedes_malformed_trades[missing]": "pass",
+   "test_t15d_f10_invalid_pass_precedes_malformed_trades[ended]": "pass"
+  },
+  "mutant_rc": 1,
+  "mutant_timeout": false,
+  "installed": {
+   "anchor_found": true,
+   "anchor_count": 1,
+   "installed": true,
+   "original_sha256": "f9fcfcec64906842dc847a3ed6bd5a47362300a93afb863ac65fb8ca7de2bbaf",
+   "mutated_sha256": "ec592b86313f64c1748d44f5296b065638abc7c2757472c246c23268c32afffa"
+  },
+  "agreed_nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[missing]",
+  "agreed_terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:118",
+  "agreed_case_status": "failure",
+  "crash_json_call_frame": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:118 builtins.AssertionError",
+  "crash_json_raw": {
+   "innermost": {
+    "line": 118,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "terminal": {
+    "line": 118,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  },
+  "frame_found": {
+   "structural": [
+    "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    118,
+    "builtins.AssertionError"
+   ],
+   "text": [
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    118,
+    "AssertionError"
+   ]
+  },
+  "text_frame": "research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:118 AssertionError",
+  "terminal_equals_agreed": true,
+  "other_mutant_cases": {
+   "test_t15d_f10_invalid_pass_precedes_malformed_trades[ended]": "failure"
+  },
+  "same_nodeids": true,
+  "n_nodeids": 2,
+  "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades"
+ },
+ {
+  "id": "F11",
+  "mutant": "stop-pending-removed",
+  "label": "failed-elsewhere",
+  "control_valid": true,
+  "control_rc": 0,
+  "control_cases": {
+   "test_t15d_f11_pending_close_does_not_consume_qualified_evidence": "pass"
+  },
+  "mutant_rc": 1,
+  "mutant_timeout": false,
+  "installed": {
+   "anchor_found": true,
+   "anchor_count": 1,
+   "installed": true,
+   "original_sha256": "e2d66c4a20152d67acd2c1ddc27b4308d1589dd6c66334e29e179f3a7de75ef2",
+   "mutated_sha256": "387cd730fc3fcad512b1df7484a9f79a7ec598c35cd25a42aedbc8ddf6b49cd5"
+  },
+  "agreed_nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
+  "agreed_terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:130",
+  "agreed_case_status": "failure",
+  "crash_json_call_frame": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_seal.py:663 builtins.TypeError",
+  "crash_json_raw": {
+   "innermost": {
+    "line": 663,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_seal.py"
+   },
+   "terminal": {
+    "line": 663,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_seal.py"
+   },
+   "type": "builtins.TypeError",
+   "type_raw": "builtins.TypeError"
+  },
+  "frame_found": {
+   "structural": [
+    "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_seal.py",
+    663,
+    "builtins.TypeError"
+   ],
+   "text": [
+    "research/s1/s1_seal.py",
+    663,
+    "TypeError"
+   ]
+  },
+  "text_frame": "research\\s1\\s1_seal.py:663 TypeError",
+  "terminal_equals_agreed": false,
+  "other_mutant_cases": {},
+  "same_nodeids": true,
+  "n_nodeids": 1,
+  "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence"
+ },
+ {
+  "id": "F12",
+  "mutant": "stop-prefix-le-to-lt",
+  "label": "killed",
+  "control_valid": true,
+  "control_rc": 0,
+  "control_cases": {
+   "test_t15d_f12_sampled_prefix_includes_its_qualified_boundary": "pass"
+  },
+  "mutant_rc": 1,
+  "mutant_timeout": false,
+  "installed": {
+   "anchor_found": true,
+   "anchor_count": 1,
+   "installed": true,
+   "original_sha256": "14314db73dd80aa719058fb9043f483dcc89730c0990b9961e3929cd09d8fc8d",
+   "mutated_sha256": "b1dc4c5ab1dc30f05a1bac3f61e98a439481096aa8b0e7348a9d5299af6b38a0"
+  },
+  "agreed_nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary",
+  "agreed_terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:149",
+  "agreed_case_status": "failure",
+  "crash_json_call_frame": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:149 builtins.AssertionError",
+  "crash_json_raw": {
+   "innermost": {
+    "line": 149,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "terminal": {
+    "line": 149,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  },
+  "frame_found": {
+   "structural": [
+    "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    149,
+    "builtins.AssertionError"
+   ],
+   "text": [
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+    149,
+    "AssertionError"
+   ]
+  },
+  "text_frame": "research\\s1\\s1_tests\\test_s1_a3_t15d_killers.py:149 AssertionError",
+  "terminal_equals_agreed": true,
+  "other_mutant_cases": {},
+  "same_nodeids": true,
+  "n_nodeids": 1,
+  "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary"
+ }
+]

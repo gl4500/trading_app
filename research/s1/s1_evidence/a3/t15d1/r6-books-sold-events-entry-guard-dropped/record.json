@@ -1,0 +1,72 @@
+{
+ "label": "killed",
+ "target": "s1_books._sold_events",
+ "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades",
+ "agreed": {
+  "basis": "T15-F10 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: a missing pass refuses with the NO_PASS text (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[missing]",
+  "oracle_kind": "assert",
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades",
+  "source_line": "assert observed == (\"pass-refusal\", z.PASS_REFUSAL)  # ORACLE:F10",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._sold_events]",
+   "oracle_kind": "pytest.raises",
+   "source_line": "with pytest.raises(SystemExit, match=NO_PASS):",
+   "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:480"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:118"
+ },
+ "selftests": {
+  "junit_sha256": "d7e4d1a6480278a4bca48a78d6de8eabb90d7e1d7236a7db7e56931ae802f65e",
+  "cases": 39
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_books._sold_events",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_books.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "f9fcfcec64906842dc847a3ed6bd5a47362300a93afb863ac65fb8ca7de2bbaf",
+  "mutated_sha256": "ec592b86313f64c1748d44f5296b065638abc7c2757472c246c23268c32afffa",
+  "first_line": 123
+ },
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   118,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   118,
+   "AssertionError"
+  ]
+ },
+ "control": {
+  "junit.xml": "4cbe2b66728f75fec3539bd29d7369e3f0ab974e6bf34ba97bf8fc55281bc94b",
+  "installed.json": null,
+  "crash.json": null,
+  "pytest-output.txt": "0e5fd9a698fd0435c3bcd87c5aac1c2e8186993fdc74cee0824d1fc6a75283bb",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
+ },
+ "mutant": {
+  "junit.xml": "a443a407877e25445be467e871043f88a741d9c956385741ca7f5d440bed5764",
+  "installed.json": "045d3ad73d45b05ffaf186217b0ef3710076da644c4fcbba3de4509630922811",
+  "crash.json": "cdd9cfba8fcc37dd7cb5df355fd37ea93179749020d69679587d48237fe54b2c",
+  "pytest-output.txt": "49cfb33f55114d02c18d3a59a09162f0a0a80abab7b33181b45255f840daf421",
+  "s1_mutant_plugin.py": "9723f95b070b86328683a88fbc3d189dfc97301c0c1f33b1537cfe5a81ce3bd4"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[missing]",
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[ended]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[missing]",
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[ended]"
+ ],
+ "finding": "T15-F10: survived: s1_seal.pinned(px) for `limit` re-checks the pass, but only AFTER rows(trades): a dead pass + malformed trades gives BookError instead of the pass refusal - NOT equivalent, a killer gap (t15_equivalence_drafts.md)"
+}

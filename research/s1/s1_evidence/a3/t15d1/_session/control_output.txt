@@ -1,0 +1,14 @@
+.........                                                                [100%]
+=================================== PASSES ====================================
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15d1\control_junit.xml -
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff
+PASSED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input
+PASSED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f7_recovery_creates_with_the_intents_own_op
+PASSED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell
+PASSED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[missing]
+PASSED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[ended]
+PASSED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence
+PASSED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f12_sampled_prefix_includes_its_qualified_boundary
+PASSED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-m-at-e]
+9 passed in 7.97s

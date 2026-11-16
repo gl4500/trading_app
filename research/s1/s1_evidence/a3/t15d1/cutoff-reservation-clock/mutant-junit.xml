@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.757" timestamp="2026-11-16T12:09:59.186202-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_t15d_killers" name="test_t15d_f1_audit_completes_with_the_intent_cutoff" time="0.123"><failure message="AssertionError: stage audit: INVALID (provider-structural)&#10;assert ('refused', None, None) == ('returned', ... '2026-10-12')&#10;  &#10;  At index 0 diff: 'refused' != 'returned'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15w0/m00/mutant/bt/test_t15d_f1_audit_completes_w0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002275ADDF1A0&gt;
+
+    def test_t15d_f1_audit_completes_with_the_intent_cutoff(tmp_path, monkeypatch):
+        pre_at = datetime(2026, 10, 13, 3, 59, 59, 999999, tzinfo=timezone.utc)
+        expected_day = "2026-10-12"
+        au.setup(tmp_path, ("A",), now=pre_at - timedelta(minutes=1))
+        post_at = pre_at + timedelta(microseconds=2)
+        now, append = [pre_at - timedelta(seconds=10)], j.append
+    
+        def at_intent(trial_id, genesis, req, ctx_fn, **kw):
+            if req.kind == "STAGE-INTENT":
+                kw["clock"] = lambda: pre_at
+                result = append(trial_id, genesis, req, ctx_fn, **kw)
+                now[0] = post_at
+                return result
+            return append(trial_id, genesis, req, ctx_fn, **kw)
+    
+        monkeypatch.setattr(j, "append", at_intent)
+        provider, spies, refusal = au.Provider(), Spies(monkeypatch), None
+        with au._clock(lambda: now[0]):
+            try:
+                manifest = k.do_audit(tmp_path, "audit-ack", spies.client(provider), au.KEYS)
+                observed = ("returned", manifest["outcome"], manifest["publication_cutoff"])
+            except SystemExit as exc:
+                refusal, observed = str(exc), ("refused", None, None)
+&gt;       assert observed == ("returned", "COMPLETE", expected_day), refusal  # ORACLE:F1
+E       AssertionError: stage audit: INVALID (provider-structural)
+E       assert ('refused', None, None) == ('returned', ... '2026-10-12')
+E         
+E         At index 0 diff: 'refused' != 'returned'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:49: AssertionError</failure></testcase></testsuite></testsuites>

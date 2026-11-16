@@ -1,0 +1,57 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+________ test_t15d_f10_invalid_pass_precedes_malformed_trades[missing] ________
+
+context = 'missing'
+
+    @pytest.mark.parametrize("context", ["missing", "ended"])
+    def test_t15d_f10_invalid_pass_precedes_malformed_trades(context):
+        px = None
+        if context == "ended":
+            with z.seal_pass() as px:
+                pass
+        trades = [{"id": 1, "symbol": "A", "action": "HOLD", "shares": 1, "price": 1, "ts": START}]
+        try:
+            b._sold_events(trades, px)
+            observed = ("returned", None)
+        except SystemExit as exc:
+            observed = ("pass-refusal", str(exc))
+        except b.BookError as exc:
+            observed = ("book-error", str(exc))
+>       assert observed == ("pass-refusal", z.PASS_REFUSAL)  # ORACLE:F10
+E       assert ('book-error'...ction 'HOLD'") == ('pass-refusa...fail closed)')
+E         
+E         At index 0 diff: 'book-error' != 'pass-refusal'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:118: AssertionError
+_________ test_t15d_f10_invalid_pass_precedes_malformed_trades[ended] _________
+
+context = 'ended'
+
+    @pytest.mark.parametrize("context", ["missing", "ended"])
+    def test_t15d_f10_invalid_pass_precedes_malformed_trades(context):
+        px = None
+        if context == "ended":
+            with z.seal_pass() as px:
+                pass
+        trades = [{"id": 1, "symbol": "A", "action": "HOLD", "shares": 1, "price": 1, "ts": START}]
+        try:
+            b._sold_events(trades, px)
+            observed = ("returned", None)
+        except SystemExit as exc:
+            observed = ("pass-refusal", str(exc))
+        except b.BookError as exc:
+            observed = ("book-error", str(exc))
+>       assert observed == ("pass-refusal", z.PASS_REFUSAL)  # ORACLE:F10
+E       assert ('book-error'...ction 'HOLD'") == ('pass-refusa...fail closed)')
+E         
+E         At index 0 diff: 'book-error' != 'pass-refusal'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:118: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15d1\run\bt\t15w0\m21\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[missing]
+FAILED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f10_invalid_pass_precedes_malformed_trades[ended]
+2 failed in 0.69s

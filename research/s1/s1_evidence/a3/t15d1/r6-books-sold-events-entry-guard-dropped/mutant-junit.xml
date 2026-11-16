@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.689" timestamp="2026-11-16T12:10:30.636782-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_t15d_killers" name="test_t15d_f10_invalid_pass_precedes_malformed_trades[missing]" time="0.012"><failure message="assert ('book-error'...ction 'HOLD'&quot;) == ('pass-refusa...fail closed)')&#10;  &#10;  At index 0 diff: 'book-error' != 'pass-refusal'&#10;  Use -v to get more diff">context = 'missing'
+
+    @pytest.mark.parametrize("context", ["missing", "ended"])
+    def test_t15d_f10_invalid_pass_precedes_malformed_trades(context):
+        px = None
+        if context == "ended":
+            with z.seal_pass() as px:
+                pass
+        trades = [{"id": 1, "symbol": "A", "action": "HOLD", "shares": 1, "price": 1, "ts": START}]
+        try:
+            b._sold_events(trades, px)
+            observed = ("returned", None)
+        except SystemExit as exc:
+            observed = ("pass-refusal", str(exc))
+        except b.BookError as exc:
+            observed = ("book-error", str(exc))
+&gt;       assert observed == ("pass-refusal", z.PASS_REFUSAL)  # ORACLE:F10
+E       assert ('book-error'...ction 'HOLD'") == ('pass-refusa...fail closed)')
+E         
+E         At index 0 diff: 'book-error' != 'pass-refusal'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:118: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_t15d_killers" name="test_t15d_f10_invalid_pass_precedes_malformed_trades[ended]" time="0.010"><failure message="assert ('book-error'...ction 'HOLD'&quot;) == ('pass-refusa...fail closed)')&#10;  &#10;  At index 0 diff: 'book-error' != 'pass-refusal'&#10;  Use -v to get more diff">context = 'ended'
+
+    @pytest.mark.parametrize("context", ["missing", "ended"])
+    def test_t15d_f10_invalid_pass_precedes_malformed_trades(context):
+        px = None
+        if context == "ended":
+            with z.seal_pass() as px:
+                pass
+        trades = [{"id": 1, "symbol": "A", "action": "HOLD", "shares": 1, "price": 1, "ts": START}]
+        try:
+            b._sold_events(trades, px)
+            observed = ("returned", None)
+        except SystemExit as exc:
+            observed = ("pass-refusal", str(exc))
+        except b.BookError as exc:
+            observed = ("book-error", str(exc))
+&gt;       assert observed == ("pass-refusal", z.PASS_REFUSAL)  # ORACLE:F10
+E       assert ('book-error'...ction 'HOLD'") == ('pass-refusa...fail closed)')
+E         
+E         At index 0 diff: 'book-error' != 'pass-refusal'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:118: AssertionError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,42 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________ test_t15d_f4_opening_books_is_an_envelope_input _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15w0/m12/mutant/bt/test_t15d_f4_opening_books_is_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000268D92433E0>
+
+    def test_t15d_f4_opening_books_is_an_envelope_input(tmp_path, monkeypatch):
+        _start, _cal, _oc, w = pre._open_and_ack(tmp_path)
+        real_hooks = r.start_attest_publish_hooks
+    
+        def checked_hooks(gv, inputs):
+            assert inputs.get("opening_books.json") == c.sha256_file(gv.out / "opening_books.json")  # ORACLE:F4
+            return real_hooks(gv, inputs)
+    
+        monkeypatch.setattr(r, "start_attest_publish_hooks", checked_hooks)
+        with _Clock(w + timedelta(minutes=2)):
+>           r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_run.py:501: in attest_start
+    ctx, before = start_attest_publish_hooks(gv, inputs)             # (the same hooks F4.7 recovery uses)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/..., mailbox_id='c684cfe9-41b6-4822-9c59-ae70031047c8', created=1793016000.0)], state='ACTIVE', mailbox=None, deferred=[])
+inputs = {'audit/manifest.json': '74fc470b2e99a337b5203c0d066f91ab9aef343d838144e5ee84b02f7e94b691', 'opening_receipt.json': '3...cd63c412a2056e1a2f90b084', 'seals/2026-10-23.json': 'c1c7a91ba4b2abf5d91f91fa6e1bbe2317818e505b6fed8f57503a91b56c49dc'}
+
+    def checked_hooks(gv, inputs):
+>       assert inputs.get("opening_books.json") == c.sha256_file(gv.out / "opening_books.json")  # ORACLE:F4
+E       AssertionError: assert None == '4be296b1432c5377eb5a9fc09e3236454b59dbfd7bab969d1c277f9dfcaab133'
+E        +  where None = <built-in method get of dict object at 0x00000268D95389C0>('opening_books.json')
+E        +    where <built-in method get of dict object at 0x00000268D95389C0> = {'audit/manifest.json': '74fc470b2e99a337b5203c0d066f91ab9aef343d838144e5ee84b02f7e94b691', 'opening_receipt.json': '3...cd63c412a2056e1a2f90b084', 'seals/2026-10-23.json': 'c1c7a91ba4b2abf5d91f91fa6e1bbe2317818e505b6fed8f57503a91b56c49dc'}.get
+E        +  and   '4be296b1432c5377eb5a9fc09e3236454b59dbfd7bab969d1c277f9dfcaab133' = <function sha256_file at 0x00000268D6C954E0>((WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15w0/m12/mutant/bt/test_t15d_f4_opening_books_is_0/s1_out') / 'opening_books.json'))
+E        +    where <function sha256_file at 0x00000268D6C954E0> = c.sha256_file
+E        +    and   WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15w0/m12/mutant/bt/test_t15d_f4_opening_books_is_0/s1_out') = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/..., mailbox_id='c684cfe9-41b6-4822-9c59-ae70031047c8', created=1793016000.0)], state='ACTIVE', mailbox=None, deferred=[]).out
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:60: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15d1\run\bt\t15w0\m12\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f4_opening_books_is_an_envelope_input
+1 failed in 1.77s

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.003" timestamp="2026-11-16T12:10:19.167121-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_t15d_killers" name="test_t15d_f7_recovery_creates_with_the_intents_own_op" time="0.240"><failure message="AssertionError: stage final_plan: STAGE-CREATED -&gt; INVALID (contradictory-stage)&#10;assert ('refused', None, None) == ('created', '...5f9e3df5118b')&#10;  &#10;  At index 0 diff: 'refused' != 'created'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15w0/m16/mutant/bt/test_t15d_f7_recovery_creates_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000023C69513050&gt;
+
+    def test_t15d_f7_recovery_creates_with_the_intents_own_op(tmp_path, monkeypatch):
+        stage.h.plan_only(tmp_path, stage.START)
+        stage.h.relax(monkeypatch, "final_plan")
+        assert stage.child(tmp_path, "final_plan", "die-after-prepared").returncode == 9
+        before = j.subject_rows(stage.jrows(tmp_path), j.stage_subject("final_plan"))
+        intent, prepared = j.first(before, "STAGE-INTENT"), j.first(before, "STAGE-PREPARED")
+        assert intent is not None and prepared is not None and j.first(before, "STAGE-CREATED") is None
+        refusal = None
+        try:
+            t.gate(tmp_path, "t15d recovery")
+            after = j.subject_rows(stage.jrows(tmp_path), j.stage_subject("final_plan"))
+            created = j.first(after, "STAGE-CREATED")
+            observed = ("created", created.op, created.detail) if created is not None else ("not-created", None, None)
+        except SystemExit as exc:
+            refusal, observed = str(exc), ("refused", None, None)
+&gt;       assert observed == ("created", intent.op, prepared.detail), refusal  # ORACLE:F7
+E       AssertionError: stage final_plan: STAGE-CREATED -&gt; INVALID (contradictory-stage)
+E       assert ('refused', None, None) == ('created', '...5f9e3df5118b')
+E         
+E         At index 0 diff: 'refused' != 'created'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_t15d_killers.py:85: AssertionError</failure></testcase></testsuite></testsuites>

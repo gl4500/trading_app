@@ -1,0 +1,70 @@
+{
+ "label": "killed",
+ "target": "s1_collect.do_audit",
+ "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff",
+ "agreed": {
+  "basis": "T15-F1 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: the cutoff is the INTENT's New York date, not the reservation clock's",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff",
+  "oracle_kind": "assert",
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff",
+  "source_line": "assert observed == (\"returned\", \"COMPLETE\", expected_day), refusal  # ORACLE:F1",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_audit.py::test_cutoff_is_the_intent_new_york_date_across_midnight[midnight]",
+   "oracle_kind": "assert",
+   "source_line": "assert m[\"publication_cutoff\"] == date_ != c.aware(reserved).astimezone(c.NY).date().isoformat()",
+   "terminal": "research/s1/s1_tests/test_s1_a3_audit.py:270"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:49"
+ },
+ "selftests": {
+  "junit_sha256": "d7e4d1a6480278a4bca48a78d6de8eabb90d7e1d7236a7db7e56931ae802f65e",
+  "cases": 39
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_collect.do_audit",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_collect.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "ee3a565232b7cedaa2ef194f8c034b77194cd896e59930e41620fe9f265cefb7",
+  "mutated_sha256": "e67b79d91ba1c5e7f7e89269da44c4a3ee28dc6563cd2c79dc4a99215991f62d",
+  "first_line": 390
+ },
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   49,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   49,
+   "AssertionError"
+  ]
+ },
+ "control": {
+  "junit.xml": "e742ad1349a25521abbf716e96171b19b3e4ccbdce35adaa6677643fa4a2bf8f",
+  "installed.json": null,
+  "crash.json": null,
+  "pytest-output.txt": "8f0aece003ae18358906135fe3958745820469f8ae1255bdebbc3bfc2e985198",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
+ },
+ "mutant": {
+  "junit.xml": "253d9304b48b52c0b78a75bb0e734db58338045612472051d8b0079b4f8c60d8",
+  "installed.json": "0c5607f1139f42f5fb07c6ce7bd5a4b25d32b9d150ab5001112818ee77c8c890",
+  "crash.json": "878e91d5748856e95e14e20c75dc889ab98b6784a61b1c5f78f0154e99e1f689",
+  "pytest-output.txt": "e01915abcf5a52a405bb1db1a33d89217e23b012d00b80e31b7210bfa80eae37",
+  "s1_mutant_plugin.py": "c599e5032b0e759f5e97c19817a4e587ca832aec17e5a555ecbaa4348bab46d5"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f1_audit_completes_with_the_intent_cutoff"
+ ],
+ "finding": "T15-F1: failed-elsewhere: the stage engine refuses the mutated cutoff first (s1_stage.py:356 SystemExit, INVALID provider-structural), not the agreed audit.py:270"
+}

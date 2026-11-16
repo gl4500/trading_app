@@ -1,0 +1,70 @@
+{
+ "label": "killed",
+ "target": "s1_books._sold_events",
+ "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell",
+ "agreed": {
+  "basis": "T15-F9 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: the pass-scoped replay equals the public sold_events",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell",
+  "oracle_kind": "assert",
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell",
+  "source_line": "assert observed == expected  # ORACLE:F9",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events",
+   "oracle_kind": "assert",
+   "source_line": "assert fn(trades, px) == b.sold_events(trades)",
+   "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:548"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:101"
+ },
+ "selftests": {
+  "junit_sha256": "d7e4d1a6480278a4bca48a78d6de8eabb90d7e1d7236a7db7e56931ae802f65e",
+  "cases": 39
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_books._sold_events",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_books.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "f9fcfcec64906842dc847a3ed6bd5a47362300a93afb863ac65fb8ca7de2bbaf",
+  "mutated_sha256": "d33704c8f0ca349160835c7b0bf26e1c61591e63848006dcffecb1b4ebc2b4f5",
+  "first_line": 123
+ },
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   101,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   101,
+   "AssertionError"
+  ]
+ },
+ "control": {
+  "junit.xml": "c703c3c15fb677f998a85052bbf3d68d9e9846ec156c13286bc535c144dffd9b",
+  "installed.json": null,
+  "crash.json": null,
+  "pytest-output.txt": "317637c564272abbabd9cacb8201ffe4888df8b5b8035c2ce6280cb4f6134344",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
+ },
+ "mutant": {
+  "junit.xml": "321ba29f0d97c37bdb2a3a54478f4817b9b8a7e5c537a969e87d36f686ca316d",
+  "installed.json": "64626467c98b8ddef81990a8ea2b5dd33ebda8944d664b3c73886a711ddced14",
+  "crash.json": "dda1fbd0174e4c7cc46dad6b1938c468c75e930fe386c92d207475656e704d50",
+  "pytest-output.txt": "41ec56cf75105da7e461b082ebd3a88109aed0c5cf449fcc57a162cd7ba3ee51",
+  "s1_mutant_plugin.py": "32103ed646b8cf0d8eb11e41663309816f5abd73871575a2914c6387ec12ce3e"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f9_fifo_includes_the_current_sell"
+ ],
+ "finding": "T15-F9: failed-elsewhere: the ctx() helper the killer calls in its body (conftest s1_state) commits no TRIAL-STOP (conftest.py:873 AssertionError), before h5b_pass.py:548 (fix round 1: not restructurable without changing its inputs - t15_anchor_map.md)"
+}

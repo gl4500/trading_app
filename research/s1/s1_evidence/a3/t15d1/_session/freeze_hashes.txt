@@ -1,0 +1,3 @@
+276f9de7c258574eb482aef0be4d650e85b14d1ffa30ec1b34568a3bfb38a9a5 *research/s1/s1_tests/test_s1_a3_mutants.py
+973fa0bb0975845642b1307d97b2a9dc4515e1a06d51aae83ec7d15efa61777d *research/s1/s1_evidence/a3/t15_agreed_assertions.json
+9c98162c5e71e83b81e89db42424960ac80f719ce84207b1fb8e85c6b1b10a62 *research/s1/s1_tests/test_s1_a3_t15d_killers.py

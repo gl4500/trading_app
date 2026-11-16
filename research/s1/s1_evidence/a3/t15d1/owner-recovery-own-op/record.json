@@ -1,0 +1,70 @@
+{
+ "label": "killed",
+ "target": "s1_stage.recover",
+ "selection": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f7_recovery_creates_with_the_intents_own_op",
+ "agreed": {
+  "basis": "T15-F7 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: recovery must append CREATED with the stage's own op",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f7_recovery_creates_with_the_intents_own_op",
+  "oracle_kind": "assert",
+  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f7_recovery_creates_with_the_intents_own_op",
+  "source_line": "assert observed == (\"created\", intent.op, prepared.detail), refusal  # ORACLE:F7",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]",
+   "oracle_kind": "assert",
+   "source_line": "assert stage_kinds(tmp_path, \"final_plan\")[-1] == \"STAGE-CREATED\"",
+   "terminal": "research/s1/s1_tests/test_s1_a3_stage.py:466"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:85"
+ },
+ "selftests": {
+  "junit_sha256": "d7e4d1a6480278a4bca48a78d6de8eabb90d7e1d7236a7db7e56931ae802f65e",
+  "cases": 39
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_stage.recover",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\run\\bt\\t15tree0\\research\\s1\\s1_stage.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "b036b6822ce73eedb61267dc48bac7716cd06551548a5b93cad4151721181e14",
+  "mutated_sha256": "a7e2d91890d1eeb41b77d097201f7c399383cddc7a2f07842261d3520f7c0717",
+  "first_line": 472
+ },
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   85,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_t15d_killers.py",
+   85,
+   "AssertionError"
+  ]
+ },
+ "control": {
+  "junit.xml": "9f31a99a8e2014272bd1d4b3aea2c94ee96997de9ec6435d8db5d6f3dfdca147",
+  "installed.json": null,
+  "crash.json": null,
+  "pytest-output.txt": "2dfd454fe54f50718cbba1933d2c51ef7ea505c5f0103cfa78f32a0c5f3afdf7",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
+ },
+ "mutant": {
+  "junit.xml": "0a088e480878a44e190f05887db248864fb76c01e9c17babeba1d5be29c6c6ab",
+  "installed.json": "933a620c1323f0e03727f395af6686e66af81c73fa97b5c8e5290cad1e041ada",
+  "crash.json": "36dec2e2970b72045feabf5612bc333f8d1ed6830cfb3d4a93fd923d62bf8219",
+  "pytest-output.txt": "538da529e8c770927851717735990e21d2320179e4157d9245323fcc676fb6fa",
+  "s1_mutant_plugin.py": "659791a75841001c9d37247936da250d707561b67d73bc003fc8fb2f7d61a4f0"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f7_recovery_creates_with_the_intents_own_op"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f7_recovery_creates_with_the_intents_own_op"
+ ],
+ "finding": "T15-F7: failed-elsewhere: the journal's 4a INVALIDATEs the foreign-op CREATED inside t.gate (s1_stage.py:363 SystemExit), before the agreed stage.py:466"
+}

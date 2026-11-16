@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="3.200" timestamp="2026-11-16T12:10:44.127779-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_t15d_killers" name="test_t15d_f12_sampled_prefix_includes_its_qualified_boundary" time="2.638" /></testsuite></testsuites>

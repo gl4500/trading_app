@@ -734,7 +734,32 @@ def c_sha256(p: Path) -> str:
     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 
-SELFTEST_EVIDENCE = HERE / "s1_evidence" / "a3" / "t15_selftests"
+# Task 15d-1 (Option A): the evidence tag and the per-mutant child selection come from data. Unset tag = "t15" and
+# an agreed entry with no "selection" = MUTANTS[name][3]: both exactly the 15b paths and selections.
+T15_TAG_ENV = "S1_T15_EVIDENCE_TAG"
+
+
+def t15_evidence_tag(env) -> str:
+    """The evidence tag from `env` (default "t15"); only `t15[a-z0-9_]*` - never a path - is accepted."""
+    tag = env.get(T15_TAG_ENV, "t15")
+    if not re.fullmatch(r"t15[a-z0-9_]*", tag):
+        raise ValueError(f"{T15_TAG_ENV}={tag!r}: must match t15[a-z0-9_]*")
+    return tag
+
+
+def t15_evidence(tag: str) -> tuple:
+    """(mutant evidence dir, classifier self-test evidence dir) for `tag`: a3/<tag>/ and a3/<tag>_selftests/."""
+    a3 = HERE / "s1_evidence" / "a3"
+    return a3 / t15_evidence_tag({T15_TAG_ENV: tag}), a3 / f"{tag}_selftests"
+
+
+def t15_selection(test: str, agreed: dict) -> str:
+    """The child selection: the agreed entry's "selection" (file::function under s1_tests/) when present, else the
+    MUTANTS killer selection `test` - the 15b string, unchanged."""
+    return f"research/s1/s1_tests/{agreed.get('selection', test)}"
+
+
+T15_EVIDENCE, SELFTEST_EVIDENCE = t15_evidence(t15_evidence_tag(os.environ))
 
 
 class ClassifierNotValidated(Exception):
@@ -818,7 +843,7 @@ def test_targeted_mutant_is_killed(tmp_path, classifier_validated, t15_tree, t15
     target, old, new, test = MUTANTS[name]
     agreed = json.loads(AGREED.read_text(encoding="utf-8"))[name]
     # {"nodeid": "research/s1/s1_tests/<file>::<test>[<param ids>]", "terminal": "<path>:<line>"} (reviewed)
-    selection = f"research/s1/s1_tests/{test}"
+    selection = t15_selection(test, agreed)                   # 15d-1: an agreed "selection" overrides
     pp = _pp(t15_tree)
     work = t15_work / f"m{sorted(MUTANTS).index(name):02d}"
     control = run_child(t15_tree, work / "control", selection, "", pythonpath=pp)
@@ -826,7 +851,7 @@ def test_targeted_mutant_is_killed(tmp_path, classifier_validated, t15_tree, t15
                            record=str(work / "mutant" / "installed.json"))
     mutant = run_child(t15_tree, work / "mutant", selection, plugin, pythonpath=pp)
     label = classify(name, control, mutant, agreed)
-    out = HERE / "s1_evidence" / "a3" / "t15" / name
+    out = T15_EVIDENCE / name                                  # 15d-1: a3/<S1_T15_EVIDENCE_TAG>/<name>
     out.mkdir(parents=True, exist_ok=True)
     for side in ("control", "mutant"):
         for f in sorted((work / side).glob("*")):
@@ -1200,3 +1225,18 @@ def test_hypothesis_property_executes_with_the_pinned_settings():
     examples = getattr(prop, "hypothesis_explicit_examples", None) or \
         getattr(prop.hypothesis.inner_test, "hypothesis_explicit_examples", [])
     assert len(examples) >= 2                                     # the retained @example set is attached
+
+
+# ---- Task 15d-1 (Option A) pin: selection and evidence tag from data; absent = the 15b behaviour ------------------
+def test_t15d1_selection_and_evidence_tag_from_data():
+    test = MUTANTS["deadline-missed-lt-to-le"][3]
+    assert t15_selection(test, {"nodeid": "x", "terminal": "y:1"}) == f"research/s1/s1_tests/{test}"
+    assert t15_selection(test, {"selection": "test_s1_a3_precedence.py::test_precedence_table"}) == \
+        "research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table"
+    a3 = HERE / "s1_evidence" / "a3"
+    assert t15_evidence_tag({}) == "t15" and t15_evidence("t15") == (a3 / "t15", a3 / "t15_selftests")
+    assert t15_evidence_tag({T15_TAG_ENV: "t15d1"}) == "t15d1"
+    assert t15_evidence("t15d1") == (a3 / "t15d1", a3 / "t15d1_selftests")
+    for bad in ("", "x15", "T15", "t15/../t15", "t15d1\\..", "../t15"):
+        with pytest.raises(ValueError):
+            t15_evidence_tag({T15_TAG_ENV: bad})
