@@ -20,7 +20,8 @@ TOOLS = ["t15c_common.py", "explore_timing.py", "junit_times.py", "scope_expand.
          "render_tables.py", "finalize.py", "selectors.json", "measure_io.py", "pool_check.py", "make_completion.py",
          "summarize2.py", "plan_sessions.py", "reinit.py", "reinit_copied_diff.py", "deletion_fix1.py",
          "deletion_fix2.py", "deletion_fix3.py", "deletion_fix4.py", "deletion_15cp.py",
-         "deletion_15cp_fix1.py", "deletion_15cp_fix2.py"]
+         "deletion_15cp_fix1.py", "deletion_15cp_fix2.py",
+         "deletion_15cp_fix3.py"]
 
 
 def copy():
@@ -42,7 +43,8 @@ def copy():
     for n in ("budget.json", "budget_v2.json", "measure_io.json", "pool_check_pre.json", "pool_check_post.json",
               "reinit_compare.json", "reinit_compare_fix2.json", "reinit_compare_fix3.json",
               "reinit_compare_fix4.json", "reinit_compare_15cp.json",
-              "reinit_compare_15cp_fix1.json", "reinit_compare_15cp_fix2.json"):
+              "reinit_compare_15cp_fix1.json", "reinit_compare_15cp_fix2.json",
+              "reinit_compare_15cp_fix3.json"):
         shutil.copy2(WORK / n, dst / n)
     print("copied")
 
@@ -79,7 +81,8 @@ def hashes():
                               "t15c_p_green.txt", "t15c_p_reinit_check.txt", "t15c_p_fix1_red.txt",
                               "t15c_p_fix1_green.txt", "t15c_p_fix1_reinit_check.txt", "t15c_p_fix2_red.txt",
                               "t15c_p_fix2_green.txt", "t15c_p_fix2_reinit_check.txt",
-                              "t15c_prep_hashes_pre_15cp_fix2.txt",
+                              "t15c_prep_hashes_pre_15cp_fix2.txt", "t15c_p_fix3_red.txt", "t15c_p_fix3_green.txt",
+                              "t15c_p_fix3_reinit_check.txt", "t15c_prep_hashes_at_52f2490.txt",
                               "t15c_prep_hashes_at_9330a64.txt")]
     extra += [WT / "research/s1/s1_tests" / n for n in ("cr_coord.py", "cr_reconcile.py", "cr_guard.py", "cr_launch.py",
                                                         "cr_preflight.py", "test_s1_a3_cr_guard.py",

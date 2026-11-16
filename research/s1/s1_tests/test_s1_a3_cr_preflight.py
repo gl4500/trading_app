@@ -1027,3 +1027,31 @@ def test_F12_the_changed_path_lists_are_capped_with_a_total(tmp_path):
     ch = rec.get("changed_paths", {}).get("copy") or {}
     assert ch.get("total") == 70 and ch.get("truncated") is True and len(ch.get("added", [])) == 50, ch
     assert ch["added"] == [f"pkg/gen_{i:03d}.py" for i in range(50)]
+
+
+# =============================================================================================== 15c-P fix round 3
+# Codex X25 at 52f2490 (t15cp_52f2490_review_20261116/probe_review.py): a reference captured from a clean record still
+# passed a direct run_batch(cfg=, preflight_ref=) after a later same-binding not_clean attempt or a later orphan marker,
+# which check_preflight refuses. _verify_preflight_ref must re-run check_preflight on the record's directory.
+@pytest.mark.parametrize("case,pattern", [
+    ("not_clean", r"preflight_001\.json for the current context is not_clean.*not used"),
+    ("orphan", r"started_001\.json for the current context has no record \(orphan\)"),
+    ("later_clean", r"preflight_000\.json is not the clean pre-flight check_preflight accepts now"),
+])
+def test_F13_a_handed_over_reference_is_refused_once_its_directory_fails_the_gate(tmp_path, case, pattern):
+    src, ev, cfg, cp = _proj(tmp_path)
+    _pf(src, ev, cfg, cp, guard_runner(), tmp_path)
+    ref = cr_coord.check_preflight(ev / "preflight", cfg, src_root=src, copy_paths=cp)
+    if case == "not_clean":
+        _pf(src, ev, cfg, cp, guard_runner(status="killed", exit_code=1), tmp_path)
+    elif case == "orphan":
+        (ev / "preflight" / "started_001.json").write_text(
+            json.dumps({"binding": cr_coord.preflight_binding(cfg, src, cp)}), encoding="utf-8")
+    else:                                   # a later clean record: the reference is no longer the one the gate returns
+        _pf(src, ev, cfg, cp, guard_runner(), tmp_path)
+    _, items = _three(tmp_path / "items")
+    calls = []
+    with pytest.raises(cr_coord.CoordError, match=pattern):
+        cr_coord.run_batch(["j1"], {i["job_id"]: i for i in items}, batch_id="b0", src_root=src, copy_paths=cp,
+                           work_root=tmp_path / "w", exec_seam=_real_like(calls)(cfg), cfg=cfg, preflight_ref=ref)
+    assert calls == [] and not (tmp_path / "w" / "batch_b0_state.json").exists()

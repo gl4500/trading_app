@@ -1189,7 +1189,9 @@ def _verify_preflight_ref(ref: dict, cfg: CRConfig, *, src_root: Path, copy_path
     """15c-P fix 1: a pre-flight reference handed over by a gated caller (which ran check_preflight on the full
     binding) is re-verified here: the record's bytes, its clean verdict, the cfg's test command, the current
     harness. fix 2 (R1-M1): and its WHOLE binding against preflight_binding(cfg, src_root, copy_paths) - a
-    stale record (any copied file, env, control, source ... changed since) is refused."""
+    stale record (any copied file, env, control, source ... changed since) is refused. fix 3 (Codex X25): and the
+    record's DIRECTORY must still pass check_preflight - a later same-binding not_clean record or orphan marker
+    refuses - and the record check_preflight accepts now must be exactly this reference (path and sha256)."""
     path = Path((ref or {}).get("record") or "")
     if not path.is_file() or _sha(path) != (ref or {}).get("sha256"):
         raise CoordError(f"pre-flight reference {ref} does not match its record")
@@ -1203,6 +1205,10 @@ def _verify_preflight_ref(ref: dict, cfg: CRConfig, *, src_root: Path, copy_path
     if b != cur:
         raise CoordError(f"pre-flight {path.name} is not bound to the current context (it differs in "
                          f"{_binding_drift(b, cur)}): refused")
+    now = check_preflight(path.parent, cfg, src_root=src_root, copy_paths=copy_paths)       # fix 3 (X25)
+    if Path(now["record"]).resolve() != path.resolve() or now["sha256"] != ref["sha256"]:
+        raise CoordError(f"pre-flight {path.name} is not the clean pre-flight check_preflight accepts now "
+                         f"({Path(now['record']).name}): refused")
     return {"record": str(path), "sha256": ref["sha256"]}
 
 

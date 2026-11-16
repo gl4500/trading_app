@@ -1,6 +1,14 @@
 # A3 Task 15c-prep + 15c-H: Cosmic Ray configs, baselines, scopes, inventories, completion shards and session plan (NO mutant executed)
 
-**Version.** This is v10, updated for 15c-P fix round 2. That round answers re-review 1
+**Version.** This is v11, updated for 15c-P fix round 3 (Codex X25 at the committed 52f2490:
+`C:/Users/gl450/.coordination/trading_app/t15cp_52f2490_review_20261116/`, confirmed in
+`t15cp_x25_confirm_claude.md`).
+- A handed-over `preflight_ref` is now refused unless its record directory still passes `check_preflight`, and the
+  record that check accepts is exactly the reference.
+- The inventories were re-initialised again.
+- The committed manifest is preserved as `a3/t15c_prep_hashes_at_52f2490.txt`.
+
+v10 covered 15c-P fix round 2, which answered re-review 1
 (`task-15c-p-review-verdict.md`: spec ✅, APPROVE, R1-M1 to R1-M3, plus R1-N1 to R1-N4):
 - a stale `preflight_ref` is refused;
 - N18 is pinned as a liveness behaviour;
@@ -39,7 +47,7 @@ CONDITIONAL_CONSENSUS, X23 and X24 CLOSED, packaging nit N1) and the controller'
 - v2 covered Task 15c-H.
 - v1 is what Codex reviewed as `t15c_prep_review_20261116`.
 - Changes are marked **[15c-H]**, **[fix-1]**, **[fix-2]**, **[fix-3]**, **[fix-4]**, **[fix-5]**, **[15c-P]**,
-  **[15c-P fix 1]** and **[15c-P fix 2]**.
+  **[15c-P fix 1]**, **[15c-P fix 2]** and **[15c-P fix 3]**.
 
 **Sources.**
 - Briefs: `task-15c-prep-brief.md`, the 15c-H coordinator message (rulings 1–7 adopting Codex's
@@ -88,6 +96,9 @@ xdist and a single lane (ruling 3).
 | `a3/t15c_p_fix2_red.txt` | 15c-P fix-2 RED | **3 failed**, all assertion-type: 1 `DID NOT RAISE` + 2 AssertionError. 223 passed. The R1-M2 liveness pin passes by design. |
 | `a3/t15c_p_fix2_green.txt` | 15c-P fix-2 GREEN | **226 passed.** Deletion checks: **9 deleted, 9 caught**, N18 included. |
 | `a3/t15c_p_fix2_reinit_check.txt` | 15c-P fix-2 re-init | 12/12 configs re-initialised again, with the superseded files under `_superseded/inventories_pre_15cp_fix2/`, verified against `a3/t15c_prep_hashes_pre_15cp_fix2.txt`. |
+| `a3/t15c_p_fix3_red.txt` | 15c-P fix-3 RED | **3 failed**, all `DID NOT RAISE`: Codex X25's two cases plus a later clean record. 226 passed. |
+| `a3/t15c_p_fix3_green.txt` | 15c-P fix-3 GREEN | **229 passed.** Deletion checks: **3 deleted, 2 caught**; S3, the sha term, is argued equivalent there. |
+| `a3/t15c_p_fix3_reinit_check.txt` | 15c-P fix-3 re-init | 12/12 configs re-initialised again, with the superseded files under `_superseded/inventories_pre_15cp_fix3/`, verified against `a3/t15c_prep_hashes_at_52f2490.txt`. It discloses the other task's untracked file in the `copied` maps. |
 | `a3/t15c_h_green.txt` | regenerated GREEN | Same final files: **135 passed**. |
 
 **[fix-3] Changes in this round** (X23/X24; controller rulings 1–7):
@@ -345,6 +356,9 @@ The clock and the margin:
 | `cr_launch.py` | b6aa8d2a…2f00 | unchanged |
 | `cr_preflight.py` | 22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a | **new (15c-P)**, changed in fixes 1 and 2 (was fb9e8ef6…, then d8e92102…); part of `HARNESS_FILES` |
 
+**[15c-P fix 3] `cr_coord.py` is now dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8.** The
+`cr_preflight.py` value is unchanged since fix 2. The fix-2 `cr_coord.py` value below is kept as history.
+
 **[15c-P fix 2] `cr_coord.py` is now 02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a.** The fix-1
 value dda8997c… below is kept as history.
 
@@ -564,6 +578,21 @@ were re-created again by `cosmic-ray init` only. The commands were `reinit.py 15
 - **Plans:** calibration-first and bound.
 - **What changed:** only `copied`, `harness_sha256` and `session_sha256`.
 - **Evidence:** `a3/t15c_p_fix2_reinit_check.txt` and `_prep/reinit_compare_15cp_fix2.json`.
+
+**[15c-P fix 3] Re-initialised an eighth time.** `cr_coord.py` changed, so the inventories were re-created by
+`cosmic-ray init` only. The commands were `reinit.py 15cp_fix3`, then `reinit_copied_diff.py 15cp_fix3`, then
+`plan_sessions.py`. It took **42.0 s**.
+- **Old files kept.** The committed 52f2490 files were moved unedited to `_superseded/inventories_pre_15cp_fix3/`, and
+  each equals its entry in `a3/t15c_prep_hashes_at_52f2490.txt`.
+- **Specs identical.** Both the specs and the kept specs are identical: 15685 before the filter, 6318 kept.
+- **Plans:** calibration-first.
+- **What changed:** only `copied`, `harness_sha256` and `session_sha256`.
+- **Disclosure: another task's untracked file is in the `copied` maps.** The changed `copied` entries include
+  `research/s1/s1_tests/test_s1_a3_t15d_killers.py`, an untracked file of another task (Task 15d). It sits in the
+  worktree's `s1_tests` directory, which the inventory copy paths include whole. It was only read, never edited, and
+  its sha256 is in the reinit check. If that file changes or lands differently, the inventories' `copied` provenance
+  for it goes stale. Nothing gates on `copied`, but every pre-flight `copied_sha256` binds it.
+- **Evidence:** `a3/t15c_p_fix3_reinit_check.txt` and `_prep/reinit_compare_15cp_fix3.json`.
 
 **Coverage evidence.** For each config, `selector_coverage_detail.json` is a parent-process `sys.monitoring` reach run
 on the final selector. It does not observe child or import-time code.
@@ -899,6 +928,13 @@ A reviewed 15c driver, run by the testenv interpreter from a script file, does t
           `a3/t15c_prep_hashes_pre_15cp_fix2.txt` (the fix-1 manifest, 1109 entries, unedited).
       - **R1-N4: M5 is a consistency check across committed records in the same tree, not a git check.** A
         consistent four-file edit would pass, so the clean-checkout precondition stands.
+    - **[15c-P fix 3] Codex X25.** `_verify_preflight_ref` now re-runs `check_preflight(<record dir>, cfg, ...)`. It
+      requires the record that check accepts to be exactly the handed-over reference, by path and sha256.
+      - So a reference captured before a later same-binding not_clean attempt is refused, as is one captured before
+        an orphan marker or a later clean record.
+      - Both callers that hand a reference over already take it from `check_preflight` just before: `run_completion`
+        and `run_retry`. They pass unchanged.
+      - There is no other caller.
 3. **Calibration session** (one session root per session):
 
    ```
@@ -965,8 +1001,8 @@ collect.
 - `budget_v2.json`, the source of the numbers above;
 - `pool_check_pre.json`, `pool_check_post.json`, `measure_io.json`, `reinit_compare.json`,
   `reinit_compare_fix2.json`, `reinit_compare_fix3.json`, `reinit_compare_fix4.json` and **[15c-P]**
-  `reinit_compare_15cp.json`, **[15c-P fix 1]** `reinit_compare_15cp_fix1.json` and **[15c-P fix 2]**
-  `reinit_compare_15cp_fix2.json`.
+  `reinit_compare_15cp.json`, **[15c-P fix 1]** `reinit_compare_15cp_fix1.json`, **[15c-P fix 2]**
+  `reinit_compare_15cp_fix2.json` and **[15c-P fix 3]** `reinit_compare_15cp_fix3.json`.
 
 **Superseded (kept unedited):**
 - `cr_a3/_superseded/s1_collect_v1/`;
@@ -974,6 +1010,8 @@ collect.
 - `cr_a3/_superseded/inventories_pre_fix2/`;
 - `cr_a3/_superseded/inventories_pre_fix3/`;
 - `cr_a3/_superseded/inventories_pre_fix4/`;
+- **[15c-P fix 3]** `cr_a3/_superseded/inventories_pre_15cp_fix3/` (the committed 52f2490 inventories, byte-equal to
+  their entries in `a3/t15c_prep_hashes_at_52f2490.txt`, the committed 52f2490 manifest, preserved unedited);
 - **[15c-P fix 2]** `cr_a3/_superseded/inventories_pre_15cp_fix2/` (the fix-1 inventories, byte-equal to their
   entries in `a3/t15c_prep_hashes_pre_15cp_fix2.txt`, the preserved fix-1 manifest);
 - **[15c-P fix 1]** `cr_a3/_superseded/inventories_pre_15cp_fix1/` (the 15c-P inventories, never committed;
@@ -986,6 +1024,8 @@ collect.
 
 **Hashes:** `a3/t15c_prep_hashes.txt`, LF line endings and `sha256sum -c` compatible. It covers every file under
 `cr_a3/`, this document, the RED/GREEN records and the harness and test files.
+- **[15c-P fix 3] 1217 entries.** The committed 52f2490 list (1163 entries) is preserved unedited as
+  `a3/t15c_prep_hashes_at_52f2490.txt`.
 - **[15c-P fix 2] 1163 entries.** The fix-1 list (1109 entries) is preserved unedited as
   `a3/t15c_prep_hashes_pre_15cp_fix2.txt`.
 - **[15c-P fix 1] 1109 entries** (15c-P had 1056). Same rules as 15c-P.
