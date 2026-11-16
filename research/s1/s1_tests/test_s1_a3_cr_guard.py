@@ -414,6 +414,7 @@ def test_coordinator_quarantines_and_stops_with_pending_preserved(tmp_path, bad)
         status = "killed" if item["job_id"] == "j1" else bad
         return {"guard_status": status, "raw_timeout": False, "exec_status": "ok",
                 "cleanup_verified": status != "cleanup_uncertain", "label": status}
+    seam.synthetic = True                      # 15c-P fix 1 (M3): a declared synthetic test seam
     work = tmp_path / "work"
     st = cr_coord.run_batch(["j1", "j2", "j3"], by_id, batch_id="b000", src_root=src, copy_paths=["pkg"],
                             work_root=work,
@@ -439,8 +440,9 @@ def test_end_to_end_real_cosmic_ray_with_guard_and_reconciler(tmp_path):
     t0 = time.monotonic()
     src = project(tmp_path / "src", {"mod_e2e.py": E2E_MOD, "test_e2e.py": E2E_TEST})
     before = sha(src / "mod_e2e.py")                  # (bytes as written on this OS: CRLF on Windows)
-    ctl = control(tmp_path / "control.json", ["test_e2e.py::test_is_missing"])
-    cfg = cr_coord.CRConfig(python=PY, module_rel="mod_e2e.py", guard_args=["--control", ctl, "test_e2e.py"],
+    control(src / "control.json", ["test_e2e.py::test_is_missing"])    # 15c-P fix 1: copied, like real configs
+    cfg = cr_coord.CRConfig(python=PY, module_rel="mod_e2e.py",
+                            guard_args=["--control", "control.json", "test_e2e.py"],
                             pythonpath_rel=["."], target_module="mod_e2e")
     work = tmp_path / "work"
     items = cr_coord.inventory(src, ["mod_e2e.py", "test_e2e.py", "pytest.ini"], cfg, work)
@@ -450,9 +452,11 @@ def test_end_to_end_real_cosmic_ray_with_guard_and_reconciler(tmp_path):
     with pytest.raises(cr_coord.CoordError, match=r"inventory\.json already exists"):
         cr_coord.inventory(src, ["mod_e2e.py"], cfg, work)
     ordered = [i["job_id"] for i in cr_coord.order_items(items)]
+    from test_s1_a3_cr_completion import _pf_dir              # 15c-P fix 1 (M3): real_exec is always gated
+    cp = ["mod_e2e.py", "test_e2e.py", "pytest.ini", "control.json"]
     st = cr_coord.run_batch(ordered, {i["job_id"]: i for i in items}, batch_id="e2e", src_root=src,
-                            copy_paths=["mod_e2e.py", "test_e2e.py", "pytest.ini"], work_root=work / "b0",
-                            exec_seam=cr_coord.real_exec(cfg))
+                            copy_paths=cp, work_root=work / "b0", exec_seam=cr_coord.real_exec(cfg),
+                            cfg=cfg, preflight_dir=_pf_dir(tmp_path, src, cfg, cp))
     op = {i["job_id"]: i["operator"] for i in items}
     labels = {op[j]: lab for j, lab in st.get("labels", {}).items()}
     assert labels == {"core/ReplaceComparisonOperator_Is_IsNot": "killed", "core/AddNot": "survived"}, st
@@ -619,6 +623,7 @@ def _stub(bad_ids, how="timeout", calls=None):
         bad = item["job_id"] in bad_ids
         return {"guard_status": how if bad else "killed", "raw_timeout": False, "exec_status": "ok",
                 "cleanup_verified": True, "label": how if bad else "killed"}
+    seam.synthetic = True                      # 15c-P fix 1 (M3): a declared synthetic test seam
     return seam
 
 
@@ -699,23 +704,29 @@ def test_write_manifests_and_run_manifest_bind_the_inventory(tmp_path):
     src, items = _three(tmp_path)
     work = tmp_path / "w"
     work.mkdir()
+    # 15c-P: run_manifest needs the config (whose test command is the inventory's) and its clean pre-flight
+    from test_s1_a3_cr_completion import _pf_dir
+    cfg = cr_coord.CRConfig(python=PY, module_rel="pkg/m.py", guard_args=["--control", "ctl.json", "t.py"],
+                            target_module="pkg.m")
+    pf = dict(cfg=cfg, preflight_dir=_pf_dir(tmp_path, src, cfg, ["pkg", "ctl.json"]))
     inv = work / "inventory.json"
     inv.write_text(json.dumps({"module_rel": "pkg/m.py", "source_sha256": sha(src / "pkg" / "m.py"),
-                               "items": cr_coord.order_items(items)}), encoding="utf-8")
+                               "test_command": cr_coord.test_command(cfg), "items": cr_coord.order_items(items)}),
+                   encoding="utf-8")
     paths = cr_coord.write_manifests(work, [["j1", "j2"], ["j3"]], sha(inv))
     assert [p.name for p in paths] == ["batch_000.json", "batch_001.json"]
     assert json.loads(paths[0].read_text(encoding="utf-8"))["items"] == ["j1", "j2"]
     with pytest.raises(cr_coord.CoordError, match=r"batch_000\.json already exists"):
         cr_coord.write_manifests(work, [["j1"]], sha(inv))
     assert hasattr(cr_coord, "run_manifest"), "run_manifest exists"
-    st = cr_coord.run_manifest(paths[0], inv, src_root=src, copy_paths=["pkg"], work_root=work,
-                               exec_seam=_stub(set()))
+    st = cr_coord.run_manifest(paths[0], inv, src_root=src, copy_paths=["pkg", "ctl.json"], work_root=work,
+                               exec_seam=_stub(set()), **pf)
     assert st.get("done") == ["j1", "j2"] and st.get("manifest_sha256") == sha(paths[0])
     assert st.get("inventory_sha256") == sha(inv)
     inv.write_text(inv.read_text(encoding="utf-8") + " ", encoding="utf-8")
     with pytest.raises(cr_coord.CoordError, match=r"inventory sha256 .* does not match the manifest"):
-        cr_coord.run_manifest(paths[1], inv, src_root=src, copy_paths=["pkg"], work_root=work,
-                              exec_seam=_stub(set()))
+        cr_coord.run_manifest(paths[1], inv, src_root=src, copy_paths=["pkg", "ctl.json"], work_root=work,
+                              exec_seam=_stub(set()), **pf)
 
 
 # I5: the harness_drift / source_drift / exec_exception stops quarantine the copy and keep the rest pending.
@@ -734,6 +745,7 @@ def test_drift_and_exception_stops(tmp_path, kind):
             raise OSError("launcher vanished")
         return {"guard_status": "killed", "raw_timeout": False, "exec_status": "ok", "cleanup_verified": True,
                 "label": "killed"}
+    seam.synthetic = True                      # 15c-P fix 1 (M3): a declared synthetic test seam
     work = tmp_path / "w"
     st = cr_coord.run_batch(["j1", "j2"], by_id, batch_id="b000", src_root=src, copy_paths=["pkg"], work_root=work,
                             exec_seam=seam, source_sha256=expected)
@@ -797,6 +809,7 @@ def _labelled(labels: dict):
         lab = labels.get(item["job_id"], "killed")
         return {"guard_status": status[lab], "raw_timeout": False, "exec_status": "ok",
                 "cleanup_verified": lab != "cleanup_uncertain", "label": lab}
+    seam.synthetic = True                      # 15c-P fix 1 (M3): a declared synthetic test seam
     return seam
 
 
@@ -859,6 +872,7 @@ def test_interrupted_batch_blocks_the_next_until_resolved(tmp_path):
 
     def dying(item, copy_root, job_dir):
         raise _CoordinatorDied("coordinator killed mid-exec")
+    dying.synthetic = True                     # 15c-P fix 1 (M3): a declared synthetic test seam
     with pytest.raises(_CoordinatorDied, match=r"coordinator killed mid-exec"):
         cr_coord.run_batch(["j1", "j2"], by_id, batch_id="b000", src_root=src, copy_paths=["pkg"], work_root=work,
                            exec_seam=dying)
@@ -962,6 +976,7 @@ def test_timeout_label_with_a_cleanup_uncertain_stop_needs_a_resolution_before_r
                     "label": "timeout"}
         return {"guard_status": "killed", "raw_timeout": False, "exec_status": "ok", "cleanup_verified": True,
                 "label": "killed"}
+    seam.synthetic = True                      # 15c-P fix 1 (M3): a declared synthetic test seam
     st0 = cr_coord.run_batch(["j1", "j2"], by_id, batch_id="b000", src_root=src, copy_paths=["pkg"],
                              work_root=work, exec_seam=seam)
     assert (st0["stop_reason"], st0["labels"]["j2"]) == ("cleanup_uncertain: j2", "timeout")

@@ -1,0 +1,450 @@
+{
+ "configs": {
+  "s1_collect__audit": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 1160,
+   "count_old": 1160,
+   "job_ids_changed": 1160,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "b179b5a50177a96921972e4f2ddd19bf79a61e9f7351102527310d9a375ed130",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "eac5b9faa78dfa28bb941a67fb56b7736895a3aff88da7c9c2612d16b547af01",
+   "post_filter_new": 406,
+   "post_filter_old": 406,
+   "seconds": 3.19,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_collect__final": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 1160,
+   "count_old": 1160,
+   "job_ids_changed": 1160,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "1609ca863c32df6ef134d028a137387bc6f245b7dca655efb399473b29aa4ec1",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "8f06f3ad1ea20a3d5ba3da59c12434f6ea43e2e4e6817ad2a674bbd5aca64272",
+   "post_filter_new": 446,
+   "post_filter_old": 446,
+   "seconds": 3.3,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_journal": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 720,
+   "count_old": 720,
+   "job_ids_changed": 720,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "ea5214f2f6fe5b86ac16cfd866feaad7c5c045eae4709bcb522367a0c42f894e",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "5f999dd96ecbbad5f90c16da914532f3caa9cfaca661b64da9dd35fda3d4fad1",
+   "post_filter_new": 720,
+   "post_filter_old": 720,
+   "seconds": 2.59,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_locks": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 159,
+   "count_old": 159,
+   "job_ids_changed": 159,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "959889b0c3a4228e4d042b04905333642c4ab108870167d1d218e056f95a0c2b",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "c39f695d91307673359d43c76ce4197f7f0fc6f839e68f1c7e57615716d66b83",
+   "post_filter_new": 159,
+   "post_filter_old": 159,
+   "seconds": 1.67,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_seal__check": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 1634,
+   "count_old": 1634,
+   "job_ids_changed": 1634,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "64631170c45005bb55fb497036d7a27fef1e5c3ec565e6a4b6f212d1ca844218",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "968b43ded81ce60fdc293984898bc221446e147dc881eae22b7460830bb02d5c",
+   "post_filter_new": 77,
+   "post_filter_old": 77,
+   "seconds": 3.72,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_seal__decide": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 1634,
+   "count_old": 1634,
+   "job_ids_changed": 1634,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "f9b9bcab33c9a0098cf8ad855591552b8f6b3f217e5e48ebcda374ef94b01d9b",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "0f8ef321469c6230da35b536b8a25c7af0db01d6aaf1254d4cdc402cdbdb97e9",
+   "post_filter_new": 101,
+   "post_filter_old": 101,
+   "seconds": 3.73,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_seal__record": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 1634,
+   "count_old": 1634,
+   "job_ids_changed": 1634,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "3a06eaf2fa24357a2430064ecbfe2c3320c073848c96661a283037ac4a668abc",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "44e5bef4ddfc45a8ac09836ba2057dfd3c040b67089c7b7a000a2b6185affe88",
+   "post_filter_new": 114,
+   "post_filter_old": 114,
+   "seconds": 3.72,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_seal__sampled": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 1634,
+   "count_old": 1634,
+   "job_ids_changed": 1634,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "154ae3f5e6b65c91980f4aa0c86297519e22260e071fd2beb18b7d07388c32b2",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "c6a55abb848cda46d079e285b1e1e62a47fe26ee5c03cba8dca95bcb2fd927cc",
+   "post_filter_new": 42,
+   "post_filter_old": 42,
+   "seconds": 3.77,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_slot__finalizer": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 1697,
+   "count_old": 1697,
+   "job_ids_changed": 1697,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "2cf1ba82a668403e4eaade1f73e034e63100c6978d878ee7681288deb5a50125",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "7e5784ab6ea18b9777f4008268304aff8aae19fb845fe5503f62a48ea4fc7f94",
+   "post_filter_new": 1397,
+   "post_filter_old": 1397,
+   "seconds": 4.31,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_slot__slots": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 1697,
+   "count_old": 1697,
+   "job_ids_changed": 1697,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "2d359f74967cd6f1e0bd63ae00904c921bf0f24502059217f81351d42df71f51",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "05318197fc20b48b57bfcfb56f347c13b0969e23892a32e19d8cd352e9bd7c8a",
+   "post_filter_new": 300,
+   "post_filter_old": 300,
+   "seconds": 4.31,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_stage": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 774,
+   "count_old": 774,
+   "job_ids_changed": 774,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "1ecfdec8dd967f4345d773d19f17251f81b9846ad5501236711cca9ec3e25838",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "8bc24e7a7743692186b01f7b8c982dc60f1cf512b7b8ec51ab93f5d772c157bc",
+   "post_filter_new": 774,
+   "post_filter_old": 774,
+   "seconds": 2.92,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  },
+  "s1_trial": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/cr_coord.py",
+    "research/s1/s1_tests/cr_preflight.py",
+    "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+    "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+   ],
+   "count_new": 1782,
+   "count_old": 1782,
+   "job_ids_changed": 1782,
+   "new_harness_sha256": {
+    "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "532f2382c8436adae911cc6be1c8aa4be975c08ed94f4dfe510da8a6275b9c3f",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "6614c291fb68dc49eae7beac03713b23cd81f3b018b3dc403151324a765c0fb0",
+   "post_filter_new": 1782,
+   "post_filter_old": 1782,
+   "seconds": 4.06,
+   "top_level_fields_differing": [
+    "copied",
+    "harness_sha256",
+    "session_sha256"
+   ]
+  }
+ },
+ "copied_files_differing_any": [
+  "research/s1/s1_tests/cr_coord.py",
+  "research/s1/s1_tests/cr_preflight.py",
+  "research/s1/s1_tests/test_s1_a3_cr_completion.py",
+  "research/s1/s1_tests/test_s1_a3_cr_preflight.py"
+ ],
+ "harness_sha256_now": {
+  "cr_coord.py": "02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a",
+  "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+  "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+  "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+  "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+ },
+ "total_seconds": 41.62
+}

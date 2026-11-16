@@ -1,0 +1,83 @@
+A3 Task 15c-P fix round 2 RED (2026-11-16T11:25:00-05:00); HEAD 9330a64 + uncommitted 15c-P + fix 1 (harness = fix 1: cr_coord dda8997c, cr_preflight d8e92102) + the fix-2 tests only.
+new tests: R1-M1 stale preflight_ref refused by run_batch (the reviewer's probe_r1 NEW case); R1-M2 an old-binding orphan does not block a new binding under a new work root (liveness pin: passes here, evidence by deletion of N18); R1-M3 changed paths recorded + capped with a total.
+result: 3 failed, all assertion-type (1 DID NOT RAISE, 2 AssertionError); the R1-M2 liveness pin passes (no RED by design).
+cmd: S1_HYPOTHESIS_ROOT=<fresh scratch dir> PYTHONPATH="research/s1;research/s1/s1_tests" <testenv>/Scripts/python.exe -B -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_cr_guard.py research/s1/s1_tests/test_s1_a3_cr_completion.py research/s1/s1_tests/test_s1_a3_cr_preflight.py -q -rf (serial, from the worktree root)
+pytest rc: 1; last line: 3 failed, 223 passed in 49.99s
+files run (sha256):
+bd3301811231b37037fd705313a9914d43265dee93764023a23f273e57b1463c *research/s1/s1_tests/test_s1_a3_cr_guard.py
+3561aefd0eaca99ebcb8772fb24ffc04cadaf119b65efdbe88ed04b6c13643fa *research/s1/s1_tests/test_s1_a3_cr_completion.py
+706eb82009802ffcb232434b3278c9cf7115e59d519359be61c374b8eb94c2d0 *research/s1/s1_tests/test_s1_a3_cr_preflight.py
+dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84 *research/s1/s1_tests/cr_coord.py
+1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82 *research/s1/s1_tests/cr_preflight.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+====
+........................................................................ [ 31%]
+........................................................................ [ 63%]
+........................................................................ [ 95%]
+......F.FF                                                               [100%]
+================================== FAILURES ===================================
+___________ test_F12_a_stale_preflight_ref_is_refused_by_run_batch ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21713/test_F12_a_stale_preflight_ref0')
+
+    def test_F12_a_stale_preflight_ref_is_refused_by_run_batch(tmp_path):
+        """The reviewer's probe: a clean record, then a file added under the copied pkg/, then a direct
+        run_batch(cfg=, preflight_ref=<that record>) with a non-synthetic seam."""
+        src, ev, cfg, cp = _proj(tmp_path)
+        rec = _pf(src, ev, cfg, cp, guard_runner(), tmp_path)
+        path = ev / "preflight" / f"preflight_{rec['attempt']:03d}.json"
+        (src / "pkg" / "added_later.py").write_text("Z = 1\n", encoding="utf-8")
+        _, items = _three(tmp_path / "items")
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"preflight_000\.json is not bound to the current context .*"
+                                                      r"copied_sha256"):
+E                                                     Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:973: Failed
+___________________ test_F12_the_changed_paths_are_recorded ___________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21713/test_F12_the_changed_paths_are0')
+
+    def test_F12_the_changed_paths_are_recorded(tmp_path):
+        src, ev, cfg, cp = _proj(tmp_path)
+        (src / "pkg" / "extra.py").write_text("E = 1\n", encoding="utf-8")
+        rec = _try_pf(src, ev, cfg, cp, guard_runner(edit=lambda c: _changes(c, src)), tmp_path)
+        assert {"copy_changed", "source_tree_changed"} <= set(rec.get("reasons", [])), rec
+>       assert rec.get("changed_paths", {}).get("copy") == {
+            "added": ["pkg/new_in_copy.py"], "removed": ["pkg/extra.py"], "modified": ["ev/c/nodes.txt"], "total": 3,
+            "truncated": False}, rec.get("changed_paths")
+E       AssertionError: None
+E       assert None == {'added': ['pkg/new_in_copy.py'], 'modified': ['ev/c/nodes.txt'], 'removed': ['pkg/extra.py'], 'total': 3, ...}
+E        +  where None = <built-in method get of dict object at 0x0000025B74F92700>('copy')
+E        +    where <built-in method get of dict object at 0x0000025B74F92700> = {}.get
+E        +      where {} = <built-in method get of dict object at 0x0000025B74F90440>('changed_paths', {})
+E        +        where <built-in method get of dict object at 0x0000025B74F90440> = {'at': '2026-11-16T16:25:50.811673+00:00', 'attempt': 0, 'binding': {'argfiles_sha256': {'ev/c/nodes.txt': '49ecc9eb6a...5f', 'copied_sha256': 'f95b418382cee5ff9b386ebffe5374988789483acca3fd7735e80d252ebff720', ...}, 'budget_s': 180.0, ...}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:1013: AssertionError
+___________ test_F12_the_changed_path_lists_are_capped_with_a_total ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21713/test_F12_the_changed_path_list0')
+
+    def test_F12_the_changed_path_lists_are_capped_with_a_total(tmp_path):
+        src, ev, cfg, cp = _proj(tmp_path)
+    
+        def many(c):
+            for i in range(70):
+                (c / "pkg" / f"gen_{i:03d}.py").write_text("G = 1\n", encoding="utf-8")
+        rec = _try_pf(src, ev, cfg, cp, guard_runner(edit=many), tmp_path)
+        ch = rec.get("changed_paths", {}).get("copy") or {}
+>       assert ch.get("total") == 70 and ch.get("truncated") is True and len(ch.get("added", [])) == 50, ch
+E       AssertionError: {}
+E       assert (None == 70)
+E        +  where None = <built-in method get of dict object at 0x0000025B752BE580>('total')
+E        +    where <built-in method get of dict object at 0x0000025B752BE580> = {}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:1028: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F12_a_stale_preflight_ref_is_refused_by_run_batch
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F12_the_changed_paths_are_recorded
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F12_the_changed_path_lists_are_capped_with_a_total
+3 failed, 223 passed in 49.99s

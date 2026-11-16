@@ -1,8 +1,35 @@
 # A3 Task 15c-prep + 15c-H: Cosmic Ray configs, baselines, scopes, inventories, completion shards and session plan (NO mutant executed)
 
-**Version.** This is v7, updated for 15c-H fix round 5. That round addresses re-review 4
-(`task-15c-h-review-verdict.md` → "Re-review 4": R4-I1, R4-N1, R4-N2) and adds the controller's pre-flight and
-counting rulings. It makes **no harness change**: `cr_coord.py` stays at 43008a7f….
+**Version.** This is v10, updated for 15c-P fix round 2. That round answers re-review 1
+(`task-15c-p-review-verdict.md`: spec ✅, APPROVE, R1-M1 to R1-M3, plus R1-N1 to R1-N4):
+- a stale `preflight_ref` is refused;
+- N18 is pinned as a liveness behaviour;
+- the changed paths are recorded;
+- the Info items are disclosed in step 3a;
+- the inventories were re-initialised again.
+
+v9 covered 15c-P fix round 1, which answered the task review
+(`.superpowers/sdd/s1_plan_addendum3/task-15c-p-review-verdict.md`: spec ❌, CHANGES_REQUIRED, Important 3, Minor 7),
+following the controller's rulings 1–11.
+- **Crash safety.** Every attempt now leaves a written record, and an orphaned attempt blocks.
+- **Wider binding.** The whole copied tree is bound, in the pre-flight, in each completion attempt and in each
+  screening item.
+- **Retries** are gated on the base pre-flight.
+- **`run_batch`** gates every execution unless the seam declares itself synthetic. A real_exec seam is tied to its
+  `cfg`.
+- **Driver hardening:** `--write-control` is refused, the after-run checks cover the whole copy, and the frozen value
+  is cross-checked.
+- **Harness changed again.** The inventories were re-initialised.
+
+v8 covered Task 15c-P: the pre-flight driver of runbook step 3a. It followed Codex's exact-head review of 9330a64
+(`C:/Users/gl450/.coordination/trading_app/t15chfix_9330a64_review_20261116/REVIEW.txt`: APPROVE /
+CONDITIONAL_CONSENSUS, X23 and X24 CLOSED, packaging nit N1) and the controller's 15c-P brief.
+- **It changes the harness.** It adds `cr_preflight.py`, which joins `HARNESS_FILES`. In `cr_coord.py` it adds
+  `preflight_binding` and `check_preflight`, and gates `run_manifest`, calibration `run_batch(config=...)` and
+  `run_completion` shards on them.
+- **Re-initialised.** The inventories were re-initialised again, see Method → Inventories.
+- v7 covered fix round 5: re-review 4 (R4-I1, R4-N1, R4-N2), plus the pre-flight and counting rulings, with no
+  harness change.
 - v6 covered fix round 4: re-review 3 of fix round 3 (R3-I1, R3-N1 to R3-N4), with the controller's rulings 1–5.
 - v5 covered fix round 3: Codex's exact-head review of the committed 192e47c
   (`C:/Users/gl450/.coordination/trading_app/t15ch_192e47c_review_20261116/REVIEW.txt`, CHANGES_REQUIRED / NO-GO,
@@ -11,7 +38,8 @@ counting rulings. It makes **no harness change**: `cr_coord.py` stays at 43008a7
 - v3 covered fix round 1.
 - v2 covered Task 15c-H.
 - v1 is what Codex reviewed as `t15c_prep_review_20261116`.
-- Changes are marked **[15c-H]**, **[fix-1]**, **[fix-2]**, **[fix-3]**, **[fix-4]** and **[fix-5]**.
+- Changes are marked **[15c-H]**, **[fix-1]**, **[fix-2]**, **[fix-3]**, **[fix-4]**, **[fix-5]**, **[15c-P]**,
+  **[15c-P fix 1]** and **[15c-P fix 2]**.
 
 **Sources.**
 - Briefs: `task-15c-prep-brief.md`, the 15c-H coordinator message (rulings 1–7 adopting Codex's
@@ -51,6 +79,15 @@ xdist and a single lane (ruling 3).
 | `a3/t15c_h_fix4_red.txt` | fix-4 RED | **9 failed**, all assertion-type: 5 AssertionError, 3 regex mismatch, 1 `DID NOT RAISE`. 125 passed. Plus a supplementary RED (1 AssertionError) for the case-insensitivity test, written after the main RED. |
 | `a3/t15c_h_fix4_green.txt` | fix-4 GREEN | **135 passed.** |
 | `a3/t15c_h_fix5_check.txt` | fix-5 plan check | 12/12 plans calibration-first and bound; `check_plans()` refuses a plain plan. No harness or test change, so there is no new RED/GREEN. |
+| `a3/t15c_p_red.txt` | 15c-P RED | **35 failed**: 32 AssertionError + 3 `DID NOT RAISE`. 135 passed. Plus two supplementary REDs of the final test file against the 9330a64 harness: 47 failed, all assertion-type. |
+| `a3/t15c_p_green.txt` | 15c-P GREEN | **182 passed** (three focused files). Also holds the deletion checks (**59/59 caught**) and the archive-check demonstration. |
+| `a3/t15c_p_reinit_check.txt` | 15c-P re-init | 12/12 configs: specs and kept specs identical, plans calibration-first and bound, harness current (5 files). |
+| `a3/t15c_p_fix1_red.txt` | 15c-P fix-1 RED | **28 failed**, all assertion-type. 183 passed. Plus a supplementary RED for the pins added during the deletion planning. |
+| `a3/t15c_p_fix1_green.txt` | 15c-P fix-1 GREEN | **222 passed** (three focused files). Deletion checks: **101 deleted, 96 caught**; the 5 not caught are argued equivalent there (P10, N18, B03, B06, B07). |
+| `a3/t15c_p_fix1_reinit_check.txt` | 15c-P fix-1 re-init | 12/12 configs re-initialised again, with the superseded files under `_superseded/inventories_pre_15cp_fix1/`. |
+| `a3/t15c_p_fix2_red.txt` | 15c-P fix-2 RED | **3 failed**, all assertion-type: 1 `DID NOT RAISE` + 2 AssertionError. 223 passed. The R1-M2 liveness pin passes by design. |
+| `a3/t15c_p_fix2_green.txt` | 15c-P fix-2 GREEN | **226 passed.** Deletion checks: **9 deleted, 9 caught**, N18 included. |
+| `a3/t15c_p_fix2_reinit_check.txt` | 15c-P fix-2 re-init | 12/12 configs re-initialised again, with the superseded files under `_superseded/inventories_pre_15cp_fix2/`, verified against `a3/t15c_prep_hashes_pre_15cp_fix2.txt`. |
 | `a3/t15c_h_green.txt` | regenerated GREEN | Same final files: **135 passed**. |
 
 **[fix-3] Changes in this round** (X23/X24; controller rulings 1–7):
@@ -306,6 +343,22 @@ The clock and the margin:
 | `cr_reconcile.py` | 1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d | changed (fix-1; not changed in fix-2) |
 | `cr_guard.py` | 54e88df7…7f76 | unchanged |
 | `cr_launch.py` | b6aa8d2a…2f00 | unchanged |
+| `cr_preflight.py` | 22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a | **new (15c-P)**, changed in fixes 1 and 2 (was fb9e8ef6…, then d8e92102…); part of `HARNESS_FILES` |
+
+**[15c-P fix 2] `cr_coord.py` is now 02ab0c4a5ada296e017ad1e0f1fc156dc77d23d4420fdba6e82fbef30279692a.** The fix-1
+value dda8997c… below is kept as history.
+
+**[15c-P fix 1] `cr_coord.py` is now dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84.** The 15c-P
+value 06a91463… below is kept as history.
+
+**[15c-P] `cr_coord.py` is now 06a91463511bdfa9b6310ca64d356d3a3a9629ea269c67d345b0bebf03778ca7.** The table row
+above is the fix-4 value, kept as history.
+- **What changed:**
+  - `preflight_binding` and `check_preflight` are new;
+  - the gates in `run_manifest`, calibration `run_batch` and `run_completion` are new;
+  - `HARNESS_FILES` gains `cr_preflight.py`;
+  - the helper-hash loop is factored into `_helpers`, with its behaviour unchanged.
+- `cr_guard.py`, `cr_reconcile.py` and `cr_launch.py` are unchanged.
 
 ## Method (unchanged from v1 unless marked)
 
@@ -469,6 +522,48 @@ nothing. It took **41.2 s** in total.
     active config (all 21) under the fix-4 env with the frozen `--control` file. A screening config runs it before its
     calibration; a completion config runs it before its first use. See runbook step 3a.
     A config whose pre-flight is not clean is not calibrated.
+
+**[15c-P] Re-initialised a fifth time.** `cr_coord.py` changed, and `HARNESS_FILES` gained `cr_preflight.py`, so all
+12 screening inventories were re-created by a genuine `cosmic-ray init` only. The commands were
+`tools/reinit.py 15cp`, then `reinit_copied_diff.py 15cp`, then `plan_sessions.py`, with -B and
+PYTHONDONTWRITEBYTECODE=1. It took **41.7 s**.
+- **Old files kept.** The 9330a64 files were moved **unedited** to `cr_a3/_superseded/inventories_pre_15cp/`, and
+  each is byte-equal to its committed blob.
+- **Specs identical.** The normalized specs and the kept specs are identical and in the same order: 15685 before the
+  filter, **6318 kept**.
+- **What changed.**
+  - `harness_sha256` now has 5 files.
+  - `copied` changed for `cr_coord.py`, `cr_preflight.py` and the three test files.
+  - `session_sha256` changed.
+- **Plans.** Each plan is calibration-first, and `finalize.py hashes` re-checks that.
+- **Baselines were not re-run, and are replaced.** Before use, the 21 configs get the step-3a pre-flights instead.
+  The guard, the test commands and the controls are unchanged.
+- **Evidence:** `a3/t15c_p_reinit_check.txt` and `_prep/reinit_compare_15cp.json`.
+
+**[15c-P fix 1] Re-initialised a sixth time.** `cr_coord.py` and `cr_preflight.py` changed, so all 12 screening
+inventories were re-created again by a genuine `cosmic-ray init` only. The commands were `tools/reinit.py 15cp_fix1`,
+then `reinit_copied_diff.py 15cp_fix1`, then `plan_sessions.py`. It took **41.5 s**.
+- **Old files kept.** The 15c-P files were moved **unedited** to `cr_a3/_superseded/inventories_pre_15cp_fix1/`.
+  They were never committed, so each was checked against its sha256 in the 15c-P hash manifest instead.
+- **Specs identical.** Both the normalized specs and the kept specs are identical: 15685 before the filter, **6318
+  kept**.
+- **What changed:** only `copied` (cr_coord, cr_preflight and the three test files), `harness_sha256` and
+  `session_sha256`.
+- **Plans:** calibration-first, and bound to the new inventories.
+- **Baselines** are not re-run; they are replaced by the step-3a pre-flights.
+- **Evidence:** `a3/t15c_p_fix1_reinit_check.txt` and `_prep/reinit_compare_15cp_fix1.json`.
+
+**[15c-P fix 2] Re-initialised a seventh time.** `cr_coord.py` and `cr_preflight.py` changed again, so the inventories
+were re-created again by `cosmic-ray init` only. The commands were `reinit.py 15cp_fix2`, then
+`reinit_copied_diff.py 15cp_fix2`, then `plan_sessions.py`. It took **41.6 s**.
+- **Manifest preserved first.** Before regenerating, the fix-1 manifest was copied unedited to
+  `a3/t15c_prep_hashes_pre_15cp_fix2.txt`.
+- **Old files kept.** The fix-1 files were moved unedited to `_superseded/inventories_pre_15cp_fix2/`, and each
+  matches its entry in that preserved manifest.
+- **Specs identical.** Both the specs and the kept specs are identical: 15685 before the filter, 6318 kept.
+- **Plans:** calibration-first and bound.
+- **What changed:** only `copied`, `harness_sha256` and `session_sha256`.
+- **Evidence:** `a3/t15c_p_fix2_reinit_check.txt` and `_prep/reinit_compare_15cp_fix2.json`.
 
 **Coverage evidence.** For each config, `selector_coverage_detail.json` is a parent-process `sys.monitoring` reach run
 on the final selector. It does not observe child or import-time code.
@@ -684,8 +779,9 @@ A reviewed 15c driver, run by the testenv interpreter from a script file, does t
       R5-I1). Their 27 baselines also ran before the fix-4 scrub. An unmutated control failing under the scrubbed env
       would be labelled `killed` by the guard, giving a guard-clean false kill to every survivor that reaches that shard.
     - A config that is not clean is neither calibrated nor used for completion.
-    - **Driver.** The pre-flight driver is not yet written. It must be task-reviewed, and Codex-reviewed at exact head,
-      before it runs (R5-N1).
+    - **Driver.** ~~The pre-flight driver is not yet written.~~ **[15c-P]** The driver is
+      `research/s1/s1_tests/cr_preflight.py`; see "Driver and CLI" below. It must be task-reviewed, and
+      Codex-reviewed at exact head, before it runs (R5-N1). **None of it has been run against a real config.**
     - **What runs.** A fresh copy (step 2's copy paths) and the exact `cr.toml` test-command, which carries
       `--control <E>/control.json`, the frozen control. It runs under `cr_guard.run_contained`, with the CR timeout
       as the outer deadline and the env from the production `cr_coord._env(copy, cfg, job_dir, job_id)`, which is the
@@ -698,12 +794,118 @@ A reviewed 15c driver, run by the testenv interpreter from a script file, does t
     - **Clean means** guard status `survived`, the node set equal to the control, no node-set mismatch, verified
       cleanup, the source unchanged, and the outer wall time within the selector budget.
     - **A config whose pre-flight is not clean is not calibrated.**
+    - **[15c-P] Driver and CLI.** Run it with the testenv interpreter, by path, from a clean checkout at the agreed
+      head:
+
+      ```
+      <testenv> -B research/s1/s1_tests/cr_preflight.py all --src-root <clean checkout> --work-root <scratch dir>
+                [--modules s1_journal,...]
+      ```
+
+      - **What `run_all` does.** It finds the 21 configs (`discover`: the 12 screening configs in R1 module order,
+        then the 9 completion shards). For each, it rebuilds the config from its committed `cr.toml`
+        (`config_from_toml`), with pythonpath `research/s1`, `research/s1/s1_tests`. It uses step 2's copy paths
+        (`copy_paths_for`) and calls `run_preflight`.
+      - **The frozen control value** is `collect_only.json` → `control_sha256`, beside the control. That value was
+        recorded when the control was created, is committed, and equals the 9330a64 blob and manifest entry for all
+        21 controls. It is independent of the regenerated hash manifest, which a tampered control would follow.
+      - **The source pin** is the config's `inventory.json` `source_sha256`. A completion shard uses every screening
+        inventory of its module, and they must agree.
+      - **Where records go.** Each run writes a write-once `<E or CE>/preflight/preflight_<k>.json`, with `k` as the
+        next free attempt.
+      - **Re-runs are safe.** A config that already has a clean record for its current binding is skipped. A config
+        with a not_clean record for that binding stops the run without retrying, and so does a new not_clean.
+      - **Exit code.** It is 0 only if every config reached is clean.
+      - **Gates.**
+        - `run_manifest` now needs `cfg=` and `preflight_dir=<E>/preflight`, and refuses unless the inventory's test
+          command is `cfg`'s.
+        - A calibration `run_batch(config=identity)` needs the same.
+        - Each `run_completion` shard spec needs `"preflight_dir": <CE>/preflight`.
+        - Each gate is `cr_coord.check_preflight`: a CLEAN record bound to the current `preflight_binding`, and no
+          not_clean record for it. The binding covers harness, command, control, argfiles, source, helpers, copy
+          paths, pythonpath and the bound child env.
+        - A change in any of these, including in a later session, invalidates the record.
+        - The record's path and sha256 are persisted in the batch state (`preflight`), in each completion attempt and
+          in the completion record (`preflights`).
+    - **[15c-P fix 1] Changes after the task review.**
+      - **Crash safety (I1).** Each attempt first writes `started_<k>.json`, write-once. Every outcome after it then
+        ends in a written `preflight_<k>.json` (try/finally), as a not_clean record with its reason. That covers:
+        - a malformed or unreadable guard sidecar or runner result;
+        - a copy that differs from the pins or the source tree;
+        - a non-reviewed harness file in the copy;
+        - a runner exception (a non-Exception abort is recorded, then re-raised);
+        - any other driver error.
+      - **Orphans.** A marker without a record (a hard kill), or a work-root `attempt_<k>` without a record, is an
+        **orphan**. It blocks `check_preflight` and `run_all` exactly like a recorded not_clean, and is never retried
+        past. Clearing it is an operator action, outside the driver. **[15c-P fix 2]** The work-root check in
+        `run_all` ignores the binding, so a changed binding starts afresh only under a new work root (R1-N2).
+      - **Every copied file is bound (I2).** `copied_sha256` is the sha256 of `cr_coord.copied_map`, which hashes every
+        file a copy of the copy paths holds. It is in:
+        - the pre-flight binding;
+        - every completion attempt's binding and its reuse comparison;
+        - each screening item (`copy_paths` + `copied_tree_sha256`). Completion refuses a screening label whose copied
+          tree differs now.
+
+        So editing any selected test or sibling module after a clean pre-flight refuses every gate.
+      - **After the run (M4/M7).** The whole copy must be unchanged, as must the source tree's copy paths and the
+        source-tree control.
+      - **Retries are gated (I3).** `run_retry(..., preflight_dir=<E>/preflight)` checks the BASE config's pre-flight,
+        not `retry_config(cfg)`. The timeout batch must have run under that same record (same sha256).
+      - **Every execution is gated (M1/M3).** `run_batch` needs `cfg` and a clean pre-flight for every execution,
+        unless the exec seam declares itself `synthetic` (test stubs only).
+        - A `real_exec` seam is never synthetic. It carries `test_command_sha256` and must match `cfg`, or
+          `retry_config(cfg)` for a retry.
+        - `run_completion` and `run_retry` hand their verified reference over as `preflight_ref`, which is
+          re-verified: bytes, clean verdict, command, harness.
+      - **`--write-control` is refused (M6).**
+      - **The frozen value is cross-checked (M5).**
+        - The driver requires the `collect_only.json` value to equal every historical baseline guard sidecar's
+          `control_sha256`. It needs at least one; there are 3 per config.
+        - For a screening config, it must also equal the inventory's `copied` entry for the control.
+        - Independently, the task reviewer verified, for 21/21 configs, that `git show 9330a64:<E>/control.json` ==
+          the 9330a64 `collect_only.json` `control_sha256` == the working tree == the manifest
+          (`task-15c-p-review-verdict.md`, "Executed evidence summary").
+        - The driver makes no git call. Edits made consistently to `control.json`, `collect_only.json`, the baseline
+          sidecars and the inventory would pass. That `--src-root` is a clean checkout at the agreed head remains an
+          operator precondition.
+    - **[15c-P fix 2] Changes after re-review 1** (R1-M1 to R1-M3; the R1-N items are disclosed here, with no code
+      change).
+      - **R1-M1: a stale reference is refused.** `_verify_preflight_ref` now also requires the record's WHOLE binding
+        to equal `preflight_binding(cfg, src_root, copy_paths)`. A direct `run_batch(cfg=, preflight_ref=<stale clean
+        record>)` is refused, for example after a copied file changed.
+        - So run_batch's re-check now also refuses a change made between `run_completion`'s pre-pass and the attempt.
+        - The executed-vs-planned guard still covers a change made after that re-check and before the copy.
+      - **R1-M2: N18 was not equivalent.** The marker term in `_next_attempt` keeps a config alive after an
+        old-binding orphan, provided the work root is new and the binding is new. This is now tested. The fix-1
+        GREEN record carries an appended correction.
+      - **R1-M3: changed paths are recorded.** A `copy_changed` / `source_tree_changed` record lists the changed
+        relative paths under `changed_paths.{copy, source_tree}`, as `added`, `removed` and `modified`. Each list is
+        sorted and capped at 50, with `total` and `truncated`.
+      - **R1-N1: the synthetic flag is self-declared, and cannot be verified.**
+        - Any non-`real_exec` seam that sets `synthetic = True` runs ungated through `run_batch`, and through
+          `run_retry` with such a factory.
+        - This is a declared exemption for test stubs.
+        - Production is unaffected: `run_manifest` and `run_completion` always gate, and `run_retry`'s default
+          factory is `real_exec`, whose seams never count as synthetic.
+        - A reviewed 15c driver must never pass a non-`real_exec` seam.
+      - **R1-N2: `run_all` blocks on ANY orphan `attempt_<k>` dir in its work root, whatever the binding.**
+        - A changed binding starts afresh only under a NEW work root. The gate's marker-based orphan check is
+          per-binding.
+        - Clearing an orphan, or choosing a new work root after a binding change, is an operator action.
+      - **R1-N3: the 15c-P manifest was not preserved.** The 15c-P (1056-entry) manifest was overwritten in fix 1,
+        so `_superseded/inventories_pre_15cp_fix1/` can no longer be re-checked against it. The reviewer
+        spot-checked 3 configs, with specs equal and in order, 0 job_id overlap.
+        - From fix 2 on, the manifest is preserved before each regeneration, starting with
+          `a3/t15c_prep_hashes_pre_15cp_fix2.txt` (the fix-1 manifest, 1109 entries, unedited).
+      - **R1-N4: M5 is a consistency check across committed records in the same tree, not a git check.** A
+        consistent four-file edit would pass, so the clean-checkout precondition stands.
 3. **Calibration session** (one session root per session):
 
    ```
    cr_coord.write_manifests(<root>/<C>, [batch_plan.json["calibration_batch"]], sha256(<E>/inventory.json))
    cr_coord.run_manifest(<root>/<C>/batch_000.json, <E>/inventory.json, src_root=..., copy_paths=...,
-                         work_root=<root>/<C>/session-000, exec_seam=cr_coord.real_exec(cfg), config=identity)
+                         work_root=<root>/<C>/session-000, exec_seam=cr_coord.real_exec(cfg), config=identity,
+                         cfg=cfg, preflight_dir=<E>/preflight)                       # [15c-P]
    ```
 
    The HARD 405 s fence and the monotonic session clock apply. After any reboot, sleep or hibernate, start a new
@@ -712,7 +914,8 @@ A reviewed 15c driver, run by the testenv interpreter from a script file, does t
 
    ```
    cr_coord.run_completion(j, items_by_id,
-                           [{"name": "c<i>", "cfg": cfg_c<i>, "copy_paths": ...} for every c<i>],
+                           [{"name": "c<i>", "cfg": cfg_c<i>, "copy_paths": ...,
+                             "preflight_dir": <CE>/preflight} for every c<i>],               # [15c-P]
                            pool_path=<src_root>/research/s1/s1_evidence/cr_a3/<module>/completion/pool.json,
                            src_root=..., work_root=<root>/<C>/session-000, exec_factory=cr_coord.real_exec)
    ```
@@ -730,8 +933,9 @@ A reviewed 15c driver, run by the testenv interpreter from a script file, does t
 
    Then build the remaining manifests with `cr_coord.plan_batches(pending_after_calibration, size=<derived cap>,
    cap_record=<root>/<C>/derived_cap.json, identity=identity)`. Run each with
-   `run_manifest(..., cap_record=<that path>, config=identity)` in its own session root. **[fix-4]** A direct
-   `run_batch(config=identity)` also needs `inventory_path=<E>/inventory.json`; `run_manifest` passes it. The record
+   `run_manifest(..., cap_record=<that path>, config=identity, cfg=cfg, preflight_dir=<E>/preflight)` in its own
+   session root. **[fix-4]** A direct `run_batch(config=identity)` also needs `inventory_path=<E>/inventory.json`
+   (and, **[15c-P]**, `cfg=` + `preflight_dir=`); `run_manifest` passes them. The record
    is re-verified on every use, and the fence, not the cap, bounds every session.
    - **[fix-5]** `calibration_batch` and `pending_after_calibration` are the keys of `<E>/batch_plan.json`, which is
      calibration-first again (see Method → Inventories). Its `batches` key is gone, so no driver can improvise from it.
@@ -760,15 +964,34 @@ collect.
 **Audit trail:** `cr_a3/_prep/`, which is unreviewed tooling and not tests. It holds:
 - `budget_v2.json`, the source of the numbers above;
 - `pool_check_pre.json`, `pool_check_post.json`, `measure_io.json`, `reinit_compare.json`,
-  `reinit_compare_fix2.json`, `reinit_compare_fix3.json` and `reinit_compare_fix4.json`.
+  `reinit_compare_fix2.json`, `reinit_compare_fix3.json`, `reinit_compare_fix4.json` and **[15c-P]**
+  `reinit_compare_15cp.json`, **[15c-P fix 1]** `reinit_compare_15cp_fix1.json` and **[15c-P fix 2]**
+  `reinit_compare_15cp_fix2.json`.
 
 **Superseded (kept unedited):**
 - `cr_a3/_superseded/s1_collect_v1/`;
 - `cr_a3/_superseded/inventories_pre_fix1/`;
 - `cr_a3/_superseded/inventories_pre_fix2/`;
 - `cr_a3/_superseded/inventories_pre_fix3/`;
-- `cr_a3/_superseded/inventories_pre_fix4/`.
+- `cr_a3/_superseded/inventories_pre_fix4/`;
+- **[15c-P fix 2]** `cr_a3/_superseded/inventories_pre_15cp_fix2/` (the fix-1 inventories, byte-equal to their
+  entries in `a3/t15c_prep_hashes_pre_15cp_fix2.txt`, the preserved fix-1 manifest);
+- **[15c-P fix 1]** `cr_a3/_superseded/inventories_pre_15cp_fix1/` (the 15c-P inventories, never committed;
+  byte-equal to their 15c-P manifest entries);
+- **[15c-P]** `cr_a3/_superseded/inventories_pre_15cp/` (the 9330a64 inventories, byte-equal to their committed
+  blobs);
+- **[15c-P]** `a3/t15c_prep_hashes_at_9330a64.txt`: the committed 1001-entry list, kept unedited as historical
+  evidence (Codex N1). Its one generated-cache entry (`_prep/tools/__pycache__/t15c_common.cpython-312.pyc`) was
+  never in git; that `__pycache__` directory is removed.
 
 **Hashes:** `a3/t15c_prep_hashes.txt`, LF line endings and `sha256sum -c` compatible. It covers every file under
 `cr_a3/`, this document, the RED/GREEN records and the harness and test files.
+- **[15c-P fix 2] 1163 entries.** The fix-1 list (1109 entries) is preserved unedited as
+  `a3/t15c_prep_hashes_pre_15cp_fix2.txt`.
+- **[15c-P fix 1] 1109 entries** (15c-P had 1056). Same rules as 15c-P.
+- **[15c-P] 1056 entries.** Generated caches (`__pycache__/`, `*.pyc`) are excluded, and tooling runs with `-B`.
+- **[15c-P] Archive check (Codex N1).** `finalize.py hashes` refuses unless every entry is git-tracked or in the
+  current `git status --porcelain` modified/untracked set, so nothing ignored can be listed.
+- **Not yet verified from a clean archive.** The list's reproducibility from a clean exact-head archive can only be
+  checked after a commit. That is the driver review's step.
 

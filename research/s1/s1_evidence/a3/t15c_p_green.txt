@@ -1,0 +1,90 @@
+A3 Task 15c-P GREEN (2026-11-16T09:53:50-05:00); HEAD 9330a64 + uncommitted 15c-P (cr_preflight.py new; cr_coord.py gate; test changes). No mutant, calibration, baseline or real pre-flight executed: every guard run in these tests is a synthetic runner seam.
+cmd: S1_HYPOTHESIS_ROOT=<fresh scratch dir> PYTHONPATH="research/s1;research/s1/s1_tests" <testenv>/Scripts/python.exe -B -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_cr_guard.py research/s1/s1_tests/test_s1_a3_cr_completion.py research/s1/s1_tests/test_s1_a3_cr_preflight.py -q -rf (serial, from the worktree root)
+pytest rc: 0; last line: 182 passed in 43.53s
+files run (sha256):
+255e048f277f9e9e65854446338b57d8f8aaafdfffee9ed70f20f4a011dc42d4 *research/s1/s1_tests/test_s1_a3_cr_guard.py
+5e49c45765d04eb49a4251818b7236b8542d70b6a51f0d5f97739831f3f85ab4 *research/s1/s1_tests/test_s1_a3_cr_completion.py
+e9ecc9fb970fe352a80b24aa0f7fd992fa00d0b9bc147423aadc9b74c31a00dd *research/s1/s1_tests/test_s1_a3_cr_preflight.py
+06a91463511bdfa9b6310ca64d356d3a3a9629ea269c67d345b0bebf03778ca7 *research/s1/s1_tests/cr_coord.py
+1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+fb9e8ef65b2d74c68fd95bbf2a51f02e1b3e5b1007583e4cfb7637bfa1217116 *research/s1/s1_tests/cr_preflight.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+====
+........................................................................ [ 39%]
+........................................................................ [ 79%]
+......................................                                   [100%]
+182 passed in 43.53s
+
+==== DELETION CHECKS (15c-P; final pass on the final files) ====
+tool: _prep/tools/deletion_15cp.py, run from scratchpad/p15/ (copies under scratchpad/p15/deletion/<id>/, outside the repo). Each mutant: one guard deleted in a copy; the new test file first, and all three focused files if it does not catch. A first pass (deletion_log_pass1) left P10 (next-attempt record check) and P17 (guard exit code) uncaught; two tests were added (new work root -> attempt 1; guard exit 3 with outer rc 0) and every mutant re-run below.
+result: 59 guards deleted, 59 caught; D0 control (no deletion) 47 + 182 passed.
+----
+D0_control NOT CAUGHT ['47 passed in 2.84s', '182 passed in 46.56s'] []
+P01_frozen_control caught ['2 failed, 45 passed in 2.90s'] ['test_P_tampered_control_is_refused_before_anything_runs', 'test_P_cli_reads_the_frozen_control_value_from_collect_only_json']
+P02_source_pin caught ['1 failed, 46 passed in 2.70s'] ['test_P_source_other_than_the_inventory_pin_is_refused']
+P03_cr_toml_identity caught ['1 failed, 46 passed in 2.61s'] ['test_P_a_cr_toml_that_does_not_render_the_config_is_refused']
+P04_copy_vs_pins caught ['1 failed, 46 passed in 2.83s'] ['test_P_a_copy_that_differs_from_the_pins_is_refused']
+P05_copy_harness_drift caught ['1 failed, 46 passed in 2.72s'] ['test_P_a_harness_file_in_the_copy_that_is_not_the_reviewed_one_is_refused']
+P06_env_not_production caught ['1 failed, 46 passed in 2.57s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record']
+P07_command_not_exact caught ['1 failed, 46 passed in 2.73s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record']
+P08_deadline_not_cr_timeout caught ['1 failed, 46 passed in 2.75s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record']
+P09_write_once_mode caught ['1 failed, 46 passed in 2.82s'] ['test_P_records_are_opened_write_once - Fai...']
+P10_next_attempt_skips_records caught ['1 failed, 46 passed in 2.83s'] ['test_P_the_next_attempt_counts_existing_records_even_under_a_new_work_root']
+P11_status caught ['2 failed, 45 passed in 2.78s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[error]', 'test_P_every_not_clean_branch_is_recorded_with_its_reason[killed]']
+P12_nodes_vs_control caught ['1 failed, 46 passed in 2.79s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[nodes_differ]']
+P13_node_set_mismatch caught ['1 failed, 46 passed in 2.79s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[node_set_mismatch]']
+P14_guard_control_sha caught ['1 failed, 46 passed in 2.79s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[guard_control_sha]']
+P15_counts caught ['1 failed, 46 passed in 2.68s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[skipped]']
+P16_guard_cleanup caught ['1 failed, 46 passed in 2.92s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[guard_cleanup]']
+P17_guard_exit caught ['1 failed, 46 passed in 2.66s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[guard_exit_only]']
+P18_outer_rc caught ['1 failed, 46 passed in 2.80s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[outer_rc_only]']
+P19_outer_timeout caught ['1 failed, 46 passed in 2.76s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[outer_timeout]']
+P20_outer_cleanup caught ['1 failed, 46 passed in 2.73s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[outer_cleanup]']
+P21_source_after caught ['1 failed, 46 passed in 2.70s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[source_changed]']
+P22_control_after caught ['1 failed, 46 passed in 2.70s'] ['test_P_control_json_is_never_written_and_its_bytes_are_unchanged']
+P23_budget caught ['1 failed, 46 passed in 2.80s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[over_budget]']
+P24_budget_boundary caught ['1 failed, 46 passed in 2.82s'] ['test_P_wall_time_exactly_at_the_budget_is_clean']
+P25_no_guard_sidecar caught ['1 failed, 46 passed in 2.68s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[no_guard]']
+P26_runner_exception caught ['1 failed, 46 passed in 2.75s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[runner_exception]']
+P27_skip_already_clean caught ['1 failed, 46 passed in 2.76s'] ['test_P_cli_runs_configs_in_order_stops_on_the_first_not_clean_and_is_safe_to_rerun']
+P28_block_not_clean caught ['1 failed, 46 passed in 2.69s'] ['test_P_cli_runs_configs_in_order_stops_on_the_first_not_clean_and_is_safe_to_rerun']
+P29_stop_on_not_clean caught ['2 failed, 45 passed in 2.86s'] ['test_P_cli_runs_configs_in_order_stops_on_the_first_not_clean_and_is_safe_to_rerun', 'test_P_cli_main_exit_code_is_0_only_when_every_config_is_clean']
+P30_frozen_from_collect_only caught ['1 failed, 46 passed in 2.73s'] ['test_P_cli_reads_the_frozen_control_value_from_collect_only_json']
+P31_source_pins_agree caught ['1 failed, 46 passed in 2.73s'] ['test_P_cli_refuses_completion_inventories_that_disagree_on_the_source']
+P32_main_exit_code caught ['1 failed, 46 passed in 2.90s'] ['test_P_cli_main_exit_code_is_0_only_when_every_config_is_clean']
+P33_screening_first caught ['2 failed, 45 passed in 2.89s'] ['test_P_cli_runs_configs_in_order_stops_on_the_first_not_clean_and_is_safe_to_rerun', 'test_P_cli_refuses_completion_inventories_that_disagree_on_the_source']
+G01_source_pin caught ['1 failed, 46 passed in 2.90s'] ['test_P_gate_refuses_a_record_from_another_binding[source_pin]']
+G02_no_records caught ['2 failed, 45 passed in 3.07s'] ['test_P_gate_accepts_only_a_clean_record_bound_to_the_current_context', 'test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one']
+G03_not_clean_raise caught ['1 failed, 46 passed in 2.98s'] ['test_P_a_not_clean_record_for_the_current_binding_blocks_the_config_even_beside_a_clean_one']
+G04_not_same_raise caught ['10 failed, 37 passed in 3.94s'] ['test_P_gate_accepts_only_a_clean_record_bound_to_the_current_context', 'test_P_gate_refuses_a_record_from_another_binding[env]', 'test_P_gate_refuses_a_record_from_another_binding[control]']
+G05_binding_equality caught ['10 failed, 37 passed in 2.95s'] ['test_P_gate_accepts_only_a_clean_record_bound_to_the_current_context', 'test_P_gate_refuses_a_record_from_another_binding[env]', 'test_P_gate_refuses_a_record_from_another_binding[control]']
+G06_not_clean_detection caught ['2 failed, 45 passed in 2.88s'] ['test_P_a_not_clean_record_for_the_current_binding_blocks_the_config_even_beside_a_clean_one', 'test_P_cli_runs_configs_in_order_stops_on_the_first_not_clean_and_is_safe_to_rerun']
+B01_env caught ['2 failed, 45 passed in 2.57s'] ['test_P_record_holds_only_the_bound_prefixed_env_never_other_variables', 'test_P_gate_refuses_a_record_from_another_binding[env]']
+B02_control caught ['2 failed, 45 passed in 2.67s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record', 'test_P_gate_refuses_a_record_from_another_binding[control]']
+B03_argfiles caught ['1 failed, 46 passed in 2.84s'] ['test_P_gate_refuses_a_record_from_another_binding[argfile]']
+B04_source caught ['4 failed, 43 passed in 2.91s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record', 'test_P_gate_refuses_a_record_from_another_binding[source_pin]', 'test_P_gate_refuses_a_record_from_another_binding[source]']
+B05_harness caught ['38 failed, 9 passed in 3.64s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record', 'test_P_control_json_is_never_written_and_its_bytes_are_unchanged', 'test_P_every_not_clean_branch_is_recorded_with_its_reason[error]']
+B06_helpers caught ['1 failed, 46 passed in 2.76s'] ['test_P_gate_refuses_a_record_from_another_binding[helper]']
+B07_copy_paths caught ['1 failed, 46 passed in 2.73s'] ['test_P_gate_refuses_a_record_from_another_binding[copy_paths]']
+B08_command caught ['1 failed, 46 passed in 2.68s'] ['test_P_gate_refuses_a_record_from_another_binding[command]']
+R01_calibration_gated caught ['1 failed, 46 passed in 2.76s'] ['test_P_calibration_run_batch_with_a_config_identity_needs_a_bound_clean_preflight']
+R02_calibration_needs_both caught ['1 failed, 46 passed in 2.70s'] ['test_P_calibration_run_batch_with_a_config_identity_needs_a_bound_clean_preflight']
+R03_identity_vs_cfg caught ['1 failed, 46 passed in 2.86s'] ['test_P_calibration_run_batch_with_a_config_identity_needs_a_bound_clean_preflight']
+R04_run_batch_check_call caught ['2 failed, 45 passed in 2.84s'] ['test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one', 'test_P_calibration_run_batch_with_a_config_identity_needs_a_bound_clean_preflight']
+M01_manifest_requires caught ['1 failed, 46 passed in 2.77s'] ['test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one']
+M02_manifest_cfg_vs_inventory caught ['1 failed, 46 passed in 2.85s'] ['test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one']
+M03_manifest_passes_through caught ['1 failed, 46 passed in 2.74s'] ['test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one']
+C01_shard_needs_preflight caught ['1 failed, 46 passed in 2.73s'] ['test_P_run_completion_refuses_a_shard_without_a_preflight']
+C02_shard_check_call caught ['2 failed, 45 passed in 2.75s'] ['test_P_run_completion_refuses_a_shard_whose_preflight_is_from_another_harness', 'test_P_run_completion_with_clean_preflights_runs_and_records_them']
+C03_attempt_persists caught ['1 failed, 46 passed in 2.80s'] ['test_P_run_completion_with_clean_preflights_runs_and_records_them']
+C04_record_lists caught ['1 failed, 46 passed in 2.77s'] ['test_P_run_completion_with_clean_preflights_runs_and_records_them']
+H01_driver_in_harness caught ['1 failed, 46 passed in 2.64s'] ['test_P_driver_module_is_part_of_the_hash_bound_harness']
+
+==== ARCHIVE CHECK DEMONSTRATION (Codex N1; scratchpad/p15/demo_archive_check.py, read-only git queries) ====
+1 entries archive-checked against git
+tracked (cr_guard.py) -> accepted
+1 entries archive-checked against git
+untracked (cr_preflight.py) -> accepted
+ignored generated cache -> REFUSED: 1 manifest entries are neither tracked nor modified/untracked (ignored or generated): ['research/s1/s1_tests/__pycache__/a3_h5a_helpers.cpython-312.pyc']

@@ -1,0 +1,594 @@
+A3 Task 15c-P fix round 1 RED (2026-11-16T10:16:52-05:00); HEAD 9330a64 + uncommitted 15c-P (harness = 15c-P: cr_coord 06a91463, cr_preflight fb9e8ef6) + the fix-1 test changes only.
+new tests (reviewer scenarios, rev_t15cp/probe_break.py, probe_unbound.py, probe_realrunner.py): I1 malformed sidecar x3 / malformed runner result / orphan via a failed record write (gate + CLI) / attempt dir without record / non-Exception runner abort; I2 copied-file edit + add (gate), binding holds the copied tree hash, cached completion reuse after a copied-file edit, screening label after a copied-tree change; I3 retry needs the base pre-flight + timeout batch under another pre-flight; M1 tagged seam; M3 undeclared seam / real seam declared synthetic / declared synthetic seam; M2 real runner on a toy x2 (pins); M4/M7 after-run checks x4; N4 x2; M5 independent records x2; M6 --write-control. Pre-RED test edits: the two post-copy refusal tests now expect a written not_clean record; _tree writes the independent control records (baseline guard.json, inventory copied).
+result: 28 failed, all assertion-type: 21 AssertionError (including regex mismatches and the {"raised": ...} records of _try_pf) + 7 "Failed: DID NOT RAISE". 183 passed. Pins that pass here (no RED; evidence by deletion): M2 real runner x2 and M4 source-tree control (F7 control_changed).
+cmd: S1_HYPOTHESIS_ROOT=<fresh scratch dir> PYTHONPATH="research/s1;research/s1/s1_tests" <testenv>/Scripts/python.exe -B -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_cr_guard.py research/s1/s1_tests/test_s1_a3_cr_completion.py research/s1/s1_tests/test_s1_a3_cr_preflight.py -q -rf (serial, from the worktree root)
+pytest rc: 1; last line: 28 failed, 183 passed in 48.37s
+files run (sha256):
+255e048f277f9e9e65854446338b57d8f8aaafdfffee9ed70f20f4a011dc42d4 *research/s1/s1_tests/test_s1_a3_cr_guard.py
+5e49c45765d04eb49a4251818b7236b8542d70b6a51f0d5f97739831f3f85ab4 *research/s1/s1_tests/test_s1_a3_cr_completion.py
+f5d67e3eb8ef57815b12148771acc243e7a59a697dcab56a94bd97b9f1f320d1 *research/s1/s1_tests/test_s1_a3_cr_preflight.py
+06a91463511bdfa9b6310ca64d356d3a3a9629ea269c67d345b0bebf03778ca7 *research/s1/s1_tests/cr_coord.py
+1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+fb9e8ef65b2d74c68fd95bbf2a51f02e1b3e5b1007583e4cfb7637bfa1217116 *research/s1/s1_tests/cr_preflight.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+====
+........................................................................ [ 34%]
+........................................................................ [ 68%]
+..............FF......................FFFFFFFFFFFFFFFFFF...FFFFFFFF      [100%]
+================================== FAILURES ===================================
+_____________ test_P_a_copy_that_differs_from_the_pins_is_refused _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_P_a_copy_that_differs_fro0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C32CBB04A0>
+
+    def test_P_a_copy_that_differs_from_the_pins_is_refused(tmp_path, monkeypatch):
+        src, ev, cfg, cp = _proj(tmp_path)
+        real = cr_coord.make_copy
+    
+        def diverging(src_root, copy_paths, dest):
+            out = real(src_root, copy_paths, dest)
+            (dest / "pkg" / "m.py").write_text("X = 5\n", encoding="utf-8")
+            return dict(out, **{"pkg/m.py": sha(dest / "pkg" / "m.py")})
+        monkeypatch.setattr(cr_coord, "make_copy", diverging)
+        calls = []
+        rec = _try_pf(src, ev, cfg, cp, guard_runner(calls=calls), tmp_path)      # fix 1: recorded, not raised
+>       assert rec.get("verdict") == "not_clean" and "copy_differs_from_pins" in rec.get("reasons", []), rec
+E       AssertionError: {'raised': "CoordError('the pre-flight copy C:\\\\Users\\\\gl450\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-gl450\\\\pyt...\\\test_P_a_copy_that_differs_fro0\\\\pfwork\\\\attempt_000\\\\copy differs from the pinned source / frozen control')"}
+E       assert (None == 'not_clean')
+E        +  where None = <built-in method get of dict object at 0x000001C32CC26800>('verdict')
+E        +    where <built-in method get of dict object at 0x000001C32CC26800> = {'raised': "CoordError('the pre-flight copy C:\\\\Users\\\\gl450\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-gl450\\\\pyt...\\\test_P_a_copy_that_differs_fro0\\\\pfwork\\\\attempt_000\\\\copy differs from the pinned source / frozen control')"}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:260: AssertionError
+__ test_P_a_harness_file_in_the_copy_that_is_not_the_reviewed_one_is_refused __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_P_a_harness_file_in_the_c0')
+
+    def test_P_a_harness_file_in_the_copy_that_is_not_the_reviewed_one_is_refused(tmp_path):
+        src, ev, cfg, cp = _proj(tmp_path)
+        (src / "pkg" / "cr_guard.py").write_text("# not the reviewed guard\n", encoding="utf-8")
+        calls = []
+        rec = _try_pf(src, ev, cfg, cp, guard_runner(calls=calls), tmp_path)      # fix 1: recorded, not raised
+>       assert rec.get("verdict") == "not_clean" and "copy_harness_drift:cr_guard.py" in rec.get("reasons", []), rec
+E       AssertionError: {'raised': 'CoordError("harness files in the pre-flight copy differ from the reviewed ones: [\'cr_guard.py\']")'}
+E       assert (None == 'not_clean')
+E        +  where None = <built-in method get of dict object at 0x000001C32CC808C0>('verdict')
+E        +    where <built-in method get of dict object at 0x000001C32CC808C0> = {'raised': 'CoordError("harness files in the pre-flight copy differ from the reviewed ones: [\'cr_guard.py\']")'}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:269: AssertionError
+_ test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record[{"status": "surv-guard_sidecar_unreadable] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F1_a_malformed_guard_side0')
+text = '{"status": "surv', reason = 'guard_sidecar_unreadable'
+
+    @pytest.mark.parametrize("text,reason", [('{"status": "surv', "guard_sidecar_unreadable"),
+                                             ("[]", "guard_sidecar_unreadable"),
+                                             ('{"status": 1, "nodes": "ab", "counts": [], "cleanup": "yes", '
+                                              '"exit_code": "0"}', "guard_field_malformed")])
+    def test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record(tmp_path, text, reason):
+        src, ev, cfg, cp = _proj(tmp_path)
+        rec = _try_pf(src, ev, cfg, cp, _writes_guard(text), tmp_path)
+>       assert rec.get("verdict") == "not_clean" and any(r.startswith(reason) for r in rec.get("reasons", [])), rec
+E       AssertionError: {'raised': "JSONDecodeError('Unterminated string starting at: line 1 column 12 (char 11)')"}
+E       assert (None == 'not_clean')
+E        +  where None = <built-in method get of dict object at 0x000001C32CC75A40>('verdict')
+E        +    where <built-in method get of dict object at 0x000001C32CC75A40> = {'raised': "JSONDecodeError('Unterminated string starting at: line 1 column 12 (char 11)')"}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:571: AssertionError
+_ test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record[[]-guard_sidecar_unreadable] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F1_a_malformed_guard_side1')
+text = '[]', reason = 'guard_sidecar_unreadable'
+
+    @pytest.mark.parametrize("text,reason", [('{"status": "surv', "guard_sidecar_unreadable"),
+                                             ("[]", "guard_sidecar_unreadable"),
+                                             ('{"status": 1, "nodes": "ab", "counts": [], "cleanup": "yes", '
+                                              '"exit_code": "0"}', "guard_field_malformed")])
+    def test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record(tmp_path, text, reason):
+        src, ev, cfg, cp = _proj(tmp_path)
+        rec = _try_pf(src, ev, cfg, cp, _writes_guard(text), tmp_path)
+>       assert rec.get("verdict") == "not_clean" and any(r.startswith(reason) for r in rec.get("reasons", [])), rec
+E       AssertionError: {'raised': 'AttributeError("\'list\' object has no attribute \'get\'")'}
+E       assert (None == 'not_clean')
+E        +  where None = <built-in method get of dict object at 0x000001C32CBEE180>('verdict')
+E        +    where <built-in method get of dict object at 0x000001C32CBEE180> = {'raised': 'AttributeError("\'list\' object has no attribute \'get\'")'}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:571: AssertionError
+_ test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record[{"status": 1, "nodes": "ab", "counts": [], "cleanup": "yes", "exit_code": "0"}-guard_field_malformed] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F1_a_malformed_guard_side2')
+text = '{"status": 1, "nodes": "ab", "counts": [], "cleanup": "yes", "exit_code": "0"}'
+reason = 'guard_field_malformed'
+
+    @pytest.mark.parametrize("text,reason", [('{"status": "surv', "guard_sidecar_unreadable"),
+                                             ("[]", "guard_sidecar_unreadable"),
+                                             ('{"status": 1, "nodes": "ab", "counts": [], "cleanup": "yes", '
+                                              '"exit_code": "0"}', "guard_field_malformed")])
+    def test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record(tmp_path, text, reason):
+        src, ev, cfg, cp = _proj(tmp_path)
+        rec = _try_pf(src, ev, cfg, cp, _writes_guard(text), tmp_path)
+>       assert rec.get("verdict") == "not_clean" and any(r.startswith(reason) for r in rec.get("reasons", [])), rec
+E       AssertionError: {'raised': 'AttributeError("\'str\' object has no attribute \'get\'")'}
+E       assert (None == 'not_clean')
+E        +  where None = <built-in method get of dict object at 0x000001C32CBF2A40>('verdict')
+E        +    where <built-in method get of dict object at 0x000001C32CBF2A40> = {'raised': 'AttributeError("\'str\' object has no attribute \'get\'")'}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:571: AssertionError
+_____ test_F1_a_malformed_runner_result_gives_a_written_not_clean_record ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F1_a_malformed_runner_res0')
+
+    def test_F1_a_malformed_runner_result_gives_a_written_not_clean_record(tmp_path):
+        src, ev, cfg, cp = _proj(tmp_path)
+        inner = guard_runner()
+        rec = _try_pf(src, ev, cfg, cp, lambda cmd, **kw: (inner(cmd, **kw), [])[1], tmp_path)
+>       assert rec.get("verdict") == "not_clean" and "runner_result_malformed" in rec.get("reasons", []), rec
+E       AssertionError: {'raised': 'AttributeError("\'list\' object has no attribute \'get\'")'}
+E       assert (None == 'not_clean')
+E        +  where None = <built-in method get of dict object at 0x000001C32CF25D00>('verdict')
+E        +    where <built-in method get of dict object at 0x000001C32CF25D00> = {'raised': 'AttributeError("\'list\' object has no attribute \'get\'")'}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:579: AssertionError
+_ test_F1_a_crash_that_leaves_no_record_is_an_orphan_that_blocks_the_gate_and_the_cli _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F1_a_crash_that_leaves_no0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C32CBF6780>
+
+    def test_F1_a_crash_that_leaves_no_record_is_an_orphan_that_blocks_the_gate_and_the_cli(tmp_path, monkeypatch):
+        drv = _driver()
+        root, rels = _tree(tmp_path, n_screen=1)
+        conf = drv.discover(root, modules=["s1_x"])[0]
+        cfg = drv.config_from_toml(conf["dir"] / "cr.toml")
+        cp = drv.copy_paths_for(root, cfg)
+    
+        def disk_full(*a, **k):
+            raise OSError("disk full")
+        monkeypatch.setattr(drv, "_write_record", disk_full, raising=False)
+>       with pytest.raises(OSError, match=r"disk full"):
+E       Failed: DID NOT RAISE <class 'OSError'>
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:592: Failed
+___________ test_F1_an_attempt_dir_without_a_record_blocks_the_cli ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F1_an_attempt_dir_without0')
+
+    def test_F1_an_attempt_dir_without_a_record_blocks_the_cli(tmp_path):
+        drv = _driver()
+        root, rels = _tree(tmp_path, n_screen=1)
+        (tmp_path / "w" / rels[0].replace("/", "__") / "attempt_000").mkdir(parents=True)   # a hard-killed attempt
+        out = drv.run_all(root, work_root=tmp_path / "w", modules=["s1_x"], runner=guard_runner(), clock=lambda: 0.0)
+>       assert [r["verdict"] for r in out] == ["blocked_orphan"], out
+E       AssertionError: [{'reasons': [], 'record': 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21703\\test_F1_an_attempt_...on\\c1\\preflight\\preflight_000.json', 'rel': 'research/s1/s1_evidence/cr_a3/s1_x/completion/c1', 'verdict': 'clean'}]
+E       assert ['clean', 'clean'] == ['blocked_orphan']
+E         
+E         At index 0 diff: 'clean' != 'blocked_orphan'
+E         Left contains one more item: 'clean'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:608: AssertionError
+_____________ test_F1_a_runner_exception_still_writes_the_record ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F1_a_runner_exception_sti0')
+
+    def test_F1_a_runner_exception_still_writes_the_record(tmp_path):
+        src, ev, cfg, cp = _proj(tmp_path)
+        rec = _try_pf(src, ev, cfg, cp, guard_runner(raise_exc=_Abort("hard stop")), tmp_path)
+>       assert (ev / "preflight" / "preflight_000.json").is_file(), rec
+E       AssertionError: {'raised': "_Abort('hard stop')"}
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = ((WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F1_a_runner_exception_sti0/src/ev/c') / 'preflight') / 'preflight_000.json').is_file
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:619: AssertionError
+__________ test_F2_gate_refuses_after_any_copied_file_changes[edit] ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F2_gate_refuses_after_any0')
+change = 'edit'
+
+    @pytest.mark.parametrize("change", ["edit", "add"])
+    def test_F2_gate_refuses_after_any_copied_file_changes(tmp_path, change):
+        src, ev, cfg, cp = _proj(tmp_path)
+        (src / "pkg" / "test_extra.py").write_text("def test_x():\n    pass\n", encoding="utf-8")
+        _pf(src, ev, cfg, cp, guard_runner(), tmp_path)
+        if change == "edit":
+            (src / "pkg" / "test_extra.py").write_text("import pytest\npytestmark = pytest.mark.skip\n", encoding="utf-8")
+        else:
+            (src / "pkg" / "sibling.py").write_text("Y = 1\n", encoding="utf-8")
+>       with pytest.raises(cr_coord.CoordError, match=r"no clean pre-flight bound to the current context.*copied_sha256"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:634: Failed
+___________ test_F2_gate_refuses_after_any_copied_file_changes[add] ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F2_gate_refuses_after_any1')
+change = 'add'
+
+    @pytest.mark.parametrize("change", ["edit", "add"])
+    def test_F2_gate_refuses_after_any_copied_file_changes(tmp_path, change):
+        src, ev, cfg, cp = _proj(tmp_path)
+        (src / "pkg" / "test_extra.py").write_text("def test_x():\n    pass\n", encoding="utf-8")
+        _pf(src, ev, cfg, cp, guard_runner(), tmp_path)
+        if change == "edit":
+            (src / "pkg" / "test_extra.py").write_text("import pytest\npytestmark = pytest.mark.skip\n", encoding="utf-8")
+        else:
+            (src / "pkg" / "sibling.py").write_text("Y = 1\n", encoding="utf-8")
+>       with pytest.raises(cr_coord.CoordError, match=r"no clean pre-flight bound to the current context.*copied_sha256"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:634: Failed
+__________ test_F2_the_preflight_binding_holds_the_copied_tree_hash ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F2_the_preflight_binding_0')
+
+    def test_F2_the_preflight_binding_holds_the_copied_tree_hash(tmp_path):
+        src, ev, cfg, cp = _proj(tmp_path)
+        b = _gate().preflight_binding(cfg, src, cp)
+>       assert b.get("copied_sha256") and hasattr(cr_coord, "copied_map"), b
+E       AssertionError: {'argfiles_sha256': {'ev/c/nodes.txt': '49ecc9eb6a54c96194b05c23598ec204892b9c506e4e6aa9171e80bb661c62ff'}, 'control_r...801a70dd886a594118c51103adb64348ce022e64f346ebc35f', 'copy_paths': ['ev/c/control.json', 'ev/c/nodes.txt', 'pkg'], ...}
+E       assert (None)
+E        +  where None = <built-in method get of dict object at 0x000001C32CFB1FC0>('copied_sha256')
+E        +    where <built-in method get of dict object at 0x000001C32CFB1FC0> = {'argfiles_sha256': {'ev/c/nodes.txt': '49ecc9eb6a54c96194b05c23598ec204892b9c506e4e6aa9171e80bb661c62ff'}, 'control_r...801a70dd886a594118c51103adb64348ce022e64f346ebc35f', 'copy_paths': ['ev/c/control.json', 'ev/c/nodes.txt', 'pkg'], ...}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:641: AssertionError
+_ test_F2_cached_completion_attempt_is_not_reused_after_a_copied_file_changes _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F2_cached_completion_atte0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C32CBCC350>
+
+    def test_F2_cached_completion_attempt_is_not_reused_after_a_copied_file_changes(tmp_path, monkeypatch):
+        monkeypatch.setenv("PYTHONHASHSEED", "0")
+        src, by_id, work = _screened(tmp_path)
+        (src / "extra_test.py").write_text("def test_x():\n    pass\n", encoding="utf-8")
+        specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
+        specs[0]["copy_paths"].append("extra_test.py")
+        r1 = _complete(src, by_id, work, specs, factory, pool)
+        assert r1.get("label") == "survived"
+>       assert "copied_sha256" in r1["attempts"][0]["binding"], "the execution-time binding holds the copied tree"
+E       AssertionError: the execution-time binding holds the copied tree
+E       assert 'copied_sha256' in {'control_sha256': '2c5262dcc373df75187abb163f1c90a33229846d7bd629992174420618ed8e76', 'env': {'PYTHONDONTWRITEBYTECOD...'cr_preflight.py': 'fb9e8ef65b2d74c68fd95bbf2a51f02e1b3e5b1007583e4cfb7637bfa1217116', ...}, 'helpers_sha256': {}, ...}
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:653: AssertionError
+____ test_F2_a_screening_label_is_not_reused_after_its_copied_tree_changed ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F2_a_screening_label_is_n0')
+
+    def test_F2_a_screening_label_is_not_reused_after_its_copied_tree_changed(tmp_path):
+        src, by_id, work = _screened(tmp_path)
+        st = json.loads((work / "batch_b000_state.json").read_text(encoding="utf-8"))
+>       assert st.get("copy_paths") == ["pkg"] and st.get("copied_tree_sha256", {}).get("j1"), st
+E       AssertionError: {'batch': ['j1'], 'batch_cap': 24, 'batch_id': 'b000', 'bindings': {}, ...}
+E       assert (None == ['pkg'])
+E        +  where None = <built-in method get of dict object at 0x000001C32CC89EC0>('copy_paths')
+E        +    where <built-in method get of dict object at 0x000001C32CC89EC0> = {'batch': ['j1'], 'batch_cap': 24, 'batch_id': 'b000', 'bindings': {}, ...}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:663: AssertionError
+_________________ test_F3_run_retry_takes_the_base_preflight __________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F3_run_retry_takes_the_ba0')
+
+    def test_F3_run_retry_takes_the_base_preflight(tmp_path):
+>       assert "preflight_dir" in inspect.signature(cr_coord.run_retry).parameters, "run_retry(preflight_dir=...)"
+E       AssertionError: run_retry(preflight_dir=...)
+E       assert 'preflight_dir' in mappingproxy(OrderedDict({'job': <Parameter "job: str">, 'items_by_id': <Parameter "items_by_id: dict">, 'cfg': <Param...meter "clock=<built-in function monotonic>">, 'session_root': <Parameter "session_root: pathlib.Path | None = None">}))
+E        +  where mappingproxy(OrderedDict({'job': <Parameter "job: str">, 'items_by_id': <Parameter "items_by_id: dict">, 'cfg': <Param...meter "clock=<built-in function monotonic>">, 'session_root': <Parameter "session_root: pathlib.Path | None = None">})) = <Signature (job: str, items_by_id: dict, cfg: cr_coord.CRConfig, *, src_root: pathlib.Path, copy_paths, work_root: pat...rce_sha256: dict | None = None, clock=<built-in function monotonic>, session_root: pathlib.Path | None = None) -> dict>.parameters
+E        +    where <Signature (job: str, items_by_id: dict, cfg: cr_coord.CRConfig, *, src_root: pathlib.Path, copy_paths, work_root: pat...rce_sha256: dict | None = None, clock=<built-in function monotonic>, session_root: pathlib.Path | None = None) -> dict> = <function signature at 0x000001C328BF07C0>(<function run_retry at 0x000001C32AADDDA0>)
+E        +      where <function signature at 0x000001C328BF07C0> = inspect.signature
+E        +      and   <function run_retry at 0x000001C32AADDDA0> = cr_coord.run_retry
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:698: AssertionError
+_ test_F3_run_retry_refuses_when_the_timeout_batch_ran_under_another_preflight _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F3_run_retry_refuses_when0')
+
+    def test_F3_run_retry_refuses_when_the_timeout_batch_ran_under_another_preflight(tmp_path):
+>       assert "preflight_dir" in inspect.signature(cr_coord.run_retry).parameters, "run_retry(preflight_dir=...)"
+E       AssertionError: run_retry(preflight_dir=...)
+E       assert 'preflight_dir' in mappingproxy(OrderedDict({'job': <Parameter "job: str">, 'items_by_id': <Parameter "items_by_id: dict">, 'cfg': <Param...meter "clock=<built-in function monotonic>">, 'session_root': <Parameter "session_root: pathlib.Path | None = None">}))
+E        +  where mappingproxy(OrderedDict({'job': <Parameter "job: str">, 'items_by_id': <Parameter "items_by_id: dict">, 'cfg': <Param...meter "clock=<built-in function monotonic>">, 'session_root': <Parameter "session_root: pathlib.Path | None = None">})) = <Signature (job: str, items_by_id: dict, cfg: cr_coord.CRConfig, *, src_root: pathlib.Path, copy_paths, work_root: pat...rce_sha256: dict | None = None, clock=<built-in function monotonic>, session_root: pathlib.Path | None = None) -> dict>.parameters
+E        +    where <Signature (job: str, items_by_id: dict, cfg: cr_coord.CRConfig, *, src_root: pathlib.Path, copy_paths, work_root: pat...rce_sha256: dict | None = None, clock=<built-in function monotonic>, session_root: pathlib.Path | None = None) -> dict> = <function signature at 0x000001C328BF07C0>(<function run_retry at 0x000001C32AADDDA0>)
+E        +      where <function signature at 0x000001C328BF07C0> = inspect.signature
+E        +      and   <function run_retry at 0x000001C32AADDDA0> = cr_coord.run_retry
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:712: AssertionError
+_ test_F4_real_exec_seam_is_tagged_and_run_batch_refuses_a_seam_for_another_command _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F4_real_exec_seam_is_tagg0')
+
+    def test_F4_real_exec_seam_is_tagged_and_run_batch_refuses_a_seam_for_another_command(tmp_path):
+        src, ev, cfg, cp = _proj(tmp_path)
+        other = cr_coord.CRConfig(python=PY, module_rel="pkg/m.py", target_module="pkg.m",
+                                  guard_args=list(cfg.guard_args) + ["-x"])
+        seam = cr_coord.real_exec(other)
+>       assert getattr(seam, "test_command_sha256", None) == cr_coord.hashlib.sha256(
+            cr_coord.test_command(other).encode("utf-8")).hexdigest() and getattr(seam, "cr_real_exec", False)
+E       AssertionError: assert (None == 'fae5af2ef2be3f5803db9be395d45ba66908f987d37e87da583b55bb8258d598')
+E        +  where None = getattr(<function real_exec.<locals>.seam at 0x000001C32CC64220>, 'test_command_sha256', None)
+E        +  and   'fae5af2ef2be3f5803db9be395d45ba66908f987d37e87da583b55bb8258d598' = <built-in method hexdigest of _hashlib.HASH object at 0x000001C32D0649B0>()
+E        +    where <built-in method hexdigest of _hashlib.HASH object at 0x000001C32D0649B0> = <sha256 _hashlib.HASH object @ 0x000001C32D0649B0>.hexdigest
+E        +      where <sha256 _hashlib.HASH object @ 0x000001C32D0649B0> = <built-in function openssl_sha256>(b'C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m cr_guard --deadline 240 --target pkg.m --control ev/c/control.json -p conftest @ev/c/nodes.txt -x')
+E        +        where <built-in function openssl_sha256> = <module 'hashlib' from 'C:\\Users\\gl450\\trading_app\\runtime\\python\\Lib\\hashlib.py'>.sha256
+E        +          where <module 'hashlib' from 'C:\\Users\\gl450\\trading_app\\runtime\\python\\Lib\\hashlib.py'> = cr_coord.hashlib
+E        +        and   b'C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m cr_guard --deadline 240 --target pkg.m --control ev/c/control.json -p conftest @ev/c/nodes.txt -x' = <built-in method encode of str object at 0x000001C32CBA2950>('utf-8')
+E        +          where <built-in method encode of str object at 0x000001C32CBA2950> = 'C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m cr_guard --deadline 240 --target pkg.m --control ev/c/control.json -p conftest @ev/c/nodes.txt -x'.encode
+E        +            where 'C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m cr_guard --deadline 240 --target pkg.m --control ev/c/control.json -p conftest @ev/c/nodes.txt -x' = <function test_command at 0x000001C32ADE79C0>(CRConfig(python=WindowsPath('C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe'), module_rel='pkg/m....'conftest', '@ev/c/nodes.txt', '-x'], pythonpath_rel=['.'], timeout_s=300, guard_deadline_s=240, target_module='pkg.m'))
+E        +              where <function test_command at 0x000001C32ADE79C0> = cr_coord.test_command
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:735: AssertionError
+______ test_F6_run_batch_refuses_an_undeclared_seam_without_a_preflight _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F6_run_batch_refuses_an_u0')
+
+    def test_F6_run_batch_refuses_an_undeclared_seam_without_a_preflight(tmp_path):
+        src, items = _three(tmp_path)
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"needs the config's clean pre-flight"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:748: Failed
+__________ test_F6_a_real_exec_seam_can_never_be_declared_synthetic ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F6_a_real_exec_seam_can_n0')
+
+    def test_F6_a_real_exec_seam_can_never_be_declared_synthetic(tmp_path):
+        src, items = _three(tmp_path)
+        seam = cr_coord.real_exec(_cfg("z"))
+>       assert getattr(seam, "cr_real_exec", False), "real_exec seams are marked"
+E       AssertionError: real_exec seams are marked
+E       assert False
+E        +  where False = getattr(<function real_exec.<locals>.seam at 0x000001C32CCD02C0>, 'cr_real_exec', False)
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:757: AssertionError
+___ test_F6_a_declared_synthetic_seam_runs_without_a_preflight_and_says_so ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F6_a_declared_synthetic_s0')
+
+    def test_F6_a_declared_synthetic_seam_runs_without_a_preflight_and_says_so(tmp_path):
+        src, items = _three(tmp_path)
+        st = cr_coord.run_batch(["j1"], {i["job_id"]: i for i in items}, batch_id="b0", src_root=src,
+                                copy_paths=["pkg"], work_root=tmp_path / "w", exec_seam=_seam({}, []))
+>       assert st.get("done") == ["j1"] and st.get("preflight") is None and st.get("synthetic_seam") is True, st
+E       AssertionError: {'batch': ['j1'], 'batch_cap': 24, 'batch_id': 'b0', 'bindings': {}, ...}
+E       assert (['j1'] == ['j1']
+E         
+E         Use -v to get more diff and None is None and None is True)
+E        +  where None = <built-in method get of dict object at 0x000001C32CFB6E00>('preflight')
+E        +    where <built-in method get of dict object at 0x000001C32CFB6E00> = {'batch': ['j1'], 'batch_cap': 24, 'batch_id': 'b0', 'bindings': {}, ...}.get
+E        +  and   None = <built-in method get of dict object at 0x000001C32CFB6E00>('synthetic_seam')
+E        +    where <built-in method get of dict object at 0x000001C32CFB6E00> = {'batch': ['j1'], 'batch_cap': 24, 'batch_id': 'b0', 'bindings': {}, ...}.get
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:768: AssertionError
+_ test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-copy_changed0] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F7_the_after_run_checks_c1')
+edit = <function <lambda> at 0x000001C32B236340>, reason = 'copy_changed'
+
+    @pytest.mark.parametrize("edit,reason", [
+        (lambda c, src: (src / "ev/c/control.json").write_text('{"nodes": []}', encoding="utf-8"), "control_changed"),
+        (lambda c, src: (c / "ev/c/nodes.txt").write_text("x\n", encoding="utf-8"), "copy_changed"),
+        (lambda c, src: (c / "pkg" / "new_file.py").write_text("Z = 1\n", encoding="utf-8"), "copy_changed"),
+        (lambda c, src: (src / "pkg" / "sibling.py").write_text("Y = 2\n", encoding="utf-8"), "source_tree_changed"),
+    ])
+    def test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file(tmp_path, edit, reason):
+        src, ev, cfg, cp = _proj(tmp_path)
+        rec = _try_pf(src, ev, cfg, cp, guard_runner(edit=lambda c: edit(c, src)), tmp_path)
+>       assert rec.get("verdict") == "not_clean" and reason in rec.get("reasons", []), rec
+E       AssertionError: {'at': '2026-11-16T15:17:41.019960+00:00', 'attempt': 0, 'binding': {'argfiles_sha256': {'ev/c/nodes.txt': '49ecc9eb6a...db64348ce022e64f346ebc35f', 'copy_paths': ['ev/c/control.json', 'ev/c/nodes.txt', 'pkg'], ...}, 'budget_s': 180.0, ...}
+E       assert ('clean' == 'not_clean'
+E         
+E         - not_clean
+E         + clean)
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:818: AssertionError
+_ test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-copy_changed1] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F7_the_after_run_checks_c2')
+edit = <function <lambda> at 0x000001C32B2363E0>, reason = 'copy_changed'
+
+    @pytest.mark.parametrize("edit,reason", [
+        (lambda c, src: (src / "ev/c/control.json").write_text('{"nodes": []}', encoding="utf-8"), "control_changed"),
+        (lambda c, src: (c / "ev/c/nodes.txt").write_text("x\n", encoding="utf-8"), "copy_changed"),
+        (lambda c, src: (c / "pkg" / "new_file.py").write_text("Z = 1\n", encoding="utf-8"), "copy_changed"),
+        (lambda c, src: (src / "pkg" / "sibling.py").write_text("Y = 2\n", encoding="utf-8"), "source_tree_changed"),
+    ])
+    def test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file(tmp_path, edit, reason):
+        src, ev, cfg, cp = _proj(tmp_path)
+        rec = _try_pf(src, ev, cfg, cp, guard_runner(edit=lambda c: edit(c, src)), tmp_path)
+>       assert rec.get("verdict") == "not_clean" and reason in rec.get("reasons", []), rec
+E       AssertionError: {'at': '2026-11-16T15:17:41.096461+00:00', 'attempt': 0, 'binding': {'argfiles_sha256': {'ev/c/nodes.txt': '49ecc9eb6a...db64348ce022e64f346ebc35f', 'copy_paths': ['ev/c/control.json', 'ev/c/nodes.txt', 'pkg'], ...}, 'budget_s': 180.0, ...}
+E       assert ('clean' == 'not_clean'
+E         
+E         - not_clean
+E         + clean)
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:818: AssertionError
+_ test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-source_tree_changed] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F7_the_after_run_checks_c3')
+edit = <function <lambda> at 0x000001C32B236480>, reason = 'source_tree_changed'
+
+    @pytest.mark.parametrize("edit,reason", [
+        (lambda c, src: (src / "ev/c/control.json").write_text('{"nodes": []}', encoding="utf-8"), "control_changed"),
+        (lambda c, src: (c / "ev/c/nodes.txt").write_text("x\n", encoding="utf-8"), "copy_changed"),
+        (lambda c, src: (c / "pkg" / "new_file.py").write_text("Z = 1\n", encoding="utf-8"), "copy_changed"),
+        (lambda c, src: (src / "pkg" / "sibling.py").write_text("Y = 2\n", encoding="utf-8"), "source_tree_changed"),
+    ])
+    def test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file(tmp_path, edit, reason):
+        src, ev, cfg, cp = _proj(tmp_path)
+        rec = _try_pf(src, ev, cfg, cp, guard_runner(edit=lambda c: edit(c, src)), tmp_path)
+>       assert rec.get("verdict") == "not_clean" and reason in rec.get("reasons", []), rec
+E       AssertionError: {'at': '2026-11-16T15:17:41.156453+00:00', 'attempt': 0, 'binding': {'argfiles_sha256': {'ev/c/nodes.txt': '49ecc9eb6a...db64348ce022e64f346ebc35f', 'copy_paths': ['ev/c/control.json', 'ev/c/nodes.txt', 'pkg'], ...}, 'budget_s': 180.0, ...}
+E       assert ('clean' == 'not_clean'
+E         
+E         - not_clean
+E         + clean)
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:818: AssertionError
+__ test_F8_guard_rc_and_passed_count_are_cross_checked[kw0-guard_rc_nonzero] __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F8_guard_rc_and_passed_co0')
+kw = {'rc': 3}, reason = 'guard_rc_nonzero'
+
+    @pytest.mark.parametrize("kw,reason", [(dict(rc=3), "guard_rc_nonzero"),
+                                           (dict(counts={"tests": 2, "failures": 0, "errors": 0, "skipped": 0,
+                                                         "passed": 1}), "counts")])
+    def test_F8_guard_rc_and_passed_count_are_cross_checked(tmp_path, kw, reason):
+        src, ev, cfg, cp = _proj(tmp_path)
+        rec = _try_pf(src, ev, cfg, cp, guard_runner(**kw), tmp_path)
+>       assert rec.get("verdict") == "not_clean" and reason in rec.get("reasons", []), rec
+E       AssertionError: {'at': '2026-11-16T15:17:41.226551+00:00', 'attempt': 0, 'binding': {'argfiles_sha256': {'ev/c/nodes.txt': '49ecc9eb6a...db64348ce022e64f346ebc35f', 'copy_paths': ['ev/c/control.json', 'ev/c/nodes.txt', 'pkg'], ...}, 'budget_s': 180.0, ...}
+E       assert ('clean' == 'not_clean'
+E         
+E         - not_clean
+E         + clean)
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:827: AssertionError
+_______ test_F8_guard_rc_and_passed_count_are_cross_checked[kw1-counts] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F8_guard_rc_and_passed_co1')
+kw = {'counts': {'errors': 0, 'failures': 0, 'passed': 1, 'skipped': 0, ...}}
+reason = 'counts'
+
+    @pytest.mark.parametrize("kw,reason", [(dict(rc=3), "guard_rc_nonzero"),
+                                           (dict(counts={"tests": 2, "failures": 0, "errors": 0, "skipped": 0,
+                                                         "passed": 1}), "counts")])
+    def test_F8_guard_rc_and_passed_count_are_cross_checked(tmp_path, kw, reason):
+        src, ev, cfg, cp = _proj(tmp_path)
+        rec = _try_pf(src, ev, cfg, cp, guard_runner(**kw), tmp_path)
+>       assert rec.get("verdict") == "not_clean" and reason in rec.get("reasons", []), rec
+E       AssertionError: {'at': '2026-11-16T15:17:41.303560+00:00', 'attempt': 0, 'binding': {'argfiles_sha256': {'ev/c/nodes.txt': '49ecc9eb6a...db64348ce022e64f346ebc35f', 'copy_paths': ['ev/c/control.json', 'ev/c/nodes.txt', 'pkg'], ...}, 'budget_s': 180.0, ...}
+E       assert ('clean' == 'not_clean'
+E         
+E         - not_clean
+E         + clean)
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:827: AssertionError
+_ test_F9_cli_cross_checks_the_frozen_value_against_independent_records[baseline] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F9_cli_cross_checks_the_f0')
+where = 'baseline'
+
+    @pytest.mark.parametrize("where", ["baseline", "inventory"])
+    def test_F9_cli_cross_checks_the_frozen_value_against_independent_records(tmp_path, where):
+        drv = _driver()
+        root, rels = _tree(tmp_path, n_screen=1)
+        d = root / rels[0]
+        if where == "baseline":
+            (d / "baseline" / "run1" / "guard.json").write_text(json.dumps({"control_sha256": "1" * 64}),
+                                                                encoding="utf-8")
+        else:
+            inv = json.loads((d / "inventory.json").read_text(encoding="utf-8"))
+            inv["copied"] = {f"{rels[0]}/control.json": "1" * 64}
+            (d / "inventory.json").write_text(json.dumps(inv), encoding="utf-8")
+>       with pytest.raises(cr_coord.CoordError, match=r"frozen control value .* disagrees with"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:843: Failed
+_ test_F9_cli_cross_checks_the_frozen_value_against_independent_records[inventory] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F9_cli_cross_checks_the_f1')
+where = 'inventory'
+
+    @pytest.mark.parametrize("where", ["baseline", "inventory"])
+    def test_F9_cli_cross_checks_the_frozen_value_against_independent_records(tmp_path, where):
+        drv = _driver()
+        root, rels = _tree(tmp_path, n_screen=1)
+        d = root / rels[0]
+        if where == "baseline":
+            (d / "baseline" / "run1" / "guard.json").write_text(json.dumps({"control_sha256": "1" * 64}),
+                                                                encoding="utf-8")
+        else:
+            inv = json.loads((d / "inventory.json").read_text(encoding="utf-8"))
+            inv["copied"] = {f"{rels[0]}/control.json": "1" * 64}
+            (d / "inventory.json").write_text(json.dumps(inv), encoding="utf-8")
+>       with pytest.raises(cr_coord.CoordError, match=r"frozen control value .* disagrees with"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:843: Failed
+____ test_F10_a_config_that_asks_the_guard_to_write_its_control_is_refused ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21703/test_F10_a_config_that_asks_th0')
+
+    def test_F10_a_config_that_asks_the_guard_to_write_its_control_is_refused(tmp_path):
+        src, ev, cfg, cp = _proj(tmp_path)
+        cfg.guard_args = list(cfg.guard_args) + ["--write-control", "ev/c/control.json"]
+        cr_coord.write_cr_toml(ev / "cr.toml", cfg)
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"--write-control"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\s1_tests\test_s1_a3_cr_preflight.py:853: Failed
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_P_a_copy_that_differs_from_the_pins_is_refused
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_P_a_harness_file_in_the_copy_that_is_not_the_reviewed_one_is_refused
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record[{"status": "surv-guard_sidecar_unreadable]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record[[]-guard_sidecar_unreadable]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record[{"status": 1, "nodes": "ab", "counts": [], "cleanup": "yes", "exit_code": "0"}-guard_field_malformed]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F1_a_malformed_runner_result_gives_a_written_not_clean_record
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F1_a_crash_that_leaves_no_record_is_an_orphan_that_blocks_the_gate_and_the_cli
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F1_an_attempt_dir_without_a_record_blocks_the_cli
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F1_a_runner_exception_still_writes_the_record
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F2_gate_refuses_after_any_copied_file_changes[edit]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F2_gate_refuses_after_any_copied_file_changes[add]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F2_the_preflight_binding_holds_the_copied_tree_hash
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F2_cached_completion_attempt_is_not_reused_after_a_copied_file_changes
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F2_a_screening_label_is_not_reused_after_its_copied_tree_changed
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F3_run_retry_takes_the_base_preflight
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F3_run_retry_refuses_when_the_timeout_batch_ran_under_another_preflight
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F4_real_exec_seam_is_tagged_and_run_batch_refuses_a_seam_for_another_command
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F6_run_batch_refuses_an_undeclared_seam_without_a_preflight
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F6_a_real_exec_seam_can_never_be_declared_synthetic
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F6_a_declared_synthetic_seam_runs_without_a_preflight_and_says_so
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-copy_changed0]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-copy_changed1]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-source_tree_changed]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F8_guard_rc_and_passed_count_are_cross_checked[kw0-guard_rc_nonzero]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F8_guard_rc_and_passed_count_are_cross_checked[kw1-counts]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F9_cli_cross_checks_the_frozen_value_against_independent_records[baseline]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F9_cli_cross_checks_the_frozen_value_against_independent_records[inventory]
+FAILED research/s1/s1_tests/test_s1_a3_cr_preflight.py::test_F10_a_config_that_asks_the_guard_to_write_its_control_is_refused
+28 failed, 183 passed in 48.37s
+
+==== SUPPLEMENTARY RED (pins added after the run above, while planning the deletion checks; disclosed) ====
+tests: test_F11_* (driver error recorded, copy differs from source elsewhere, generated caches excluded, unreadable record blocks, baseline sidecar required, seam tag base/retry x2, handed-over preflight_ref re-verified x3) + the re-raise assertion added to test_F1_a_runner_exception_still_writes_the_record. Run against the 15c-P harness (cr_coord 06a91463, cr_preflight fb9e8ef6: the final 15c-P deletion pass control copy) with the final fix-1 test files, -k "F11 or runner_exception_still".
+files (sha256):
+06a91463511bdfa9b6310ca64d356d3a3a9629ea269c67d345b0bebf03778ca7 *cr_coord.py
+fb9e8ef65b2d74c68fd95bbf2a51f02e1b3e5b1007583e4cfb7637bfa1217116 *cr_preflight.py
+bd4248795ec9627f5745720a2073c17962c17ffd331d44eff788d40696f7ea6e *test_s1_a3_cr_preflight.py
+3561aefd0eaca99ebcb8772fb24ffc04cadaf119b65efdbe88ed04b6c13643fa *test_s1_a3_cr_completion.py
+by type:       1 AssertionError: cr_coord.copied_map exis;      3 AssertionError: run_batch(preflight_ref=;      2 AssertionError: run_batch(retry=...);      2 AssertionError: {'at': '2026-11-16T15:30;      1 AssertionError: {'raised': "_Abort('hard;      1 Failed: DID NOT RAISE <class 'cr_coord.C;
+----
+FAILED test_s1_a3_cr_preflight.py::test_F1_a_runner_exception_still_writes_the_record
+FAILED test_s1_a3_cr_preflight.py::test_F11_a_driver_error_after_the_copy_is_a_written_not_clean_record
+FAILED test_s1_a3_cr_preflight.py::test_F11_a_copy_that_differs_from_the_source_tree_elsewhere_is_refused_and_recorded
+FAILED test_s1_a3_cr_preflight.py::test_F11_generated_caches_are_not_part_of_the_copied_tree
+FAILED test_s1_a3_cr_preflight.py::test_F11_an_unreadable_record_blocks_the_gate
+FAILED test_s1_a3_cr_preflight.py::test_F11_the_cli_needs_at_least_one_baseline_guard_sidecar
+FAILED test_s1_a3_cr_preflight.py::test_F11_the_seam_tag_must_match_the_base_or_retry_command[False]
+FAILED test_s1_a3_cr_preflight.py::test_F11_the_seam_tag_must_match_the_base_or_retry_command[True]
+FAILED test_s1_a3_cr_preflight.py::test_F11_a_handed_over_preflight_reference_is_re_verified[sha]
+FAILED test_s1_a3_cr_preflight.py::test_F11_a_handed_over_preflight_reference_is_re_verified[other_config]
+FAILED test_s1_a3_cr_preflight.py::test_F11_a_handed_over_preflight_reference_is_re_verified[not_clean]
+11 failed, 75 deselected in 1.38s
+
+==== SUPPLEMENTARY RED 2 (the FINAL test file: one more pin, test_F11_an_abort_that_escapes_the_attempt_body_is_recorded_as_interrupted, added during the deletion checks after mutant N06 survived) ====
+files (sha256):
+06a91463511bdfa9b6310ca64d356d3a3a9629ea269c67d345b0bebf03778ca7 *cr_coord.py
+fb9e8ef65b2d74c68fd95bbf2a51f02e1b3e5b1007583e4cfb7637bfa1217116 *cr_preflight.py
+23524d6d704d92ae75d67f5b8c9ce6e8061366073f014cded99196dd59691379 *test_s1_a3_cr_preflight.py
+by type:       1 AssertionError: cr_coord.copied_map exis;      3 AssertionError: run_batch(preflight_ref=;      2 AssertionError: run_batch(retry=...);      3 AssertionError: {'at': '2026-11-16T15:50;      1 AssertionError: {'raised': "_Abort('hard;      1 Failed: DID NOT RAISE <class 'cr_coord.C;
+non-assertion exception lines: 0
+----
+FAILED test_s1_a3_cr_preflight.py::test_F1_a_runner_exception_still_writes_the_record
+FAILED test_s1_a3_cr_preflight.py::test_F11_a_driver_error_after_the_copy_is_a_written_not_clean_record
+FAILED test_s1_a3_cr_preflight.py::test_F11_a_copy_that_differs_from_the_source_tree_elsewhere_is_refused_and_recorded
+FAILED test_s1_a3_cr_preflight.py::test_F11_generated_caches_are_not_part_of_the_copied_tree
+FAILED test_s1_a3_cr_preflight.py::test_F11_an_unreadable_record_blocks_the_gate
+FAILED test_s1_a3_cr_preflight.py::test_F11_the_cli_needs_at_least_one_baseline_guard_sidecar
+FAILED test_s1_a3_cr_preflight.py::test_F11_the_seam_tag_must_match_the_base_or_retry_command[False]
+FAILED test_s1_a3_cr_preflight.py::test_F11_the_seam_tag_must_match_the_base_or_retry_command[True]
+FAILED test_s1_a3_cr_preflight.py::test_F11_a_handed_over_preflight_reference_is_re_verified[sha]
+FAILED test_s1_a3_cr_preflight.py::test_F11_a_handed_over_preflight_reference_is_re_verified[other_config]
+FAILED test_s1_a3_cr_preflight.py::test_F11_a_handed_over_preflight_reference_is_re_verified[not_clean]
+FAILED test_s1_a3_cr_preflight.py::test_F11_an_abort_that_escapes_the_attempt_body_is_recorded_as_interrupted
+12 failed, 75 deselected in 1.62s

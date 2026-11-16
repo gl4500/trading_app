@@ -1,0 +1,133 @@
+A3 Task 15c-P fix round 1 GREEN (2026-11-16T11:12:07-05:00); HEAD 9330a64 + uncommitted 15c-P + fix 1 (final harness and tests). No mutant, calibration, real baseline or real pre-flight executed; the two M2 tests run the real guard + pytest on a two-test toy in tmp (no S1 module, no Cosmic Ray), and the existing e2e test runs real Cosmic Ray on its tmp toy as before.
+cmd: S1_HYPOTHESIS_ROOT=<fresh scratch dir> PYTHONPATH="research/s1;research/s1/s1_tests" <testenv>/Scripts/python.exe -B -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_cr_guard.py research/s1/s1_tests/test_s1_a3_cr_completion.py research/s1/s1_tests/test_s1_a3_cr_preflight.py -q -rf (serial, from the worktree root)
+pytest rc: 0; last line: 222 passed in 49.77s
+files run (sha256):
+bd3301811231b37037fd705313a9914d43265dee93764023a23f273e57b1463c *research/s1/s1_tests/test_s1_a3_cr_guard.py
+3561aefd0eaca99ebcb8772fb24ffc04cadaf119b65efdbe88ed04b6c13643fa *research/s1/s1_tests/test_s1_a3_cr_completion.py
+23524d6d704d92ae75d67f5b8c9ce6e8061366073f014cded99196dd59691379 *research/s1/s1_tests/test_s1_a3_cr_preflight.py
+dda8997c8cce9ad4e2837bc69b660eb96f0344f8be8ded28508173bd30598a84 *research/s1/s1_tests/cr_coord.py
+1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+d8e92102c92424606499f23a2c8f6da5ba30e33a49f124d0c3dedb72b64dbf82 *research/s1/s1_tests/cr_preflight.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+====
+........................................................................ [ 32%]
+........................................................................ [ 64%]
+........................................................................ [ 97%]
+......                                                                   [100%]
+222 passed in 49.77s
+
+==== DELETION CHECKS (15c-P fix round 1; final files) ====
+tool: _prep/tools/deletion_15cp_fix1.py, run from scratchpad/p15/ (copies under scratchpad/p15/deletion_fix1/<id>/, outside the repo): the 59 15c-P guards (20 re-pointed to their fix-1 text; P05 and C03 dropped as covered by N10 and C16) + 42 fix-1 guards incl. the reviewer M4. New test file first, all three files if it does not catch. Earlier passes were stopped to add pins (N06 survived -> interrupted record + test; API-presence assertions) and every mutant re-run below.
+result: 101 guards deleted, 96 caught; 5 not caught, argued equivalent:
+  P10 (record check in _next_attempt): the started marker is always written before its record and never removed, so a record implies a marker.
+  N18 (marker check in _next_attempt): a marker without a record (orphan) always has its attempt dir (make_copy creates it right after the marker), and if not, the write-once marker open refuses; the orphan blocks the config either way.
+  B03 argfiles / B06 helpers / B07 copy paths in preflight_binding: subsumed by copied_sha256 whenever those files are under the copy paths (runbook step 2 copies the argfile, the helpers and the control; a copy-path list that yields the same copied files yields the same run). Kept as defence in depth.
+D0 control (no deletion): 87 + 222 passed.
+----
+D0_control NOT CAUGHT ['87 passed in 8.57s', '222 passed in 51.45s'] []
+P01_frozen_control caught ['1 failed, 86 passed in 8.31s'] ['test_P_tampered_control_is_refused_before_anything_runs']
+P02_source_pin caught ['1 failed, 86 passed in 8.99s'] ['test_P_source_other_than_the_inventory_pin_is_refused']
+P03_cr_toml_identity caught ['1 failed, 86 passed in 8.16s'] ['test_P_a_cr_toml_that_does_not_render_the_config_is_refused']
+P04_copy_vs_pins caught ['1 failed, 86 passed in 8.16s'] ['test_P_a_copy_that_differs_from_the_pins_is_refused']
+P06_env_not_production caught ['3 failed, 84 passed in 6.44s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record', 'test_F5_default_runner_with_the_real_guard_on_a_toy[nodes0-clean]', 'test_F5_default_runner_with_the_real_guard_on_a_toy[nodes1-not_clean]']
+P07_command_not_exact caught ['1 failed, 86 passed in 8.56s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record']
+P08_deadline_not_cr_timeout caught ['1 failed, 86 passed in 8.08s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record']
+P09_write_once_mode caught ['1 failed, 86 passed in 8.23s'] ['test_P_records_are_opened_write_once - Fai...']
+P10_next_attempt_skips_records NOT CAUGHT ['222 passed in 50.41s'] []
+P11_status caught ['3 failed, 84 passed in 8.43s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[error]', 'test_P_every_not_clean_branch_is_recorded_with_its_reason[killed]', 'test_F5_default_runner_with_the_real_guard_on_a_toy[nodes1-not_clean]']
+P12_nodes_vs_control caught ['1 failed, 86 passed in 8.54s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[nodes_differ]']
+P13_node_set_mismatch caught ['2 failed, 85 passed in 8.60s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[node_set_mismatch]', 'test_F5_default_runner_with_the_real_guard_on_a_toy[nodes1-not_clean]']
+P14_guard_control_sha caught ['1 failed, 86 passed in 8.38s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[guard_control_sha]']
+P15_counts caught ['1 failed, 86 passed in 8.48s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[skipped]']
+P16_guard_cleanup caught ['1 failed, 86 passed in 8.45s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[guard_cleanup]']
+P17_guard_exit caught ['1 failed, 86 passed in 8.59s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[guard_exit_only]']
+P18_outer_rc caught ['1 failed, 86 passed in 8.60s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[outer_rc_only]']
+P19_outer_timeout caught ['1 failed, 86 passed in 8.65s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[outer_timeout]']
+P20_outer_cleanup caught ['1 failed, 86 passed in 8.24s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[outer_cleanup]']
+P21_source_after caught ['1 failed, 86 passed in 8.46s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[source_changed]']
+P22_control_after caught ['2 failed, 85 passed in 8.39s'] ['test_P_control_json_is_never_written_and_its_bytes_are_unchanged', 'test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-control_changed]']
+P23_budget caught ['1 failed, 86 passed in 8.45s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[over_budget]']
+P24_budget_boundary caught ['1 failed, 86 passed in 8.78s'] ['test_P_wall_time_exactly_at_the_budget_is_clean']
+P25_no_guard_sidecar caught ['1 failed, 86 passed in 8.83s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[no_guard]']
+P26_runner_exception caught ['2 failed, 85 passed in 8.79s'] ['test_P_every_not_clean_branch_is_recorded_with_its_reason[runner_exception]', 'test_F1_a_runner_exception_still_writes_the_record']
+P27_skip_already_clean caught ['1 failed, 86 passed in 8.20s'] ['test_P_cli_runs_configs_in_order_stops_on_the_first_not_clean_and_is_safe_to_rerun']
+P28_block_not_clean caught ['1 failed, 86 passed in 8.66s'] ['test_P_cli_runs_configs_in_order_stops_on_the_first_not_clean_and_is_safe_to_rerun']
+P29_stop_on_not_clean caught ['2 failed, 85 passed in 8.83s'] ['test_P_cli_runs_configs_in_order_stops_on_the_first_not_clean_and_is_safe_to_rerun', 'test_P_cli_main_exit_code_is_0_only_when_every_config_is_clean']
+P30_frozen_from_collect_only caught ['1 failed, 86 passed in 8.81s'] ['test_P_cli_reads_the_frozen_control_value_from_collect_only_json']
+P31_source_pins_agree caught ['1 failed, 86 passed in 8.51s'] ['test_P_cli_refuses_completion_inventories_that_disagree_on_the_source']
+P32_main_exit_code caught ['1 failed, 86 passed in 8.44s'] ['test_P_cli_main_exit_code_is_0_only_when_every_config_is_clean']
+P33_screening_first caught ['3 failed, 84 passed in 8.62s'] ['test_P_cli_runs_configs_in_order_stops_on_the_first_not_clean_and_is_safe_to_rerun', 'test_P_cli_refuses_completion_inventories_that_disagree_on_the_source', 'test_F1_an_attempt_dir_without_a_record_blocks_the_cli']
+G01_source_pin caught ['1 failed, 86 passed in 8.32s'] ['test_P_gate_refuses_a_record_from_another_binding[source_pin]']
+G02_no_records caught ['2 failed, 85 passed in 8.43s'] ['test_P_gate_accepts_only_a_clean_record_bound_to_the_current_context', 'test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one']
+G03_not_clean_raise caught ['2 failed, 85 passed in 8.71s'] ['test_P_a_not_clean_record_for_the_current_binding_blocks_the_config_even_beside_a_clean_one', 'test_F11_an_unreadable_record_blocks_the_gate']
+G04_not_same_raise caught ['12 failed, 75 passed in 9.94s'] ['test_P_gate_accepts_only_a_clean_record_bound_to_the_current_context', 'test_P_gate_refuses_a_record_from_another_binding[env]', 'test_P_gate_refuses_a_record_from_another_binding[control]']
+G05_binding_equality caught ['12 failed, 75 passed in 8.84s'] ['test_P_gate_accepts_only_a_clean_record_bound_to_the_current_context', 'test_P_gate_refuses_a_record_from_another_binding[env]', 'test_P_gate_refuses_a_record_from_another_binding[control]']
+G06_not_clean_detection caught ['2 failed, 85 passed in 8.56s'] ['test_P_a_not_clean_record_for_the_current_binding_blocks_the_config_even_beside_a_clean_one', 'test_P_cli_runs_configs_in_order_stops_on_the_first_not_clean_and_is_safe_to_rerun']
+B01_env caught ['2 failed, 85 passed in 7.76s'] ['test_P_record_holds_only_the_bound_prefixed_env_never_other_variables', 'test_P_gate_refuses_a_record_from_another_binding[env]']
+B02_control caught ['1 failed, 86 passed in 8.29s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record']
+B03_argfiles NOT CAUGHT ['222 passed in 51.30s'] []
+B04_source caught ['3 failed, 84 passed in 8.64s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record', 'test_P_gate_refuses_a_record_from_another_binding[source_pin]', 'test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one']
+B05_harness caught ['71 failed, 16 passed in 11.21s'] ['test_P_clean_preflight_runs_the_exact_command_in_a_fresh_copy_and_writes_a_write_once_record', 'test_P_control_json_is_never_written_and_its_bytes_are_unchanged', 'test_P_every_not_clean_branch_is_recorded_with_its_reason[error]']
+B06_helpers NOT CAUGHT ['222 passed in 51.43s'] []
+B07_copy_paths NOT CAUGHT ['222 passed in 52.38s'] []
+B08_command caught ['4 failed, 83 passed in 8.68s'] ['test_P_gate_refuses_a_record_from_another_binding[command]', 'test_P_run_completion_with_clean_preflights_runs_and_records_them', 'test_F2_cached_completion_attempt_is_not_reused_after_a_copied_file_changes']
+R01_calibration_gated caught ['1 failed, 86 passed in 8.34s'] ['test_P_calibration_run_batch_with_a_config_identity_needs_a_bound_clean_preflight']
+R02_calibration_needs_both caught ['3 failed, 84 passed in 8.64s'] ['test_P_calibration_run_batch_with_a_config_identity_needs_a_bound_clean_preflight', 'test_F6_run_batch_refuses_an_undeclared_seam_without_a_preflight', 'test_F6_a_real_exec_seam_can_never_be_declared_synthetic']
+R03_identity_vs_cfg caught ['1 failed, 86 passed in 8.53s'] ['test_P_calibration_run_batch_with_a_config_identity_needs_a_bound_clean_preflight']
+R04_run_batch_check_call caught ['3 failed, 84 passed in 8.53s'] ['test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one', 'test_P_calibration_run_batch_with_a_config_identity_needs_a_bound_clean_preflight', 'test_F3_run_retry_takes_the_base_preflight']
+M01_manifest_requires caught ['1 failed, 86 passed in 8.37s'] ['test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one']
+M02_manifest_cfg_vs_inventory caught ['1 failed, 86 passed in 8.71s'] ['test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one']
+M03_manifest_passes_through caught ['1 failed, 86 passed in 8.40s'] ['test_P_run_manifest_refuses_without_a_clean_preflight_and_runs_with_one']
+C01_shard_needs_preflight caught ['1 failed, 86 passed in 8.60s'] ['test_P_run_completion_refuses_a_shard_without_a_preflight']
+C02_shard_check_call caught ['3 failed, 84 passed in 8.71s'] ['test_P_run_completion_refuses_a_shard_whose_preflight_is_from_another_harness', 'test_P_run_completion_with_clean_preflights_runs_and_records_them', 'test_F2_cached_completion_attempt_is_not_reused_after_a_copied_file_changes']
+C04_record_lists caught ['1 failed, 86 passed in 8.47s'] ['test_P_run_completion_with_clean_preflights_runs_and_records_them']
+H01_driver_in_harness caught ['1 failed, 86 passed in 8.44s'] ['test_P_driver_module_is_part_of_the_hash_bound_harness']
+M4_source_control_after_run caught ['1 failed, 86 passed in 8.69s'] ['test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-control_changed]']
+N01_sidecar_parse_guarded caught ['1 failed, 86 passed in 8.61s'] ['test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record[{"status": "surv-guard_sidecar_unreadable]']
+N02_sidecar_not_object caught ['1 failed, 86 passed in 8.44s'] ['test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record[[]-guard_sidecar_unreadable]']
+N03_sidecar_field_types caught ['1 failed, 86 passed in 8.33s'] ['test_F1_a_malformed_guard_sidecar_gives_a_written_not_clean_record[{"status": 1, "nodes": "ab", "counts": [], "cleanup": "yes", "exit_code": "0"}-guard_field_malformed]']
+N04_runner_result_types caught ['1 failed, 86 passed in 8.63s'] ['test_F1_a_malformed_runner_result_gives_a_written_not_clean_record']
+N05_started_marker caught ['1 failed, 86 passed in 8.42s'] ['test_F1_a_crash_that_leaves_no_record_is_an_orphan_that_blocks_the_gate_and_the_cli']
+N06_record_in_finally caught ['1 failed, 86 passed in 8.42s'] ['test_F11_an_abort_that_escapes_the_attempt_body_is_recorded_as_interrupted']
+N07_driver_exception_recorded caught ['1 failed, 86 passed in 8.69s'] ['test_F11_a_driver_error_after_the_copy_is_a_written_not_clean_record']
+N08_hard_abort_reraised caught ['1 failed, 86 passed in 9.32s'] ['test_F1_a_runner_exception_still_writes_the_record']
+N09_copy_pins_recorded caught ['1 failed, 86 passed in 9.25s'] ['test_P_a_copy_that_differs_from_the_pins_is_refused']
+N10_copy_harness_recorded caught ['1 failed, 86 passed in 9.50s'] ['test_P_a_harness_file_in_the_copy_that_is_not_the_reviewed_one_is_refused']
+N11_copy_vs_source_binding caught ['1 failed, 86 passed in 9.62s'] ['test_F11_a_copy_that_differs_from_the_source_tree_elsewhere_is_refused_and_recorded']
+N12_copy_changed caught ['3 failed, 84 passed in 9.13s'] ['test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-copy_changed0]', 'test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-copy_changed1]', 'test_F11_a_driver_error_after_the_copy_is_a_written_not_clean_record']
+N13_source_tree_changed caught ['1 failed, 86 passed in 8.45s'] ['test_F7_the_after_run_checks_cover_the_source_control_and_every_copied_file[<lambda>-source_tree_changed]']
+N14_guard_rc caught ['1 failed, 86 passed in 8.39s'] ['test_F8_guard_rc_and_passed_count_are_cross_checked[kw0-guard_rc_nonzero]']
+N15_passed_count caught ['1 failed, 86 passed in 8.37s'] ['test_F8_guard_rc_and_passed_count_are_cross_checked[kw1-counts]']
+N16_cli_orphan_attempt_dirs caught ['1 failed, 86 passed in 8.62s'] ['test_F1_an_attempt_dir_without_a_record_blocks_the_cli']
+N17_gate_orphan_status caught ['1 failed, 86 passed in 8.93s'] ['test_F1_a_crash_that_leaves_no_record_is_an_orphan_that_blocks_the_gate_and_the_cli']
+N18_next_attempt_markers NOT CAUGHT ['222 passed in 52.24s'] []
+N19_frozen_cross_check caught ['4 failed, 83 passed in 9.13s'] ['test_P_cli_reads_the_frozen_control_value_from_collect_only_json', 'test_F9_cli_cross_checks_the_frozen_value_against_independent_records[baseline]', 'test_F9_cli_cross_checks_the_frozen_value_against_independent_records[inventory]']
+N19b_baseline_required caught ['1 failed, 86 passed in 8.87s'] ['test_F11_the_cli_needs_at_least_one_baseline_guard_sidecar']
+N19c_inventory_record caught ['1 failed, 86 passed in 8.62s'] ['test_F9_cli_cross_checks_the_frozen_value_against_independent_records[inventory]']
+N20_write_control_refused caught ['1 failed, 86 passed in 8.57s'] ['test_F10_a_config_that_asks_the_guard_to_write_its_control_is_refused']
+C01_preflight_copied caught ['3 failed, 84 passed in 8.15s'] ['test_F2_gate_refuses_after_any_copied_file_changes[edit]', 'test_F2_gate_refuses_after_any_copied_file_changes[add]', 'test_F2_the_preflight_binding_holds_the_copied_tree_hash']
+C02_attempt_copied caught ['1 failed, 86 passed in 8.62s'] ['test_F2_cached_completion_attempt_is_not_reused_after_a_copied_file_changes']
+C03_copied_map_ignores caught ['1 failed, 86 passed in 8.61s'] ['test_F11_generated_caches_are_not_part_of_the_copied_tree']
+C04_screening_tree_check caught ['1 failed, 86 passed in 8.57s'] ['test_F2_a_screening_label_is_not_reused_after_its_copied_tree_changed']
+C05_screening_tree_recorded caught ['3 failed, 84 passed in 8.59s'] ['test_P_run_completion_with_clean_preflights_runs_and_records_them', 'test_F2_cached_completion_attempt_is_not_reused_after_a_copied_file_changes', 'test_F2_a_screening_label_is_not_reused_after_its_copied_tree_changed']
+C06_gate_orphan_raise caught ['1 failed, 86 passed in 8.54s'] ['test_F1_a_crash_that_leaves_no_record_is_an_orphan_that_blocks_the_gate_and_the_cli']
+C07_record_unreadable caught ['1 failed, 86 passed in 8.51s'] ['test_F11_an_unreadable_record_blocks_the_gate']
+C08_real_never_synthetic caught ['1 failed, 86 passed in 9.74s'] ['test_F6_a_real_exec_seam_can_never_be_declared_synthetic']
+C09_every_execution_gated caught ['2 failed, 85 passed in 9.89s'] ['test_F6_run_batch_refuses_an_undeclared_seam_without_a_preflight', 'test_F6_a_real_exec_seam_can_never_be_declared_synthetic']
+C10_seam_tag caught ['3 failed, 84 passed in 10.36s'] ['test_F4_real_exec_seam_is_tagged_and_run_batch_refuses_a_seam_for_another_command', 'test_F11_the_seam_tag_must_match_the_base_or_retry_command[False]', 'test_F11_the_seam_tag_must_match_the_base_or_retry_command[True]']
+C11_seam_tag_retry caught ['1 failed, 86 passed in 8.62s'] ['test_F11_the_seam_tag_must_match_the_base_or_retry_command[True]']
+C12a_ref_sha caught ['1 failed, 86 passed in 8.84s'] ['test_F11_a_handed_over_preflight_reference_is_re_verified[sha]']
+C12b_ref_command caught ['1 failed, 86 passed in 8.54s'] ['test_F11_a_handed_over_preflight_reference_is_re_verified[other_config]']
+C12c_ref_clean caught ['1 failed, 86 passed in 8.54s'] ['test_F11_a_handed_over_preflight_reference_is_re_verified[not_clean]']
+C13_retry_gate_condition caught ['1 failed, 86 passed in 8.60s'] ['test_F3_run_retry_takes_the_base_preflight']
+C14_retry_needs_dir caught ['1 failed, 86 passed in 8.80s'] ['test_F3_run_retry_takes_the_base_preflight']
+C15_retry_same_preflight caught ['1 failed, 86 passed in 8.45s'] ['test_F3_run_retry_refuses_when_the_timeout_batch_ran_under_another_preflight']
+C16_completion_ref caught ['1 failed, 86 passed in 8.41s'] ['test_P_run_completion_with_clean_preflights_runs_and_records_them']
+C17a_real_exec_marked caught ['2 failed, 85 passed in 8.51s'] ['test_F4_real_exec_seam_is_tagged_and_run_batch_refuses_a_seam_for_another_command', 'test_F6_a_real_exec_seam_can_never_be_declared_synthetic']
+C17b_real_exec_tagged caught ['3 failed, 84 passed in 8.67s'] ['test_F4_real_exec_seam_is_tagged_and_run_batch_refuses_a_seam_for_another_command', 'test_F11_the_seam_tag_must_match_the_base_or_retry_command[False]', 'test_F11_the_seam_tag_must_match_the_base_or_retry_command[True]']
+N21_interrupted_not_clean caught ['1 failed, 86 passed in 8.44s'] ['test_F11_an_abort_that_escapes_the_attempt_body_is_recorded_as_interrupted']
+
+==== CORRECTION (15c-P fix round 2, 2026-11-16T11:31:41-05:00; appended, the text above is unedited) ====
+N18 (the marker term in _next_attempt) is NOT equivalent, as claimed above. Re-review 1 (task-15c-p-review-verdict.md, R1-M2) showed it: an orphan marker from an OLD binding, a binding change and a new work root make the N18 mutant fail with FileExistsError on started_000.json, so the config can never be pre-flighted again into that record dir. The original code proceeds to a clean attempt 1. It is a liveness behaviour, now pinned by test_F12_an_old_binding_orphan_does_not_block_a_new_binding_under_a_new_work_root; N18 is caught in t15c_p_fix2_green.txt. The other four argued equivalences (P10, B03, B06, B07) were confirmed by the reviewer.

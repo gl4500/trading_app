@@ -35,6 +35,14 @@
   deliberate pass list, and the binding records every such variable the child receives (child env == bound env);
   drift errors name recoveries the API has; a direct run_batch(config=...) verifies the identity against its
   inventory like run_manifest.
+* 15c-P (pre-flight, after Codex 9330a64): preflight_binding / check_preflight gate every run_manifest, every
+  calibration run_batch(config=...) and every run_completion shard on a CLEAN pre-flight record (cr_preflight.py)
+  bound to the current harness, command, control, source, helpers, copy paths and child env; a not_clean record for
+  that binding blocks the config. The record reference is persisted in the batch state / completion record.
+* 15c-P fix round 1: the pre-flight binding, every completion attempt binding and every screening item bind the
+  whole copied tree (copied_map / copied_sha256); run_batch gates EVERY execution unless its seam declares itself
+  synthetic (real_exec seams never are, and carry their test command); run_retry is gated on the base config's
+  pre-flight, which the timeout batch must have run under; an orphaned pre-flight attempt blocks like a not_clean.
 
 Part of the mutation harness: excluded from every inventory and hashed separately.
 """
@@ -56,9 +64,10 @@ from cr_guard import BUDGETS
 
 HARNESS_DIR = Path(__file__).resolve().parent
 LAUNCHER = HARNESS_DIR / "cr_launch.py"
-HARNESS_FILES = ("cr_guard.py", "cr_reconcile.py", "cr_coord.py", "cr_launch.py")
+HARNESS_FILES = ("cr_guard.py", "cr_reconcile.py", "cr_coord.py", "cr_launch.py", "cr_preflight.py")
 SCHEMA = "a3-t15a-coord/1"
-_COPY_IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", ".hypothesis", ".pytest_cache")
+_COPY_IGNORE_PATTERNS = ("__pycache__", "*.pyc", ".hypothesis", ".pytest_cache")
+_COPY_IGNORE = shutil.ignore_patterns(*_COPY_IGNORE_PATTERNS)
 
 
 class ScopeError(ValueError):
@@ -636,13 +645,7 @@ def _attempt_binding(cfg: CRConfig, root: Path, nodes: list, copy_paths) -> dict
     root = Path(root)
     args = [str(a) for a in cfg.guard_args]
     ctl = args[args.index("--control") + 1] if "--control" in args[:-1] else None
-    helpers = {}
-    for rel in cfg.pythonpath_rel:
-        d = root / rel
-        for p in sorted(list(d.glob("conftest.py")) + list(d.glob("*helpers*.py"))):
-            r = _posix(p.relative_to(root))
-            if _in_copy(r, copy_paths):
-                helpers[r] = _sha(p)
+    helpers = _helpers(cfg, root, copy_paths)
     src_rel = _posix(cfg.module_rel)
     src = root / src_rel
     return {"python": str(cfg.python),
@@ -652,7 +655,136 @@ def _attempt_binding(cfg: CRConfig, root: Path, nodes: list, copy_paths) -> dict
                                else None),
             "source_sha256": _sha(src) if _in_copy(src_rel, copy_paths) and src.is_file() else None,
             "harness_sha256": harness_hashes(), "helpers_sha256": helpers, "pythonpath_rel": list(cfg.pythonpath_rel),
+            "copied_sha256": map_sha256(copied_map(root, copy_paths)),       # 15c-P fix 1 (I2)
             "env": _child_env_binding(root, cfg)}
+
+
+def copied_map(root: Path, copy_paths) -> dict:
+    """15c-P fix 1 (I2): {rel: sha256} of every file a copy of ``copy_paths`` from ``root`` holds - exactly what
+    make_copy copies (a copy-path directory without the _COPY_IGNORE names, a copy-path file as is)."""
+    import fnmatch
+    root, out = Path(root), {}
+    for rel in copy_paths:
+        s = root / rel
+        if s.is_file():
+            out[_posix(s.relative_to(root))] = _sha(s)
+        elif s.is_dir():
+            for f in sorted(s.rglob("*")):
+                parts = f.relative_to(s).parts
+                if f.is_file() and not any(fnmatch.fnmatch(x, pat) for x in parts for pat in _COPY_IGNORE_PATTERNS):
+                    out[_posix(f.relative_to(root))] = _sha(f)
+        else:
+            raise CoordError(f"copy path {rel} does not exist under {root}")
+    return dict(sorted(out.items()))
+
+
+def map_sha256(m: dict) -> str:
+    """sha256 of a {rel: sha256} map (sorted, compact JSON)."""
+    return hashlib.sha256(json.dumps(sorted(m.items()), separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _helpers(cfg: CRConfig, root: Path, copy_paths) -> dict:
+    """conftest.py / *helpers*.py on the pythonpath dirs of ``root``, restricted to ``copy_paths`` -> {rel: sha256}."""
+    helpers = {}
+    for rel in cfg.pythonpath_rel:
+        d = Path(root) / rel
+        for p in sorted(list(d.glob("conftest.py")) + list(d.glob("*helpers*.py"))):
+            r = _posix(p.relative_to(root))
+            if _in_copy(r, copy_paths):
+                helpers[r] = _sha(p)
+    return helpers
+
+
+# ------------------------------------------------------------------------------- 15c-P: the pre-flight gate
+PREFLIGHT_SCHEMA = "a3-t15cp-preflight/1"
+
+
+def control_rel(cfg: CRConfig) -> str:
+    """The single ``--control`` file a config's test command names (relative to the copy root)."""
+    args = [str(a) for a in cfg.guard_args]
+    if any(a == "--write-control" or a.startswith("--write-control=") for a in args):
+        raise CoordError("the config asks the guard to --write-control: a pre-flight never writes a control")
+    if args.count("--control") != 1 or args[-1] == "--control":
+        raise CoordError("a pre-flight needs exactly one --control file in the config's test command")
+    return _posix(args[args.index("--control") + 1])
+
+
+def preflight_binding(cfg: CRConfig, root: Path, copy_paths) -> dict:
+    """15c-P: the context a pre-flight certifies, computed from ``root`` (the pre-flight's copy when it runs; the
+    source tree when a gate checks it - the copy is made from it, so an unchanged context reproduces it exactly):
+    interpreter, module, test-command sha256, the frozen control and every @argfile, the module source, the harness
+    and helper hashes, the copy paths, the pythonpath and the bound child env (_child_env_binding: the prefixed
+    variables + TZ only)."""
+    root = Path(root)
+    ctl = control_rel(cfg)
+    argfiles = {_posix(str(a)[1:]): _sha(root / str(a)[1:]) for a in cfg.guard_args if str(a).startswith("@")}
+    return {"python": str(cfg.python), "module_rel": _posix(cfg.module_rel),
+            "test_command_sha256": hashlib.sha256(test_command(cfg).encode("utf-8")).hexdigest(),
+            "control_rel": ctl, "control_sha256": _sha(root / ctl), "argfiles_sha256": argfiles,
+            "source_sha256": _sha(root / cfg.module_rel), "harness_sha256": harness_hashes(),
+            "helpers_sha256": _helpers(cfg, root, copy_paths), "copy_paths": sorted(map(_posix, copy_paths)),
+            "copied_sha256": map_sha256(copied_map(root, copy_paths)),       # fix 1 (I2): every copied file
+            "pythonpath_rel": list(cfg.pythonpath_rel), "env": _child_env_binding(root, cfg)}
+
+
+def check_preflight(preflight_dir: Path, cfg: CRConfig, *, src_root: Path, copy_paths,
+                    source_sha256: str | None = None) -> dict:
+    """15c-P gate: the config's pre-flight records (``preflight_dir``/preflight_*.json) must hold a CLEAN record
+    whose binding equals the CURRENT preflight_binding, and NO not_clean record for that binding (a failed
+    pre-flight is kept as a failure and the configuration is not used). A record from another binding (older
+    harness, other env / control / command / copy paths / source) is not accepted. Returns {record, sha256}."""
+    cur = preflight_binding(cfg, src_root, copy_paths)
+    if source_sha256 is not None and cur["source_sha256"] != source_sha256:
+        raise CoordError(f"pre-flight gate: source {cfg.module_rel} sha256 {cur['source_sha256']} is not the pinned "
+                         f"{source_sha256}")
+    paths = sorted(Path(preflight_dir).glob("preflight_*.json")) if Path(preflight_dir).is_dir() else []
+    status, p, r = preflight_status(preflight_dir, cur)
+    if status == "orphan":
+        raise CoordError(f"pre-flight attempt {p.name} for the current context has no record (orphan): this "
+                         f"configuration is not used")
+    if not paths:
+        raise CoordError(f"no pre-flight record in {preflight_dir}: run the pre-flight (cr_preflight) for this "
+                         f"config first")
+    if status == "not_clean":
+        raise CoordError(f"pre-flight {p.name} for the current context is not_clean ({r.get('reasons')}): this "
+                         f"configuration is not used")
+    if status != "clean":
+        p, r = paths[-1], json.loads(paths[-1].read_text(encoding="utf-8"))
+        raise CoordError(f"no clean pre-flight bound to the current context in {preflight_dir} (latest {p.name} "
+                         f"differs in {_binding_drift(r.get('binding') or {}, cur)})")
+    return {"record": str(p), "sha256": _sha(p)}
+
+
+def preflight_status(preflight_dir: Path, cur: dict) -> tuple:
+    """(status, path, record) of the pre-flight records in ``preflight_dir`` for the binding ``cur``:
+    "orphan" if an attempt was started for it (started_<k>.json, written before the run) but has no record
+    preflight_<k>.json (fix 1, I1: a crash is never retried past); else "not_clean" if ANY record bound to it is
+    not clean (the first such; an unreadable record counts as not clean); else "clean" (the latest clean one);
+    else "none"."""
+    d = Path(preflight_dir)
+    if not d.is_dir():
+        return "none", None, None
+    for m in sorted(d.glob("started_*.json")):
+        k = m.stem.split("_", 1)[1]
+        try:
+            mb = json.loads(m.read_text(encoding="utf-8")).get("binding")
+        except (OSError, ValueError, AttributeError):
+            mb = cur                                     # an unreadable marker is treated as this binding's
+        if mb == cur and not (d / f"preflight_{k}.json").exists():
+            return "orphan", m, None
+    same = []
+    for p in sorted(d.glob("preflight_*.json")):
+        try:
+            r = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return "not_clean", p, {"reasons": ["record_unreadable"]}
+        if not isinstance(r, dict):
+            return "not_clean", p, {"reasons": ["record_unreadable"]}
+        if r.get("schema") == PREFLIGHT_SCHEMA and r.get("binding") == cur:
+            if r.get("verdict") != "clean" or r.get("reasons"):
+                return "not_clean", p, r
+            same.append((p, r))
+    return ("clean", *same[-1]) if same else ("none", None, None)
 
 
 def _binding_drift(old: dict, new: dict) -> list:
@@ -686,6 +818,11 @@ def _check_screening_context(job: str, item: dict, work_root: Path, src_root: Pa
         if s.get("harness_sha256") != harness_hashes():
             raise CoordError(f"screening of {job} ({p.name}) ran under another harness than the current one: the "
                              f"screening label is not reused")
+        tree = (s.get("copied_tree_sha256") or {}).get(job)          # 15c-P fix 1 (I2c): the whole copy
+        now = map_sha256(copied_map(src_root, s["copy_paths"])) if s.get("copy_paths") else None
+        if tree is None or tree != now:
+            raise CoordError(f"screening of {job} ({p.name}) ran on copied tree {tree}; the current copy paths give "
+                             f"{now}: the screening label is not reused")
 
 
 def _check_cached_attempts(job: str, name: str, sroot: Path, planned: dict, want_source) -> None:
@@ -744,7 +881,9 @@ def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_
     * The merge (cr_reconcile.merge_attempts: killed / unresolved / deferred / survived), every attempt with its
       binding, and the pool sha256 are written to a new completion_record*.json.
 
-    ``shards``: [{"name", "cfg": CRConfig, "copy_paths"}]."""
+    ``shards``: [{"name", "cfg": CRConfig, "copy_paths", "preflight_dir"}]. 15c-P: each shard's config must have a
+    clean pre-flight bound to the current context (check_preflight), checked before anything runs; its reference is
+    persisted in each attempt state and in the completion record."""
     exec_factory = exec_factory or real_exec
     if job not in items_by_id:
         raise CoordError(f"unknown job {job} (not in the inventory)")
@@ -772,6 +911,10 @@ def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_
         check_pool_union(pool, node_sets)
     except PartitionError as exc:
         raise CoordError(f"completion shards do not cover the frozen pool {Path(pool_path).name}: {exc}") from None
+    for s in shards:                                        # 15c-P: every shard config needs its pre-flight
+        if not s.get("preflight_dir"):
+            raise CoordError(f"completion shard {s['name']} has no pre-flight (preflight_dir): a completion config "
+                             f"is used only after a clean pre-flight of that config")
     blocked = unresolved_stops(work_root)
     if blocked:
         b = blocked[0]
@@ -785,6 +928,10 @@ def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_
     for spec in shards:                                     # fix round 3 (X23): never reuse under drifted inputs
         _check_cached_attempts(job, spec["name"], croot / spec["name"], planned[spec["name"]],
                                (source_sha256 or {}).get(mod_rel))
+    preflights = {spec["name"]: check_preflight(spec["preflight_dir"], spec["cfg"], src_root=src_root,  # 15c-P
+                                                copy_paths=spec["copy_paths"],
+                                                source_sha256=(source_sha256 or {}).get(mod_rel))
+                  for spec in shards}
     attempts, refused, pending, not_run = [], [], [], []
     for n, (spec, nodes) in enumerate(zip(shards, node_sets)):
         name, cfg = spec["name"], spec["cfg"]
@@ -803,6 +950,7 @@ def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_
                       item_outer_s=cfg.timeout_s + BUDGETS["cleanup_reserve_s"],
                       binding_fn=lambda item, copy_root, job_dir, _c=cfg, _n=nodes, _p=spec["copy_paths"]:
                       _attempt_binding(_c, copy_root, _n, _p),
+                      cfg=cfg, preflight_ref=preflights[name],
                       extra={"completion_of": job, "shard": name, "test_command": test_command(cfg),
                              "planned_binding": planned[name]})
             states = _attempt_states(sroot, name)
@@ -826,6 +974,7 @@ def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_
                          "cleanup_verified": res.get("cleanup_verified"), "stopped": bool(s.get("stopped")),
                          "stop_reason": s.get("stop_reason"), "state_sha256": _sha(state),
                          "test_command_sha256": bound.get("test_command_sha256"), "binding": bound,
+                         "preflight": s.get("preflight"),
                          "containment": {"exec_status": res.get("exec_status"),
                                          "cleanup_verified": res.get("cleanup_verified")}})
         if s.get("stopped") and not _resolution_path(sroot, s["batch_id"]).exists():
@@ -834,7 +983,7 @@ def run_completion(job: str, items_by_id: dict, shards, *, pool_path: Path, src_
     merged = cr_reconcile.merge_attempts("survived", attempts, names)
     rec = {"schema": SCHEMA, "job_id": job, "screening_label": "survived", "required": names,
            "pool": str(Path(pool_path)), "pool_sha256": pool_sha256(pool), "attempts": attempts, "refused": refused,
-           "not_run": not_run, "pending_shards": pending, **merged}
+           "not_run": not_run, "pending_shards": pending, "preflights": preflights, **merged}
     croot.mkdir(parents=True, exist_ok=True)
     out, k = croot / "completion_record.json", 1
     while out.exists():
@@ -847,7 +996,8 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
               source_sha256: dict | None = None, clock=time.monotonic, extra: dict | None = None,
               session_root: Path | None = None, io_margin_s: float = IO_MARGIN_S, item_outer_s: float | None = None,
               cap_record=None, config: dict | None = None, binding_fn=None,
-              inventory_path: Path | None = None) -> dict:
+              inventory_path: Path | None = None, cfg: CRConfig | None = None,
+              preflight_dir: Path | None = None, preflight_ref: dict | None = None, retry: bool = False) -> dict:
     """Execute a batch strictly sequentially, one WorkItem per fresh disposable copy. Stops (quarantining the copy)
     on the first timeout / cleanup uncertainty / drift / unrestored source / exec exception; pending IDs are kept.
 
@@ -862,7 +1012,17 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
     ``item_s`` (calibration input). More than BUDGETS["batch_max"] items needs a calibration ``cap_record``.
 
     fix round 4 (R3-N3): a ``config`` identity is accepted only with the ``inventory_path`` it is verified against,
-    exactly as run_manifest verifies it (_check_identity: the inventory's test-command sha256)."""
+    exactly as run_manifest verifies it (_check_identity: the inventory's test-command sha256).
+
+    15c-P: a run with a ``config`` identity (a calibration) or a ``preflight_dir`` needs ``cfg`` + ``preflight_dir``
+    and a clean pre-flight bound to the current context (check_preflight), before any state is written; its
+    reference is persisted in the state (``preflight``).
+
+    15c-P fix 1 (M1/M3): EVERY execution needs ``cfg`` and a clean pre-flight (``preflight_dir``, or a
+    ``preflight_ref`` a gated caller - run_completion, run_retry - has just verified with check_preflight; it is
+    re-verified here: record bytes, clean verdict, the cfg's test command, the current harness), unless the exec
+    seam declares itself ``synthetic`` (test stubs). A real_exec seam is never synthetic, carries its test
+    command sha256, and must have been built from ``cfg`` (from retry_config(cfg) when ``retry``)."""
     batch = list(batch)
     if not _BATCH_ID.match(str(batch_id)):
         raise CoordError(f"invalid batch id {batch_id!r}")
@@ -871,6 +1031,22 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
             raise CoordError(f"identity {config.get('config_id')} is only accepted with the inventory it is verified "
                              f"against (inventory_path)")
         _check_identity(config, json.loads(Path(inventory_path).read_text(encoding="utf-8")))
+    preflight = None
+    synthetic = getattr(exec_seam, "synthetic", False) is True and not getattr(exec_seam, "cr_real_exec", False)
+    tag = getattr(exec_seam, "test_command_sha256", None)
+    if (not synthetic or config is not None or preflight_dir is not None
+            or preflight_ref is not None):                 # 15c-P (+ fix 1, M3): every real execution is gated
+        if cfg is None or (preflight_dir is None and preflight_ref is None):
+            raise CoordError("a run_batch execution needs the config's clean pre-flight (cfg=, preflight_dir=); "
+                             "only an exec seam declared synthetic runs without one")
+        if tag is not None and tag != _cmd_sha(retry_config(cfg) if retry else cfg):     # fix 1 (M1)
+            raise CoordError("the exec seam was built for another test command than the config's: refused")
+        if config is not None and config.get("test_command_sha256") != _cmd_sha(cfg):
+            raise CoordError(f"identity {config.get('config_id')}: not the test command of the given cfg")
+        preflight = (check_preflight(preflight_dir, cfg, src_root=src_root, copy_paths=copy_paths,
+                                     source_sha256=(source_sha256 or {}).get(_posix(cfg.module_rel)))
+                     if preflight_dir is not None
+                     else _verify_preflight_ref(preflight_ref, cfg, src_root=src_root, copy_paths=copy_paths))
     cap = batch_cap(cap_record, config)
     if len(batch) > cap or len(set(batch)) != len(batch):
         raise PartitionError(f"batch of {len(batch)} items is over the {cap} cap or has duplicates")
@@ -895,7 +1071,8 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
           "session_started": started, "session_root": str(session_root), "fence_s": fence,
           "io_margin_s": io_margin_s, "batch_cap": cap, "item_s": {}, "config": config,
           "copied_source_sha256": {}, "bindings": {},
-          "harness_sha256": harness_hashes(),
+          "harness_sha256": harness_hashes(), "preflight": preflight, "synthetic_seam": synthetic and not preflight,
+          "copy_paths": [_posix(c) for c in copy_paths], "copied_tree_sha256": {},
           **(extra or {})}
 
     def stop(job, reason, copy_root=None):
@@ -944,6 +1121,7 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
             break
         job_dir.mkdir()
         st["copied_source_sha256"][job] = copied[mod_rel]          # fix round 3: what this item actually ran on
+        st["copied_tree_sha256"][job] = map_sha256(copied)        # 15c-P fix 1 (I2c): the whole copy
         try:
             if binding_fn is not None:                              # fix round 3: bound at execution time, persisted
                 st["bindings"][job] = binding_fn(item, copy_root, job_dir)
@@ -971,9 +1149,16 @@ def run_batch(batch, items_by_id: dict, *, batch_id: str, src_root: Path, copy_p
 
 def run_manifest(manifest: Path, inventory_path: Path, *, src_root: Path, copy_paths, work_root: Path, exec_seam,
                  clock=time.monotonic, session_root: Path | None = None, cap_record=None,
-                 config: dict | None = None) -> dict:
+                 config: dict | None = None, cfg: CRConfig | None = None,
+                 preflight_dir: Path | None = None) -> dict:
     """Run one batch manifest against the EXACT inventory bytes it was written for (I5). 15c-H: a manifest of more
-    than BUDGETS["batch_max"] items needs the calibration ``cap_record`` (read_cap_record)."""
+    than BUDGETS["batch_max"] items needs the calibration ``cap_record`` (read_cap_record).
+
+    15c-P: every manifest run (calibration or later screening) needs the config ``cfg`` whose test command is the
+    inventory's, and a clean pre-flight of it bound to the current context (``preflight_dir``; checked by run_batch
+    before any state is written)."""
+    if cfg is None or preflight_dir is None:
+        raise CoordError("run_manifest needs the config's clean pre-flight (cfg=, preflight_dir=)")
     man = json.loads(Path(manifest).read_text(encoding="utf-8"))
     inv_sha = _sha(inventory_path)
     if inv_sha != man["inventory_sha256"]:
@@ -985,13 +1170,40 @@ def run_manifest(manifest: Path, inventory_path: Path, *, src_root: Path, copy_p
         raise CoordError(f"manifest items not in the inventory: {unknown}")
     if config is not None:
         _check_identity(config, inv)
+    if inv.get("test_command") != test_command(cfg):
+        raise CoordError(f"cfg's test command is not this inventory's test_command ({Path(inventory_path).name})")
     return run_batch(man["items"], items_by_id, batch_id=f"{int(man['batch_index']):03d}", src_root=src_root,
                      copy_paths=copy_paths, work_root=work_root, exec_seam=exec_seam,
                      source_sha256={inv["module_rel"]: inv["source_sha256"]}, clock=clock,
                      session_root=session_root, cap_record=cap_record, config=config,
-                     inventory_path=inventory_path,
+                     inventory_path=inventory_path, cfg=cfg, preflight_dir=preflight_dir,
                      extra={"manifest": str(manifest), "manifest_sha256": _sha(manifest),
                             "inventory_sha256": inv_sha})
+
+
+def _cmd_sha(cfg: CRConfig) -> str:
+    return hashlib.sha256(test_command(cfg).encode("utf-8")).hexdigest()
+
+
+def _verify_preflight_ref(ref: dict, cfg: CRConfig, *, src_root: Path, copy_paths) -> dict:
+    """15c-P fix 1: a pre-flight reference handed over by a gated caller (which ran check_preflight on the full
+    binding) is re-verified here: the record's bytes, its clean verdict, the cfg's test command, the current
+    harness. fix 2 (R1-M1): and its WHOLE binding against preflight_binding(cfg, src_root, copy_paths) - a
+    stale record (any copied file, env, control, source ... changed since) is refused."""
+    path = Path((ref or {}).get("record") or "")
+    if not path.is_file() or _sha(path) != (ref or {}).get("sha256"):
+        raise CoordError(f"pre-flight reference {ref} does not match its record")
+    r = json.loads(path.read_text(encoding="utf-8"))
+    b = r.get("binding") or {}
+    if (r.get("schema") != PREFLIGHT_SCHEMA or r.get("verdict") != "clean" or r.get("reasons")
+            or b.get("test_command_sha256") != _cmd_sha(cfg) or b.get("harness_sha256") != harness_hashes()):
+        raise CoordError(f"pre-flight {path.name} is not a clean pre-flight of this config under the current "
+                         f"harness")
+    cur = preflight_binding(cfg, src_root, copy_paths)
+    if b != cur:
+        raise CoordError(f"pre-flight {path.name} is not bound to the current context (it differs in "
+                         f"{_binding_drift(b, cur)}): refused")
+    return {"record": str(path), "sha256": ref["sha256"]}
 
 
 def _check_identity(config: dict, inv: dict) -> None:
@@ -1034,6 +1246,8 @@ def real_exec(cfg: CRConfig):
                 "raw": row["raw"], "raw_timeout": bool(row["raw"] and row["raw"]["cr_timeout"]),
                 "exec_status": exec_status, "cleanup_verified": bool(run["cleanup"]["verified"] and guard_clean),
                 "session_sha256": cls["session_sha256"]}
+    seam.cr_real_exec, seam.synthetic = True, False             # 15c-P fix 1 (M3): never synthetic
+    seam.test_command_sha256 = _cmd_sha(cfg)                     # 15c-P fix 1 (M1): tied to its cfg
     return seam
 
 
@@ -1087,12 +1301,16 @@ def _in_completion_area(work_root: Path) -> bool:
 
 def run_retry(job: str, items_by_id: dict, cfg: CRConfig, *, src_root: Path, copy_paths, work_root: Path,
               exec_factory=real_exec, source_sha256: dict | None = None, clock=time.monotonic,
-              session_root: Path | None = None) -> dict:
+              session_root: Path | None = None, preflight_dir: Path | None = None) -> dict:
     """The ONE retry (R4/R5): a separately recorded one-item session under ``work_root``/retries/<job> with the
     retry budgets (CR 600 s, inner 540 s), only for an eligible timeout (retry_eligibility; the basis is recorded).
     The initial labels are copied from every batch state that holds the job (never modified); a second retry of the
     same job is refused. 15c-H: the retry runs on the PARENT session clock (``session_root``, default
-    ``work_root``) with the retry item path (600 + 45 s) in its HARD fence."""
+    ``work_root``) with the retry item path (600 + 45 s) in its HARD fence.
+
+    15c-P fix 1 (I3): unless its exec seam declares itself synthetic, a retry needs ``preflight_dir`` of the BASE
+    config (not retry_config(cfg): the two differ only in the widened deadlines). check_preflight must pass on it,
+    and the timeout batch must have run under that same pre-flight record (same sha256)."""
     if _in_completion_area(work_root):
         raise CoordError(f"run_retry refuses a completion-shard directory ({work_root}): a completion timeout stays "
                          f"unresolved (retry allowance for completion attempts is not agreed)")
@@ -1101,8 +1319,22 @@ def run_retry(job: str, items_by_id: dict, cfg: CRConfig, *, src_root: Path, cop
         raise CoordError(f"{job} was already retried ({rroot}); one retry only")
     initial, basis = retry_eligibility(job, items_by_id, work_root)
     rcfg = retry_config(cfg)
+    seam = exec_factory(rcfg)
+    pf = None
+    if preflight_dir is not None or not (getattr(seam, "synthetic", False) is True
+                                         and not getattr(seam, "cr_real_exec", False)):
+        if preflight_dir is None:
+            raise CoordError(f"retry of {job} needs the base config's clean pre-flight (preflight_dir=)")
+        pf = check_preflight(preflight_dir, cfg, src_root=src_root, copy_paths=copy_paths,
+                             source_sha256=(source_sha256 or {}).get(_posix(cfg.module_rel)))
+        tb = json.loads(_state_path(work_root, basis["timeout_batch"]).read_text(encoding="utf-8"))
+        ran = (tb.get("preflight") or {}).get("sha256")
+        if ran != pf["sha256"]:
+            raise CoordError(f"retry of {job}: the timeout batch {basis['timeout_batch']} ran under pre-flight "
+                             f"{ran}, not the current clean pre-flight {pf['sha256']}: refused")
     return run_batch([job], items_by_id, batch_id="retry", src_root=src_root, copy_paths=copy_paths,
-                     work_root=rroot, exec_seam=exec_factory(rcfg), source_sha256=source_sha256, clock=clock,
+                     work_root=rroot, exec_seam=seam, source_sha256=source_sha256, clock=clock,
+                     cfg=cfg if pf else None, preflight_ref=pf, retry=True,
                      session_root=Path(session_root or work_root),
                      item_outer_s=rcfg.timeout_s + BUDGETS["cleanup_reserve_s"],
                      extra={"retry_of": job, "initial_labels": initial, "eligibility": basis,

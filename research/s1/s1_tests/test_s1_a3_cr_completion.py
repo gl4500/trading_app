@@ -51,6 +51,7 @@ def _seam(results: dict, calls: list):
     def seam(item, copy_root, job_dir):
         calls.append(item["job_id"])
         return dict(results.get(item["job_id"], CLEAN_SURV))
+    seam.synthetic = True                      # 15c-P fix 1 (M3): a declared synthetic test seam
     return seam
 
 
@@ -89,7 +90,20 @@ def _shards(src, per_shard: dict, extra_pool=()):
     return specs, factory, calls, pool_path
 
 
+def _complete_preflights(src, specs):
+    """15c-P: a spec without a pre-flight gets a CLEAN one for the context current now (synthetic guard runner, real
+    driver). A spec keeps the pre-flight it got, so a later context change meets it as-is."""
+    from test_s1_a3_cr_preflight import clean_preflight      # lazy: that module imports this one
+    for spec in specs:
+        if "preflight_dir" not in spec:
+            try:
+                clean_preflight(src, spec, src.parent / "pf")
+            except (cr_coord.CoordError, OSError, KeyError, ValueError, AssertionError):
+                pass                     # a malformed spec: run_completion's own refusal is what the test pins
+
+
 def _complete(src, by_id, work, specs, factory, pool_path, **kw):
+    _complete_preflights(src, specs)
     return cr_coord.run_completion("j1", by_id, specs, pool_path=pool_path, src_root=src, work_root=work,
                                    exec_factory=factory, **kw)
 
@@ -428,6 +442,18 @@ def _identity(tmp_path, tag):
     return cr_coord.config_identity(cfg, toml, config_id=f"pkg.m/{tag}"), cfg, toml
 
 
+def _pf_dir(tmp_path, src, cfg, copy_paths):
+    """15c-P: a clean pre-flight of a screening / calibration config (real driver, synthetic guard runner); writes the
+    config's control file if the synthetic project has none. Returns its preflight_dir."""
+    from test_s1_a3_cr_preflight import clean_preflight
+    ctl = src / cr_coord.control_rel(cfg)
+    if not ctl.exists():
+        ctl.write_text(json.dumps({"nodes": ["t.py::test_x"]}), encoding="utf-8")
+    spec = {"name": "cfg", "cfg": cfg, "copy_paths": list(copy_paths)}
+    clean_preflight(src, spec, tmp_path / "pf_cfg")
+    return spec["preflight_dir"]
+
+
 def _inv_for(tmp_path, cfg, by_id):
     """fix round 4 (R3-N3): the inventory a direct run_batch(config=...) identity is verified against."""
     inv = tmp_path / "identity_inventory.json"
@@ -449,8 +475,10 @@ def test_I3_cap_is_bound_to_one_config_and_reverified_on_use(tmp_path):
         now[0] += 100.0 if item["job_id"] != "j05" else 150.0     # measured per-item cost (fake monotonic clock)
         return dict(CLEAN_SURV)
     work, inv = tmp_path / "w", _inv_for(tmp_path, cfg_a, by_id)
-    st = cr_coord.run_batch(ids[:24], by_id, batch_id="cal", src_root=src, copy_paths=["pkg"], work_root=work,
-                            exec_seam=seam, clock=lambda: now[0], config=ida, inventory_path=inv)
+    cp = ["pkg", "a.json"]
+    pf = dict(cfg=cfg_a, preflight_dir=_pf_dir(tmp_path, src, cfg_a, cp))      # 15c-P: calibration needs it
+    st = cr_coord.run_batch(ids[:24], by_id, batch_id="cal", src_root=src, copy_paths=cp, work_root=work,
+                            exec_seam=seam, clock=lambda: now[0], config=ida, inventory_path=inv, **pf)
     assert st.get("item_s", {}).get("j05") == 150.0 and st.get("config") == ida
     state = work / "batch_cal_state.json"
     short = tmp_path / "short_state.json"
@@ -476,11 +504,11 @@ def test_I3_cap_is_bound_to_one_config_and_reverified_on_use(tmp_path):
     with pytest.raises(cr_coord.PartitionError, match=r"batch size 99 exceeds the 69 cap"):
         cr_coord.plan_batches(ids, size=99, cap_record=cap_path, identity=ida)
     with pytest.raises(cr_coord.PartitionError, match=r"over the 24 cap"):
-        cr_coord.run_batch(ids[24:54], by_id, batch_id="b1", src_root=src, copy_paths=["pkg"], work_root=work,
-                           exec_seam=seam, clock=lambda: now[0], config=ida, inventory_path=inv)
-    st2 = cr_coord.run_batch(ids[24:54], by_id, batch_id="b1", src_root=src, copy_paths=["pkg"], work_root=work,
+        cr_coord.run_batch(ids[24:54], by_id, batch_id="b1", src_root=src, copy_paths=cp, work_root=work,
+                           exec_seam=seam, clock=lambda: now[0], config=ida, inventory_path=inv, **pf)
+    st2 = cr_coord.run_batch(ids[24:54], by_id, batch_id="b1", src_root=src, copy_paths=cp, work_root=work,
                              exec_seam=seam, clock=lambda: now[0], config=ida, cap_record=cap_path,
-                             inventory_path=inv)
+                             inventory_path=inv, **pf)
     assert len(st2.get("done", [])) == 30
     toml_a.write_text(toml_a.read_text(encoding="utf-8").replace("timeout = 300.0", "timeout = 301.0"),
                       encoding="utf-8")
@@ -522,10 +550,13 @@ def _cap_setup(tmp_path):
     def seam(item, copy_root, job_dir):
         now[0] += 100.0
         return dict(CLEAN_SURV)
+    seam.synthetic = True                      # 15c-P fix 1 (M3): a declared synthetic test seam
     work = tmp_path / "w"
-    cr_coord.run_batch(ids[:24], by_id, batch_id="cal", src_root=src, copy_paths=["pkg"], work_root=work,
+    cp = ["pkg", "a.json"]
+    cr_coord.run_batch(ids[:24], by_id, batch_id="cal", src_root=src, copy_paths=cp, work_root=work,
                        exec_seam=seam, clock=lambda: now[0], config=ida,
-                       inventory_path=_inv_for(tmp_path, cfg_a, by_id))
+                       inventory_path=_inv_for(tmp_path, cfg_a, by_id), cfg=cfg_a,
+                       preflight_dir=_pf_dir(tmp_path, src, cfg_a, cp))
     cap_path = work / "derived_cap.json"
     cr_coord.derive_cap(work / "batch_cal_state.json", out=cap_path, identity=ida)
     return src, by_id, ids, ida, cap_path, seam, now, work
@@ -615,13 +646,14 @@ def test_R1_N3_run_manifest_refuses_an_identity_for_another_test_command(tmp_pat
                                "test_command": cr_coord.test_command(cfg_a), "items": cr_coord.order_items(items)}),
                    encoding="utf-8")
     (m0,) = cr_coord.write_manifests(work, [["j1"]], sha(inv))
-    calls = []
+    calls, cp = [], ["pkg", "a.json"]
+    pf = dict(cfg=cfg_a, preflight_dir=_pf_dir(tmp_path, src, cfg_a, cp))         # 15c-P: run_manifest needs it
     with pytest.raises(cr_coord.CoordError, match=r"identity pkg\.m/b: not this inventory's test_command"):
-        cr_coord.run_manifest(m0, inv, src_root=src, copy_paths=["pkg"], work_root=work / "s0",
-                              exec_seam=_seam({}, calls), config=idb)
+        cr_coord.run_manifest(m0, inv, src_root=src, copy_paths=cp, work_root=work / "s0",
+                              exec_seam=_seam({}, calls), config=idb, **pf)
     assert calls == []
-    st = cr_coord.run_manifest(m0, inv, src_root=src, copy_paths=["pkg"], work_root=work / "s1",
-                               exec_seam=_seam({}, calls), config=ida)
+    st = cr_coord.run_manifest(m0, inv, src_root=src, copy_paths=cp, work_root=work / "s1",
+                               exec_seam=_seam({}, calls), config=ida, **pf)
     assert st.get("done") == ["j1"] and st.get("config") == ida
 
 
@@ -743,12 +775,16 @@ def test_X23_inputs_changing_between_planning_and_execution_are_not_merged(tmp_p
     (src / "conftest.py").write_text("# helper v1\n", encoding="utf-8")
     specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
     specs[0]["copy_paths"].append("conftest.py")
+    _complete_preflights(src, specs)
+    real_copy = cr_coord.make_copy                 # 15c-P fix 2: race after the pre-flight re-check, before the copy
 
-    def racing_factory(cfg):
+    def racing_copy(src_root, copy_paths, dest):
         (src / "conftest.py").write_text("# helper changed mid-run\n", encoding="utf-8")
-        return factory(cfg)
-    with pytest.raises(cr_coord.CoordError, match=r"executed binding differs from the planned one in \['helpers"):
-        _complete(src, by_id, work, specs, racing_factory, pool)
+        return real_copy(src_root, copy_paths, dest)
+    monkeypatch.setattr(cr_coord, "make_copy", racing_copy)
+    with pytest.raises(cr_coord.CoordError, match=r"executed binding differs from the planned one in "
+                                                  r"\['copied_sha256', 'helpers"):
+        _complete(src, by_id, work, specs, factory, pool)
     assert not list((work / "completion" / "j1").glob("completion_record*.json"))
 
 
@@ -908,6 +944,7 @@ def test_R3_N1_X15_binding_is_taken_from_the_copy_not_the_source_tree(tmp_path, 
     (src / "conftest.py").write_text("# helper v1\n", encoding="utf-8")
     specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
     specs[0]["copy_paths"].append("conftest.py")
+    _complete_preflights(src, specs)                           # 15c-P: pre-flight before the copy starts diverging
     real = cr_coord.make_copy
 
     def diverging_copy(src_root, copy_paths, dest):
@@ -916,7 +953,7 @@ def test_R3_N1_X15_binding_is_taken_from_the_copy_not_the_source_tree(tmp_path, 
         return out
     monkeypatch.setattr(cr_coord, "make_copy", diverging_copy)
     with pytest.raises(cr_coord.CoordError, match=r"executed binding differs from the planned one in "
-                                                  r"\['helpers_sha256'\]"):
+                                                  r"\['copied_sha256', 'helpers_sha256'\]"):
         _complete(src, by_id, work, specs, factory, pool)
 
 
@@ -930,21 +967,26 @@ def test_R3_N2_cached_drift_error_names_an_existing_remedy_and_it_works(tmp_path
     w2 = tmp_path / "w2"                                       # the named remedy, through the existing API only
     cr_coord.run_batch(["j1"], by_id, batch_id="b000", src_root=src, copy_paths=["pkg"], work_root=w2,
                        exec_seam=_seam({}, []))
+    for s in specs:                                            # 15c-P: the new context needs its own pre-flight
+        s.pop("preflight_dir")
     r = _complete(src, by_id, w2, specs, factory, pool)
     assert r.get("label") == "survived" and calls["c1"] == ["j1", "j1"], r
 
 
-def test_R3_N2_mid_run_drift_error_names_an_existing_remedy(tmp_path):
+def test_R3_N2_mid_run_drift_error_names_an_existing_remedy(tmp_path, monkeypatch):
     src, by_id, work = _screened(tmp_path)
     (src / "conftest.py").write_text("# helper v1\n", encoding="utf-8")
     specs, factory, calls, pool = _shards(src, {"c1": CLEAN_SURV})
     specs[0]["copy_paths"].append("conftest.py")
+    _complete_preflights(src, specs)
+    real_copy = cr_coord.make_copy                 # 15c-P fix 2: race after the pre-flight re-check, before the copy
 
-    def racing_factory(cfg):
+    def racing_copy(src_root, copy_paths, dest):
         (src / "conftest.py").write_text("# helper changed mid-run\n", encoding="utf-8")
-        return factory(cfg)
+        return real_copy(src_root, copy_paths, dest)
+    monkeypatch.setattr(cr_coord, "make_copy", racing_copy)
     with pytest.raises(cr_coord.CoordError, match=r"not merged.*screen j1 again in a fresh work_root"):
-        _complete(src, by_id, work, specs, racing_factory, pool)
+        _complete(src, by_id, work, specs, factory, pool)
 
 
 # --- R3-N3: direct run_batch(config=...) verifies the identity against the inventory -------------------------------
@@ -965,8 +1007,10 @@ def test_R3_N3_direct_run_batch_verifies_a_config_identity_against_the_inventory
         cr_coord.run_batch(["j1"], by_id, batch_id="b0", src_root=src, copy_paths=["pkg"], work_root=work,
                            exec_seam=_seam({}, calls), config=idb, inventory_path=inv)
     assert calls == [] and not list(work.glob("batch_*_state.json"))
-    st = cr_coord.run_batch(["j1"], by_id, batch_id="b0", src_root=src, copy_paths=["pkg"], work_root=work,
-                            exec_seam=_seam({}, calls), config=ida, inventory_path=inv)
+    cp = ["pkg", "a.json"]                                     # 15c-P: a calibration also needs its pre-flight
+    st = cr_coord.run_batch(["j1"], by_id, batch_id="b0", src_root=src, copy_paths=cp, work_root=work,
+                            exec_seam=_seam({}, calls), config=ida, inventory_path=inv, cfg=cfg_a,
+                            preflight_dir=_pf_dir(tmp_path, src, cfg_a, cp))
     assert st.get("done") == ["j1"] and st.get("config") == ida
 
 
