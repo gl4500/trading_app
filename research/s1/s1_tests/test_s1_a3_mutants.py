@@ -427,10 +427,12 @@ FINDINGS = {                                 # from the 15b run (a3/t15_mutants.
     # Task 15d-2: the T15-F1/F2/F4/F7/F9/F10/F12 marks were removed after their 15d-1 kills at the agreed lines
     # (a3/t15d1/, a3/t15d1_summary.md; Codex reconciliation of 81e1ffd). Their 15b reasons stay in git history and in
     # each a3/t15/<mutant>/record.json "finding".
-    "stop-pending-removed": "T15-F11: failed-elsewhere: the mutated guard lets a pending close fall through to "
-                            "`deps += dd` with dd None (s1_seal.py:663 TypeError) before _resolution_evidence is "
-                            "called, so neither the 15b stop.py:162 nor the 15d-1 test_s1_a3_t15d_killers.py:130 "
-                            "oracle is reached (a3/t15/, a3/t15d1/)",
+    # Task 15d-3 (Codex disposition of 5376f42): the T15-F11 mark was removed ONLY because the CURRENTLY selected
+    # isolated pending-branch seam oracle (test_s1_a3_t15d_f11_branch.py:31) was killed and independently reconciled
+    # (a3/t15d2/stop-pending-removed/). OPEN item T15-F11-REAL (a3/t15d_open_items.md) stays: a real-tuple
+    # assertion-oracle gap - the real pending tuple ('pending', None, None) makes the mutant raise the OBSERVED
+    # TypeError at s1_seal.py:663 (`deps += dd`) before any intended assertion (failed-elsewhere:
+    # a3/t15/stop-pending-removed/, a3/t15d1/stop-pending-removed/). No equivalence; no real-tuple closure.
 }
 
 # The plugin: anchor EXACTLY once (controller ruling; the plan's ">= 1" would accept an ambiguous anchor) and the

@@ -1,0 +1,41 @@
+A3 Task 15c final init-only inventory re-initialisation after Task 15d (2026-11-16T13:25:59-05:00); HEAD 5376f42 (15d-2) + the uncommitted 15d-3 working tree (research/s1/s1_tests/test_s1_a3_mutants.py sha256 e6b5cb42dc96a7f7c30ee33ea1ab0e99a7a517008ac79c194c05f782e35b45a8, a3/t15d_open_items.md). cr_coord.py dc1b0e863d4e and cr_preflight.py 22a133c376e7 unchanged since 02ac56c. NO pre-flight, mutant or calibration executed: only cosmic-ray init (scratchpad/t15c_work: tools/reinit.py final_15d, tools/reinit_copied_diff.py final_15d, tools/plan_sessions.py; -B, PYTHONDONTWRITEBYTECODE=1), then finalize.py hashes (check_plans).
+
+==== verify_reinit_final_15d.py: moved 02ac56c files (_superseded/inventories_pre_final_15d/) sha256-equal to a3/t15c_prep_hashes_at_02ac56c.txt; normalized specs + kept specs identical and in order; sidecar; filtered + plan bound; plans calibration-first; harness_sha256 == current; only copied / harness_sha256 / session_sha256 may change ====
+s1_collect__audit 1160 406 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_collect__final 1160 446 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_journal 720 720 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_locks 159 159 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_seal__check 1634 77 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_seal__decide 1634 101 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_seal__record 1634 114 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_seal__sampled 1634 42 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_slot__finalizer 1697 1397 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_slot__slots 1697 300 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_stage 774 774 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+s1_trial 1782 1782 ['copied', 'session_sha256'] {'moved_equal_02ac56c_manifest': True, 'specs_same': True, 'kept_same': True, 'sidecar': True, 'filtered_bound': True, 'plan_bound': True, 'plan_calibration_first': True, 'harness_current_5': True, 'changed_keys_ok': True}
+total pre-filter 15685 kept 6318 ALL OK
+
+==== changed copied entries vs the 02ac56c inventories (copied_diff_final.py; old -> new sha256 prefix) ====
+s1_collect__audit 113 -> 114 entries; 3 changed
+s1_collect__final 113 -> 114 entries; 3 changed
+s1_journal 112 -> 113 entries; 3 changed
+s1_locks 112 -> 113 entries; 3 changed
+s1_seal__check 113 -> 114 entries; 3 changed
+s1_seal__decide 113 -> 114 entries; 3 changed
+s1_seal__record 113 -> 114 entries; 3 changed
+s1_seal__sampled 113 -> 114 entries; 3 changed
+s1_slot__finalizer 113 -> 114 entries; 3 changed
+s1_slot__slots 113 -> 114 entries; 3 changed
+s1_stage 112 -> 113 entries; 3 changed
+s1_trial 112 -> 113 entries; 3 changed
+all 12 configs have the same changed entries: True
+  modified research/s1/s1_tests/test_s1_a3_mutants.py  794db5d3e681 -> e6b5cb42dc96
+  added    research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py  - -> ab33dad3b50d
+  modified research/s1/s1_tests/test_s1_a3_t15d_killers.py  9c98162c5e71 -> 1a86e6376e42
+
+==== explanation ====
+harness_sha256 did NOT change (cr_coord / cr_preflight / cr_guard / cr_reconcile / cr_launch unchanged since 02ac56c); only copied and session_sha256 changed in every config. The copy paths (research/s1/*.py, research/s1/docs, research/s1/s1_tests, the config's control and argfile) changed only in these three files, all touched by Task 15d:
+  test_s1_a3_mutants.py (modified): 02ac56c 794db5d3 -> HEAD 5376f42 fca36c55 (15d-1 81e1ffd + 15d-2 5376f42) -> working tree e6b5cb42 (uncommitted 15d-3). The inventories record the working-tree bytes e6b5cb42; if 15d-3 is committed with other bytes, this entry goes stale.
+  test_s1_a3_t15d_killers.py (modified): 9c98162c (the untracked 15d WIP baked in at 15c-P fix 3, = its 02ac56c committed bytes) -> 1a86e637 (committed by 15d-1/15d-2; working tree == HEAD).
+  test_s1_a3_t15d_f11_branch.py (added): new in 15d-2 (5376f42), ab33dad3; working tree == HEAD.
+No research/s1/*.py product module, no research/s1/docs file and no other s1_tests file changed between 02ac56c and the working tree (git diff --name-only 02ac56c HEAD + git status). a3/t15_agreed_assertions.json and a3/t15d_open_items.md are under s1_evidence, which is not a copy path, so they are not in any copied map.

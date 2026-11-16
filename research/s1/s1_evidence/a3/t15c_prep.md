@@ -1,6 +1,12 @@
 # A3 Task 15c-prep + 15c-H: Cosmic Ray configs, baselines, scopes, inventories, completion shards and session plan (NO mutant executed)
 
-**Version.** This is v11, updated for 15c-P fix round 3 (Codex X25 at the committed 52f2490:
+**Version.** This is v12: the final init-only inventory re-initialisation after Task 15d, at HEAD 5376f42 plus the
+uncommitted 15d-3 working tree.
+- No harness change; no pre-flight, mutant or calibration ran.
+- The `copied` maps now reflect the settled `s1_tests` bytes.
+- See Method → Inventories, "[final re-init after 15d]", and `a3/t15c_final_reinit_check.txt`.
+
+v11 was updated for 15c-P fix round 3 (Codex X25 at the committed 52f2490:
 `C:/Users/gl450/.coordination/trading_app/t15cp_52f2490_review_20261116/`, confirmed in
 `t15cp_x25_confirm_claude.md`).
 - A handed-over `preflight_ref` is now refused unless its record directory still passes `check_preflight`, and the
@@ -594,6 +600,25 @@ were re-created again by `cosmic-ray init` only. The commands were `reinit.py 15
   for it goes stale. Nothing gates on `copied`, but every pre-flight `copied_sha256` binds it.
 - **Evidence:** `a3/t15c_p_fix3_reinit_check.txt` and `_prep/reinit_compare_15cp_fix3.json`.
 
+**[final re-init after 15d]** This re-initialisation was made once every input had settled, at HEAD 5376f42 plus the
+uncommitted 15d-3 `test_s1_a3_mutants.py` (e6b5cb42…). It used `cosmic-ray init` only (`reinit.py final_15d`, then
+`reinit_copied_diff.py final_15d`, then `plan_sessions.py`), took 41.5 s, and ran nothing else.
+- **Old files kept.** The 02ac56c files were moved unedited to `_superseded/inventories_pre_final_15d/`. Each equals
+  its entry in the preserved `a3/t15c_prep_hashes_at_02ac56c.txt`.
+- **Specs identical.** The specs and the kept specs are identical and in order: 15685 before the filter, 6318 kept.
+- **Plans** are calibration-first.
+- **What changed:** only `copied` and `session_sha256`. `harness_sha256` is unchanged, because the harness is
+  unchanged.
+- **The `copied` entries that changed** are the same in all 12 configs, and are exactly the three Task-15d files:
+  - `test_s1_a3_mutants.py`, modified;
+  - `test_s1_a3_t15d_killers.py`, modified;
+  - `test_s1_a3_t15d_f11_branch.py`, added.
+
+  No product module, doc or other test file changed.
+- **Not committed.** The `test_s1_a3_mutants.py` entry records the uncommitted 15d-3 bytes. If 15d-3 commits
+  different bytes, that entry is stale.
+- **Evidence:** `a3/t15c_final_reinit_check.txt` and `_prep/reinit_compare_final_15d.json`.
+
 **Coverage evidence.** For each config, `selector_coverage_detail.json` is a parent-process `sys.monitoring` reach run
 on the final selector. It does not observe child or import-time code.
 
@@ -1002,7 +1027,8 @@ collect.
 - `pool_check_pre.json`, `pool_check_post.json`, `measure_io.json`, `reinit_compare.json`,
   `reinit_compare_fix2.json`, `reinit_compare_fix3.json`, `reinit_compare_fix4.json` and **[15c-P]**
   `reinit_compare_15cp.json`, **[15c-P fix 1]** `reinit_compare_15cp_fix1.json`, **[15c-P fix 2]**
-  `reinit_compare_15cp_fix2.json` and **[15c-P fix 3]** `reinit_compare_15cp_fix3.json`.
+  `reinit_compare_15cp_fix2.json`, **[15c-P fix 3]** `reinit_compare_15cp_fix3.json` and **[final re-init after 15d]**
+  `reinit_compare_final_15d.json`.
 
 **Superseded (kept unedited):**
 - `cr_a3/_superseded/s1_collect_v1/`;
@@ -1010,6 +1036,9 @@ collect.
 - `cr_a3/_superseded/inventories_pre_fix2/`;
 - `cr_a3/_superseded/inventories_pre_fix3/`;
 - `cr_a3/_superseded/inventories_pre_fix4/`;
+- **[final re-init after 15d]** `cr_a3/_superseded/inventories_pre_final_15d/` (the committed 02ac56c inventories,
+  equal to their entries in `a3/t15c_prep_hashes_at_02ac56c.txt`, the committed 02ac56c manifest, preserved
+  unedited);
 - **[15c-P fix 3]** `cr_a3/_superseded/inventories_pre_15cp_fix3/` (the committed 52f2490 inventories, byte-equal to
   their entries in `a3/t15c_prep_hashes_at_52f2490.txt`, the committed 52f2490 manifest, preserved unedited);
 - **[15c-P fix 2]** `cr_a3/_superseded/inventories_pre_15cp_fix2/` (the fix-1 inventories, byte-equal to their
@@ -1024,6 +1053,8 @@ collect.
 
 **Hashes:** `a3/t15c_prep_hashes.txt`, LF line endings and `sha256sum -c` compatible. It covers every file under
 `cr_a3/`, this document, the RED/GREEN records and the harness and test files.
+- **[final re-init after 15d] 1268 entries.** The committed 02ac56c list (1217 entries) is preserved unedited as
+  `a3/t15c_prep_hashes_at_02ac56c.txt`.
 - **[15c-P fix 3] 1217 entries.** The committed 52f2490 list (1163 entries) is preserved unedited as
   `a3/t15c_prep_hashes_at_52f2490.txt`.
 - **[15c-P fix 2] 1163 entries.** The fix-1 list (1109 entries) is preserved unedited as

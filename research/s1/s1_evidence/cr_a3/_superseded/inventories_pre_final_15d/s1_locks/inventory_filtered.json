@@ -1,0 +1,2533 @@
+{
+ "excluded": [],
+ "excluded_count": 0,
+ "inventory_sha256": "a86501e8be0f72aa9233c59d690fadd68dfe7475c29a60ce2720b25839dd3619",
+ "kept": [
+  {
+   "end": [
+    20,
+    40
+   ],
+   "job_id": "19b9b9785af0421a9a74e97519e8e31c",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    20,
+    30
+   ]
+  },
+  {
+   "end": [
+    20,
+    40
+   ],
+   "job_id": "8f58b670859f449099ceae90db254eb0",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    20,
+    30
+   ]
+  },
+  {
+   "end": [
+    20,
+    52
+   ],
+   "job_id": "dfe1223f3dd24381b3498e6a898a7077",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    20,
+    42
+   ]
+  },
+  {
+   "end": [
+    20,
+    52
+   ],
+   "job_id": "c1649a8da2964671bcb43b0f9ad330b1",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 3,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    20,
+    42
+   ]
+  },
+  {
+   "end": [
+    21,
+    28
+   ],
+   "job_id": "ade8454dc01b429f9728b66598f80bfb",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 4,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    21,
+    18
+   ]
+  },
+  {
+   "end": [
+    21,
+    28
+   ],
+   "job_id": "4f648a42411344b2aec4852635d98356",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 5,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    21,
+    18
+   ]
+  },
+  {
+   "end": [
+    22,
+    38
+   ],
+   "job_id": "44fd3b2a45da497f946ec25a722d6d57",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 6,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    22,
+    37
+   ]
+  },
+  {
+   "end": [
+    22,
+    38
+   ],
+   "job_id": "89919a8718f047c3ae7df4b2ef0b6a33",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 7,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    22,
+    37
+   ]
+  },
+  {
+   "end": [
+    22,
+    44
+   ],
+   "job_id": "f646b85a01004876b2999258c6098838",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 8,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    22,
+    40
+   ]
+  },
+  {
+   "end": [
+    22,
+    44
+   ],
+   "job_id": "060b2221b0ed4647bf56e5166c8d83d8",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 9,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    22,
+    40
+   ]
+  },
+  {
+   "end": [
+    23,
+    50
+   ],
+   "job_id": "44e6544335d34d6e8a0f8ad836c5a89e",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 10,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    23,
+    48
+   ]
+  },
+  {
+   "end": [
+    23,
+    50
+   ],
+   "job_id": "b8da2b8d2d83472bad60a7caaa5ce3d4",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 11,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    23,
+    48
+   ]
+  },
+  {
+   "end": [
+    23,
+    54
+   ],
+   "job_id": "241557f7832c4d80ba56ba2e24f9ec23",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 12,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    23,
+    52
+   ]
+  },
+  {
+   "end": [
+    23,
+    54
+   ],
+   "job_id": "93031149f87f4d49b42f3d26c4aee5f4",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 13,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    23,
+    52
+   ]
+  },
+  {
+   "end": [
+    35,
+    26
+   ],
+   "job_id": "99f6001e8f78488aa40a6a3f58fb8008",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    35,
+    3
+   ]
+  },
+  {
+   "end": [
+    35,
+    18
+   ],
+   "job_id": "225e35716a92483a88970bb842562400",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_Eq_Gt",
+   "operator_args": {},
+   "start": [
+    35,
+    16
+   ]
+  },
+  {
+   "end": [
+    35,
+    18
+   ],
+   "job_id": "d226b9cce5a34ff29b01b80c4a170b47",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_Eq_GtE",
+   "operator_args": {},
+   "start": [
+    35,
+    16
+   ]
+  },
+  {
+   "end": [
+    35,
+    18
+   ],
+   "job_id": "fc69a3261b7b447cb3934533981dc502",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_Eq_Is",
+   "operator_args": {},
+   "start": [
+    35,
+    16
+   ]
+  },
+  {
+   "end": [
+    35,
+    18
+   ],
+   "job_id": "c620b8dda8df4e3ba9e915e65224c78c",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_Eq_IsNot",
+   "operator_args": {},
+   "start": [
+    35,
+    16
+   ]
+  },
+  {
+   "end": [
+    35,
+    18
+   ],
+   "job_id": "821f93983b484a12a0bd45279734a776",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_Eq_Lt",
+   "operator_args": {},
+   "start": [
+    35,
+    16
+   ]
+  },
+  {
+   "end": [
+    35,
+    18
+   ],
+   "job_id": "4db5b7307db9492ea547f4899ebc288e",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_Eq_LtE",
+   "operator_args": {},
+   "start": [
+    35,
+    16
+   ]
+  },
+  {
+   "end": [
+    35,
+    18
+   ],
+   "job_id": "0d1b5d7f762241eba2eec705884c88c6",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_Eq_NotEq",
+   "operator_args": {},
+   "start": [
+    35,
+    16
+   ]
+  },
+  {
+   "end": [
+    38,
+    56
+   ],
+   "job_id": "f62612ece80c421ab9b0c69e327b7c45",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceTrueWithFalse",
+   "operator_args": {},
+   "start": [
+    38,
+    52
+   ]
+  },
+  {
+   "end": [
+    44,
+    32
+   ],
+   "job_id": "fe2189622fc24a28b0a742d2c257e891",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceUnaryOperator_Delete_USub",
+   "operator_args": {},
+   "start": [
+    44,
+    31
+   ]
+  },
+  {
+   "end": [
+    44,
+    32
+   ],
+   "job_id": "a337d33152ea4069b9e342bac37c67be",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceUnaryOperator_USub_Invert",
+   "operator_args": {},
+   "start": [
+    44,
+    31
+   ]
+  },
+  {
+   "end": [
+    44,
+    32
+   ],
+   "job_id": "35a50daf77b14086aab8ba9eef7660b2",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceUnaryOperator_USub_Not",
+   "operator_args": {},
+   "start": [
+    44,
+    31
+   ]
+  },
+  {
+   "end": [
+    44,
+    32
+   ],
+   "job_id": "212266c0945845a195c08ade328244e8",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceUnaryOperator_USub_UAdd",
+   "operator_args": {},
+   "start": [
+    44,
+    31
+   ]
+  },
+  {
+   "end": [
+    44,
+    33
+   ],
+   "job_id": "ff068c8321cb4370acb337d26a915f5a",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 14,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    44,
+    32
+   ]
+  },
+  {
+   "end": [
+    44,
+    33
+   ],
+   "job_id": "121e4f63090241209ce99fd8730ffdda",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 15,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    44,
+    32
+   ]
+  },
+  {
+   "end": [
+    56,
+    56
+   ],
+   "job_id": "a35a37a9111c4ab0bd07fa28d3fa55a6",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    56,
+    35
+   ]
+  },
+  {
+   "end": [
+    57,
+    16
+   ],
+   "job_id": "135a13744b0649cab4b046bb40d93f09",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    57,
+    7
+   ]
+  },
+  {
+   "end": [
+    57,
+    11
+   ],
+   "job_id": "b3f2a27ae98c4ab9b7e6cba6efcbf425",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_Is_IsNot",
+   "operator_args": {},
+   "start": [
+    57,
+    9
+   ]
+  },
+  {
+   "end": [
+    58,
+    20
+   ],
+   "job_id": "976630a06769493e83033ec951a3fd39",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceFalseWithTrue",
+   "operator_args": {},
+   "start": [
+    58,
+    15
+   ]
+  },
+  {
+   "end": [
+    59,
+    29
+   ],
+   "job_id": "60db7d61bf2f4f149cc11109f67483ce",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 3,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    59,
+    7
+   ]
+  },
+  {
+   "end": [
+    59,
+    16
+   ],
+   "job_id": "25e13cd7027b488cbb080b66dd304e47",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 16,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    59,
+    15
+   ]
+  },
+  {
+   "end": [
+    59,
+    16
+   ],
+   "job_id": "47910d0c2e80485c8223293f9764f6c7",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 17,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    59,
+    15
+   ]
+  },
+  {
+   "end": [
+    59,
+    24
+   ],
+   "job_id": "259dbf267e584fa286a54cd3fd6f32dd",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_IsNot_Is",
+   "operator_args": {},
+   "start": [
+    59,
+    18
+   ]
+  },
+  {
+   "end": [
+    61,
+    40
+   ],
+   "job_id": "d3de499916344df8b93635acfe6d5a14",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 18,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    61,
+    39
+   ]
+  },
+  {
+   "end": [
+    61,
+    40
+   ],
+   "job_id": "2ae574e3e9b8414a8fffd144b3059da2",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 19,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    61,
+    39
+   ]
+  },
+  {
+   "end": [
+    62,
+    25
+   ],
+   "job_id": "a48ae68c9d7b444e923662308b0f5a00",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ExceptionReplacer",
+   "operator_args": {},
+   "start": [
+    62,
+    15
+   ]
+  },
+  {
+   "end": [
+    63,
+    24
+   ],
+   "job_id": "86dda2892c26439daab67ea9a6159d5c",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceFalseWithTrue",
+   "operator_args": {},
+   "start": [
+    63,
+    19
+   ]
+  },
+  {
+   "end": [
+    64,
+    15
+   ],
+   "job_id": "5640d51b016c4a3daa3f66d5a6883de3",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceTrueWithFalse",
+   "operator_args": {},
+   "start": [
+    64,
+    11
+   ]
+  },
+  {
+   "end": [
+    70,
+    10
+   ],
+   "job_id": "42730d958da74a738e6fe54383184ec8",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceUnaryOperator_Delete_Not",
+   "operator_args": {},
+   "start": [
+    70,
+    7
+   ]
+  },
+  {
+   "end": [
+    70,
+    72
+   ],
+   "job_id": "baf15fb241074f799b6d8f5bb65e0380",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 4,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    70,
+    7
+   ]
+  },
+  {
+   "end": [
+    70,
+    39
+   ],
+   "job_id": "ed2df25930c643fc9d3edf78dd07cda2",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceOrWithAnd",
+   "operator_args": {},
+   "start": [
+    70,
+    37
+   ]
+  },
+  {
+   "end": [
+    70,
+    43
+   ],
+   "job_id": "6477bf9f17274d9383848b064e4c4d9a",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceUnaryOperator_Delete_Not",
+   "operator_args": {},
+   "start": [
+    70,
+    40
+   ]
+  },
+  {
+   "end": [
+    72,
+    10
+   ],
+   "job_id": "1ed89058b0794042bcda1273ab8862ab",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceUnaryOperator_Delete_Not",
+   "operator_args": {},
+   "start": [
+    72,
+    7
+   ]
+  },
+  {
+   "end": [
+    72,
+    25
+   ],
+   "job_id": "8e782985bc8945a59f7303adfecc2926",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 5,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    72,
+    7
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "2057b58c9c9f437882f10c2a7d522ab3",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_Add",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "c356c3c133f14d60a938833044ffdb5e",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_BitAnd",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "d89ebc4fef394dc49495460010a0e041",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_BitOr",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "316fbb3b7c9d498b93d4842b8f59bc5c",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_BitXor",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "ce902eed6acf4c2f85d6c0eab8ba0f44",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_FloorDiv",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "ac606518c14841a9913324bbfa46c751",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_LShift",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "ebeb4c30c0eb424aa3cd676da670b15e",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_Mod",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "c1d9bb6c786948a38789dc6aed3f4e15",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_Mul",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "5683f39b9c504b6ebcebf517bb3a5b95",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_Pow",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "c86cd1d3fd3a4e239278f7f956f072ba",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_RShift",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    23
+   ],
+   "job_id": "afbb187a4b5644bf9ed4cef3a5448952",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Div_Sub",
+   "operator_args": {},
+   "start": [
+    74,
+    22
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "42040c2aeb4442438c3bbb92efb1765b",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_Add",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "d238b48ca62a4b079c82c4ccc79b8eb2",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_BitAnd",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "35cb197b50014c7690fc7b9a36180a37",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_BitOr",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "03de62c9b38e4c8c954d4579d869438a",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_BitXor",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "951677625aaa4815a59985571f26821a",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_FloorDiv",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "8cd5e7b6c6f1466f84ce745889e7e714",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_LShift",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "5a69b7e364a44facb2f5e6c05ab32e59",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_Mod",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "1ee1afa862334d41891a347d3dc13a7c",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_Mul",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "dde9e0d5236748e5bb7d7e47fed4215f",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_Pow",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "ed56bffe110c4c52903643fca04cf4fe",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_RShift",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    36
+   ],
+   "job_id": "0d3e9b259fa34177abe26e3d7a4924ac",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Div_Sub",
+   "operator_args": {},
+   "start": [
+    74,
+    35
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "03ad9c8cdc294099ba2fe17de0d7b442",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_Add",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "5a5143e9b7214e0eac968bbc51a1b396",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_BitAnd",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "66a215ea92c44e0d9ead984f2efd4307",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_BitOr",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "477e55eb02e34c93b4a29f91335fe09b",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_BitXor",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "d4314dcff9fd447b834f4589f884d6ac",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_FloorDiv",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "91f0ac649fb34f34be32f1f7680d1e66",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_LShift",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "96877034b433444aa833e2b61396c20b",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_Mod",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "19c4d999c5c243deb6fed843d5d97b95",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_Mul",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "3b4a091140ea453f9ecd18d177053f06",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_Pow",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "d618e7bf129d4acda5476350d4c3212b",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_RShift",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    74,
+    47
+   ],
+   "job_id": "8c028f804ee740c197db58e765054720",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceBinaryOperator_Div_Sub",
+   "operator_args": {},
+   "start": [
+    74,
+    46
+   ]
+  },
+  {
+   "end": [
+    79,
+    68
+   ],
+   "job_id": "26b1bf56486d4d9b84d9951cb40ef318",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 6,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    79,
+    44
+   ]
+  },
+  {
+   "end": [
+    80,
+    16
+   ],
+   "job_id": "5d0bb01da0fd4a41bbc178b1a72d3bd3",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 7,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    80,
+    7
+   ]
+  },
+  {
+   "end": [
+    80,
+    11
+   ],
+   "job_id": "2837c7abc8454fd1958932c1fe88c2b0",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceComparisonOperator_Is_IsNot",
+   "operator_args": {},
+   "start": [
+    80,
+    9
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "0b03efbbe01c4d759e0771855970f352",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_BitAnd",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "45d701b9a21a4923b455e107dad07523",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_BitOr",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "6de03e6bf91842f39c4dfc195ce9c183",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_BitXor",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "e3b9f5bff25d41f299a8451ed08efb44",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_Div",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "c657318666b5494e86c221e51d80eb6f",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_FloorDiv",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "5f1431807a37450bb2bb968b13134f25",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_LShift",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "02f33e6ad1124f2abf4867697cca05f4",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_Mod",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "80205de6c70140c9ba3fed6a69dd9676",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_Mul",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "3fcc23c3999e45a093eb44c224e1c8e7",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_Pow",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "3b4ca8e157734eac99b9ac84203fc22f",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_RShift",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    20
+   ],
+   "job_id": "b4f44c6be3ce410b8650358cce26a53a",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_Add_Sub",
+   "operator_args": {},
+   "start": [
+    82,
+    19
+   ]
+  },
+  {
+   "end": [
+    82,
+    30
+   ],
+   "job_id": "5214f2faf34d4548a19d788b88f923f8",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 20,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    82,
+    29
+   ]
+  },
+  {
+   "end": [
+    82,
+    30
+   ],
+   "job_id": "a4cb761e4d42475a99ea8408d706f444",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 21,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    82,
+    29
+   ]
+  },
+  {
+   "end": [
+    88,
+    10
+   ],
+   "job_id": "22b49ca264614f29a0e4e52ea1b28e34",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 3,
+   "operator": "core/ReplaceUnaryOperator_Delete_Not",
+   "operator_args": {},
+   "start": [
+    88,
+    7
+   ]
+  },
+  {
+   "end": [
+    88,
+    33
+   ],
+   "job_id": "f0fcf61742ee4d24b3e78b5ec0c97537",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 8,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    88,
+    7
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "f3e18d201bf54de4b3d26e909e25a3cd",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_BitAnd",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "ecc6c8d3faa34daf88f79d679accbee5",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_BitOr",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "90fbc6bc26b64cac9524ad3eb0df4f0a",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_BitXor",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "1d7d916d640c4ddba1c706088d29b14c",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_Div",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "2c5c94ba00e145bf955861cd77c19d82",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_FloorDiv",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "a91e41611e24472f8f371a36d635b395",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_LShift",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "b555c8e5875548e99663954ffb74161b",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_Mod",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "e0197730824b4040adbba68bb1933a73",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_Mul",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "13bece1562b54a12b116d5ab8fd398ba",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_Pow",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "a2c43f446ba14bc8ae10800375e1a91f",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_RShift",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    90,
+    21
+   ],
+   "job_id": "7ee67c5c72894ad18eec66bbf6a50174",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceBinaryOperator_Add_Sub",
+   "operator_args": {},
+   "start": [
+    90,
+    20
+   ]
+  },
+  {
+   "end": [
+    98,
+    19
+   ],
+   "job_id": "439d5fb60f024c7092a929004df63310",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceTrueWithFalse",
+   "operator_args": {},
+   "start": [
+    98,
+    15
+   ]
+  },
+  {
+   "end": [
+    99,
+    19
+   ],
+   "job_id": "d24d6099825140ce92c73554097de4b7",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ExceptionReplacer",
+   "operator_args": {},
+   "start": [
+    99,
+    11
+   ]
+  },
+  {
+   "end": [
+    100,
+    20
+   ],
+   "job_id": "54ca9ce420904b30b752a02525684a10",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceFalseWithTrue",
+   "operator_args": {},
+   "start": [
+    100,
+    15
+   ]
+  },
+  {
+   "end": [
+    104,
+    30
+   ],
+   "job_id": "3a870365be6f4263b37371ca35820c18",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 9,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    104,
+    7
+   ]
+  },
+  {
+   "end": [
+    104,
+    22
+   ],
+   "job_id": "ba3b9dfbff8e40ee9c03210b7e526d6d",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_NotEq_Eq",
+   "operator_args": {},
+   "start": [
+    104,
+    20
+   ]
+  },
+  {
+   "end": [
+    104,
+    22
+   ],
+   "job_id": "5bbf2998d3304547a6b9072ce7a3bc9a",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_NotEq_Gt",
+   "operator_args": {},
+   "start": [
+    104,
+    20
+   ]
+  },
+  {
+   "end": [
+    104,
+    22
+   ],
+   "job_id": "7d87c0a4f4f740dba417df6b36012b23",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_NotEq_GtE",
+   "operator_args": {},
+   "start": [
+    104,
+    20
+   ]
+  },
+  {
+   "end": [
+    104,
+    22
+   ],
+   "job_id": "f9dc46d06e8a424297b579f2918cc4c6",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_NotEq_Is",
+   "operator_args": {},
+   "start": [
+    104,
+    20
+   ]
+  },
+  {
+   "end": [
+    104,
+    22
+   ],
+   "job_id": "7ca80e000688449082cbbdd5ddff2221",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_NotEq_IsNot",
+   "operator_args": {},
+   "start": [
+    104,
+    20
+   ]
+  },
+  {
+   "end": [
+    104,
+    22
+   ],
+   "job_id": "d2316fb543704d46bfedd8c7144544b2",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_NotEq_Lt",
+   "operator_args": {},
+   "start": [
+    104,
+    20
+   ]
+  },
+  {
+   "end": [
+    104,
+    22
+   ],
+   "job_id": "586c7c2134da410fad3d915323f0dbf8",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceComparisonOperator_NotEq_LtE",
+   "operator_args": {},
+   "start": [
+    104,
+    20
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "5c30ef30b081428fa53b3593ae26637c",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_Add",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "a045e0f3ac45437c94a53bfde12dbb1b",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_BitAnd",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "96f6c3aeec3a416999f5560683c76240",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_BitXor",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "f946fd8c5bd84135a33c317f4fab31dd",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_Div",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "70a2fae361bb4418bc545aa0e8b3bbfc",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_FloorDiv",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "5bb29581130d4d9ebb21eeecbc1ab0aa",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_LShift",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "0c7a3e078e3f4d95b2fb8f7acaeb563f",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_Mod",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "c211331b8c3042aaa7d528455a885b8e",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_Mul",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "9f7754e4b8f14a4dacb69675f9fc00a8",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_Pow",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "7c63180e0a754011a9238fcbea6c7e19",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_RShift",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    106,
+    50
+   ],
+   "job_id": "7686941d728949e3a76dd89caf9fcc9a",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 0,
+   "operator": "core/ReplaceBinaryOperator_BitOr_Sub",
+   "operator_args": {},
+   "start": [
+    106,
+    49
+   ]
+  },
+  {
+   "end": [
+    108,
+    33
+   ],
+   "job_id": "aa215368472545b09472eeb38480a534",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 10,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    108,
+    7
+   ]
+  },
+  {
+   "end": [
+    108,
+    11
+   ],
+   "job_id": "a2dd81bb732a4865b2ade588f2213566",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ReplaceComparisonOperator_Is_IsNot",
+   "operator_args": {},
+   "start": [
+    108,
+    9
+   ]
+  },
+  {
+   "end": [
+    108,
+    19
+   ],
+   "job_id": "1059afacf4f54dc2833c90c27c128384",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceOrWithAnd",
+   "operator_args": {},
+   "start": [
+    108,
+    17
+   ]
+  },
+  {
+   "end": [
+    108,
+    24
+   ],
+   "job_id": "55ed6190c2d545fcbdadfd9fc9ea4318",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceComparisonOperator_Eq_Gt",
+   "operator_args": {},
+   "start": [
+    108,
+    22
+   ]
+  },
+  {
+   "end": [
+    108,
+    24
+   ],
+   "job_id": "755c173160734d9fa464116c55440558",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceComparisonOperator_Eq_GtE",
+   "operator_args": {},
+   "start": [
+    108,
+    22
+   ]
+  },
+  {
+   "end": [
+    108,
+    24
+   ],
+   "job_id": "25cb74dc04a24c49a6257ba947a0b3a1",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceComparisonOperator_Eq_Is",
+   "operator_args": {},
+   "start": [
+    108,
+    22
+   ]
+  },
+  {
+   "end": [
+    108,
+    24
+   ],
+   "job_id": "77b63f4680534f1dad2ad7e84914b5a8",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceComparisonOperator_Eq_IsNot",
+   "operator_args": {},
+   "start": [
+    108,
+    22
+   ]
+  },
+  {
+   "end": [
+    108,
+    24
+   ],
+   "job_id": "1cf334531fe940ddafd66a3bd25f6ceb",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceComparisonOperator_Eq_Lt",
+   "operator_args": {},
+   "start": [
+    108,
+    22
+   ]
+  },
+  {
+   "end": [
+    108,
+    24
+   ],
+   "job_id": "5d47bd3e60f043bbbb9f5ec733f72cbe",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceComparisonOperator_Eq_LtE",
+   "operator_args": {},
+   "start": [
+    108,
+    22
+   ]
+  },
+  {
+   "end": [
+    108,
+    24
+   ],
+   "job_id": "f0721a5a12bd48ea9a83c04305bc8b64",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceComparisonOperator_Eq_NotEq",
+   "operator_args": {},
+   "start": [
+    108,
+    22
+   ]
+  },
+  {
+   "end": [
+    110,
+    65
+   ],
+   "job_id": "e2e5c4327d63441292a0453ac8a2bbbc",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 11,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    110,
+    11
+   ]
+  },
+  {
+   "end": [
+    115,
+    18
+   ],
+   "job_id": "6f5025c7ab9a449788bb416941891a52",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 2,
+   "operator": "core/ExceptionReplacer",
+   "operator_args": {},
+   "start": [
+    115,
+    11
+   ]
+  },
+  {
+   "end": [
+    126,
+    30
+   ],
+   "job_id": "e88106de5cb74776845ef2f29335fe0e",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 12,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    126,
+    11
+   ]
+  },
+  {
+   "end": [
+    126,
+    25
+   ],
+   "job_id": "00691982a0da4385a892c6f7710d03e1",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 1,
+   "operator": "core/ReplaceComparisonOperator_IsNot_Is",
+   "operator_args": {},
+   "start": [
+    126,
+    19
+   ]
+  },
+  {
+   "end": [
+    129,
+    47
+   ],
+   "job_id": "11b25da60749436d956aca3806653206",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 3,
+   "operator": "core/ReplaceTrueWithFalse",
+   "operator_args": {},
+   "start": [
+    129,
+    43
+   ]
+  },
+  {
+   "end": [
+    129,
+    62
+   ],
+   "job_id": "46750c33cea8449a9b3d3daf1be9df1e",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 4,
+   "operator": "core/ReplaceTrueWithFalse",
+   "operator_args": {},
+   "start": [
+    129,
+    58
+   ]
+  },
+  {
+   "end": [
+    130,
+    22
+   ],
+   "job_id": "de67723f9d0446249f268f7ba9a2f58c",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 3,
+   "operator": "core/ExceptionReplacer",
+   "operator_args": {},
+   "start": [
+    130,
+    15
+   ]
+  },
+  {
+   "end": [
+    134,
+    49
+   ],
+   "job_id": "de4d8ac6b4d04a4c89a600bf97158aa5",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 22,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    134,
+    48
+   ]
+  },
+  {
+   "end": [
+    134,
+    49
+   ],
+   "job_id": "7d65d07f10cb4882b07f11ad9ad9bb06",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 23,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    134,
+    48
+   ]
+  },
+  {
+   "end": [
+    135,
+    22
+   ],
+   "job_id": "0ffb8cb1602e4cc79646126ea824d6f2",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 4,
+   "operator": "core/ExceptionReplacer",
+   "operator_args": {},
+   "start": [
+    135,
+    15
+   ]
+  },
+  {
+   "end": [
+    137,
+    57
+   ],
+   "job_id": "4939e3e2986048aa97c6fbd5a7b9469c",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 13,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    137,
+    15
+   ]
+  },
+  {
+   "end": [
+    144,
+    26
+   ],
+   "job_id": "25ed5a63aaca494398b7e15a1ee52954",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 14,
+   "operator": "core/AddNot",
+   "operator_args": {},
+   "start": [
+    144,
+    11
+   ]
+  },
+  {
+   "end": [
+    144,
+    21
+   ],
+   "job_id": "6c460108fdd84736a2db651468871abd",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 3,
+   "operator": "core/ReplaceComparisonOperator_Is_IsNot",
+   "operator_args": {},
+   "start": [
+    144,
+    19
+   ]
+  },
+  {
+   "end": [
+    148,
+    49
+   ],
+   "job_id": "583b379e2e4b4708ae560f2ea23d7dae",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 24,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    148,
+    48
+   ]
+  },
+  {
+   "end": [
+    148,
+    49
+   ],
+   "job_id": "b3a41c6f503d40a8861cf8a8bcdbfa0f",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 25,
+   "operator": "core/NumberReplacer",
+   "operator_args": {},
+   "start": [
+    148,
+    48
+   ]
+  },
+  {
+   "end": [
+    149,
+    22
+   ],
+   "job_id": "5134a04f19074191bb6db5489b7ada75",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 5,
+   "operator": "core/ExceptionReplacer",
+   "operator_args": {},
+   "start": [
+    149,
+    15
+   ]
+  },
+  {
+   "end": [
+    159,
+    20
+   ],
+   "job_id": "667e7a66b37a49028d98e093145570db",
+   "module_path": "research/s1/s1_locks.py",
+   "occurrence": 3,
+   "operator": "core/ReplaceFalseWithTrue",
+   "operator_args": {},
+   "start": [
+    159,
+    15
+   ]
+  }
+ ],
+ "module": "s1_locks",
+ "post_by_family": {
+  "AddNot": 15,
+  "ExceptionReplacer": 6,
+  "NumberReplacer": 26,
+  "ReplaceBinaryOperator": 66,
+  "ReplaceComparisonOperator": 27,
+  "ReplaceFalseWithTrue": 4,
+  "ReplaceOrWithAnd": 2,
+  "ReplaceTrueWithFalse": 5,
+  "ReplaceUnaryOperator": 8
+ },
+ "post_by_operator": {
+  "core/AddNot": 15,
+  "core/ExceptionReplacer": 6,
+  "core/NumberReplacer": 26,
+  "core/ReplaceBinaryOperator_Add_BitAnd": 2,
+  "core/ReplaceBinaryOperator_Add_BitOr": 2,
+  "core/ReplaceBinaryOperator_Add_BitXor": 2,
+  "core/ReplaceBinaryOperator_Add_Div": 2,
+  "core/ReplaceBinaryOperator_Add_FloorDiv": 2,
+  "core/ReplaceBinaryOperator_Add_LShift": 2,
+  "core/ReplaceBinaryOperator_Add_Mod": 2,
+  "core/ReplaceBinaryOperator_Add_Mul": 2,
+  "core/ReplaceBinaryOperator_Add_Pow": 2,
+  "core/ReplaceBinaryOperator_Add_RShift": 2,
+  "core/ReplaceBinaryOperator_Add_Sub": 2,
+  "core/ReplaceBinaryOperator_BitOr_Add": 1,
+  "core/ReplaceBinaryOperator_BitOr_BitAnd": 1,
+  "core/ReplaceBinaryOperator_BitOr_BitXor": 1,
+  "core/ReplaceBinaryOperator_BitOr_Div": 1,
+  "core/ReplaceBinaryOperator_BitOr_FloorDiv": 1,
+  "core/ReplaceBinaryOperator_BitOr_LShift": 1,
+  "core/ReplaceBinaryOperator_BitOr_Mod": 1,
+  "core/ReplaceBinaryOperator_BitOr_Mul": 1,
+  "core/ReplaceBinaryOperator_BitOr_Pow": 1,
+  "core/ReplaceBinaryOperator_BitOr_RShift": 1,
+  "core/ReplaceBinaryOperator_BitOr_Sub": 1,
+  "core/ReplaceBinaryOperator_Div_Add": 3,
+  "core/ReplaceBinaryOperator_Div_BitAnd": 3,
+  "core/ReplaceBinaryOperator_Div_BitOr": 3,
+  "core/ReplaceBinaryOperator_Div_BitXor": 3,
+  "core/ReplaceBinaryOperator_Div_FloorDiv": 3,
+  "core/ReplaceBinaryOperator_Div_LShift": 3,
+  "core/ReplaceBinaryOperator_Div_Mod": 3,
+  "core/ReplaceBinaryOperator_Div_Mul": 3,
+  "core/ReplaceBinaryOperator_Div_Pow": 3,
+  "core/ReplaceBinaryOperator_Div_RShift": 3,
+  "core/ReplaceBinaryOperator_Div_Sub": 3,
+  "core/ReplaceComparisonOperator_Eq_Gt": 2,
+  "core/ReplaceComparisonOperator_Eq_GtE": 2,
+  "core/ReplaceComparisonOperator_Eq_Is": 2,
+  "core/ReplaceComparisonOperator_Eq_IsNot": 2,
+  "core/ReplaceComparisonOperator_Eq_Lt": 2,
+  "core/ReplaceComparisonOperator_Eq_LtE": 2,
+  "core/ReplaceComparisonOperator_Eq_NotEq": 2,
+  "core/ReplaceComparisonOperator_IsNot_Is": 2,
+  "core/ReplaceComparisonOperator_Is_IsNot": 4,
+  "core/ReplaceComparisonOperator_NotEq_Eq": 1,
+  "core/ReplaceComparisonOperator_NotEq_Gt": 1,
+  "core/ReplaceComparisonOperator_NotEq_GtE": 1,
+  "core/ReplaceComparisonOperator_NotEq_Is": 1,
+  "core/ReplaceComparisonOperator_NotEq_IsNot": 1,
+  "core/ReplaceComparisonOperator_NotEq_Lt": 1,
+  "core/ReplaceComparisonOperator_NotEq_LtE": 1,
+  "core/ReplaceFalseWithTrue": 4,
+  "core/ReplaceOrWithAnd": 2,
+  "core/ReplaceTrueWithFalse": 5,
+  "core/ReplaceUnaryOperator_Delete_Not": 4,
+  "core/ReplaceUnaryOperator_Delete_USub": 1,
+  "core/ReplaceUnaryOperator_USub_Invert": 1,
+  "core/ReplaceUnaryOperator_USub_Not": 1,
+  "core/ReplaceUnaryOperator_USub_UAdd": 1
+ },
+ "post_filter_count": 159,
+ "pre_by_operator": {
+  "core/AddNot": 15,
+  "core/ExceptionReplacer": 6,
+  "core/NumberReplacer": 26,
+  "core/ReplaceBinaryOperator_Add_BitAnd": 2,
+  "core/ReplaceBinaryOperator_Add_BitOr": 2,
+  "core/ReplaceBinaryOperator_Add_BitXor": 2,
+  "core/ReplaceBinaryOperator_Add_Div": 2,
+  "core/ReplaceBinaryOperator_Add_FloorDiv": 2,
+  "core/ReplaceBinaryOperator_Add_LShift": 2,
+  "core/ReplaceBinaryOperator_Add_Mod": 2,
+  "core/ReplaceBinaryOperator_Add_Mul": 2,
+  "core/ReplaceBinaryOperator_Add_Pow": 2,
+  "core/ReplaceBinaryOperator_Add_RShift": 2,
+  "core/ReplaceBinaryOperator_Add_Sub": 2,
+  "core/ReplaceBinaryOperator_BitOr_Add": 1,
+  "core/ReplaceBinaryOperator_BitOr_BitAnd": 1,
+  "core/ReplaceBinaryOperator_BitOr_BitXor": 1,
+  "core/ReplaceBinaryOperator_BitOr_Div": 1,
+  "core/ReplaceBinaryOperator_BitOr_FloorDiv": 1,
+  "core/ReplaceBinaryOperator_BitOr_LShift": 1,
+  "core/ReplaceBinaryOperator_BitOr_Mod": 1,
+  "core/ReplaceBinaryOperator_BitOr_Mul": 1,
+  "core/ReplaceBinaryOperator_BitOr_Pow": 1,
+  "core/ReplaceBinaryOperator_BitOr_RShift": 1,
+  "core/ReplaceBinaryOperator_BitOr_Sub": 1,
+  "core/ReplaceBinaryOperator_Div_Add": 3,
+  "core/ReplaceBinaryOperator_Div_BitAnd": 3,
+  "core/ReplaceBinaryOperator_Div_BitOr": 3,
+  "core/ReplaceBinaryOperator_Div_BitXor": 3,
+  "core/ReplaceBinaryOperator_Div_FloorDiv": 3,
+  "core/ReplaceBinaryOperator_Div_LShift": 3,
+  "core/ReplaceBinaryOperator_Div_Mod": 3,
+  "core/ReplaceBinaryOperator_Div_Mul": 3,
+  "core/ReplaceBinaryOperator_Div_Pow": 3,
+  "core/ReplaceBinaryOperator_Div_RShift": 3,
+  "core/ReplaceBinaryOperator_Div_Sub": 3,
+  "core/ReplaceComparisonOperator_Eq_Gt": 2,
+  "core/ReplaceComparisonOperator_Eq_GtE": 2,
+  "core/ReplaceComparisonOperator_Eq_Is": 2,
+  "core/ReplaceComparisonOperator_Eq_IsNot": 2,
+  "core/ReplaceComparisonOperator_Eq_Lt": 2,
+  "core/ReplaceComparisonOperator_Eq_LtE": 2,
+  "core/ReplaceComparisonOperator_Eq_NotEq": 2,
+  "core/ReplaceComparisonOperator_IsNot_Is": 2,
+  "core/ReplaceComparisonOperator_Is_IsNot": 4,
+  "core/ReplaceComparisonOperator_NotEq_Eq": 1,
+  "core/ReplaceComparisonOperator_NotEq_Gt": 1,
+  "core/ReplaceComparisonOperator_NotEq_GtE": 1,
+  "core/ReplaceComparisonOperator_NotEq_Is": 1,
+  "core/ReplaceComparisonOperator_NotEq_IsNot": 1,
+  "core/ReplaceComparisonOperator_NotEq_Lt": 1,
+  "core/ReplaceComparisonOperator_NotEq_LtE": 1,
+  "core/ReplaceFalseWithTrue": 4,
+  "core/ReplaceOrWithAnd": 2,
+  "core/ReplaceTrueWithFalse": 5,
+  "core/ReplaceUnaryOperator_Delete_Not": 4,
+  "core/ReplaceUnaryOperator_Delete_USub": 1,
+  "core/ReplaceUnaryOperator_USub_Invert": 1,
+  "core/ReplaceUnaryOperator_USub_Not": 1,
+  "core/ReplaceUnaryOperator_USub_UAdd": 1
+ },
+ "pre_filter_count": 159,
+ "ranges": null,
+ "rule": "whole module: no range filter (R1)",
+ "shard": null
+}

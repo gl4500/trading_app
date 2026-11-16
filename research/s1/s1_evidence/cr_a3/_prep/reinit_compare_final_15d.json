@@ -1,0 +1,425 @@
+{
+ "configs": {
+  "s1_collect__audit": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 1160,
+   "count_old": 1160,
+   "job_ids_changed": 1160,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "ad7149d8e798bb9d18f4a4fabfda86697631ec28f350d1ebd2fdcf3ed0c05d95",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "21651862c9ef0b5ca5c4f2317d04226a4d2537399ca1b9a819634bef897748ec",
+   "post_filter_new": 406,
+   "post_filter_old": 406,
+   "seconds": 3.28,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_collect__final": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 1160,
+   "count_old": 1160,
+   "job_ids_changed": 1160,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "2df18b503fa010d9741cc78331695dd3f402c1b31b7d52c5723945a11db1ccbf",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "301dba54ef1181f96bcae7694d4d05a93c2c1587e39cd2b0aad836098bf95e10",
+   "post_filter_new": 446,
+   "post_filter_old": 446,
+   "seconds": 3.19,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_journal": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 720,
+   "count_old": 720,
+   "job_ids_changed": 720,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "77e103bb57af1cb36fd5d111757ddad2fe68d9591fd67f667c5d3a6428497e62",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "f5443a5fd1d9f7a767f2e30df6cf84b345b2151e91e3a75b2f6a37861a2050fa",
+   "post_filter_new": 720,
+   "post_filter_old": 720,
+   "seconds": 2.62,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_locks": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 159,
+   "count_old": 159,
+   "job_ids_changed": 159,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "d3d93139b5e52d721e381681f9a4325b94b509c5bb9dbecd59a1fbf431ff36c8",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "a86501e8be0f72aa9233c59d690fadd68dfe7475c29a60ce2720b25839dd3619",
+   "post_filter_new": 159,
+   "post_filter_old": 159,
+   "seconds": 1.66,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_seal__check": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 1634,
+   "count_old": 1634,
+   "job_ids_changed": 1634,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "42733721f5e08d5397f085cb6e84672bbf63ba2742b00fd616eadfce52c1f414",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "30622fa2b351a999a615c0aab024050fd74119a0999fa91e02c35e690bc6c0ba",
+   "post_filter_new": 77,
+   "post_filter_old": 77,
+   "seconds": 3.75,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_seal__decide": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 1634,
+   "count_old": 1634,
+   "job_ids_changed": 1634,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "da0527e73fbe0d1135557c4cab61bfd4cffbeaaeab6dfe04ee4bf3a35916db3b",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "e5cfdd7616240ad69dca613cf25315df25dda2326f1908cb09a23e53037ccc92",
+   "post_filter_new": 101,
+   "post_filter_old": 101,
+   "seconds": 3.75,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_seal__record": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 1634,
+   "count_old": 1634,
+   "job_ids_changed": 1634,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "07b2dce4247c991c7e11344846276519e8246f3b99a18bb0041de7bfad3cc52c",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "c21dc4b798dc0aa29c410ad546427b9988a25a277f1cb5d167fb92e4fb202e9a",
+   "post_filter_new": 114,
+   "post_filter_old": 114,
+   "seconds": 3.8,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_seal__sampled": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 1634,
+   "count_old": 1634,
+   "job_ids_changed": 1634,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "3625d8f80ba4c0f4a9508b92952cf0a67cc20c327469f069744b1fd9e98f25b5",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "c067c7c35337a1c7b0c92412e82ffd95815f2f56b42750e5c7758fb197c5dde4",
+   "post_filter_new": 42,
+   "post_filter_old": 42,
+   "seconds": 3.64,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_slot__finalizer": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 1697,
+   "count_old": 1697,
+   "job_ids_changed": 1697,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "122fdbe24c8642e33ff7afb711525d6063b0a092bf7d3dfba67dcd8f818dd295",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "8ed761efee96374b7c50d826e5726f852f3377ab48568bd1b6490d7fd84fb76a",
+   "post_filter_new": 1397,
+   "post_filter_old": 1397,
+   "seconds": 4.3,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_slot__slots": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 1697,
+   "count_old": 1697,
+   "job_ids_changed": 1697,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "dc08d0933df78aaa6d0c6d2b8165402df3a82b4222a09e9caeb5156018aafe4f",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "8edc2290146b3348ef12221720fe09c115ce9151ab4772c471e2bb0da4cfbc35",
+   "post_filter_new": 300,
+   "post_filter_old": 300,
+   "seconds": 4.33,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_stage": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 774,
+   "count_old": 774,
+   "job_ids_changed": 774,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "2e73f030a07c32d55faa727d8a25d224d28e2029288f800a04f0a6056c65e1e0",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "fa8072f87fad50d2ffd3d6d1e59030f2326890b2b57f0cbb0e5906acf3b60e06",
+   "post_filter_new": 774,
+   "post_filter_old": 774,
+   "seconds": 2.8,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  },
+  "s1_trial": {
+   "copied_files_differing": [
+    "research/s1/s1_tests/test_s1_a3_mutants.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+   ],
+   "count_new": 1782,
+   "count_old": 1782,
+   "job_ids_changed": 1782,
+   "new_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "new_inventory_sha256": "2bd5d85525e928f06d56ebc1e6bb811e08ca3d3202c30d40f3f273bba362ae2a",
+   "normalized_items_identical_in_order": true,
+   "old_harness_sha256": {
+    "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+    "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+    "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+    "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+    "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+   },
+   "old_inventory_sha256": "579a86d76d496b9a5e701a36998a0562d6230a59ff0ac8a21998fcc2660d321f",
+   "post_filter_new": 1782,
+   "post_filter_old": 1782,
+   "seconds": 4.05,
+   "top_level_fields_differing": [
+    "copied",
+    "session_sha256"
+   ]
+  }
+ },
+ "copied_files_differing_any": [
+  "research/s1/s1_tests/test_s1_a3_mutants.py",
+  "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+  "research/s1/s1_tests/test_s1_a3_t15d_killers.py"
+ ],
+ "harness_sha256_now": {
+  "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+  "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+  "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+  "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+  "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+ },
+ "total_seconds": 41.47
+}
