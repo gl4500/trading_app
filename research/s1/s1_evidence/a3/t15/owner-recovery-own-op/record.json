@@ -10,8 +10,8 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_stage.py:466"
  },
  "selftests": {
-  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
-  "cases": 27
+  "junit_sha256": "42ab0d0727ed73ca25bbf68e834d4d14e9fe35ef4df60cba7255c4de6f471688",
+  "cases": 39
  },
  "control_valid": true,
  "control_rc": 0,
@@ -19,7 +19,7 @@
  "mutant_timeout": false,
  "installed": {
   "target": "s1_stage.recover",
-  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_stage.py",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_stage.py",
   "anchor_found": true,
   "installed": true,
   "anchor_count": 1,
@@ -27,22 +27,31 @@
   "mutated_sha256": "a7e2d91890d1eeb41b77d097201f7c399383cddc7a2f07842261d3520f7c0717",
   "first_line": 472
  },
- "frame_found": [
-  "research/s1/s1_stage.py",
-  363,
-  "SystemExit"
- ],
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15tree0/research/s1/s1_stage.py",
+   363,
+   "builtins.SystemExit"
+  ],
+  "text": [
+   "research/s1/s1_stage.py",
+   363,
+   "SystemExit"
+  ]
+ },
  "control": {
-  "junit.xml": "ac9fe2adb39ec49385c004b7e0df618d4e07da1fe432bd712486866384397f1b",
+  "junit.xml": "1a10e151ddec71babfaa0ec36535e1757c88e9de5f353e2d70364b41c6a28f42",
   "installed.json": null,
-  "pytest-output.txt": "b5f1ffddba09bfacb790c1c64329ca1449d71c3cda0e0a69381fdbc68c527785",
-  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "crash.json": null,
+  "pytest-output.txt": "92fe995522a428b4355f9a6fa3230aee6f62f9215f2e24336ebc5b64ac17c7af",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
  },
  "mutant": {
-  "junit.xml": "41c0a1db5e1e9c5b3cdc171f8209268261a437d740e157742c900a5c1832b44e",
-  "installed.json": "db99a4d80b814ebc1baf55aed4dc8c7a4267ae21b9e41c7fc2d7bf43c7f2ee06",
-  "pytest-output.txt": "0a6047931d7dabfa4dc8f67a3cb94d901c3b6fd35ec09d452c4d1fbd85d8069b",
-  "s1_mutant_plugin.py": "80d49b2c7216f2fd29c2d8469bae319462054abf040faad88eda2fad6162277b"
+  "junit.xml": "3aa3429291d7702d3dbd2830ebd6c628eab41c3271aeb03c1c15333d45b5b91d",
+  "installed.json": "a2ff390db78bc6654261f7ce67825730312ec8996f7b5522d722bad3dede2ac0",
+  "crash.json": "0d6cbe0df1bbd145061b572ee2e7b72b5791b3e620a6f0435e247e4734e4aad9",
+  "pytest-output.txt": "c5970186c12f1ad6383270b6fe48da77b4b75177a128b686b330a515462b8036",
+  "s1_mutant_plugin.py": "99efae0a829597d552e1e09ff5a6a020133a85c7417ef7aa5236c71b2f50ad66"
  },
  "nodeids": [
   "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-after-audit-ack]",

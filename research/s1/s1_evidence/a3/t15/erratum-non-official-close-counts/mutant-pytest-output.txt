@@ -2,7 +2,7 @@ FFF...                                                                   [100%]
 ================================== FAILURES ===================================
 _______ test_non_official_lines_are_never_candidates[wrong-role-close] ________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m08/mutant/bt/test_non_official_lines_are_ne0')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m08/mutant/bt/test_non_official_lines_are_ne0')
 case = 'wrong-role-close'
 
     @pytest.mark.parametrize("case", ["wrong-role-close", "wrong-key-close", "peer-draft", "indented-line", "quoted-line",
@@ -38,7 +38,7 @@ E         Use -v to get more diff
 research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError
 ________ test_non_official_lines_are_never_candidates[wrong-key-close] ________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m08/mutant/bt/test_non_official_lines_are_ne1')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m08/mutant/bt/test_non_official_lines_are_ne1')
 case = 'wrong-key-close'
 
     @pytest.mark.parametrize("case", ["wrong-role-close", "wrong-key-close", "peer-draft", "indented-line", "quoted-line",
@@ -74,7 +74,7 @@ E         Use -v to get more diff
 research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError
 __________ test_non_official_lines_are_never_candidates[peer-draft] ___________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m08/mutant/bt/test_non_official_lines_are_ne2')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m08/mutant/bt/test_non_official_lines_are_ne2')
 case = 'peer-draft'
 
     @pytest.mark.parametrize("case", ["wrong-role-close", "wrong-key-close", "peer-draft", "indented-line", "quoted-line",
@@ -108,9 +108,9 @@ E         Left contains 3 more items, first extra item: 'x1'
 E         Use -v to get more diff
 
 research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m08\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m08\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-role-close]
 FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-key-close]
 FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[peer-draft]
-3 failed, 3 passed in 0.60s
+3 failed, 3 passed in 0.59s

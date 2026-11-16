@@ -272,7 +272,16 @@ def test_intent_lower_bound(scratch, mid):
 HERE = Path(__file__).resolve().parent.parent
 PY = sys.executable
 AGREED = HERE / "s1_evidence" / "a3" / "t15_agreed_assertions.json"   # {mutant: {"nodeid", "terminal", ...}} (reviewed)
-EQUIVALENT = {}                                                         # {mutant: reason} - reviewed list only
+EQUIVALENT = {                                                          # {mutant: reason} - reviewed list only
+    # T15-F8, peer-reviewed: Codex APPROVED (C:/Users/gl450/.coordination/trading_app/t15b_02db5b9_review_20261116/
+    # REVIEW.txt, "Equivalence dispositions requested", F8), scoped exactly as follows.
+    "r6-books-economic-in-entry-guard-dropped": (
+        "EQUIVALENT within the current synchronous implementation with normal fixed helper definitions: _economic_in "
+        "evaluates no input before s1_seal.pinned(px), which immediately performs the same _live check; only "
+        "ValueError is caught, so an invalid-pass SystemExit propagates identically; the deleted check has no state "
+        "effect. Outside the claim: timing/instrumentation, monkeypatched helper definitions, races changing the pass "
+        "externally, future edits. A disposition of the mutant, not a request to remove the product guard."),
+}
 K = "test_s1_a3_"                                                       # killer file prefix (selections below)
 # (target, anchor, mutated text, killer selection "file::function"). The anchor must occur EXACTLY ONCE in the
 # CURRENT source of the target function (controller anchor ruling); drift from the plan table is recorded in
@@ -424,9 +433,6 @@ FINDINGS = {                                 # from the 15b run (a3/t15_mutants.
                               "agreed envelope assertion prestart.py:137",
     "owner-recovery-own-op": "T15-F7: failed-elsewhere: the journal's 4a INVALIDATEs the foreign-op CREATED inside "
                              "t.gate (s1_stage.py:363 SystemExit), before the agreed stage.py:466",
-    "r6-books-economic-in-entry-guard-dropped": "T15-F8: survived: s1_seal.pinned(px) re-checks the pass inside the "
-                                                "try, so the dropped entry guard is not observable (EQUIVALENT "
-                                                "candidate, needs peer review)",
     "r6-books-fifo-prefix-off-by-one": "T15-F9: failed-elsewhere: the ctx() helper the killer calls in its body "
                                        "(conftest s1_state) commits no TRIAL-STOP "
                                        "(conftest.py:873 AssertionError), before h5b_pass.py:548 (fix round 1: not "
@@ -438,7 +444,9 @@ FINDINGS = {                                 # from the 15b run (a3/t15_mutants.
     "stop-pending-removed": "T15-F11: failed-elsewhere: a pending close falls through to _resolution_evidence with "
                             "no QUALIFIED row (s1_seal.py:663 TypeError), not the agreed stop.py:162",
     "stop-prefix-le-to-lt": "T15-F12: survived: excluding the STOP row itself from the sampled prefix changes no "
-                            "seal (the STOP row is no slot row); killer cannot see it (gap or EQUIVALENT, triage)",
+                            "seal (the STOP row is no slot row); killer cannot see it. Codex REJECTED full-domain "
+                            "equivalence (upto_seq = a post-START QUALIFIED seq 85: close 2026-10-26 vs none): a "
+                            "meaningful survivor for 15d (t15_equivalence_drafts.md)",
 }
 
 # The plugin: anchor EXACTLY once (controller ruling; the plan's ">= 1" would accept an ambiguous anchor) and the
@@ -535,7 +543,7 @@ def run_child(cwd: Path, workdir: Path, selection: str, plugin_text: str, *, pyt
     the same selection whose exact nodeids are the intended case set. Returns raw facts only. rootdir is pinned to
     `cwd`; bytecode is never written; Hypothesis storage and basetemp are the child's own (under `workdir`)."""
     workdir.mkdir(parents=True, exist_ok=True)
-    (workdir / "s1_mutant_plugin.py").write_text(plugin_text, encoding="utf-8")
+    (workdir / "s1_mutant_plugin.py").write_text(RECORDER + plugin_text, encoding="utf-8")   # fix round 3: provenance
     junit = workdir / "junit.xml"
     env = dict(os.environ, PYTHONPATH=f"{workdir};{pythonpath}", PYTHONDONTWRITEBYTECODE="1",
                S1_HYPOTHESIS_ROOT=str(workdir / "hyp"))
@@ -553,7 +561,8 @@ def run_child(cwd: Path, workdir: Path, selection: str, plugin_text: str, *, pyt
         rc, timed_out, out = None, True, ""
     (workdir / "pytest-output.txt").write_text(out, encoding="utf-8")
     return {"rc": rc, "timeout": timed_out, "junit": junit if junit.exists() else None,
-            "record": workdir / "installed.json", "nodeids": nodeids, "collect_rc": col.returncode}
+            "record": workdir / "installed.json", "crash": workdir / "crash.json", "nodeids": nodeids,
+            "collect_rc": col.returncode}
 
 
 def control_valid(control: dict) -> bool:
@@ -576,7 +585,11 @@ def classify(name, control: dict, mutant: dict, agreed: dict) -> str:
     'killed' only when: the whole control selection passed; the mutation is verified installed; the mutant run's
     intended nodeid set equals the control's; no <error> anywhere (collection/setup/teardown); the agreed nodeid's
     testcase has a <failure> whose innermost frame is the agreed path:line with AssertionError. Other cases of the
-    selection may pass or fail; only the agreed case decides. Nothing else is ever a kill."""
+    selection may pass or fail; only the agreed case decides. Nothing else is ever a kill.
+    Fix round 3 (X-20/X-21/X-22): the mutant rc must be exactly 1 (any other rc with a JUnit file is error), and the
+    frame that decides is the STRUCTURAL one the child recorded (crash.json, call phase); the text frame, parsed from
+    the failure body only (no message, nothing after a '---- Captured' line), is a cross-check - a disagreement or a
+    missing/unreadable sidecar is error."""
     if name in EQUIVALENT:
         return "equivalent"
     if not control_valid(control):
@@ -597,6 +610,8 @@ def classify(name, control: dict, mutant: dict, agreed: dict) -> str:
         return "error"                                              # the plugin did not run (plugin/import error)
     if not (rec.get("anchor_found") and rec.get("installed")):
         return "not-installed"
+    if mutant["rc"] not in (0, 1):
+        return "error"                                              # X-21: rc 2/3/4/5 even with a JUnit file
     try:
         cases = junit_cases(mutant["junit"])
     except (ValueError, ET.ParseError):
@@ -612,24 +627,104 @@ def classify(name, control: dict, mutant: dict, agreed: dict) -> str:
     fail = tc.find("failure")
     if fail is None:
         return "survived"
-    frame = terminal_frame((fail.text or "") + "\n" + (fail.get("message") or ""))
-    return "killed" if at_agreed(frame, agreed["terminal"]) else "failed-elsewhere"
+    if mutant["rc"] != 1:
+        return "error"                                              # X-21: a failure needs pytest's own rc 1
+    sframe = structural_frame(mutant, agreed["nodeid"])
+    if sframe is None:
+        return "error"                                              # no call-phase provenance for this failure
+    if not frames_agree(sframe, terminal_frame(failure_body(fail.text))):
+        return "error"                                              # structure and text disagree
+    return "killed" if at_agreed(sframe, agreed["terminal"]) else "failed-elsewhere"
+
+
+# ---- fix round 3 (X-20/X-21/X-22; controller ruling: structural provenance) ---------------------------------------
+# Appended to EVERY child's s1_mutant_plugin.py (before the mutation text, so a raising mutation cannot pre-empt
+# it): the child's own record of each raised exception, per nodeid and phase, from pytest's ExceptionInfo - never
+# from rendered text. "terminal" is the innermost NON-HIDDEN traceback entry (pytest's own reprcrash rule,
+# ExceptionInfo._getreprcrash: frames with __tracebackhide__, e.g. pytest.raises' internals, are skipped), so a B3
+# "DID NOT RAISE" lands on the test's `with` line exactly as pytest reports it; "innermost" is the raw
+# traceback[-1], kept as evidence.
+RECORDER = r'''
+# ---- Task 15b fix round 3: structural crash provenance, recorded by the child itself (crash.json) ----
+import json as _t15_json
+import os as _t15_os
+import pytest as _t15_pytest
+_T15_CRASH = _t15_os.path.join(_t15_os.path.dirname(_t15_os.path.abspath(__file__)), "crash.json")
+_T15_REC = {}
+
+
+def _t15_loc(e):
+    return None if e is None else {"path": e.frame.code.raw.co_filename, "line": e.lineno + 1}
+
+
+@_t15_pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    yield
+    ei = call.excinfo
+    if ei is None:
+        return
+    tb = list(ei.traceback)
+    # pytest's own visible crash (pytest 8.3.3 _pytest/_code/code.py:607-616 ExceptionInfo._getreprcrash: the last
+    # entry with no __tracebackhide__, code.py:274 TracebackEntry.ishidden), so pytest.raises/pytest.fail land on
+    # the visible oracle line (their helpers hide themselves: python_api.py:1009, outcomes.py:177)
+    crash = ei._getreprcrash()
+    term_loc = None if crash is None else {"path": crash.path, "line": crash.lineno}
+    raw_type = f"{ei.type.__module__}.{ei.type.__qualname__}"
+    # pytest's Failed sets __module__ = "builtins"; it is named by IDENTITY (never by a look-alike class's name)
+    typ = "_pytest.outcomes.Failed" if ei.type is _t15_pytest.fail.Exception else raw_type
+    _T15_REC.setdefault(item.nodeid, {})[call.when] = {
+        "type": typ, "type_raw": raw_type, "terminal": term_loc,
+        "innermost": _t15_loc(tb[-1] if tb else None)}
+    with open(_T15_CRASH, "w", encoding="utf-8") as f:
+        _t15_json.dump(_T15_REC, f, indent=1, sort_keys=True)
+# ---- end of the recorder; the mutation text (if any) follows ----
+'''
+CAPTURED = re.compile(r"^-{3,} Captured .*$", re.M)
+
+
+def failure_body(text: str) -> str:
+    """The JUnit failure body only, cut before any '---- Captured ...' section (X-22). The message is never used."""
+    m = CAPTURED.search(text or "")
+    return (text or "") if m is None else (text or "")[:m.start()]
+
+
+def structural_frame(run: dict, nodeid: str):
+    """(posix path, 1-based line, qualified exception type) of the CALL-phase exception the child recorded for
+    `nodeid` (crash.json), or None when the sidecar is missing, unreadable or has no call-phase record."""
+    try:
+        rec = json.loads(Path(run["crash"]).read_text(encoding="utf-8"))[nodeid]["call"]
+        return (str(rec["terminal"]["path"]).replace("\\", "/"), int(rec["terminal"]["line"]), str(rec["type"]))
+    except (KeyError, TypeError, ValueError, OSError):
+        return None
+
+
+def frames_agree(sframe, tframe) -> bool:
+    """The structural frame and the text-parsed (cross-check) frame name the same path (at a path boundary), line and
+    exception class (last dotted component)."""
+    if sframe is None or tframe is None:
+        return False
+    sp, sl_, se = sframe
+    tp, tl, te = tframe
+    path_ok = sp == tp or sp.endswith("/" + tp) or tp.endswith("/" + sp)
+    return path_ok and sl_ == tl and se.rpartition(".")[2] == te.rpartition(".")[2]
 
 
 def found_frame(run: dict, agreed: dict):
-    """Evidence only (Step 5 record): the terminal frame actually found for the agreed case, or None."""
+    """Evidence only (Step 5 record): {"structural": the recorded call-phase frame, "text": the frame parsed from the
+    JUnit failure body (cross-check)} for the agreed case; each None when absent."""
     try:
         tc = junit_cases(run["junit"]).get(xunit2_key(agreed["nodeid"])) if run["junit"] else None
     except (ValueError, ET.ParseError):
-        return None
+        tc = None
     fail = None if tc is None else tc.find("failure")
-    return None if fail is None else terminal_frame((fail.text or "") + "\n" + (fail.get("message") or ""))
+    return {"structural": structural_frame(run, agreed["nodeid"]) if run.get("crash") else None,
+            "text": None if fail is None else terminal_frame(failure_body(fail.text))}
 
 
 def evidence_record(workdir: Path) -> dict:
     """PLAN-R2-1 (5): keep the JUnit file, the installation record and the pytest output, with their sha256."""
     got = {}
-    for n in ("junit.xml", "installed.json", "pytest-output.txt", "s1_mutant_plugin.py"):
+    for n in ("junit.xml", "installed.json", "crash.json", "pytest-output.txt", "s1_mutant_plugin.py"):
         p = workdir / n
         got[n] = c_sha256(p) if p.exists() else None
     return got
@@ -672,7 +767,8 @@ def classifier_validated(t15_tree, tmp_path_factory):
     junit = bt / "junit.xml"                     # fresh tmp path, read back, then copied (no stale evidence is read)
     sel = ["research/s1/s1_tests/test_s1_a3_mutants.py", "-k",
            "test_classifier_self_tests or test_classifier_terminal_frame_and_parameters or "
-           "test_classifier_failed_outcome or test_classifier_contract_conditions"]
+           "test_classifier_failed_outcome or test_classifier_contract_conditions or test_classifier_provenance or "
+           "test_classifier_visible_crash"]
     p = subprocess.run([PY, "-m", "pytest", "-q", "-p", "no:cacheprovider", "-p", "conftest", f"--rootdir={t15_tree}",
                         f"--basetemp={bt / 'bt'}", f"--junitxml={junit}"] + JUNIT_OPTS + sel,
                        cwd=t15_tree, capture_output=True, text=True, timeout=1800,
@@ -682,7 +778,8 @@ def classifier_validated(t15_tree, tmp_path_factory):
     if junit.exists():
         (SELFTEST_EVIDENCE / "junit.xml").write_bytes(junit.read_bytes())
     cases = junit_cases(junit) if junit.exists() else {}
-    expected = len(SELF) + 2 + 6 + len(FAILED_OUTCOME) + len(CONTRACT)  # every self-test ran (none missing/skipped)
+    expected = (len(SELF) + 2 + 6 + len(FAILED_OUTCOME) + len(CONTRACT) + len(PROVENANCE)
+                + len(VISIBLE))                                  # every self-test ran (none missing or skipped)
     ok = p.returncode == 0 and len(cases) == expected and all(len(list(tc)) == 0 for tc in cases.values())
     (SELFTEST_EVIDENCE / "hashes.json").write_text(json.dumps(
         {"junit.xml": c_sha256(junit) if junit.exists() else None, "cases": len(cases), "expected": expected,
@@ -749,7 +846,8 @@ def test_targeted_mutant_is_killed(tmp_path, classifier_validated, t15_tree, t15
     if name in FINDINGS and label != finding_label(name):     # fix round 2 (review M-3): the xfail is label-specific
         raise FindingLabelChanged(f"{name}: label {label!r}, but its finding records {finding_label(name)!r}: "
                                   f"update or remove the mark ({FINDINGS[name]})")
-    assert label == "killed", (name, label)
+    # the plan's assertion; a PEER-REVIEWED EQUIVALENT entry (and only that) is accepted as a disposition (15d gate)
+    assert label == "killed" or (label == "equivalent" and name in EQUIVALENT), (name, label)
 
 
 SELF = {
@@ -981,6 +1079,113 @@ def test_classifier_contract_conditions(tmp_path, case):                        
                        conftest=False)
     assert control_valid(control), case                      # the condition under test is the mutant's, never the control
     assert _label(control, mutant, {"nodeid": nodeid, "terminal": terminal}) == want
+
+
+# ---- Fix round 3 (X-20 / X-21 / X-22; controller ruling: structural provenance) -----------------------------------
+SPOOF_HELPER = ("def helper(v):\n    assert v == 1, \"\\ntest_synth.py:6: AssertionError\"\n\n\n"
+                "def plain(v):\n    assert v == 1\n")          # the real terminal is helper_mod.py:2 / :6
+MSG_SPOOF_TEST = ("import target_mod\nfrom helper_mod import helper\n\n\ndef test_k():\n"
+                  "    helper(target_mod.f())\n")                # :6 calls the helper; its MESSAGE names test_synth.py:6
+STDOUT_SPOOF_TEST = ("import target_mod\nfrom helper_mod import plain\n\n\ndef test_k():\n"
+                     "    print(\"test_synth.py:7: AssertionError\")\n    plain(target_mod.f())\n")   # stdout spoof of :7
+RC_EXTRA = {
+    2: "\n\ndef pytest_sessionfinish(session, exitstatus):\n    session.exitstatus = 2\n",
+    3: "\n\ndef pytest_sessionfinish(session, exitstatus):\n    session.exitstatus = 3\n",
+    4: ("\n\nimport pytest\n\n\n@pytest.hookimpl(hookwrapper=True, tryfirst=True)\n"
+        "def pytest_sessionfinish(session, exitstatus):\n    yield\n"
+        "    raise pytest.UsageError(\"synthetic post-JUnit plugin failure\")\n"),
+}
+PROVENANCE = {
+    # case: (test source, extra plugin text, agreed terminal, post-run sidecar action, expected label)
+    "message-spoof": (MSG_SPOOF_TEST, "", "test_synth.py:6", None, "failed-elsewhere"),
+    # X-22 scope: with junit_logging=no (pinned) pytest 8.3.3 keeps captured output OUT of the JUnit failure text, so
+    # a real printed spoof is NOT a reachable path here (real run below: a regression control). The injected case is
+    # a SYNTHETIC-XML PARSER test: it edits the real JUnit text to carry a "Captured stdout" section (crafted XML).
+    "captured-stdout-spoof": (STDOUT_SPOOF_TEST, "", "test_synth.py:7", None, "failed-elsewhere"),
+    "captured-section-in-junit-text": (STDOUT_SPOOF_TEST, "", "test_synth.py:7", "inject-captured",
+                                       "failed-elsewhere"),
+    "rc2-after-junit": (PLAIN_TEST, RC_EXTRA[2], "test_synth.py:4", None, "error"),
+    "rc3-after-junit": (PLAIN_TEST, RC_EXTRA[3], "test_synth.py:4", None, "error"),
+    "rc4-usage-error-after-junit": (PLAIN_TEST, RC_EXTRA[4], "test_synth.py:4", None, "error"),
+    "structure-text-disagree": (PLAIN_TEST, "", "test_synth.py:4", "disagree", "error"),
+    "sidecar-missing": (PLAIN_TEST, "", "test_synth.py:4", "missing", "error"),
+}
+
+
+@pytest.mark.parametrize("case", sorted(PROVENANCE))
+def test_classifier_provenance(tmp_path, case):                                           # X-20, X-21, X-22
+    """killed needs the STRUCTURAL frame (the child's own pytest_runtest_makereport record of the call-phase
+    exception: qualified type, innermost non-hidden path:line) at the agreed line, and mutant rc == 1. A spoofing
+    assertion message or captured stdout never supplies the frame; any rc other than 1 with a JUnit file is error; a
+    structural/text disagreement or a missing sidecar is error. Real child runs; disagree/missing edit the real sidecar.
+    captured-section-in-junit-text is a synthetic-XML parser test (crafted JUnit text), NOT a reachable child-run path
+    under the pinned junit_logging=no (X-22 scope, Codex review of 02db5b9)."""
+    src, extra, terminal, action, want = PROVENANCE[case]
+    proj = _probe_project(tmp_path, {"test_synth.py": src, "target_mod.py": CONTRACT_TARGET,
+                                     "helper_mod.py": SPOOF_HELPER})
+    plug = PLUGIN.format(target="target_mod.f", old="return 1", new="return 2", extra="",
+                         record=str(tmp_path / "mutant" / "installed.json")) + extra
+    control = run_child(proj, tmp_path / "control", "test_synth.py", "", pythonpath=str(proj), timeout=60,
+                        conftest=False)
+    mutant = run_child(proj, tmp_path / "mutant", "test_synth.py", plug, pythonpath=str(proj), timeout=60,
+                       conftest=False)
+    sidecar = tmp_path / "mutant" / "crash.json"
+    if action == "disagree":                   # structurally line 2, while the text terminal says line 4
+        sidecar.write_text(json.dumps({"test_synth.py::test_k": {"call": {
+            "type": "builtins.AssertionError", "terminal": {"path": str(proj / "test_synth.py"), "line": 2},
+            "innermost": {"path": str(proj / "test_synth.py"), "line": 2}}}}), encoding="utf-8")
+    elif action == "missing":
+        sidecar.unlink(missing_ok=True)
+    elif action == "inject-captured":          # the failure body + a captured section carrying the spoof line
+        jx = tmp_path / "mutant" / "junit.xml"
+        tree = ET.parse(jx)
+        (fail,) = [f for f in tree.getroot().iter("failure")]
+        fail.text = (fail.text or "") + ("\n----------------------------- Captured stdout call "
+                                         "-----------------------------\ntest_synth.py:7: AssertionError\n")
+        tree.write(jx, encoding="utf-8", xml_declaration=True)
+    assert control_valid(control), case
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+
+
+# ---- Fix round 3 amendment (ruling B3 x structural frame): pytest's VISIBLE crash is recorded -------------------
+VC_TARGET = ("def f():\n    return 1\n\n\ndef g():\n    raise ValueError(\"boom\")\n\n\n"
+             "def h():\n    raise KeyError(\"cause\")\n")
+FAIL_TEST = ("import pytest, target_mod\n\ndef test_k():\n    if target_mod.f() != 1:\n"
+             "        pytest.fail(\"f changed\")\n")                                    # pytest.fail at :5
+HELPER_TEST = "import target_mod\nfrom helper_mod import plain\n\ndef test_k():\n    plain(target_mod.f())\n"
+CHAIN_TEST = ("import target_mod\n\n\ndef test_k():\n    try:\n        target_mod.h()\n    except KeyError as e:\n"
+              "        if target_mod.f() != 1:\n            raise AssertionError(\"outer\") from e\n")   # raise at :9
+VISIBLE = {
+    # case: (test source, target, (old, new), agreed terminal, expected label, expected structural (file, line, type))
+    "raises-did-not-raise-at-agreed-line": (RAISES_TEST, "target_mod.g", ("raise ValueError(\"boom\")", "return None"),
+                                            "test_synth.py:4", "killed",
+                                            ("test_synth.py", 4, "_pytest.outcomes.Failed")),
+    "pytest-fail-at-agreed-line": (FAIL_TEST, "target_mod.f", MUTATE, "test_synth.py:5", "killed",
+                                   ("test_synth.py", 5, "_pytest.outcomes.Failed")),
+    "assertion-in-helper-agreed-at-helper": (HELPER_TEST, "target_mod.f", MUTATE, "helper_mod.py:6", "killed",
+                                             ("helper_mod.py", 6, "builtins.AssertionError")),
+    "chained-raise-from-records-the-outer-crash": (CHAIN_TEST, "target_mod.f", MUTATE, "test_synth.py:9", "killed",
+                                                   ("test_synth.py", 9, "builtins.AssertionError")),
+}
+
+
+@pytest.mark.parametrize("case", sorted(VISIBLE))
+def test_classifier_visible_crash(tmp_path, case):                                       # B3 x structural frame
+    """The structural frame is pytest's own visible crash (ExceptionInfo._getreprcrash: the last entry without
+    __tracebackhide__), with the type taken from excinfo.type: pytest.raises DID NOT RAISE and pytest.fail land on the
+    test's own line (not inside pytest's hidden helpers); an assertion in a helper lands on the helper's line; for
+    `raise X from Y` the record is the raised (outer) exception's crash, never its cause. Real child runs."""
+    src, target, (old, new), terminal, want, (sfile, sline, stype) = VISIBLE[case]
+    proj = _probe_project(tmp_path, {"test_synth.py": src, "target_mod.py": VC_TARGET, "helper_mod.py": SPOOF_HELPER})
+    plug = PLUGIN.format(target=target, old=old, new=new, extra="", record=str(tmp_path / "mutant" / "installed.json"))
+    control = run_child(proj, tmp_path / "control", "test_synth.py", "", pythonpath=str(proj), timeout=60,
+                        conftest=False)
+    mutant = run_child(proj, tmp_path / "mutant", "test_synth.py", plug, pythonpath=str(proj), timeout=60,
+                       conftest=False)
+    assert control_valid(control), case
+    got = structural_frame({"crash": tmp_path / "mutant" / "crash.json"}, "test_synth.py::test_k")
+    assert got is not None and got[0].endswith("/" + sfile) and got[1:] == (sline, stype), got
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
 
 
 # ---- Step 4 (row 298; revision 2, A3-PR1-3): Hypothesis settings EXECUTED -------------------------------------------

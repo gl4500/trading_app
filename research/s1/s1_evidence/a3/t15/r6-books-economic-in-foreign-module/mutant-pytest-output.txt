@@ -2,8 +2,8 @@ FFF                                                                      [100%]
 ================================== FAILURES ===================================
 ___________ test_h5b_fifo_replay_uses_this_pass_module[stop_record] ___________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m19/mutant/bt/test_h5b_fifo_replay_uses_this0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9C4C9EB0>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m19/mutant/bt/test_h5b_fifo_replay_uses_this0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019D99FADF40>
 owner = 'stop_record'
 
     @pytest.mark.parametrize("owner", ["stop_record", "nvs", "stop_ready"])
@@ -26,13 +26,13 @@ owner = 'stop_record'
 >           assert len(made) == k + 1, f"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)"
 E           AssertionError: pass 0: 201 verifications (want exactly 1, fresh)
 E           assert 201 == (0 + 1)
-E            +  where 201 = len([<test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DA84230>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D95C230>,...st_s1_a3_h5b_pass._Proxy object at 0x0000019E9D95ED20>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D95C3E0>, ...])
+E            +  where 201 = len([<test_s1_a3_h5b_pass._Proxy object at 0x0000019D9B53DD30>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019D9B41F3E0>,...st_s1_a3_h5b_pass._Proxy object at 0x0000019D9B41F230>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019D9B41EB10>, ...])
 
 research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: AssertionError
 _______________ test_h5b_fifo_replay_uses_this_pass_module[nvs] _______________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m19/mutant/bt/test_h5b_fifo_replay_uses_this1')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9D99FFB0>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m19/mutant/bt/test_h5b_fifo_replay_uses_this1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019D9B4C9520>
 owner = 'nvs'
 
     @pytest.mark.parametrize("owner", ["stop_record", "nvs", "stop_ready"])
@@ -55,13 +55,13 @@ owner = 'nvs'
 >           assert len(made) == k + 1, f"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)"
 E           AssertionError: pass 0: 201 verifications (want exactly 1, fresh)
 E           assert 201 == (0 + 1)
-E            +  where 201 = len([<test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D9F3D10>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB46FF0>,...st_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB45D90>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB45DC0>, ...])
+E            +  where 201 = len([<test_s1_a3_h5b_pass._Proxy object at 0x0000019D9B482AB0>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019D9B566900>,...st_s1_a3_h5b_pass._Proxy object at 0x0000019D9B564320>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019D9B565430>, ...])
 
 research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: AssertionError
 ___________ test_h5b_fifo_replay_uses_this_pass_module[stop_ready] ____________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m19/mutant/bt/test_h5b_fifo_replay_uses_this2')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9D99DC40>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m19/mutant/bt/test_h5b_fifo_replay_uses_this2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019D9B43DC40>
 owner = 'stop_ready'
 
     @pytest.mark.parametrize("owner", ["stop_record", "nvs", "stop_ready"])
@@ -84,12 +84,12 @@ owner = 'stop_ready'
 >           assert len(made) == k + 1, f"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)"
 E           AssertionError: pass 0: 201 verifications (want exactly 1, fresh)
 E           assert 201 == (0 + 1)
-E            +  where 201 = len([<test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D907050>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB52090>,...st_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB52FF0>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB53FE0>, ...])
+E            +  where 201 = len([<test_s1_a3_h5b_pass._Proxy object at 0x0000019D9A2F2FC0>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019D9B631130>,...st_s1_a3_h5b_pass._Proxy object at 0x0000019D99A34A10>, <test_s1_a3_h5b_pass._Proxy object at 0x0000019D9B633230>, ...])
 
 research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m19\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m19\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_record]
 FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[nvs]
 FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_ready]
-3 failed in 19.49s
+3 failed in 23.14s

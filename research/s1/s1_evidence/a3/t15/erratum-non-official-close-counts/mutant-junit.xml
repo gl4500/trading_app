@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="6" time="0.600" timestamp="2026-11-16T00:49:59.277539-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[wrong-role-close]" time="0.135"><failure message="AssertionError: assert ['a1', 'x1'] == ['a1']&#10;  &#10;  Left contains one more item: 'x1'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m08/mutant/bt/test_non_official_lines_are_ne0')
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="6" time="0.597" timestamp="2026-11-16T02:07:26.962404-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[wrong-role-close]" time="0.131"><failure message="AssertionError: assert ['a1', 'x1'] == ['a1']&#10;  &#10;  Left contains one more item: 'x1'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m08/mutant/bt/test_non_official_lines_are_ne0')
 case = 'wrong-role-close'
 
     @pytest.mark.parametrize("case", ["wrong-role-close", "wrong-key-close", "peer-draft", "indented-line", "quoted-line",
@@ -31,7 +31,7 @@ E
 E         Left contains one more item: 'x1'
 E         Use -v to get more diff
 
-research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[wrong-key-close]" time="0.015"><failure message="AssertionError: assert ['a1', 'x1'] == ['a1']&#10;  &#10;  Left contains one more item: 'x1'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m08/mutant/bt/test_non_official_lines_are_ne1')
+research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[wrong-key-close]" time="0.015"><failure message="AssertionError: assert ['a1', 'x1'] == ['a1']&#10;  &#10;  Left contains one more item: 'x1'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m08/mutant/bt/test_non_official_lines_are_ne1')
 case = 'wrong-key-close'
 
     @pytest.mark.parametrize("case", ["wrong-role-close", "wrong-key-close", "peer-draft", "indented-line", "quoted-line",
@@ -64,7 +64,7 @@ E
 E         Left contains one more item: 'x1'
 E         Use -v to get more diff
 
-research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[peer-draft]" time="0.017"><failure message="AssertionError: assert ['a1', 'x1', 'x1', 'x1'] == ['a1']&#10;  &#10;  Left contains 3 more items, first extra item: 'x1'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m08/mutant/bt/test_non_official_lines_are_ne2')
+research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[peer-draft]" time="0.016"><failure message="AssertionError: assert ['a1', 'x1', 'x1', 'x1'] == ['a1']&#10;  &#10;  Left contains 3 more items, first extra item: 'x1'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m08/mutant/bt/test_non_official_lines_are_ne2')
 case = 'peer-draft'
 
     @pytest.mark.parametrize("case", ["wrong-role-close", "wrong-key-close", "peer-draft", "indented-line", "quoted-line",
@@ -97,4 +97,4 @@ E
 E         Left contains 3 more items, first extra item: 'x1'
 E         Use -v to get more diff
 
-research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[indented-line]" time="0.018" /><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[quoted-line]" time="0.016" /><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[historical-other-trial]" time="0.018" /></testsuite></testsuites>
+research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[indented-line]" time="0.017" /><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[quoted-line]" time="0.015" /><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_non_official_lines_are_never_candidates[historical-other-trial]" time="0.021" /></testsuite></testsuites>

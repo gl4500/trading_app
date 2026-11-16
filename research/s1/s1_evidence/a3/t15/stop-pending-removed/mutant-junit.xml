@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.027" timestamp="2026-11-16T00:57:32.591678-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_stop" name="test_pending_slot_blocks_the_stop" time="2.618"><failure message="TypeError: 'NoneType' object is not iterable">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m33/mutant/bt/test_pending_slot_blocks_the_s0')
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.334" timestamp="2026-11-16T02:16:06.056252-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_stop" name="test_pending_slot_blocks_the_stop" time="2.819"><failure message="TypeError: 'NoneType' object is not iterable">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m33/mutant/bt/test_pending_slot_blocks_the_s0')
 
     def test_pending_slot_blocks_the_stop(tmp_path):
         """B1.5 kept (OQ-8): an in-flight slot on an eligible close before the triggering close blocks the stop."""
@@ -15,9 +15,9 @@ research\s1\s1_seal.py:641: in stop_record
     return _stop_record(px, out, rows, start, cal, bundle)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-px = &lt;s1_seal.SealPass object at 0x00000284FCAAF340&gt;
-out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m33/mutant/bt/test_pending_slot_blocks_the_s0/s1_out')
-rows = [Row(trial_id='ec536f7f-744b-4149-b8a2-bb219ab6e74c', seq=1, prev='60c69710bd5acdec9d99d64b371745469a1d0754875a416a39a...21 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='a3589d4b-b623-4787-aaa3-fb5d204d61b6', created=1792788330.0), ...]
+px = &lt;s1_seal.SealPass object at 0x000001DA1CCB9F60&gt;
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m33/mutant/bt/test_pending_slot_blocks_the_s0/s1_out')
+rows = [Row(trial_id='2bf67500-8db7-4fc1-8375-51fe373b9831', seq=1, prev='7839222f0b7427cf6fee817f72e4a94d8f022e107bc83badcef...5a at=2026-10-23T20:45:30.000000+00:00', mailbox_id='a8996839-4390-4d73-85f3-03ecad2ead54', created=1792788330.0), ...]
 start = datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc)
 cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
 bundle = 'ac059f2baf8d57c33a0cc74d3d89d5c93e93f288ffeb2171fdc94557ecbad963'

@@ -84,3 +84,26 @@ defines `upto_seq` as the STOP prefix ("F1 STOP prefix / OQ-14"), but the functi
 equivalence holds for the product's call graph, not for the function's full input domain. A reviewer may instead
 prefer a killer that calls `sampled_seals(..., upto_seq=<a QUALIFIED row's seq>)` and pins inclusion of that row -
 which would test a use the product never makes. This is the open point for peer review.
+
+## Peer review outcome (Codex, `C:/Users/gl450/.coordination/trading_app/t15b_02db5b9_review_20261116/REVIEW.txt`, fix round 3)
+
+- **F8 `r6-books-economic-in-entry-guard-dropped`: APPROVED EQUIVALENT**, scoped as follows: "for the current
+  synchronous implementation with normal fixed helper definitions". `_economic_in` evaluates no input before
+  `pinned(px)`, which immediately performs the same `_live` check. Only ValueError is caught, so an invalid-pass
+  SystemExit propagates identically, and the deleted check has no state effect. Outside the claim: timing and
+  instrumentation, monkeypatched helper definitions, races that change the pass externally, and future edits. This
+  disposes of the mutant; it is not a request to remove the product guard.
+  - Entered in `EQUIVALENT` (test_s1_a3_mutants.py) with exactly that scoped reason. Its strict xfail mark (T15-F8)
+    was removed, and its label is now `equivalent`.
+- **F12 `stop-prefix-le-to-lt`: REJECTED as full-domain EQUIVALENT.**
+  - **Counterexample** (Codex's own connected fixture; `reconciliation_equivalence.json` in the same directory
+    records the row kind, seq and key difference): pass `upto_seq = 85`, the seq of a post-START SLOT-QUALIFIED row.
+    - Original (`x.seq <= upto_seq`): returns close 2026-10-26.
+    - Mutant (`<`): returns no close.
+
+    This is an observable boundary change for inputs the inclusive-prefix contract supports.
+  - The current-product-call-graph argument above (every product caller passes a TRIAL-STOP seq) still stands as an
+    observation, but it does not cover the public helper's contract.
+  - F12 stays a `survived` finding (T15-F12, strict xfail) for 15d. Two ways forward: a boundary killer, or a
+    separately approved call-graph-constrained exclusion that states its coverage limit.
+- **F10:** no equivalence was approved; it remains a killer gap, as drafted.

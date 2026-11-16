@@ -2,8 +2,8 @@
 ================================== FAILURES ===================================
 _ test_start_attest_verifies_the_opening_ack_against_the_journal[seal-differs] _
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m14/mutant/bt/test_start_attest_verifies_the2')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000220473A73B0>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m14/mutant/bt/test_start_attest_verifies_the2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002BCC1956450>
 case = 'seal-differs'
 
     @pytest.mark.parametrize("case", ["ok", "not-first-qualified", "seal-differs", "receipt-differs", "head-forked",
@@ -29,8 +29,8 @@ E           Failed: DID NOT RAISE <class 'SystemExit'>
 research\s1\s1_tests\test_s1_a3_prestart.py:194: Failed
 _ test_start_attest_verifies_the_opening_ack_against_the_journal[receipt-differs] _
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m14/mutant/bt/test_start_attest_verifies_the3')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022048826990>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m14/mutant/bt/test_start_attest_verifies_the3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002BCBF392A50>
 case = 'receipt-differs'
 
     @pytest.mark.parametrize("case", ["ok", "not-first-qualified", "seal-differs", "receipt-differs", "head-forked",
@@ -54,8 +54,8 @@ case = 'receipt-differs'
 E           Failed: DID NOT RAISE <class 'SystemExit'>
 
 research\s1\s1_tests\test_s1_a3_prestart.py:194: Failed
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m14\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m14\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[seal-differs]
 FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[receipt-differs]
-2 failed, 4 passed in 7.25s
+2 failed, 4 passed in 8.43s

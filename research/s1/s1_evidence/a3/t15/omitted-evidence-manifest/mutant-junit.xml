@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="5.112" timestamp="2026-11-16T00:50:36.974280-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_opening_ack_evidence_manifest_is_reconstructed[ok]" time="1.183" /><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_opening_ack_evidence_manifest_is_reconstructed[wrong-hash]" time="1.102"><failure message="Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani1')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F0E4A843B0&gt;
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="5.927" timestamp="2026-11-16T02:08:07.643254-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_opening_ack_evidence_manifest_is_reconstructed[ok]" time="1.260" /><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_opening_ack_evidence_manifest_is_reconstructed[wrong-hash]" time="1.240"><failure message="Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FC5E82B050&gt;
 case = 'wrong-hash'
 
     @pytest.mark.parametrize("case", ["ok", "wrong-hash", "wrong-membership-receipt", "wrong-membership-staging"])
@@ -30,8 +30,8 @@ case = 'wrong-hash'
 &gt;           with pytest.raises(SystemExit, match=r"evidence manifest.*INVALID \(registration-artifact\)"):
 E           Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;
 
-research\s1\s1_tests\test_s1_a3_prestart.py:284: Failed</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-receipt]" time="1.144"><failure message="Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani2')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F0E564B950&gt;
+research\s1\s1_tests\test_s1_a3_prestart.py:284: Failed</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-receipt]" time="1.444"><failure message="Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FC5FB02240&gt;
 case = 'wrong-membership-receipt'
 
     @pytest.mark.parametrize("case", ["ok", "wrong-hash", "wrong-membership-receipt", "wrong-membership-staging"])
@@ -62,8 +62,8 @@ case = 'wrong-membership-receipt'
 &gt;           with pytest.raises(SystemExit, match=r"evidence manifest.*INVALID \(registration-artifact\)"):
 E           Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;
 
-research\s1\s1_tests\test_s1_a3_prestart.py:284: Failed</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-staging]" time="1.194"><failure message="Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani3')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001F0E55EB410&gt;
+research\s1\s1_tests\test_s1_a3_prestart.py:284: Failed</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-staging]" time="1.412"><failure message="Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FC5FAD8FE0&gt;
 case = 'wrong-membership-staging'
 
     @pytest.mark.parametrize("case", ["ok", "wrong-hash", "wrong-membership-receipt", "wrong-membership-staging"])

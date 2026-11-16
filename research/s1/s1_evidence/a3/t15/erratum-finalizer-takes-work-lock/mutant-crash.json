@@ -1,0 +1,16 @@
+{
+ "research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_decision_never_touches_the_work_lock": {
+  "call": {
+   "innermost": {
+    "line": 210,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_finalizer.py"
+   },
+   "terminal": {
+    "line": 210,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_finalizer.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ }
+}

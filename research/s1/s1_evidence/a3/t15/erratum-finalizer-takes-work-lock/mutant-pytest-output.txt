@@ -2,8 +2,8 @@ F                                                                        [100%]
 ================================== FAILURES ===================================
 _____________ test_finalizer_decision_never_touches_the_work_lock _____________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m07/mutant/bt/test_finalizer_decision_never_0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002BE54C48B30>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m07/mutant/bt/test_finalizer_decision_never_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000013066688BF0>
 
     def test_finalizer_decision_never_touches_the_work_lock(tmp_path, monkeypatch):       # row 258 (E1.2)
         st_ = registered(tmp_path)
@@ -32,10 +32,10 @@ monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002BE54C48B30>
         assert decided
 >       assert not any(ev[0] == "lock" and ev[1].startswith("slot-") for ev in events[:decided[-1] + 1])
 E       assert not True
-E        +  where True = any(<generator object test_finalizer_decision_never_touches_the_work_lock.<locals>.<genexpr> at 0x000002BE54F9BE00>)
+E        +  where True = any(<generator object test_finalizer_decision_never_touches_the_work_lock.<locals>.<genexpr> at 0x000001306684F780>)
 
 research\s1\s1_tests\test_s1_a3_finalizer.py:210: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m07\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m07\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_decision_never_touches_the_work_lock
-1 failed in 2.15s
+1 failed in 2.38s

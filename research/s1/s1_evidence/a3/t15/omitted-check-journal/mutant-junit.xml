@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="0.550" timestamp="2026-11-16T00:50:20.984872-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_journal_seq_and_head_must_be_extended_without_fork[ok]" time="0.124" /><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]" time="0.019"><failure message="Failed: DID NOT RAISE &lt;class 's1_trial.Refusal'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m11/mutant/bt/test_journal_seq_and_head_must1')
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="0.631" timestamp="2026-11-16T02:07:50.031434-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_journal_seq_and_head_must_be_extended_without_fork[ok]" time="0.132" /><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]" time="0.019"><failure message="Failed: DID NOT RAISE &lt;class 's1_trial.Refusal'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m11/mutant/bt/test_journal_seq_and_head_must1')
 case = 'wrong-head'
 
     @pytest.mark.parametrize("case", ["ok", "wrong-head", "seq-beyond", "forked"])
@@ -25,7 +25,7 @@ case = 'wrong-head'
 &gt;           with pytest.raises(t.Refusal, match=reason):                # verify_ack refuses on check_journal problems
 E           Failed: DID NOT RAISE &lt;class 's1_trial.Refusal'&gt;
 
-research\s1\s1_tests\test_s1_a3_trial.py:256: Failed</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_journal_seq_and_head_must_be_extended_without_fork[seq-beyond]" time="0.019"><failure message="Failed: DID NOT RAISE &lt;class 's1_trial.Refusal'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m11/mutant/bt/test_journal_seq_and_head_must2')
+research\s1\s1_tests\test_s1_a3_trial.py:256: Failed</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_journal_seq_and_head_must_be_extended_without_fork[seq-beyond]" time="0.023"><failure message="Failed: DID NOT RAISE &lt;class 's1_trial.Refusal'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m11/mutant/bt/test_journal_seq_and_head_must2')
 case = 'seq-beyond'
 
     @pytest.mark.parametrize("case", ["ok", "wrong-head", "seq-beyond", "forked"])
@@ -52,7 +52,7 @@ case = 'seq-beyond'
 &gt;           with pytest.raises(t.Refusal, match=reason):                # verify_ack refuses on check_journal problems
 E           Failed: DID NOT RAISE &lt;class 's1_trial.Refusal'&gt;
 
-research\s1\s1_tests\test_s1_a3_trial.py:256: Failed</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_journal_seq_and_head_must_be_extended_without_fork[forked]" time="0.020"><failure message="Failed: DID NOT RAISE &lt;class 's1_trial.Refusal'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m11/mutant/bt/test_journal_seq_and_head_must3')
+research\s1\s1_tests\test_s1_a3_trial.py:256: Failed</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_journal_seq_and_head_must_be_extended_without_fork[forked]" time="0.023"><failure message="Failed: DID NOT RAISE &lt;class 's1_trial.Refusal'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m11/mutant/bt/test_journal_seq_and_head_must3')
 case = 'forked'
 
     @pytest.mark.parametrize("case", ["ok", "wrong-head", "seq-beyond", "forked"])

@@ -1,0 +1,86 @@
+{
+ "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-enumeration-filenotfound]": {
+  "call": {
+   "innermost": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "terminal": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-generic-oserror]": {
+  "call": {
+   "innermost": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "terminal": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-permission]": {
+  "call": {
+   "innermost": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "terminal": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]": {
+  "call": {
+   "innermost": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "terminal": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-generic-oserror]": {
+  "call": {
+   "innermost": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "terminal": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]": {
+  "call": {
+   "innermost": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "terminal": {
+    "line": 171,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_strict_enum.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ }
+}

@@ -2,7 +2,7 @@
 ================================== FAILURES ===================================
 _____________________ test_tail_completion[no-terminator] _____________________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m24/mutant/bt/test_tail_completion_no_termin0')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m24/mutant/bt/test_tail_completion_no_termin0')
 case = 'no-terminator'
 
     @pytest.mark.parametrize("case", list(TAILS))
@@ -30,7 +30,7 @@ E         Use -v to get more diff
 research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:141: AssertionError
 ________________________ test_tail_completion[lone-cr] ________________________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m24/mutant/bt/test_tail_completion_lone_cr_0')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m24/mutant/bt/test_tail_completion_lone_cr_0')
 case = 'lone-cr'
 
     @pytest.mark.parametrize("case", list(TAILS))
@@ -58,7 +58,7 @@ E         Use -v to get more diff
 research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:141: AssertionError
 ________________________ test_tail_completion[bare-cr] ________________________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m24/mutant/bt/test_tail_completion_bare_cr_0')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m24/mutant/bt/test_tail_completion_bare_cr_0')
 case = 'bare-cr'
 
     @pytest.mark.parametrize("case", list(TAILS))
@@ -84,9 +84,9 @@ E         At index 1 diff: b'{' != b'\n'
 E         Use -v to get more diff
 
 research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:141: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m24\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m24\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
 FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
 FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
-3 failed, 5 passed in 0.57s
+3 failed, 5 passed in 0.50s

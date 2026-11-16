@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.672" timestamp="2026-11-16T00:50:26.808226-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_start_attest_envelope_and_single_member" time="1.253"><failure message="KeyError: 'opening_books.json'">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m12/mutant/bt/test_start_attest_envelope_and0')
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.772" timestamp="2026-11-16T02:07:56.485759-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_start_attest_envelope_and_single_member" time="1.312"><failure message="KeyError: 'opening_books.json'">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m12/mutant/bt/test_start_attest_envelope_and0')
 
     def test_start_attest_envelope_and_single_member(tmp_path):                           # rows 104, 268 (OQ-15)
         start, cal, oc, w = _open_and_ack(tmp_path)
@@ -13,7 +13,7 @@ research\s1\s1_stage.py:428: in run
     before_publish(com)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-com = {'kind': 'single', 'members': {'attest_start.json': '4eae70e911e7f873543f1709a310a4c6b4122d933c8447eb98159e6e3fa332bf'}, 'op': '9323bf5766144d3e9cb8410d86cc366a', 'provenance': [], ...}
+com = {'kind': 'single', 'members': {'attest_start.json': 'da54b0a084627b8a3eeea26630da0b81769dabe43fa70ea2cf5e0fd414d2d0e2'}, 'op': 'b818abe9891b4cea9080c4dcaa3ecbfb', 'provenance': [], ...}
 
     def before(com):
         c.register_stage(out, "attest_start", {"attest_start.json": com["members"]["attest_start.json"],

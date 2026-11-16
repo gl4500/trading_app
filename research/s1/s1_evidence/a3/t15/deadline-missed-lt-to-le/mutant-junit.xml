@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="1.842" timestamp="2026-11-16T00:49:12.725387-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_finalizer" name="test_missed_after_e_with_its_own_op_and_no_files" time="1.200"><failure message="s1_trial.Refusal: START attestation refused: F7.2 (b): 1 scheduled opening-close slot(s) have no terminal row in the OPENING-ACK's journal prefix (first slot/20261026T120000Z)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m02/mutant/bt/test_missed_after_e_with_its_o0')
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.095" timestamp="2026-11-16T02:06:32.524437-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_finalizer" name="test_missed_after_e_with_its_own_op_and_no_files" time="1.373"><failure message="s1_trial.Refusal: START attestation refused: F7.2 (b): 1 scheduled opening-close slot(s) have no terminal row in the OPENING-ACK's journal prefix (first slot/20261026T120000Z)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m02/mutant/bt/test_missed_after_e_with_its_o0')
 
     def test_missed_after_e_with_its_own_op_and_no_files(tmp_path):
 &gt;       st_ = registered(tmp_path)
@@ -13,7 +13,7 @@ research\s1\s1_run.py:483: in attest_start
     a = s1_trial.verify_opening_ack(gv, aud["calendar"])            # A3 Task 10: F7.2/F7.4, E5.3, E5.5
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/..., mailbox_id='e46cc1cc-c590-4a22-9823-cbe6ce020d9c', created=1793016000.0)], state='ACTIVE', mailbox=None, deferred=[])
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/..., mailbox_id='6f7aa46d-75e5-430e-8fd9-f32a7dc671a7', created=1793016000.0)], state='ACTIVE', mailbox=None, deferred=[])
 cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
 
     def verify_opening_ack(gv, cal) -&gt; Ack:

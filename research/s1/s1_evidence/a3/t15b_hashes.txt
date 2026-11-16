@@ -1,13 +1,13 @@
-# A3 Task 15b sha256 after FIX ROUND 2 (explicit list; this file excluded). Base 5b4fe84ed8f0691702133a30fcfaa78fa5dd5f54; product files unchanged; no killer test file changed. Per-mutant evidence (t15/<mutant>/*) is hashed inside t15_mutants.txt and each record.json. t15_agreed_assertions.json unchanged since fix round 1.
-06c62ee2065430f7acda31e086a9d24bba6a9fef5a2731baeba2e5b4f7a1c602 *research/s1/s1_tests/test_s1_a3_mutants.py
+# A3 Task 15b sha256 after FIX ROUND 3 (explicit list; this file excluded). Base 02db5b9 (Task 15b commit); product files unchanged; no killer test file changed. Per-mutant evidence (t15/<mutant>/*, now incl. mutant-crash.json) is hashed inside t15_mutants.txt and each record.json. t15_agreed_assertions.json unchanged.
+794db5d3e681cbe9fddcd7ac46f28ff3ad39d929f8065cede13acfce9c3c388e *research/s1/s1_tests/test_s1_a3_mutants.py
 e78795f054ce196816dac72025ef0b600af5be4cd1886700c548205046602ee0 *research/s1/s1_evidence/a3/t15_agreed_assertions.json
 e741b06f20e0d03d08443f8ab8c0927e863789553fc65382a0c57087c297a73c *research/s1/s1_evidence/a3/t15_anchor_map.md
-8e3d3a89e5f164e2891b10e78c6e2efeb9dd4e9febe025970364db9ca24cda99 *research/s1/s1_evidence/a3/t15_equivalence_drafts.md
-effe8c1c94094c3d8f6cfe693ba8fb66ec3ef5fce536742a81daec2f4d27fedd *research/s1/s1_evidence/a3/t15_mutants.txt
-8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb *research/s1/s1_evidence/a3/t15_selftests/junit.xml
-b227fefd6c926b5fa0c9a3c511d9e78d2b123e80334ac2149905ecf236f32e4c *research/s1/s1_evidence/a3/t15_selftests/hashes.json
-99ce76ee4e95b51092b08864f42a2686aa947d5c155fed2b1874912e0dd810e6 *research/s1/s1_evidence/a3/t15_selftests/pytest-output.txt
+d16f581c8e67e775d6bb3312c44acb12ef4889b13eb59466b05af314855ee5e0 *research/s1/s1_evidence/a3/t15_equivalence_drafts.md
+a710da26594811f59b173ba6df0b7d7f39dfc7a5a4a2df699129aefe095377ae *research/s1/s1_evidence/a3/t15_mutants.txt
+42ab0d0727ed73ca25bbf68e834d4d14e9fe35ef4df60cba7255c4de6f471688 *research/s1/s1_evidence/a3/t15_selftests/junit.xml
+c9938ccd9874afe7ced0029ffdfd97a0dc62986f0a9ba90cd9ac34f76c54bf79 *research/s1/s1_evidence/a3/t15_selftests/hashes.json
+2e2051482a84f24e531faf8f1378d9a0e6a38c48f8cc0503ed850d00bdeb3c48 *research/s1/s1_evidence/a3/t15_selftests/pytest-output.txt
 b3113649aa63fa9061b3abe8cfaf40b208e4539150241ca582dbd3a8d3202e8e *research/s1/s1_evidence/a3/t2_examples.md
-fdec38e9bbb9e48a766df6646ae30f33295655b297c73c2fd9e6b2e3237a89d0 *research/s1/s1_evidence/a3/t15b_red.txt
-8c643f3aa52d78f7ae682e3d1eda05ea2d0aa4e30bc3c884e1aa9da4847a31a6 *research/s1/s1_evidence/a3/t15b_green.txt
+f8e7364f644534c5932ca04d10a31ee52396fa9b777a308ed949ad66d0afbd03 *research/s1/s1_evidence/a3/t15b_red.txt
+0205877f599b405c59c9efd8e03b123cdf6074c0fcae013a2be6b6fc29a226c0 *research/s1/s1_evidence/a3/t15b_green.txt
 54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py

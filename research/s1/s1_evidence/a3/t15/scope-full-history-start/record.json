@@ -10,8 +10,8 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_final.py:92"
  },
  "selftests": {
-  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
-  "cases": 27
+  "junit_sha256": "42ab0d0727ed73ca25bbf68e834d4d14e9fe35ef4df60cba7255c4de6f471688",
+  "cases": 39
  },
  "control_valid": true,
  "control_rc": 0,
@@ -19,7 +19,7 @@
  "mutant_timeout": false,
  "installed": {
   "target": "s1_collect.final_policy",
-  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_collect.py",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_collect.py",
   "anchor_found": true,
   "installed": true,
   "anchor_count": 1,
@@ -27,22 +27,31 @@
   "mutated_sha256": "94b163344ba724880c334f4b102fd96d4046257b9ad34dcfa0fd8fc767ed4ba0",
   "first_line": 595
  },
- "frame_found": [
-  "research/s1/s1_tests/test_s1_a3_final.py",
-  92,
-  "AssertionError"
- ],
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15tree0/research/s1/s1_tests/test_s1_a3_final.py",
+   92,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_final.py",
+   92,
+   "AssertionError"
+  ]
+ },
  "control": {
-  "junit.xml": "6577e58f82aa055c5a9ab17a5c493d30127e4ce4903a69247112821e6db12d54",
+  "junit.xml": "733358cf8cd0f1576dae0ffffb6f2e9b376247d9a07e81b85c1fa3f2c9d42917",
   "installed.json": null,
-  "pytest-output.txt": "18d72fe4f07096971b50d169caea86cbbe6d1aaaaebdb13f12ec57771a1908a3",
-  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "crash.json": null,
+  "pytest-output.txt": "d8a73f944ff9b3586edfdae9a199b75a3845d0a274c860e2f043be5e0af22b13",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
  },
  "mutant": {
-  "junit.xml": "cddb73a88cf723a4ffec51134477350e21ed02769091eee0f4dec2851e33f7fd",
-  "installed.json": "f3bdcccd64e575b6e482af3aac0a251e4a7d260e2693fe84899746f9f06e9219",
-  "pytest-output.txt": "0e782aad8544d880d8a2fbd6db35d300d4af873a1abe41d4cd73be207f9ee9c5",
-  "s1_mutant_plugin.py": "d8d21d9dc150a80d16ae1ab30fbaf3f8d66a82e2a57be4fe72acfd3b111691c4"
+  "junit.xml": "5a0b3907a287b871b43efd5532c04d1802e57b2c9fd9b9af462a9ba7c0f97ef2",
+  "installed.json": "0ef8fc86efc8a1d06a73dfde6b66b5c0ca974c425650f115f433b559f8e5f56b",
+  "crash.json": "a28452b22b1168afdf3283d0652d0f9dde53ac2e47331c4e3245ab9ccaad1cf1",
+  "pytest-output.txt": "eea43d522c3419f32847f9d4d4d431a8defda28b845fad024e25292017300fc3",
+  "s1_mutant_plugin.py": "82cc846250304c1c6b8345be12ab9b6af4d80ae54940ff09f47b1c54fc804718"
  },
  "nodeids": [
   "research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows"

@@ -340,3 +340,461 @@ FAILED research/s1/s1_tests/test_s1_a3_mut_v03b_no_error_no_dup.py::test_classif
 FAILED research/s1/s1_tests/test_s1_a3_mut_v03b_no_error_no_dup.py::test_classifier_contract_conditions[failure-plus-teardown-error]
 2 failed, 6 passed, 86 deselected in 22.05s
 rc=1
+
+# ======================================================================================================
+# FIX ROUND 3 RED (X-20/X-21/X-22), 2026-11-16T06:33:39Z and 2026-11-16T06:34:37Z. New self-test test_classifier_provenance, written FIRST and run against the committed classifier (02db5b9: text frame from failure text + message, no rc check, no sidecar) in a scratch copy of the tree at that moment (only the new test added). Real child runs; the injected case edits the real JUnit text, the disagree/missing cases write/delete the real sidecar.
+# Run 2 (final case list): 7 failed by AssertionError (message-spoof, captured-section-in-junit-text -> 'killed != failed-elsewhere'; rc2/rc3/rc4-after-junit, structure-text-disagree, sidecar-missing -> 'killed != error'), 1 passed: captured-stdout-spoof (a REAL print) - with the pinned junit_logging=no, pytest 8.3.3 keeps captured output out of the JUnit failure text (it is only in the terminal output), so X-22 is not reachable in a real child with this configuration; the injected case reproduces it on real JUnit, and the real case stays as a regression control. Run 1 (before the injected case was added) is kept below too.
+# cmd (from the scratch tree root): PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_mutants.py -k test_classifier_provenance -q --tb=short -rA
+# ----- run 2 -----
+F.FFFFFF                                                                 [100%]
+================================== FAILURES ===================================
+_________ test_classifier_provenance[captured-section-in-junit-text] __________
+research\s1\s1_tests\test_s1_a3_mutants.py:1045: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'failed-elsewhere'
+E     
+E     - failed-elsewhere
+E     + killed
+__________________ test_classifier_provenance[message-spoof] __________________
+research\s1\s1_tests\test_s1_a3_mutants.py:1045: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'failed-elsewhere'
+E     
+E     - failed-elsewhere
+E     + killed
+_________________ test_classifier_provenance[rc2-after-junit] _________________
+research\s1\s1_tests\test_s1_a3_mutants.py:1045: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+_________________ test_classifier_provenance[rc3-after-junit] _________________
+research\s1\s1_tests\test_s1_a3_mutants.py:1045: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+___________ test_classifier_provenance[rc4-usage-error-after-junit] ___________
+research\s1\s1_tests\test_s1_a3_mutants.py:1045: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+_________________ test_classifier_provenance[sidecar-missing] _________________
+research\s1\s1_tests\test_s1_a3_mutants.py:1045: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+_____________ test_classifier_provenance[structure-text-disagree] _____________
+research\s1\s1_tests\test_s1_a3_mutants.py:1045: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[captured-stdout-spoof]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[captured-section-in-junit-text]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[message-spoof]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[rc2-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[rc3-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[rc4-usage-error-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[sidecar-missing]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[structure-text-disagree]
+7 failed, 1 passed, 94 deselected in 29.35s
+# ----- run 1 -----
+.FFFFFF                                                                  [100%]
+================================== FAILURES ===================================
+__________________ test_classifier_provenance[message-spoof] __________________
+research\s1\s1_tests\test_s1_a3_mutants.py:1034: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'failed-elsewhere'
+E     
+E     - failed-elsewhere
+E     + killed
+_________________ test_classifier_provenance[rc2-after-junit] _________________
+research\s1\s1_tests\test_s1_a3_mutants.py:1034: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+_________________ test_classifier_provenance[rc3-after-junit] _________________
+research\s1\s1_tests\test_s1_a3_mutants.py:1034: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+___________ test_classifier_provenance[rc4-usage-error-after-junit] ___________
+research\s1\s1_tests\test_s1_a3_mutants.py:1034: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+_________________ test_classifier_provenance[sidecar-missing] _________________
+research\s1\s1_tests\test_s1_a3_mutants.py:1034: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+_____________ test_classifier_provenance[structure-text-disagree] _____________
+research\s1\s1_tests\test_s1_a3_mutants.py:1034: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[captured-stdout-spoof]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[message-spoof]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[rc2-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[rc3-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[rc4-usage-error-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[sidecar-missing]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[structure-text-disagree]
+6 failed, 1 passed, 94 deselected in 26.19s
+
+# FIX ROUND 3 deletion checks (2026-11-16T06:43:20Z; scratchpad t15b/revert3_mk.py), all classifier self-tests run against each variant:
+#  d1 = the rc==1 conditions deleted -> rc2/rc3/rc4-after-junit fail ('killed != error')
+#  d2 = the structural requirement deleted (text frame of the body decides, no sidecar, no cross-check) -> sidecar-missing and structure-text-disagree fail ('killed != error')
+##### variant d1_no_rc1
+..............................FFF..                                      [100%]
+================================== FAILURES ===================================
+_________________ test_classifier_provenance[rc2-after-junit] _________________
+research\s1\s1_tests\test_s1_a3_mut_d1_no_rc1.py:1125: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+_________________ test_classifier_provenance[rc3-after-junit] _________________
+research\s1\s1_tests\test_s1_a3_mut_d1_no_rc1.py:1125: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+___________ test_classifier_provenance[rc4-usage-error-after-junit] ___________
+research\s1\s1_tests\test_s1_a3_mut_d1_no_rc1.py:1125: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+=================================== PASSES ====================================
+________________ test_classifier_self_tests[collection-error] _________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=6dc0f23083f740228448368a12d6a0dd exit=0 status=error:collection sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_rev3_d1_no_rc1\test_classifier_self_tests_col0\guard_job\guard.json
+_______________ test_classifier_self_tests[semantic-regression] _______________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=4e84e276adf74c55ae9c50f67ae95fe8 exit=1 status=killed sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_rev3_d1_no_rc1\test_classifier_self_tests_sem0\guard_job\guard.json
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[collection-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[crash]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[missing-fixture]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[not-installed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[plugin-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[semantic-regression]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[syntax-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[timeout]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[control-fails]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[equivalent-listed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[later-parameter-killed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[later-parameter-agreed-case0-survived]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[later-control-failure]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[helper-frame-caller-agreed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[helper-frame-helper-agreed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[caller-frame-substring-xml]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_failed_outcome[raises-stops-raising-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_failed_outcome[raises-stops-raising-other-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_failed_outcome[typeerror-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[captured-section-in-junit-text]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[captured-stdout-spoof]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[message-spoof]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[sidecar-missing]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[structure-text-disagree]
+FAILED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[rc2-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[rc3-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[rc4-usage-error-after-junit]
+3 failed, 32 passed, 67 deselected in 114.83s (0:01:54)
+rc=1
+##### variant d2_no_structural
+.................................FF                                      [100%]
+================================== FAILURES ===================================
+_________________ test_classifier_provenance[sidecar-missing] _________________
+research\s1\s1_tests\test_s1_a3_mut_d2_no_structural.py:1125: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+_____________ test_classifier_provenance[structure-text-disagree] _____________
+research\s1\s1_tests\test_s1_a3_mut_d2_no_structural.py:1125: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+=================================== PASSES ====================================
+________________ test_classifier_self_tests[collection-error] _________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=407e0d8d620845a5bf54d5b49a66bf14 exit=0 status=error:collection sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_rev3_d2_no_structural\test_classifier_self_tests_col0\guard_job\guard.json
+_______________ test_classifier_self_tests[semantic-regression] _______________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=3d9b15d32c134618a827193bfe6584a3 exit=1 status=killed sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_rev3_d2_no_structural\test_classifier_self_tests_sem0\guard_job\guard.json
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[collection-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[crash]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[missing-fixture]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[not-installed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[plugin-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[semantic-regression]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[syntax-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[timeout]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[control-fails]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[equivalent-listed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[later-parameter-killed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[later-parameter-agreed-case0-survived]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[later-control-failure]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[helper-frame-caller-agreed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[helper-frame-helper-agreed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[caller-frame-substring-xml]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_failed_outcome[raises-stops-raising-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_failed_outcome[raises-stops-raising-other-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_failed_outcome[typeerror-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[captured-section-in-junit-text]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[captured-stdout-spoof]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[message-spoof]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[rc2-after-junit]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[rc3-after-junit]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[rc4-usage-error-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[sidecar-missing]
+FAILED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[structure-text-disagree]
+2 failed, 33 passed, 67 deselected in 113.16s (0:01:53)
+rc=1
+
+# FIX ROUND 3 AMENDMENT RED (ruling B3 x structural frame; Codex): test_classifier_visible_crash (4 real-child cases) against two stubs (scratchpad t15b/mkstub_vc.py), every failure an AssertionError:
+#  stub rawtb = the recorder takes the RAW call.excinfo.traceback[-1]: pytest-fail and raises-did-not-raise record _pytest/outcomes.py:178 (inside pytest's hidden helper) -> RED; the helper and chained cases coincide with the visible crash (pass on it).
+#  stub norecorder = no structural record (the committed 02db5b9 behaviour) -> all 4 RED ('assert got is not None').
+##### stub rawtb 2026-11-16T06:54:30Z
+..FF                                                                     [100%]
+================================== FAILURES ===================================
+__________ test_classifier_visible_crash[pytest-fail-at-agreed-line] __________
+research\s1\s1_tests\test_s1_a3_mutants.py:1186: in test_classifier_visible_crash
+    assert got is not None and got[0].endswith("/" + sfile) and got[1:] == (sline, stype), got
+E   AssertionError: ('C:/Users/gl450/.coordination/trading_app/testenv/Lib/site-packages/_pytest/outcomes.py', 178, '_pytest.outcomes.Failed')
+E   assert (('C:/Users/gl450/.coordination/trading_app/testenv/Lib/site-packages/_pytest/outcomes.py', 178, '_pytest.outcomes.Failed') is not None and False)
+E    +  where False = <built-in method endswith of str object at 0x000002266E8E14B0>(('/' + 'test_synth.py'))
+E    +    where <built-in method endswith of str object at 0x000002266E8E14B0> = 'C:/Users/gl450/.coordination/trading_app/testenv/Lib/site-packages/_pytest/outcomes.py'.endswith
+_____ test_classifier_visible_crash[raises-did-not-raise-at-agreed-line] ______
+research\s1\s1_tests\test_s1_a3_mutants.py:1186: in test_classifier_visible_crash
+    assert got is not None and got[0].endswith("/" + sfile) and got[1:] == (sline, stype), got
+E   AssertionError: ('C:/Users/gl450/.coordination/trading_app/testenv/Lib/site-packages/_pytest/outcomes.py', 178, '_pytest.outcomes.Failed')
+E   assert (('C:/Users/gl450/.coordination/trading_app/testenv/Lib/site-packages/_pytest/outcomes.py', 178, '_pytest.outcomes.Failed') is not None and False)
+E    +  where False = <built-in method endswith of str object at 0x000002266E859730>(('/' + 'test_synth.py'))
+E    +    where <built-in method endswith of str object at 0x000002266E859730> = 'C:/Users/gl450/.coordination/trading_app/testenv/Lib/site-packages/_pytest/outcomes.py'.endswith
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[assertion-in-helper-agreed-at-helper]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[chained-raise-from-records-the-outer-crash]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[pytest-fail-at-agreed-line]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[raises-did-not-raise-at-agreed-line]
+2 failed, 2 passed, 102 deselected in 11.99s
+rc=1
+##### stub norecorder 2026-11-16T06:54:43Z
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+_____ test_classifier_visible_crash[assertion-in-helper-agreed-at-helper] _____
+research\s1\s1_tests\test_s1_a3_mutants.py:1187: in test_classifier_visible_crash
+    assert got is not None and got[0].endswith("/" + sfile) and got[1:] == (sline, stype), got
+E   AssertionError: None
+E   assert (None is not None)
+__ test_classifier_visible_crash[chained-raise-from-records-the-outer-crash] __
+research\s1\s1_tests\test_s1_a3_mutants.py:1187: in test_classifier_visible_crash
+    assert got is not None and got[0].endswith("/" + sfile) and got[1:] == (sline, stype), got
+E   AssertionError: None
+E   assert (None is not None)
+__________ test_classifier_visible_crash[pytest-fail-at-agreed-line] __________
+research\s1\s1_tests\test_s1_a3_mutants.py:1187: in test_classifier_visible_crash
+    assert got is not None and got[0].endswith("/" + sfile) and got[1:] == (sline, stype), got
+E   AssertionError: None
+E   assert (None is not None)
+_____ test_classifier_visible_crash[raises-did-not-raise-at-agreed-line] ______
+research\s1\s1_tests\test_s1_a3_mutants.py:1187: in test_classifier_visible_crash
+    assert got is not None and got[0].endswith("/" + sfile) and got[1:] == (sline, stype), got
+E   AssertionError: None
+E   assert (None is not None)
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[assertion-in-helper-agreed-at-helper]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[chained-raise-from-records-the-outer-crash]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[pytest-fail-at-agreed-line]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[raises-did-not-raise-at-agreed-line]
+4 failed, 102 deselected in 12.81s
+rc=1
+
+# FIX ROUND 3 deletion checks RE-RUN on the amended file (2026-11-16T06:57:20Z), all 39 classifier self-tests per variant: d1 (rc==1 deleted) -> rc2/rc3/rc4-after-junit fail; d2 (structural requirement deleted) -> sidecar-missing, structure-text-disagree fail. Same outcome as before the amendment.
+##### variant d1_no_rc1 (post-amendment file)
+..............................FFF......                                  [100%]
+================================== FAILURES ===================================
+_________________ test_classifier_provenance[rc2-after-junit] _________________
+research\s1\s1_tests\test_s1_a3_mut_d1_no_rc1.py:1143: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+_________________ test_classifier_provenance[rc3-after-junit] _________________
+research\s1\s1_tests\test_s1_a3_mut_d1_no_rc1.py:1143: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+___________ test_classifier_provenance[rc4-usage-error-after-junit] ___________
+research\s1\s1_tests\test_s1_a3_mut_d1_no_rc1.py:1143: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+=================================== PASSES ====================================
+________________ test_classifier_self_tests[collection-error] _________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=96e7f08046c3459fa7888725059fb372 exit=0 status=error:collection sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_rev3b_d1_no_rc1\test_classifier_self_tests_col0\guard_job\guard.json
+_______________ test_classifier_self_tests[semantic-regression] _______________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=ca04ff3bc9e44a7c8d80bf7728e36ece exit=1 status=killed sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_rev3b_d1_no_rc1\test_classifier_self_tests_sem0\guard_job\guard.json
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[collection-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[crash]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[missing-fixture]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[not-installed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[plugin-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[semantic-regression]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[syntax-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[timeout]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[control-fails]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_self_tests[equivalent-listed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[later-parameter-killed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[later-parameter-agreed-case0-survived]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[later-control-failure]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[helper-frame-caller-agreed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[helper-frame-helper-agreed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_terminal_frame_and_parameters[caller-frame-substring-xml]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_failed_outcome[raises-stops-raising-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_failed_outcome[raises-stops-raising-other-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_failed_outcome[typeerror-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[captured-section-in-junit-text]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[captured-stdout-spoof]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[message-spoof]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[sidecar-missing]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[structure-text-disagree]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_visible_crash[assertion-in-helper-agreed-at-helper]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_visible_crash[chained-raise-from-records-the-outer-crash]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_visible_crash[pytest-fail-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_visible_crash[raises-did-not-raise-at-agreed-line]
+FAILED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[rc2-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[rc3-after-junit]
+FAILED research/s1/s1_tests/test_s1_a3_mut_d1_no_rc1.py::test_classifier_provenance[rc4-usage-error-after-junit]
+3 failed, 36 passed, 67 deselected in 121.45s (0:02:01)
+rc=1
+##### variant d2_no_structural (post-amendment file)
+.................................FF....                                  [100%]
+================================== FAILURES ===================================
+_________________ test_classifier_provenance[sidecar-missing] _________________
+research\s1\s1_tests\test_s1_a3_mut_d2_no_structural.py:1143: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+_____________ test_classifier_provenance[structure-text-disagree] _____________
+research\s1\s1_tests\test_s1_a3_mut_d2_no_structural.py:1143: in test_classifier_provenance
+    assert _label(control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+=================================== PASSES ====================================
+________________ test_classifier_self_tests[collection-error] _________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=d3c118805391446d91481f499f7b021b exit=0 status=error:collection sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_rev3b_d2_no_structural\test_classifier_self_tests_col0\guard_job\guard.json
+_______________ test_classifier_self_tests[semantic-regression] _______________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=c09fc2e26fe0467d9039397db82ad9d4 exit=1 status=killed sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_rev3b_d2_no_structural\test_classifier_self_tests_sem0\guard_job\guard.json
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[collection-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[crash]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[missing-fixture]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[not-installed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[plugin-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[semantic-regression]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[syntax-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[timeout]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[control-fails]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_self_tests[equivalent-listed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[later-parameter-killed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[later-parameter-agreed-case0-survived]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[later-control-failure]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[helper-frame-caller-agreed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[helper-frame-helper-agreed]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_terminal_frame_and_parameters[caller-frame-substring-xml]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_failed_outcome[raises-stops-raising-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_failed_outcome[raises-stops-raising-other-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_failed_outcome[typeerror-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[captured-section-in-junit-text]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[captured-stdout-spoof]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[message-spoof]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[rc2-after-junit]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[rc3-after-junit]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[rc4-usage-error-after-junit]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_visible_crash[assertion-in-helper-agreed-at-helper]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_visible_crash[chained-raise-from-records-the-outer-crash]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_visible_crash[pytest-fail-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_visible_crash[raises-did-not-raise-at-agreed-line]
+FAILED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[sidecar-missing]
+FAILED research/s1/s1_tests/test_s1_a3_mut_d2_no_structural.py::test_classifier_provenance[structure-text-disagree]
+2 failed, 37 passed, 67 deselected in 122.38s (0:02:02)
+rc=1

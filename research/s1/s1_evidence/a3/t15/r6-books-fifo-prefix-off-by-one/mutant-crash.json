@@ -1,0 +1,16 @@
+{
+ "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events": {
+  "call": {
+   "innermost": {
+    "line": 873,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\conftest.py"
+   },
+   "terminal": {
+    "line": 873,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\conftest.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ }
+}

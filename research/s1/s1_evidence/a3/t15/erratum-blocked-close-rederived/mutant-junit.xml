@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.526" timestamp="2026-11-16T00:49:46.518467-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_two_root_blocked_lifecycle_closure_is_monotone" time="0.157"><failure message="AssertionError: Regex pattern did not match.&#10; Regex: 'zero open trials'&#10; Input: &quot;trial caa82f2b-ffeb-497a-9d64-ca3af15e2b88: ['CLOSE-ACK ca refused (re-derived from a root): the trial stays open and commands refuse']: refuse and escalate&quot;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m06/mutant/bt/test_two_root_blocked_lifecycl0')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001AEA0251A90&gt;
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.552" timestamp="2026-11-16T02:07:13.538859-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_two_root_blocked_lifecycle_closure_is_monotone" time="0.164"><failure message="AssertionError: Regex pattern did not match.&#10; Regex: 'zero open trials'&#10; Input: &quot;trial 2a963214-b82d-4b91-9daa-c2350ae58278: ['CLOSE-ACK ca refused (re-derived from a root): the trial stays open and commands refuse']: refuse and escalate&quot;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m06/mutant/bt/test_two_root_blocked_lifecycl0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EE28ADF9B0&gt;
 
     def test_two_root_blocked_lifecycle_closure_is_monotone(tmp_path, monkeypatch):       # row 337 (E3.6 r3)
         """Root A BLOCKED -&gt; valid BLOCKED CLOSE -&gt; root B write_plan + AUDIT-ACK: B is the unique open trial and A stays
@@ -51,14 +51,14 @@ mailbox = None
         tr = open_[0]
         if tr.problems:
 &gt;           raise Refusal(f"trial {tr.trial_id}: {tr.problems[:3]}: refuse and escalate")
-E           s1_trial.Refusal: trial caa82f2b-ffeb-497a-9d64-ca3af15e2b88: ['CLOSE-ACK ca refused (re-derived from a root): the trial stays open and commands refuse']: refuse and escalate
+E           s1_trial.Refusal: trial 2a963214-b82d-4b91-9daa-c2350ae58278: ['CLOSE-ACK ca refused (re-derived from a root): the trial stays open and commands refuse']: refuse and escalate
 
 research\s1\s1_trial.py:352: Refusal
 
 During handling of the above exception, another exception occurred:
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m06/mutant/bt/test_two_root_blocked_lifecycl0')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001AEA0251A90&gt;
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m06/mutant/bt/test_two_root_blocked_lifecycl0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001EE28ADF9B0&gt;
 
     def test_two_root_blocked_lifecycle_closure_is_monotone(tmp_path, monkeypatch):       # row 337 (E3.6 r3)
         """Root A BLOCKED -&gt; valid BLOCKED CLOSE -&gt; root B write_plan + AUDIT-ACK: B is the unique open trial and A stays
@@ -86,6 +86,6 @@ monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001AEA0251A90&g
 &gt;       with pytest.raises(t.Refusal, match="zero open trials"):
 E       AssertionError: Regex pattern did not match.
 E        Regex: 'zero open trials'
-E        Input: "trial caa82f2b-ffeb-497a-9d64-ca3af15e2b88: ['CLOSE-ACK ca refused (re-derived from a root): the trial stays open and commands refuse']: refuse and escalate"
+E        Input: "trial 2a963214-b82d-4b91-9daa-c2350ae58278: ['CLOSE-ACK ca refused (re-derived from a root): the trial stays open and commands refuse']: refuse and escalate"
 
 research\s1\s1_tests\test_s1_a3_trial.py:507: AssertionError</failure></testcase></testsuite></testsuites>

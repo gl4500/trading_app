@@ -10,8 +10,8 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:210"
  },
  "selftests": {
-  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
-  "cases": 27
+  "junit_sha256": "42ab0d0727ed73ca25bbf68e834d4d14e9fe35ef4df60cba7255c4de6f471688",
+  "cases": 39
  },
  "control_valid": true,
  "control_rc": 0,
@@ -19,7 +19,7 @@
  "mutant_timeout": false,
  "installed": {
   "target": "s1_seal._decide_locked",
-  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_seal.py",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_seal.py",
   "anchor_found": true,
   "installed": true,
   "anchor_count": 1,
@@ -27,22 +27,31 @@
   "mutated_sha256": "06ed9b9072f219d01da2747e3e8686c3f9fbba9c38e999053e95a901b8fb7ec5",
   "first_line": 816
  },
- "frame_found": [
-  "research/s1/s1_tests/test_s1_a3_h5b_pass.py",
-  210,
-  "AssertionError"
- ],
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15tree0/research/s1/s1_tests/test_s1_a3_h5b_pass.py",
+   210,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_h5b_pass.py",
+   210,
+   "AssertionError"
+  ]
+ },
  "control": {
-  "junit.xml": "6a4bacc9dab25a7adc3db7ec73ba1a45a1374e74b6ef08ce14577a8f36ae7ed0",
+  "junit.xml": "b15312e9b0bf65087bcc657f4bbbbacb6b0a09c172eb3c5687accc7da0612ee3",
   "installed.json": null,
-  "pytest-output.txt": "5cafef4fa4b8071177515520704359975681dbc75b21a873060ac3c1cdf51995",
-  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "crash.json": null,
+  "pytest-output.txt": "33240a987c1e7b4c36ce8a626456b674f159158fc74e263603fba1b46d78d054",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
  },
  "mutant": {
-  "junit.xml": "c7a357cb94933aefa8766083f4d42ce3517f15ddc1eec8bd9117e6f04f1d8f9a",
-  "installed.json": "74a6030ee7e512e4960bc655658aaff4d7c3c452e37310a68af03b0e698a5068",
-  "pytest-output.txt": "fd60eaf43b2225a0eae657a51fbb110cd79b27d16e465e56143b8df38e99c30c",
-  "s1_mutant_plugin.py": "5d9bc39cc736d7349cd2e4477fc72ae4ee54cbc4ac2eaeacb4163dcb382013d4"
+  "junit.xml": "c4994b9af02294b76d4c4a7c505084d6ff551f7d44e473b9762d6823578f41d5",
+  "installed.json": "df99b7f0ef13b783e6e87f5108a94925ed1bf2affa2ad31782a49d0263ed39b1",
+  "crash.json": "bce9cdd6c7429d39986e87038d16eefe7ec89217c7974020b1de89f03e7fa5d2",
+  "pytest-output.txt": "95d3b96b45be198ca60c381ebdd4b6f6b0527f6dfcac325b5a68c9158f0d1bea",
+  "s1_mutant_plugin.py": "bb44e95b7f9cf60e0dbf47bffa3bed41ee7e9685d49b3d49a7897215bd51e2bb"
  },
  "nodeids": [
   "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages"

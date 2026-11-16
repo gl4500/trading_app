@@ -2,8 +2,8 @@
 ================================== FAILURES ===================================
 ___________ test_h5cfix2_confirming_calendar_helper[hash-mismatch] ____________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend1')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000012B89A9A510>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024B24CEC710>
 case = 'hash-mismatch'
 
     @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
@@ -53,13 +53,13 @@ case = 'hash-mismatch'
         seen = len(denied) if case == "permission" else 0
 >       assert strict(gv) is None
 E       AssertionError: assert [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] is None
-E        +  where [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] = <function _confirming_calendar at 0x0000012B89111DA0>(namespace(out='C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\...4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend1/mailbox.sqlite3')))
+E        +  where [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] = <function _confirming_calendar at 0x0000024B243F9EE0>(namespace(out='C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\...4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend1/mailbox.sqlite3')))
 
 research\s1\s1_tests\test_s1_a3_m4_pass.py:777: AssertionError
 _________ test_h5cfix2_confirming_calendar_helper[manifest-no-entry] __________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend4')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000012B89939A30>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000024B24BC9AF0>
 case = 'manifest-no-entry'
 
     @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
@@ -109,11 +109,11 @@ case = 'manifest-no-entry'
         seen = len(denied) if case == "permission" else 0
 >       assert strict(gv) is None
 E       AssertionError: assert [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] is None
-E        +  where [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] = <function _confirming_calendar at 0x0000012B89111DA0>(namespace(out='C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\...4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend4/mailbox.sqlite3')))
+E        +  where [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] = <function _confirming_calendar at 0x0000024B243F9EE0>(namespace(out='C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\...4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend4/mailbox.sqlite3')))
 
 research\s1\s1_tests\test_s1_a3_m4_pass.py:777: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m23\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m23\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[hash-mismatch]
 FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[manifest-no-entry]
-2 failed, 5 passed in 8.80s
+2 failed, 5 passed in 10.29s

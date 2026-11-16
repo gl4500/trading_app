@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.152" timestamp="2026-11-16T00:49:52.991193-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_finalizer" name="test_finalizer_decision_never_touches_the_work_lock" time="1.693"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_finalizer_decision_never_touches_the_work_lock.&lt;locals&gt;.&lt;genexpr&gt; at 0x000002BE54F9BE00&gt;)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m07/mutant/bt/test_finalizer_decision_never_0')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002BE54C48B30&gt;
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.382" timestamp="2026-11-16T02:07:20.282513-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_finalizer" name="test_finalizer_decision_never_touches_the_work_lock" time="1.767"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_finalizer_decision_never_touches_the_work_lock.&lt;locals&gt;.&lt;genexpr&gt; at 0x000001306684F780&gt;)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m07/mutant/bt/test_finalizer_decision_never_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000013066688BF0&gt;
 
     def test_finalizer_decision_never_touches_the_work_lock(tmp_path, monkeypatch):       # row 258 (E1.2)
         st_ = registered(tmp_path)
@@ -28,6 +28,6 @@ monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002BE54C48B30&g
         assert decided
 &gt;       assert not any(ev[0] == "lock" and ev[1].startswith("slot-") for ev in events[:decided[-1] + 1])
 E       assert not True
-E        +  where True = any(&lt;generator object test_finalizer_decision_never_touches_the_work_lock.&lt;locals&gt;.&lt;genexpr&gt; at 0x000002BE54F9BE00&gt;)
+E        +  where True = any(&lt;generator object test_finalizer_decision_never_touches_the_work_lock.&lt;locals&gt;.&lt;genexpr&gt; at 0x000001306684F780&gt;)
 
 research\s1\s1_tests\test_s1_a3_finalizer.py:210: AssertionError</failure></testcase></testsuite></testsuites>

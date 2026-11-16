@@ -10,8 +10,8 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:210"
  },
  "selftests": {
-  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
-  "cases": 27
+  "junit_sha256": "42ab0d0727ed73ca25bbf68e834d4d14e9fe35ef4df60cba7255c4de6f471688",
+  "cases": 39
  },
  "control_valid": true,
  "control_rc": 0,
@@ -19,7 +19,7 @@
  "mutant_timeout": false,
  "installed": {
   "target": "s1_slot.finalize_close",
-  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_slot.py",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_slot.py",
   "anchor_found": true,
   "installed": true,
   "anchor_count": 1,
@@ -27,22 +27,31 @@
   "mutated_sha256": "9c1e556308d3104618567a58d4cd7d7f9ab04e5ed164939a799d2dafc87d7174",
   "first_line": 852
  },
- "frame_found": [
-  "research/s1/s1_tests/test_s1_a3_finalizer.py",
-  210,
-  "AssertionError"
- ],
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15tree0/research/s1/s1_tests/test_s1_a3_finalizer.py",
+   210,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_finalizer.py",
+   210,
+   "AssertionError"
+  ]
+ },
  "control": {
-  "junit.xml": "75fd268fdcad3fa43cdb213d6b9431fe466ce5d8b2bc6101e1c47c0ac41877a8",
+  "junit.xml": "97cbaf1f7f731f6dca1ddb95c897c539b8c547d04d3b5d4f71b8653086329a18",
   "installed.json": null,
-  "pytest-output.txt": "0c4914c546a57a06c9b4d4ff7be9f25fd4df6d0a42d3a420d91f4bc4f9cc2789",
-  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "crash.json": null,
+  "pytest-output.txt": "6b1f712a9b516e7bb5cb2420489590e96e7081ec7e17ca99cb169dca78dd211d",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
  },
  "mutant": {
-  "junit.xml": "8d137b6667ba68c95397d52f4368049fadc88e57f2801e3fd87aeb50fbf0acdb",
-  "installed.json": "3265136ab9b53f6d162beb08f781ced0825825d384d5f13a140f7dd98dabdc34",
-  "pytest-output.txt": "9b2b2827e6d6f9f2466fb36aa3c6288c4981708ecb3fcbdbad37c4d9489007af",
-  "s1_mutant_plugin.py": "2e91b245775bf0f0445ae5a5a362d63da6c2d1263e88c89069b60d739514cb22"
+  "junit.xml": "84ec5a6513eb99a60ee1a969dcc82f3cec2edb19d01643398035a602c6a9f736",
+  "installed.json": "32e34bbed04a5413eebbf25d5753abeac8ea575849999f2a0d0d81ef35a26309",
+  "crash.json": "634cb163c321c2dd5504291b49b1ef3f6e67e69aab14a21713aad82bb8700cd1",
+  "pytest-output.txt": "b3d58362982d359d55ef228c76abf6cf1c5e6e9282339b64736183e63713a96b",
+  "s1_mutant_plugin.py": "dfcc720055d82755fa8d15cce034b3afc617fd855c55ee17e1992121093ab0ce"
  },
  "nodeids": [
   "research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_decision_never_touches_the_work_lock"

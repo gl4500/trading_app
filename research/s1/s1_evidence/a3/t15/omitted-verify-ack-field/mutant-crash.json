@@ -1,0 +1,30 @@
+{
+ "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[receipt-differs]": {
+  "call": {
+   "innermost": {
+    "line": 178,
+    "path": "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Lib\\site-packages\\_pytest\\outcomes.py"
+   },
+   "terminal": {
+    "line": 194,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_prestart.py"
+   },
+   "type": "_pytest.outcomes.Failed",
+   "type_raw": "builtins.Failed"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[seal-differs]": {
+  "call": {
+   "innermost": {
+    "line": 178,
+    "path": "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Lib\\site-packages\\_pytest\\outcomes.py"
+   },
+   "terminal": {
+    "line": 194,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_prestart.py"
+   },
+   "type": "_pytest.outcomes.Failed",
+   "type_raw": "builtins.Failed"
+  }
+ }
+}

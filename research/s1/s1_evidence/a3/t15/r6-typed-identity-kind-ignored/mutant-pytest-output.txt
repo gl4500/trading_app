@@ -20,7 +20,7 @@ research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
 During handling of the above exception, another exception occurred:
 
 a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
-kw = {'px': <s1_seal.SealPass object at 0x00000258E5342A10>, 'upto_seq': 94}
+kw = {'px': <s1_seal.SealPass object at 0x000002C2D2D73850>, 'upto_seq': 94}
 e = QualifiedEvidence('slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)')
 
     def seals(*a, **kw):
@@ -36,7 +36,7 @@ research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
 
 During handling of the above exception, another exception occurred:
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_0')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_0')
 st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
 match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\...iffers\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]\\): refused with no row$'
 
@@ -53,7 +53,7 @@ research\s1\s1_run.py:883: in _pre_intent_qualified
     s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='d4a34afa-e259-4c62-99ed-8393278c8e76', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='e2512493-3d43-4551-b8ca-a048e9e62d08', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
 probs = ['slot/20261026T204500Z: QUALIFIED tree differs from the committed detail (F3)']
 where = 'score', mailbox = None, clock = None
 
@@ -76,8 +76,8 @@ research\s1\s1_slot.py:1314: Refusal
 
 During handling of the above exception, another exception occurred:
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000258E5187CE0>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002C2D2BB7D70>
 order = 'missing-then-differs'
 
     @pytest.mark.parametrize("order", ["missing-then-differs", "differs-then-missing"])
@@ -92,7 +92,7 @@ order = 'missing-then-differs'
 research\s1\s1_tests\test_s1_a3_score.py:605: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_0')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_0')
 st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
 match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[missing\\...iffers\\-from\\-detail,\\ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\\]\\): refused with no row$'
 
@@ -124,7 +124,7 @@ research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
 During handling of the above exception, another exception occurred:
 
 a = (WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpa...', 'date': '2026-09-23', 'open': '09:30'}, ...], datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc))
-kw = {'px': <s1_seal.SealPass object at 0x00000258E53957E0>, 'upto_seq': 94}
+kw = {'px': <s1_seal.SealPass object at 0x000002C2D2E0D570>, 'upto_seq': 94}
 e = QualifiedEvidence('slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)')
 
     def seals(*a, **kw):
@@ -140,7 +140,7 @@ research\s1\s1_tests\test_s1_a3_score.py:564: QualifiedEvidence
 
 During handling of the above exception, another exception occurred:
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_1')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_1')
 st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
 match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\...eadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]\\): refused with no row$'
 
@@ -157,7 +157,7 @@ research\s1\s1_run.py:883: in _pre_intent_qualified
     s1_slot.evidence_violation(gv, [str(e)], "score", mailbox)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='03428f78-a332-4ef4-adc3-9cd6f80a10e0', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/... mailbox_id='44d788f0-52de-413d-a649-4626160c4741', created=1793556180.0)], state='STOPPED', mailbox=None, deferred=[])
 probs = ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']
 where = 'score', mailbox = None, clock = None
 
@@ -180,8 +180,8 @@ research\s1\s1_slot.py:1314: Refusal
 
 During handling of the above exception, another exception occurred:
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_1')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000258E52AE690>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002C2D2D834A0>
 order = 'differs-then-missing'
 
     @pytest.mark.parametrize("order", ["missing-then-differs", "differs-then-missing"])
@@ -196,7 +196,7 @@ order = 'differs-then-missing'
 research\s1\s1_tests\test_s1_a3_score.py:605: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_1')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m29/mutant/bt/test_h5cfix_same_slot_changed_1')
 st_ = {'acquire_ack_at': datetime.datetime(2026, 10, 30, 20, 0, tzinfo=datetime.timezone.utc), 'attest_at': datetime.datetim...6-09-23', 'open': '09:30'}, ...], 'final_at': datetime.datetime(2026, 11, 1, 18, 0, tzinfo=datetime.timezone.utc), ...}
 match = '^score refused: a QUALIFIED tree problem was not confirmed on a re-read \\(first slot/20261026T204500Z\\ \\[differs\\...eadable,\\ typed\\-absence,\\ captures/2026\\-10\\-26/20261026T204500Z\\.resolution\\.json\\]\\): refused with no row$'
 
@@ -208,8 +208,8 @@ E        Regex: '^score refused: a QUALIFIED tree problem was not confirmed on a
 E        Input: "score: slot evidence violation ['slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unreadable (FileNotFoundError)']: INVALID (registration-artifact)"
 
 research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m29\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m29\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]
 FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[differs-then-missing]
-2 failed in 12.24s
+2 failed in 15.00s

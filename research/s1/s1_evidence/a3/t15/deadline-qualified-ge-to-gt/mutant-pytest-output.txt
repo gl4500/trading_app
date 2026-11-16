@@ -2,8 +2,8 @@ F.                                                                       [100%]
 ================================== FAILURES ===================================
 ____________ test_publication_at_d_and_d_plus_1us_does_not_seal[0] ____________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m03/mutant/bt/test_publication_at_d_and_d_pl0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002B7BD6070E0>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m03/mutant/bt/test_publication_at_d_and_d_pl0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022441FE7260>
 offset_us = 0
 
     @pytest.mark.parametrize("offset_us", [0, 1])
@@ -16,7 +16,7 @@ E         Left contains one more item: 'SLOT-QUALIFIED'
 E         Use -v to get more diff)
 
 research\s1\s1_tests\test_s1_a3_codex_probes.py:120: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m03\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m03\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_at_d_and_d_plus_1us_does_not_seal[0]
-1 failed, 1 passed in 4.04s
+1 failed, 1 passed in 5.22s

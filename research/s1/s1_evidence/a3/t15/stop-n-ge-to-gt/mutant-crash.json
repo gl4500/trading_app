@@ -1,0 +1,72 @@
+{
+ "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[delayed-qualified-clock]": {
+  "call": {
+   "innermost": {
+    "line": 370,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_stop.py"
+   },
+   "terminal": {
+    "line": 370,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_stop.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]": {
+  "call": {
+   "innermost": {
+    "line": 370,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_stop.py"
+   },
+   "terminal": {
+    "line": 370,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_stop.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-later-not-chosen]": {
+  "call": {
+   "innermost": {
+    "line": 371,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_stop.py"
+   },
+   "terminal": {
+    "line": 371,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_stop.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-after-timeout]": {
+  "call": {
+   "innermost": {
+    "line": 370,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_stop.py"
+   },
+   "terminal": {
+    "line": 370,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_stop.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-resolved-by-missed]": {
+  "call": {
+   "innermost": {
+    "line": 370,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_stop.py"
+   },
+   "terminal": {
+    "line": 370,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_stop.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ }
+}

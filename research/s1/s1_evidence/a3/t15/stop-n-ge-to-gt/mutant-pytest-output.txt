@@ -2,7 +2,7 @@ FF.....F.FF.                                                             [100%]
 ================================== FAILURES ===================================
 ____________________ test_stop_dispositions[lots-earliest] ____________________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m32/mutant/bt/test_stop_dispositions_lots_ea0')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m32/mutant/bt/test_stop_dispositions_lots_ea0')
 case = 'lots-earliest'
 
     @pytest.mark.parametrize("case", ["lots-earliest", "lots-later-not-chosen", "timeout-last-sealed", "no-valid-seal",
@@ -27,7 +27,7 @@ E           assert None is not None
 research\s1\s1_tests\test_s1_a3_stop.py:370: AssertionError
 ________________ test_stop_dispositions[lots-later-not-chosen] ________________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m32/mutant/bt/test_stop_dispositions_lots_la0')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m32/mutant/bt/test_stop_dispositions_lots_la0')
 case = 'lots-later-not-chosen'
 
     @pytest.mark.parametrize("case", ["lots-earliest", "lots-later-not-chosen", "timeout-last-sealed", "no-valid-seal",
@@ -51,16 +51,16 @@ E           AssertionError: assert {'bundle_sha2...d': 200}, ...} == {'bundle_sh
 E             
 E             Omitting 6 identical items, use -vv to show
 E             Differing items:
-E             {'stop_seal_sha256': '90dc964c28eb749832ea56896cac94cb52ec00c94e0488a63824ea32c076b286'} != {'stop_seal_sha256': 'cf88195873a54bfa2b924f3776ef84d7b1092902d17aebc2e67f6c3a990e19b5'}
-E             {'seals': {'seals/2026-10-27.json': 'cf88195873a54bfa2b924f3776ef84d7b1092902d17aebc2e67f6c3a990e19b5', 'seals/2026-10-28.json': '90dc964c28eb749832ea56896cac94cb52ec00c94e0488a63824ea32c076b286'}} != {'seals': {'seals/2026-10-27.json': 'cf88195873a54bfa2b924f3776ef84d7b1092902d17aebc2e67f6c3a990e19b5'}}
-E             {'stop_seal': 'seals/2026-10-28....
+E             {'seals': {'seals/2026-10-27.json': '06e2dc7395142a7195bd68c550e63bf75fed8910646e946a690451cedc28d441', 'seals/2026-10-28.json': 'ecb543596fe147feca15921fad60ed3d1e80c9fc7c1182b6327fc0e4ae99f7d8'}} != {'seals': {'seals/2026-10-27.json': '06e2dc7395142a7195bd68c550e63bf75fed8910646e946a690451cedc28d441'}}
+E             {'stop_seal': 'seals/2026-10-28.json'} != {'stop_seal': 'seals/2026-10-27.json'}
+E             {'terminal_line_sha256': 'ee99613832784e7c967c70abb534dc7734e96cf4d03d0564b6c7e03d5e3e3e28'} != {'terminal_line_sha256': 'c6d1e64743...
 E             
 E             ...Full output truncated (8 lines hidden), use '-vv' to show
 
 research\s1\s1_tests\test_s1_a3_stop.py:371: AssertionError
 ________________ test_stop_dispositions[pending-after-timeout] ________________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m32/mutant/bt/test_stop_dispositions_pending1')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m32/mutant/bt/test_stop_dispositions_pending1')
 case = 'pending-after-timeout'
 
     @pytest.mark.parametrize("case", ["lots-earliest", "lots-later-not-chosen", "timeout-last-sealed", "no-valid-seal",
@@ -85,7 +85,7 @@ E           assert None is not None
 research\s1\s1_tests\test_s1_a3_stop.py:370: AssertionError
 ____________ test_stop_dispositions[unresolved-resolved-by-missed] ____________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m32/mutant/bt/test_stop_dispositions_unresol1')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m32/mutant/bt/test_stop_dispositions_unresol1')
 case = 'unresolved-resolved-by-missed'
 
     @pytest.mark.parametrize("case", ["lots-earliest", "lots-later-not-chosen", "timeout-last-sealed", "no-valid-seal",
@@ -110,7 +110,7 @@ E           assert None is not None
 research\s1\s1_tests\test_s1_a3_stop.py:370: AssertionError
 _______________ test_stop_dispositions[delayed-qualified-clock] _______________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m32/mutant/bt/test_stop_dispositions_delayed0')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m32/mutant/bt/test_stop_dispositions_delayed0')
 case = 'delayed-qualified-clock'
 
     @pytest.mark.parametrize("case", ["lots-earliest", "lots-later-not-chosen", "timeout-last-sealed", "no-valid-seal",
@@ -133,11 +133,11 @@ E           AssertionError: no stop record
 E           assert None is not None
 
 research\s1\s1_tests\test_s1_a3_stop.py:370: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m32\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m32\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]
 FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-later-not-chosen]
 FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-after-timeout]
 FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-resolved-by-missed]
 FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[delayed-qualified-clock]
-5 failed, 7 passed in 40.30s
+5 failed, 7 passed in 47.62s

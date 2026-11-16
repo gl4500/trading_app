@@ -2,8 +2,8 @@ F                                                                        [100%]
 ================================== FAILURES ===================================
 _____________ test_barrier_close_between_active_read_and_prepared _____________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m09/mutant/bt/test_barrier_close_between_act0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027D6D2D1850>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m09/mutant/bt/test_barrier_close_between_act0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001DE056E1F70>
 
     def test_barrier_close_between_active_read_and_prepared(tmp_path, monkeypatch):        # row 261 (E2.8 r3)
         st_ = registered(tmp_path)
@@ -22,7 +22,7 @@ E         Left contains 2 more items, first extra item: 'STAGE-PREPARED'
 E         Use -v to get more diff)
 
 research\s1\s1_tests\test_s1_a3_finalizer.py:311: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m09\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m09\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared
-1 failed in 2.33s
+1 failed in 2.50s

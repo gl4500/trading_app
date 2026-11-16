@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="9" time="34.245" timestamp="2026-11-16T00:54:50.784979-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[control-permission]" time="3.537" /><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[control-generic-oserror]" time="3.588" /><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[control-enumeration-filenotfound]" time="3.585" /><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]" time="3.658"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer3')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146E133BDD0&gt;
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="9" time="38.698" timestamp="2026-11-16T02:12:59.741038-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[control-permission]" time="4.215" /><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[control-generic-oserror]" time="4.313" /><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[control-enumeration-filenotfound]" time="4.295" /><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]" time="4.149"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001ED91CA0B30&gt;
 inject = 'captures-root', kind = 'permission'
 
     @pytest.mark.parametrize("kind", list(FAILURES))
@@ -24,8 +24,8 @@ E       AssertionError: an enumeration failure passed the gate (the stray was no
 E       assert False
 E        +  where False = isinstance(None, SystemExit)
 
-research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-root-generic-oserror]" time="3.630"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer4')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146E132E660&gt;
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-root-generic-oserror]" time="4.339"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001ED9332D820&gt;
 inject = 'captures-root', kind = 'generic-oserror'
 
     @pytest.mark.parametrize("kind", list(FAILURES))
@@ -50,8 +50,8 @@ E       AssertionError: an enumeration failure passed the gate (the stray was no
 E       assert False
 E        +  where False = isinstance(None, SystemExit)
 
-research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]" time="3.917"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer5')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146E1359AF0&gt;
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]" time="4.128"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001ED93343F80&gt;
 inject = 'captures-root', kind = 'enumeration-filenotfound'
 
     @pytest.mark.parametrize("kind", list(FAILURES))
@@ -76,8 +76,8 @@ E       AssertionError: an enumeration failure passed the gate (the stray was no
 E       assert False
 E        +  where False = isinstance(None, SystemExit)
 
-research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-day-permission]" time="3.931"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer6')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146DFD28EF0&gt;
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-day-permission]" time="4.216"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer6')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001ED9332C7D0&gt;
 inject = 'captures-day', kind = 'permission'
 
     @pytest.mark.parametrize("kind", list(FAILURES))
@@ -102,8 +102,8 @@ E       AssertionError: an enumeration failure passed the gate (the stray was no
 E       assert False
 E        +  where False = isinstance(None, SystemExit)
 
-research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-day-generic-oserror]" time="3.892"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer7')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146E136C740&gt;
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-day-generic-oserror]" time="4.176"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer7')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001ED9336EBD0&gt;
 inject = 'captures-day', kind = 'generic-oserror'
 
     @pytest.mark.parametrize("kind", list(FAILURES))
@@ -128,8 +128,8 @@ E       AssertionError: an enumeration failure passed the gate (the stray was no
 E       assert False
 E        +  where False = isinstance(None, SystemExit)
 
-research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-day-enumeration-filenotfound]" time="4.008"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer8')
-monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146E13DE150&gt;
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-day-enumeration-filenotfound]" time="4.297"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer8')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001ED9336E990&gt;
 inject = 'captures-day', kind = 'enumeration-filenotfound'
 
     @pytest.mark.parametrize("kind", list(FAILURES))

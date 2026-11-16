@@ -10,8 +10,8 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_strict_enum.py:240"
  },
  "selftests": {
-  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
-  "cases": 27
+  "junit_sha256": "42ab0d0727ed73ca25bbf68e834d4d14e9fe35ef4df60cba7255c4de6f471688",
+  "cases": 39
  },
  "control_valid": true,
  "control_rc": 0,
@@ -19,7 +19,7 @@
  "mutant_timeout": false,
  "installed": {
   "target": "s1_trial.gate",
-  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_trial.py",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_trial.py",
   "anchor_found": true,
   "installed": true,
   "anchor_count": 1,
@@ -27,22 +27,31 @@
   "mutated_sha256": "bd70962478319434162065599b5459a63753f8db7aca96ac6b5f7a2854509119",
   "first_line": 813
  },
- "frame_found": [
-  "research/s1/s1_tests/test_s1_a3_strict_enum.py",
-  240,
-  "AssertionError"
- ],
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15tree0/research/s1/s1_tests/test_s1_a3_strict_enum.py",
+   240,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_strict_enum.py",
+   240,
+   "AssertionError"
+  ]
+ },
  "control": {
-  "junit.xml": "d444293e3799c0c8cc9a256310d89b78beb251d26c80e7a62ae3d690223d4962",
+  "junit.xml": "dfd3e47b2353ffadc9dcc6c1a73f277c13a3c89f196e40db093232c0889a4ea7",
   "installed.json": null,
-  "pytest-output.txt": "298aa0c279f60e91c18662da29cdad0685fce770621a3bb0b5b7ef4895c8d07d",
-  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "crash.json": null,
+  "pytest-output.txt": "84fca472bd697a083668ede493604a3f6ceb3c7a2cc6575f67641129f7dfe0f0",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
  },
  "mutant": {
-  "junit.xml": "358f197a6aa2d4826ec1a79b7c3abbe39733528ef1ff6e5f678c72c495607db8",
-  "installed.json": "20c553a7df98a2ee9c0d7a25b87c986b3926f8085390b16857186148135e6e76",
-  "pytest-output.txt": "2e4d71c794ed615486e7cc30771d271312d7747f62150c0d29d17a63fe7b40db",
-  "s1_mutant_plugin.py": "2764be5e3b7fd9cb306df8de50ca175cefc739dd98f822cb0f0aa42da4d61e96"
+  "junit.xml": "fa97f632d5c6d41df71b66e3fbd7935083926c6b3fb755b58ff82ef952a248bb",
+  "installed.json": "c8eca616f5ac74fb205f8da11d14e5eedad36d939249c1af1997d8fa08cba04b",
+  "crash.json": "8a5b57ad2a57bfaa8bd516cfa326279951a27fd00e964cd826244fb4f6513f82",
+  "pytest-output.txt": "a3a0ae7bd9bfcfe76e56f811a7a76f7f49dc4889f313b77743e221656d90d660",
+  "s1_mutant_plugin.py": "aebebdc48a222267e59e14e27533dfbc0f6fb53b296728293c5c15f59b2e1d2a"
  },
  "nodeids": [
   "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[control]",

@@ -38,8 +38,8 @@ E         - INVALIDATE
 E         + LOST-RACE
 
 research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m17\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m17\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-t-foreign-op]
 FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-t-foreign-op-on-terminal]
-2 failed, 67 passed in 1.03s
+2 failed, 67 passed in 1.02s

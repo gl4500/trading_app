@@ -1,5 +1,5 @@
 {
- "label": "survived",
+ "label": "equivalent",
  "target": "s1_books._economic_in",
  "selection": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass",
  "agreed": {
@@ -10,8 +10,8 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:480"
  },
  "selftests": {
-  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
-  "cases": 27
+  "junit_sha256": "42ab0d0727ed73ca25bbf68e834d4d14e9fe35ef4df60cba7255c4de6f471688",
+  "cases": 39
  },
  "control_valid": true,
  "control_rc": 0,
@@ -19,7 +19,7 @@
  "mutant_timeout": false,
  "installed": {
   "target": "s1_books._economic_in",
-  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_books.py",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_books.py",
   "anchor_found": true,
   "installed": true,
   "anchor_count": 1,
@@ -27,18 +27,23 @@
   "mutated_sha256": "35f3a912bf67c566f2d578ddc61a2b1637a0aae1b0744d6f753b345dd3e857a6",
   "first_line": 110
  },
- "frame_found": null,
+ "frame_found": {
+  "structural": null,
+  "text": null
+ },
  "control": {
-  "junit.xml": "343fc726015fc3b03dedbb76a0e0d32e386db37b36d48999c792c23ccfa36dd0",
+  "junit.xml": "d7c9004086600a121b275f0831fa95c9515c45e0cac2b26ee23ab830188d6506",
   "installed.json": null,
-  "pytest-output.txt": "4671a3b01e99da7bb4ded603eb098dad86d4ab171ae7b7c2c1fcdee102621dfa",
-  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "crash.json": null,
+  "pytest-output.txt": "5f098afecc160178cd935bc66ecd390b2ee04c6762fc0a4abacc0e61e0ab2f9e",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
  },
  "mutant": {
-  "junit.xml": "3445c8c5d1702e149ac06549212cf268f8e9643cd3d6ed5e2ed858c1ec22022d",
-  "installed.json": "819b57bfb2d91d27e5609066d677ed97c82773c3f927436ff11eeb81905317cd",
-  "pytest-output.txt": "b6801646aea81f7dfdb4d562c8661942d8e90eebaf8c05e0695aae4043c42c32",
-  "s1_mutant_plugin.py": "6416e22d6e3fb07ca66a0a29e4866bb778284a88999e8235b10e20c3d3d8f1b5"
+  "junit.xml": "0dda0b2c88a551f7064dc0e179ddd0ff19bd4138f5783e862cbc5d4cda5983bd",
+  "installed.json": "95111516cba820dfdea468d875976f29602ec8087da8f90f7d4a1e98de3b19e0",
+  "crash.json": null,
+  "pytest-output.txt": "1038f6a02d9205aea4a926cec81dfa657bad67ba52d1750460a47a6cdcd57da4",
+  "s1_mutant_plugin.py": "e83e8c0a1cd17dc5558af29505b1b8b85dd386910b873bbe70141c0d71d4c659"
  },
  "nodeids": [
   "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-pinned]",
@@ -132,5 +137,5 @@
   "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-books._sold_events]",
   "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-books._economic_in]"
  ],
- "finding": "T15-F8: survived: s1_seal.pinned(px) re-checks the pass inside the try, so the dropped entry guard is not observable (EQUIVALENT candidate, needs peer review)"
+ "finding": null
 }

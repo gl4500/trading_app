@@ -2,8 +2,8 @@
 ================================== FAILURES ===================================
 _______ test_opening_ack_evidence_manifest_is_reconstructed[wrong-hash] _______
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani1')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F0E4A843B0>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FC5E82B050>
 case = 'wrong-hash'
 
     @pytest.mark.parametrize("case", ["ok", "wrong-hash", "wrong-membership-receipt", "wrong-membership-staging"])
@@ -37,8 +37,8 @@ E           Failed: DID NOT RAISE <class 'SystemExit'>
 research\s1\s1_tests\test_s1_a3_prestart.py:284: Failed
 _ test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-receipt] _
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani2')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F0E564B950>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FC5FB02240>
 case = 'wrong-membership-receipt'
 
     @pytest.mark.parametrize("case", ["ok", "wrong-hash", "wrong-membership-receipt", "wrong-membership-staging"])
@@ -72,8 +72,8 @@ E           Failed: DID NOT RAISE <class 'SystemExit'>
 research\s1\s1_tests\test_s1_a3_prestart.py:284: Failed
 _ test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-staging] _
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani3')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F0E55EB410>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FC5FAD8FE0>
 case = 'wrong-membership-staging'
 
     @pytest.mark.parametrize("case", ["ok", "wrong-hash", "wrong-membership-receipt", "wrong-membership-staging"])
@@ -105,9 +105,9 @@ case = 'wrong-membership-staging'
 E           Failed: DID NOT RAISE <class 'SystemExit'>
 
 research\s1\s1_tests\test_s1_a3_prestart.py:284: Failed
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m13\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m13\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[wrong-hash]
 FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-receipt]
 FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-staging]
-3 failed, 1 passed in 5.11s
+3 failed, 1 passed in 5.93s

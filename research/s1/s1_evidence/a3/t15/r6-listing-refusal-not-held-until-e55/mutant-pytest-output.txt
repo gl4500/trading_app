@@ -2,8 +2,8 @@
 ================================== FAILURES ===================================
 _____________ test_gate_listing_refusal_held_until_e55[captures] ______________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m26/mutant/bt/test_gate_listing_refusal_held1')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E34C6BA0F0>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m26/mutant/bt/test_gate_listing_refusal_held1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000018563B2C950>
 inject = 'captures'
 
     @pytest.mark.parametrize("inject", ["control", "captures"])
@@ -34,7 +34,7 @@ E         Right contains 2 more items, first extra item: ('gap', False)
 E         Use -v to get more diff
 
 research\s1\s1_tests\test_s1_a3_strict_enum.py:240: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m26\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m26\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[captures]
-1 failed, 1 passed in 7.48s
+1 failed, 1 passed in 8.67s

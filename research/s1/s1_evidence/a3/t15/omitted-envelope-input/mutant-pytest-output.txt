@@ -2,7 +2,7 @@ F                                                                        [100%]
 ================================== FAILURES ===================================
 ________________ test_start_attest_envelope_and_single_member _________________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m12/mutant/bt/test_start_attest_envelope_and0')
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m12/mutant/bt/test_start_attest_envelope_and0')
 
     def test_start_attest_envelope_and_single_member(tmp_path):                           # rows 104, 268 (OQ-15)
         start, cal, oc, w = _open_and_ack(tmp_path)
@@ -17,7 +17,7 @@ research\s1\s1_stage.py:428: in run
     before_publish(com)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-com = {'kind': 'single', 'members': {'attest_start.json': '4eae70e911e7f873543f1709a310a4c6b4122d933c8447eb98159e6e3fa332bf'}, 'op': '9323bf5766144d3e9cb8410d86cc366a', 'provenance': [], ...}
+com = {'kind': 'single', 'members': {'attest_start.json': 'da54b0a084627b8a3eeea26630da0b81769dabe43fa70ea2cf5e0fd414d2d0e2'}, 'op': 'b818abe9891b4cea9080c4dcaa3ecbfb', 'provenance': [], ...}
 
     def before(com):
         c.register_stage(out, "attest_start", {"attest_start.json": com["members"]["attest_start.json"],
@@ -25,7 +25,7 @@ com = {'kind': 'single', 'members': {'attest_start.json': '4eae70e911e7f873543f1
 E       KeyError: 'opening_books.json'
 
 research\s1\s1_run.py:515: KeyError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m12\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m12\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_envelope_and_single_member
-1 failed in 1.67s
+1 failed in 1.77s

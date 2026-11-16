@@ -2,8 +2,8 @@ F                                                                        [100%]
 ================================== FAILURES ===================================
 ___________ test_qualified_at_is_r_and_detail_is_the_tree_manifest ____________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m05/mutant/bt/test_qualified_at_is_r_and_det0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022F93B21580>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m05/mutant/bt/test_qualified_at_is_r_and_det0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002ACF65016D0>
 
     def test_qualified_at_is_r_and_detail_is_the_tree_manifest(tmp_path, monkeypatch):
         st_ = registered(tmp_path)
@@ -27,7 +27,7 @@ E         'captures/2026-10-26/20261026T204500Z/backup.sqlite3'
 E         Use -v to get more diff
 
 research\s1\s1_tests\test_s1_a3_slots.py:72: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m05\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m05\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest
-1 failed in 2.19s
+1 failed in 2.64s

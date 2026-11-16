@@ -10,8 +10,8 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:548"
  },
  "selftests": {
-  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
-  "cases": 27
+  "junit_sha256": "42ab0d0727ed73ca25bbf68e834d4d14e9fe35ef4df60cba7255c4de6f471688",
+  "cases": 39
  },
  "control_valid": true,
  "control_rc": 0,
@@ -19,7 +19,7 @@
  "mutant_timeout": false,
  "installed": {
   "target": "s1_books._sold_events",
-  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_books.py",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_books.py",
   "anchor_found": true,
   "installed": true,
   "anchor_count": 1,
@@ -27,22 +27,31 @@
   "mutated_sha256": "d33704c8f0ca349160835c7b0bf26e1c61591e63848006dcffecb1b4ebc2b4f5",
   "first_line": 123
  },
- "frame_found": [
-  "research/s1/s1_tests/conftest.py",
-  873,
-  "AssertionError"
- ],
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15tree0/research/s1/s1_tests/conftest.py",
+   873,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/conftest.py",
+   873,
+   "AssertionError"
+  ]
+ },
  "control": {
-  "junit.xml": "96000f16642624e6113b2a33be7ae75e859c8e0d35b2e215a96cda18f47df105",
+  "junit.xml": "459e7b58d92eb1a4c4e6a0071372c4dd84ac9a43e9cb3b4127483ad196b7ce50",
   "installed.json": null,
-  "pytest-output.txt": "2f49154fd8521915b62c17bcf4dd7ad24f84402ac5f605df782e316b92e06840",
-  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "crash.json": null,
+  "pytest-output.txt": "56eccc9e67338fe02366d3c98c56dd6df47cf3974dcaa63e2939c202d72b96be",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
  },
  "mutant": {
-  "junit.xml": "0fdf353eacb5642391ac3b475f2f42de2cf777eb4db4790553353424bbabf2e8",
-  "installed.json": "18f795a3363c21ffedb751c07716022d171b18460647c10b045dd0c735023bc8",
-  "pytest-output.txt": "6c98def4f5cd1a46921367ac5878fae2763e8505fad4a40d0637a3fcbde57108",
-  "s1_mutant_plugin.py": "cf20c9106b122fd9d8d1babbdfc5bfed9f76c1df9d4aafe005e38c166a47b387"
+  "junit.xml": "40eddaa50e664d19d90d236e9ced4464c2277963430d28561a8532ea7aa022e0",
+  "installed.json": "960a1365537e1748d421143f1989bbf687f9102f785f78595a17add4d44047d9",
+  "crash.json": "f44d944a29052f563d2b2d109947bad049cabe1540815653b24f158485139ed8",
+  "pytest-output.txt": "a5a9aa1e8e8039952fe3f7eab1eb5e521b7797a25bc048a3cda29d54c69cfaaa",
+  "s1_mutant_plugin.py": "b784d33f5f76507c13f2ba5ede38d699df6c7784e98c02e41d1cd00af8f07dc8"
  },
  "nodeids": [
   "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events"

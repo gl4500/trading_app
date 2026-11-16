@@ -2,8 +2,8 @@ F                                                                        [100%]
 ================================== FAILURES ===================================
 _______ test_h5b_stop_decision_close_passes_verify_between_seal_stages ________
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m27/mutant/bt/test_h5b_stop_decision_close_p0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000205C30A9A60>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m27/mutant/bt/test_h5b_stop_decision_close_p0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000020134B6FA40>
 
     def test_h5b_stop_decision_close_passes_verify_between_seal_stages(tmp_path, monkeypatch):
         """B1 (transactions): decide_stop's per-close state passes are never held across a seal-stage transaction - after
@@ -33,7 +33,7 @@ E           assert 0 == 1
 E            +  where 0 = sims(['e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', ...], 8)
 
 research\s1\s1_tests\test_s1_a3_h5b_pass.py:210: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m27\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m27\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages
-1 failed in 3.80s
+1 failed in 4.32s

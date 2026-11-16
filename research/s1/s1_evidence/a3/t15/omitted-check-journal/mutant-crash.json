@@ -1,0 +1,44 @@
+{
+ "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[forked]": {
+  "call": {
+   "innermost": {
+    "line": 178,
+    "path": "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Lib\\site-packages\\_pytest\\outcomes.py"
+   },
+   "terminal": {
+    "line": 256,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_trial.py"
+   },
+   "type": "_pytest.outcomes.Failed",
+   "type_raw": "builtins.Failed"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[seq-beyond]": {
+  "call": {
+   "innermost": {
+    "line": 178,
+    "path": "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Lib\\site-packages\\_pytest\\outcomes.py"
+   },
+   "terminal": {
+    "line": 256,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_trial.py"
+   },
+   "type": "_pytest.outcomes.Failed",
+   "type_raw": "builtins.Failed"
+  }
+ },
+ "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]": {
+  "call": {
+   "innermost": {
+    "line": 178,
+    "path": "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Lib\\site-packages\\_pytest\\outcomes.py"
+   },
+   "terminal": {
+    "line": 256,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_trial.py"
+   },
+   "type": "_pytest.outcomes.Failed",
+   "type_raw": "builtins.Failed"
+  }
+ }
+}

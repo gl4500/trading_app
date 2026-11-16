@@ -10,8 +10,8 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_precedence.py:180"
  },
  "selftests": {
-  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
-  "cases": 27
+  "junit_sha256": "42ab0d0727ed73ca25bbf68e834d4d14e9fe35ef4df60cba7255c4de6f471688",
+  "cases": 39
  },
  "control_valid": true,
  "control_rc": 0,
@@ -19,7 +19,7 @@
  "mutant_timeout": false,
  "installed": {
   "target": "s1_journal._slot",
-  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_journal.py",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green5\\t15tree0\\research\\s1\\s1_journal.py",
   "anchor_found": true,
   "installed": true,
   "anchor_count": 1,
@@ -27,22 +27,31 @@
   "mutated_sha256": "cad623c9cd387cb99469ff5900b73488d66c830bf68ee7731e13249c4ac5dd46",
   "first_line": 390
  },
- "frame_found": [
-  "research/s1/s1_tests/test_s1_a3_precedence.py",
-  180,
-  "AssertionError"
- ],
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15tree0/research/s1/s1_tests/test_s1_a3_precedence.py",
+   180,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_precedence.py",
+   180,
+   "AssertionError"
+  ]
+ },
  "control": {
-  "junit.xml": "207ffc088b97aeeb944a0f839eebcea3dc2e882ea24c3ff308629fb48a54bb32",
+  "junit.xml": "b3cfe0d5de28e82b8b784c08aeffa4d56abb02782a7593b038a2bb0e6f7a4db0",
   "installed.json": null,
-  "pytest-output.txt": "f36b6021347ea2ea0c26232a3c7864dd9fc750f2dcbd41d6548cf61eb22a3820",
-  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  "crash.json": null,
+  "pytest-output.txt": "f2473004eba7412b678d878c1ac712bfd2185619cd5cfe2cfeadaddf50382d2a",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
  },
  "mutant": {
-  "junit.xml": "aba6be2619fdd41c6c29924790d121d28be172330101f844d243e290cccbf8e6",
-  "installed.json": "4c95db25a6a2656329cb1e61a94c9f9478b3287e65407393047c1ae073d769d5",
-  "pytest-output.txt": "b66723c269fdeecf69f6f49af69f55569f9183f47b19a90c2947a8b3b772af4d",
-  "s1_mutant_plugin.py": "8754d297f50afe22477a55d7884ef48cc5f0c41cf7f7eb510cda09f39a7bd8b8"
+  "junit.xml": "f0e6c68a12c39df9d9d2cefff7e59a288dc2ddc6dbbd55dad36e4778c6a66dd8",
+  "installed.json": "2e4ee229ba49afb3f2c218fc8dcd7734f0be5d2ebfb4c3082b9996ac95dcadd2",
+  "crash.json": "17ae21990f046fd0f1709449ba87fc24fcba16a398ac9d6fdfec233b64f3e9f8",
+  "pytest-output.txt": "04bc481faea587639408272d9ed057c2727555ac9ad38699f2c0632fdc849767",
+  "s1_mutant_plugin.py": "1826024dbed6724a0acf96e592a52099c711848fa00ed13254e978f7cebf7a8c"
  },
  "nodeids": [
   "research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-q-no-intent]",

@@ -2,8 +2,8 @@
 ================================== FAILURES ===================================
 ______ test_eligibility_refusal_triggers_no_finalizer[no-stop-decision] _______
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m25/mutant/bt/test_eligibility_refusal_trigg1')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000205279D1B20>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m25/mutant/bt/test_eligibility_refusal_trigg1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000019634F5BB90>
 case = 'no-stop-decision'
 
     @pytest.mark.parametrize("case", ["no-missed-timeout-rows", "no-stop-decision"])
@@ -28,7 +28,7 @@ E             Left contains one more item: '_finalize_others'
 E             Use -v to get more diff
 
 research\s1\s1_tests\test_s1_a3_eligibility.py:354: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m25\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m25\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer[no-stop-decision]
-1 failed, 1 passed in 3.88s
+1 failed, 1 passed in 4.48s

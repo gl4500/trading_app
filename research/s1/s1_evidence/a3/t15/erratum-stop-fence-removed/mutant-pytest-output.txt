@@ -2,8 +2,8 @@ F                                                                        [100%]
 ================================== FAILURES ===================================
 ______ test_stop_fence_refuses_a_determined_close_without_a_created_seal ______
 
-tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m10/mutant/bt/test_stop_fence_refuses_a_dete0')
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001EB55A54A70>
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green5/t15w0/m10/mutant/bt/test_stop_fence_refuses_a_dete0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000016A00D395B0>
 
     def test_stop_fence_refuses_a_determined_close_without_a_created_seal(tmp_path, monkeypatch):   # row 262 (E2.5)
         st_ = registered(tmp_path)
@@ -24,7 +24,7 @@ E         - REFUSE
 E         + APPEND)
 
 research\s1\s1_tests\test_s1_a3_finalizer.py:327: AssertionError
-- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m10\mutant\junit.xml -
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green5\t15w0\m10\mutant\junit.xml -
 =========================== short test summary info ===========================
 FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal
-1 failed in 2.44s
+1 failed in 2.48s
