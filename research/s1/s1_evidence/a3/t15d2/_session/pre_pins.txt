@@ -1,0 +1,8 @@
+...                                                                      [100%]
+=================================== PASSES ====================================
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15d1\t15d2_run\pre_pins.xml -
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_t15d1_selection_and_evidence_tag_from_data
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_t15d2_record_carries_the_actual_collect_rcs
+PASSED research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption
+3 passed in 5.45s

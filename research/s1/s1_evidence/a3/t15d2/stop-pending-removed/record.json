@@ -1,0 +1,81 @@
+{
+ "label": "killed",
+ "target": "s1_seal._stop_record",
+ "selection": "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption",
+ "agreed": {
+  "basis": "T15-F11 isolated pending-branch test: substitute only real pending dependency slot None with []; preserve original real-tuple failed-elsewhere evidence at s1_seal.py:663",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption",
+  "oracle_kind": "assert",
+  "scope": "isolated-branch-seam; not real-tuple reachability or integration closure",
+  "selection": "test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption",
+  "source_line": "assert q is not None and q.kind == \"SLOT-QUALIFIED\", \"pending branch consumed as QUALIFIED\"  # ORACLE:F11-UNIT",
+  "superseded_15b": {
+   "nodeid": "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop",
+   "oracle_kind": "assert",
+   "source_line": "assert z.stop_record(gv.out, gv.rows, st_[\"start\"], st_[\"calendar\"], gv.trial.bundle) is None",
+   "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:162"
+  },
+  "superseded_t15d1": {
+   "basis": "T15-F11 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: a pending eligible close must make stop_record None",
+   "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
+   "oracle_kind": "assert",
+   "selection": "test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
+   "source_line": "assert q is not None and q.kind == \"SLOT-QUALIFIED\", \"pending close is not a committed QUALIFIED selection\"  # ORACLE:F11",
+   "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:130"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py:31"
+ },
+ "selftests": {
+  "junit_sha256": "3e1bea210841cf364248814dd6925026095ab7d42092782a69ea9f2ed0ca558a",
+  "cases": 39
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_seal._stop_record",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\t15d2_run\\bt\\t15tree0\\research\\s1\\s1_seal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "e2d66c4a20152d67acd2c1ddc27b4308d1589dd6c66334e29e179f3a7de75ef2",
+  "mutated_sha256": "387cd730fc3fcad512b1df7484a9f79a7ec598c35cd25a42aedbc8ddf6b49cd5",
+  "first_line": 644
+ },
+ "frame_found": {
+  "structural": [
+   "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/t15d2_run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+   31,
+   "builtins.AssertionError"
+  ],
+  "text": [
+   "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+   31,
+   "AssertionError"
+  ]
+ },
+ "control": {
+  "junit.xml": "2f5511d4aa767ba32ee57345259d5cdf8d99274f477bad2f81f4d5b33ed4263a",
+  "installed.json": null,
+  "crash.json": null,
+  "pytest-output.txt": "df01bfd1fbc739b5188daf92faa7dbc1e3cfc37964d200132c1cc3db59544300",
+  "s1_mutant_plugin.py": "1b163b5b435f63cab4fa172451cf3b325256fec6d680e6e23571788beb67b94c"
+ },
+ "mutant": {
+  "junit.xml": "f7cb74b16487fc649514057b0a655730ea91044ebea556dfa84792012f2e9cdd",
+  "installed.json": "1fbe63f0f33c5ca23d735b16e4d91646bfca752dc10c09e3a9764d96ed3a4523",
+  "crash.json": "e200e6c67b65a0c8727fd140959e3f9d507fa5c2b78d4a2a363c1d5fa48276f1",
+  "pytest-output.txt": "ded5849f84e980421f5eb42e8dfb9f67302e995f61c757697500a1a1344535f6",
+  "s1_mutant_plugin.py": "d385f4d9027bdaa168b68fee9cd768b0e763d340e2fa14d4ab9d8bf954512d20"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption"
+ ],
+ "finding": "T15-F11: failed-elsewhere: the mutated guard lets a pending close fall through to `deps += dd` with dd None (s1_seal.py:663 TypeError) before _resolution_evidence is called, so neither the 15b stop.py:162 nor the 15d-1 test_s1_a3_t15d_killers.py:130 oracle is reached (a3/t15/, a3/t15d1/)",
+ "control_collect_rc": 0,
+ "mutant_collect_rc": 0
+}

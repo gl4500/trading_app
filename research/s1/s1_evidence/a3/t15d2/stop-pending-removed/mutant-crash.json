@@ -1,0 +1,16 @@
+{
+ "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption": {
+  "call": {
+   "innermost": {
+    "line": 31,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\t15d2_run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_f11_branch.py"
+   },
+   "terminal": {
+    "line": 31,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\t15d2_run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_f11_branch.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  }
+ }
+}

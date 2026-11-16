@@ -1,0 +1,2 @@
+pre_pins rc=0
+pre_selftests rc=0

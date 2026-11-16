@@ -1,0 +1,57 @@
+[
+ {
+  "id": "F11",
+  "mutant": "stop-pending-removed",
+  "label": "killed",
+  "control_valid": true,
+  "control_rc": 0,
+  "control_cases": {
+   "test_t15d_f11_pending_branch_precedes_dependency_consumption": "pass"
+  },
+  "mutant_rc": 1,
+  "mutant_timeout": false,
+  "installed": {
+   "anchor_found": true,
+   "anchor_count": 1,
+   "installed": true,
+   "original_sha256": "e2d66c4a20152d67acd2c1ddc27b4308d1589dd6c66334e29e179f3a7de75ef2",
+   "mutated_sha256": "387cd730fc3fcad512b1df7484a9f79a7ec598c35cd25a42aedbc8ddf6b49cd5"
+  },
+  "agreed_nodeid": "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption",
+  "agreed_terminal": "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py:31",
+  "agreed_case_status": "failure",
+  "crash_json_call_frame": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\t15d2_run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_f11_branch.py:31 builtins.AssertionError",
+  "crash_json_raw": {
+   "innermost": {
+    "line": 31,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\t15d2_run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_f11_branch.py"
+   },
+   "terminal": {
+    "line": 31,
+    "path": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15d1\\t15d2_run\\bt\\t15tree0\\research\\s1\\s1_tests\\test_s1_a3_t15d_f11_branch.py"
+   },
+   "type": "builtins.AssertionError",
+   "type_raw": "builtins.AssertionError"
+  },
+  "frame_found": {
+   "structural": [
+    "C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/t15d2_run/bt/t15tree0/research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    31,
+    "builtins.AssertionError"
+   ],
+   "text": [
+    "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py",
+    31,
+    "AssertionError"
+   ]
+  },
+  "text_frame": "research\\s1\\s1_tests\\test_s1_a3_t15d_f11_branch.py:31 AssertionError",
+  "terminal_equals_agreed": true,
+  "other_mutant_cases": {},
+  "same_nodeids": true,
+  "n_nodeids": 1,
+  "selection": "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption",
+  "control_collect_rc": 0,
+  "mutant_collect_rc": 0
+ }
+]

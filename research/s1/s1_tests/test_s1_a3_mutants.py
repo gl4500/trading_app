@@ -424,29 +424,13 @@ EXTRA = {                                    # helpers some mutated sources call
 # Fix round 2 (review M-3): each mark is specific to the label its reason names ("T15-F<n>: <label>: ..."): any other
 # label raises FindingLabelChanged (not an AssertionError) before the plan assertion, so the case FAILS.
 FINDINGS = {                                 # from the 15b run (a3/t15_mutants.txt); remove a mark when its case XPASSes
-    "cutoff-reservation-clock": "T15-F1: failed-elsewhere: the stage engine refuses the mutated cutoff first "
-                                "(s1_stage.py:356 SystemExit, INVALID provider-structural), not the agreed audit.py:270",
-    "deadline-missed-lt-to-le": "T15-F2: failed-elsewhere: the killer's own setup (registered -> s1_state -> "
-                                "attest_start) needs MISSED at E; Refusal at s1_trial.py:531, before finalizer.py:51 "
-                                "(fix round 1: not restructurable without changing its inputs - t15_anchor_map.md)",
-    "omitted-envelope-input": "T15-F4: failed-elsewhere: KeyError in the publish hooks (s1_run.py:515) before the "
-                              "agreed envelope assertion prestart.py:137",
-    "owner-recovery-own-op": "T15-F7: failed-elsewhere: the journal's 4a INVALIDATEs the foreign-op CREATED inside "
-                             "t.gate (s1_stage.py:363 SystemExit), before the agreed stage.py:466",
-    "r6-books-fifo-prefix-off-by-one": "T15-F9: failed-elsewhere: the ctx() helper the killer calls in its body "
-                                       "(conftest s1_state) commits no TRIAL-STOP "
-                                       "(conftest.py:873 AssertionError), before h5b_pass.py:548 (fix round 1: not "
-                                       "restructurable without changing its inputs - t15_anchor_map.md)",
-    "r6-books-sold-events-entry-guard-dropped": "T15-F10: survived: s1_seal.pinned(px) for `limit` re-checks the "
-                                                "pass, but only AFTER rows(trades): a dead pass + malformed trades "
-                                                "gives BookError instead of the pass refusal - NOT equivalent, a "
-                                                "killer gap (t15_equivalence_drafts.md)",
-    "stop-pending-removed": "T15-F11: failed-elsewhere: a pending close falls through to _resolution_evidence with "
-                            "no QUALIFIED row (s1_seal.py:663 TypeError), not the agreed stop.py:162",
-    "stop-prefix-le-to-lt": "T15-F12: survived: excluding the STOP row itself from the sampled prefix changes no "
-                            "seal (the STOP row is no slot row); killer cannot see it. Codex REJECTED full-domain "
-                            "equivalence (upto_seq = a post-START QUALIFIED seq 85: close 2026-10-26 vs none): a "
-                            "meaningful survivor for 15d (t15_equivalence_drafts.md)",
+    # Task 15d-2: the T15-F1/F2/F4/F7/F9/F10/F12 marks were removed after their 15d-1 kills at the agreed lines
+    # (a3/t15d1/, a3/t15d1_summary.md; Codex reconciliation of 81e1ffd). Their 15b reasons stay in git history and in
+    # each a3/t15/<mutant>/record.json "finding".
+    "stop-pending-removed": "T15-F11: failed-elsewhere: the mutated guard lets a pending close fall through to "
+                            "`deps += dd` with dd None (s1_seal.py:663 TypeError) before _resolution_evidence is "
+                            "called, so neither the 15b stop.py:162 nor the 15d-1 test_s1_a3_t15d_killers.py:130 "
+                            "oracle is reached (a3/t15/, a3/t15d1/)",
 }
 
 # The plugin: anchor EXACTLY once (controller ruling; the plan's ">= 1" would accept an ambiguous anchor) and the
@@ -838,6 +822,18 @@ def _case(name):
     return pytest.param(name, marks=pytest.mark.xfail(strict=True, raises=AssertionError, reason=f)) if f else name
 
 
+def t15_record(name, label, target, selection, agreed, selftests, control, mutant, installed, work) -> dict:
+    """The per-mutant record.json content: the 15b fields in their 15b order, then (Task 15d-2, Codex 81e1ffd review)
+    the ACTUAL --collect-only return codes run_child observed for the control and the mutant run (never inferred)."""
+    return {
+        "label": label, "target": target, "selection": selection, "agreed": agreed, "selftests": selftests,
+        "control_valid": control_valid(control), "control_rc": control["rc"], "mutant_rc": mutant["rc"],
+        "mutant_timeout": mutant["timeout"], "installed": installed, "frame_found": found_frame(mutant, agreed),
+        "control": evidence_record(work / "control"), "mutant": evidence_record(work / "mutant"),
+        "nodeids": control["nodeids"], "mutant_nodeids": mutant["nodeids"], "finding": FINDINGS.get(name),
+        "control_collect_rc": control["collect_rc"], "mutant_collect_rc": mutant["collect_rc"]}
+
+
 @pytest.mark.parametrize("name", [_case(n) for n in sorted(MUTANTS)])
 def test_targeted_mutant_is_killed(tmp_path, classifier_validated, t15_tree, t15_work, name):   # rows 291-297
     target, old, new, test = MUTANTS[name]
@@ -861,12 +857,8 @@ def test_targeted_mutant_is_killed(tmp_path, classifier_validated, t15_tree, t15
         installed = json.loads((work / "mutant" / "installed.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         installed = None
-    (out / "record.json").write_text(json.dumps({
-        "label": label, "target": target, "selection": selection, "agreed": agreed, "selftests": classifier_validated,
-        "control_valid": control_valid(control), "control_rc": control["rc"], "mutant_rc": mutant["rc"],
-        "mutant_timeout": mutant["timeout"], "installed": installed, "frame_found": found_frame(mutant, agreed),
-        "control": evidence_record(work / "control"), "mutant": evidence_record(work / "mutant"),
-        "nodeids": control["nodeids"], "mutant_nodeids": mutant["nodeids"], "finding": FINDINGS.get(name)},
+    (out / "record.json").write_text(json.dumps(t15_record(
+        name, label, target, selection, agreed, classifier_validated, control, mutant, installed, work),
         indent=1), encoding="utf-8")
     if name in FINDINGS and label != finding_label(name):     # fix round 2 (review M-3): the xfail is label-specific
         raise FindingLabelChanged(f"{name}: label {label!r}, but its finding records {finding_label(name)!r}: "
@@ -1240,3 +1232,21 @@ def test_t15d1_selection_and_evidence_tag_from_data():
     for bad in ("", "x15", "T15", "t15/../t15", "t15d1\\..", "../t15"):
         with pytest.raises(ValueError):
             t15_evidence_tag({T15_TAG_ENV: bad})
+
+
+# ---- Task 15d-2 pin: the record carries the actual collect-only return codes (synthetic probe; no S1 mutant) --------
+def test_t15d2_record_carries_the_actual_collect_rcs(tmp_path):
+    proj = _probe_project(tmp_path, {"test_synth.py": "def test_k():\n    assert 1 == 1\n"})
+    control = run_child(proj, tmp_path / "control", "test_synth.py", "", pythonpath=str(proj), timeout=60,
+                        conftest=False)
+    mutant = run_child(proj, tmp_path / "mutant", "test_absent.py", "", pythonpath=str(proj), timeout=60,
+                       conftest=False)                       # a selection that cannot collect: a distinct, real rc
+    assert control["collect_rc"] == 0 and mutant["collect_rc"] not in (0, None), (control, mutant)
+    agreed = {"nodeid": "test_synth.py::test_k", "terminal": "test_synth.py:2"}
+    rec = t15_record("synthetic", "survived", "m.f", "test_synth.py", agreed, {}, control, mutant, None, tmp_path)
+    assert rec["control_collect_rc"] == control["collect_rc"] and rec["mutant_collect_rc"] == mutant["collect_rc"]
+    assert list(rec) == ["label", "target", "selection", "agreed", "selftests", "control_valid", "control_rc",
+                         "mutant_rc", "mutant_timeout", "installed", "frame_found", "control", "mutant", "nodeids",
+                         "mutant_nodeids", "finding", "control_collect_rc", "mutant_collect_rc"]
+    import inspect                                            # the targeted runner writes exactly this record
+    assert "json.dumps(t15_record(" in inspect.getsource(test_targeted_mutant_is_killed)

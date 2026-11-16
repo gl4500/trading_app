@@ -1,7 +1,7 @@
-"""PROPOSAL ONLY: copy unchanged to research/s1/s1_tests after peer agreement.
+"""Task 15d killer oracles (Codex proposal_v1, CONDITIONAL_CONSENSUS), installed unchanged in 15d-1.
 
-No mutation runner is invoked here. Oracle comments identify proposed structural
-terminal assertions; final source/line identities must be rebound after any edit.
+Run by test_s1_a3_mutants.py via t15_agreed_assertions.json (selection, nodeid, terminal).
+Each ORACLE end-of-line comment marks an agreed structural terminal; rebind after any edit.
 """
 import json
 from datetime import datetime, timedelta, timezone

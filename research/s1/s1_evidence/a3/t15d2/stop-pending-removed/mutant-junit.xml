@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.042" timestamp="2026-11-16T13:01:42.902257-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_t15d_f11_branch" name="test_t15d_f11_pending_branch_precedes_dependency_consumption" time="2.674"><failure message="AssertionError: pending branch consumed as QUALIFIED&#10;assert (None is not None)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/t15d2_run/bt/t15w0/m33/mutant/bt/test_t15d_f11_pending_branch_p0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000264CA5394F0&gt;
+
+    def test_t15d_f11_pending_branch_precedes_dependency_consumption(tmp_path, monkeypatch):
+        state = s1_state(tmp_path, START, score_ready=True, seal_days=[1], stop_attest=False, final=False, stop=False)
+        day = state["sessions"][0]
+        slot = z.close_of(day, state["calendar"]) + timedelta(minutes=45)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(slot), at=slot + timedelta(seconds=1))
+        gv = t.gate(tmp_path, "t15d pending branch")
+        real_close_state, real_resolution = z._close_state, sl._resolution_evidence
+        pending, resolutions = [], []
+    
+        def isolate_pending_dependencies(*args, **kwargs):
+            result = real_close_state(*args, **kwargs)
+            if result[0] == "pending":
+                pending.append(result)
+                return result[0], [], result[2]
+            return result
+    
+        def committed_qualified_only(out, q, day_iso, *, ps=None):
+            resolutions.append(q)
+            assert q is not None and q.kind == "SLOT-QUALIFIED", "pending branch consumed as QUALIFIED"  # ORACLE:F11-UNIT
+            return real_resolution(out, q, day_iso, ps=ps)
+    
+        monkeypatch.setattr(z, "_close_state", isolate_pending_dependencies)
+        monkeypatch.setattr(sl, "_resolution_evidence", committed_qualified_only)
+&gt;       observed = z.stop_record(gv.out, gv.rows, state["start"], state["calendar"], gv.trial.bundle)
+
+research\s1\s1_tests\test_s1_a3_t15d_f11_branch.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_seal.py:641: in stop_record
+    return _stop_record(px, out, rows, start, cal, bundle)
+research\s1\s1_seal.py:667: in _stop_record
+    ev = s1_slot._resolution_evidence(out, q, d["date"])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/t15d2_run/bt/t15w0/m33/mutant/bt/test_t15d_f11_pending_branch_p0/s1_out')
+q = None, day_iso = '2026-10-26'
+
+    def committed_qualified_only(out, q, day_iso, *, ps=None):
+        resolutions.append(q)
+&gt;       assert q is not None and q.kind == "SLOT-QUALIFIED", "pending branch consumed as QUALIFIED"  # ORACLE:F11-UNIT
+E       AssertionError: pending branch consumed as QUALIFIED
+E       assert (None is not None)
+
+research\s1\s1_tests\test_s1_a3_t15d_f11_branch.py:31: AssertionError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,45 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________ test_targeted_mutant_is_killed[stop-pending-removed] _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/t15d2_run/bt/test_targeted_mutant_is_killed0')
+classifier_validated = {'cases': 39, 'junit_sha256': '3e1bea210841cf364248814dd6925026095ab7d42092782a69ea9f2ed0ca558a'}
+t15_tree = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/t15d2_run/bt/t15tree0')
+t15_work = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15d1/t15d2_run/bt/t15w0')
+name = 'stop-pending-removed'
+
+    @pytest.mark.parametrize("name", [_case(n) for n in sorted(MUTANTS)])
+    def test_targeted_mutant_is_killed(tmp_path, classifier_validated, t15_tree, t15_work, name):   # rows 291-297
+        target, old, new, test = MUTANTS[name]
+        agreed = json.loads(AGREED.read_text(encoding="utf-8"))[name]
+        # {"nodeid": "research/s1/s1_tests/<file>::<test>[<param ids>]", "terminal": "<path>:<line>"} (reviewed)
+        selection = t15_selection(test, agreed)                   # 15d-1: an agreed "selection" overrides
+        pp = _pp(t15_tree)
+        work = t15_work / f"m{sorted(MUTANTS).index(name):02d}"
+        control = run_child(t15_tree, work / "control", selection, "", pythonpath=pp)
+        plugin = PLUGIN.format(target=target, old=old, new=new, extra=EXTRA.get(name, ""),
+                               record=str(work / "mutant" / "installed.json"))
+        mutant = run_child(t15_tree, work / "mutant", selection, plugin, pythonpath=pp)
+        label = classify(name, control, mutant, agreed)
+        out = T15_EVIDENCE / name                                  # 15d-1: a3/<S1_T15_EVIDENCE_TAG>/<name>
+        out.mkdir(parents=True, exist_ok=True)
+        for side in ("control", "mutant"):
+            for f in sorted((work / side).glob("*")):
+                if f.is_file():
+                    (out / f"{side}-{f.name}").write_bytes(f.read_bytes())
+        try:
+            installed = json.loads((work / "mutant" / "installed.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            installed = None
+        (out / "record.json").write_text(json.dumps(t15_record(
+            name, label, target, selection, agreed, classifier_validated, control, mutant, installed, work),
+            indent=1), encoding="utf-8")
+        if name in FINDINGS and label != finding_label(name):     # fix round 2 (review M-3): the xfail is label-specific
+>           raise FindingLabelChanged(f"{name}: label {label!r}, but its finding records {finding_label(name)!r}: "
+                                      f"update or remove the mark ({FINDINGS[name]})")
+E           test_s1_a3_mutants.FindingLabelChanged: stop-pending-removed: label 'killed', but its finding records 'failed-elsewhere': update or remove the mark (T15-F11: failed-elsewhere: the mutated guard lets a pending close fall through to `deps += dd` with dd None (s1_seal.py:663 TypeError) before _resolution_evidence is called, so neither the 15b stop.py:162 nor the 15d-1 test_s1_a3_t15d_killers.py:130 oracle is reached (a3/t15/, a3/t15d1/))
+
+research\s1\s1_tests\test_s1_a3_mutants.py:864: FindingLabelChanged
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_targeted_mutant_is_killed[stop-pending-removed]
+1 failed in 166.99s (0:02:46)

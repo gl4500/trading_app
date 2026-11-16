@@ -1,0 +1,50 @@
+.......................................                                  [100%]
+=================================== PASSES ====================================
+________________ test_classifier_self_tests[collection-error] _________________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=d25a0154533442e99eb4920cfdf03165 exit=0 status=error:collection sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15d1\t15d2_run\bt_pre_selftests\test_classifier_self_tests_col0\guard_job\guard.json
+_______________ test_classifier_self_tests[semantic-regression] _______________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=4be82088cd1948abad14a1b2f1847ac5 exit=1 status=killed sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15d1\t15d2_run\bt_pre_selftests\test_classifier_self_tests_sem0\guard_job\guard.json
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15d1\t15d2_run\pre_selftests.xml -
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[collection-error]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[crash]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[missing-fixture]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[not-installed]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[plugin-error]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[semantic-regression]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[syntax-error]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[timeout]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[control-fails]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[equivalent-listed]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[later-parameter-killed]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[later-parameter-agreed-case0-survived]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[later-control-failure]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[helper-frame-caller-agreed]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[helper-frame-helper-agreed]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[caller-frame-substring-xml]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_failed_outcome[raises-stops-raising-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_failed_outcome[raises-stops-raising-other-line]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_failed_outcome[typeerror-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[captured-section-in-junit-text]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[captured-stdout-spoof]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[message-spoof]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[rc2-after-junit]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[rc3-after-junit]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[rc4-usage-error-after-junit]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[sidecar-missing]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_provenance[structure-text-disagree]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[assertion-in-helper-agreed-at-helper]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[chained-raise-from-records-the-outer-crash]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[pytest-fail-at-agreed-line]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_visible_crash[raises-did-not-raise-at-agreed-line]
+39 passed, 69 deselected in 121.00s (0:02:00)

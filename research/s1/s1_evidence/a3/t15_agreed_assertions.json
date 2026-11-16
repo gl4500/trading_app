@@ -273,18 +273,27 @@
   "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:370"
  },
  "stop-pending-removed": {
-  "basis": "T15-F11 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: a pending eligible close must make stop_record None",
-  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
+  "basis": "T15-F11 isolated pending-branch test: substitute only real pending dependency slot None with []; preserve original real-tuple failed-elsewhere evidence at s1_seal.py:663",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption",
   "oracle_kind": "assert",
-  "selection": "test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
-  "source_line": "assert q is not None and q.kind == \"SLOT-QUALIFIED\", \"pending close is not a committed QUALIFIED selection\"  # ORACLE:F11",
+  "scope": "isolated-branch-seam; not real-tuple reachability or integration closure",
+  "selection": "test_s1_a3_t15d_f11_branch.py::test_t15d_f11_pending_branch_precedes_dependency_consumption",
+  "source_line": "assert q is not None and q.kind == \"SLOT-QUALIFIED\", \"pending branch consumed as QUALIFIED\"  # ORACLE:F11-UNIT",
   "superseded_15b": {
    "nodeid": "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop",
    "oracle_kind": "assert",
    "source_line": "assert z.stop_record(gv.out, gv.rows, st_[\"start\"], st_[\"calendar\"], gv.trial.bundle) is None",
    "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:162"
   },
-  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:130"
+  "superseded_t15d1": {
+   "basis": "T15-F11 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: a pending eligible close must make stop_record None",
+   "nodeid": "research/s1/s1_tests/test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
+   "oracle_kind": "assert",
+   "selection": "test_s1_a3_t15d_killers.py::test_t15d_f11_pending_close_does_not_consume_qualified_evidence",
+   "source_line": "assert q is not None and q.kind == \"SLOT-QUALIFIED\", \"pending close is not a committed QUALIFIED selection\"  # ORACLE:F11",
+   "terminal": "research/s1/s1_tests/test_s1_a3_t15d_killers.py:130"
+  },
+  "terminal": "research/s1/s1_tests/test_s1_a3_t15d_f11_branch.py:31"
  },
  "stop-prefix-le-to-lt": {
   "basis": "T15-F12 15d oracle (proposal_v1, CONDITIONAL_CONSENSUS); was: the sampled history is fixed at (and includes) the STOP",
