@@ -1,0 +1,119 @@
+# A3 H5b timing micro-measurement - INFORMATION ONLY (not row 439; no workload, contention or scheduler cell).
+# Method: <scratchpad>/h5b/gold/timing.py on the golden fixtures (h5b_golden.txt); per pass owner: c.load_pinned("e1_sim_pinned") calls in ONE call (= one pass) and the min wall time of 5 calls.
+# Wall times were taken while other test processes ran on the machine: indicative only. <scratchpad> = C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad
+
+# BEFORE (base e3d7bc9): code C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\base\research\s1
+fixture                    pass owner         load_pinned/pass  min wall ms (5)
+lots-stopped               stop_record                     372            353.3
+lots-stopped               sampled_seals                   292            235.5
+lots-stopped               nvs                             372            494.2
+lots-stopped               stop_ready                      532            576.7
+lots-stopped               eligible_sessions               160            117.0
+six-month-timeout          stop_record                     381            391.5
+six-month-timeout          sampled_seals                   292            302.5
+six-month-timeout          nvs                             381            381.6
+six-month-timeout          stop_ready                      541            509.9
+six-month-timeout          eligible_sessions               160            118.5
+timeout-99                 stop_record                     602            831.7
+timeout-99                 sampled_seals                   293            292.6
+timeout-99                 nvs                             602            882.6
+timeout-99                 stop_ready                      762            990.3
+timeout-99                 eligible_sessions               160             94.3
+nvs                        stop_record                     291            290.6
+nvs                        sampled_seals                   290            263.9
+nvs                        nvs                             741            667.7
+nvs                        stop_ready                      451            368.0
+nvs                        eligible_sessions               160            107.2
+
+# AFTER (H5b fix round 1 final): code C:\Users\gl450\trading_app-s1\research\s1
+fixture                    pass owner         load_pinned/pass  min wall ms (5)
+lots-stopped               stop_record                       1            144.1
+lots-stopped               sampled_seals                     1             59.5
+lots-stopped               nvs                               1            142.3
+lots-stopped               stop_ready                        1            150.0
+lots-stopped               eligible_sessions                 1              1.5
+six-month-timeout          stop_record                       1            106.5
+six-month-timeout          sampled_seals                     1             70.1
+six-month-timeout          nvs                               1            107.0
+six-month-timeout          stop_ready                        1            106.7
+six-month-timeout          eligible_sessions                 1              2.5
+timeout-99                 stop_record                       1            371.0
+timeout-99                 sampled_seals                     1             87.9
+timeout-99                 nvs                               1            375.3
+timeout-99                 stop_ready                        1            384.4
+timeout-99                 eligible_sessions                 1              1.7
+nvs                        stop_record                       1             74.6
+nvs                        sampled_seals                     1             84.0
+nvs                        nvs                               1            156.5
+nvs                        stop_ready                        1             82.0
+nvs                        eligible_sessions                 1              1.6
+
+# timing.py sha256 0b523626443b290baf5d51db801abf78b509cc7e137478fd447ce3f2e47e39ee
+"""H5b timing micro-measurement (INFORMATION ONLY - not the row-439 campaign, no workload/contention/scheduler cell):
+python timing.py <research/s1 code dir> <manifest.jsonl> <label>. For each golden fixture and each pass owner of the
+chain, the number of c.load_pinned("e1_sim_pinned") calls in ONE call (= one pass) and its wall time (min of 5)."""
+import json
+import sys
+import time
+from pathlib import Path
+
+CODE, MANIFEST, LABEL = Path(sys.argv[1]).resolve(), Path(sys.argv[2]), sys.argv[3]
+sys.path.insert(0, str(CODE))
+
+import s1_common as c  # noqa: E402
+import s1_journal as j  # noqa: E402
+import s1_seal as z  # noqa: E402
+import s1_trial as t  # noqa: E402
+
+loads = []
+real_lp = c.load_pinned
+
+
+def counted(name, *a, **kw):
+    loads.append(name)
+    return real_lp(name, *a, **kw)
+
+
+c.load_pinned = counted
+lp_time = [0.0]
+
+
+def main():
+    print(f"# {LABEL}: code {CODE}")
+    print(f"{'fixture':26} {'pass owner':18} {'load_pinned/pass':>16} {'min wall ms (5)':>16}")
+    for line in MANIFEST.read_text(encoding="utf-8").splitlines():
+        m = json.loads(line)
+        if m["name"] not in ("lots-stopped", "six-month-timeout", "timeout-99", "nvs"):
+            continue
+        root = Path(m["root"])
+        mb = root / "mailbox.sqlite3"
+        c.MAILBOX = mb
+        trs = t.trials(t.scan(mb))
+        (tid,) = [x for x, tr_ in trs.items() if tr_.closed is None]
+        rows = j.read_trial(tid, trs[tid].genesis, mb)
+        out = root / "s1_out"
+        pr = json.loads((out / "prereg.json").read_text(encoding="utf-8"))
+        start, cal, bundle = c.aware(pr["start"]), pr["calendar"], trs[tid].bundle
+        stop = j.first(rows, "TRIAL-STOP")
+        pre = [x for x in rows if x.seq < stop.seq]
+        owners = {"stop_record": lambda: z.stop_record(out, pre, start, cal, bundle),
+                  "sampled_seals": lambda: z.sampled_seals(out, rows, cal, start, upto_seq=stop.seq),
+                  "nvs": lambda: z.nvs(out, rows, start, cal, bundle),
+                  "stop_ready": lambda: z.stop_ready(out, pre, start, cal, bundle, c.aware(m["now"])),
+                  "eligible_sessions": lambda: z.eligible_sessions(start, cal)}
+        for name, fn in owners.items():
+            n0 = len(loads)
+            fn()
+            n = sum(1 for x in loads[n0:] if x == "e1_sim_pinned")
+            best = min(_timed(fn) for _ in range(5))
+            print(f"{m['name']:26} {name:18} {n:16d} {best * 1000:16.1f}")
+
+
+def _timed(fn):
+    t0 = time.perf_counter()
+    fn()
+    return time.perf_counter() - t0
+
+
+if __name__ == "__main__":
+    main()

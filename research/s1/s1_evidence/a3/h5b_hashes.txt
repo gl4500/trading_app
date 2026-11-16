@@ -1,0 +1,13 @@
+# A3 H5b sha256 of changed source, test and evidence files (an explicit list; this file excluded). Base e3d7bc9.
+af3e13af0ba38adc52bc2808c04349a7c4b3c053bd80708866a61f7f0070284f *research/s1/s1_seal.py
+81587a79ade6de07923918ad54e2d131798fdaf797440a5b6c01ace5719b6f33 *research/s1/s1_run.py
+e27317588f41799ccd474e56d42eee544bd5243c20556ab9f6c38e4473a371dd *research/s1/s1_books.py
+4005031252101ca4c593ab1dac8ef28470d8718b427f7818710044b194436034 *research/s1/s1_tests/test_s1_a3_h5b_pass.py
+10b79bd145d0c8b347bd7aaa71ca2e006f0c50bc2ea95d1bb7f011d54ece69bd *research/s1/s1_tests/test_s1_a3_score.py
+f223164accc2954fc9a214dc48de2f54d8a4cc0c1d853c4cf70fb813d93cada3 *research/s1/s1_evidence/a3/h5b_red.txt
+e2a3c85a502161898aa4a5c83b3ffe63840bd741691faecda8096ec7a494b1cc *research/s1/s1_evidence/a3/h5b_green.txt
+33c5289339349721f068730d7bce71fdf9ca0624ffef7092e57811836e5d87ed *research/s1/s1_evidence/a3/h5b_mutants.txt
+2ce9f7423255912b8516381f62c22d660f36761a862a2f195ede937501cc3785 *research/s1/s1_evidence/a3/h5b_golden.txt
+bd37eb725abc834652adb900e2d82fca62075bce6f4140398c9a4b94f21c4bfc *research/s1/s1_evidence/a3/h5b_full.txt
+2abee2fe49c3447c63993eca84813467c0d5c81aae1d59206a6785fa634bc5a8 *research/s1/s1_evidence/a3/h5b_old_new.md
+dc32102104eba8cb38e56e8acf5c5bd8c5bfc0ecb31c05c97305356e6e8cf3db *research/s1/s1_evidence/a3/h5b_timing.txt

@@ -107,6 +107,46 @@ def sold_events(trades) -> dict:
     return events
 
 
+def _economic_in(px, rs, endpoint, orphans) -> list:
+    """A3 H5b (Codex Q2; fix round 1 I-1/N-2): _economic within the live s1_seal evidence pass `px` - the pass is
+    checked on entry (s1_seal._live: a missing, foreign or ended pass refuses) and the module is THIS pass's verified
+    one (s1_seal.pinned), looked up inside the try exactly where _economic calls c.sim(), so the ValueError ->
+    BookError mapping is unchanged."""
+    import s1_seal
+    s1_seal._live(px)
+    try:
+        return s1_seal.pinned(px).baseline_lots(rs, endpoint=endpoint, splits=[], orphans=orphans)
+    except ValueError as e:
+        raise BookError(str(e))
+
+
+def _sold_events(trades, px) -> dict:
+    """A3 H5b (Codex Q2; fix round 1 I-1): sold_events within the live s1_seal evidence pass `px` (s1_seal._count_sold,
+    inside stop_record / nvs / stop_ready): the same replay as sold_events, the module taken from THIS pass
+    (s1_seal.pinned) at the same two points where sold_events calls c.sim(); the pass is checked on entry and at every
+    use. It accepts no module or callable, only the pass. sold_events itself is unchanged (it verifies at every
+    use)."""
+    import s1_seal
+    s1_seal._live(px)
+    rs, events, prev_fills, by_symbol = rows(trades), {}, {}, {}
+    limit = s1_seal.pinned(px).x(c.SOLD_LT)
+    for r in rs:
+        prefix = by_symbol.setdefault(r["symbol"], [])
+        prefix.append(r)
+        if r["action"] != "SELL":
+            continue
+        orphans = []
+        lots = _economic_in(px, prefix, r["ts"], orphans)
+        if orphans:
+            raise BookError(f"orphan SELL(s) with no open lot: {[o['id'] for o in orphans]}")
+        for l in lots:
+            n = len(l["fills"])
+            if n > prev_fills.get(l["id"], 0) and l["rem_qty"] < limit and l["id"] not in events:
+                events[l["id"]] = {"sold_at": r["ts"].isoformat(), "sell_id": r["id"]}
+            prev_fills[l["id"]] = n
+    return events
+
+
 def held_symbols(rows_before_start, start) -> set:
     """Task 11 (controller-added), I-4: symbols held at START by the pre-START rows - an open economic-FIFO lot (dust
     residuals included) or an operational holding (the key set of s1_run._carry_in's opening inventory)."""

@@ -1,0 +1,302 @@
+# A3 H5b mutants, FIX ROUND 1 run on the fix-round-1 code (af3e13af0ba38adc52bc2808c04349a7c4b3c053bd80708866a61f7f0070284f *s1_seal.py 81587a79ade6de07923918ad54e2d131798fdaf797440a5b6c01ace5719b6f33 *s1_run.py e27317588f41799ccd474e56d42eee544bd5243c20556ab9f6c38e4473a371dd *s1_books.py ). Supersedes the round-0 runs.
+# Mutants 1-4: the brief's four. Mutant 5 = the reviewer's R-2 (process-global module memo in s1_books), re-expressed on the fix-round-1 API (s1_books._sold_events/_economic_in take the pass; the memo keeps the first-ever pass's module). Mutant 6 = the reviewer's R-1 (one seal_pass held across decide_stop's seal-stage transactions), now killed BEHAVIOURALLY too (test_h5b_pin_change_between_stop_decision_seal_stages_refuses:435, a second run_seal_stage entered), besides the counter (:210).
+# Mutant 1's behavioural kills are on the OUTCOME: test_h5b_pin_change_before_score_transaction_refuses_with_no_row[lots, nvs-ack-in-transaction] fail at :287 (a row was committed), before the exact-text and origin assertions.
+# <scratchpad> = C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad
+# H5b mutants: each on its own full scratch copy of research/s1 (copied from C:\Users\gl450\trading_app-s1\research\s1), tests run from that copy:
+# python.exe -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_h5b_pass.py research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_verifies_the_pin_again -q --tb=line -rf (output filtered to FAILED / assertion / summary lines)
+=== baseline (unmutated copy)
+88 passed in 272.43s (0:04:32)
+--> BASELINE GREEN (exit 0)
+=== mutant reuse-across-score-transaction-boundary: s1_seal.py sha256 af3e13af0ba38adc -> dbbd3f1ff99d8742
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\reuse-across-score-transaction-boundary\research\s1\s1_tests\test_s1_a3_h5b_pass.py:105: AssertionError: nvs: 0 pinned-module verifications in one pass (want 1)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\reuse-across-score-transaction-boundary\research\s1\s1_tests\test_s1_a3_h5b_pass.py:147: AssertionError: [('nvs', False, 0), ('sampled_seals', False, 1), ('nvs', True, 0)]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\reuse-across-score-transaction-boundary\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\reuse-across-score-transaction-boundary\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\reuse-across-score-transaction-boundary\research\s1\s1_tests\test_s1_a3_h5b_pass.py:287: AssertionError: assert ['8f85d52b5a2...6647c47', ...] == ['8f85d52b5a2...6647c47', ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\reuse-across-score-transaction-boundary\research\s1\s1_tests\test_s1_a3_h5b_pass.py:287: AssertionError: assert ['08e232a1270...1a70321', ...] == ['08e232a1270...1a70321', ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\reuse-across-score-transaction-boundary\research\s1\s1_tests\test_s1_a3_h5b_pass.py:312: AssertionError: [(None, 0), ('STAGE-INTENT', 0), (None, 0)]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\reuse-across-score-transaction-boundary\research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: AssertionError: pass 0: 0 verifications (want exactly 1, fresh)
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_score_boundaries_each_verify_afresh
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_before_score_transaction_refuses_with_no_row[lots]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_before_score_transaction_refuses_with_no_row[nvs-ack-in-transaction]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_nvs_score_ack_transaction_verifies_afresh
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[nvs]
+8 failed, 80 passed in 277.70s (0:04:37)
+--> KILLED (8 failing tests) (exit 1)
+=== mutant standalone-helper-accepts-missing-context: s1_seal.py sha256 af3e13af0ba38adc -> f894ffe90a9db21c
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\standalone-helper-accepts-missing-context\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\standalone-helper-accepts-missing-context\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\standalone-helper-accepts-missing-context\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\standalone-helper-accepts-missing-context\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\standalone-helper-accepts-missing-context\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\standalone-helper-accepts-missing-context\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-pinned]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-_eligible]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-_close_state]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-_sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-_stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-_nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._sold_events]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._economic_in]
+8 failed, 80 passed in 277.76s (0:04:37)
+--> KILLED (8 failing tests) (exit 1)
+=== mutant stale-context-accepted: s1_seal.py sha256 af3e13af0ba38adc -> c10d50201a41c098
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\stale-context-accepted\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\stale-context-accepted\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\stale-context-accepted\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\stale-context-accepted\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\stale-context-accepted\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\stale-context-accepted\research\s1\s1_tests\test_s1_a3_h5b_pass.py:480: Failed: DID NOT RAISE <class 'SystemExit'>
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-pinned]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-_eligible]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-_close_state]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-_sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-_stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-_nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-sampled_seals(px=)]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-books._sold_events]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-books._economic_in]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stale_pass_with_a_changed_pin_refuses
+10 failed, 78 passed in 281.67s (0:04:41)
+--> KILLED (10 failing tests) (exit 1)
+=== mutant global-flag: s1_seal.py sha256 af3e13af0ba38adc -> eb34e1624e200fbf
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:105: AssertionError: stop_record: 0 pinned-module verifications in one pass (want 1)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:105: AssertionError: sampled_seals: 0 pinned-module verifications in one pass (want 1)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:105: AssertionError: nvs: 0 pinned-module verifications in one pass (want 1)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:105: AssertionError: stop_ready: 0 pinned-module verifications in one pass (want 1)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:105: AssertionError: eligible_sessions: 0 pinned-module verifications in one pass (want 1)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:147: AssertionError: [('nvs', False, 0), ('sampled_seals', False, 0), ('nvs', True, 0)]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:183: AssertionError: {'after1': 7, 'after2': 7, 'before1': 7, 'before2': 7}
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:210: AssertionError: (5, 5, [])
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:228: Failed: DID NOT RAISE <class 'SystemExit'>
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:287: AssertionError: assert ['2e6b5989563...dff7370', ...] == ['2e6b5989563...dff7370', ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:287: AssertionError: assert ['32a073a4449...ce5228e', ...] == ['32a073a4449...ce5228e', ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:312: AssertionError: [(None, 0), ('STAGE-INTENT', 0), (None, 0)]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:338: AssertionError: [('stop_record', None, 0), ('stop_record', None, 0), ('stop_record', 'TRIAL-STOP', 0), ('stop_ready', 'TRIAL-STOP', 0)]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:397: AssertionError: Regex pattern did not match.
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:435: AssertionError: ['2026-10-26', '2026-10-27']
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: AssertionError: pass 0: 0 verifications (want exactly 1, fresh)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: AssertionError: pass 0: 0 verifications (want exactly 1, fresh)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: AssertionError: pass 0: 0 verifications (want exactly 1, fresh)
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_score.py:841: AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...fore', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule'), ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_score.py:841: AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...fore', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule'), ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_score.py:841: AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...fore', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule'), ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_score.py:841: AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...fore', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule'), ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_score.py:841: AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...fore', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule'), ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_score.py:841: AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...fore', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule'), ...]
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\global-flag\research\s1\s1_tests\test_s1_a3_score.py:572: AssertionError: Regex pattern did not match.
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[stop_ready]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[eligible_sessions]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_score_boundaries_each_verify_afresh
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_confirming_pass_verifies_once_and_shares_nothing
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-stop_ready]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-eligible_sessions]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-stop_ready]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-eligible_sessions]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_before_score_transaction_refuses_with_no_row[lots]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_before_score_transaction_refuses_with_no_row[nvs-ack-in-transaction]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_nvs_score_ack_transaction_verifies_afresh
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_trial_stop_transaction_passes_verify_afresh
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_before_confirming_pass_refuses_with_no_row
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_stop_decision_seal_stages_refuses
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_ready]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_verifies_the_pin_again
+34 failed, 54 passed in 274.29s (0:04:34)
+--> KILLED (34 failing tests) (exit 1)
+=== mutant books-process-global-memo: s1_books.py sha256 e27317588f41799c -> 01076e18cfbf010b
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\books-process-global-memo\research\s1\s1_tests\test_s1_a3_h5b_pass.py:532: AssertionError: []
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\books-process-global-memo\research\s1\s1_tests\test_s1_a3_h5b_pass.py:532: AssertionError: []
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\books-process-global-memo\research\s1\s1_tests\test_s1_a3_h5b_pass.py:532: AssertionError: []
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_ready]
+3 failed, 85 passed in 275.33s (0:04:35)
+--> KILLED (3 failing tests) (exit 1)
+=== mutant seal-stage-single-pass: s1_seal.py sha256 af3e13af0ba38adc -> 85e52ab961ce0003
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\seal-stage-single-pass\research\s1\s1_tests\test_s1_a3_h5b_pass.py:210: AssertionError: (8, 8, [])
+C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\h5b\mut\work\seal-stage-single-pass\research\s1\s1_tests\test_s1_a3_h5b_pass.py:435: AssertionError: ['2026-10-26', '2026-10-27']
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_stop_decision_seal_stages_refuses
+2 failed, 86 passed in 234.43s (0:03:54)
+--> KILLED (2 failing tests) (exit 1)
+
+# runner script (<scratchpad>/h5b/mut/run_mutants.py), sha256 ae6b62383cbb7954ebc562f9f8a513ce2ffeebf82f24fc5ccda987423ccebd31:
+"""H5b mutants (Codex Q2 required evidence): each applied to its OWN full scratch copy of research/s1 (copied from the
+worktree's H5b code; the worktree is never edited) - an exact single-occurrence replacement - then the H5b tests run
+in a child pytest against that copy (its own basetemp, no bytecode). A baseline run of the unmutated copy first.
+Usage: python run_mutants.py <worktree research/s1> <scratch dir> <log file>."""
+import hashlib
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+SRC, SCR, LOG = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve(), Path(sys.argv[3])
+PY = sys.executable
+TESTS = ["research/s1/s1_tests/test_s1_a3_h5b_pass.py",
+         "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation",
+         "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_confirming_pass_verifies_the_pin_again"]
+
+NVS_OWN = '''    with seal_pass() as px:
+        return _nvs(px, out, rows, start, cal, bundle)
+
+
+def _nvs('''
+PINNED_BODY = '''    px = _live(px)
+    if px._sim is None:
+        px._sim = c.sim()
+    return px._sim
+'''
+MUTANTS = {
+    "reuse-across-score-transaction-boundary": ("s1_seal.py", [(NVS_OWN, '''    key = (str(out), bundle)                     # MUTANT: one pass per (out, bundle), reused by every call
+    px = _NVS_PASSES.get(key)
+    if px is None:
+        px = _NVS_PASSES[key] = SealPass(_PASS_OWNER)
+    return _nvs(px, out, rows, start, cal, bundle)
+
+
+_NVS_PASSES = {}
+
+
+def _nvs(''')]),
+    "standalone-helper-accepts-missing-context": ("s1_seal.py", [(
+        '''    if type(px) is not SealPass or getattr(px, "_live", False) is not True:''',
+        '''    if px is None:                                               # MUTANT: a missing context is accepted
+        px = SealPass(_PASS_OWNER)
+    if type(px) is not SealPass or getattr(px, "_live", False) is not True:''')]),
+    "stale-context-accepted": ("s1_seal.py", [(
+        '''    finally:
+        px._sim, px._live = None, False''', '''    finally:
+        pass                                                     # MUTANT: the pass never ends (stale accepted)''')]),
+    "global-flag": ("s1_seal.py", [
+        ('''_PASS_OWNER = object()''', '''_VERIFIED = None                          # MUTANT: a global "already verified" module
+_PASS_OWNER = object()'''),
+        (PINNED_BODY, '''    global _VERIFIED                                             # MUTANT: verified once per process
+    px = _live(px)
+    if _VERIFIED is None:
+        _VERIFIED = c.sim()
+    return _VERIFIED
+''')]),
+    # fix round 1: mutant 5 = the reviewer's R-2 (a process-global module memo in s1_books), on the final API
+    "books-process-global-memo": ("s1_books.py", [
+        ('''def _economic_in(px, rs, endpoint, orphans) -> list:''', '''_MEMO = []                                                       # MUTANT 5 (review R-2)
+
+
+def _memo(px):
+    import s1_seal
+    if not _MEMO:                                                # MUTANT 5: the first-ever pass's module, kept
+        _MEMO.append(s1_seal.pinned(px))
+    return _MEMO[0]
+
+
+def _economic_in(px, rs, endpoint, orphans) -> list:'''),
+        ('''        return s1_seal.pinned(px).baseline_lots(rs, endpoint=endpoint, splits=[], orphans=orphans)''',
+         '''        return _memo(px).baseline_lots(rs, endpoint=endpoint, splits=[], orphans=orphans)   # MUTANT 5'''),
+        ('''    limit = s1_seal.pinned(px).x(c.SOLD_LT)''', '''    limit = _memo(px).x(c.SOLD_LT)                               # MUTANT 5''')]),
+    # fix round 1: mutant 6 = the reviewer's R-1 (one pass held across decide_stop's seal-stage transactions)
+    "seal-stage-single-pass": ("s1_seal.py", [(
+        '''        for d in eligible_sessions(start, cal):                    # E2.5: the pending seal stages first
+            with seal_pass() as px:                                # A3 H5b: a fresh pass per close, never held
+                sealed = _close_state(px, index, d, cal)[0] == "sealed"     # across a seal-stage transaction
+            if sealed and s1_stage.stage_rows(rows, s1_slot.seal_stage_name(d["date"]))["created"] is None:
+                s1_slot.run_seal_stage(gv, d, cal, mailbox=mailbox, clock=now)''',
+        '''        with seal_pass() as px:                                    # MUTANT 6 (review R-1): one pass held
+            for d in eligible_sessions(start, cal):                    # across every seal-stage transaction
+                sealed = _close_state(px, index, d, cal)[0] == "sealed"
+                if sealed and s1_stage.stage_rows(rows, s1_slot.seal_stage_name(d["date"]))["created"] is None:
+                    s1_slot.run_seal_stage(gv, d, cal, mailbox=mailbox, clock=now)''')]),
+}
+
+
+def sha(p: Path) -> str:
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def copy(tag) -> Path:
+    root = SCR / tag
+    if root.exists():
+        shutil.rmtree(root)
+    shutil.copytree(SRC, root / "research" / "s1", ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache"))
+    return root
+
+
+def apply(root, fname, reps):
+    p = root / "research" / "s1" / fname
+    raw = p.read_bytes()
+    crlf = b"\r\n" in raw
+    s = raw.decode("utf-8").replace("\r\n", "\n")
+    for a, b in reps:
+        assert s.count(a) == 1, (fname, a[:60], s.count(a))
+        s = s.replace(a, b)
+    p.write_bytes((s.replace("\n", "\r\n") if crlf else s).encode("utf-8"))
+    return sha(p)
+
+
+def run(root, tag):
+    env = dict(os.environ, PYTHONPATH=f"{root / 'research' / 's1'};{root / 'research' / 's1' / 's1_tests'}",
+               PYTHONDONTWRITEBYTECODE="1")
+    cmd = [PY, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", *TESTS, "-q", "--tb=line", "-rf",
+           f"--basetemp={SCR / ('bt_' + tag)}"]
+    return subprocess.run(cmd, cwd=root, env=env, capture_output=True, text=True, timeout=7200)
+
+
+def main():
+    lines = [f"# H5b mutants: each on its own full scratch copy of research/s1 (copied from {SRC}), tests run from "
+             f"that copy:", f"# {Path(PY).name} -m pytest -p conftest -p no:cacheprovider {' '.join(TESTS)} -q "
+             f"--tb=line -rf (output filtered to FAILED / assertion / summary lines)"]
+    for tag in ["baseline"] + list(MUTANTS):
+        root = copy(tag)
+        if tag != "baseline":
+            fname, reps = MUTANTS[tag]
+            before = sha(root / "research" / "s1" / fname)
+            after = apply(root, fname, reps)
+            lines.append(f"=== mutant {tag}: {fname} sha256 {before[:16]} -> {after[:16]}")
+        else:
+            lines.append("=== baseline (unmutated copy)")
+        res = run(root, tag)
+        out = res.stdout.splitlines()
+        keep = [x for x in out if x.startswith(("FAILED", "E ", "ERROR")) or " passed" in x or " failed" in x
+                or "AssertionError" in x or "Failed:" in x]
+        lines += keep
+        failed = [x for x in out if x.startswith("FAILED")]
+        verdict = ("BASELINE GREEN" if res.returncode == 0 else "BASELINE NOT GREEN") if tag == "baseline" else \
+            (f"KILLED ({len(failed)} failing tests)" if failed else "SURVIVED")
+        lines.append(f"--> {verdict} (exit {res.returncode})")
+        LOG.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        shutil.rmtree(root)
+    print("\n".join(x for x in lines if x.startswith(("===", "-->"))))
+
+
+if __name__ == "__main__":
+    main()

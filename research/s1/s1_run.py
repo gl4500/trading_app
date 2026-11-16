@@ -849,10 +849,11 @@ def _pre_intent_qualified(gv, out: Path, pr: dict, stop_row, mailbox, *, first) 
     member) for a member-local fault, (slot subject, kind, committed detail) for a tree mismatch; None when missing or
     invalid, A2) - nothing else of the first pass reaches here. The confirming pass is a NEW pass: fresh journal rows, a fresh read of the registered
     calendar (unreadable, or different from the command's pr["calendar"], refuses with no row), a fresh bundle check
-    against the trial's AUDIT-ACK bundle (OP-14; differs -> refused with no row), the pin verified again (c.sim(); a
-    failure is its SystemExit, a refusal) and the sampled seals recomputed over those rows and that calendar (every
-    QUALIFIED tree hashed again: sampled_seals keeps no pass state). The trial START and the STOP seq are the command's
-    verified identity (as `day` in confirmed_close_problems). sampled_seals raises on the FIRST problem in eligible
+    against the trial's AUDIT-ACK bundle (OP-14; differs -> refused with no row), the pin verified again (A3 H5b, Codex
+    Q2: this confirming pass OWNS its evidence pass - s1_seal.seal_pass, verified once by s1_seal.pinned before the
+    recompute; a failure is its SystemExit, a refusal) and the sampled seals recomputed over those rows and that
+    calendar (every QUALIFIED tree hashed again: the pass shares only the module verified for it, never a tree hash).
+    The trial START and the STOP seq are the command's verified identity (as `day` in confirmed_close_problems). sampled_seals raises on the FIRST problem in eligible
     close order, so only that raised observation is compared. The SAME identity raised again -> the F3 violation
     (s1_slot.evidence_violation: TRIAL-INVALID registration-artifact, then the local abort while s1_out exists, on the
     confirming observation's text); a different subject, the same subject with another kind, or an unidentified
@@ -871,8 +872,9 @@ def _pre_intent_qualified(gv, out: Path, pr: dict, stop_row, mailbox, *, first) 
         if c.bundle_sha256() != gv.trial.bundle:
             raise SystemExit("score refused: the S1 bundle differs from the trial's AUDIT-ACK bundle in the confirming "
                              "pass: refused with no row (ruling OP-14)")
-        c.sim()                                          # G3.2: the confirming pass verifies the pin again
-        z.sampled_seals(out, rows, fresh, c.aware(pr["start"]), upto_seq=stop_row.seq)
+        with z.seal_pass() as px:                        # A3 H5b (Codex Q2): this confirming pass owns its pass
+            z.pinned(px)                                 # G3.2: the confirming pass verifies the pin again (once)
+            z.sampled_seals(out, rows, fresh, c.aware(pr["start"]), upto_seq=stop_row.seq, px=px)
     except s1_slot.QualifiedEvidence as e:
         again = e.identity
         if first is None or again != first:

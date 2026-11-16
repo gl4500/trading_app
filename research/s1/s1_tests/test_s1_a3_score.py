@@ -783,8 +783,10 @@ def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, mon
     """Through the real sampled_seals and _resolution_evidence (the files damaged after the gate, a race): the same
     observation on the fresh confirming pass is INVALID; a moved, changed or differently classified one is refused
     with no row. A3: the confirming pass hashes the trees again with no pass memo (ps None in both passes), and the
-    pin is verified again on the executed path: the helper's own c.sim() (after pass 1), then s1_seal._close's c.sim()
-    inside the recompute (pass 2)."""
+    pin is verified again on the executed path. A3 H5b (Codex Q2): exactly one verification per pass - pass 1's own
+    (s1_seal.pinned, inside the pre-INTENT sampled_seals) and the confirming pass's, by its owner after pass 1
+    (s1_seal.pinned called from _pre_intent_qualified); none inside the confirming recompute (pass 2 uses its owner's
+    verified pass)."""
     import sys
     import s1_slot
     st_ = s1_state(tmp_path, START, score_ready=True)
@@ -818,7 +820,7 @@ def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, mon
             phase[0] = f"after{n[0]}"
 
     def sim():
-        sims.append((phase[0], sys._getframe(1).f_code.co_name))
+        sims.append((phase[0], sys._getframe(1).f_code.co_name, sys._getframe(2).f_code.co_name))
         return real_sim()
 
     def man(o, s, d, subject, ps):
@@ -836,7 +838,9 @@ def test_h5cfix_real_raise_sites_confirm_only_the_same_observation(tmp_path, mon
         assert all(x.kind != "TRIAL-INVALID" for x in jrows(tmp_path)) and _stage_kinds(tmp_path) == []
         assert not (out / "aborted.json").exists()
     assert n[0] == 2
-    assert ("after1", "_pre_intent_qualified") in sims and (2, "_close") in sims, sims     # A3: executed pin path
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned", "_eligible"),          # H5b: pass 1's own;
+                                                             ("after1", "pinned", "_pre_intent_qualified")], sims
+    #                                                          the confirming pass's, by its owner; none in phase 2
     for k in (1, 2):                                                                       # A3: no memo crosses
         assert any(ph == k and subj == q1.subject for ph, subj, _ in manifests), (k, manifests)
     assert all(ps is None for ph, _, ps in manifests if ph in (1, 2)), manifests

@@ -1,0 +1,14 @@
+# A3 H5b GREEN, FIX ROUND 1 (worktree, base e3d7bc9 + H5b + fix round 1): the H5b test file and every test file covering the touched code (s1_seal / s1_run._pre_intent_qualified / s1_books) in full; run 2026-11-15T23:57:57Z (concurrently with the mutant runner)
+# cmd: PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider <files> -q
+# files: test_s1_a3_h5b_pass.py test_s1_a3_score.py test_s1_a3_m4_pass.py test_s1_a3_nvs.py test_s1_a3_stop.py test_s1_books.py test_s1_task11.py test_s1_t12_a2.py test_s1_a3_wpend.py
+# (the round-0 GREEN, 425 passed, is superseded by this run)
+........................................................................ [ 16%]
+........................................................................ [ 32%]
+........................................................................ [ 48%]
+........................................................................ [ 65%]
+........................................................................ [ 81%]
+........................................................................ [ 97%]
+...........                                                              [100%]
+443 passed in 1781.46s (0:29:41)
+pytest_rc=0
+# end 2026-11-16T00:27:40Z

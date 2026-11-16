@@ -1,0 +1,417 @@
+# A3 H5b golden comparison (Codex Q2 required evidence: byte-exact stop record / NVS / sampled-history results vs the pre-H5b code on the same fixtures).
+# BEFORE = the base e3d7bc9 code: a scratch copy of research/s1 made by 'git archive e3d7bc9f52e401a8b7996ac0fa33a566e5e69185 research/s1' (the worktree was never checked out or reset).
+# AFTER  = the H5b worktree code (C:/Users/gl450/trading_app-s1/research/s1).
+# Step 1 (fixtures, built ONCE with the BASE code, in scratch): from the base copy root
+#   H5B_GOLD_MANIFEST=<scratch>/gold/manifest.jsonl PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider <scratch>/gold/test_golden_build.py -q --basetemp=<scratch>/gold/bt   -> 12 passed
+#   12 connected fixtures through the real product gates (conftest.s1_state): lots-stopped, six-month-timeout, timeout-99, no-stop-three-qualified,
+#   no-seal-stage, nvs (test_s1_a3_nvs.nvs_chain), pending, and five damaged lots-stopped trees (resolution appended, backup same-size/same-mtime,
+#   backup missing, resolution malformed, projection changed).
+# Step 2 (evaluation, read-only, same fixture bytes): testenv python golden_eval.py <code research/s1> manifest.jsonl <out.json>
+#   per fixture: the rows, eligible_sessions, and over the full rows, the pre-STOP rows and a sweep of row prefixes: stop_record, nvs, sampled_seals
+#   (all rows and upto the STOP seq; the seal BYTES base64 with their first QUALIFIED row), sampled_history, stop_ready at three instants.
+#   Every exception is part of the golden (type, text, QualifiedEvidence identity). One canonical JSON (sort_keys, ensure_ascii, indent=1).
+# AFTER evaluated on the FINAL H5b product (re-run 2026-11-15T21:33:48Z after the s1_books _economic_with change): 5b4ce39b4c14d2403b8f4a3bd56450af4bb902beeb912e2f28162092535ff3f2 *s1_seal.py 81587a79ade6de07923918ad54e2d131798fdaf797440a5b6c01ace5719b6f33 *s1_run.py 76a161d40128458d58fb3c012c012317f13a3150f261c0369bc469895e5b5f3d *s1_books.py 
+# FIX ROUND 1: AFTER re-evaluated 2026-11-15T23:55:33Z on the fix-round-1 product (af3e13af0ba38adc52bc2808c04349a7c4b3c053bd80708866a61f7f0070284f *s1_seal.py 81587a79ade6de07923918ad54e2d131798fdaf797440a5b6c01ace5719b6f33 *s1_run.py e27317588f41799ccd474e56d42eee544bd5243c20556ab9f6c38e4473a371dd *s1_books.py ): after_fix1.json sha256 b0b67b0ccc7d5146c49b3378d958292104e5e862907548e7fe8c858be189eed2, cmp before.json after_fix1.json: IDENTICAL
+
+## results
+b0b67b0ccc7d5146c49b3378d958292104e5e862907548e7fe8c858be189eed2 *before.json
+b0b67b0ccc7d5146c49b3378d958292104e5e862907548e7fe8c858be189eed2 *before2.json
+b0b67b0ccc7d5146c49b3378d958292104e5e862907548e7fe8c858be189eed2 *after.json
+cmp before.json after.json: IDENTICAL (byte for byte)
+cmp before.json before2.json (base determinism control, two base runs): IDENTICAL
+size: 4170201 bytes
+
+## what the golden covers (summarize.py over before.json; identical for after.json)
+== damaged-backup-missing: 103 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   full.sampled_history: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   full.sampled_seals: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   full.sampled_seals_upto_stop: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   full.stop_ready: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre | EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre | EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   full.stop_record: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   pre_stop.nvs: False
+   pre_stop.sampled_seals: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   pre_stop.stop_ready: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre | EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre | EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   pre_stop.stop_record: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['EXC QualifiedEvidence', 'dict[0]']
+   prefixes.stop_record: ['EXC QualifiedEvidence', 'None']
+== damaged-backup-same-size: 103 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.sampled_history: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.sampled_seals: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.sampled_seals_upto_stop: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.stop_ready: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.stop_record: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   pre_stop.nvs: False
+   pre_stop.sampled_seals: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   pre_stop.stop_ready: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   pre_stop.stop_record: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['EXC QualifiedEvidence', 'dict[0]']
+   prefixes.stop_record: ['EXC QualifiedEvidence', 'None']
+== damaged-projection-changed: 103 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.sampled_history: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.sampled_seals: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.sampled_seals_upto_stop: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.stop_ready: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.stop_record: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   pre_stop.nvs: False
+   pre_stop.sampled_seals: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   pre_stop.stop_ready: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   pre_stop.stop_record: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['EXC QualifiedEvidence', 'dict[0]']
+   prefixes.stop_record: ['EXC QualifiedEvidence', 'None']
+== damaged-resolution-appended: 103 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.sampled_history: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.sampled_seals: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.sampled_seals_upto_stop: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.stop_ready: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   full.stop_record: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   pre_stop.nvs: False
+   pre_stop.sampled_seals: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   pre_stop.stop_ready: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai | EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   pre_stop.stop_record: EXC QualifiedEvidence: slot/20261026T204500Z: QUALIFIED tree differs from the committed detai
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['EXC QualifiedEvidence', 'dict[0]']
+   prefixes.stop_record: ['EXC QualifiedEvidence', 'None']
+== damaged-resolution-malformed: 103 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   full.sampled_history: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   full.sampled_seals: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   full.sampled_seals_upto_stop: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   full.stop_ready: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre | EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre | EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   full.stop_record: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   pre_stop.nvs: False
+   pre_stop.sampled_seals: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   pre_stop.stop_ready: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre | EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre | EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   pre_stop.stop_record: EXC QualifiedEvidence: slot/20261026T204500Z: a file of its QUALIFIED tree is missing or unre
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['EXC QualifiedEvidence', 'dict[0]']
+   prefixes.stop_record: ['EXC QualifiedEvidence', 'None']
+== lots-stopped: 103 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: False
+   full.sampled_history: dict[2]
+   full.sampled_seals: dict[2]
+   full.sampled_seals_upto_stop: dict[2]
+   full.stop_ready: None | None | None
+   full.stop_record: record STOPPED/lots stop_close=2026-10-27T20:00:00+00:00
+   pre_stop.nvs: False
+   pre_stop.sampled_seals: dict[2]
+   pre_stop.stop_ready: None | None | None
+   pre_stop.stop_record: record STOPPED/lots stop_close=2026-10-27T20:00:00+00:00
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['dict[0]', 'dict[1]']
+   prefixes.stop_record: ['None']
+== no-seal-stage: 89 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: False
+   full.sampled_seals: dict[3]
+   full.stop_ready: 'no stop candidate in committed history' | 'no stop candidate in committed history' | 'no stop candidate in committed history'
+   full.stop_record: None
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['dict[0]', 'dict[1]']
+   prefixes.stop_record: ['None']
+== no-stop-three-qualified: 98 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: False
+   full.sampled_seals: dict[3]
+   full.stop_ready: 'no stop candidate in committed history' | 'no stop candidate in committed history' | 'no stop candidate in committed history'
+   full.stop_record: None
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['dict[0]', 'dict[1]']
+   prefixes.stop_record: ['None']
+== nvs: 157 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: True
+   full.sampled_history: dict[2]
+   full.sampled_seals: dict[0]
+   full.sampled_seals_upto_stop: dict[0]
+   full.stop_ready: 'not ready: transaction clock 2026-10-26T13:30:00+00:00 < 2027-04-26T1 | None | None
+   full.stop_record: record NO-VALID-SEAL/timeout stop_close=None
+   pre_stop.nvs: False
+   pre_stop.sampled_seals: dict[0]
+   pre_stop.stop_ready: 'not ready: transaction clock 2026-10-26T13:30:00+00:00 < 2027-04-26T1 | None | None
+   pre_stop.stop_record: record NO-VALID-SEAL/timeout stop_close=None
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['dict[0]']
+   prefixes.stop_record: ['None']
+== pending: 94 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: False
+   full.sampled_seals: dict[2]
+   full.stop_ready: 'no stop candidate in committed history' | 'no stop candidate in committed history' | 'no stop candidate in committed history'
+   full.stop_record: None
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['dict[0]', 'dict[1]']
+   prefixes.stop_record: ['None']
+== six-month-timeout: 173 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: False
+   full.sampled_history: dict[2]
+   full.sampled_seals: dict[2]
+   full.sampled_seals_upto_stop: dict[2]
+   full.stop_ready: 'not ready: transaction clock 2026-10-26T13:30:00+00:00 < 2027-04-26T1 | None | None
+   full.stop_record: record TIMEOUT/timeout stop_close=2026-10-27T20:00:00+00:00
+   pre_stop.nvs: False
+   pre_stop.sampled_seals: dict[2]
+   pre_stop.stop_ready: 'not ready: transaction clock 2026-10-26T13:30:00+00:00 < 2027-04-26T1 | None | None
+   pre_stop.stop_record: record TIMEOUT/timeout stop_close=2026-10-27T20:00:00+00:00
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['dict[0]', 'dict[1]', 'dict[2]']
+   prefixes.stop_record: ['None', 'record TIMEOUT/timeout stop_cl']
+== timeout-99: 178 rows, eligible ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30',, 13 prefixes
+   full.nvs: False
+   full.sampled_history: dict[2]
+   full.sampled_seals: dict[3]
+   full.sampled_seals_upto_stop: dict[3]
+   full.stop_ready: 'not ready: transaction clock 2026-10-26T13:30:00+00:00 < 2027-04-26T1 | None | None
+   full.stop_record: record TIMEOUT/timeout stop_close=2026-10-28T20:00:00+00:00
+   pre_stop.nvs: False
+   pre_stop.sampled_seals: dict[3]
+   pre_stop.stop_ready: 'not ready: transaction clock 2026-10-26T13:30:00+00:00 < 2027-04-26T1 | None | None
+   pre_stop.stop_record: record TIMEOUT/timeout stop_close=2026-10-28T20:00:00+00:00
+   prefixes.nvs: ['False']
+   prefixes.sampled_seals: ['dict[0]', 'dict[1]', 'dict[3]']
+   prefixes.stop_record: ['None']
+
+## scripts (scratch; sha256 and full text)
+2917ed34b64d20b46a08b49695ff7aa67dcd599452ab6d96a9ac5b86475702e2 *test_golden_build.py
+ba9e343ca01cd5521244dcd1c7af5e25cfac41bb8298852365183a362cef62b2 *golden_eval.py
+d36ae885edfddb662c8fe15e4e56fccd5f376c3fa50892c5dc5dcf6d6097337e *summarize.py
+
+----- test_golden_build.py
+"""H5b golden fixtures (scratch only, never in the worktree): each case builds a connected s1_out/ under its own
+tmp_path through the REAL product gates (conftest.s1_state), applies its damage, and appends {name, root, now} to the
+manifest named by H5B_GOLD_MANIFEST. Run once, against the BASE copy; the fixtures are then evaluated read-only by
+golden_eval.py under the BASE code and under the H5b code (same fixture bytes)."""
+import json
+import os
+from pathlib import Path
+
+import pytest
+import s1_journal as j
+import s1_seal as z
+import s1_slot as sl
+import s1_trial as t
+from conftest import s1_jappend, s1_state
+
+START = "2026-10-26T13:30:00+00:00"
+LOTS99 = [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, 80.0) if i < 99 else None}
+          for i in range(100)]
+LOTS40 = [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, 80.0)} for i in range(40)]
+
+
+def mb(root):
+    return Path(root) / "mailbox.sqlite3"
+
+
+def first_seal_files(root):
+    out = Path(root) / "s1_out"
+    tr = t.open_trial(mb(root))
+    rows = j.read_trial(tr.trial_id, tr.genesis, mb(root))
+    pr = json.loads((out / "prereg.json").read_text(encoding="utf-8"))
+    import s1_common as c
+    day, (q, _b) = sorted(z.sampled_seals(out, rows, pr["calendar"], c.aware(pr["start"])).items())[0]
+    return sl.names(out, sl.slot_of(q.subject), day)
+
+
+def build(name, root):
+    if name == "lots-stopped":
+        return s1_state(root, START, score_ready=True)
+    if name == "six-month-timeout":
+        return s1_state(root, START, score_ready=True, lots=LOTS40)
+    if name == "timeout-99":
+        return s1_state(root, START, score_ready=True, lots=LOTS99, seal_days=[0, 1, 2])
+    if name == "no-stop-three-qualified":
+        return s1_state(root, START, score_ready=True, stop=False, lots=LOTS99, seal_days=[0, 1, 2])
+    if name == "no-seal-stage":
+        return s1_state(root, START, score_ready=True, stop=False, seal_stage=False, lots=LOTS99,
+                        seal_days=[0, 1, 2])
+    if name == "nvs":
+        from test_s1_a3_nvs import nvs_chain
+        return nvs_chain(root)
+    if name == "pending":
+        st_ = s1_state(root, START, score_ready=True, stop=False, lots=LOTS99, seal_days=[1, 2])
+        import s1_common as c
+        d0 = z.eligible_sessions(c.aware(START), st_["calendar"])[0]
+        s = z.schedule(d0, st_["calendar"])[0]
+        s1_jappend(root, "SLOT-INTENT", j.slot_subject(s), at=s, op="1" * 32, actor="2" * 32)
+        return st_
+    if name.startswith("damaged-"):
+        st_ = s1_state(root, START, score_ready=True)
+        n = first_seal_files(root)
+        if name == "damaged-resolution-appended":
+            n["resolution"].write_bytes(n["resolution"].read_bytes() + b" ")
+        elif name == "damaged-backup-same-size":
+            p = n["capture"] / "backup.sqlite3"
+            st = p.stat()
+            b = bytearray(p.read_bytes())
+            b[-1] ^= 0x01
+            p.write_bytes(bytes(b))
+            os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns))
+        elif name == "damaged-backup-missing":
+            (n["capture"] / "backup.sqlite3").unlink()
+        elif name == "damaged-resolution-malformed":
+            n["resolution"].write_bytes(b"{not json")
+        elif name == "damaged-projection-changed":
+            p = n["capture"] / "projection.json"
+            p.write_bytes(p.read_bytes() + b" ")
+        return st_
+    raise AssertionError(name)
+
+
+CASES = ["lots-stopped", "six-month-timeout", "timeout-99", "no-stop-three-qualified", "no-seal-stage", "nvs",
+         "pending", "damaged-resolution-appended", "damaged-backup-same-size", "damaged-backup-missing",
+         "damaged-resolution-malformed", "damaged-projection-changed"]
+
+
+@pytest.mark.parametrize("name", CASES)
+def test_build(tmp_path, name):
+    st_ = build(name, tmp_path)
+    with open(os.environ["H5B_GOLD_MANIFEST"], "a", encoding="utf-8") as f:
+        f.write(json.dumps({"name": name, "root": str(tmp_path), "now": st_["now"].isoformat()}) + "\n")
+
+----- golden_eval.py
+"""H5b golden evaluation: python golden_eval.py <research/s1 dir of the code under test> <manifest.jsonl> <out.json>.
+Imports s1_* from the given code dir only, evaluates the stop_record -> sampled_seals -> NVS chain (and stop_ready,
+eligible_sessions, sampled_history) read-only on every fixture of the manifest, over the full rows, the pre-STOP rows
+and a sweep of row prefixes, and writes one canonical JSON document (exceptions recorded as type, text and identity)."""
+import base64
+import json
+import sys
+from datetime import timedelta
+from pathlib import Path
+
+CODE, MANIFEST, OUT = Path(sys.argv[1]).resolve(), Path(sys.argv[2]), Path(sys.argv[3])
+sys.path.insert(0, str(CODE))
+
+import s1_common as c  # noqa: E402
+import s1_journal as j  # noqa: E402
+import s1_receipt  # noqa: E402
+import s1_seal as z  # noqa: E402
+import s1_trial as t  # noqa: E402
+
+assert Path(z.__file__).resolve().parent == CODE, z.__file__
+
+
+def row(x):
+    return None if x is None else [x.seq, x.sha, x.subject, x.kind]
+
+
+def safe(fn):
+    try:
+        return {"ok": enc(fn())}
+    except BaseException as e:  # noqa: BLE001 - every outcome is the golden, exceptions included
+        if isinstance(e, KeyboardInterrupt):
+            raise
+        ident = getattr(e, "identity", None)
+        return {"exc": type(e).__name__, "msg": str(e), "identity": list(ident) if ident else None}
+
+
+def enc(v):
+    if isinstance(v, bytes):
+        return {"b64": base64.b64encode(v).decode("ascii")}
+    if isinstance(v, dict):
+        return {str(k): enc(x) for k, x in v.items()}
+    if isinstance(v, (list, tuple)):
+        return [enc(x) for x in v]
+    if hasattr(v, "seq") and hasattr(v, "sha"):
+        return {"row": row(v)}
+    if hasattr(v, "isoformat"):
+        return v.isoformat()
+    return v
+
+
+def seals_enc(s):
+    return {d: {"q": row(q), "bytes_b64": base64.b64encode(b).decode("ascii")} for d, (q, b) in sorted(s.items())}
+
+
+def chain(out, rows, start, cal, bundle, nows):
+    stop = j.first(rows, "TRIAL-STOP")
+    res = {"stop_record": safe(lambda: z.stop_record(out, rows, start, cal, bundle)),
+           "nvs": safe(lambda: z.nvs(out, rows, start, cal, bundle)),
+           "sampled_seals": safe(lambda: seals_enc(z.sampled_seals(out, rows, cal, start))),
+           "stop_ready": {n.isoformat(): safe(lambda n=n: z.stop_ready(out, rows, start, cal, bundle, n))
+                          for n in nows}}
+    if stop is not None:
+        res["sampled_seals_upto_stop"] = safe(lambda: seals_enc(z.sampled_seals(out, rows, cal, start,
+                                                                                upto_seq=stop.seq)))
+        res["sampled_history"] = safe(lambda: z.sampled_history(
+            rows, stop, z.sampled_seals(out, rows, cal, start, upto_seq=stop.seq)))
+    return res
+
+
+def main():
+    got = {}
+    for line in MANIFEST.read_text(encoding="utf-8").splitlines():
+        m = json.loads(line)
+        root = Path(m["root"])
+        mb = root / "mailbox.sqlite3"
+        c.MAILBOX = mb
+        s1_receipt.HMAC_KEY = root / "s1_receipt_hmac.key"
+        out = root / "s1_out"
+        trs = t.trials(t.scan(mb))
+        (tid,) = [x for x, tr_ in trs.items() if tr_.closed is None]
+        tr = trs[tid]
+        rows = j.read_trial(tid, tr.genesis, mb)
+        pr = json.loads((out / "prereg.json").read_text(encoding="utf-8"))
+        start, cal, bundle = c.aware(pr["start"]), pr["calendar"], tr.bundle
+        now = c.aware(m["now"])
+        nows = [start, now, now + timedelta(days=400)]
+        stop = j.first(rows, "TRIAL-STOP")
+        case = {"rows": [row(x) for x in rows],
+                "eligible_sessions": safe(lambda: [d["date"] for d in z.eligible_sessions(start, cal)]),
+                "full": chain(out, rows, start, cal, bundle, nows)}
+        if stop is not None:
+            case["pre_stop"] = chain(out, [x for x in rows if x.seq < stop.seq], start, cal, bundle, nows)
+        cuts = sorted({x.seq for x in rows if x.kind in ("SLOT-QUALIFIED", "SLOT-INTENT", "SLOT-FAILED",
+                                                         "SLOT-TIMEOUT", "SLOT-MISSED", "TRIAL-STOP")})
+        case["prefixes"] = {str(s): {"stop_record": safe(lambda s=s: z.stop_record(
+            out, [x for x in rows if x.seq <= s], start, cal, bundle)),
+            "nvs": safe(lambda s=s: z.nvs(out, [x for x in rows if x.seq <= s], start, cal, bundle)),
+            "sampled_seals": safe(lambda s=s: seals_enc(z.sampled_seals(out, rows, cal, start, upto_seq=s)))}
+            for s in cuts[::max(1, len(cuts) // 12)]}
+        got[m["name"]] = case
+    OUT.write_bytes(json.dumps(got, sort_keys=True, ensure_ascii=True, indent=1).encode("ascii"))
+    print(f"{len(got)} fixtures -> {OUT}")
+
+
+if __name__ == "__main__":
+    main()
+
+----- summarize.py
+"""Summarize a golden JSON: per fixture, the outcome kind of each chain result (ok value shape or exception type)."""
+import json
+import sys
+from pathlib import Path
+
+g = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+
+
+def kind(r):
+    if "exc" in r:
+        return f"EXC {r['exc']}: {r['msg'][:70]}"
+    v = r["ok"]
+    if isinstance(v, dict):
+        if "status" in v:
+            return f"record {v['status']}/{v['rule']} stop_close={v['stop_close']}"
+        return f"dict[{len(v)}]"
+    return repr(v)[:70]
+
+
+for name, case in g.items():
+    print(f"== {name}: {len(case['rows'])} rows, eligible {kind(case['eligible_sessions'])}, "
+          f"{len(case['prefixes'])} prefixes")
+    for part in ("full", "pre_stop"):
+        if part not in case:
+            continue
+        for k, r in case[part].items():
+            if k == "stop_ready":
+                print(f"   {part}.stop_ready: " + " | ".join(kind(x) for x in r.values()))
+            else:
+                print(f"   {part}.{k}: {kind(r)}")
+    pk = {}
+    for s, p in case["prefixes"].items():
+        for k, r in p.items():
+            pk.setdefault(k, []).append(kind(r).split(":")[0][:30])
+    for k, v in pk.items():
+        print(f"   prefixes.{k}: {sorted(set(v))}")

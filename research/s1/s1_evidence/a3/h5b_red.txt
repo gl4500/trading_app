@@ -1,0 +1,623 @@
+# A3 H5b RED at base e3d7bc9 (product unchanged; the new test file test_s1_a3_h5b_pass.py and the changed test_s1_a3_score.py copied into a scratch copy of research/s1 at the base: git archive e3d7bc9 research/s1). Run 2026-11-15T21:12:31Z
+# cmd (from the scratch copy root): PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_h5b_pass.py research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation -q --tb=short -rA
+# Every one of the 49 failures is an AssertionError (none is a NameError/ImportError/AttributeError): 'grep -E "^E   [A-Za-z]+Error"' tallies 49 AssertionError lines and nothing else.
+# The 20 passes are the behavioural controls that hold at the base too (pin change at a boundary refuses, damage controls, verification point, row prefix); they are mutant-killing tests (h5b_mutants.txt), not REDs.
+FFFFF.FF...............FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF....FFFFFF    [100%]
+================================== FAILURES ===================================
+_________ test_h5b_one_verification_per_standalone_pass[stop_record] __________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:103: in test_h5b_one_verification_per_standalone_pass
+    assert sims(loads, n0) == 1, f"{owner}: {sims(loads, n0)} pinned-module verifications in one pass (want 1)"
+E   AssertionError: stop_record: 372 pinned-module verifications in one pass (want 1)
+E   assert 372 == 1
+E    +  where 372 = sims(['e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', ...], 0)
+________ test_h5b_one_verification_per_standalone_pass[sampled_seals] _________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:103: in test_h5b_one_verification_per_standalone_pass
+    assert sims(loads, n0) == 1, f"{owner}: {sims(loads, n0)} pinned-module verifications in one pass (want 1)"
+E   AssertionError: sampled_seals: 292 pinned-module verifications in one pass (want 1)
+E   assert 292 == 1
+E    +  where 292 = sims(['e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', ...], 0)
+_____________ test_h5b_one_verification_per_standalone_pass[nvs] ______________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:103: in test_h5b_one_verification_per_standalone_pass
+    assert sims(loads, n0) == 1, f"{owner}: {sims(loads, n0)} pinned-module verifications in one pass (want 1)"
+E   AssertionError: nvs: 372 pinned-module verifications in one pass (want 1)
+E   assert 372 == 1
+E    +  where 372 = sims(['e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', ...], 0)
+__________ test_h5b_one_verification_per_standalone_pass[stop_ready] __________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:103: in test_h5b_one_verification_per_standalone_pass
+    assert sims(loads, n0) == 1, f"{owner}: {sims(loads, n0)} pinned-module verifications in one pass (want 1)"
+E   AssertionError: stop_ready: 532 pinned-module verifications in one pass (want 1)
+E   assert 532 == 1
+E    +  where 532 = sims(['e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', ...], 0)
+______ test_h5b_one_verification_per_standalone_pass[eligible_sessions] _______
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:103: in test_h5b_one_verification_per_standalone_pass
+    assert sims(loads, n0) == 1, f"{owner}: {sims(loads, n0)} pinned-module verifications in one pass (want 1)"
+E   AssertionError: eligible_sessions: 160 pinned-module verifications in one pass (want 1)
+E   assert 160 == 1
+E    +  where 160 = sims(['e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', ...], 0)
+________________ test_h5b_score_boundaries_each_verify_afresh _________________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:145: in test_h5b_score_boundaries_each_verify_afresh
+    assert ("nvs", False, 1) in seen and ("nvs", True, 1) in seen and ("sampled_seals", False, 1) in seen, seen
+E   AssertionError: [('nvs', False, 372), ('sampled_seals', False, 292), ('nvs', True, 372)]
+E   assert (('nvs', False, 1) in [('nvs', False, 372), ('sampled_seals', False, 292), ('nvs', True, 372)])
+__________ test_h5b_confirming_pass_verifies_once_and_shares_nothing __________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:181: in test_h5b_confirming_pass_verifies_once_and_shares_nothing
+    assert per["after1"] - per["before1"] == 1, per                       # pass 1: its own one verification
+E   AssertionError: {'after1': 1312, 'after2': 1474, 'before1': 1151, 'before2': 1313}
+E   assert (1312 - 1151) == 1
+______ test_h5b_helpers_fail_closed_without_a_live_pass[missing-pinned] _______
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_____ test_h5b_helpers_fail_closed_without_a_live_pass[missing-_eligible] _____
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+___ test_h5b_helpers_fail_closed_without_a_live_pass[missing-_close_state] ____
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+__ test_h5b_helpers_fail_closed_without_a_live_pass[missing-_sampled_seals] ___
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+___ test_h5b_helpers_fail_closed_without_a_live_pass[missing-_stop_record] ____
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_______ test_h5b_helpers_fail_closed_without_a_live_pass[missing-_nvs] ________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-pinned] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-_eligible] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-_close_state] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-_sampled_seals] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-_stop_record] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-_nvs] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-sampled_seals(px=)] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-pinned] __
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-_eligible] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-_close_state] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-_sampled_seals] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-_stop_record] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+__ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-_nvs] ___
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-sampled_seals(px=)] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-pinned] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-_eligible] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-_close_state] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-_sampled_seals] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-_stop_record] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-_nvs] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-sampled_seals(px=)] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_______ test_h5b_helpers_fail_closed_without_a_live_pass[ended-pinned] ________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+______ test_h5b_helpers_fail_closed_without_a_live_pass[ended-_eligible] ______
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+____ test_h5b_helpers_fail_closed_without_a_live_pass[ended-_close_state] _____
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+___ test_h5b_helpers_fail_closed_without_a_live_pass[ended-_sampled_seals] ____
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+____ test_h5b_helpers_fail_closed_without_a_live_pass[ended-_stop_record] _____
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+________ test_h5b_helpers_fail_closed_without_a_live_pass[ended-_nvs] _________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[ended-sampled_seals(px=)] __
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:340: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+___________________ test_h5b_pass_created_only_by_its_owner ___________________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:349: in test_h5b_pass_created_only_by_its_owner
+    helper("SealPass")(object())
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper SealPass (H5b)
+E   assert None is not None
+_______________ test_h5b_stale_pass_with_a_changed_pin_refuses ________________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:355: in test_h5b_stale_pass_with_a_changed_pin_refuses
+    px = _ended_pass()
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:309: in _ended_pass
+    with helper("seal_pass")() as px:
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:84: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned"), ("after1", "pinned")], sims   # H5b
+E   AssertionError: [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...]
+E   assert [(1, '_close'..._close'), ...] == [(1, 'pinned'...1', 'pinned')]
+E     
+E     At index 0 diff: (1, '_close') != (1, 'pinned')
+E     Left contains 321 more items, first extra item: (1, '_close')
+E     Use -v to get more diff
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned"), ("after1", "pinned")], sims   # H5b
+E   AssertionError: [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...]
+E   assert [(1, '_close'..._close'), ...] == [(1, 'pinned'...1', 'pinned')]
+E     
+E     At index 0 diff: (1, '_close') != (1, 'pinned')
+E     Left contains 323 more items, first extra item: (1, '_close')
+E     Use -v to get more diff
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned"), ("after1", "pinned")], sims   # H5b
+E   AssertionError: [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...]
+E   assert [(1, '_close'..._close'), ...] == [(1, 'pinned'...1', 'pinned')]
+E     
+E     At index 0 diff: (1, '_close') != (1, 'pinned')
+E     Left contains 321 more items, first extra item: (1, '_close')
+E     Use -v to get more diff
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned"), ("after1", "pinned")], sims   # H5b
+E   AssertionError: [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...]
+E   assert [(1, '_close'..._close'), ...] == [(1, 'pinned'...1', 'pinned')]
+E     
+E     At index 0 diff: (1, '_close') != (1, 'pinned')
+E     Left contains 321 more items, first extra item: (1, '_close')
+E     Use -v to get more diff
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned"), ("after1", "pinned")], sims   # H5b
+E   AssertionError: [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...]
+E   assert [(1, '_close'..._close'), ...] == [(1, 'pinned'...1', 'pinned')]
+E     
+E     At index 0 diff: (1, '_close') != (1, 'pinned')
+E     Left contains 321 more items, first extra item: (1, '_close')
+E     Use -v to get more diff
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned"), ("after1", "pinned")], sims   # H5b
+E   AssertionError: [('before', 'evidence_problems'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ('before', '_close'), ...]
+E   assert [(1, '_close'..._close'), ...] == [(1, 'pinned'...1', 'pinned')]
+E     
+E     At index 0 diff: (1, '_close') != (1, 'pinned')
+E     Left contains 321 more items, first extra item: (1, '_close')
+E     Use -v to get more diff
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_no_module_use_no_verification
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-stop_record]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-sampled_seals]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-nvs]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-stop_ready]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[pin-constant-eligible_sessions]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-stop_record]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-sampled_seals]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-nvs]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-stop_ready]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_passes_refuses[module-file-mutated-eligible_sessions]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_before_score_transaction_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_before_confirming_pass_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_gates_refuses
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_stop_decision_seal_stages_refuses
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_same_size_same_mtime_damage_detected_by_the_next_pass[stop_record]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_same_size_same_mtime_damage_detected_by_the_next_pass[sampled_seals]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_unsampled_tree_damage_still_detected
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pending_slot_still_blocks_the_record
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[stop_ready]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_one_verification_per_standalone_pass[eligible_sessions]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_score_boundaries_each_verify_afresh
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_confirming_pass_verifies_once_and_shares_nothing
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-pinned]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-_eligible]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-_close_state]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-_sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-_stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-_nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-pinned]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-_eligible]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-_close_state]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-_sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-_stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-_nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-sampled_seals(px=)]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-pinned]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-_eligible]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-_close_state]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-_sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-_stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-_nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-sampled_seals(px=)]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-pinned]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-_eligible]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-_close_state]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-_sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-_stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-_nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-sampled_seals(px=)]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-pinned]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-_eligible]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-_close_state]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-_sampled_seals]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-_stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-_nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-sampled_seals(px=)]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_created_only_by_its_owner
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stale_pass_with_a_changed_pin_refuses
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed]
+49 failed, 20 passed in 325.85s (0:05:25)
+pytest_rc=1
+
+################################################################ FIX ROUND 1 RED (appended)
+# The new/changed fix-round-1 tests against the BASE code (scratch git-archive copy of e3d7bc9; product unchanged): 22 failed, 4 passed.
+# All 22 failures are AssertionErrors (grep '^E   [A-Za-z]+(Error|Exception)': 22 AssertionError lines, nothing else).
+# The 4 passes are behavioural controls that hold at the base (pin change refuses with the exact text inside the transaction, outcome-first): the score-transaction [lots, nvs-ack-in-transaction], the TRIAL-STOP transaction, and the seal-stage one (one run_seal_stage entry). They are mutant-killing tests (h5b_mutants.txt, mutants 1 and 6).
+# Fix round 1 RED at base e3d7bc9 (product unchanged; the fix-round-1 test files copied into the scratch git-archive copy). Run 2026-11-15T23:54:59Z
+# cmd: ... -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_h5b_pass.py research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation -k "test_h5b_fifo_replay_uses_this_pass_module or test_h5b_pass_fifo_replay_equals_public_sold_events or test_h5b_nvs_score_ack_transaction_verifies_afresh or test_h5b_trial_stop_transaction_passes_verify_afresh or test_h5b_pin_change_before_trial_stop_transaction_refuses_with_no_row or test_h5b_pin_change_before_score_transaction_refuses_with_no_row or test_h5b_pin_change_between_stop_decision_seal_stages_refuses or books or h5cfix_real_raise" -q --tb=short -rA
+..FF..FFFFFFFFFFFFFFFFFFFF                                               [100%]
+================================== FAILURES ===================================
+_____________ test_h5b_nvs_score_ack_transaction_verifies_afresh ______________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:312: in test_h5b_nvs_score_ack_transaction_verifies_afresh
+    assert (None, 1) in seen and ("STAGE-INTENT", 1) in seen and all(n == 1 for _, n in seen), seen
+E   AssertionError: [(None, 741), ('STAGE-INTENT', 741), (None, 741)]
+E   assert ((None, 1) in [(None, 741), ('STAGE-INTENT', 741), (None, 741)])
+____________ test_h5b_trial_stop_transaction_passes_verify_afresh _____________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:338: in test_h5b_trial_stop_transaction_passes_verify_afresh
+    assert ("stop_record", None, 1) in seen, seen                              # the pre-transaction pass
+E   AssertionError: [('stop_record', None, 372), ('stop_record', None, 372), ('stop_record', 'TRIAL-STOP', 372), ('stop_record', 'TRIAL-STOP', 372), ('stop_ready', 'TRIAL-STOP', 532)]
+E   assert ('stop_record', None, 1) in [('stop_record', None, 372), ('stop_record', None, 372), ('stop_record', 'TRIAL-STOP', 372), ('stop_record', 'TRIAL-STOP', 372), ('stop_ready', 'TRIAL-STOP', 532)]
+_ test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._sold_events] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:478: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:86: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._economic_in] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:478: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:86: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-books._sold_events] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:478: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:86: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-books._economic_in] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:478: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:86: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-books._sold_events] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:478: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:86: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-books._economic_in] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:478: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:86: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-books._sold_events] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:478: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:86: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-books._economic_in] _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:478: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:86: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[ended-books._sold_events] __
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:478: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:86: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+_ test_h5b_helpers_fail_closed_without_a_live_pass[ended-books._economic_in] __
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:478: in test_h5b_helpers_fail_closed_without_a_live_pass
+    helper(n)
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:86: in helper
+    assert fn is not None, f"s1_seal has no pass-scoped helper {name} (H5b)"
+E   AssertionError: s1_seal has no pass-scoped helper seal_pass (H5b)
+E   assert None is not None
+___________ test_h5b_fifo_replay_uses_this_pass_module[stop_record] ___________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: in test_h5b_fifo_replay_uses_this_pass_module
+    assert len(made) == k + 1, f"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)"
+E   AssertionError: pass 0: 372 verifications (want exactly 1, fresh)
+E   assert 372 == (0 + 1)
+E    +  where 372 = len([<test_s1_a3_h5b_pass._Proxy object at 0x000002845C988200>, <test_s1_a3_h5b_pass._Proxy object at 0x000002845C988CB0>,...st_s1_a3_h5b_pass._Proxy object at 0x000002845C98A480>, <test_s1_a3_h5b_pass._Proxy object at 0x000002845C989040>, ...])
+_______________ test_h5b_fifo_replay_uses_this_pass_module[nvs] _______________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: in test_h5b_fifo_replay_uses_this_pass_module
+    assert len(made) == k + 1, f"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)"
+E   AssertionError: pass 0: 372 verifications (want exactly 1, fresh)
+E   assert 372 == (0 + 1)
+E    +  where 372 = len([<test_s1_a3_h5b_pass._Proxy object at 0x000002845C05B470>, <test_s1_a3_h5b_pass._Proxy object at 0x000002845C288EC0>,...st_s1_a3_h5b_pass._Proxy object at 0x000002845C288B00>, <test_s1_a3_h5b_pass._Proxy object at 0x000002845C288D10>, ...])
+___________ test_h5b_fifo_replay_uses_this_pass_module[stop_ready] ____________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: in test_h5b_fifo_replay_uses_this_pass_module
+    assert len(made) == k + 1, f"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)"
+E   AssertionError: pass 0: 532 verifications (want exactly 1, fresh)
+E   assert 532 == (0 + 1)
+E    +  where 532 = len([<test_s1_a3_h5b_pass._Proxy object at 0x000002845C98A900>, <test_s1_a3_h5b_pass._Proxy object at 0x000002845C988890>,...st_s1_a3_h5b_pass._Proxy object at 0x000002845C9884A0>, <test_s1_a3_h5b_pass._Proxy object at 0x000002845C22B500>, ...])
+_____________ test_h5b_pass_fifo_replay_equals_public_sold_events _____________
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:541: in test_h5b_pass_fifo_replay_equals_public_sold_events
+    assert fn is not None, "s1_books has no pass-scoped _sold_events (H5b)"
+E   AssertionError: s1_books has no pass-scoped _sold_events (H5b)
+E   assert None is not None
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned", "_eligible"),          # H5b: pass 1's own;
+E   AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...lose', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ...]
+E   assert [(1, '_close'...ssions'), ...] == [(1, 'pinned'...t_qualified')]
+E     
+E     At index 0 diff: (1, '_close', 'eligible_sessions') != (1, 'pinned', '_eligible')
+E     Left contains 321 more items, first extra item: (1, '_close', 'eligible_sessions')
+E     Use -v to get more diff
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned", "_eligible"),          # H5b: pass 1's own;
+E   AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...lose', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ...]
+E   assert [(1, '_close'...ssions'), ...] == [(1, 'pinned'...t_qualified')]
+E     
+E     At index 0 diff: (1, '_close', 'eligible_sessions') != (1, 'pinned', '_eligible')
+E     Left contains 323 more items, first extra item: (1, '_close', 'eligible_sessions')
+E     Use -v to get more diff
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned", "_eligible"),          # H5b: pass 1's own;
+E   AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...lose', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ...]
+E   assert [(1, '_close'...ssions'), ...] == [(1, 'pinned'...t_qualified')]
+E     
+E     At index 0 diff: (1, '_close', 'eligible_sessions') != (1, 'pinned', '_eligible')
+E     Left contains 321 more items, first extra item: (1, '_close', 'eligible_sessions')
+E     Use -v to get more diff
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned", "_eligible"),          # H5b: pass 1's own;
+E   AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...lose', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ...]
+E   assert [(1, '_close'...ssions'), ...] == [(1, 'pinned'...t_qualified')]
+E     
+E     At index 0 diff: (1, '_close', 'eligible_sessions') != (1, 'pinned', '_eligible')
+E     Left contains 321 more items, first extra item: (1, '_close', 'eligible_sessions')
+E     Use -v to get more diff
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned", "_eligible"),          # H5b: pass 1's own;
+E   AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...lose', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ...]
+E   assert [(1, '_close'...ssions'), ...] == [(1, 'pinned'...t_qualified')]
+E     
+E     At index 0 diff: (1, '_close', 'eligible_sessions') != (1, 'pinned', '_eligible')
+E     Left contains 321 more items, first extra item: (1, '_close', 'eligible_sessions')
+E     Use -v to get more diff
+_ test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed] _
+research\s1\s1_tests\test_s1_a3_score.py:841: in test_h5cfix_real_raise_sites_confirm_only_the_same_observation
+    assert [x for x in sims if x[0] in (1, "after1", 2)] == [(1, "pinned", "_eligible"),          # H5b: pass 1's own;
+E   AssertionError: [('before', 'evidence_problems', 'evidence_check'), ('before', '_close', 'close_of'), ('before', '_close', 'schedule')...lose', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ('before', '_close', 'eligible_sessions'), ...]
+E   assert [(1, '_close'...ssions'), ...] == [(1, 'pinned'...t_qualified')]
+E     
+E     At index 0 diff: (1, '_close', 'eligible_sessions') != (1, 'pinned', '_eligible')
+E     Left contains 321 more items, first extra item: (1, '_close', 'eligible_sessions')
+E     Use -v to get more diff
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_before_score_transaction_refuses_with_no_row[lots]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_before_score_transaction_refuses_with_no_row[nvs-ack-in-transaction]
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_before_trial_stop_transaction_refuses_with_no_row
+PASSED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pin_change_between_stop_decision_seal_stages_refuses
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_nvs_score_ack_transaction_verifies_afresh
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_trial_stop_transaction_passes_verify_afresh
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._sold_events]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._economic_in]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-books._sold_events]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-evidence-pass-books._economic_in]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-books._sold_events]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[foreign-namespace-books._economic_in]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-books._sold_events]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[forged-uninitialised-books._economic_in]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-books._sold_events]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[ended-books._economic_in]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_record]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[nvs]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_ready]
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-differs]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[moved-differs]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-absent-member]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[different-absent-members]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[absent-then-malformed]
+FAILED research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_real_raise_sites_confirm_only_the_same_observation[same-malformed]
+22 failed, 4 passed, 61 deselected in 143.20s (0:02:23)
+pytest_rc=1

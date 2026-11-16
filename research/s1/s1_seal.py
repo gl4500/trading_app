@@ -7,6 +7,7 @@ Task 12 (controller-added), Addendum 1: the deadline is an aware INSTANT and eve
 E = W = s, A5.3); the pinned provider calendar's completeness (A6); the persisted stop, s1_out/stop.json (A2)."""
 import calendar as pycal
 import json
+from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
@@ -19,6 +20,59 @@ RESOLUTION_TIMEOUT = timedelta(minutes=30)  # Addendum 2 B1.1 (Codex R-b): D(s) 
 STOP_N = 100
 FINAL_LAG_SESSIONS = 3                    # v5 §13: no earlier than the close of the 3rd session after the stop
 ENDED = ("STOPPED", "TIMEOUT", "NO-VALID-SEAL")
+
+
+# ------------------------------------------------------------------ A3 H5b (Codex Q2): one verified module per pass
+PASS_REFUSAL = ("s1_seal evidence pass: no live evidence pass of this module (missing, foreign or ended): refused "
+                "with no row (Codex Q2, Erratum 2 r4 G3.1-G3.2: fail closed)")
+_PASS_OWNER = object()                    # used only by seal_pass (a guard against accidental reuse, not forgery)
+
+
+class SealPass:
+    """A3 H5b (Codex Q2 ruling ef7cfe61; Erratum 2 r4 G3.1-G3.2): ONE evidence pass of the stop_record ->
+    sampled_seals -> NVS helper chain. It carries ONLY the pinned module this pass verified (c.sim(): load_pinned,
+    fail closed), verified at its FIRST use in the pass - the point of the first c.sim() of the pre-H5b code, so a
+    pass that never needs the module verifies nothing, as before - and then shared by the callees of this pass only.
+    It carries no calendar, hash, tree, index or file-validity result: every evidence read stays live. Made by
+    seal_pass (its owner); ended when the owner's block exits (then refused: stale, its module reference dropped).
+    Never stored on a gate, a module global, a lock record or a file, never handed across a confirming read, a fresh
+    journal read, a callback, an authorization boundary, a transaction or a command (I-7). The owner token and the
+    _live check are a guard against ACCIDENTAL reuse (a missing, foreign, ended or uninitialised context); they are
+    not a security boundary - deliberate forgery is always possible in Python (fix round 1, N-3)."""
+    __slots__ = ("_sim", "_live")
+
+    def __init__(self, owner):
+        if owner is not _PASS_OWNER:
+            raise TypeError("an evidence pass is created only by s1_seal.seal_pass (its owner)")
+        self._sim, self._live = None, True
+
+
+@contextmanager
+def seal_pass():
+    """A3 H5b: a NEW evidence pass, ended when the block exits (normally or by an exception)."""
+    px = SealPass(_PASS_OWNER)
+    try:
+        yield px
+    finally:
+        px._sim, px._live = None, False
+
+
+def _live(px) -> SealPass:
+    """A3 H5b (B3): `px` when it is a live pass made by seal_pass. None, a foreign object (an s1_slot.EvidencePass, a
+    look-alike), a forged or an ended pass refuses (SystemExit, no row) - never a fallback to an unverified module, a
+    global flag or another pass's module."""
+    if type(px) is not SealPass or getattr(px, "_live", False) is not True:
+        raise SystemExit(PASS_REFUSAL)
+    return px
+
+
+def pinned(px):
+    """A3 H5b: the pinned module of the live pass `px`: verified once, at its first use in the pass (c.sim()), then
+    the same module for the rest of THIS pass only."""
+    px = _live(px)
+    if px._sim is None:
+        px._sim = c.sim()
+    return px._sim
 
 
 def _ny(d: str, hhmm: str) -> datetime:
@@ -328,6 +382,15 @@ def count_sold(trades, start: datetime, close: datetime) -> int:
     return sum(1 for lid in b.sold_events(asof) if lid in ids)
 
 
+def _count_sold(px, trades, start: datetime, close: datetime) -> int:
+    """count_sold within the live pass `px` (A3 H5b): the sold events replayed with the pass's verified module (fix
+    round 1, I-1: s1_books._sold_events takes the pass itself and checks it, never a bare module or callable)."""
+    _live(px)
+    asof = [t for t in trades if c.aware(t["ts"]) <= close]
+    ids = {t["id"] for t in cohort(asof, start, close)}
+    return sum(1 for lid in b._sold_events(asof, px) if lid in ids)
+
+
 def deadline(start: datetime) -> datetime:
     """A5.1: START + 6 calendar months at START's New York wall time (missing day-of-month -> that month's last day),
     an aware instant (UTC). Task 3 returned a date; the A5.1 instant replaces it."""
@@ -339,9 +402,17 @@ def deadline(start: datetime) -> datetime:
 
 
 def eligible_sessions(start: datetime, calendar) -> list:
-    """A5.1: the sessions that can be the stop or the timeout: open >= START and close INSTANT <= the deadline."""
+    """A5.1: the sessions that can be the stop or the timeout: open >= START and close INSTANT <= the deadline.
+    A3 H5b: a standalone entry point - its own evidence pass (one verification)."""
+    with seal_pass() as px:
+        return _eligible(px, start, calendar)
+
+
+def _eligible(px, start: datetime, calendar) -> list:
+    """eligible_sessions within the live pass `px` (A3 H5b)."""
+    _live(px)
     dl = deadline(start)
-    return [d for d in _sorted_calendar(calendar) if open_instant(d) >= start and _close(d) <= dl]
+    return [d for d in _sorted_calendar(calendar) if open_instant(d) >= start and _close(d, sim=pinned(px)) <= dl]
 
 
 def stop_decision(seals, start: datetime, calendar, *, today: datetime, pending=()) -> dict:
@@ -485,15 +556,16 @@ def _first(rows_of, *kinds):
     return next((r_ for r_ in rows_of if r_.kind in kinds), None)
 
 
-def _close_state(index, d, cal) -> tuple:
+def _close_state(px, index, d, cal) -> tuple:
     """r1 §1.1 from committed rows only: ("sealed", deps, first QUALIFIED) - the determined sampled candidate (E2.2;
     deps = the terminal rows of its slots up to and including the first QUALIFIED); ("pending", ...) - a slot with an
     INTENT and no terminal before any determined QUALIFIED (B1.2/B1.5); ("unresolved", ...) - a QUALIFIED exists but
     an earlier slot has no terminal row (A2); ("none", deps, None) - no QUALIFIED and no PENDING slot (deps = the
     terminal rows of its slots that have an INTENT). Whether a "none" close counts missed needs the clock (stop_ready,
-    A6 r1), never these rows."""
+    A6 r1), never these rows. A3 H5b: within the live pass `px` (its verified module)."""
     import s1_journal as j
-    slots = schedule(d, cal)
+    _live(px)
+    slots = schedule(d, cal, sim=pinned(px))
     deps, seen_gap = [], False
     for s in slots:
         mine = index.get(j.slot_subject(s), [])
@@ -515,9 +587,21 @@ def _close_state(index, d, cal) -> tuple:
     return "none", [x for x in inten if x is not None], None
 
 
-def sampled_seals(out, rows, cal, start, upto_seq=None) -> dict:
+def sampled_seals(out, rows, cal, start, upto_seq=None, *, px=None) -> dict:
     """F1 STOP prefix / OQ-14: {day: (first QUALIFIED row, recomputed seal bytes)} for every eligible post-START close
-    determined (E2.2) by the rows committed at or before `upto_seq` (all rows when None)."""
+    determined (E2.2) by the rows committed at or before `upto_seq` (all rows when None).
+    A3 H5b (Codex Q2): without `px`, a standalone entry point - its own evidence pass (one verification). `px` is the
+    live pass of an owner that verified the pin itself (s1_run._pre_intent_qualified's confirming pass); a foreign or
+    ended one refuses. Omitting it never skips a verification. Every QUALIFIED tree is read and hashed live."""
+    if px is None:
+        with seal_pass() as own:
+            return _sampled_seals(own, out, rows, cal, start, upto_seq)
+    return _sampled_seals(_live(px), out, rows, cal, start, upto_seq)
+
+
+def _sampled_seals(px, out, rows, cal, start, upto_seq) -> dict:
+    """sampled_seals within the live pass `px` (A3 H5b)."""
+    _live(px)
     import s1_journal as j
     import s1_slot
     if upto_seq is None:                                 # F1 STOP prefix: terminals after a STOP never enter it
@@ -526,11 +610,11 @@ def sampled_seals(out, rows, cal, start, upto_seq=None) -> dict:
     rows = [x for x in rows if upto_seq is None or x.seq <= upto_seq]
     index = _by_subject(rows)
     got = {}
-    for d in eligible_sessions(start, cal):
-        stt, _deps, q = _close_state(index, d, cal)
+    for d in _eligible(px, start, cal):
+        stt, _deps, q = _close_state(px, index, d, cal)
         if stt == "sealed":
             ev = s1_slot._resolution_evidence(out, q, d["date"])
-            got[d["date"]] = (q, s1_slot.seal_bytes(d, _close(d), ev))
+            got[d["date"]] = (q, s1_slot.seal_bytes(d, _close(d, sim=pinned(px)), ev))
     return got
 
 
@@ -551,7 +635,16 @@ def stop_record(out, rows, start, cal, bundle):
     closes before C are `missed`. Timeout (no lots candidate): no PENDING/UNRESOLVED eligible close and the W slot of
     the last eligible close terminal (the F2.1 trigger anchor, P2 - never a time witness); TIMEOUT = the last
     determined eligible close, NO-VALID-SEAL = none. Trigger (b): the greatest-seq terminal row among the necessary
-    dependencies; determined_utc = that row's `at` verbatim (provenance only, BLK3-C2)."""
+    dependencies; determined_utc = that row's `at` verbatim (provenance only, BLK3-C2).
+    A3 H5b (Codex Q2): a standalone entry point - its own evidence pass (one verification)."""
+    with seal_pass() as px:
+        return _stop_record(px, out, rows, start, cal, bundle)
+
+
+def _stop_record(px, out, rows, start, cal, bundle):
+    """stop_record within the live pass `px` (A3 H5b): the same record, the module verified once for the pass; every
+    QUALIFIED tree read and hashed live."""
+    _live(px)
     import s1_journal as j
     import s1_slot
     rows = list(rows)
@@ -559,12 +652,12 @@ def stop_record(out, rows, start, cal, bundle):
     if len(tids) != 1:
         return None
     index = _by_subject(rows)
-    eligible = eligible_sessions(start, cal)
+    eligible = _eligible(px, start, cal)
     if not eligible:
         return None
     missed, deps, sealed, stop_day = [], [], [], None
     for d in eligible:
-        stt, dd, q = _close_state(index, d, cal)
+        stt, dd, q = _close_state(px, index, d, cal)
         if stt in ("pending", "unresolved"):
             return None
         deps += dd
@@ -572,15 +665,16 @@ def stop_record(out, rows, start, cal, bundle):
             missed.append(d["date"])
             continue
         ev = s1_slot._resolution_evidence(out, q, d["date"])
-        data = s1_slot.seal_bytes(d, _close(d), ev)
+        data = s1_slot.seal_bytes(d, _close(d, sim=pinned(px)), ev)
         sealed.append((d, data))
-        if count_sold(json.loads(data)["trades"], start, _close(d)) >= STOP_N:
+        if _count_sold(px, json.loads(data)["trades"], start, _close(d, sim=pinned(px))) >= STOP_N:
             stop_day = d
             break
     if stop_day is not None:
         status, rule = "STOPPED", "lots"
     else:
-        w_term = _first(index.get(j.slot_subject(schedule(eligible[-1], cal)[-1]), []), *j.TERMINAL)
+        w_last = schedule(eligible[-1], cal, sim=pinned(px))[-1]
+        w_term = _first(index.get(j.slot_subject(w_last), []), *j.TERMINAL)
         if w_term is None:
             return None
         deps.append(w_term)
@@ -593,14 +687,15 @@ def stop_record(out, rows, start, cal, bundle):
            "stop_seal_sha256": None, "cohort_row_ids": [], "lots": None, "seals": {}}
     if stop_day is None:
         return rec
-    sc = _close(stop_day)
+    sc = _close(stop_day, sim=pinned(px))
     data = dict((d["date"], x) for d, x in sealed)[stop_day["date"]]
     trades = [x for x in json.loads(data)["trades"] if c.aware(x["ts"]) <= sc]
     ids = sorted(x["id"] for x in cohort(trades, start, sc))
     rec.update(stop_close=sc.isoformat(), stop_seal=f"seals/{stop_day['date']}.json",
                stop_seal_sha256=c.sha256_bytes(data), cohort_row_ids=ids,
-               lots={"sold": count_sold(trades, start, sc), "cohort": len(ids)},
-               seals={f"seals/{d['date']}.json": c.sha256_bytes(x) for d, x in sealed if _close(d) <= sc})
+               lots={"sold": _count_sold(px, trades, start, sc), "cohort": len(ids)},
+               seals={f"seals/{d['date']}.json": c.sha256_bytes(x) for d, x in sealed
+                     if _close(d, sim=pinned(px)) <= sc})
     return rec
 
 
@@ -608,11 +703,19 @@ def stop_ready(out, rows, start, cal, bundle, now):
     """r1 §1.3 (BLK3-C1, P1; ACCEPTED): permission to COMMIT the candidate, given `now` = the clock sampled INSIDE the
     TRIAL-STOP journal transaction (j.append passes it to Context.stop_ready): None = permitted, else the reason.
     Requires a candidate; now >= W of every close it counts missed; for TIMEOUT / NO-VALID-SEAL now >= W of the last
-    eligible close (every eligible window E has expired). No terminal row or `at` stands in for this clock."""
-    rec = stop_record(out, rows, start, cal, bundle)
+    eligible close (every eligible window E has expired). No terminal row or `at` stands in for this clock.
+    A3 H5b (Codex Q2): one evidence pass (inside the TRIAL-STOP transaction: never a pass of another call)."""
+    with seal_pass() as px:
+        return _stop_ready(px, out, rows, start, cal, bundle, now)
+
+
+def _stop_ready(px, out, rows, start, cal, bundle, now):
+    """stop_ready within the live pass `px` (A3 H5b)."""
+    _live(px)
+    rec = _stop_record(px, out, rows, start, cal, bundle)
     if rec is None:
         return "no stop candidate in committed history"
-    by_date = {d["date"]: d for d in eligible_sessions(start, cal)}
+    by_date = {d["date"]: d for d in _eligible(px, start, cal)}
     need = [window_end(by_date[x], cal) for x in rec["missed"]]
     if rec["rule"] == "timeout":
         need.append(window_end(list(by_date.values())[-1], cal))
@@ -638,7 +741,16 @@ def nvs(out, rows, start, cal, bundle) -> bool:
     4. sampled_seals(..., upto_seq = the STOP seq) is empty.
     It never follows a CLI flag, file presence, a display status or a caller's verdict. An exception (an evidence
     read, a malformed record) PROPAGATES: the caller refuses - it never selects the normal branch silently (I-2).
-    Recomputed per call; nothing is cached (I-7)."""
+    Recomputed per call; nothing is cached (I-7). A3 H5b (Codex Q2): ONE evidence pass per call - stop_record,
+    the eligible closes and sampled_seals of this call share the module verified once for it (at its first use);
+    each call (the command's pre-transaction NVS, the NVS inside each score transaction) is its own pass."""
+    with seal_pass() as px:
+        return _nvs(px, out, rows, start, cal, bundle)
+
+
+def _nvs(px, out, rows, start, cal, bundle) -> bool:
+    """nvs within the live pass `px` (A3 H5b)."""
+    _live(px)
     import s1_journal as j
     rows = list(rows)
     if j.trial_state(rows) != "STOPPED":
@@ -647,14 +759,14 @@ def nvs(out, rows, start, cal, bundle) -> bool:
     if len(stops) != 1:
         return False
     stop = stops[0]
-    rec = stop_record(out, [x for x in rows if x.seq < stop.seq], start, cal, bundle)
+    rec = _stop_record(px, out, [x for x in rows if x.seq < stop.seq], start, cal, bundle)
     if rec is None or j.detail_of(rec) != stop.detail:
         return False
     if (rec["status"], rec["rule"]) != ("NO-VALID-SEAL", "timeout") or any(rec[k_] is not None for k_ in NVS_NULLS) \
             or rec["cohort_row_ids"] != [] or rec["seals"] != {} \
-            or rec["missed"] != [d["date"] for d in eligible_sessions(start, cal)]:
+            or rec["missed"] != [d["date"] for d in _eligible(px, start, cal)]:
         return False
-    return not sampled_seals(out, rows, cal, start, upto_seq=stop.seq)
+    return not _sampled_seals(px, out, rows, cal, start, stop.seq)
 
 
 STOP_FENCE_RETRIES = 3                                            # E2.5 r3: bounded seal-then-STOP retry
@@ -715,8 +827,9 @@ def _decide_locked(gv, cal, start, now, mailbox):
             return None
         index = _by_subject(rows)
         for d in eligible_sessions(start, cal):                    # E2.5: the pending seal stages first
-            if _close_state(index, d, cal)[0] == "sealed" and \
-                    s1_stage.stage_rows(rows, s1_slot.seal_stage_name(d["date"]))["created"] is None:
+            with seal_pass() as px:                                # A3 H5b: a fresh pass per close, never held
+                sealed = _close_state(px, index, d, cal)[0] == "sealed"     # across a seal-stage transaction
+            if sealed and s1_stage.stage_rows(rows, s1_slot.seal_stage_name(d["date"]))["created"] is None:
                 s1_slot.run_seal_stage(gv, d, cal, mailbox=mailbox, clock=now)
         rows = j.read_trial(gv.trial.trial_id, gv.trial.genesis, mailbox)
         rec = stop_record(gv.out, rows, start, cal, gv.trial.bundle)
