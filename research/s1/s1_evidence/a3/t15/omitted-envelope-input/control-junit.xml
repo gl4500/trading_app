@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="1.554" timestamp="2026-11-16T00:50:23.350256-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_start_attest_envelope_and_single_member" time="1.203" /></testsuite></testsuites>

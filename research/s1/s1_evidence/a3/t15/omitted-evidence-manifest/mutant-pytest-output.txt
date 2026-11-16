@@ -1,0 +1,113 @@
+.FFF                                                                     [100%]
+================================== FAILURES ===================================
+_______ test_opening_ack_evidence_manifest_is_reconstructed[wrong-hash] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F0E4A843B0>
+case = 'wrong-hash'
+
+    @pytest.mark.parametrize("case", ["ok", "wrong-hash", "wrong-membership-receipt", "wrong-membership-staging"])
+    def test_opening_ack_evidence_manifest_is_reconstructed(tmp_path, monkeypatch, case):  # rows 279, 280 (E5.5 r1)
+        start, cal, oc, lg, rep = opened(tmp_path)
+        w = close_out(tmp_path, cal, oc)
+        rows_ = jrows(tmp_path)
+        man = t.evidence_manifest(tmp_path, rows_, rows_[-1].seq)
+        assert {"plan.json", "opening_receipt.json", "staging/audit/intent.json", "staging/audit/prepared.json",
+                "staging/opening/intent.json", "staging/opening/prepared.json"} <= set(man["files"])   # E5.5 membership
+        assert man["files"]["staging/opening/prepared.json"] == c.sha256_file(
+            sg.staging_dir(tmp_path, t.open_trial(mb(tmp_path)).trial_id, "opening") / "prepared.json")
+        if case == "wrong-membership-receipt":
+            bad = dict(man, files={k_: v for k_, v in man["files"].items() if k_ != "opening_receipt.json"})
+            value = c.sha256_bytes(c.canonical(bad))
+        elif case == "wrong-membership-staging":                         # rev-0 membership (no staging files)
+            bad = dict(man, files={k_: v for k_, v in man["files"].items() if not k_.startswith("staging/")})
+            value = c.sha256_bytes(c.canonical(bad))
+        else:
+            value = c.sha256_bytes(c.canonical(man)) if case == "ok" else "a" * 64
+        s1_ack(tmp_path, "opening-ack", "S1-OPENING-ACK", w + timedelta(minutes=1), evidence_manifest_sha256=value)
+        sp = Spies(monkeypatch)
+        with _Clock(w + timedelta(minutes=2)):                           # journal and files are otherwise valid
+            if case == "ok":
+                r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+                assert stage_kinds(tmp_path, "start_attest")[-1:] == ["STAGE-CREATED"]
+                return
+>           with pytest.raises(SystemExit, match=r"evidence manifest.*INVALID \(registration-artifact\)"):
+E           Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_prestart.py:284: Failed
+_ test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-receipt] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F0E564B950>
+case = 'wrong-membership-receipt'
+
+    @pytest.mark.parametrize("case", ["ok", "wrong-hash", "wrong-membership-receipt", "wrong-membership-staging"])
+    def test_opening_ack_evidence_manifest_is_reconstructed(tmp_path, monkeypatch, case):  # rows 279, 280 (E5.5 r1)
+        start, cal, oc, lg, rep = opened(tmp_path)
+        w = close_out(tmp_path, cal, oc)
+        rows_ = jrows(tmp_path)
+        man = t.evidence_manifest(tmp_path, rows_, rows_[-1].seq)
+        assert {"plan.json", "opening_receipt.json", "staging/audit/intent.json", "staging/audit/prepared.json",
+                "staging/opening/intent.json", "staging/opening/prepared.json"} <= set(man["files"])   # E5.5 membership
+        assert man["files"]["staging/opening/prepared.json"] == c.sha256_file(
+            sg.staging_dir(tmp_path, t.open_trial(mb(tmp_path)).trial_id, "opening") / "prepared.json")
+        if case == "wrong-membership-receipt":
+            bad = dict(man, files={k_: v for k_, v in man["files"].items() if k_ != "opening_receipt.json"})
+            value = c.sha256_bytes(c.canonical(bad))
+        elif case == "wrong-membership-staging":                         # rev-0 membership (no staging files)
+            bad = dict(man, files={k_: v for k_, v in man["files"].items() if not k_.startswith("staging/")})
+            value = c.sha256_bytes(c.canonical(bad))
+        else:
+            value = c.sha256_bytes(c.canonical(man)) if case == "ok" else "a" * 64
+        s1_ack(tmp_path, "opening-ack", "S1-OPENING-ACK", w + timedelta(minutes=1), evidence_manifest_sha256=value)
+        sp = Spies(monkeypatch)
+        with _Clock(w + timedelta(minutes=2)):                           # journal and files are otherwise valid
+            if case == "ok":
+                r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+                assert stage_kinds(tmp_path, "start_attest")[-1:] == ["STAGE-CREATED"]
+                return
+>           with pytest.raises(SystemExit, match=r"evidence manifest.*INVALID \(registration-artifact\)"):
+E           Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_prestart.py:284: Failed
+_ test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-staging] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m13/mutant/bt/test_opening_ack_evidence_mani3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F0E55EB410>
+case = 'wrong-membership-staging'
+
+    @pytest.mark.parametrize("case", ["ok", "wrong-hash", "wrong-membership-receipt", "wrong-membership-staging"])
+    def test_opening_ack_evidence_manifest_is_reconstructed(tmp_path, monkeypatch, case):  # rows 279, 280 (E5.5 r1)
+        start, cal, oc, lg, rep = opened(tmp_path)
+        w = close_out(tmp_path, cal, oc)
+        rows_ = jrows(tmp_path)
+        man = t.evidence_manifest(tmp_path, rows_, rows_[-1].seq)
+        assert {"plan.json", "opening_receipt.json", "staging/audit/intent.json", "staging/audit/prepared.json",
+                "staging/opening/intent.json", "staging/opening/prepared.json"} <= set(man["files"])   # E5.5 membership
+        assert man["files"]["staging/opening/prepared.json"] == c.sha256_file(
+            sg.staging_dir(tmp_path, t.open_trial(mb(tmp_path)).trial_id, "opening") / "prepared.json")
+        if case == "wrong-membership-receipt":
+            bad = dict(man, files={k_: v for k_, v in man["files"].items() if k_ != "opening_receipt.json"})
+            value = c.sha256_bytes(c.canonical(bad))
+        elif case == "wrong-membership-staging":                         # rev-0 membership (no staging files)
+            bad = dict(man, files={k_: v for k_, v in man["files"].items() if not k_.startswith("staging/")})
+            value = c.sha256_bytes(c.canonical(bad))
+        else:
+            value = c.sha256_bytes(c.canonical(man)) if case == "ok" else "a" * 64
+        s1_ack(tmp_path, "opening-ack", "S1-OPENING-ACK", w + timedelta(minutes=1), evidence_manifest_sha256=value)
+        sp = Spies(monkeypatch)
+        with _Clock(w + timedelta(minutes=2)):                           # journal and files are otherwise valid
+            if case == "ok":
+                r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+                assert stage_kinds(tmp_path, "start_attest")[-1:] == ["STAGE-CREATED"]
+                return
+>           with pytest.raises(SystemExit, match=r"evidence manifest.*INVALID \(registration-artifact\)"):
+E           Failed: DID NOT RAISE <class 'SystemExit'>
+
+research\s1\s1_tests\test_s1_a3_prestart.py:284: Failed
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m13\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[wrong-hash]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-receipt]
+FAILED research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[wrong-membership-staging]
+3 failed, 1 passed in 5.11s

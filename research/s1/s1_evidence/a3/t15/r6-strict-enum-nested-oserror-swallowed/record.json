@@ -1,0 +1,70 @@
+{
+ "label": "killed",
+ "target": "s1_common.strict_glob",
+ "selection": "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses",
+ "agreed": {
+  "basis": "an enumeration failure never passes the gate",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]",
+  "oracle_kind": "assert",
+  "source_line": "assert isinstance(e, SystemExit), \"an enumeration failure passed the gate (the stray was not seen)\"",
+  "terminal": "research/s1/s1_tests/test_s1_a3_strict_enum.py:171"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_common.strict_glob",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_common.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "89127d469593ba7d79ead571c35204d476d2ab5059e557d721b0bece24c863eb",
+  "mutated_sha256": "897f0dde08a909f7018e8a366076a102fc2ffb6deb1fd25b83ce5922ba4a228c",
+  "first_line": 114
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py",
+  171,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "4a2e2f8c3f9544101c20f02fd79e5d250d2ab2aaa6534226126d566a2f187d6e",
+  "installed.json": null,
+  "pytest-output.txt": "4ee8aa57d5927b343d4444e4f3da38b7adaf65a5baba6896528b4aecbd3eee5c",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "2d2e638338d136ed6932b540eb0683c3c952895b3f0590b49a422030d272b5c0",
+  "installed.json": "b49ac0f2d51f053d8a378643e33e50c671a79dc709187400582a08f2741727cd",
+  "pytest-output.txt": "94b78e11e2cecb99308b06ebb0d1636fe07b740885a71197f4d0b50c60f81b74",
+  "s1_mutant_plugin.py": "0797e1de5094431be13d5852c41457334e9c4580c18ce69a5b06b77481bc2676"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-permission]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-generic-oserror]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-enumeration-filenotfound]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-generic-oserror]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-permission]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-generic-oserror]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-enumeration-filenotfound]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-permission]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-generic-oserror]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[control-enumeration-filenotfound]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-generic-oserror]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-permission]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-generic-oserror]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-day-enumeration-filenotfound]"
+ ],
+ "finding": null
+}

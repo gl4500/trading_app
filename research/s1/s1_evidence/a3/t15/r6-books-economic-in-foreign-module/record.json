@@ -1,0 +1,58 @@
+{
+ "label": "killed",
+ "target": "s1_books._economic_in",
+ "selection": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module",
+ "agreed": {
+  "basis": "exactly one fresh module per pass: another module is another verification",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_record]",
+  "oracle_kind": "assert",
+  "source_line": "assert len(made) == k + 1, f\"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)\"",
+  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:530"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_books._economic_in",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_books.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "1b11cd89b911c7b7fe9a292e262e20f3481151b1cfc14b55525ee15314857b63",
+  "mutated_sha256": "5bdaa56038756c835b72d1850cae1ade98c5b799395ebd7256aaeb043bf1e083",
+  "first_line": 110
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py",
+  530,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "3881c8205a76f0c269d50c542ff38848799d7cbbdf06b9accd606aa11b892872",
+  "installed.json": null,
+  "pytest-output.txt": "7ebb918ffd14342e42898da35b11c7ee89aaa15e73a14eda5501053d89380829",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "3739a885903a55d672b846f015875d1510db151c43d868fb42fd1d5b92decf58",
+  "installed.json": "02bbb0831b017acd8a0997a1e69f702663a81b7ad292b7894daacb19380e4378",
+  "pytest-output.txt": "7eb99221079f9d3dffd5704975a0665b713c1e965aeef52f166641e8092e6ead",
+  "s1_mutant_plugin.py": "8ce7ca92dd6dd95b641e58801e453c32880a3a320ed9bdfb150db65ab5bc4a16"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_record]",
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[nvs]",
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_ready]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_record]",
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[nvs]",
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_ready]"
+ ],
+ "finding": null
+}

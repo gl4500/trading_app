@@ -1,0 +1,52 @@
+{
+ "label": "killed",
+ "target": "s1_slot.CAPTURE_TREE",
+ "selection": "research/s1/s1_tests/test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest",
+ "agreed": {
+  "basis": "the QUALIFIED tree includes backup.sqlite3 (E5.6)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest",
+  "oracle_kind": "assert",
+  "source_line": "assert set(tree) == {f\"captures/2026-10-26/{sch:%Y%m%dT%H%M%SZ}.report.json\",",
+  "terminal": "research/s1/s1_tests/test_s1_a3_slots.py:72"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_slot.CAPTURE_TREE",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_slot.py",
+  "anchor_found": true,
+  "installed": true,
+  "original_sha256": "04c6925882a9b1d9d9a4e6d670768fdd857ec1e2cdee9f205d96d79135fe360d",
+  "mutated_sha256": "34e1f8629a0c333c43b661fa8bb35e5898385b21af7c45f7ff6a19374bbdc016"
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_slots.py",
+  72,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "c4d97481fae5f5062a71e5392a3ddc76601ccb5211101c64b9ea3717e3e8b1ec",
+  "installed.json": null,
+  "pytest-output.txt": "6abab05825a18721a6e8c9ea21ce8dfb529523d4ef7c0778d6becd93cdaae833",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "310b098cb6beacba8b6f4aa6682621768b668657f2633d3afcbd59d9c7e51bb2",
+  "installed.json": "d3fa9cfaf10fc330279868d9ec7c0bc4c8983eec5928995690715cf8ced9830c",
+  "pytest-output.txt": "00296e8aa00c1b75669043989dbc754c96c99145e5bf594ccbc9372688be361a",
+  "s1_mutant_plugin.py": "e4652fc92737d429c773d19c59ea7ff7913fc1fc0d886685ea11ac5b799ed44c"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest"
+ ],
+ "finding": null
+}

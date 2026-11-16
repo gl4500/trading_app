@@ -1,0 +1,13 @@
+# A3 Task 15b sha256 after FIX ROUND 2 (explicit list; this file excluded). Base 5b4fe84ed8f0691702133a30fcfaa78fa5dd5f54; product files unchanged; no killer test file changed. Per-mutant evidence (t15/<mutant>/*) is hashed inside t15_mutants.txt and each record.json. t15_agreed_assertions.json unchanged since fix round 1.
+06c62ee2065430f7acda31e086a9d24bba6a9fef5a2731baeba2e5b4f7a1c602 *research/s1/s1_tests/test_s1_a3_mutants.py
+e78795f054ce196816dac72025ef0b600af5be4cd1886700c548205046602ee0 *research/s1/s1_evidence/a3/t15_agreed_assertions.json
+e741b06f20e0d03d08443f8ab8c0927e863789553fc65382a0c57087c297a73c *research/s1/s1_evidence/a3/t15_anchor_map.md
+8e3d3a89e5f164e2891b10e78c6e2efeb9dd4e9febe025970364db9ca24cda99 *research/s1/s1_evidence/a3/t15_equivalence_drafts.md
+effe8c1c94094c3d8f6cfe693ba8fb66ec3ef5fce536742a81daec2f4d27fedd *research/s1/s1_evidence/a3/t15_mutants.txt
+8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb *research/s1/s1_evidence/a3/t15_selftests/junit.xml
+b227fefd6c926b5fa0c9a3c511d9e78d2b123e80334ac2149905ecf236f32e4c *research/s1/s1_evidence/a3/t15_selftests/hashes.json
+99ce76ee4e95b51092b08864f42a2686aa947d5c155fed2b1874912e0dd810e6 *research/s1/s1_evidence/a3/t15_selftests/pytest-output.txt
+b3113649aa63fa9061b3abe8cfaf40b208e4539150241ca582dbd3a8d3202e8e *research/s1/s1_evidence/a3/t2_examples.md
+fdec38e9bbb9e48a766df6646ae30f33295655b297c73c2fd9e6b2e3237a89d0 *research/s1/s1_evidence/a3/t15b_red.txt
+8c643f3aa52d78f7ae682e3d1eda05ea2d0aa4e30bc3c884e1aa9da4847a31a6 *research/s1/s1_evidence/a3/t15b_green.txt
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py

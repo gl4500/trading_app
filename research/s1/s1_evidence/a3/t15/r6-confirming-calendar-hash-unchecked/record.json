@@ -1,0 +1,66 @@
+{
+ "label": "killed",
+ "target": "s1_slot._confirming_calendar",
+ "selection": "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper",
+ "agreed": {
+  "basis": "a calendar not hashing to the manifest record is None",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[hash-mismatch]",
+  "oracle_kind": "assert",
+  "source_line": "assert strict(gv) is None",
+  "terminal": "research/s1/s1_tests/test_s1_a3_m4_pass.py:777"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_slot._confirming_calendar",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_slot.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "2e558b28e96234175612ebf0b340a406d002f472bc2b86a8b43dd596f38802b9",
+  "mutated_sha256": "21cb6f3c5b4435c2dc2dc6a67c41154e0db4ee95e00fc14153b3499f0cc55da5",
+  "first_line": 1281
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py",
+  777,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "49d2e2a741372493262c7a7d3cd2d0e4e49fd77a0d8efed1ddfc3096cd7fa4d3",
+  "installed.json": null,
+  "pytest-output.txt": "a96280fef5cd8650777e19c49080095c4cd3b3297ef2031735c40369943dab1b",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "329f583e899d86d607f655ccf44f5086be80cbd7350701f93548d8df0e59257b",
+  "installed.json": "c5ba1697adf2172bc0a27493bb5f658abb53462d61ee1204dfdb3510c67ab919",
+  "pytest-output.txt": "ecf36ebbb061327a8141c71ce5a51be7ac2d76d28675a99b03434a8cee3d929c",
+  "s1_mutant_plugin.py": "fe55e7417436c8e3d527ca433708bd8e3b29a3ac39156d0b133beed5c20bce7c"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[healthy]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[hash-mismatch]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[calendar-missing]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[manifest-missing]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[manifest-no-entry]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[calendar-malformed]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[permission]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[healthy]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[hash-mismatch]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[calendar-missing]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[manifest-missing]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[manifest-no-entry]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[calendar-malformed]",
+  "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[permission]"
+ ],
+ "finding": null
+}

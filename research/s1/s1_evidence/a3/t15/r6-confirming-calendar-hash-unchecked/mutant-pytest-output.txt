@@ -1,0 +1,119 @@
+.F..F..                                                                  [100%]
+================================== FAILURES ===================================
+___________ test_h5cfix2_confirming_calendar_helper[hash-mismatch] ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000012B89A9A510>
+case = 'hash-mismatch'
+
+    @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
+                                      "manifest-no-entry", "calendar-malformed", "permission"])
+    def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):                    # X-17 (helper)
+        """s1_slot._confirming_calendar over a real audit: healthy -> the rows _calendar returns; any failure -> None (the
+        callers' no-row refusal), never prereg.json's calendar or the verified audit's."""
+        s1_state(tmp_path, START)                                             # a real audit; no prereg yet
+        out = tmp_path / "s1_out"
+        (out / "prereg.json").write_text(json.dumps({"calendar": [{"date": "2026-10-26", "open": "09:30",
+                                                                   "close": "16:00"}]}), encoding="utf-8")
+        cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+        gv = _cal_gv(tmp_path)
+        strict = getattr(sl, "_confirming_calendar", None)
+        assert callable(strict), "s1_slot._confirming_calendar (the strict confirming-pass read) does not exist"   # (B3)
+        healthy = sl._calendar(gv)
+        assert healthy and len(healthy) > 1                                   # the audit's calendar, not the prereg stub
+        if case == "healthy":
+            assert strict(gv) == healthy
+            return
+        if case == "hash-mismatch":
+            raw = json.loads(cal_p.read_bytes())
+            cal_p.write_text(json.dumps(raw[:-1]), encoding="utf-8")         # well-formed, but not the manifest's record
+        elif case == "calendar-missing":
+            cal_p.unlink()
+        elif case == "manifest-missing":
+            man_p.unlink()
+        elif case == "manifest-no-entry":
+            m = json.loads(man_p.read_bytes())
+            del m["files"]["calendar.json"]
+            man_p.write_text(json.dumps(m), encoding="utf-8")
+        elif case == "calendar-malformed":
+            cal_p.write_bytes(b"{not json")
+            m = json.loads(man_p.read_bytes())
+            m["files"]["calendar.json"] = c.sha256_file(cal_p)               # hashes to the record, yet unparseable
+            man_p.write_text(json.dumps(m), encoding="utf-8")
+        else:
+            real, denied = Path.read_bytes, []
+    
+            def rb(self):                                                     # fix round 1 (X-18): the one direct read
+                if self == cal_p:
+                    denied.append(str(self))
+                    raise PermissionError(13, "injected registered-calendar read failure")
+                return real(self)
+            monkeypatch.setattr(Path, "read_bytes", rb)
+        assert sl._calendar(gv) is not None                                   # the lenient read still finds a fallback
+        seen = len(denied) if case == "permission" else 0
+>       assert strict(gv) is None
+E       AssertionError: assert [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] is None
+E        +  where [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] = <function _confirming_calendar at 0x0000012B89111DA0>(namespace(out='C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\...4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend1/mailbox.sqlite3')))
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:777: AssertionError
+_________ test_h5cfix2_confirming_calendar_helper[manifest-no-entry] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend4')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000012B89939A30>
+case = 'manifest-no-entry'
+
+    @pytest.mark.parametrize("case", ["healthy", "hash-mismatch", "calendar-missing", "manifest-missing",
+                                      "manifest-no-entry", "calendar-malformed", "permission"])
+    def test_h5cfix2_confirming_calendar_helper(tmp_path, monkeypatch, case):                    # X-17 (helper)
+        """s1_slot._confirming_calendar over a real audit: healthy -> the rows _calendar returns; any failure -> None (the
+        callers' no-row refusal), never prereg.json's calendar or the verified audit's."""
+        s1_state(tmp_path, START)                                             # a real audit; no prereg yet
+        out = tmp_path / "s1_out"
+        (out / "prereg.json").write_text(json.dumps({"calendar": [{"date": "2026-10-26", "open": "09:30",
+                                                                   "close": "16:00"}]}), encoding="utf-8")
+        cal_p, man_p = out / "audit" / "calendar.json", out / "audit" / "manifest.json"
+        gv = _cal_gv(tmp_path)
+        strict = getattr(sl, "_confirming_calendar", None)
+        assert callable(strict), "s1_slot._confirming_calendar (the strict confirming-pass read) does not exist"   # (B3)
+        healthy = sl._calendar(gv)
+        assert healthy and len(healthy) > 1                                   # the audit's calendar, not the prereg stub
+        if case == "healthy":
+            assert strict(gv) == healthy
+            return
+        if case == "hash-mismatch":
+            raw = json.loads(cal_p.read_bytes())
+            cal_p.write_text(json.dumps(raw[:-1]), encoding="utf-8")         # well-formed, but not the manifest's record
+        elif case == "calendar-missing":
+            cal_p.unlink()
+        elif case == "manifest-missing":
+            man_p.unlink()
+        elif case == "manifest-no-entry":
+            m = json.loads(man_p.read_bytes())
+            del m["files"]["calendar.json"]
+            man_p.write_text(json.dumps(m), encoding="utf-8")
+        elif case == "calendar-malformed":
+            cal_p.write_bytes(b"{not json")
+            m = json.loads(man_p.read_bytes())
+            m["files"]["calendar.json"] = c.sha256_file(cal_p)               # hashes to the record, yet unparseable
+            man_p.write_text(json.dumps(m), encoding="utf-8")
+        else:
+            real, denied = Path.read_bytes, []
+    
+            def rb(self):                                                     # fix round 1 (X-18): the one direct read
+                if self == cal_p:
+                    denied.append(str(self))
+                    raise PermissionError(13, "injected registered-calendar read failure")
+                return real(self)
+            monkeypatch.setattr(Path, "read_bytes", rb)
+        assert sl._calendar(gv) is not None                                   # the lenient read still finds a fallback
+        seen = len(denied) if case == "permission" else 0
+>       assert strict(gv) is None
+E       AssertionError: assert [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] is None
+E        +  where [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...] = <function _confirming_calendar at 0x0000012B89111DA0>(namespace(out='C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\...4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m23/mutant/bt/test_h5cfix2_confirming_calend4/mailbox.sqlite3')))
+
+research\s1\s1_tests\test_s1_a3_m4_pass.py:777: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m23\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[hash-mismatch]
+FAILED research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[manifest-no-entry]
+2 failed, 5 passed in 8.80s

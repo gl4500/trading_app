@@ -1,0 +1,35 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________ test_final_policy_is_exactly_the_f49_final_rows _______________
+
+    def test_final_policy_is_exactly_the_f49_final_rows():
+        fp = {"bar_symbols": ["A", "B"], "ca_symbols_window": ["A"], "ca_symbols_full_history": ["B"],
+              "full_history_start": "2026-09-01", "stop_date": "2026-10-28"}
+        pr = {"start": "2026-10-26T13:30:00+00:00"}
+        fixed = {"region": "us", "data_quality": "all", "sort": "asc", "limit": 1000}
+>       assert k.final_policy(fp, pr, "2026-11-02") == {
+            "redirects": False, "max_pages": 200, "cutoff": "2026-11-02", "families": [
+                {"name": "bars", "url": "https://data.alpaca.markets/v2/stocks/bars", "scope": "final", "batches": None,
+                 "base_params": {"symbols": "A,B", "timeframe": "1Day", "start": "2026-10-26T04:00:00Z",
+                                 "end": "2026-10-29T03:59:59.999999Z", "adjustment": "raw", "feed": "sip",
+                                 "limit": 10000},
+                 "paged": True, "page_template": "final/pages/bars_page{n:03d}.json"},
+                {"name": "corporate_actions", "url": "https://data.alpaca.markets/v1/corporate-actions", "scope": "window",
+                 "batches": [["A"]], "base_params": [dict(fixed, symbols="A", start="2026-10-26", end="2026-11-02")],
+                 "paged": True, "page_template": "final/pages/ca_{i:03d}_page{n:03d}.json"},
+                {"name": "corporate_actions", "url": "https://data.alpaca.markets/v1/corporate-actions",
+                 "scope": "full_history", "batches": [["B"]],
+                 "base_params": [dict(fixed, symbols="B", start="2026-09-01", end="2026-11-02")],
+                 "paged": True, "page_template": "final/pages_full/ca_{i:03d}_page{n:03d}.json"}]}
+E       AssertionError: assert {'cutoff': '2...rects': False} == {'cutoff': '2...rects': False}
+E         
+E         Omitting 3 identical items, use -vv to show
+E         Differing items:
+E         {'families': [{'base_params': {'adjustment': 'raw', 'end': '2026-10-29T03:59:59.999999Z', 'feed': 'sip', 'limit': 1000...batches': [['B']], 'name': 'corporate_actions', 'page_template': 'final/pages_full/ca_{i:03d}_page{n:03d}.json', ...}]} != {'families': [{'base_params': {'adjustment': 'raw', 'end': '2026-10-29T03:59:59.999999Z', 'feed': 'sip', 'limit': 1000...batches': [['B']], 'name': 'corporate_actions', 'page_template': 'final/pages_full/ca_{i:03d}_page{n:03d}.json', ...}]}
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_final.py:92: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m31\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows
+1 failed in 0.41s

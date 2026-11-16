@@ -1,0 +1,54 @@
+{
+ "label": "killed",
+ "target": "s1_journal._slot",
+ "selection": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock",
+ "agreed": {
+  "basis": "TIMEOUT must commit at now == D; '<=' refuses it (the finalizer defers, no row)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock",
+  "oracle_kind": "assert",
+  "source_line": "assert [k_ for k_, *_ in got] == [\"SLOT-INTENT\", \"SLOT-TIMEOUT\"]",
+  "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:149"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_journal._slot",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_journal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "a2f9aa26f69bad2ccde7ecffa444c47de8200d8ea21900e3275c6d5e4401d5d0",
+  "mutated_sha256": "4ea6adbe282d81d897889ca1eaab51e8fb30c3c73db2df811cc8e8c1cd5aec1e",
+  "first_line": 390
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py",
+  149,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "5a209e6598b82652ff020583d9459126e9163c1539f7241e7527eda67a5fba1d",
+  "installed.json": null,
+  "pytest-output.txt": "871e958d57fa26b8f6cc35c93bf080067514e12f7335076c66b9415eb541b8a9",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "14e4b84bbcb54648499100c3db15ebe83a0ac1835fceab9e12ec7946a49e2290",
+  "installed.json": "5d33f3f631a25859523587bb50af9c0c80286fdf2848c0a6b39d9ce77272b175",
+  "pytest-output.txt": "273ed52671cd0a229f6884f37e4452a542f60611fe14c0f74bda88a588c6e056",
+  "s1_mutant_plugin.py": "2842e7d5641f143704a4b58a8d0ace186397426a098e331502c75cc5cd986369"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock"
+ ],
+ "finding": null
+}

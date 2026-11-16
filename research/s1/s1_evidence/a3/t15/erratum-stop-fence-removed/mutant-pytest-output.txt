@@ -1,0 +1,30 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______ test_stop_fence_refuses_a_determined_close_without_a_created_seal ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m10/mutant/bt/test_stop_fence_refuses_a_dete0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001EB55A54A70>
+
+    def test_stop_fence_refuses_a_determined_close_without_a_created_seal(tmp_path, monkeypatch):   # row 262 (E2.5)
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        monkeypatch.setattr(sl, "run_seal_stage", lambda gv, d, cal, res=None, **k: res or {})   # no seal stage yet
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))            # close determined, no seal stage
+        tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+        req = j.Request("TRIAL-STOP", "trial", j.new_nonce(), j.new_nonce(), detail="5" * 64)
+        ctx = t.product_context(tr, st_["calendar"], stop_detail=lambda rows_: "5" * 64,
+                                stop_fence=sl.stop_fence(st_["calendar"], c.aware(START)),
+                                stop_ready=lambda rows_, now_: None)       # A3 Task 11: readiness is not under test here
+        at = sch + timedelta(minutes=2)
+        res = j.append(tr.trial_id, tr.genesis, req, ctx, mailbox=tmp_path / "mailbox.sqlite3", clock=lambda: at)
+>       assert res.outcome == "REFUSE" and "not sealed" in res.reason
+E       AssertionError: assert ('APPEND' == 'REFUSE'
+E         
+E         - REFUSE
+E         + APPEND)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:327: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m10\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal
+1 failed in 2.44s

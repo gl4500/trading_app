@@ -1,0 +1,54 @@
+{
+ "label": "killed",
+ "target": "s1_trial._close",
+ "selection": "research/s1/s1_tests/test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone",
+ "agreed": {
+  "basis": "a valid BLOCKED CLOSE closes A from the mailbox alone (zero open trials) (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with pytest.raises(t.Refusal, match=\"zero open trials\"):",
+  "terminal": "research/s1/s1_tests/test_s1_a3_trial.py:507"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_trial._close",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_trial.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "af3d8dc3b7796bd12a7ff796decd57be3590ff5d331ab5d444ea7dd5b84e7475",
+  "mutated_sha256": "cf6bd671ccf6043c8fc7e36c6ca29559420243edbb0c9f14eba82285f24c5058",
+  "first_line": 246
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_trial.py",
+  507,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "9b69c249d13a7544a4ecb449edbd2da187b87fa1cde04c79c2ce07b15c64f9da",
+  "installed.json": null,
+  "pytest-output.txt": "aec5bd3c338a74f7295dd5e09d3bf2000fce7d8f5339bcadef5d02152ed30a3f",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "df9249e82629d13d157027a4ade392e12df2b284b286ad7434794f5b863aac8e",
+  "installed.json": "eec9c587cfaddb0dde6ec1cc6892c66a0a89f4f51f19e1d14badf4b706f42570",
+  "pytest-output.txt": "a2f85a7877f543576d32b7d2df5e478fa7639896cacd1bcc9f0485b4dcd532ba",
+  "s1_mutant_plugin.py": "505b0a64f288bb834e23f1ebd94ab34648cac79e07d99915f3dfde4cd102f2ea"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone"
+ ],
+ "finding": null
+}

@@ -1,0 +1,54 @@
+{
+ "label": "killed",
+ "target": "s1_slot.stop_fence",
+ "selection": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal",
+ "agreed": {
+  "basis": "TRIAL-STOP must be refused while a determined close has no CREATED seal",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal",
+  "oracle_kind": "assert",
+  "source_line": "assert res.outcome == \"REFUSE\" and \"not sealed\" in res.reason",
+  "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:327"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_slot.stop_fence",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_slot.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "38d01b677771435cce6a90cfaecc0c0f974993f3cf49b63018f0adf2ee338375",
+  "mutated_sha256": "3346797983dbec6c0bd1e22926089f542d4f943811f72c17ab5a24caf82caa41",
+  "first_line": 974
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py",
+  327,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "2f7246a828edcd798bd67099a393172df6e73cbe2fbe1f18953f55e3d4fd5aa3",
+  "installed.json": null,
+  "pytest-output.txt": "56b6572da34557d53662791ed01588f4e2279a7d9f48d15efd56beee149a3c4a",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "67ad450384132317685dfcfef413d38fc19cfedc5ba7f24de1d70739fb80ff2a",
+  "installed.json": "2bcf2a6e1d4f9b91beac5b944e13a0c04cbbfd8c8aecf50adef9c9c10ff750b3",
+  "pytest-output.txt": "a8dbeb03c5aa69479adf9a9d70bc301e4c7ec8ef30c03fa5006f8f72bd9af95e",
+  "s1_mutant_plugin.py": "2c52de358b572eda623da3673297df3f11a33faa559467bc7dff7b378504fd48"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal"
+ ],
+ "finding": null
+}

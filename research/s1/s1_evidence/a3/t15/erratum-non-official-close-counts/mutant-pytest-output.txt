@@ -1,0 +1,116 @@
+FFF...                                                                   [100%]
+================================== FAILURES ===================================
+_______ test_non_official_lines_are_never_candidates[wrong-role-close] ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m08/mutant/bt/test_non_official_lines_are_ne0')
+case = 'wrong-role-close'
+
+    @pytest.mark.parametrize("case", ["wrong-role-close", "wrong-key-close", "peer-draft", "indented-line", "quoted-line",
+                                      "historical-other-trial"])
+    def test_non_official_lines_are_never_candidates(tmp_path, case):
+        mb = s1_mailbox_init(tmp_path)
+        a = tid()
+        post(mb, "a1", audit(a), T0)
+        later = T0 + timedelta(hours=1)
+        official = ["a1"]
+        if case == "wrong-role-close":
+            post(mb, "x1", close(a, "a1"), later, sender="claude")
+        elif case == "wrong-key-close":
+            post(mb, "x1", close(a, "a1"), later, key="other-key")
+        elif case == "peer-draft":                      # an arbitrary draft from a peer, malformed and well-formed lines
+            post(mb, "x1", "draft:\n" + close(a, "a1") + "\nS1-OPENING-ACK trial_id=" + a + " junk\nS1-OPENING-ACK junk",
+                 later, sender="claude", recipient="codex", key="experiments-s1-review")
+        elif case == "indented-line":                   # the official channel, but not at line start
+            post(mb, "x1", "  " + close(a, "a1"), later)
+        elif case == "quoted-line":
+            post(mb, "x1", "> " + close(a, "a1"), later)
+        else:                                           # another, closed trial's history (official, well formed)
+            old = tid()
+            post(mb, "a0", audit(old), T0 - timedelta(days=9))
+            post(mb, "c0", close(old, "a0"), T0 - timedelta(days=8))
+            official = ["a0", "a1", "c0"]
+>       assert sorted(x.mailbox_id for x in t.scan(mb)) == official      # E4.2: no other line is a candidate
+E       AssertionError: assert ['a1', 'x1'] == ['a1']
+E         
+E         Left contains one more item: 'x1'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError
+________ test_non_official_lines_are_never_candidates[wrong-key-close] ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m08/mutant/bt/test_non_official_lines_are_ne1')
+case = 'wrong-key-close'
+
+    @pytest.mark.parametrize("case", ["wrong-role-close", "wrong-key-close", "peer-draft", "indented-line", "quoted-line",
+                                      "historical-other-trial"])
+    def test_non_official_lines_are_never_candidates(tmp_path, case):
+        mb = s1_mailbox_init(tmp_path)
+        a = tid()
+        post(mb, "a1", audit(a), T0)
+        later = T0 + timedelta(hours=1)
+        official = ["a1"]
+        if case == "wrong-role-close":
+            post(mb, "x1", close(a, "a1"), later, sender="claude")
+        elif case == "wrong-key-close":
+            post(mb, "x1", close(a, "a1"), later, key="other-key")
+        elif case == "peer-draft":                      # an arbitrary draft from a peer, malformed and well-formed lines
+            post(mb, "x1", "draft:\n" + close(a, "a1") + "\nS1-OPENING-ACK trial_id=" + a + " junk\nS1-OPENING-ACK junk",
+                 later, sender="claude", recipient="codex", key="experiments-s1-review")
+        elif case == "indented-line":                   # the official channel, but not at line start
+            post(mb, "x1", "  " + close(a, "a1"), later)
+        elif case == "quoted-line":
+            post(mb, "x1", "> " + close(a, "a1"), later)
+        else:                                           # another, closed trial's history (official, well formed)
+            old = tid()
+            post(mb, "a0", audit(old), T0 - timedelta(days=9))
+            post(mb, "c0", close(old, "a0"), T0 - timedelta(days=8))
+            official = ["a0", "a1", "c0"]
+>       assert sorted(x.mailbox_id for x in t.scan(mb)) == official      # E4.2: no other line is a candidate
+E       AssertionError: assert ['a1', 'x1'] == ['a1']
+E         
+E         Left contains one more item: 'x1'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError
+__________ test_non_official_lines_are_never_candidates[peer-draft] ___________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m08/mutant/bt/test_non_official_lines_are_ne2')
+case = 'peer-draft'
+
+    @pytest.mark.parametrize("case", ["wrong-role-close", "wrong-key-close", "peer-draft", "indented-line", "quoted-line",
+                                      "historical-other-trial"])
+    def test_non_official_lines_are_never_candidates(tmp_path, case):
+        mb = s1_mailbox_init(tmp_path)
+        a = tid()
+        post(mb, "a1", audit(a), T0)
+        later = T0 + timedelta(hours=1)
+        official = ["a1"]
+        if case == "wrong-role-close":
+            post(mb, "x1", close(a, "a1"), later, sender="claude")
+        elif case == "wrong-key-close":
+            post(mb, "x1", close(a, "a1"), later, key="other-key")
+        elif case == "peer-draft":                      # an arbitrary draft from a peer, malformed and well-formed lines
+            post(mb, "x1", "draft:\n" + close(a, "a1") + "\nS1-OPENING-ACK trial_id=" + a + " junk\nS1-OPENING-ACK junk",
+                 later, sender="claude", recipient="codex", key="experiments-s1-review")
+        elif case == "indented-line":                   # the official channel, but not at line start
+            post(mb, "x1", "  " + close(a, "a1"), later)
+        elif case == "quoted-line":
+            post(mb, "x1", "> " + close(a, "a1"), later)
+        else:                                           # another, closed trial's history (official, well formed)
+            old = tid()
+            post(mb, "a0", audit(old), T0 - timedelta(days=9))
+            post(mb, "c0", close(old, "a0"), T0 - timedelta(days=8))
+            official = ["a0", "a1", "c0"]
+>       assert sorted(x.mailbox_id for x in t.scan(mb)) == official      # E4.2: no other line is a candidate
+E       AssertionError: assert ['a1', 'x1', 'x1', 'x1'] == ['a1']
+E         
+E         Left contains 3 more items, first extra item: 'x1'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_trial.py:413: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m08\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-role-close]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-key-close]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[peer-draft]
+3 failed, 3 passed in 0.60s

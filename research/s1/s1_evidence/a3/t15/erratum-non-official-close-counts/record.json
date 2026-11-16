@@ -1,0 +1,64 @@
+{
+ "label": "killed",
+ "target": "s1_trial.acks_from",
+ "selection": "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates",
+ "agreed": {
+  "basis": "only official messages are candidates",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-role-close]",
+  "oracle_kind": "assert",
+  "source_line": "assert sorted(x.mailbox_id for x in t.scan(mb)) == official      # E4.2: no other line is a candidate",
+  "terminal": "research/s1/s1_tests/test_s1_a3_trial.py:413"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_trial.acks_from",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_trial.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "541f3b616fc39ed32b987d61a385e2b4962ed355ec4ff95cdd72279406a99608",
+  "mutated_sha256": "900371940b079206f7f56799bde028d72f802b386e71844fa346ac3e6f2b963a",
+  "first_line": 150
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_trial.py",
+  413,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "f7c8c930c46769a62d66fd4acc7a2201f0dc36cdbbd5e7624d100ef3d71f01d3",
+  "installed.json": null,
+  "pytest-output.txt": "17948cd42df47f799bdd867754e60aeff41c3e43cee0ac4ca12c54771778d792",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "1e474ac29b653eac3d46cd4b711d26522d0f52d428a88b96d6cade647d52312b",
+  "installed.json": "d2f36c397bf2860690d49a07c2bdc69daf4041f4cc1256a1640b88c240ee5ea9",
+  "pytest-output.txt": "34577e646ed9542caa31fb088e522185b95d9c2274644ed29a2041616c600577",
+  "s1_mutant_plugin.py": "56932e909e9e2dd2b2c81409e3f44f787eb251b5cbf1f3672a0565f26b364d1d"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-role-close]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-key-close]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[peer-draft]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[indented-line]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[quoted-line]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[historical-other-trial]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-role-close]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-key-close]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[peer-draft]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[indented-line]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[quoted-line]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[historical-other-trial]"
+ ],
+ "finding": null
+}

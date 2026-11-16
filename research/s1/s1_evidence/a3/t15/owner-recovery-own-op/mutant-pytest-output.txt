@@ -1,0 +1,73 @@
+.....F                                                                   [100%]
+================================== FAILURES ===================================
+_________________ test_stage_state_table[prepared-lock-free] __________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m16/mutant/bt/test_stage_state_table_prepare1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000206A7587320>
+case = 'prepared-lock-free'
+
+    @pytest.mark.parametrize("case", ["no-intent-artifact-after-audit-ack", "no-intent-artifact-before-audit-ack",
+                                      "intent-lock-held", "intent-lock-free", "prepared-lock-held", "prepared-lock-free"])
+    def test_stage_state_table(tmp_path, monkeypatch, case):
+        if case == "no-intent-artifact-before-audit-ack":
+            import s1_collect as k
+            from conftest import _Clock
+            with _Clock(START - timedelta(days=14)):
+                k.write_plan(tmp_path, START, "2026-10-23", ["A"], "2026-03-17")
+            (tmp_path / "s1_out" / "final_plan.json").write_text("{}", encoding="utf-8")
+            with pytest.raises(SystemExit, match="zero open trials"):
+                t.gate(tmp_path, "table")
+            return
+        h.plan_only(tmp_path, START)
+        h.relax(monkeypatch, "final_plan")
+        sp = Spies(monkeypatch)
+        if case == "no-intent-artifact-after-audit-ack":
+            (tmp_path / "s1_out" / "final_plan.json").write_text("{}", encoding="utf-8")
+            with pytest.raises(SystemExit, match=r"INVALID \(registration-artifact\)"):
+                t.gate(tmp_path, "table")
+        elif case.endswith("lock-held"):
+            p = child(tmp_path, "final_plan", "hold-after-intent" if case.startswith("intent") else "hold-after-prepared")
+            try:
+                with pytest.raises(SystemExit, match="pending"):
+                    t.gate(tmp_path, "table")
+                assert all(r_.kind != "TRIAL-INVALID" for r_ in jrows(tmp_path))
+            finally:
+                p.stdin.close()
+                p.wait(timeout=60)
+        elif case == "intent-lock-free":
+            assert child(tmp_path, "final_plan", "die-after-intent").returncode == 9
+            with pytest.raises(SystemExit, match=r"INVALID \(stage-incomplete\)"):
+                t.gate(tmp_path, "table")
+        else:
+            assert child(tmp_path, "final_plan", "die-after-prepared").returncode == 9
+>           t.gate(tmp_path, "table")
+
+research\s1\s1_tests\test_s1_a3_stage.py:465: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_trial.py:885: in gate
+    s1_stage.evaluate(gv, defer_pending=defer_pending)    # A3 Task 6 (N2): the slot paths defer a held stage lock
+research\s1\s1_stage.py:659: in evaluate
+    _decide_locked(gv, stage, stage_rows(rows, stage))
+research\s1\s1_stage.py:622: in _decide_locked
+    _resolve(gv, stage, m, gv.mailbox, None)
+research\s1\s1_stage.py:458: in _resolve
+    return recover(gv, stage, m, mailbox=mailbox, clock=clock)
+research\s1\s1_stage.py:521: in recover
+    _need(_append(gv, j.Request("STAGE-CREATED", j.stage_subject(stage), m["intent"].op, j.new_nonce(),
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+res = Result(outcome='INVALIDATE', reason='contradictory-stage', row=Row(trial_id='a18591e4-735c-4c6c-ad2b-a195b4cfee23', se...7bacd16', created=1791984600.0)], now=datetime.datetime(2026, 11, 16, 5, 51, 22, 402004, tzinfo=datetime.timezone.utc))
+stage = 'final_plan', kind = 'STAGE-CREATED'
+
+    def _need(res, stage, kind):
+        if res.outcome == "APPEND":
+            return res.row
+        if res.outcome == "INVALIDATE":
+>           raise SystemExit(f"stage {stage}: {kind} -> INVALID ({res.reason})")
+E           SystemExit: stage final_plan: STAGE-CREATED -> INVALID (contradictory-stage)
+
+research\s1\s1_stage.py:363: SystemExit
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m16\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]
+1 failed, 5 passed in 1.58s

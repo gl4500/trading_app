@@ -1,0 +1,76 @@
+{
+ "label": "killed",
+ "target": "s1_seal._stop_record",
+ "selection": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions",
+ "agreed": {
+  "basis": "exactly STOP_N (100) sold lots must stop; with '>' no lots candidate and the W slot is not terminal, so stop_record returns None",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]",
+  "oracle_kind": "assert",
+  "source_line": "assert rec is not None, \"no stop record\"           # (Deviation 3: assert, not a TypeError on None)",
+  "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:370"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_seal._stop_record",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_seal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "e2d66c4a20152d67acd2c1ddc27b4308d1589dd6c66334e29e179f3a7de75ef2",
+  "mutated_sha256": "48d005ba1932d54a5366a046609e603a170d5ef3e760f3fe44a52097ba0a341f",
+  "first_line": 644
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_stop.py",
+  370,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "905b9515502719c3ab899f75620d4a84fda17965e0813ad01dca2c197766d975",
+  "installed.json": null,
+  "pytest-output.txt": "1a96fdcfbcf444264b21bc23f51663ea3b5eef1430cd162b6f9b377ea3b12e69",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "88282ac1daff9ccd689f22fab993069f242d95aad6a9676882712b7db28876f4",
+  "installed.json": "dfa8fb33e4899043dbdffe209feed115b4ba4c5f15df5eed524789f5e896aef8",
+  "pytest-output.txt": "c8a6c2c6f7373b8881fa09a46a973543d1ed937ffd45d4fa3a26631feec96d91",
+  "s1_mutant_plugin.py": "95c720eced3a3c7621f96f1254b648ecf9a8cb36d5dff422d8fa36d36b4a4e30"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-later-not-chosen]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[timeout-last-sealed]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-excluded]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[deadline-instant-eligibility]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[early-w-failed]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-after-timeout]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-blocks]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-resolved-by-missed]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[delayed-qualified-clock]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal-ineligible-seal]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-later-not-chosen]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[timeout-last-sealed]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-excluded]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[deadline-instant-eligibility]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[early-w-failed]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-after-timeout]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-blocks]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-resolved-by-missed]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[delayed-qualified-clock]",
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[no-valid-seal-ineligible-seal]"
+ ],
+ "finding": null
+}

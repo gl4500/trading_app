@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="6" time="7.246" timestamp="2026-11-16T00:50:52.770174-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_start_attest_verifies_the_opening_ack_against_the_journal[ok]" time="1.185" /><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_start_attest_verifies_the_opening_ack_against_the_journal[not-first-qualified]" time="1.073" /><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_start_attest_verifies_the_opening_ack_against_the_journal[seal-differs]" time="1.133"><failure message="Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m14/mutant/bt/test_start_attest_verifies_the2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000220473A73B0&gt;
+case = 'seal-differs'
+
+    @pytest.mark.parametrize("case", ["ok", "not-first-qualified", "seal-differs", "receipt-differs", "head-forked",
+                                      "a-slot-not-terminal"])
+    def test_start_attest_verifies_the_opening_ack_against_the_journal(tmp_path, monkeypatch, case):   # row 151
+        start, cal, oc, lg, rep = opened(tmp_path)
+        over = {"not-first-qualified": {"opening_slot": j.slot_subject(opening_slot(cal, oc, 47))},
+                "seal-differs": {"opening_seal_sha256": "0" * 64}, "receipt-differs": {"opening_receipt_sha256": "0" * 64},
+                "head-forked": {"journal_head_sha256": "f" * 64}}.get(case, {})
+        w = close_out(tmp_path, cal, oc) if case != "a-slot-not-terminal" else z.close_of(oc, cal) + timedelta(hours=1)
+        s1_ack(tmp_path, "opening-ack", "S1-OPENING-ACK", w + timedelta(minutes=1), **over)
+        if case == "a-slot-not-terminal":                               # rows 269: ACK prefix lacks terminal rows
+            w = close_out(tmp_path, cal, oc)                            # (later rows do not repair the ACK's prefix)
+        sp = Spies(monkeypatch)
+        with _Clock(w + timedelta(minutes=2)):
+            if case == "ok":
+                r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+                assert stage_kinds(tmp_path, "start_attest")[-1:] == ["STAGE-CREATED"]
+                return
+&gt;           with pytest.raises(SystemExit, match=VERIFY_REFUSAL[case]):
+E           Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;
+
+research\s1\s1_tests\test_s1_a3_prestart.py:194: Failed</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_start_attest_verifies_the_opening_ack_against_the_journal[receipt-differs]" time="1.218"><failure message="Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m14/mutant/bt/test_start_attest_verifies_the3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000022048826990&gt;
+case = 'receipt-differs'
+
+    @pytest.mark.parametrize("case", ["ok", "not-first-qualified", "seal-differs", "receipt-differs", "head-forked",
+                                      "a-slot-not-terminal"])
+    def test_start_attest_verifies_the_opening_ack_against_the_journal(tmp_path, monkeypatch, case):   # row 151
+        start, cal, oc, lg, rep = opened(tmp_path)
+        over = {"not-first-qualified": {"opening_slot": j.slot_subject(opening_slot(cal, oc, 47))},
+                "seal-differs": {"opening_seal_sha256": "0" * 64}, "receipt-differs": {"opening_receipt_sha256": "0" * 64},
+                "head-forked": {"journal_head_sha256": "f" * 64}}.get(case, {})
+        w = close_out(tmp_path, cal, oc) if case != "a-slot-not-terminal" else z.close_of(oc, cal) + timedelta(hours=1)
+        s1_ack(tmp_path, "opening-ack", "S1-OPENING-ACK", w + timedelta(minutes=1), **over)
+        if case == "a-slot-not-terminal":                               # rows 269: ACK prefix lacks terminal rows
+            w = close_out(tmp_path, cal, oc)                            # (later rows do not repair the ACK's prefix)
+        sp = Spies(monkeypatch)
+        with _Clock(w + timedelta(minutes=2)):
+            if case == "ok":
+                r.attest_start(tmp_path, r.START_STATEMENT, S1_RECEIPT)
+                assert stage_kinds(tmp_path, "start_attest")[-1:] == ["STAGE-CREATED"]
+                return
+&gt;           with pytest.raises(SystemExit, match=VERIFY_REFUSAL[case]):
+E           Failed: DID NOT RAISE &lt;class 'SystemExit'&gt;
+
+research\s1\s1_tests\test_s1_a3_prestart.py:194: Failed</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_start_attest_verifies_the_opening_ack_against_the_journal[head-forked]" time="1.040" /><testcase classname="research.s1.s1_tests.test_s1_a3_prestart" name="test_start_attest_verifies_the_opening_ack_against_the_journal[a-slot-not-terminal]" time="1.155" /></testsuite></testsuites>

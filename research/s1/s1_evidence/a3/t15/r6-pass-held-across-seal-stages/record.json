@@ -1,0 +1,54 @@
+{
+ "label": "killed",
+ "target": "s1_seal._decide_locked",
+ "selection": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages",
+ "agreed": {
+  "basis": "a fresh per-close verification between seal stages",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages",
+  "oracle_kind": "assert",
+  "source_line": "assert sims(loads[:s_], e_) == 1, (e_, s_, loads[e_:s_])      # exactly one fresh per-close verification",
+  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:210"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_seal._decide_locked",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_seal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "8d2507b1db3bfa2ee7538f900d90184ffdb711bd4d3120211ee5fa4d5646299c",
+  "mutated_sha256": "06ed9b9072f219d01da2747e3e8686c3f9fbba9c38e999053e95a901b8fb7ec5",
+  "first_line": 816
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py",
+  210,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "6a4bacc9dab25a7adc3db7ec73ba1a45a1374e74b6ef08ce14577a8f36ae7ed0",
+  "installed.json": null,
+  "pytest-output.txt": "5cafef4fa4b8071177515520704359975681dbc75b21a873060ac3c1cdf51995",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "c7a357cb94933aefa8766083f4d42ce3517f15ddc1eec8bd9117e6f04f1d8f9a",
+  "installed.json": "74a6030ee7e512e4960bc655658aaff4d7c3c452e37310a68af03b0e698a5068",
+  "pytest-output.txt": "fd60eaf43b2225a0eae657a51fbb110cd79b27d16e465e56143b8df38e99c30c",
+  "s1_mutant_plugin.py": "5d9bc39cc736d7349cd2e4477fc72ae4ee54cbc4ac2eaeacb4163dcb382013d4"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages"
+ ],
+ "finding": null
+}

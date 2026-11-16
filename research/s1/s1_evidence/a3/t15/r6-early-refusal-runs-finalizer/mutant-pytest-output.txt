@@ -1,0 +1,34 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+______ test_eligibility_refusal_triggers_no_finalizer[no-stop-decision] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m25/mutant/bt/test_eligibility_refusal_trigg1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000205279D1B20>
+case = 'no-stop-decision'
+
+    @pytest.mark.parametrize("case", ["no-missed-timeout-rows", "no-stop-decision"])
+    def test_eligibility_refusal_triggers_no_finalizer(tmp_path, monkeypatch, case):
+        """After the eligibility refusal: zero finalizer/MISSED/TIMEOUT appends and no decide_stop call (today the d130
+        path runs the post-capture finalizer)."""
+        st_ = h.registered(tmp_path)
+        sch = h.slot(st_, h.D130)
+        w = h.Watch(monkeypatch)
+        got = h.attempt(h.run, tmp_path, st_, sch, sch + timedelta(seconds=30))
+        assert got == ("refused", f"{j.slot_subject(sch)}: SLOT-INTENT refused with no row: "         # H5c (H5a M-2)
+                                  f"{h.c2_text(h.D130)}"), got
+        if case == "no-missed-timeout-rows":
+            assert [k for k, _ in w.appends if k in ("SLOT-MISSED", "SLOT-TIMEOUT")] == [], w.appends
+        else:
+>           assert [x for x in w.calls if x in ("decide_stop", "finalize_close", "_after_terminal", "_finalize_others",
+                                                 "_finalize_last_if_due")] == [], w.calls
+E           AssertionError: ['_finalize_others']
+E           assert ['_finalize_others'] == []
+E             
+E             Left contains one more item: '_finalize_others'
+E             Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_eligibility.py:354: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m25\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer[no-stop-decision]
+1 failed, 1 passed in 3.88s

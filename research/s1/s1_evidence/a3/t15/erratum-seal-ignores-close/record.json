@@ -1,0 +1,54 @@
+{
+ "label": "killed",
+ "target": "s1_trial.closed_in",
+ "selection": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared",
+ "agreed": {
+  "basis": "a CLOSE between the reads refuses PREPARED",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared",
+  "oracle_kind": "assert",
+  "source_line": "assert kinds_ == [\"STAGE-INTENT\"] and only.closed is not None                 # PREPARED refused (CLOSED)",
+  "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:311"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_trial.closed_in",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_trial.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "d927e7ecb2ec4b8185e5ac45b901f3031323f8364735bae33caa2d206ef8d7d0",
+  "mutated_sha256": "bd6ca6af2c05507a2143be0c71de1820ab9a0f15798fbb7b40117bd01fcaf0d2",
+  "first_line": 392
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py",
+  311,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "cbfa69cb6bc6dc32246b2f0d196ffe582980e17dd68ea0e08f407bef880d91b4",
+  "installed.json": null,
+  "pytest-output.txt": "8b4702fdacf7f8421c992961d90415882ea4739a6538d16bed42e1cb4566a162",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "4263cfdfef8630cc46abde844a4928f3f6f45c41dfa1551dae931d17b5285ff8",
+  "installed.json": "3d711874b9c53e1f8fd001a7f1b4b825a2581e1e9edc8ff175f2049dcc2f1b61",
+  "pytest-output.txt": "923eb9960b50e8d392c683602ddadef73a670a2c94a7668b0429d99e96f3c952",
+  "s1_mutant_plugin.py": "d9ddb0fa751f152aa1a42f9897a6458f645a6ae1d6990d7a254ef953a64d657b"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared"
+ ],
+ "finding": null
+}

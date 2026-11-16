@@ -1,0 +1,64 @@
+{
+ "label": "failed-elsewhere",
+ "target": "s1_stage.recover",
+ "selection": "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table",
+ "agreed": {
+  "basis": "recovery must append CREATED with the stage's own op",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]",
+  "oracle_kind": "assert",
+  "source_line": "assert stage_kinds(tmp_path, \"final_plan\")[-1] == \"STAGE-CREATED\"",
+  "terminal": "research/s1/s1_tests/test_s1_a3_stage.py:466"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_stage.recover",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_stage.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "b036b6822ce73eedb61267dc48bac7716cd06551548a5b93cad4151721181e14",
+  "mutated_sha256": "a7e2d91890d1eeb41b77d097201f7c399383cddc7a2f07842261d3520f7c0717",
+  "first_line": 472
+ },
+ "frame_found": [
+  "research/s1/s1_stage.py",
+  363,
+  "SystemExit"
+ ],
+ "control": {
+  "junit.xml": "ac9fe2adb39ec49385c004b7e0df618d4e07da1fe432bd712486866384397f1b",
+  "installed.json": null,
+  "pytest-output.txt": "b5f1ffddba09bfacb790c1c64329ca1449d71c3cda0e0a69381fdbc68c527785",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "41c0a1db5e1e9c5b3cdc171f8209268261a437d740e157742c900a5c1832b44e",
+  "installed.json": "db99a4d80b814ebc1baf55aed4dc8c7a4267ae21b9e41c7fc2d7bf43c7f2ee06",
+  "pytest-output.txt": "0a6047931d7dabfa4dc8f67a3cb94d901c3b6fd35ec09d452c4d1fbd85d8069b",
+  "s1_mutant_plugin.py": "80d49b2c7216f2fd29c2d8469bae319462054abf040faad88eda2fad6162277b"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-after-audit-ack]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-before-audit-ack]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[intent-lock-held]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[intent-lock-free]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-held]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-after-audit-ack]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[no-intent-artifact-before-audit-ack]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[intent-lock-held]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[intent-lock-free]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-held]",
+  "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]"
+ ],
+ "finding": "T15-F7: failed-elsewhere: the journal's 4a INVALIDATEs the foreign-op CREATED inside t.gate (s1_stage.py:363 SystemExit), before the agreed stage.py:466"
+}

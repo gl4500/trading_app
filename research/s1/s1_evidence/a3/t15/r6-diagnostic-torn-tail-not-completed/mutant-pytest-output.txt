@@ -1,0 +1,92 @@
+...FF.F.                                                                 [100%]
+================================== FAILURES ===================================
+_____________________ test_tail_completion[no-terminator] _____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m24/mutant/bt/test_tail_completion_no_termin0')
+case = 'no-terminator'
+
+    @pytest.mark.parametrize("case", list(TAILS))
+    def test_tail_completion(tmp_path, case):
+        """Whatever the inherited tail, the call returns None and the file is EXACTLY the existing bytes (never deleted or
+        rewritten) + the minimal completion + this record's line; this record is one intact line for both readers, every
+        earlier valid record still parses, and an incomplete tail is at most one unparseable line. A healthy (or empty, or
+        absent) file gets nothing but the line, byte for byte."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        existing, completion = TAILS[case]
+        if existing is not None:
+            path.write_bytes(existing)
+        assert sl.record_early_refusal(out, _rec(11)) is None
+        data = path.read_bytes()
+>       assert data == (existing or b"") + completion + _line(_rec(11)), data
+E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+E         '
+E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+E         
+E         At index 256 diff: b'{' != b'\r'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:141: AssertionError
+________________________ test_tail_completion[lone-cr] ________________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m24/mutant/bt/test_tail_completion_lone_cr_0')
+case = 'lone-cr'
+
+    @pytest.mark.parametrize("case", list(TAILS))
+    def test_tail_completion(tmp_path, case):
+        """Whatever the inherited tail, the call returns None and the file is EXACTLY the existing bytes (never deleted or
+        rewritten) + the minimal completion + this record's line; this record is one intact line for both readers, every
+        earlier valid record still parses, and an incomplete tail is at most one unparseable line. A healthy (or empty, or
+        absent) file gets nothing but the line, byte for byte."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        existing, completion = TAILS[case]
+        if existing is not None:
+            path.write_bytes(existing)
+        assert sl.record_early_refusal(out, _rec(11)) is None
+        data = path.read_bytes()
+>       assert data == (existing or b"") + completion + _line(_rec(11)), data
+E       AssertionError: b'{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "sam... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+E         '
+E       assert b'{"reason": ...204500Z"}\r\n' == b'{"reason": ...204500Z"}\r\n'
+E         
+E         At index 257 diff: b'{' != b'\n'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:141: AssertionError
+________________________ test_tail_completion[bare-cr] ________________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m24/mutant/bt/test_tail_completion_bare_cr_0')
+case = 'bare-cr'
+
+    @pytest.mark.parametrize("case", list(TAILS))
+    def test_tail_completion(tmp_path, case):
+        """Whatever the inherited tail, the call returns None and the file is EXACTLY the existing bytes (never deleted or
+        rewritten) + the minimal completion + this record's line; this record is one intact line for both readers, every
+        earlier valid record still parses, and an incomplete tail is at most one unparseable line. A healthy (or empty, or
+        absent) file gets nothing but the line, byte for byte."""
+        out = tmp_path / "s1_out"
+        out.mkdir()
+        path = out / DIAG
+        existing, completion = TAILS[case]
+        if existing is not None:
+            path.write_bytes(existing)
+        assert sl.record_early_refusal(out, _rec(11)) is None
+        data = path.read_bytes()
+>       assert data == (existing or b"") + completion + _line(_rec(11)), data
+E       AssertionError: b'\r{"reason": "slot 2026-10-26T20:45:00+00:00 requested before its scheduled instant: no claim (Clarification 4)", "s... "2026-10-26T20:44:58.999988+00:00", "scheduled": "2026-10-26T20:45:00+00:00", "subject": "slot/20261026T204500Z"}\r
+E         '
+E       assert b'\r{"reason"...204500Z"}\r\n' == b'\r\n{"reaso...204500Z"}\r\n'
+E         
+E         At index 1 diff: b'{' != b'\n'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_early_refusal_tail.py:141: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m24\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]
+FAILED research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]
+3 failed, 5 passed in 0.57s

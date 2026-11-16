@@ -1,0 +1,39 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______ test_h5b_stop_decision_close_passes_verify_between_seal_stages ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m27/mutant/bt/test_h5b_stop_decision_close_p0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000205C30A9A60>
+
+    def test_h5b_stop_decision_close_passes_verify_between_seal_stages(tmp_path, monkeypatch):
+        """B1 (transactions): decide_stop's per-close state passes are never held across a seal-stage transaction - after
+        each seal stage, the next close's pass verifies afresh (exactly one)."""
+        lots = [{"symbol": f"S{i % 5}", "qty": 10, "px": 100.0, "buy_day": 0, "sell": (1, 80.0)} for i in range(100)]
+        st_ = s1_state(tmp_path, START, score_ready=True, stop=False, seal_stage=False, lots=lots, seal_days=[0, 1, 2])
+        loads = pin_loads(monkeypatch)
+        real_rss, marks = sl.run_seal_stage, []
+    
+        def rss(*a, **kw):
+            marks.append(("start", len(loads)))
+            try:
+                return real_rss(*a, **kw)
+            finally:
+                marks.append(("end", len(loads)))
+        monkeypatch.setattr(sl, "run_seal_stage", rss)
+        gv = t.Gate(tmp_path, tmp_path / "s1_out", t.open_trial(mb(tmp_path)), jrows(tmp_path), "ACTIVE", mb(tmp_path))
+        pr = json.loads((tmp_path / "s1_out" / "prereg.json").read_text(encoding="utf-8"))
+        z.decide_stop(gv, pr["calendar"], c.aware(pr["start"]), lambda: st_["now"], mailbox=mb(tmp_path))
+        ends = [n for k, n in marks if k == "end"]
+        starts = [n for k, n in marks if k == "start"]
+        assert len(starts) >= 2, marks
+        for e_, s_ in zip(ends, starts[1:]):                               # between a stage's end and the next stage
+>           assert sims(loads[:s_], e_) == 1, (e_, s_, loads[e_:s_])      # exactly one fresh per-close verification
+E           AssertionError: (8, 8, [])
+E           assert 0 == 1
+E            +  where 0 = sims(['e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', 'e1_sim_pinned', ...], 8)
+
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:210: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m27\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages
+1 failed in 3.80s

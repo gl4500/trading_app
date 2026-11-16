@@ -1,0 +1,54 @@
+{
+ "label": "failed-elsewhere",
+ "target": "s1_seal._stop_record",
+ "selection": "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop",
+ "agreed": {
+  "basis": "a pending eligible close must make stop_record None",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop",
+  "oracle_kind": "assert",
+  "source_line": "assert z.stop_record(gv.out, gv.rows, st_[\"start\"], st_[\"calendar\"], gv.trial.bundle) is None",
+  "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:162"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_seal._stop_record",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_seal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "e2d66c4a20152d67acd2c1ddc27b4308d1589dd6c66334e29e179f3a7de75ef2",
+  "mutated_sha256": "387cd730fc3fcad512b1df7484a9f79a7ec598c35cd25a42aedbc8ddf6b49cd5",
+  "first_line": 644
+ },
+ "frame_found": [
+  "research/s1/s1_seal.py",
+  663,
+  "TypeError"
+ ],
+ "control": {
+  "junit.xml": "9770337b856363b6746375669eb4eea78ac99ee731bfd21381bde759243cbc71",
+  "installed.json": null,
+  "pytest-output.txt": "dfe6990e6a22ef923ae8e8cbb66fb68787255683bb95bc9dc81f08f70d8141b1",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "6cfc10d97f13743b56ae3f60d0823680efc973a49a339e3cac9807bba4be55cb",
+  "installed.json": "153689d21ee6ba085439b14c2dac3dd5ce3682c7dc3f8b1db65f29730488fa08",
+  "pytest-output.txt": "214af8fadcfd1733908fcbe010c93d08d487520bea87623c167716987ce799ba",
+  "s1_mutant_plugin.py": "c54c9c340fa5e6b17c6eb856f3109f14769d0dbe84f971325bc9352545d3db78"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop"
+ ],
+ "finding": "T15-F11: failed-elsewhere: a pending close falls through to _resolution_evidence with no QUALIFIED row (s1_seal.py:663 TypeError), not the agreed stop.py:162"
+}

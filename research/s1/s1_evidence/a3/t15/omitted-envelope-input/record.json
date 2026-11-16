@@ -1,0 +1,54 @@
+{
+ "label": "failed-elsewhere",
+ "target": "s1_run.attest_start",
+ "selection": "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_envelope_and_single_member",
+ "agreed": {
+  "basis": "the envelope inputs must include opening_books.json",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_envelope_and_single_member",
+  "oracle_kind": "assert",
+  "source_line": "assert set(e[\"inputs\"]) == {\"plan.json\", \"audit/manifest.json\", f\"seals/{oc}.json\", \"opening_receipt.json\",",
+  "terminal": "research/s1/s1_tests/test_s1_a3_prestart.py:137"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_run.attest_start",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_run.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "eb25868a0dc209790d178e887b8528b050ab4139b91e048da2d6029944208d4d",
+  "mutated_sha256": "d443adf85b1fe8671a9475373968060073e05221a348b89c17c2442b07df343e",
+  "first_line": 444
+ },
+ "frame_found": [
+  "research/s1/s1_run.py",
+  515,
+  "KeyError"
+ ],
+ "control": {
+  "junit.xml": "680bd4783bab93f954e29649c94535477b63fb18fa98c7136a611a7079326dda",
+  "installed.json": null,
+  "pytest-output.txt": "2e8aab8ad575ca34f8b8bba97bab7c78687cd6cb1fea8e619173f85176383a92",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "4be495bf16a17c8ee701357d942311fcc39cf9b78a4746bf7496491d923ad2d6",
+  "installed.json": "67eb7402af46cfe62299c30810b2bc6730c895b0ee94687a149d73a1052a3321",
+  "pytest-output.txt": "63f0789304349953e5c428e0a28e7cef971ff5402cd87191cfe7df7562a8b9e2",
+  "s1_mutant_plugin.py": "84ca4850aa71d5c9b785b5944ae845159137abb7dceaa1fb1e84b0ab57dc921a"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_envelope_and_single_member"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_envelope_and_single_member"
+ ],
+ "finding": "T15-F4: failed-elsewhere: KeyError in the publish hooks (s1_run.py:515) before the agreed envelope assertion prestart.py:137"
+}

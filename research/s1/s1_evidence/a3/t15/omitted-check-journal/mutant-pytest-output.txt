@@ -1,0 +1,98 @@
+.FFF                                                                     [100%]
+================================== FAILURES ===================================
+_____ test_journal_seq_and_head_must_be_extended_without_fork[wrong-head] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m11/mutant/bt/test_journal_seq_and_head_must1')
+case = 'wrong-head'
+
+    @pytest.mark.parametrize("case", ["ok", "wrong-head", "seq-beyond", "forked"])
+    def test_journal_seq_and_head_must_be_extended_without_fork(tmp_path, case):           # row 150 (P35 killer)
+        mb = s1_mailbox_init(tmp_path)
+        a = tid()
+        post(mb, "a1", audit(a), T0)
+        row = stage_row(t.open_trial(mb), mb, T0)
+        head = {"ok": row.sha, "wrong-head": "4" * 64, "seq-beyond": row.sha, "forked": row.sha}[case]
+        post(mb, "o1", opening(a, "a1", seq=2 if case == "seq-beyond" else 1, head=head), T0 + timedelta(hours=1))
+        tr = t.open_trial(mb)
+        rows = j.read_trial(a, tr.genesis, mb)
+        if case == "forked":
+            rows = [j.Row(**dict(j.parse_line(rows[0].line), detail="5" * 64), line=rows[0].line.replace(H, "5" * 64),
+                          mailbox_id="x", created=rows[0].created)]
+        probs = t.check_journal(tr, rows)
+        assert (probs == []) == (case == "ok"), probs
+        with _clock(T0 + timedelta(days=1)):
+            if case == "ok":
+                assert t.verify_ack(tr, rows, "S1-OPENING-ACK", "o1", {"journal_head_sha256": row.sha}).mailbox_id == "o1"
+                return
+            reason = {"wrong-head": "journal head at seq 1 differs", "seq-beyond": "journal_seq 2 beyond the journal",
+                      "forked": "journal head at seq 1 differs"}[case]
+>           with pytest.raises(t.Refusal, match=reason):                # verify_ack refuses on check_journal problems
+E           Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+
+research\s1\s1_tests\test_s1_a3_trial.py:256: Failed
+_____ test_journal_seq_and_head_must_be_extended_without_fork[seq-beyond] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m11/mutant/bt/test_journal_seq_and_head_must2')
+case = 'seq-beyond'
+
+    @pytest.mark.parametrize("case", ["ok", "wrong-head", "seq-beyond", "forked"])
+    def test_journal_seq_and_head_must_be_extended_without_fork(tmp_path, case):           # row 150 (P35 killer)
+        mb = s1_mailbox_init(tmp_path)
+        a = tid()
+        post(mb, "a1", audit(a), T0)
+        row = stage_row(t.open_trial(mb), mb, T0)
+        head = {"ok": row.sha, "wrong-head": "4" * 64, "seq-beyond": row.sha, "forked": row.sha}[case]
+        post(mb, "o1", opening(a, "a1", seq=2 if case == "seq-beyond" else 1, head=head), T0 + timedelta(hours=1))
+        tr = t.open_trial(mb)
+        rows = j.read_trial(a, tr.genesis, mb)
+        if case == "forked":
+            rows = [j.Row(**dict(j.parse_line(rows[0].line), detail="5" * 64), line=rows[0].line.replace(H, "5" * 64),
+                          mailbox_id="x", created=rows[0].created)]
+        probs = t.check_journal(tr, rows)
+        assert (probs == []) == (case == "ok"), probs
+        with _clock(T0 + timedelta(days=1)):
+            if case == "ok":
+                assert t.verify_ack(tr, rows, "S1-OPENING-ACK", "o1", {"journal_head_sha256": row.sha}).mailbox_id == "o1"
+                return
+            reason = {"wrong-head": "journal head at seq 1 differs", "seq-beyond": "journal_seq 2 beyond the journal",
+                      "forked": "journal head at seq 1 differs"}[case]
+>           with pytest.raises(t.Refusal, match=reason):                # verify_ack refuses on check_journal problems
+E           Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+
+research\s1\s1_tests\test_s1_a3_trial.py:256: Failed
+_______ test_journal_seq_and_head_must_be_extended_without_fork[forked] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m11/mutant/bt/test_journal_seq_and_head_must3')
+case = 'forked'
+
+    @pytest.mark.parametrize("case", ["ok", "wrong-head", "seq-beyond", "forked"])
+    def test_journal_seq_and_head_must_be_extended_without_fork(tmp_path, case):           # row 150 (P35 killer)
+        mb = s1_mailbox_init(tmp_path)
+        a = tid()
+        post(mb, "a1", audit(a), T0)
+        row = stage_row(t.open_trial(mb), mb, T0)
+        head = {"ok": row.sha, "wrong-head": "4" * 64, "seq-beyond": row.sha, "forked": row.sha}[case]
+        post(mb, "o1", opening(a, "a1", seq=2 if case == "seq-beyond" else 1, head=head), T0 + timedelta(hours=1))
+        tr = t.open_trial(mb)
+        rows = j.read_trial(a, tr.genesis, mb)
+        if case == "forked":
+            rows = [j.Row(**dict(j.parse_line(rows[0].line), detail="5" * 64), line=rows[0].line.replace(H, "5" * 64),
+                          mailbox_id="x", created=rows[0].created)]
+        probs = t.check_journal(tr, rows)
+        assert (probs == []) == (case == "ok"), probs
+        with _clock(T0 + timedelta(days=1)):
+            if case == "ok":
+                assert t.verify_ack(tr, rows, "S1-OPENING-ACK", "o1", {"journal_head_sha256": row.sha}).mailbox_id == "o1"
+                return
+            reason = {"wrong-head": "journal head at seq 1 differs", "seq-beyond": "journal_seq 2 beyond the journal",
+                      "forked": "journal head at seq 1 differs"}[case]
+>           with pytest.raises(t.Refusal, match=reason):                # verify_ack refuses on check_journal problems
+E           Failed: DID NOT RAISE <class 's1_trial.Refusal'>
+
+research\s1\s1_tests\test_s1_a3_trial.py:256: Failed
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m11\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[seq-beyond]
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[forked]
+3 failed, 1 passed in 0.55s

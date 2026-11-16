@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.228" timestamp="2026-11-16T00:52:22.552256-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_h5b_pass" name="test_h5b_pass_fifo_replay_equals_public_sold_events" time="2.872"><failure message="AssertionError: fixture: decide_stop committed no TRIAL-STOP&#10;assert None is not None&#10; +  where None = &lt;function first at 0x000001E2664EE700&gt;([Row(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', seq=1, prev='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1...c1 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='1870ea37-2c5d-4806-8a4b-962658970069', created=1792788330.0), ...], 'TRIAL-STOP')&#10; +    where &lt;function first at 0x000001E2664EE700&gt; = &lt;module 's1_journal' from 'C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_journal.py'&gt;.first&#10; +    and   [Row(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', seq=1, prev='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1...c1 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='1870ea37-2c5d-4806-8a4b-962658970069', created=1792788330.0), ...] = &lt;function read_trial at 0x000001E2664EE520&gt;('a6d9f73f-8c3b-4904-9014-edbb2e99e51d', '414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b', WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m20/mutant/bt/test_h5b_pass_fifo_replay_equa0/mailbox.sqlite3'))&#10; +      where &lt;function read_trial at 0x000001E2664EE520&gt; = &lt;module 's1_journal' from 'C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_journal.py'&gt;.read_trial&#10; +      and   'a6d9f73f-8c3b-4904-9014-edbb2e99e51d' = Trial(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', bundle='ac059f2baf8d57c33a0cc74d3d89d5c93e93f288ffeb2171fdc9455...8f1fa252f927'})}, closed=None, problems=[], genesis='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b').trial_id&#10; +        where Trial(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', bundle='ac059f2baf8d57c33a0cc74d3d89d5c93e93f288ffeb2171fdc9455...8f1fa252f927'})}, closed=None, problems=[], genesis='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b') = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/...5620dbebb/scratchpad/t15b/bt_green3/t15w0/m20/mutant/bt/test_h5b_pass_fifo_replay_equa0/mailbox.sqlite3'), deferred=[]).trial&#10; +      and   '414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b' = Trial(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', bundle='ac059f2baf8d57c33a0cc74d3d89d5c93e93f288ffeb2171fdc9455...8f1fa252f927'})}, closed=None, problems=[], genesis='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b').genesis&#10; +        where Trial(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', bundle='ac059f2baf8d57c33a0cc74d3d89d5c93e93f288ffeb2171fdc9455...8f1fa252f927'})}, closed=None, problems=[], genesis='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b') = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/...5620dbebb/scratchpad/t15b/bt_green3/t15w0/m20/mutant/bt/test_h5b_pass_fifo_replay_equa0/mailbox.sqlite3'), deferred=[]).trial">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m20/mutant/bt/test_h5b_pass_fifo_replay_equa0')
+
+    def test_h5b_pass_fifo_replay_equals_public_sold_events(tmp_path):
+        """I-1: the pass-scoped replay (s1_books._sold_events) gives exactly the public sold_events result on every
+        sampled seal's trades, and the same BookError for an oversell (the engine's ValueError mapped to BookError inside
+        the try, N-2)."""
+        fn = getattr(b, "_sold_events", None)
+        assert fn is not None, "s1_books has no pass-scoped _sold_events (H5b)"
+&gt;       x = ctx(tmp_path)
+
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:542: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:66: in ctx
+    st_ = s1_state(tmp_path, START, score_ready=True, **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m20/mutant/bt/test_h5b_pass_fifo_replay_equa0')
+planned_start = '2026-10-26T13:30:00+00:00', score_ready = True
+
+    def s1_state(root, planned_start, score_ready=False, *, carry_in=(("CI", 10, 50.0, "2026-10-01T15:00:00+00:00"),),
+                 bridge=(), audit_actions=(), audit_problems=(), lots=None, bar_fn=None, final_actions=(),
+                 final_problems=(), bar_problems=(), seal_days=None, stop_attest=True, receipt=None,
+                 final_snapshot=True, final=True, attest=True, stop=True, score_ack=True, seal_stage=True, upto=None):
+        """Build a synthetic s1_out/ under `root` through the REAL product gates (Task 7 test helper, not product code).
+        A3 Task 14 (the damage matrix's commitment points): `upto` = one of S1_UPTO ("after-start-attest" ... "after-score")
+        runs the real lifecycle (attest_start, do_prereg, decide_stop, attest_stop, write_final_plan, the real `final`
+        stage, the score command, each with the ACK it requires) and returns right after that stage's CREATED row (for
+        "after-stop": the TRIAL-STOP row + stop.json) - the ACK of the NEXT stage is not posted. info["now"] is then an
+        instant just after that point, at which the trial gate passes. `upto` implies score_ready from "after-prereg" on;
+        the other keywords keep their defaults.
+    
+        Always: plan (s1_collect.write_plan), a COMPLETE audit attempt (calendar + corporate actions, manifest hashes),
+        the opening seal (carry-in rows; bridge rows are stored after it), the START attestation (s1_run.attest_start)
+        and a RUN-ACK mailbox message "run-ack" (a test may call do_prereg itself).
+        With score_ready: prereg (s1_run.do_prereg), cohort rows (`lots`: symbol, qty, px, buy_day, sell=(day, px)|None,
+        day = index of the post-START session), seals for `seal_days` (default: every session through the last trade),
+        the stop attestation (if `stop_attest` and a stop exists), the final plan + a COMPLETE final attempt (bars from
+        `bar_fn(symbol, date)`, None = missing) when a stop exists, the acquisition-time final snapshot (if
+        `final_snapshot`) and a SCORE-ACK message "score-ack". Task 12: `final=False` stops after the stop attestation
+        (no final plan, final attempt, snapshot or SCORE-ACK), for tests that run the real final acquisition.
+        carry_in: (symbol, qty, px, ts) BUYs before the opening close; bridge: (symbol, action, qty, px, ts) rows after
+        the opening seal and before START. Returns start, calendar, sessions, rows, stop, the synthetic `ledger` and
+        `now` (after everything).
+        Task 7b (controller-added): the rows live in a synthetic SQLite ledger (root/s1_ledger.sqlite3, inserted in
+        stored-time order so ids increase with time); the opening seal is produced by
+        s1_checkpoint.run_opening_checkpoint (no hand-written opening seal) and the final snapshot by
+        s1_checkpoint.run_final_snapshot. Post-START seals are still written in the checkpoint's seal format.
+        A3 Task 11 (Step 1/2 conftest change): the stop is reached through s1_seal.decide_stop at the decision instant
+        (for a timeout, after s1_slot.finalize_close closes out the last eligible close at its window end W, so its W slot
+        is terminal). `stop=False`: the seals are written but decide_stop is not run and no attestation, final step or ACK
+        follows (info["now"] is still the decision instant). `score_ack=False` (Task 13): no SCORE-ACK message.
+        `seal_stage=False`: post-START seals stop after their QUALIFIED row (`_write_seal(..., with_stage=False)`: the
+        closes are determined, with no seal stage). The info dict carries `opening_close` (the opening close date, Task 14).
+        Task 11 Step 4: the TRIAL-STOP is the real one (decide_stop: the record, the E2.5 fence and the readiness on the
+        append's clock); the Task 5 synthetic TRIAL-STOP is gone. The post-stop chain is _s1_finish (also s1_finish)."""
+        from datetime import timedelta
+        import s1_checkpoint as ck
+        import s1_collect as k
+        import s1_common as c
+        import s1_run as r
+        import s1_seal as z
+    
+        receipt = S1_RECEIPT if receipt is None else receipt
+        if upto is not None:
+            if upto not in S1_UPTO:
+                raise ValueError(f"s1_state: upto must be one of {S1_UPTO}, not {upto!r}")
+            score_ready = score_ready or upto != "after-start-attest"
+        root = Path(root)
+        out = root / "s1_out"
+        start = c.aware(planned_start)
+        start_day = start.astimezone(c.NY).date().isoformat()
+        dl = z.deadline(start)
+        first_day = min((c.aware(x[3]).astimezone(c.NY).date().isoformat() for x in carry_in), default=start_day)
+        start, raw_cal, opening_close, created = s1_plan_audit(
+            root, planned_start, carry_in_syms=[x[0] for x in carry_in], first_day=first_day,
+            audit_actions=audit_actions, audit_problems=audit_problems)
+        cal = [dict(d) for d in raw_cal]
+        sessions = [d["date"] for d in cal if d["date"] &gt;= start_day]
+    
+        # all rows in stored-time order; ids increase with time (as the app's autoincrement gives them)
+        lots = (_default_lots() if lots is None else lots) if score_ready else []
+        pending = [(ts, sym, "BUY", q, px) for sym, q, px, ts in carry_in]
+        pending += [(ts, sym, act, q, px) for sym, act, q, px, ts in bridge]
+        for L in lots:
+            pending.append((f"{sessions[L['buy_day']]}T15:00:00+00:00", L["symbol"], "BUY", L["qty"], L["px"]))
+            if L.get("sell"):
+                pending.append((f"{sessions[L['sell'][0]]}T18:00:00+00:00", L["symbol"], "SELL", L["qty"],
+                                L["sell"][1]))
+        pending.sort(key=lambda p: c.aware(p[0]))
+        reason_sha = c.sha256_bytes(b"r")                                  # Ledger.trade's default reasoning
+        rows = [{"id": i, "symbol": sym, "action": act, "shares": float(q), "price": float(px), "timestamp": ts,
+                 "ts": c.aware(ts).isoformat(), "reasoning_sha256": reason_sha}
+                for i, (ts, sym, act, q, px) in enumerate(pending, start=1)]
+        held_syms = sorted({x[0] for x in carry_in} | {x[0] for x in bridge})
+    
+        ledger = Ledger(root / "s1_ledger.sqlite3")
+        stored = []
+    
+        def store_until(limit):
+            for t in rows[len(stored):]:
+                if limit is not None and c.aware(t["ts"]) &gt; limit:
+                    break
+                assert ledger.trade(t["symbol"], t["action"], t["shares"], t["price"], t["timestamp"]) == t["id"]
+                stored.append(t)
+            s1_sync_portfolio(ledger, stored)
+    
+        oc = z.close_of(opening_close, cal)
+        store_until(oc + timedelta(minutes=45))
+        rep = s1_opening_checkpoint(root, ledger, opening_close, cal, receipt)
+        assert rep["seal"]["written"], rep
+        # A3 Task 10 (F7.2(b) literal, OQ-37 ruling; E5.6): the finalizer runs to the E of the opening close's last (W)
+        # slot, so every scheduled opening-close slot is terminal; only then the OPENING-ACK, with no opening_slot or
+        # evidence_manifest_sha256 override (s1_trial.token derives both from the journal). Every later fixture instant
+        # follows it: the START attestation, the RUN-ACK and prereg (Task 12 A8 causal order) fit before planned START.
+        import s1_journal as j
+        e_w = s1_close_out(root, cal, opening_close)
+        s1_ack(root, "opening-ack", "S1-OPENING-ACK", e_w + timedelta(minutes=1))
+        store_until(None)                                                  # bridge + cohort rows, stored after it
+        attest_t, ack_t, prereg_t = (e_w + timedelta(minutes=m) for m in (2, 3, 4))
+        assert prereg_t &lt; start, (prereg_t, start)
+        if not attest:              # A3 Task 10: the state just before the START attestation (the start_attest stage is
+            return {"start": start, "calendar": cal, "sessions": sessions, "rows": rows, "stop": None,  # journal-bound now:
+                    "ledger": ledger, "attest_at": attest_t, "opening_acked_at": e_w + timedelta(minutes=1),  # no unattest)
+                    "opening_close": opening_close}
+        with _Clock(attest_t):
+            r.attest_start(root, r.START_STATEMENT, receipt)
+        info = {"start": start, "calendar": cal, "sessions": sessions, "rows": rows, "stop": None, "ledger": ledger,
+                "now": max(start - timedelta(hours=12), prereg_t + timedelta(minutes=1)),   # (A3 Task 10: after prereg_t)
+                "prereg_at": prereg_t, "opening_acked_at": e_w + timedelta(minutes=1),   # Task 12: a causal prereg instant
+                "attest_at": attest_t, "opening_close": opening_close}
+        if upto == "after-start-attest":                                   # A3 Task 14: before prereg's RUN-ACK
+            info["now"] = attest_t + timedelta(seconds=30)
+            return info
+        s1_ack(root, "run-ack", "S1-RUN-ACK", ack_t)                       # A3 Task 5: s1_trial.token (F7.1)
+        if not score_ready:
+            return info
+    
+        with _Clock(prereg_t):
+            r.do_prereg(root, "run-ack", receipt)
+        if upto == "after-prereg":                                         # A3 Task 14: before the PREREG-ACK
+            info["now"] = prereg_t + timedelta(seconds=30)
+            return info
+        s1_ack(root, "prereg-ack", "S1-PREREG-ACK", prereg_t + timedelta(minutes=1))      # A3 Task 5 (F7.4)
+        if seal_days is None:
+            used = [L["buy_day"] for L in lots] + [L["sell"][0] for L in lots if L.get("sell")]
+            seal_days = range(0, max(used, default=-1) + 1)
+        last_close = start
+        for i in seal_days:
+            cl = z.close_of(sessions[i], cal)
+            _write_seal(out, sessions[i], cl, [t for t in rows if c.aware(t["ts"]) &lt;= cl + timedelta(minutes=45)],
+                        receipt, start=start, opening_close=oc, with_stage=seal_stage)
+            last_close = max(last_close, cl)
+        seals = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((out / "seals").glob("*.json"))]
+        t = last_close + timedelta(days=1)
+        stop_ = z.stop_decision(seals, start, cal, today=t)
+        last_eligible = None
+        if stop_["status"] != "STOPPED":                     # let the timeout window close
+            last_eligible = [d for d in cal if z.open_instant(d) &gt;= start and _dl_ok(z, d, cal, dl)][-1]
+            t = z.window_end(last_eligible, cal) + timedelta(days=1)
+            stop_ = z.stop_decision(seals, start, cal, today=t)
+        if not stop:                                         # A3 Task 11: seals only - no decision, no finalization
+            info["now"] = t                                  # (the decision instant the stop=True path would use)
+            return info
+        info["stop"] = stop_
+        mb = root / "mailbox.sqlite3"
+        import s1_trial as tr_
+        if last_eligible is not None:                        # A3 Task 11: a timeout - the last eligible close's W slot
+            s1_close_out(root, cal, last_eligible["date"])   # is terminal (finalize_close at its window end)
+        with _Clock(t):
+            gv = tr_.gate(root, "fixture: stop decision", mailbox=mb, now=lambda: t)
+            z.decide_stop(gv, cal, start, lambda: t, mailbox=mb)
+&gt;       assert j.first(j.read_trial(gv.trial.trial_id, gv.trial.genesis, mb), "TRIAL-STOP") is not None, \
+            "fixture: decide_stop committed no TRIAL-STOP"     # (A3 Task 11 Step 4: the synthetic fallback is deleted)
+E       AssertionError: fixture: decide_stop committed no TRIAL-STOP
+E       assert None is not None
+E        +  where None = &lt;function first at 0x000001E2664EE700&gt;([Row(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', seq=1, prev='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1...c1 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='1870ea37-2c5d-4806-8a4b-962658970069', created=1792788330.0), ...], 'TRIAL-STOP')
+E        +    where &lt;function first at 0x000001E2664EE700&gt; = &lt;module 's1_journal' from 'C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_journal.py'&gt;.first
+E        +    and   [Row(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', seq=1, prev='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1...c1 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='1870ea37-2c5d-4806-8a4b-962658970069', created=1792788330.0), ...] = &lt;function read_trial at 0x000001E2664EE520&gt;('a6d9f73f-8c3b-4904-9014-edbb2e99e51d', '414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b', WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m20/mutant/bt/test_h5b_pass_fifo_replay_equa0/mailbox.sqlite3'))
+E        +      where &lt;function read_trial at 0x000001E2664EE520&gt; = &lt;module 's1_journal' from 'C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_journal.py'&gt;.read_trial
+E        +      and   'a6d9f73f-8c3b-4904-9014-edbb2e99e51d' = Trial(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', bundle='ac059f2baf8d57c33a0cc74d3d89d5c93e93f288ffeb2171fdc9455...8f1fa252f927'})}, closed=None, problems=[], genesis='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b').trial_id
+E        +        where Trial(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', bundle='ac059f2baf8d57c33a0cc74d3d89d5c93e93f288ffeb2171fdc9455...8f1fa252f927'})}, closed=None, problems=[], genesis='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b') = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/...5620dbebb/scratchpad/t15b/bt_green3/t15w0/m20/mutant/bt/test_h5b_pass_fifo_replay_equa0/mailbox.sqlite3'), deferred=[]).trial
+E        +      and   '414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b' = Trial(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', bundle='ac059f2baf8d57c33a0cc74d3d89d5c93e93f288ffeb2171fdc9455...8f1fa252f927'})}, closed=None, problems=[], genesis='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b').genesis
+E        +        where Trial(trial_id='a6d9f73f-8c3b-4904-9014-edbb2e99e51d', bundle='ac059f2baf8d57c33a0cc74d3d89d5c93e93f288ffeb2171fdc9455...8f1fa252f927'})}, closed=None, problems=[], genesis='414a4b395dea0ec8d7c9154d9156726e21adade49ac043fd1b1e9a446f04c88b') = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/...5620dbebb/scratchpad/t15b/bt_green3/t15w0/m20/mutant/bt/test_h5b_pass_fifo_replay_equa0/mailbox.sqlite3'), deferred=[]).trial
+
+research\s1\s1_tests\conftest.py:873: AssertionError</failure></testcase></testsuite></testsuites>

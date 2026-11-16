@@ -1,0 +1,7 @@
+{
+ "junit.xml": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+ "cases": 27,
+ "expected": 27,
+ "rc": 0,
+ "pytest-output.txt": "99ce76ee4e95b51092b08864f42a2686aa947d5c155fed2b1874912e0dd810e6"
+}

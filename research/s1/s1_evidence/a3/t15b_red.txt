@@ -1,0 +1,342 @@
+# A3 Task 15b RED: the classifier self-tests (rows 339-344) written first and run against a STUB classifier, 2026-11-16T04:18:54Z. Base 5b4fe84 (product unchanged).
+# Stub tree: a scratch copy of research/s1 whose test_s1_a3_mutants.py has classify -> always "killed", terminal_frame -> None, at_agreed -> always True (scratchpad t15b/mkstub.py); every other line is the final file. Run from the stub tree root:
+# PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_mutants.py -k "test_classifier_self_tests or test_classifier_terminal_frame_and_parameters" -q --tb=short -rA
+# Result: 13 failed, 3 passed. Every failure is an AssertionError ('grep -E "^E   [A-Za-z]+(Error|Exception|Exit)"' tallies 13 AssertionError and nothing else).
+# The 3 passes are the cases whose expected label IS "killed" (semantic-regression, later-parameter-killed, helper-frame-helper-agreed): an always-killed stub coincides with them; they are not REDs. semantic-regression also ran cr_guard.main (exit 1, killed).
+FFFFF.FFFF.FFF.F                                                         [100%]
+================================== FAILURES ===================================
+________________ test_classifier_self_tests[collection-error] _________________
+research\s1\s1_tests\test_s1_a3_mutants.py:718: in test_classifier_self_tests
+    assert got in ("error", "untested") and got != "killed"
+E   AssertionError: assert ('killed' in ('error', 'untested'))
+______________________ test_classifier_self_tests[crash] ______________________
+research\s1\s1_tests\test_s1_a3_mutants.py:720: in test_classifier_self_tests
+    assert got == want
+E   AssertionError: assert 'killed' == 'crash'
+E     
+E     - crash
+E     + killed
+_________________ test_classifier_self_tests[missing-fixture] _________________
+research\s1\s1_tests\test_s1_a3_mutants.py:718: in test_classifier_self_tests
+    assert got in ("error", "untested") and got != "killed"
+E   AssertionError: assert ('killed' in ('error', 'untested'))
+__________________ test_classifier_self_tests[not-installed] __________________
+research\s1\s1_tests\test_s1_a3_mutants.py:720: in test_classifier_self_tests
+    assert got == want
+E   AssertionError: assert 'killed' == 'not-installed'
+E     
+E     - not-installed
+E     + killed
+__________________ test_classifier_self_tests[plugin-error] ___________________
+research\s1\s1_tests\test_s1_a3_mutants.py:718: in test_classifier_self_tests
+    assert got in ("error", "untested") and got != "killed"
+E   AssertionError: assert ('killed' in ('error', 'untested'))
+__________________ test_classifier_self_tests[syntax-error] ___________________
+research\s1\s1_tests\test_s1_a3_mutants.py:718: in test_classifier_self_tests
+    assert got in ("error", "untested") and got != "killed"
+E   AssertionError: assert ('killed' in ('error', 'untested'))
+_____________________ test_classifier_self_tests[timeout] _____________________
+research\s1\s1_tests\test_s1_a3_mutants.py:720: in test_classifier_self_tests
+    assert got == want
+E   AssertionError: assert 'killed' == 'timeout'
+E     
+E     - timeout
+E     + killed
+__________________ test_classifier_self_tests[control-fails] __________________
+research\s1\s1_tests\test_s1_a3_mutants.py:716: in test_classifier_self_tests
+    assert got == "untested"
+E   AssertionError: assert 'killed' == 'untested'
+E     
+E     - untested
+E     + killed
+________________ test_classifier_self_tests[equivalent-listed] ________________
+research\s1\s1_tests\test_s1_a3_mutants.py:712: in test_classifier_self_tests
+    assert classify("synthetic", control, mutant, agreed) == "equivalent"
+E   AssertionError: assert 'killed' == 'equivalent'
+E     
+E     - equivalent
+E     + killed
+_ test_classifier_terminal_frame_and_parameters[later-parameter-agreed-case0-survived] _
+research\s1\s1_tests\test_s1_a3_mutants.py:784: in test_classifier_terminal_frame_and_parameters
+    assert classify("probe", control, mutant, agreed) == want
+E   AssertionError: assert 'killed' == 'survived'
+E     
+E     - survived
+E     + killed
+____ test_classifier_terminal_frame_and_parameters[later-control-failure] _____
+research\s1\s1_tests\test_s1_a3_mutants.py:784: in test_classifier_terminal_frame_and_parameters
+    assert classify("probe", control, mutant, agreed) == want
+E   AssertionError: assert 'killed' == 'untested'
+E     
+E     - untested
+E     + killed
+__ test_classifier_terminal_frame_and_parameters[helper-frame-caller-agreed] __
+research\s1\s1_tests\test_s1_a3_mutants.py:784: in test_classifier_terminal_frame_and_parameters
+    assert classify("probe", control, mutant, agreed) == want
+E   AssertionError: assert 'killed' == 'failed-elsewhere'
+E     
+E     - failed-elsewhere
+E     + killed
+__ test_classifier_terminal_frame_and_parameters[caller-frame-substring-xml] __
+research\s1\s1_tests\test_s1_a3_mutants.py:758: in test_classifier_terminal_frame_and_parameters
+    assert terminal_frame(text) == ("helper.py", 3, "AssertionError")
+E   AssertionError: assert None == ('helper.py', 3, 'AssertionError')
+E    +  where None = terminal_frame('test_synth.py:9: in test_k\n    assert helper()\nhelper.py:3: AssertionError: unrelated internal assertion')
+=================================== PASSES ====================================
+_______________ test_classifier_self_tests[semantic-regression] _______________
+---------------------------- Captured stdout call -----------------------------
+cr_guard: attempt=f32d3b06b0c94cae88989f7f54befd3c exit=1 status=killed sidecar=C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_red\test_classifier_self_tests_sem0\guard_job\guard.json
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[semantic-regression]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[later-parameter-killed]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[helper-frame-helper-agreed]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[collection-error]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[crash]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[missing-fixture]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[not-installed]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[plugin-error]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[syntax-error]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[timeout]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[control-fails]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_self_tests[equivalent-listed]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[later-parameter-agreed-case0-survived]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[later-control-failure]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[helper-frame-caller-agreed]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_terminal_frame_and_parameters[caller-frame-substring-xml]
+13 failed, 3 passed, 67 deselected in 55.01s
+
+# ======================================================================================================
+# FIX ROUND 1 RED (controller ruling B3: pytest's Failed at the agreed line counts; any other non-assertion exception does not). New self-test test_classifier_failed_outcome (3 cases), run against two STUB at_agreed versions in scratch copies (scratchpad t15b/mkstub_b3.py); every other line is the fix-round-1 file. Every failure below is an AssertionError.
+# Stub 'old' (2026-11-16T04:59:50Z) = the pre-B3 at_agreed (AssertionError only): RED for raises-stops-raising-at-agreed-line (failed-elsewhere != killed). The other two cases pass on it (it already rejects them) - not REDs.
+# Stub 'any' (2026-11-16T05:00:01Z) = any frame counts (line and exception ignored): RED for raises-stops-raising-other-line and typeerror-at-agreed-line (killed != failed-elsewhere).
+# cmd (from each stub tree root): PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_mutants.py -k test_classifier_failed_outcome -q --tb=short -rA
+# ----- stub old -----
+F..                                                                      [100%]
+================================== FAILURES ===================================
+_____ test_classifier_failed_outcome[raises-stops-raising-at-agreed-line] _____
+research\s1\s1_tests\test_s1_a3_mutants.py:901: in test_classifier_failed_outcome
+    assert classify("b3", control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'failed-elsewhere' == 'killed'
+E     
+E     - killed
+E     + failed-elsewhere
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_failed_outcome[raises-stops-raising-other-line]
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_failed_outcome[typeerror-at-agreed-line]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_failed_outcome[raises-stops-raising-at-agreed-line]
+1 failed, 2 passed, 83 deselected in 9.79s
+# ----- stub any -----
+.FF                                                                      [100%]
+================================== FAILURES ===================================
+_______ test_classifier_failed_outcome[raises-stops-raising-other-line] _______
+research\s1\s1_tests\test_s1_a3_mutants.py:896: in test_classifier_failed_outcome
+    assert classify("b3", control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'failed-elsewhere'
+E     
+E     - failed-elsewhere
+E     + killed
+__________ test_classifier_failed_outcome[typeerror-at-agreed-line] ___________
+research\s1\s1_tests\test_s1_a3_mutants.py:896: in test_classifier_failed_outcome
+    assert classify("b3", control, mutant, {"nodeid": "test_synth.py::test_k", "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'failed-elsewhere'
+E     
+E     - failed-elsewhere
+E     + killed
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_failed_outcome[raises-stops-raising-at-agreed-line]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_failed_outcome[raises-stops-raising-other-line]
+FAILED research/s1/s1_tests/test_s1_a3_mutants.py::test_classifier_failed_outcome[typeerror-at-agreed-line]
+2 failed, 1 passed, 83 deselected in 9.73s
+
+# ======================================================================================================
+# FIX ROUND 2 RED / revert checks (review I-1, M-1), 2026-11-16T05:39:50Z. New self-test test_classifier_contract_conditions (8 cases). For each classifier/plugin condition, a scratch copy (scratchpad t15b/revert_mk.py) has exactly that condition DELETED; the self-tests are run against it. Each deletion fails its own case BY ASSERTION (and no other case except v03b, which deletes two guards):
+#  v03 <error> check -> [failure-plus-sibling-setup-error]   v04 path check -> [agreed-line-in-another-file]   v07 case-set check -> [mutant-drops-a-sibling-case]
+#  v08 key-in-selection -> [agreed-nodeid-not-in-selection] ('raised KeyError' label via _label)   v09 skipped check -> [agreed-case-skipped]
+#  v10 plugin sha-differs check -> [mutation-leaves-source-unchanged]   v12 terminal_frame LAST match -> [chained-exception-terminal-is-last]
+#  v03b <error> check AND junit_cases duplicate check -> [failure-plus-teardown-error] (xunit2 writes the agreed case's own teardown error as a second testcase, so either guard alone catches it; deleting one does not fail it - by design, both guards).
+# cmd per variant (from the variant tree root): PYTHONPATH="research/s1;research/s1/s1_tests" testenv python -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_mut_<variant>.py -k test_classifier_contract_conditions -q --tb=short -rA
+##### variant v03_no_error (expected RED: [failure-plus-sibling-setup-error])
+....F...                                                                 [100%]
+================================== FAILURES ===================================
+____ test_classifier_contract_conditions[failure-plus-sibling-setup-error] ____
+research\s1\s1_tests\test_s1_a3_mut_v03_no_error.py:981: in test_classifier_contract_conditions
+    assert _label(control, mutant, {"nodeid": nodeid, "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03_no_error.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03_no_error.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03_no_error.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03_no_error.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03_no_error.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03_no_error.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03_no_error.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+FAILED research/s1/s1_tests/test_s1_a3_mut_v03_no_error.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+1 failed, 7 passed, 86 deselected in 21.89s
+rc=1
+##### variant v04_no_path (expected RED: [agreed-line-in-another-file])
+.F......                                                                 [100%]
+================================== FAILURES ===================================
+______ test_classifier_contract_conditions[agreed-line-in-another-file] _______
+research\s1\s1_tests\test_s1_a3_mut_v04_no_path.py:983: in test_classifier_contract_conditions
+    assert _label(control, mutant, {"nodeid": nodeid, "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'failed-elsewhere'
+E     
+E     - failed-elsewhere
+E     + killed
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_v04_no_path.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v04_no_path.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v04_no_path.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v04_no_path.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v04_no_path.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v04_no_path.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v04_no_path.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+FAILED research/s1/s1_tests/test_s1_a3_mut_v04_no_path.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+1 failed, 7 passed, 86 deselected in 21.98s
+rc=1
+##### variant v07_no_caseset (expected RED: [mutant-drops-a-sibling-case])
+......F.                                                                 [100%]
+================================== FAILURES ===================================
+______ test_classifier_contract_conditions[mutant-drops-a-sibling-case] _______
+research\s1\s1_tests\test_s1_a3_mut_v07_no_caseset.py:982: in test_classifier_contract_conditions
+    assert _label(control, mutant, {"nodeid": nodeid, "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'untested'
+E     
+E     - untested
+E     + killed
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_v07_no_caseset.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v07_no_caseset.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v07_no_caseset.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v07_no_caseset.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v07_no_caseset.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v07_no_caseset.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v07_no_caseset.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+FAILED research/s1/s1_tests/test_s1_a3_mut_v07_no_caseset.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+1 failed, 7 passed, 86 deselected in 22.04s
+rc=1
+##### variant v08_no_keyin (expected RED: [agreed-nodeid-not-in-selection])
+..F.....                                                                 [100%]
+================================== FAILURES ===================================
+_____ test_classifier_contract_conditions[agreed-nodeid-not-in-selection] _____
+research\s1\s1_tests\test_s1_a3_mut_v08_no_keyin.py:982: in test_classifier_contract_conditions
+    assert _label(control, mutant, {"nodeid": nodeid, "terminal": terminal}) == want
+E   AssertionError: assert 'raised KeyError' == 'untested'
+E     
+E     - untested
+E     + raised KeyError
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_v08_no_keyin.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v08_no_keyin.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v08_no_keyin.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v08_no_keyin.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v08_no_keyin.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v08_no_keyin.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v08_no_keyin.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+FAILED research/s1/s1_tests/test_s1_a3_mut_v08_no_keyin.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+1 failed, 7 passed, 86 deselected in 22.06s
+rc=1
+##### variant v09_no_skip (expected RED: [agreed-case-skipped])
+F.......                                                                 [100%]
+================================== FAILURES ===================================
+__________ test_classifier_contract_conditions[agreed-case-skipped] ___________
+research\s1\s1_tests\test_s1_a3_mut_v09_no_skip.py:982: in test_classifier_contract_conditions
+    assert _label(control, mutant, {"nodeid": nodeid, "terminal": terminal}) == want
+E   AssertionError: assert 'survived' == 'untested'
+E     
+E     - untested
+E     + survived
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_v09_no_skip.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v09_no_skip.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v09_no_skip.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v09_no_skip.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v09_no_skip.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v09_no_skip.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v09_no_skip.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+FAILED research/s1/s1_tests/test_s1_a3_mut_v09_no_skip.py::test_classifier_contract_conditions[agreed-case-skipped]
+1 failed, 7 passed, 86 deselected in 22.03s
+rc=1
+##### variant v10_no_hashcmp (expected RED: [mutation-leaves-source-unchanged])
+.......F                                                                 [100%]
+================================== FAILURES ===================================
+____ test_classifier_contract_conditions[mutation-leaves-source-unchanged] ____
+research\s1\s1_tests\test_s1_a3_mut_v10_no_hashcmp.py:983: in test_classifier_contract_conditions
+    assert _label(control, mutant, {"nodeid": nodeid, "terminal": terminal}) == want
+E   AssertionError: assert 'survived' == 'not-installed'
+E     
+E     - not-installed
+E     + survived
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_v10_no_hashcmp.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v10_no_hashcmp.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v10_no_hashcmp.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v10_no_hashcmp.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v10_no_hashcmp.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v10_no_hashcmp.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v10_no_hashcmp.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+FAILED research/s1/s1_tests/test_s1_a3_mut_v10_no_hashcmp.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+1 failed, 7 passed, 86 deselected in 22.14s
+rc=1
+##### variant v12_first_frame (expected RED: [chained-exception-terminal-is-last])
+...F....                                                                 [100%]
+================================== FAILURES ===================================
+___ test_classifier_contract_conditions[chained-exception-terminal-is-last] ___
+research\s1\s1_tests\test_s1_a3_mut_v12_first_frame.py:983: in test_classifier_contract_conditions
+    assert _label(control, mutant, {"nodeid": nodeid, "terminal": terminal}) == want
+E   AssertionError: assert 'failed-elsewhere' == 'killed'
+E     
+E     - killed
+E     + failed-elsewhere
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_v12_first_frame.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v12_first_frame.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v12_first_frame.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v12_first_frame.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v12_first_frame.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v12_first_frame.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v12_first_frame.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+FAILED research/s1/s1_tests/test_s1_a3_mut_v12_first_frame.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+1 failed, 7 passed, 86 deselected in 22.04s
+rc=1
+##### variant v03b_no_error_no_dup (expected RED: [failure-plus-teardown-error])
+....FF..                                                                 [100%]
+================================== FAILURES ===================================
+____ test_classifier_contract_conditions[failure-plus-sibling-setup-error] ____
+research\s1\s1_tests\test_s1_a3_mut_v03b_no_error_no_dup.py:979: in test_classifier_contract_conditions
+    assert _label(control, mutant, {"nodeid": nodeid, "terminal": terminal}) == want
+E   AssertionError: assert 'killed' == 'error'
+E     
+E     - error
+E     + killed
+______ test_classifier_contract_conditions[failure-plus-teardown-error] _______
+research\s1\s1_tests\test_s1_a3_mut_v03b_no_error_no_dup.py:979: in test_classifier_contract_conditions
+    assert _label(control, mutant, {"nodeid": nodeid, "terminal": terminal}) == want
+E   AssertionError: assert 'survived' == 'error'
+E     
+E     - error
+E     + survived
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03b_no_error_no_dup.py::test_classifier_contract_conditions[agreed-case-skipped]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03b_no_error_no_dup.py::test_classifier_contract_conditions[agreed-line-in-another-file]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03b_no_error_no_dup.py::test_classifier_contract_conditions[agreed-nodeid-not-in-selection]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03b_no_error_no_dup.py::test_classifier_contract_conditions[chained-exception-terminal-is-last]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03b_no_error_no_dup.py::test_classifier_contract_conditions[mutant-drops-a-sibling-case]
+PASSED research/s1/s1_tests/test_s1_a3_mut_v03b_no_error_no_dup.py::test_classifier_contract_conditions[mutation-leaves-source-unchanged]
+FAILED research/s1/s1_tests/test_s1_a3_mut_v03b_no_error_no_dup.py::test_classifier_contract_conditions[failure-plus-sibling-setup-error]
+FAILED research/s1/s1_tests/test_s1_a3_mut_v03b_no_error_no_dup.py::test_classifier_contract_conditions[failure-plus-teardown-error]
+2 failed, 6 passed, 86 deselected in 22.05s
+rc=1

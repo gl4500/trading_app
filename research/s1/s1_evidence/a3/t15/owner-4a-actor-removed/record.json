@@ -1,0 +1,58 @@
+{
+ "label": "killed",
+ "target": "s1_journal._slot",
+ "selection": "research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot",
+ "agreed": {
+  "basis": "a foreign-actor QUALIFIED must be INVALIDATE contradictory-completion",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-actor]",
+  "oracle_kind": "assert",
+  "source_line": "assert (res.outcome, res.reason) == (\"INVALIDATE\", \"contradictory-completion\")",
+  "terminal": "research/s1/s1_tests/test_s1_a3_slots.py:320"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_journal._slot",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_journal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "a2f9aa26f69bad2ccde7ecffa444c47de8200d8ea21900e3275c6d5e4401d5d0",
+  "mutated_sha256": "424a5f82bc1a7d6a259e8aec5cd17d9b6a5bb053f009adc689412b206fae1e60",
+  "first_line": 390
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_slots.py",
+  320,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "5606cc62a812b2cfbbd42b87a8350704bbb5164e2efad39f50e38f9429e3236e",
+  "installed.json": null,
+  "pytest-output.txt": "4237d25c72a6bc572e8927630d7fbf8b70cbf9373ee3c458821d92749aa25748",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "957b12b93a35944314956244b6350f9789a83857cb178038a072f68225a1da08",
+  "installed.json": "833ee9ed4e839814b583e7ded20cc220be229140ebbbe23cfb39b97a858fd4b6",
+  "pytest-output.txt": "3814b055902d20c7f440d6c22705049909a102f9c841e9d373a93c5e13cbf14d",
+  "s1_mutant_plugin.py": "16206613fea70c913ed3633a71ad21afab06c30d0f770f8e28b8849ce5710cb4"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[no-intent]",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-op]",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-actor]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[no-intent]",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-op]",
+  "research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-actor]"
+ ],
+ "finding": null
+}

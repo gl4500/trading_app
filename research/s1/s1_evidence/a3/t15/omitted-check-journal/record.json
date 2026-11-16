@@ -1,0 +1,60 @@
+{
+ "label": "killed",
+ "target": "s1_trial.verify_ack",
+ "selection": "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork",
+ "agreed": {
+  "basis": "verify_ack must refuse on check_journal problems (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with pytest.raises(t.Refusal, match=reason):                # verify_ack refuses on check_journal problems",
+  "terminal": "research/s1/s1_tests/test_s1_a3_trial.py:256"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_trial.verify_ack",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_trial.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "77ca7b07435dba2e7d4291d00a62838019b717d9b99d436c68e837bf5d9d670a",
+  "mutated_sha256": "78976a6a29a0818224a9474413dbbdf9cfa4b94aa4df1617f9af149dd67bcc55",
+  "first_line": 661
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_trial.py",
+  256,
+  "Failed"
+ ],
+ "control": {
+  "junit.xml": "e5b487eca1d648c67ff82cb4fa46ecce72e86717d384e6edfb5760f9b8e3d094",
+  "installed.json": null,
+  "pytest-output.txt": "888c15b7ad61f62e44584cca7737b8f5d7bb6dd457a12585ed05f5993dd258a8",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "b9c1ed7045723879f6a2e9ef86b9e4a3d34d7705107a1783f09eb4dde5fd4df5",
+  "installed.json": "1be74b40a8b86386591bd48e7d00108b8babf4a1b992c0f860d2276b812b0fb3",
+  "pytest-output.txt": "e25c97f6ea0019c6b55989665169dab6b28db8fb6ab499314bf0201faa7c8635",
+  "s1_mutant_plugin.py": "f0cff1d59c216c7c39bd67756400d8fd810a64385a3a0066d177517f7b60997a"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[ok]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[seq-beyond]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[forked]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[ok]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[seq-beyond]",
+  "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[forked]"
+ ],
+ "finding": null
+}

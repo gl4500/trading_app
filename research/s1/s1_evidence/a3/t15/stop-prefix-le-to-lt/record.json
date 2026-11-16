@@ -1,0 +1,50 @@
+{
+ "label": "survived",
+ "target": "s1_seal._sampled_seals",
+ "selection": "research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop",
+ "agreed": {
+  "basis": "the sampled history is fixed at (and includes) the STOP",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop",
+  "oracle_kind": "assert",
+  "source_line": "assert before == after and list(before[\"seals\"]) == sorted(before[\"seals\"])",
+  "terminal": "research/s1/s1_tests/test_s1_a3_score.py:252"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 0,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_seal._sampled_seals",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_seal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "14314db73dd80aa719058fb9043f483dcc89730c0990b9961e3929cd09d8fc8d",
+  "mutated_sha256": "b1dc4c5ab1dc30f05a1bac3f61e98a439481096aa8b0e7348a9d5299af6b38a0",
+  "first_line": 602
+ },
+ "frame_found": null,
+ "control": {
+  "junit.xml": "58d1153ffa75b3f4c444136eb75b747e5ac945a86db57991bce5204781ac419f",
+  "installed.json": null,
+  "pytest-output.txt": "af1421879188b16b68baba5ae3d80ed69840a5046036298b5cac37ad523f6f0d",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "a8cfb9df13a6de15f92638edcaa5036ffabb4986d9861f135781df826ecce2d5",
+  "installed.json": "5b46de9ded3ad01ac2eb4a28f11488f27a614dfb080fc0b52c2e4965facb408a",
+  "pytest-output.txt": "030535a140a7b18f3599a66b86d748cac61b9f6fd56e38d28ee29661f078ce18",
+  "s1_mutant_plugin.py": "4a50976fb9c65394b3a5d8e19672e489f0d9942d65bbb0d4877a71d1a9afecbb"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop"
+ ],
+ "finding": "T15-F12: survived: excluding the STOP row itself from the sampled prefix changes no seal (the STOP row is no slot row); killer cannot see it (gap or EQUIVALENT, triage)"
+}

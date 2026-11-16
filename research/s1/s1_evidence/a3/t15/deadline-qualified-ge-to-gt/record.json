@@ -1,0 +1,56 @@
+{
+ "label": "killed",
+ "target": "s1_journal._slot",
+ "selection": "research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_at_d_and_d_plus_1us_does_not_seal",
+ "agreed": {
+  "basis": "R == D must not seal; '>' lets QUALIFIED commit (killer renamed/moved: map)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_at_d_and_d_plus_1us_does_not_seal[0]",
+  "oracle_kind": "assert",
+  "source_line": "assert got == [\"SLOT-INTENT\"] and not sealed and rep[\"journal\"][\"outcome\"] == \"REFUSE\"",
+  "terminal": "research/s1/s1_tests/test_s1_a3_codex_probes.py:120"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_journal._slot",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_journal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "a2f9aa26f69bad2ccde7ecffa444c47de8200d8ea21900e3275c6d5e4401d5d0",
+  "mutated_sha256": "19a17eb55e7f09b323953d4bb7ff6523eb9740dedf0ca0241f8352e3c8b49fa6",
+  "first_line": 390
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_codex_probes.py",
+  120,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "6631a979d55fac116cc4e5b11d6a6063df435040e71b1f6829dbcc777981dc53",
+  "installed.json": null,
+  "pytest-output.txt": "2abb408619134781d6bdacfa46424d66d984be9752e765e91ce283137671c592",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "7440238082e647442311347a775d123fd8226c6a69f2e78034f3684a9e466eb6",
+  "installed.json": "5b62f590285445656d70fa28e59dfd8fc2f4d03ec4a907c620e079644c3f69f3",
+  "pytest-output.txt": "d3b5f9eb25defc046453a408948ecbb5ec6238ac8c3fd7367e3a9594658cf958",
+  "s1_mutant_plugin.py": "6b9045b746db87be2fe622b60d6fa307b48d46327694e4b0c7eb5ae4c51fb7f6"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_at_d_and_d_plus_1us_does_not_seal[0]",
+  "research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_at_d_and_d_plus_1us_does_not_seal[1]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_at_d_and_d_plus_1us_does_not_seal[0]",
+  "research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_at_d_and_d_plus_1us_does_not_seal[1]"
+ ],
+ "finding": null
+}

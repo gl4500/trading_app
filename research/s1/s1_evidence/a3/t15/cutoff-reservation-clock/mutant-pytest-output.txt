@@ -1,0 +1,113 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+______ test_cutoff_is_the_intent_new_york_date_across_midnight[midnight] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m00/mutant/bt/test_cutoff_is_the_intent_new_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028E7C5A62D0>
+pre = datetime.datetime(2026, 10, 13, 3, 59, 59, 999999, tzinfo=datetime.timezone.utc)
+date_ = '2026-10-12'
+start = datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc)
+oc = '2026-10-23'
+
+    @pytest.mark.parametrize("pre,date_,start,oc", [
+        (datetime(2026, 10, 13, 3, 59, 59, 999999, tzinfo=UTC), "2026-10-12", START, "2026-10-23"),
+        (datetime(2026, 11, 1, 3, 59, 59, 999999, tzinfo=UTC), "2026-10-31", datetime(2026, 11, 16, 14, 30, tzinfo=UTC),
+         "2026-11-13")], ids=["midnight", "dst-fall-back"])
+    def test_cutoff_is_the_intent_new_york_date_across_midnight(tmp_path, monkeypatch, pre, date_, start, oc):
+        setup(tmp_path, ("A",), now=pre - timedelta(minutes=1), start=start, opening_close=oc)
+        post = pre + timedelta(microseconds=2)
+        now = [pre - timedelta(seconds=10)]
+        real = j.append
+    
+        def at_intent(trial_id, gen, req, ctx_fn, **kw):
+            if req.kind == "STAGE-INTENT":
+                kw["clock"] = lambda: pre
+                res = real(trial_id, gen, req, ctx_fn, **kw)
+                now[0] = post                                                 # reservation and requests after midnight
+                return res
+            return real(trial_id, gen, req, ctx_fn, **kw)
+        monkeypatch.setattr(j, "append", at_intent)
+        prov = Provider()
+        sp = Spies(monkeypatch)
+        with _clock(lambda: now[0]):
+>           m = k.do_audit(tmp_path, "audit-ack", sp.client(prov), KEYS)
+
+research\s1\s1_tests\test_s1_a3_audit.py:268: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_collect.py:445: in do_audit
+    s1_stage.run(gv, "audit", inputs={"plan.json": c.sha256_file(out / "plan.json"), "bundle": c.bundle_sha256()},
+research\s1\s1_stage.py:409: in run
+    _invalid(gv, e.reason, rec, mailbox, clock)              # reason: INVALID(reason) is still recorded
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/...f87ae0819129f3b0135e1df3ba90d4de766bda8809b2c669a99f2421a7cfee88'), rows=[], state='ACTIVE', mailbox=None, deferred=[])
+reason = 'provider-structural'
+record = {'error': 'corporate_actions: base parameters or batch outside the policy', 'error_type': 'Structural', 'outcome': 'AB...it/pages/calendar.json', 'page_sha256': 'c6002f96c2934eb684c307831dc122a89a1f7c27ee768f496a6e3e09c0eb00ba', ...}], ...}
+mailbox = None
+clock = <function test_cutoff_is_the_intent_new_york_date_across_midnight.<locals>.<lambda> at 0x0000028E7D6CECA0>
+
+    def _invalid(gv, reason, record, mailbox, clock):
+        import s1_trial
+        s1_trial.invalidate(gv.trial, reason, record, root=gv.root, mailbox=mailbox, clock=clock)
+>       raise SystemExit(f"stage {record.get('stage')}: INVALID ({reason})") from None   # (A3 Task 9: no chained text)
+E       SystemExit: stage audit: INVALID (provider-structural)
+
+research\s1\s1_stage.py:356: SystemExit
+___ test_cutoff_is_the_intent_new_york_date_across_midnight[dst-fall-back] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m00/mutant/bt/test_cutoff_is_the_intent_new_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000028E7C5A7B00>
+pre = datetime.datetime(2026, 11, 1, 3, 59, 59, 999999, tzinfo=datetime.timezone.utc)
+date_ = '2026-10-31'
+start = datetime.datetime(2026, 11, 16, 14, 30, tzinfo=datetime.timezone.utc)
+oc = '2026-11-13'
+
+    @pytest.mark.parametrize("pre,date_,start,oc", [
+        (datetime(2026, 10, 13, 3, 59, 59, 999999, tzinfo=UTC), "2026-10-12", START, "2026-10-23"),
+        (datetime(2026, 11, 1, 3, 59, 59, 999999, tzinfo=UTC), "2026-10-31", datetime(2026, 11, 16, 14, 30, tzinfo=UTC),
+         "2026-11-13")], ids=["midnight", "dst-fall-back"])
+    def test_cutoff_is_the_intent_new_york_date_across_midnight(tmp_path, monkeypatch, pre, date_, start, oc):
+        setup(tmp_path, ("A",), now=pre - timedelta(minutes=1), start=start, opening_close=oc)
+        post = pre + timedelta(microseconds=2)
+        now = [pre - timedelta(seconds=10)]
+        real = j.append
+    
+        def at_intent(trial_id, gen, req, ctx_fn, **kw):
+            if req.kind == "STAGE-INTENT":
+                kw["clock"] = lambda: pre
+                res = real(trial_id, gen, req, ctx_fn, **kw)
+                now[0] = post                                                 # reservation and requests after midnight
+                return res
+            return real(trial_id, gen, req, ctx_fn, **kw)
+        monkeypatch.setattr(j, "append", at_intent)
+        prov = Provider()
+        sp = Spies(monkeypatch)
+        with _clock(lambda: now[0]):
+>           m = k.do_audit(tmp_path, "audit-ack", sp.client(prov), KEYS)
+
+research\s1\s1_tests\test_s1_a3_audit.py:268: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_collect.py:445: in do_audit
+    s1_stage.run(gv, "audit", inputs={"plan.json": c.sha256_file(out / "plan.json"), "bundle": c.bundle_sha256()},
+research\s1\s1_stage.py:409: in run
+    _invalid(gv, e.reason, rec, mailbox, clock)              # reason: INVALID(reason) is still recorded
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/...9ece0119a2be6e1f36f660190796db7fea517693cecf181d4835d57cb5f0cdcd'), rows=[], state='ACTIVE', mailbox=None, deferred=[])
+reason = 'provider-structural'
+record = {'error': 'corporate_actions: base parameters or batch outside the policy', 'error_type': 'Structural', 'outcome': 'AB...it/pages/calendar.json', 'page_sha256': 'c6002f96c2934eb684c307831dc122a89a1f7c27ee768f496a6e3e09c0eb00ba', ...}], ...}
+mailbox = None
+clock = <function test_cutoff_is_the_intent_new_york_date_across_midnight.<locals>.<lambda> at 0x0000028E7D7D8180>
+
+    def _invalid(gv, reason, record, mailbox, clock):
+        import s1_trial
+        s1_trial.invalidate(gv.trial, reason, record, root=gv.root, mailbox=mailbox, clock=clock)
+>       raise SystemExit(f"stage {record.get('stage')}: INVALID ({reason})") from None   # (A3 Task 9: no chained text)
+E       SystemExit: stage audit: INVALID (provider-structural)
+
+research\s1\s1_stage.py:356: SystemExit
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m00\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_cutoff_is_the_intent_new_york_date_across_midnight[midnight]
+FAILED research/s1/s1_tests/test_s1_a3_audit.py::test_cutoff_is_the_intent_new_york_date_across_midnight[dst-fall-back]
+2 failed in 0.81s

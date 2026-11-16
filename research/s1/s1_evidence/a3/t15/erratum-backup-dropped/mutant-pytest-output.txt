@@ -1,0 +1,33 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________ test_qualified_at_is_r_and_detail_is_the_tree_manifest ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m05/mutant/bt/test_qualified_at_is_r_and_det0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000022F93B21580>
+
+    def test_qualified_at_is_r_and_detail_is_the_tree_manifest(tmp_path, monkeypatch):
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        at = sch + timedelta(seconds=30)
+        run(tmp_path, st_, sch, at)
+        got = slot_rows(tmp_path, sch)
+        assert [k_ for k_, *_ in got] == ["SLOT-INTENT", "SLOT-QUALIFIED"]
+        (k1, op1, act1, _, _), (k2, op2, act2, at2, det2) = got
+        assert (op2, act2) == (op1, act1) and at2 == j.fmt_at(at)                      # R = the clock after P
+        tree = sl.qualified_tree(tmp_path / "s1_out", sch, day["date"])
+>       assert set(tree) == {f"captures/2026-10-26/{sch:%Y%m%dT%H%M%SZ}.report.json",
+                             f"captures/2026-10-26/{sch:%Y%m%dT%H%M%SZ}.resolution.json",
+                             f"captures/2026-10-26/{sch:%Y%m%dT%H%M%SZ}/backup.sqlite3",        # E5.6: raw bytes
+                             f"captures/2026-10-26/{sch:%Y%m%dT%H%M%SZ}/meta.json",
+                             f"captures/2026-10-26/{sch:%Y%m%dT%H%M%SZ}/projection.json"}
+E       AssertionError: assert {'captures/20...jection.json'} == {'captures/20...jection.json'}
+E         
+E         Extra items in the right set:
+E         'captures/2026-10-26/20261026T204500Z/backup.sqlite3'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_slots.py:72: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m05\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest
+1 failed in 2.19s

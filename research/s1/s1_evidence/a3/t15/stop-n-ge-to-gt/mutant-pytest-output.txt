@@ -1,0 +1,143 @@
+FF.....F.FF.                                                             [100%]
+================================== FAILURES ===================================
+____________________ test_stop_dispositions[lots-earliest] ____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m32/mutant/bt/test_stop_dispositions_lots_ea0')
+case = 'lots-earliest'
+
+    @pytest.mark.parametrize("case", ["lots-earliest", "lots-later-not-chosen", "timeout-last-sealed", "no-valid-seal",
+                                      "pending-excluded", "deadline-instant-eligibility",
+                                      "early-w-failed", "pending-after-timeout", "unresolved-blocks",
+                                      "unresolved-resolved-by-missed", "delayed-qualified-clock",
+                                      "no-valid-seal-ineligible-seal"])
+    def test_stop_dispositions(tmp_path, case):
+        """Expected outcomes are the Step 2a dispositions as ACCEPTED by Codex (BLK-3); s1_state builds each history
+        from `a3_helpers.stop_history(case)` (synthetic seals with real slot rows)."""
+        hist = h.stop_history(tmp_path, START, case)
+        rec = z.stop_record(tmp_path / "s1_out", jrows(tmp_path), c.aware(START), hist["calendar"],
+                            t.open_trial(mb(tmp_path)).bundle)
+        want = hist["want"]                                   # from t11_dispositions.md as accepted
+        if want is None:
+            assert rec is None
+        else:
+>           assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E           AssertionError: no stop record
+E           assert None is not None
+
+research\s1\s1_tests\test_s1_a3_stop.py:370: AssertionError
+________________ test_stop_dispositions[lots-later-not-chosen] ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m32/mutant/bt/test_stop_dispositions_lots_la0')
+case = 'lots-later-not-chosen'
+
+    @pytest.mark.parametrize("case", ["lots-earliest", "lots-later-not-chosen", "timeout-last-sealed", "no-valid-seal",
+                                      "pending-excluded", "deadline-instant-eligibility",
+                                      "early-w-failed", "pending-after-timeout", "unresolved-blocks",
+                                      "unresolved-resolved-by-missed", "delayed-qualified-clock",
+                                      "no-valid-seal-ineligible-seal"])
+    def test_stop_dispositions(tmp_path, case):
+        """Expected outcomes are the Step 2a dispositions as ACCEPTED by Codex (BLK-3); s1_state builds each history
+        from `a3_helpers.stop_history(case)` (synthetic seals with real slot rows)."""
+        hist = h.stop_history(tmp_path, START, case)
+        rec = z.stop_record(tmp_path / "s1_out", jrows(tmp_path), c.aware(START), hist["calendar"],
+                            t.open_trial(mb(tmp_path)).bundle)
+        want = hist["want"]                                   # from t11_dispositions.md as accepted
+        if want is None:
+            assert rec is None
+        else:
+            assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+>           assert {k_: rec[k_] for k_ in want} == want
+E           AssertionError: assert {'bundle_sha2...d': 200}, ...} == {'bundle_sha2...d': 100}, ...}
+E             
+E             Omitting 6 identical items, use -vv to show
+E             Differing items:
+E             {'stop_seal_sha256': '90dc964c28eb749832ea56896cac94cb52ec00c94e0488a63824ea32c076b286'} != {'stop_seal_sha256': 'cf88195873a54bfa2b924f3776ef84d7b1092902d17aebc2e67f6c3a990e19b5'}
+E             {'seals': {'seals/2026-10-27.json': 'cf88195873a54bfa2b924f3776ef84d7b1092902d17aebc2e67f6c3a990e19b5', 'seals/2026-10-28.json': '90dc964c28eb749832ea56896cac94cb52ec00c94e0488a63824ea32c076b286'}} != {'seals': {'seals/2026-10-27.json': 'cf88195873a54bfa2b924f3776ef84d7b1092902d17aebc2e67f6c3a990e19b5'}}
+E             {'stop_seal': 'seals/2026-10-28....
+E             
+E             ...Full output truncated (8 lines hidden), use '-vv' to show
+
+research\s1\s1_tests\test_s1_a3_stop.py:371: AssertionError
+________________ test_stop_dispositions[pending-after-timeout] ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m32/mutant/bt/test_stop_dispositions_pending1')
+case = 'pending-after-timeout'
+
+    @pytest.mark.parametrize("case", ["lots-earliest", "lots-later-not-chosen", "timeout-last-sealed", "no-valid-seal",
+                                      "pending-excluded", "deadline-instant-eligibility",
+                                      "early-w-failed", "pending-after-timeout", "unresolved-blocks",
+                                      "unresolved-resolved-by-missed", "delayed-qualified-clock",
+                                      "no-valid-seal-ineligible-seal"])
+    def test_stop_dispositions(tmp_path, case):
+        """Expected outcomes are the Step 2a dispositions as ACCEPTED by Codex (BLK-3); s1_state builds each history
+        from `a3_helpers.stop_history(case)` (synthetic seals with real slot rows)."""
+        hist = h.stop_history(tmp_path, START, case)
+        rec = z.stop_record(tmp_path / "s1_out", jrows(tmp_path), c.aware(START), hist["calendar"],
+                            t.open_trial(mb(tmp_path)).bundle)
+        want = hist["want"]                                   # from t11_dispositions.md as accepted
+        if want is None:
+            assert rec is None
+        else:
+>           assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E           AssertionError: no stop record
+E           assert None is not None
+
+research\s1\s1_tests\test_s1_a3_stop.py:370: AssertionError
+____________ test_stop_dispositions[unresolved-resolved-by-missed] ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m32/mutant/bt/test_stop_dispositions_unresol1')
+case = 'unresolved-resolved-by-missed'
+
+    @pytest.mark.parametrize("case", ["lots-earliest", "lots-later-not-chosen", "timeout-last-sealed", "no-valid-seal",
+                                      "pending-excluded", "deadline-instant-eligibility",
+                                      "early-w-failed", "pending-after-timeout", "unresolved-blocks",
+                                      "unresolved-resolved-by-missed", "delayed-qualified-clock",
+                                      "no-valid-seal-ineligible-seal"])
+    def test_stop_dispositions(tmp_path, case):
+        """Expected outcomes are the Step 2a dispositions as ACCEPTED by Codex (BLK-3); s1_state builds each history
+        from `a3_helpers.stop_history(case)` (synthetic seals with real slot rows)."""
+        hist = h.stop_history(tmp_path, START, case)
+        rec = z.stop_record(tmp_path / "s1_out", jrows(tmp_path), c.aware(START), hist["calendar"],
+                            t.open_trial(mb(tmp_path)).bundle)
+        want = hist["want"]                                   # from t11_dispositions.md as accepted
+        if want is None:
+            assert rec is None
+        else:
+>           assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E           AssertionError: no stop record
+E           assert None is not None
+
+research\s1\s1_tests\test_s1_a3_stop.py:370: AssertionError
+_______________ test_stop_dispositions[delayed-qualified-clock] _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m32/mutant/bt/test_stop_dispositions_delayed0')
+case = 'delayed-qualified-clock'
+
+    @pytest.mark.parametrize("case", ["lots-earliest", "lots-later-not-chosen", "timeout-last-sealed", "no-valid-seal",
+                                      "pending-excluded", "deadline-instant-eligibility",
+                                      "early-w-failed", "pending-after-timeout", "unresolved-blocks",
+                                      "unresolved-resolved-by-missed", "delayed-qualified-clock",
+                                      "no-valid-seal-ineligible-seal"])
+    def test_stop_dispositions(tmp_path, case):
+        """Expected outcomes are the Step 2a dispositions as ACCEPTED by Codex (BLK-3); s1_state builds each history
+        from `a3_helpers.stop_history(case)` (synthetic seals with real slot rows)."""
+        hist = h.stop_history(tmp_path, START, case)
+        rec = z.stop_record(tmp_path / "s1_out", jrows(tmp_path), c.aware(START), hist["calendar"],
+                            t.open_trial(mb(tmp_path)).bundle)
+        want = hist["want"]                                   # from t11_dispositions.md as accepted
+        if want is None:
+            assert rec is None
+        else:
+>           assert rec is not None, "no stop record"           # (Deviation 3: assert, not a TypeError on None)
+E           AssertionError: no stop record
+E           assert None is not None
+
+research\s1\s1_tests\test_s1_a3_stop.py:370: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m32\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-later-not-chosen]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[pending-after-timeout]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[unresolved-resolved-by-missed]
+FAILED research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[delayed-qualified-clock]
+5 failed, 7 passed in 40.30s

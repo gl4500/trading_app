@@ -1,0 +1,28 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_barrier_close_between_active_read_and_prepared _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m09/mutant/bt/test_barrier_close_between_act0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000027D6D2D1850>
+
+    def test_barrier_close_between_active_read_and_prepared(tmp_path, monkeypatch):        # row 261 (E2.8 r3)
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        _barrier(monkeypatch, lambda: s1_ack(tmp_path, "close", "S1-CLOSE-ACK", sch + timedelta(seconds=40),
+                                             reason="WITHDRAWN", evidence_sha256="e" * 64))
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))
+        tr = t.trials(t.scan(tmp_path / "mailbox.sqlite3"))
+        (only,) = tr.values()
+        kinds_ = [x.kind for x in j.subject_rows(j.read_trial(only.trial_id, only.genesis, tmp_path / "mailbox.sqlite3"),
+                                                 f"stage/seal/{day['date']}")]
+>       assert kinds_ == ["STAGE-INTENT"] and only.closed is not None                 # PREPARED refused (CLOSED)
+E       AssertionError: assert (['STAGE-INTEN...TAGE-CREATED'] == ['STAGE-INTENT']
+E         
+E         Left contains 2 more items, first extra item: 'STAGE-PREPARED'
+E         Use -v to get more diff)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:311: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m09\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared
+1 failed in 2.33s

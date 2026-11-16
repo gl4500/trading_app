@@ -1,0 +1,64 @@
+{
+ "label": "killed",
+ "target": "s1_trial.verify_ack",
+ "selection": "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal",
+ "agreed": {
+  "basis": "a differing ACK field must refuse with the 'differ from the current artifacts' text (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[seal-differs]",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with pytest.raises(SystemExit, match=VERIFY_REFUSAL[case]):",
+  "terminal": "research/s1/s1_tests/test_s1_a3_prestart.py:194"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_trial.verify_ack",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_trial.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "77ca7b07435dba2e7d4291d00a62838019b717d9b99d436c68e837bf5d9d670a",
+  "mutated_sha256": "bdd61e96d4d7d16ff7750f5c19f0effa6b839028dcbab16f0b1edf53d7ac9d98",
+  "first_line": 661
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_prestart.py",
+  194,
+  "Failed"
+ ],
+ "control": {
+  "junit.xml": "f14828a478d6e9cdfd47eb2d062cadd663e598374f3e93c87b026f49fef9a6be",
+  "installed.json": null,
+  "pytest-output.txt": "1d23d2f0c847fbee557c4a324da949de39136b1d90c7132caa6a0434c0e1cc9c",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "5d301f239e8e1444db3f6f2fd1ca590e2f520504e19cbd0c1a0c6f89aed0bc6e",
+  "installed.json": "2fc405285587ccc2ee27204530df8c86a9525f3ff07122dabc37c4f6dcba141f",
+  "pytest-output.txt": "135df6907e76e3c10110b59db107f9a80bea8f17fcbf2d28b68dc6a7d34df6c5",
+  "s1_mutant_plugin.py": "2cfc18846c1f922075a9e45c34eb8d07fce85a80d6c60803a5354c249502337a"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[ok]",
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[not-first-qualified]",
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[seal-differs]",
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[receipt-differs]",
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[head-forked]",
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[a-slot-not-terminal]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[ok]",
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[not-first-qualified]",
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[seal-differs]",
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[receipt-differs]",
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[head-forked]",
+  "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[a-slot-not-terminal]"
+ ],
+ "finding": null
+}

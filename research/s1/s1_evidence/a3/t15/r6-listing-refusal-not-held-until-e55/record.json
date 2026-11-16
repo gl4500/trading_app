@@ -1,0 +1,56 @@
+{
+ "label": "killed",
+ "target": "s1_trial.gate",
+ "selection": "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55",
+ "agreed": {
+  "basis": "the stop-gap (publish=False) and E5.5 run before the held refusal",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[captures]",
+  "oracle_kind": "assert",
+  "source_line": "assert calls == [(\"gap\", False), \"E5.5\"], calls",
+  "terminal": "research/s1/s1_tests/test_s1_a3_strict_enum.py:240"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_trial.gate",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_trial.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "01c82e1347833aa7b1b9aabefa6af7c81ab9be172ed32dc8a15724540fd3e199",
+  "mutated_sha256": "bd70962478319434162065599b5459a63753f8db7aca96ac6b5f7a2854509119",
+  "first_line": 813
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py",
+  240,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "d444293e3799c0c8cc9a256310d89b78beb251d26c80e7a62ae3d690223d4962",
+  "installed.json": null,
+  "pytest-output.txt": "298aa0c279f60e91c18662da29cdad0685fce770621a3bb0b5b7ef4895c8d07d",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "358f197a6aa2d4826ec1a79b7c3abbe39733528ef1ff6e5f678c72c495607db8",
+  "installed.json": "20c553a7df98a2ee9c0d7a25b87c986b3926f8085390b16857186148135e6e76",
+  "pytest-output.txt": "2e4d71c794ed615486e7cc30771d271312d7747f62150c0d29d17a63fe7b40db",
+  "s1_mutant_plugin.py": "2764be5e3b7fd9cb306df8de50ca175cefc739dd98f822cb0f0aa42da4d61e96"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[control]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[captures]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[control]",
+  "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[captures]"
+ ],
+ "finding": null
+}

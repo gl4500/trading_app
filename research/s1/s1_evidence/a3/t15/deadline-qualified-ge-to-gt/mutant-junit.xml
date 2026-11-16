@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="4.047" timestamp="2026-11-16T00:49:22.162679-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_codex_probes" name="test_publication_at_d_and_d_plus_1us_does_not_seal[0]" time="1.925"><failure message="AssertionError: assert (['SLOT-INTENT...OT-QUALIFIED'] == ['SLOT-INTENT']&#10;  &#10;  Left contains one more item: 'SLOT-QUALIFIED'&#10;  Use -v to get more diff)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m03/mutant/bt/test_publication_at_d_and_d_pl0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002B7BD6070E0&gt;
+offset_us = 0
+
+    @pytest.mark.parametrize("offset_us", [0, 1])
+    def test_publication_at_d_and_d_plus_1us_does_not_seal(tmp_path, monkeypatch, offset_us):
+        rep, got, sealed = _publication(tmp_path, monkeypatch, offset_us)
+&gt;       assert got == ["SLOT-INTENT"] and not sealed and rep["journal"]["outcome"] == "REFUSE"
+E       AssertionError: assert (['SLOT-INTENT...OT-QUALIFIED'] == ['SLOT-INTENT']
+E         
+E         Left contains one more item: 'SLOT-QUALIFIED'
+E         Use -v to get more diff)
+
+research\s1\s1_tests\test_s1_a3_codex_probes.py:120: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_codex_probes" name="test_publication_at_d_and_d_plus_1us_does_not_seal[1]" time="1.686" /></testsuite></testsuites>

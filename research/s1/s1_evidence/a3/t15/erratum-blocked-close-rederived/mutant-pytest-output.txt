@@ -1,0 +1,99 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________ test_two_root_blocked_lifecycle_closure_is_monotone _____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m06/mutant/bt/test_two_root_blocked_lifecycl0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AEA0251A90>
+
+    def test_two_root_blocked_lifecycle_closure_is_monotone(tmp_path, monkeypatch):       # row 337 (E3.6 r3)
+        """Root A BLOCKED -> valid BLOCKED CLOSE -> root B write_plan + AUDIT-ACK: B is the unique open trial and A stays
+        closed, rootless and from either root. Both plans come from the real write_plan and both AUDIT-ACKs carry the
+        real audit_token; the mailbox is the conftest tmp mailbox (s1_common.MAILBOX)."""
+        mb = c.MAILBOX
+        root_a, root_b = tmp_path / "A", tmp_path / "B"
+        assert list(inspect.signature(t.open_trial).parameters) == ["mailbox"]           # no root parameter exists
+        with _clock(T0):
+            k.write_plan(root_a, *plan_args())
+        out_a = root_a / "s1_out"
+        a = c.load_json(out_a / "plan.json")["trial_id"]
+        post(mb, "a1", c.audit_token(out_a), T0 + timedelta(hours=1))
+        assert t.open_trial().trial_id == a
+        reasons = ["coverage"]                                                         # root A is BLOCKED (E3.2)
+        (out_a / "blocked.json").write_bytes(c.canonical({"status": "BLOCKED", "reasons": reasons,
+                                                          "recorded_utc": (T0 + timedelta(hours=2)).isoformat(),
+                                                          "trial_id": a}))
+        with _clock(T0 + timedelta(hours=2)), pytest.raises(t.Refusal, match=f"trial {a} is open"):
+            k.write_plan(root_b, *plan_args())                                         # A still open: B refused (F9)
+        assert not (root_b / "s1_out" / "plan.json").exists()
+        h = t.close_evidence("BLOCKED", blocked_record={"trial_id": a, "reasons": reasons})
+        post(mb, "ca", line("S1-CLOSE-ACK", trial_id=a, bundle_sha256=c.bundle_sha256(), prev="a1", reason="BLOCKED",
+                            evidence_sha256=h), T0 + timedelta(hours=3))
+        with pytest.raises(t.Refusal, match="zero open trials"):
+>           t.open_trial()
+
+research\s1\s1_tests\test_s1_a3_trial.py:508: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+mailbox = None
+
+    def open_trial(mailbox=None) -> Trial:
+        """F6.3: exactly one open trial (an AUDIT-ACK with no valid CLOSE-ACK), from the mailbox only. No directory is
+        consulted (E3.4 r3): the answer is the same from every root and from the rootless lookup."""
+        try:
+            acks = scan(mailbox)
+        except sqlite3.Error as e:
+            raise MailboxOutage(f"mailbox unreadable ({type(e).__name__}): outage refusal (F6.3)") from None
+        bad = [a.mailbox_id for a in acks if a.kind is None and a.fields.get("trial_id") is None]
+        if bad:
+            raise Refusal(f"unattributable malformed official ACK line(s) in {bad[:3]}: every trial-bound command "
+                          f"refuses (E4.3): escalate")
+        open_ = [x for x in trials(acks).values() if x.closed is None]
+        if not open_:
+            raise Refusal("zero open trials: trial-bound commands refuse (F6.3)")
+        if len(open_) > 1:
+            raise Refusal(f"{len(open_)} open trials: refuse and escalate (F6.3)")
+        tr = open_[0]
+        if tr.problems:
+>           raise Refusal(f"trial {tr.trial_id}: {tr.problems[:3]}: refuse and escalate")
+E           s1_trial.Refusal: trial caa82f2b-ffeb-497a-9d64-ca3af15e2b88: ['CLOSE-ACK ca refused (re-derived from a root): the trial stays open and commands refuse']: refuse and escalate
+
+research\s1\s1_trial.py:352: Refusal
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m06/mutant/bt/test_two_root_blocked_lifecycl0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001AEA0251A90>
+
+    def test_two_root_blocked_lifecycle_closure_is_monotone(tmp_path, monkeypatch):       # row 337 (E3.6 r3)
+        """Root A BLOCKED -> valid BLOCKED CLOSE -> root B write_plan + AUDIT-ACK: B is the unique open trial and A stays
+        closed, rootless and from either root. Both plans come from the real write_plan and both AUDIT-ACKs carry the
+        real audit_token; the mailbox is the conftest tmp mailbox (s1_common.MAILBOX)."""
+        mb = c.MAILBOX
+        root_a, root_b = tmp_path / "A", tmp_path / "B"
+        assert list(inspect.signature(t.open_trial).parameters) == ["mailbox"]           # no root parameter exists
+        with _clock(T0):
+            k.write_plan(root_a, *plan_args())
+        out_a = root_a / "s1_out"
+        a = c.load_json(out_a / "plan.json")["trial_id"]
+        post(mb, "a1", c.audit_token(out_a), T0 + timedelta(hours=1))
+        assert t.open_trial().trial_id == a
+        reasons = ["coverage"]                                                         # root A is BLOCKED (E3.2)
+        (out_a / "blocked.json").write_bytes(c.canonical({"status": "BLOCKED", "reasons": reasons,
+                                                          "recorded_utc": (T0 + timedelta(hours=2)).isoformat(),
+                                                          "trial_id": a}))
+        with _clock(T0 + timedelta(hours=2)), pytest.raises(t.Refusal, match=f"trial {a} is open"):
+            k.write_plan(root_b, *plan_args())                                         # A still open: B refused (F9)
+        assert not (root_b / "s1_out" / "plan.json").exists()
+        h = t.close_evidence("BLOCKED", blocked_record={"trial_id": a, "reasons": reasons})
+        post(mb, "ca", line("S1-CLOSE-ACK", trial_id=a, bundle_sha256=c.bundle_sha256(), prev="a1", reason="BLOCKED",
+                            evidence_sha256=h), T0 + timedelta(hours=3))
+>       with pytest.raises(t.Refusal, match="zero open trials"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'zero open trials'
+E        Input: "trial caa82f2b-ffeb-497a-9d64-ca3af15e2b88: ['CLOSE-ACK ca refused (re-derived from a root): the trial stays open and commands refuse']: refuse and escalate"
+
+research\s1\s1_tests\test_s1_a3_trial.py:507: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m06\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone
+1 failed in 0.52s

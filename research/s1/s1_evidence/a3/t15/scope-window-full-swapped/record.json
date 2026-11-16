@@ -1,0 +1,54 @@
+{
+ "label": "killed",
+ "target": "s1_collect.final_policy",
+ "selection": "research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows",
+ "agreed": {
+  "basis": "the window CA family uses ca_symbols_window",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows",
+  "oracle_kind": "assert",
+  "source_line": "assert k.final_policy(fp, pr, \"2026-11-02\") == {",
+  "terminal": "research/s1/s1_tests/test_s1_a3_final.py:92"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_collect.final_policy",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_collect.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "52a1549cdd341d2eb79ca9ebc47ae84a6b205d39ffb9d1d0bbe0bb54ec844263",
+  "mutated_sha256": "99748c6a0adec89d33f560e46bd1acf2420d5d02ead2cdfe6105bcaa15eef597",
+  "first_line": 595
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_final.py",
+  92,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "e1289944378ba82db135bf893465e0f473bbeed4413fe8defdcd5bde24a164b6",
+  "installed.json": null,
+  "pytest-output.txt": "aab3b4e3e79a66dcd057c9a5c502345501cfd1de6a3f31deed8f79bf69f3d746",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "b6ee5f4f67377a8ebaf1fdcfba215f6ec9947f75d05cc8d468463b26dd522e9d",
+  "installed.json": "3f5191d9cbd7362cff179d8933c3286e81426c468d5e7caa18ba98a90a9da184",
+  "pytest-output.txt": "3d5ac49cbdab7bef4f2582c8ddccc75a645a1f0223667c64a10067a69297d9db",
+  "s1_mutant_plugin.py": "b8f8bd7d44b6dadb388ffe7486bd1fee78c6ccc2e0b0e11fade84e746d09bb0e"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows"
+ ],
+ "finding": null
+}

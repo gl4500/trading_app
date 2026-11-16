@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.152" timestamp="2026-11-16T00:49:52.991193-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_finalizer" name="test_finalizer_decision_never_touches_the_work_lock" time="1.693"><failure message="assert not True&#10; +  where True = any(&lt;generator object test_finalizer_decision_never_touches_the_work_lock.&lt;locals&gt;.&lt;genexpr&gt; at 0x000002BE54F9BE00&gt;)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m07/mutant/bt/test_finalizer_decision_never_0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002BE54C48B30&gt;
+
+    def test_finalizer_decision_never_touches_the_work_lock(tmp_path, monkeypatch):       # row 258 (E1.2)
+        st_ = registered(tmp_path)
+        day, s_t = first_slot(st_, 45)
+        _, s_m = first_slot(st_, 47)
+        e_t, d_t = E_D(st_, day, s_t)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s_t), at=s_t + timedelta(seconds=1))
+        events = []
+        real_acq, real_app = sl.L.OwnershipLock.acquire, j.append
+    
+        def acq(self):
+            events.append(("lock", self.path.stem))
+            return real_acq(self)
+    
+        def app(trial_id, gen, req, ctx_fn, **kw):
+            res = real_app(trial_id, gen, req, ctx_fn, **kw)
+            events.append(("append", req.kind, res.outcome))
+            return res
+        monkeypatch.setattr(sl.L.OwnershipLock, "acquire", acq)
+        monkeypatch.setattr(j, "append", app)
+        try:
+            fin(tmp_path, st_, day, d_t)                                # s_t -&gt; TIMEOUT, s_m (no INTENT) -&gt; MISSED
+        except SystemExit as e:
+            pytest.fail(f"the finalizer was refused: {e}")
+        decided = [i for i, ev in enumerate(events) if ev[0] == "append" and ev[1] in ("SLOT-TIMEOUT", "SLOT-MISSED")]
+        assert decided
+&gt;       assert not any(ev[0] == "lock" and ev[1].startswith("slot-") for ev in events[:decided[-1] + 1])
+E       assert not True
+E        +  where True = any(&lt;generator object test_finalizer_decision_never_touches_the_work_lock.&lt;locals&gt;.&lt;genexpr&gt; at 0x000002BE54F9BE00&gt;)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:210: AssertionError</failure></testcase></testsuite></testsuites>

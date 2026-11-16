@@ -1,0 +1,33 @@
+..F                                                                      [100%]
+================================== FAILURES ===================================
+__ test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-actor] ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m15/mutant/bt/test_foreign_qualified_is_inva2')
+who = 'foreign-actor'
+
+    @pytest.mark.parametrize("who", ["no-intent", "foreign-op", "foreign-actor"])
+    def test_foreign_qualified_is_invalid_even_on_a_terminal_slot(tmp_path, who):
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        run(tmp_path, st_, sch, sch + timedelta(seconds=30))            # QUALIFIED: terminal
+        sub = j.slot_subject(sch if who != "no-intent" else sch + timedelta(minutes=2))
+        intent = j.first(j.subject_rows(rows(tmp_path), j.slot_subject(sch)), "SLOT-INTENT")
+        assert j.first(j.subject_rows(rows(tmp_path), j.slot_subject(sch)), "SLOT-QUALIFIED") is not None
+        op = intent.op if who == "foreign-actor" else j.new_nonce()
+        actor = intent.actor if who == "foreign-op" else j.new_nonce()
+        tr = t.open_trial(tmp_path / "mailbox.sqlite3")
+        res = j.append(tr.trial_id, tr.genesis, j.Request("SLOT-QUALIFIED", sub, op, actor, detail="1" * 64,
+                                                           r_at=sch + timedelta(minutes=1)),
+                       t.product_context(tr, st_["calendar"]), mailbox=tmp_path / "mailbox.sqlite3",
+                       clock=lambda: sch + timedelta(minutes=1))
+>       assert (res.outcome, res.reason) == ("INVALIDATE", "contradictory-completion")
+E       AssertionError: assert ('LOST-RACE',...OT-QUALIFIED') == ('INVALIDATE'...y-completion')
+E         
+E         At index 0 diff: 'LOST-RACE' != 'INVALIDATE'
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_slots.py:320: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m15\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-actor]
+1 failed, 2 passed in 6.13s

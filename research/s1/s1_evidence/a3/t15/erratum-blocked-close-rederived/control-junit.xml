@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="0.417" timestamp="2026-11-16T00:49:44.251456-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_trial" name="test_two_root_blocked_lifecycle_closure_is_monotone" time="0.197" /></testsuite></testsuites>

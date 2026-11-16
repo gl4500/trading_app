@@ -1,0 +1,56 @@
+{
+ "label": "killed",
+ "target": "s1_run._pre_intent_qualified",
+ "selection": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm",
+ "agreed": {
+  "basis": "a changed kind is not the same observation: refused with no row (oracle in the helper _score_refused_no_row: its own pytest.raises line)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with _Clock(st_[\"now\"]), pytest.raises(SystemExit, match=match):",
+  "terminal": "research/s1/s1_tests/test_s1_a3_score.py:572"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_run._pre_intent_qualified",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_run.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "511ead728ecd014aa8aa87c164906a7a94450f9746a7c891c61b5079fd190f3e",
+  "mutated_sha256": "91f694299e9a9e3de04ab45806292d35a2574671b336b6a67da6b70aeb3c4752",
+  "first_line": 844
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_score.py",
+  572,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "6adc23d0164cc8730fb368346c4f441db5f6d29b357c0bfcfac7899632794cfa",
+  "installed.json": null,
+  "pytest-output.txt": "fda3e306f0bbabb317cecf7581c717eaaab247286ae11e9a7832c46b20cc7cec",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "055bb62b56edc0ab471e12232cd7ef571f2cca9adda628e6a98b56f33c8ef587",
+  "installed.json": "63c2d2dcea43c95a612531cd53466000bb244485e9eae65b74d9cf363d485e5d",
+  "pytest-output.txt": "0f38e1e35e7b9e1c7b539fa67a69af3a4d6236f5c9942d41cd20de9f4cede799",
+  "s1_mutant_plugin.py": "a06435f1ec2d454cad183579003c24d7565339a0c6ddeefb66f83b0a9f2f0149"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[differs-then-missing]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]",
+  "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[differs-then-missing]"
+ ],
+ "finding": null
+}

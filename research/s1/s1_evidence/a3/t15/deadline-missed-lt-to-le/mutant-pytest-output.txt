@@ -1,0 +1,62 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_missed_after_e_with_its_own_op_and_no_files _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m02/mutant/bt/test_missed_after_e_with_its_o0')
+
+    def test_missed_after_e_with_its_own_op_and_no_files(tmp_path):
+>       st_ = registered(tmp_path)
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_tests\test_s1_a3_slots.py:32: in registered
+    st_ = s1_state(tmp_path, START)
+research\s1\s1_tests\conftest.py:827: in s1_state
+    r.attest_start(root, r.START_STATEMENT, receipt)
+research\s1\s1_run.py:483: in attest_start
+    a = s1_trial.verify_opening_ack(gv, aud["calendar"])            # A3 Task 10: F7.2/F7.4, E5.3, E5.5
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+gv = Gate(root=WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/..., mailbox_id='e46cc1cc-c590-4a22-9823-cbe6ce020d9c', created=1793016000.0)], state='ACTIVE', mailbox=None, deferred=[])
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+
+    def verify_opening_ack(gv, cal) -> Ack:
+        """F7.2 (b-d) / F7.4 on the S1 side, for the START attestation: the trial's OPENING-ACK binds the current plan,
+        audit manifest, opening seal and opening receipt (file hashes, OQ-30), the trial and the bundle (verify_ack: also
+        its journal binding, F7.1). Within the journal prefix it names (rows[:journal_seq]): its opening_slot is the first
+        QUALIFIED opening-close slot with every earlier slot terminal (F3, OQ-37 / row 270); EVERY scheduled opening-close
+        slot has a terminal row (F7.2(b) literal, OQ-37 ruling: later rows never repair the ACK's prefix); the opening stage
+        is CREATED and the trial ACTIVE. The evidence manifest is reconstructed (E5.5: a mismatch is INVALIDATE
+        registration-artifact, never a mere refusal). The ACK is created strictly before now, the start_attest INTENT's
+        instant (E5.3, OQ-18). Anything else: no START (Refusal, no row)."""
+        import s1_seal as z
+        import s1_slot
+        import s1_stage
+        out = gv.out
+        plan = c.load_json(out / "plan.json")
+        if "S1-OPENING-ACK" not in gv.trial.acks:
+            raise Refusal("START attestation refused: no S1-OPENING-ACK (F7.4: no START without it)")
+        a = verify_ack(gv.trial, gv.rows, "S1-OPENING-ACK", None,
+                       dict(artifact_fields("S1-OPENING-ACK", out), trial_id=plan.get("trial_id"),
+                            bundle_sha256=c.bundle_sha256()))
+        rows_at = gv.rows[:int(a.fields["journal_seq"])]
+        day = next((d for d in cal if d["date"] == plan.get("opening_close")), None)
+        if day is None:
+            raise Refusal("START attestation refused: the plan's opening close is not in the audit calendar")
+        q = s1_slot.first_qualified(rows_at, day, cal)
+        if q is None or q.subject != a.fields["opening_slot"]:
+            raise Refusal(f"START attestation refused: the OPENING-ACK opening_slot {a.fields['opening_slot']} is not the "
+                          f"first QUALIFIED opening slot (with every earlier slot terminal) at its journal_seq "
+                          f"({q.subject if q is not None else 'none'}; F3, F7.2 c)")
+        open_slots = [j.slot_subject(s) for s in z.schedule(day, cal)]
+        unterminated = [s for s in open_slots if j.first(j.subject_rows(rows_at, s), *j.TERMINAL) is None]
+        if unterminated:                                                               # F7.2(b) literal (OQ-37)
+>           raise Refusal(f"START attestation refused: F7.2 (b): {len(unterminated)} scheduled opening-close slot(s) have "
+                          f"no terminal row in the OPENING-ACK's journal prefix (first {unterminated[0]})")
+E           s1_trial.Refusal: START attestation refused: F7.2 (b): 1 scheduled opening-close slot(s) have no terminal row in the OPENING-ACK's journal prefix (first slot/20261026T120000Z)
+
+research\s1\s1_trial.py:531: Refusal
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m02\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files
+1 failed in 1.84s

@@ -1,0 +1,56 @@
+{
+ "label": "killed",
+ "target": "s1_checkpoint.run_checkpoint",
+ "selection": "research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer",
+ "agreed": {
+  "basis": "a refused attempt calls no finalizer / decide_stop",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer[no-stop-decision]",
+  "oracle_kind": "assert",
+  "source_line": "assert [x for x in w.calls if x in (\"decide_stop\", \"finalize_close\", \"_after_terminal\", \"_finalize_others\",",
+  "terminal": "research/s1/s1_tests/test_s1_a3_eligibility.py:354"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_checkpoint.run_checkpoint",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_checkpoint.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "b1d74ef20c09328e15f6c70c0427571e5b8c904bbaaaaa05a3f96bc501c2948c",
+  "mutated_sha256": "a7d7e5384cac96004296adafb88ca2e6395efd0f35f2440f020a9b6aeed66c75",
+  "first_line": 528
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_eligibility.py",
+  354,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "9c574c2f5e3cb90c9cf5508a99f4d96441e49c6dceffb12dffe2fe47da2ba80d",
+  "installed.json": null,
+  "pytest-output.txt": "200f13036742d0d7676f51722a5bbc1708c6a4c5ab1c2b65b3f6717e1738946c",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "8f765297adb7b5080fadddedfa7366625437b2d046c2f50fdc11f23ecf577dcc",
+  "installed.json": "fe11398cbb0cfb0a557b98530d924e0a220019ee97ff4b2c868b7de48551449c",
+  "pytest-output.txt": "5419065ab80c28cfd7e59132192a40d5e06859d8fe8c3a70a23b713e9a734b4e",
+  "s1_mutant_plugin.py": "db6e27aebf99d1f915bf5dc92993f01ffecb6740dfdbf0046a94f10dba74e884"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer[no-missed-timeout-rows]",
+  "research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer[no-stop-decision]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer[no-missed-timeout-rows]",
+  "research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer[no-stop-decision]"
+ ],
+ "finding": null
+}

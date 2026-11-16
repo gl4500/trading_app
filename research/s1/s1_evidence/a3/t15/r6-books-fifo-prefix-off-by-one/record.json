@@ -1,0 +1,54 @@
+{
+ "label": "failed-elsewhere",
+ "target": "s1_books._sold_events",
+ "selection": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events",
+ "agreed": {
+  "basis": "the pass-scoped replay equals the public sold_events",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events",
+  "oracle_kind": "assert",
+  "source_line": "assert fn(trades, px) == b.sold_events(trades)",
+  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:548"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_books._sold_events",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_books.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "f9fcfcec64906842dc847a3ed6bd5a47362300a93afb863ac65fb8ca7de2bbaf",
+  "mutated_sha256": "d33704c8f0ca349160835c7b0bf26e1c61591e63848006dcffecb1b4ebc2b4f5",
+  "first_line": 123
+ },
+ "frame_found": [
+  "research/s1/s1_tests/conftest.py",
+  873,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "96000f16642624e6113b2a33be7ae75e859c8e0d35b2e215a96cda18f47df105",
+  "installed.json": null,
+  "pytest-output.txt": "2f49154fd8521915b62c17bcf4dd7ad24f84402ac5f605df782e316b92e06840",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "0fdf353eacb5642391ac3b475f2f42de2cf777eb4db4790553353424bbabf2e8",
+  "installed.json": "18f795a3363c21ffedb751c07716022d171b18460647c10b045dd0c735023bc8",
+  "pytest-output.txt": "6c98def4f5cd1a46921367ac5878fae2763e8505fad4a40d0637a3fcbde57108",
+  "s1_mutant_plugin.py": "cf20c9106b122fd9d8d1babbdfc5bfed9f76c1df9d4aafe005e38c166a47b387"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events"
+ ],
+ "finding": "T15-F9: failed-elsewhere: the ctx() helper the killer calls in its body (conftest s1_state) commits no TRIAL-STOP (conftest.py:873 AssertionError), before h5b_pass.py:548 (fix round 1: not restructurable without changing its inputs - t15_anchor_map.md)"
+}

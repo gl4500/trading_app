@@ -1,0 +1,24 @@
+.....................................................F...............    [100%]
+================================== FAILURES ===================================
+______________________ test_precedence_table[6-si-at-e] _______________________
+
+cid = '6-si-at-e', specs = []
+req = Request(kind='SLOT-INTENT', subject='slot/20261102T214500Z', op='ffffffffffffffffffffffffffffffff', actor='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', detail=None, detail_fn=None, r_at=None, inputs=None)
+now = datetime.datetime(2026, 11, 2, 21, 55, tzinfo=datetime.timezone.utc)
+kw = {}, outcome = 'REFUSE', reason = None
+
+    @pytest.mark.parametrize("cid,specs,req,now,kw,outcome,reason", CASES, ids=[x[0] for x in CASES])
+    def test_precedence_table(cid, specs, req, now, kw, outcome, reason):
+        dec = j.decide(build(specs), req, ctx(**kw), now)
+>       assert dec.outcome == outcome, (cid, dec)
+E       AssertionError: ('6-si-at-e', Decision(outcome='APPEND', reason=''))
+E       assert 'APPEND' == 'REFUSE'
+E         
+E         - REFUSE
+E         + APPEND
+
+research\s1\s1_tests\test_s1_a3_precedence.py:180: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m01\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-si-at-e]
+1 failed, 68 passed in 0.94s

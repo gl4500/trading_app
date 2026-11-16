@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="3.027" timestamp="2026-11-16T00:57:32.591678-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_stop" name="test_pending_slot_blocks_the_stop" time="2.618"><failure message="TypeError: 'NoneType' object is not iterable">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m33/mutant/bt/test_pending_slot_blocks_the_s0')
+
+    def test_pending_slot_blocks_the_stop(tmp_path):
+        """B1.5 kept (OQ-8): an in-flight slot on an eligible close before the triggering close blocks the stop."""
+        st_ = s1_state(tmp_path, START, score_ready=True, seal_days=[1], stop_attest=False, final=False, stop=False)
+        day0 = st_["sessions"][0]
+        s45 = z.close_of(day0, st_["calendar"]) + timedelta(minutes=45)
+        s1_jappend(tmp_path, "SLOT-INTENT", j.slot_subject(s45), at=s45 + timedelta(seconds=1))
+        gv = t.gate(tmp_path, "decide")
+&gt;       assert z.stop_record(gv.out, gv.rows, st_["start"], st_["calendar"], gv.trial.bundle) is None
+
+research\s1\s1_tests\test_s1_a3_stop.py:162: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\s1_seal.py:641: in stop_record
+    return _stop_record(px, out, rows, start, cal, bundle)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+px = &lt;s1_seal.SealPass object at 0x00000284FCAAF340&gt;
+out = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m33/mutant/bt/test_pending_slot_blocks_the_s0/s1_out')
+rows = [Row(trial_id='ec536f7f-744b-4149-b8a2-bb219ab6e74c', seq=1, prev='60c69710bd5acdec9d99d64b371745469a1d0754875a416a39a...21 at=2026-10-23T20:45:30.000000+00:00', mailbox_id='a3589d4b-b623-4787-aaa3-fb5d204d61b6', created=1792788330.0), ...]
+start = datetime.datetime(2026, 10, 26, 13, 30, tzinfo=datetime.timezone.utc)
+cal = [{'close': '16:00', 'date': '2026-09-16', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-17', 'open': '09:30'},...lose': '16:00', 'date': '2026-09-22', 'open': '09:30'}, {'close': '16:00', 'date': '2026-09-23', 'open': '09:30'}, ...]
+bundle = 'ac059f2baf8d57c33a0cc74d3d89d5c93e93f288ffeb2171fdc94557ecbad963'
+
+    def _stop_record(px, out, rows, start, cal, bundle):
+        """stop_record within the live pass `px` (A3 H5b): the same record, the module verified once for the pass; every
+        QUALIFIED tree read and hashed live."""
+        _live(px)
+        import s1_journal as j
+        import s1_slot
+        rows = list(rows)
+        tids = {x.trial_id for x in rows}
+        if len(tids) != 1:
+            return None
+        index = _by_subject(rows)
+        eligible = _eligible(px, start, cal)
+        if not eligible:
+            return None
+        missed, deps, sealed, stop_day = [], [], [], None
+        for d in eligible:
+            stt, dd, q = _close_state(px, index, d, cal)
+            if stt in ("pending", "unresolved"):
+                return None
+&gt;           deps += dd
+E           TypeError: 'NoneType' object is not iterable
+
+research\s1\s1_seal.py:663: TypeError</failure></testcase></testsuite></testsuites>

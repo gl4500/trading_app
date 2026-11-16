@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="9" time="34.245" timestamp="2026-11-16T00:54:50.784979-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[control-permission]" time="3.537" /><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[control-generic-oserror]" time="3.588" /><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[control-enumeration-filenotfound]" time="3.585" /><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]" time="3.658"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer3')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146E133BDD0&gt;
+inject = 'captures-root', kind = 'permission'
+
+    @pytest.mark.parametrize("kind", list(FAILURES))
+    @pytest.mark.parametrize("inject", ["control", "captures-root", "captures-day"])
+    def test_gate_stray_capture_enumeration_failure_refuses(tmp_path, monkeypatch, inject, kind):
+        """A stray claim is present. Control: INVALID (registration-artifact). The captures directory (or the stray's day
+        directory) cannot be listed: a refusal with no new INVALID, no aborted.json - never the empty inventory."""
+        three_qualified(tmp_path)
+        claim = stray_claim(tmp_path)
+        out = tmp_path / "s1_out"
+        before = [x.sha for x in jrows(tmp_path)]
+        if inject == "control":
+            with pytest.raises(SystemExit, match=REG):
+                t.gate(tmp_path, "probe")
+            return
+        target = out / "captures" if inject == "captures-root" else claim.parent
+        hits = fail_scandir(monkeypatch, target, FAILURES[kind]())
+        e = gate_outcome(tmp_path, "probe")
+        assert hits, "the injection was never reached"
+&gt;       assert isinstance(e, SystemExit), "an enumeration failure passed the gate (the stray was not seen)"
+E       AssertionError: an enumeration failure passed the gate (the stray was not seen)
+E       assert False
+E        +  where False = isinstance(None, SystemExit)
+
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-root-generic-oserror]" time="3.630"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer4')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146E132E660&gt;
+inject = 'captures-root', kind = 'generic-oserror'
+
+    @pytest.mark.parametrize("kind", list(FAILURES))
+    @pytest.mark.parametrize("inject", ["control", "captures-root", "captures-day"])
+    def test_gate_stray_capture_enumeration_failure_refuses(tmp_path, monkeypatch, inject, kind):
+        """A stray claim is present. Control: INVALID (registration-artifact). The captures directory (or the stray's day
+        directory) cannot be listed: a refusal with no new INVALID, no aborted.json - never the empty inventory."""
+        three_qualified(tmp_path)
+        claim = stray_claim(tmp_path)
+        out = tmp_path / "s1_out"
+        before = [x.sha for x in jrows(tmp_path)]
+        if inject == "control":
+            with pytest.raises(SystemExit, match=REG):
+                t.gate(tmp_path, "probe")
+            return
+        target = out / "captures" if inject == "captures-root" else claim.parent
+        hits = fail_scandir(monkeypatch, target, FAILURES[kind]())
+        e = gate_outcome(tmp_path, "probe")
+        assert hits, "the injection was never reached"
+&gt;       assert isinstance(e, SystemExit), "an enumeration failure passed the gate (the stray was not seen)"
+E       AssertionError: an enumeration failure passed the gate (the stray was not seen)
+E       assert False
+E        +  where False = isinstance(None, SystemExit)
+
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-root-enumeration-filenotfound]" time="3.917"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146E1359AF0&gt;
+inject = 'captures-root', kind = 'enumeration-filenotfound'
+
+    @pytest.mark.parametrize("kind", list(FAILURES))
+    @pytest.mark.parametrize("inject", ["control", "captures-root", "captures-day"])
+    def test_gate_stray_capture_enumeration_failure_refuses(tmp_path, monkeypatch, inject, kind):
+        """A stray claim is present. Control: INVALID (registration-artifact). The captures directory (or the stray's day
+        directory) cannot be listed: a refusal with no new INVALID, no aborted.json - never the empty inventory."""
+        three_qualified(tmp_path)
+        claim = stray_claim(tmp_path)
+        out = tmp_path / "s1_out"
+        before = [x.sha for x in jrows(tmp_path)]
+        if inject == "control":
+            with pytest.raises(SystemExit, match=REG):
+                t.gate(tmp_path, "probe")
+            return
+        target = out / "captures" if inject == "captures-root" else claim.parent
+        hits = fail_scandir(monkeypatch, target, FAILURES[kind]())
+        e = gate_outcome(tmp_path, "probe")
+        assert hits, "the injection was never reached"
+&gt;       assert isinstance(e, SystemExit), "an enumeration failure passed the gate (the stray was not seen)"
+E       AssertionError: an enumeration failure passed the gate (the stray was not seen)
+E       assert False
+E        +  where False = isinstance(None, SystemExit)
+
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-day-permission]" time="3.931"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer6')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146DFD28EF0&gt;
+inject = 'captures-day', kind = 'permission'
+
+    @pytest.mark.parametrize("kind", list(FAILURES))
+    @pytest.mark.parametrize("inject", ["control", "captures-root", "captures-day"])
+    def test_gate_stray_capture_enumeration_failure_refuses(tmp_path, monkeypatch, inject, kind):
+        """A stray claim is present. Control: INVALID (registration-artifact). The captures directory (or the stray's day
+        directory) cannot be listed: a refusal with no new INVALID, no aborted.json - never the empty inventory."""
+        three_qualified(tmp_path)
+        claim = stray_claim(tmp_path)
+        out = tmp_path / "s1_out"
+        before = [x.sha for x in jrows(tmp_path)]
+        if inject == "control":
+            with pytest.raises(SystemExit, match=REG):
+                t.gate(tmp_path, "probe")
+            return
+        target = out / "captures" if inject == "captures-root" else claim.parent
+        hits = fail_scandir(monkeypatch, target, FAILURES[kind]())
+        e = gate_outcome(tmp_path, "probe")
+        assert hits, "the injection was never reached"
+&gt;       assert isinstance(e, SystemExit), "an enumeration failure passed the gate (the stray was not seen)"
+E       AssertionError: an enumeration failure passed the gate (the stray was not seen)
+E       assert False
+E        +  where False = isinstance(None, SystemExit)
+
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-day-generic-oserror]" time="3.892"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer7')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146E136C740&gt;
+inject = 'captures-day', kind = 'generic-oserror'
+
+    @pytest.mark.parametrize("kind", list(FAILURES))
+    @pytest.mark.parametrize("inject", ["control", "captures-root", "captures-day"])
+    def test_gate_stray_capture_enumeration_failure_refuses(tmp_path, monkeypatch, inject, kind):
+        """A stray claim is present. Control: INVALID (registration-artifact). The captures directory (or the stray's day
+        directory) cannot be listed: a refusal with no new INVALID, no aborted.json - never the empty inventory."""
+        three_qualified(tmp_path)
+        claim = stray_claim(tmp_path)
+        out = tmp_path / "s1_out"
+        before = [x.sha for x in jrows(tmp_path)]
+        if inject == "control":
+            with pytest.raises(SystemExit, match=REG):
+                t.gate(tmp_path, "probe")
+            return
+        target = out / "captures" if inject == "captures-root" else claim.parent
+        hits = fail_scandir(monkeypatch, target, FAILURES[kind]())
+        e = gate_outcome(tmp_path, "probe")
+        assert hits, "the injection was never reached"
+&gt;       assert isinstance(e, SystemExit), "an enumeration failure passed the gate (the stray was not seen)"
+E       AssertionError: an enumeration failure passed the gate (the stray was not seen)
+E       assert False
+E        +  where False = isinstance(None, SystemExit)
+
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_strict_enum" name="test_gate_stray_capture_enumeration_failure_refuses[captures-day-enumeration-filenotfound]" time="4.008"><failure message="AssertionError: an enumeration failure passed the gate (the stray was not seen)&#10;assert False&#10; +  where False = isinstance(None, SystemExit)">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m28/mutant/bt/test_gate_stray_capture_enumer8')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000146E13DE150&gt;
+inject = 'captures-day', kind = 'enumeration-filenotfound'
+
+    @pytest.mark.parametrize("kind", list(FAILURES))
+    @pytest.mark.parametrize("inject", ["control", "captures-root", "captures-day"])
+    def test_gate_stray_capture_enumeration_failure_refuses(tmp_path, monkeypatch, inject, kind):
+        """A stray claim is present. Control: INVALID (registration-artifact). The captures directory (or the stray's day
+        directory) cannot be listed: a refusal with no new INVALID, no aborted.json - never the empty inventory."""
+        three_qualified(tmp_path)
+        claim = stray_claim(tmp_path)
+        out = tmp_path / "s1_out"
+        before = [x.sha for x in jrows(tmp_path)]
+        if inject == "control":
+            with pytest.raises(SystemExit, match=REG):
+                t.gate(tmp_path, "probe")
+            return
+        target = out / "captures" if inject == "captures-root" else claim.parent
+        hits = fail_scandir(monkeypatch, target, FAILURES[kind]())
+        e = gate_outcome(tmp_path, "probe")
+        assert hits, "the injection was never reached"
+&gt;       assert isinstance(e, SystemExit), "an enumeration failure passed the gate (the stray was not seen)"
+E       AssertionError: an enumeration failure passed the gate (the stray was not seen)
+E       assert False
+E        +  where False = isinstance(None, SystemExit)
+
+research\s1\s1_tests\test_s1_a3_strict_enum.py:171: AssertionError</failure></testcase></testsuite></testsuites>

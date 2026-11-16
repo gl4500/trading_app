@@ -1,0 +1,40 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+_____________ test_gate_listing_refusal_held_until_e55[captures] ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m26/mutant/bt/test_gate_listing_refusal_held1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001E34C6BA0F0>
+inject = 'captures'
+
+    @pytest.mark.parametrize("inject", ["control", "captures"])
+    def test_gate_listing_refusal_held_until_e55(tmp_path, monkeypatch, inject):
+        """H4 ordering (Clarification 1 C5.1; H4 fix rounds 1-2): an evidence-table listing refusal is held like a C5
+        refusal - the E5.5 check still runs, and the stop-gap recovery runs with publish=False (a refusal does no work)."""
+        three_qualified(tmp_path)
+        stray_claim(tmp_path)
+        out = tmp_path / "s1_out"
+        calls = []
+        real_e55, real_gap = t.opening_manifest_check, z.stop_gap_recover
+        monkeypatch.setattr(t, "opening_manifest_check", lambda gv, a=None: (calls.append("E5.5"), real_e55(gv, a))[1])
+        monkeypatch.setattr(z, "stop_gap_recover", lambda gv, *, publish=True: (calls.append(("gap", publish)),
+                                                                                real_gap(gv, publish=publish))[1])
+        if inject == "control":
+            with pytest.raises(SystemExit, match=REG):
+                t.gate(tmp_path, "probe")
+            assert calls == []                                    # the F3 violation is committed before E5.5
+            return
+        fail_scandir(monkeypatch, out / "captures", PermissionError(13, "listing denied (simulated)"))
+        e = gate_outcome(tmp_path, "probe")
+        assert isinstance(e, SystemExit) and LISTED in str(e), e
+>       assert calls == [("gap", False), "E5.5"], calls
+E       AssertionError: []
+E       assert [] == [('gap', False), 'E5.5']
+E         
+E         Right contains 2 more items, first extra item: ('gap', False)
+E         Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_strict_enum.py:240: AssertionError
+- generated xml file: C:\Users\gl450\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\t15b\bt_green3\t15w0\m26\mutant\junit.xml -
+=========================== short test summary info ===========================
+FAILED research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[captures]
+1 failed, 1 passed in 7.48s

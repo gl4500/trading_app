@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="19.490" timestamp="2026-11-16T00:51:53.888751-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_h5b_pass" name="test_h5b_fifo_replay_uses_this_pass_module[stop_record]" time="6.288"><failure message="AssertionError: pass 0: 201 verifications (want exactly 1, fresh)&#10;assert 201 == (0 + 1)&#10; +  where 201 = len([&lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DA84230&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D95C230&gt;,...st_s1_a3_h5b_pass._Proxy object at 0x0000019E9D95ED20&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D95C3E0&gt;, ...])">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m19/mutant/bt/test_h5b_fifo_replay_uses_this0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9C4C9EB0&gt;
+owner = 'stop_record'
+
+    @pytest.mark.parametrize("owner", ["stop_record", "nvs", "stop_ready"])
+    def test_h5b_fifo_replay_uses_this_pass_module(tmp_path, monkeypatch, owner):
+        """I-1: each pass's verification yields a distinct identity-recording module object; the economic FIFO replay
+        (count_sold -&gt; s1_books._sold_events -&gt; baseline_lots / x) of pass k touches pass k's object and no other - no
+        cross-pass module memo in s1_books or s1_seal (the reviewer's R-2). Results equal the unproxied ones."""
+        x = ctx(tmp_path)
+        want = call(owner, x)
+        real_sim, log, made = c.sim, [], []
+    
+        def sim():
+            p = _Proxy(real_sim(), len(made), log)
+            made.append(p)
+            return p
+        monkeypatch.setattr(c, "sim", sim)
+        for k in range(2):
+            n0 = len(log)
+            got = call(owner, x)
+&gt;           assert len(made) == k + 1, f"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)"
+E           AssertionError: pass 0: 201 verifications (want exactly 1, fresh)
+E           assert 201 == (0 + 1)
+E            +  where 201 = len([&lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DA84230&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D95C230&gt;,...st_s1_a3_h5b_pass._Proxy object at 0x0000019E9D95ED20&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D95C3E0&gt;, ...])
+
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_h5b_pass" name="test_h5b_fifo_replay_uses_this_pass_module[nvs]" time="6.365"><failure message="AssertionError: pass 0: 201 verifications (want exactly 1, fresh)&#10;assert 201 == (0 + 1)&#10; +  where 201 = len([&lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D9F3D10&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB46FF0&gt;,...st_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB45D90&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB45DC0&gt;, ...])">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m19/mutant/bt/test_h5b_fifo_replay_uses_this1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9D99FFB0&gt;
+owner = 'nvs'
+
+    @pytest.mark.parametrize("owner", ["stop_record", "nvs", "stop_ready"])
+    def test_h5b_fifo_replay_uses_this_pass_module(tmp_path, monkeypatch, owner):
+        """I-1: each pass's verification yields a distinct identity-recording module object; the economic FIFO replay
+        (count_sold -&gt; s1_books._sold_events -&gt; baseline_lots / x) of pass k touches pass k's object and no other - no
+        cross-pass module memo in s1_books or s1_seal (the reviewer's R-2). Results equal the unproxied ones."""
+        x = ctx(tmp_path)
+        want = call(owner, x)
+        real_sim, log, made = c.sim, [], []
+    
+        def sim():
+            p = _Proxy(real_sim(), len(made), log)
+            made.append(p)
+            return p
+        monkeypatch.setattr(c, "sim", sim)
+        for k in range(2):
+            n0 = len(log)
+            got = call(owner, x)
+&gt;           assert len(made) == k + 1, f"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)"
+E           AssertionError: pass 0: 201 verifications (want exactly 1, fresh)
+E           assert 201 == (0 + 1)
+E            +  where 201 = len([&lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D9F3D10&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB46FF0&gt;,...st_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB45D90&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB45DC0&gt;, ...])
+
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: AssertionError</failure></testcase><testcase classname="research.s1.s1_tests.test_s1_a3_h5b_pass" name="test_h5b_fifo_replay_uses_this_pass_module[stop_ready]" time="6.468"><failure message="AssertionError: pass 0: 201 verifications (want exactly 1, fresh)&#10;assert 201 == (0 + 1)&#10; +  where 201 = len([&lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D907050&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB52090&gt;,...st_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB52FF0&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB53FE0&gt;, ...])">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m19/mutant/bt/test_h5b_fifo_replay_uses_this2')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000019E9D99DC40&gt;
+owner = 'stop_ready'
+
+    @pytest.mark.parametrize("owner", ["stop_record", "nvs", "stop_ready"])
+    def test_h5b_fifo_replay_uses_this_pass_module(tmp_path, monkeypatch, owner):
+        """I-1: each pass's verification yields a distinct identity-recording module object; the economic FIFO replay
+        (count_sold -&gt; s1_books._sold_events -&gt; baseline_lots / x) of pass k touches pass k's object and no other - no
+        cross-pass module memo in s1_books or s1_seal (the reviewer's R-2). Results equal the unproxied ones."""
+        x = ctx(tmp_path)
+        want = call(owner, x)
+        real_sim, log, made = c.sim, [], []
+    
+        def sim():
+            p = _Proxy(real_sim(), len(made), log)
+            made.append(p)
+            return p
+        monkeypatch.setattr(c, "sim", sim)
+        for k in range(2):
+            n0 = len(log)
+            got = call(owner, x)
+&gt;           assert len(made) == k + 1, f"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)"
+E           AssertionError: pass 0: 201 verifications (want exactly 1, fresh)
+E           assert 201 == (0 + 1)
+E            +  where 201 = len([&lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9D907050&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB52090&gt;,...st_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB52FF0&gt;, &lt;test_s1_a3_h5b_pass._Proxy object at 0x0000019E9DB53FE0&gt;, ...])
+
+research\s1\s1_tests\test_s1_a3_h5b_pass.py:530: AssertionError</failure></testcase></testsuite></testsuites>

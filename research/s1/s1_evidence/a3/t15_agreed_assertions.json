@@ -1,0 +1,247 @@
+{
+ "cutoff-reservation-clock": {
+  "basis": "the cutoff is the INTENT's New York date, not the reservation clock's",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_audit.py::test_cutoff_is_the_intent_new_york_date_across_midnight[midnight]",
+  "oracle_kind": "assert",
+  "source_line": "assert m[\"publication_cutoff\"] == date_ != c.aware(reserved).astimezone(c.NY).date().isoformat()",
+  "terminal": "research/s1/s1_tests/test_s1_a3_audit.py:270"
+ },
+ "deadline-intent-ge-to-gt": {
+  "basis": "SLOT-INTENT at now == E must be REFUSE; '>' appends",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[6-si-at-e]",
+  "oracle_kind": "assert",
+  "source_line": "assert dec.outcome == outcome, (cid, dec)",
+  "terminal": "research/s1/s1_tests/test_s1_a3_precedence.py:180"
+ },
+ "deadline-missed-lt-to-le": {
+  "basis": "MISSED must commit at now == E; '<=' refuses it",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files",
+  "oracle_kind": "assert",
+  "source_line": "assert [k_ for k_, *_ in got] == [\"SLOT-MISSED\"]",
+  "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:51"
+ },
+ "deadline-qualified-ge-to-gt": {
+  "basis": "R == D must not seal; '>' lets QUALIFIED commit (killer renamed/moved: map)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_codex_probes.py::test_publication_at_d_and_d_plus_1us_does_not_seal[0]",
+  "oracle_kind": "assert",
+  "source_line": "assert got == [\"SLOT-INTENT\"] and not sealed and rep[\"journal\"][\"outcome\"] == \"REFUSE\"",
+  "terminal": "research/s1/s1_tests/test_s1_a3_codex_probes.py:120"
+ },
+ "deadline-timeout-lt-to-le": {
+  "basis": "TIMEOUT must commit at now == D; '<=' refuses it (the finalizer defers, no row)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock",
+  "oracle_kind": "assert",
+  "source_line": "assert [k_ for k_, *_ in got] == [\"SLOT-INTENT\", \"SLOT-TIMEOUT\"]",
+  "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:149"
+ },
+ "erratum-backup-dropped": {
+  "basis": "the QUALIFIED tree includes backup.sqlite3 (E5.6)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_slots.py::test_qualified_at_is_r_and_detail_is_the_tree_manifest",
+  "oracle_kind": "assert",
+  "source_line": "assert set(tree) == {f\"captures/2026-10-26/{sch:%Y%m%dT%H%M%SZ}.report.json\",",
+  "terminal": "research/s1/s1_tests/test_s1_a3_slots.py:72"
+ },
+ "erratum-blocked-close-rederived": {
+  "basis": "a valid BLOCKED CLOSE closes A from the mailbox alone (zero open trials) (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_trial.py::test_two_root_blocked_lifecycle_closure_is_monotone",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with pytest.raises(t.Refusal, match=\"zero open trials\"):",
+  "terminal": "research/s1/s1_tests/test_s1_a3_trial.py:507"
+ },
+ "erratum-finalizer-takes-work-lock": {
+  "basis": "no slot work lock before the last finalizer decision",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_finalizer_decision_never_touches_the_work_lock",
+  "oracle_kind": "assert",
+  "source_line": "assert not any(ev[0] == \"lock\" and ev[1].startswith(\"slot-\") for ev in events[:decided[-1] + 1])",
+  "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:210"
+ },
+ "erratum-non-official-close-counts": {
+  "basis": "only official messages are candidates",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_trial.py::test_non_official_lines_are_never_candidates[wrong-role-close]",
+  "oracle_kind": "assert",
+  "source_line": "assert sorted(x.mailbox_id for x in t.scan(mb)) == official      # E4.2: no other line is a candidate",
+  "terminal": "research/s1/s1_tests/test_s1_a3_trial.py:413"
+ },
+ "erratum-seal-ignores-close": {
+  "basis": "a CLOSE between the reads refuses PREPARED",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_barrier_close_between_active_read_and_prepared",
+  "oracle_kind": "assert",
+  "source_line": "assert kinds_ == [\"STAGE-INTENT\"] and only.closed is not None                 # PREPARED refused (CLOSED)",
+  "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:311"
+ },
+ "erratum-stop-fence-removed": {
+  "basis": "TRIAL-STOP must be refused while a determined close has no CREATED seal",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_stop_fence_refuses_a_determined_close_without_a_created_seal",
+  "oracle_kind": "assert",
+  "source_line": "assert res.outcome == \"REFUSE\" and \"not sealed\" in res.reason",
+  "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:327"
+ },
+ "omitted-check-journal": {
+  "basis": "verify_ack must refuse on check_journal problems (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_trial.py::test_journal_seq_and_head_must_be_extended_without_fork[wrong-head]",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with pytest.raises(t.Refusal, match=reason):                # verify_ack refuses on check_journal problems",
+  "terminal": "research/s1/s1_tests/test_s1_a3_trial.py:256"
+ },
+ "omitted-envelope-input": {
+  "basis": "the envelope inputs must include opening_books.json",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_envelope_and_single_member",
+  "oracle_kind": "assert",
+  "source_line": "assert set(e[\"inputs\"]) == {\"plan.json\", \"audit/manifest.json\", f\"seals/{oc}.json\", \"opening_receipt.json\",",
+  "terminal": "research/s1/s1_tests/test_s1_a3_prestart.py:137"
+ },
+ "omitted-evidence-manifest": {
+  "basis": "a wrong E5.5 manifest hash must be INVALID (registration-artifact) (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_prestart.py::test_opening_ack_evidence_manifest_is_reconstructed[wrong-hash]",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with pytest.raises(SystemExit, match=r\"evidence manifest.*INVALID \\(registration-artifact\\)\"):",
+  "terminal": "research/s1/s1_tests/test_s1_a3_prestart.py:284"
+ },
+ "omitted-verify-ack-field": {
+  "basis": "a differing ACK field must refuse with the 'differ from the current artifacts' text (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_prestart.py::test_start_attest_verifies_the_opening_ack_against_the_journal[seal-differs]",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with pytest.raises(SystemExit, match=VERIFY_REFUSAL[case]):",
+  "terminal": "research/s1/s1_tests/test_s1_a3_prestart.py:194"
+ },
+ "owner-4a-actor-removed": {
+  "basis": "a foreign-actor QUALIFIED must be INVALIDATE contradictory-completion",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_slots.py::test_foreign_qualified_is_invalid_even_on_a_terminal_slot[foreign-actor]",
+  "oracle_kind": "assert",
+  "source_line": "assert (res.outcome, res.reason) == (\"INVALIDATE\", \"contradictory-completion\")",
+  "terminal": "research/s1/s1_tests/test_s1_a3_slots.py:320"
+ },
+ "owner-recovery-own-op": {
+  "basis": "recovery must append CREATED with the stage's own op",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_stage.py::test_stage_state_table[prepared-lock-free]",
+  "oracle_kind": "assert",
+  "source_line": "assert stage_kinds(tmp_path, \"final_plan\")[-1] == \"STAGE-CREATED\"",
+  "terminal": "research/s1/s1_tests/test_s1_a3_stage.py:466"
+ },
+ "owner-timeout-op-removed": {
+  "basis": "a foreign-op TIMEOUT must be INVALIDATE contradictory-finalizer",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_precedence.py::test_precedence_table[4a-t-foreign-op]",
+  "oracle_kind": "assert",
+  "source_line": "assert dec.outcome == outcome, (cid, dec)",
+  "terminal": "research/s1/s1_tests/test_s1_a3_precedence.py:180"
+ },
+ "r6-books-economic-in-entry-guard-dropped": {
+  "basis": "a missing pass refuses with the NO_PASS text (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._economic_in]",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with pytest.raises(SystemExit, match=NO_PASS):",
+  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:480"
+ },
+ "r6-books-economic-in-foreign-module": {
+  "basis": "exactly one fresh module per pass: another module is another verification",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_record]",
+  "oracle_kind": "assert",
+  "source_line": "assert len(made) == k + 1, f\"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)\"",
+  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:530"
+ },
+ "r6-books-fifo-prefix-off-by-one": {
+  "basis": "the pass-scoped replay equals the public sold_events",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_pass_fifo_replay_equals_public_sold_events",
+  "oracle_kind": "assert",
+  "source_line": "assert fn(trades, px) == b.sold_events(trades)",
+  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:548"
+ },
+ "r6-books-sold-events-entry-guard-dropped": {
+  "basis": "a missing pass refuses with the NO_PASS text (pytest.raises oracle; B3: a DID-NOT-RAISE Failed here is a kill)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_helpers_fail_closed_without_a_live_pass[missing-books._sold_events]",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with pytest.raises(SystemExit, match=NO_PASS):",
+  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:480"
+ },
+ "r6-books-sold-events-foreign-module": {
+  "basis": "exactly one fresh module per pass: another module is another verification",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_fifo_replay_uses_this_pass_module[stop_record]",
+  "oracle_kind": "assert",
+  "source_line": "assert len(made) == k + 1, f\"pass {k}: {len(made) - k} verifications (want exactly 1, fresh)\"",
+  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:530"
+ },
+ "r6-confirming-calendar-hash-unchecked": {
+  "basis": "a calendar not hashing to the manifest record is None",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_m4_pass.py::test_h5cfix2_confirming_calendar_helper[hash-mismatch]",
+  "oracle_kind": "assert",
+  "source_line": "assert strict(gv) is None",
+  "terminal": "research/s1/s1_tests/test_s1_a3_m4_pass.py:777"
+ },
+ "r6-diagnostic-torn-tail-not-completed": {
+  "basis": "an inherited torn tail is completed before this record's line",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]",
+  "oracle_kind": "assert",
+  "source_line": "assert data == (existing or b\"\") + completion + _line(_rec(11)), data",
+  "terminal": "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py:141"
+ },
+ "r6-early-refusal-runs-finalizer": {
+  "basis": "a refused attempt calls no finalizer / decide_stop",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_eligibility.py::test_eligibility_refusal_triggers_no_finalizer[no-stop-decision]",
+  "oracle_kind": "assert",
+  "source_line": "assert [x for x in w.calls if x in (\"decide_stop\", \"finalize_close\", \"_after_terminal\", \"_finalize_others\",",
+  "terminal": "research/s1/s1_tests/test_s1_a3_eligibility.py:354"
+ },
+ "r6-listing-refusal-not-held-until-e55": {
+  "basis": "the stop-gap (publish=False) and E5.5 run before the held refusal",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_listing_refusal_held_until_e55[captures]",
+  "oracle_kind": "assert",
+  "source_line": "assert calls == [(\"gap\", False), \"E5.5\"], calls",
+  "terminal": "research/s1/s1_tests/test_s1_a3_strict_enum.py:240"
+ },
+ "r6-pass-held-across-seal-stages": {
+  "basis": "a fresh per-close verification between seal stages",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_h5b_pass.py::test_h5b_stop_decision_close_passes_verify_between_seal_stages",
+  "oracle_kind": "assert",
+  "source_line": "assert sims(loads[:s_], e_) == 1, (e_, s_, loads[e_:s_])      # exactly one fresh per-close verification",
+  "terminal": "research/s1/s1_tests/test_s1_a3_h5b_pass.py:210"
+ },
+ "r6-strict-enum-nested-oserror-swallowed": {
+  "basis": "an enumeration failure never passes the gate",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_strict_enum.py::test_gate_stray_capture_enumeration_failure_refuses[captures-root-permission]",
+  "oracle_kind": "assert",
+  "source_line": "assert isinstance(e, SystemExit), \"an enumeration failure passed the gate (the stray was not seen)\"",
+  "terminal": "research/s1/s1_tests/test_s1_a3_strict_enum.py:171"
+ },
+ "r6-typed-identity-kind-ignored": {
+  "basis": "a changed kind is not the same observation: refused with no row (oracle in the helper _score_refused_no_row: its own pytest.raises line)",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_score.py::test_h5cfix_same_slot_changed_kind_does_not_confirm[missing-then-differs]",
+  "oracle_kind": "pytest.raises",
+  "source_line": "with _Clock(st_[\"now\"]), pytest.raises(SystemExit, match=match):",
+  "terminal": "research/s1/s1_tests/test_s1_a3_score.py:572"
+ },
+ "scope-full-history-start": {
+  "basis": "the full-history CA family starts at full_history_start",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows",
+  "oracle_kind": "assert",
+  "source_line": "assert k.final_policy(fp, pr, \"2026-11-02\") == {",
+  "terminal": "research/s1/s1_tests/test_s1_a3_final.py:92"
+ },
+ "scope-window-full-swapped": {
+  "basis": "the window CA family uses ca_symbols_window",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_final.py::test_final_policy_is_exactly_the_f49_final_rows",
+  "oracle_kind": "assert",
+  "source_line": "assert k.final_policy(fp, pr, \"2026-11-02\") == {",
+  "terminal": "research/s1/s1_tests/test_s1_a3_final.py:92"
+ },
+ "stop-n-ge-to-gt": {
+  "basis": "exactly STOP_N (100) sold lots must stop; with '>' no lots candidate and the W slot is not terminal, so stop_record returns None",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_stop.py::test_stop_dispositions[lots-earliest]",
+  "oracle_kind": "assert",
+  "source_line": "assert rec is not None, \"no stop record\"           # (Deviation 3: assert, not a TypeError on None)",
+  "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:370"
+ },
+ "stop-pending-removed": {
+  "basis": "a pending eligible close must make stop_record None",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_stop.py::test_pending_slot_blocks_the_stop",
+  "oracle_kind": "assert",
+  "source_line": "assert z.stop_record(gv.out, gv.rows, st_[\"start\"], st_[\"calendar\"], gv.trial.bundle) is None",
+  "terminal": "research/s1/s1_tests/test_s1_a3_stop.py:162"
+ },
+ "stop-prefix-le-to-lt": {
+  "basis": "the sampled history is fixed at (and includes) the STOP",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_score.py::test_sampled_history_is_canonical_and_fixed_at_the_stop",
+  "oracle_kind": "assert",
+  "source_line": "assert before == after and list(before[\"seals\"]) == sorted(before[\"seals\"])",
+  "terminal": "research/s1/s1_tests/test_s1_a3_score.py:252"
+ }
+}

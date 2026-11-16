@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.138" timestamp="2026-11-16T00:49:32.367401-05:00" hostname="MSI"><testcase classname="research.s1.s1_tests.test_s1_a3_finalizer" name="test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock" time="1.689"><failure message="AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']&#10;  &#10;  Right contains one more item: 'SLOT-TIMEOUT'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/claude/4a6d95c7011f8258/c661c7e7-0401-4122-9c4b-9345620dbebb/scratchpad/t15b/bt_green3/t15w0/m04/mutant/bt/test_timeout_commits_at_d_whil0')
+
+    def test_timeout_commits_at_d_while_a_live_worker_holds_the_work_lock(tmp_path):       # rows 256, 320
+        st_ = registered(tmp_path)
+        day, sch = first_slot(st_)
+        e, d = E_D(st_, day, sch)
+        p, hello = live_worker(tmp_path, st_, day, sch)
+        try:
+            _fin_or_fail(tmp_path, st_, day, d)
+            got = slot_rows(tmp_path, sch)
+&gt;           assert [k_ for k_, *_ in got] == ["SLOT-INTENT", "SLOT-TIMEOUT"]
+E           AssertionError: assert ['SLOT-INTENT'] == ['SLOT-INTENT...SLOT-TIMEOUT']
+E             
+E             Right contains one more item: 'SLOT-TIMEOUT'
+E             Use -v to get more diff
+
+research\s1\s1_tests\test_s1_a3_finalizer.py:149: AssertionError</failure></testcase></testsuite></testsuites>

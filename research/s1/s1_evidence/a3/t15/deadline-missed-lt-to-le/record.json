@@ -1,0 +1,54 @@
+{
+ "label": "failed-elsewhere",
+ "target": "s1_journal._slot",
+ "selection": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files",
+ "agreed": {
+  "basis": "MISSED must commit at now == E; '<=' refuses it",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files",
+  "oracle_kind": "assert",
+  "source_line": "assert [k_ for k_, *_ in got] == [\"SLOT-MISSED\"]",
+  "terminal": "research/s1/s1_tests/test_s1_a3_finalizer.py:51"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_journal._slot",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_journal.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "a2f9aa26f69bad2ccde7ecffa444c47de8200d8ea21900e3275c6d5e4401d5d0",
+  "mutated_sha256": "f7fdda5140fd8fd36c4654798a62d809d7e34479ed704702c440f25598434764",
+  "first_line": 390
+ },
+ "frame_found": [
+  "research/s1/s1_trial.py",
+  531,
+  "Refusal"
+ ],
+ "control": {
+  "junit.xml": "45c16a36010da7e7f998fe9219c5a9c8b0f1378a43d95da43c99d37716e7f60e",
+  "installed.json": null,
+  "pytest-output.txt": "64db8bee2c76208715669576547f6601353beecebcad043a03682cbe221d3469",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "5ea99e71d16efa0a855f44655c90fbcbb8b393079634987ba64362519631f6b4",
+  "installed.json": "42cb7820775634a6ed72ea8edd29bd162b6cc09372692b0bc35275d65bc9b0ca",
+  "pytest-output.txt": "806e26e95935c1080695c0ee11fea5ba94c9423d64d64830ec5955db410e1bc2",
+  "s1_mutant_plugin.py": "af89ab8c159dc82f25945734a0f3ebbf368b13fbb84fbc9d10c5c0c1208e5279"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_finalizer.py::test_missed_after_e_with_its_own_op_and_no_files"
+ ],
+ "finding": "T15-F2: failed-elsewhere: the killer's own setup (registered -> s1_state -> attest_start) needs MISSED at E; Refusal at s1_trial.py:531, before finalizer.py:51 (fix round 1: not restructurable without changing its inputs - t15_anchor_map.md)"
+}

@@ -1,0 +1,68 @@
+{
+ "label": "killed",
+ "target": "s1_slot.record_early_refusal",
+ "selection": "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion",
+ "agreed": {
+  "basis": "an inherited torn tail is completed before this record's line",
+  "nodeid": "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]",
+  "oracle_kind": "assert",
+  "source_line": "assert data == (existing or b\"\") + completion + _line(_rec(11)), data",
+  "terminal": "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py:141"
+ },
+ "selftests": {
+  "junit_sha256": "8c498289366754bb14ddd06d91291aaaa05e2aa867f983eba01241d3f2898cfb",
+  "cases": 27
+ },
+ "control_valid": true,
+ "control_rc": 0,
+ "mutant_rc": 1,
+ "mutant_timeout": false,
+ "installed": {
+  "target": "s1_slot.record_early_refusal",
+  "module_file": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\t15b\\bt_green3\\t15tree0\\research\\s1\\s1_slot.py",
+  "anchor_found": true,
+  "installed": true,
+  "anchor_count": 1,
+  "original_sha256": "ed6215ad93918a13c9770589e4e8d0443b8322547eb480e5632b338e07bfe00d",
+  "mutated_sha256": "6f16eb5bfdcb435bd6d8f0adcfa9b5808ca8b8fd8ad90d3532e1aa9bfa9cff92",
+  "first_line": 314
+ },
+ "frame_found": [
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py",
+  141,
+  "AssertionError"
+ ],
+ "control": {
+  "junit.xml": "17e55e2a05a4f7393bbc668cbea396bef5bc2c4edfe74327f5673bb2d613aa04",
+  "installed.json": null,
+  "pytest-output.txt": "5bb2ec97c5c24baa002541da30ce3213118559215d3d2ea3bece2dbd6e9bc040",
+  "s1_mutant_plugin.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "mutant": {
+  "junit.xml": "1425be87524422c3db25e4b479fc68d905067a22b36d09c57c43270c64446369",
+  "installed.json": "0efaa1209332384e7938c72bca7e9f6b3b26bb56e19499ce1ead4b68a4b3e380",
+  "pytest-output.txt": "81cb87807ebda6d2333dbc1a6eaf77404aecfa00c238e61fee7f852cf8380b90",
+  "s1_mutant_plugin.py": "2e39eff75907ddf341e61aff6fde22d92f9399e45a39fbdbd3bd11c83d9bcfc8"
+ },
+ "nodeids": [
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[absent-file]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[empty-file]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[healthy-file]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-lf]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-lf]"
+ ],
+ "mutant_nodeids": [
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[absent-file]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[empty-file]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[healthy-file]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[no-terminator]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-cr]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[lone-lf]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-cr]",
+  "research/s1/s1_tests/test_s1_a3_early_refusal_tail.py::test_tail_completion[bare-lf]"
+ ],
+ "finding": null
+}
