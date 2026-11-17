@@ -1,0 +1,117 @@
+{
+ "at": "2026-11-17T12:06:24.151902+00:00",
+ "attempt": 0,
+ "binding": {
+  "argfiles_sha256": {
+   "research/s1/s1_evidence/cr_a3/s1_seal/completion/c5/nodes.txt": "62f7832fb8ee8f287a1da47cd5c1f23ef6c6115a464765738f43c1c19c1c4f67"
+  },
+  "control_rel": "research/s1/s1_evidence/cr_a3/s1_seal/completion/c5/control.json",
+  "control_sha256": "7c1225e261fa7908bdd099ecd47c79f58a1204549eef9a2e47bf87fbc36ada46",
+  "copied_sha256": "d2a3b819e1be837cbb4f53f6b7e306dd9609a9ef680c267c4e7b142aec5decd2",
+  "copy_paths": [
+   "research/s1/docs",
+   "research/s1/e1_fetch.py",
+   "research/s1/e1_sim.py",
+   "research/s1/s1_books.py",
+   "research/s1/s1_checkpoint.py",
+   "research/s1/s1_collect.py",
+   "research/s1/s1_common.py",
+   "research/s1/s1_evidence/cr_a3/s1_seal/completion/c5/control.json",
+   "research/s1/s1_evidence/cr_a3/s1_seal/completion/c5/nodes.txt",
+   "research/s1/s1_gates.py",
+   "research/s1/s1_journal.py",
+   "research/s1/s1_locks.py",
+   "research/s1/s1_receipt.py",
+   "research/s1/s1_run.py",
+   "research/s1/s1_seal.py",
+   "research/s1/s1_slot.py",
+   "research/s1/s1_snapshot.py",
+   "research/s1/s1_stage.py",
+   "research/s1/s1_tests",
+   "research/s1/s1_trial.py"
+  ],
+  "env": {
+   "PYTHONDONTWRITEBYTECODE": "1",
+   "PYTHONPATH": [
+    "research/s1",
+    "research/s1/s1_tests"
+   ],
+   "TZ": null
+  },
+  "harness_sha256": {
+   "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+   "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+   "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+   "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+   "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+  },
+  "helpers_sha256": {
+   "research/s1/s1_tests/a3_h5a_helpers.py": "746f91fd9cbea19c4b7c88be10fb4947a76c6e73313d4a5db2d8eda0e28f41cb",
+   "research/s1/s1_tests/a3_helpers.py": "02a86db4d9542bdb99d8960cccff0d01d78c6b0b9ad938a3409354519182a886",
+   "research/s1/s1_tests/conftest.py": "ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8"
+  },
+  "module_rel": "research/s1/s1_seal.py",
+  "python": "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+  "pythonpath_rel": [
+   "research/s1",
+   "research/s1/s1_tests"
+  ],
+  "source_sha256": "af3e13af0ba38adc52bc2808c04349a7c4b3c053bd80708866a61f7f0070284f",
+  "test_command_sha256": "33b463325465caf73dece68592ca0f13e152f8a04dd29729e31e1fd284cd8fcf"
+ },
+ "budget_s": 180.0,
+ "changed_paths": null,
+ "config_id": "research/s1/s1_evidence/cr_a3/s1_seal/completion/c5",
+ "control": {
+  "frozen_source": "expected_control_sha256 (the CLI: collect_only.json control_sha256, cross-checked with the baseline guard sidecars and the inventory)",
+  "rel": "research/s1/s1_evidence/cr_a3/s1_seal/completion/c5/control.json",
+  "sha256_before": "7c1225e261fa7908bdd099ecd47c79f58a1204549eef9a2e47bf87fbc36ada46",
+  "unchanged_after": true
+ },
+ "copy_binding_matches": true,
+ "cr_toml": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\preflight_30e72bb\\src\\research\\s1\\s1_evidence\\cr_a3\\s1_seal\\completion\\c5\\cr.toml",
+ "cr_toml_sha256": "091c6d110a41154eeba370d3be60403f21cbd96b7f3765de8c89bdabd84c7d06",
+ "deadline_s": 300.0,
+ "guard": {
+  "cleanup_verified": true,
+  "control_sha256": "7c1225e261fa7908bdd099ecd47c79f58a1204549eef9a2e47bf87fbc36ada46",
+  "counts": {
+   "errors": 0,
+   "failures": 0,
+   "passed": 26,
+   "skipped": 0,
+   "tests": 26
+  },
+  "elapsed_s": 140.812,
+  "exit_code": 0,
+  "node_count": 26,
+  "node_set": null,
+  "rc": 0,
+  "sha256": "51cb903ff75a4e338ab97dd3de049b40cfd4b036f3d535ae6f13f32908b4a15f",
+  "status": "survived"
+ },
+ "harness_sha256": {
+  "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+  "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+  "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+  "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+  "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+ },
+ "module_rel": "research/s1/s1_seal.py",
+ "outer": {
+  "cleanup_verified": true,
+  "rc": 0,
+  "timed_out": false
+ },
+ "reasons": [],
+ "schema": "a3-t15cp-preflight/1",
+ "source": {
+  "rel": "research/s1/s1_seal.py",
+  "sha256": "af3e13af0ba38adc52bc2808c04349a7c4b3c053bd80708866a61f7f0070284f",
+  "unchanged_after": true
+ },
+ "test_command": "C:/Users/gl450/.coordination/trading_app/testenv/Scripts/python.exe -m cr_guard --deadline 240 --target s1_seal --control research/s1/s1_evidence/cr_a3/s1_seal/completion/c5/control.json -p conftest @research/s1/s1_evidence/cr_a3/s1_seal/completion/c5/nodes.txt",
+ "verdict": "clean",
+ "wall_s": 141.235,
+ "work_dir": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\preflight_30e72bb\\work\\research__s1__s1_evidence__cr_a3__s1_seal__completion__c5\\attempt_000"
+}

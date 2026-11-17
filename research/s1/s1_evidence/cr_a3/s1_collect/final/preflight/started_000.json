@@ -1,0 +1,64 @@
+{
+ "at": "2026-11-17T11:49:06.429549+00:00",
+ "attempt": 0,
+ "binding": {
+  "argfiles_sha256": {
+   "research/s1/s1_evidence/cr_a3/s1_collect/final/nodes.txt": "b8392975b5d911cf2b390146b1a3111333e6ef4174b19068823ac62d4b62e985"
+  },
+  "control_rel": "research/s1/s1_evidence/cr_a3/s1_collect/final/control.json",
+  "control_sha256": "b7ea646aadd14546b94544a9fd7e2051a00402de7a5122e369c0ce9205a00097",
+  "copied_sha256": "5e1e6d8498516b2eb599632e6bcd013b1af6df90967d4255075cbbc4aad4ca58",
+  "copy_paths": [
+   "research/s1/docs",
+   "research/s1/e1_fetch.py",
+   "research/s1/e1_sim.py",
+   "research/s1/s1_books.py",
+   "research/s1/s1_checkpoint.py",
+   "research/s1/s1_collect.py",
+   "research/s1/s1_common.py",
+   "research/s1/s1_evidence/cr_a3/s1_collect/final/control.json",
+   "research/s1/s1_evidence/cr_a3/s1_collect/final/nodes.txt",
+   "research/s1/s1_gates.py",
+   "research/s1/s1_journal.py",
+   "research/s1/s1_locks.py",
+   "research/s1/s1_receipt.py",
+   "research/s1/s1_run.py",
+   "research/s1/s1_seal.py",
+   "research/s1/s1_slot.py",
+   "research/s1/s1_snapshot.py",
+   "research/s1/s1_stage.py",
+   "research/s1/s1_tests",
+   "research/s1/s1_trial.py"
+  ],
+  "env": {
+   "PYTHONDONTWRITEBYTECODE": "1",
+   "PYTHONPATH": [
+    "research/s1",
+    "research/s1/s1_tests"
+   ],
+   "TZ": null
+  },
+  "harness_sha256": {
+   "cr_coord.py": "dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8",
+   "cr_guard.py": "54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76",
+   "cr_launch.py": "b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00",
+   "cr_preflight.py": "22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a",
+   "cr_reconcile.py": "1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d"
+  },
+  "helpers_sha256": {
+   "research/s1/s1_tests/a3_h5a_helpers.py": "746f91fd9cbea19c4b7c88be10fb4947a76c6e73313d4a5db2d8eda0e28f41cb",
+   "research/s1/s1_tests/a3_helpers.py": "02a86db4d9542bdb99d8960cccff0d01d78c6b0b9ad938a3409354519182a886",
+   "research/s1/s1_tests/conftest.py": "ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8"
+  },
+  "module_rel": "research/s1/s1_collect.py",
+  "python": "C:\\Users\\gl450\\.coordination\\trading_app\\testenv\\Scripts\\python.exe",
+  "pythonpath_rel": [
+   "research/s1",
+   "research/s1/s1_tests"
+  ],
+  "source_sha256": "a486fbd49b934788eb554a2574a71db3646bf0252ddc5265e5bd5847f3756968",
+  "test_command_sha256": "e51eace0f6a5591631acd58a57bf7a0ff6c5038c5673941868d0b5d25484d871"
+ },
+ "schema": "a3-t15cp-preflight/1",
+ "work_dir": "C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\preflight_30e72bb\\work\\research__s1__s1_evidence__cr_a3__s1_collect__final\\attempt_000"
+}
