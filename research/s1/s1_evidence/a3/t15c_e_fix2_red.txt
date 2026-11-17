@@ -1,0 +1,253 @@
+A3 Task 15c-E fix round 2 RED (2026-11-17T12:22:30-05:00): re-review r1-m1 (m5 wording: copied tree only; read-only LongPathsEnabled host check, injected reader, never the real registry in a test) and nit r1-n1 (a failing interrupted-report write keeps the original interrupt).
+The fix-2 test file (sha256 a3524598e2c6cea1e11c4debf6ab9d5e7c6d4f671a1405984603cfe147bdaa42) against the fix-1 driver (sha256 8d2d1f4a9b891800410cdd9fa7673fd3e8ded6615828f2557e0880cc57c9f430); worktree root, -B, fresh S1_HYPOTHESIS_ROOT, both files in a scratch dir on PYTHONPATH. Tests written before the driver change.
+strict run (rc 1): 83 failed, 20 passed in 42.38s | failure types:  1 : AssertionError; 82 : TypeError;
+  (strict: mostly TypeError - the fix-1 driver has no _test_long_paths_reader parameter)
+behavioural variant (rc 1; scratch copy only, the new keyword dropped): 11 failed, 92 passed in 97.83s (0:01:37) | failure types:  1 : AssertionError; 6 : Failed; 1 : FileExistsError; 3 : KeyError; 1 : KeyboardInterrupt;
+non-assertion errors in the variant:
+      1 E       FileExistsError: report_session-000.json
+      2 E       KeyError: 'deepest_copied_file_chars'
+      1 E       KeyError: 'host'
+failing tests (variant):
+test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root[True]
+test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root[False]
+test_r1m1_a_host_without_long_paths_is_refused_before_anything[0]
+test_r1m1_a_host_without_long_paths_is_refused_before_anything[None]
+test_r1m1_a_host_without_long_paths_is_refused_before_anything[2]
+test_r1m1_a_host_without_long_paths_is_refused_before_anything[1]
+test_r1m1_a_host_without_long_paths_is_refused_before_anything[True]
+test_r1m1_a_host_without_long_paths_is_refused_before_anything[raises]
+test_r1m1_the_report_records_the_host_long_paths_value
+test_r1m1_the_registry_reader_opens_the_key_read_only_and_never_writes
+test_r1n1_a_failing_report_write_keeps_the_original_interrupt
+==== behavioural variant raw output ====
+........................................................................ [ 69%]
+...................FF.FFFFFFFFF                                          [100%]
+================================== FAILURES ===================================
+_ test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root[True] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_m5_the_report_records_the0')
+completion = True
+
+    @pytest.mark.parametrize("completion", [True, False])      # False: screening only - its quarantine depth decides
+    def test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root(tmp_path, completion):
+        root, _ = toy(tmp_path, completion=completion)
+        rep = _session(root, tmp_path, _test_exec_factory=factory())
+        want = _deepest_expected(root, tmp_path / "work", 3)
+        pb = rep["path_budget"]
+>       assert pb["limit"] == 250 and pb["deepest_copied_file_chars"] == want, (pb, want)
+E       KeyError: 'deepest_copied_file_chars'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1020: KeyError
+_ test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root[False] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_m5_the_report_records_the1')
+completion = False
+
+    @pytest.mark.parametrize("completion", [True, False])      # False: screening only - its quarantine depth decides
+    def test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root(tmp_path, completion):
+        root, _ = toy(tmp_path, completion=completion)
+        rep = _session(root, tmp_path, _test_exec_factory=factory())
+        want = _deepest_expected(root, tmp_path / "work", 3)
+        pb = rep["path_budget"]
+>       assert pb["limit"] == 250 and pb["deepest_copied_file_chars"] == want, (pb, want)
+E       KeyError: 'deepest_copied_file_chars'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1020: KeyError
+______ test_r1m1_a_host_without_long_paths_is_refused_before_anything[0] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1m1_a_host_without_long_0')
+value = 0
+
+    @pytest.mark.parametrize("value", [0, None, 2, "1", True, "raises"])
+    def test_r1m1_a_host_without_long_paths_is_refused_before_anything(tmp_path, value):
+        root, _ = toy(tmp_path)
+    
+        def reader():
+            if value == "raises":
+                raise PermissionError("registry access denied")
+            return value
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"LongPathsEnabled .* not 1: refused"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1048: Failed
+____ test_r1m1_a_host_without_long_paths_is_refused_before_anything[None] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1m1_a_host_without_long_1')
+value = None
+
+    @pytest.mark.parametrize("value", [0, None, 2, "1", True, "raises"])
+    def test_r1m1_a_host_without_long_paths_is_refused_before_anything(tmp_path, value):
+        root, _ = toy(tmp_path)
+    
+        def reader():
+            if value == "raises":
+                raise PermissionError("registry access denied")
+            return value
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"LongPathsEnabled .* not 1: refused"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1048: Failed
+______ test_r1m1_a_host_without_long_paths_is_refused_before_anything[2] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1m1_a_host_without_long_2')
+value = 2
+
+    @pytest.mark.parametrize("value", [0, None, 2, "1", True, "raises"])
+    def test_r1m1_a_host_without_long_paths_is_refused_before_anything(tmp_path, value):
+        root, _ = toy(tmp_path)
+    
+        def reader():
+            if value == "raises":
+                raise PermissionError("registry access denied")
+            return value
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"LongPathsEnabled .* not 1: refused"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1048: Failed
+______ test_r1m1_a_host_without_long_paths_is_refused_before_anything[1] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1m1_a_host_without_long_3')
+value = '1'
+
+    @pytest.mark.parametrize("value", [0, None, 2, "1", True, "raises"])
+    def test_r1m1_a_host_without_long_paths_is_refused_before_anything(tmp_path, value):
+        root, _ = toy(tmp_path)
+    
+        def reader():
+            if value == "raises":
+                raise PermissionError("registry access denied")
+            return value
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"LongPathsEnabled .* not 1: refused"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1048: Failed
+____ test_r1m1_a_host_without_long_paths_is_refused_before_anything[True] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1m1_a_host_without_long_4')
+value = True
+
+    @pytest.mark.parametrize("value", [0, None, 2, "1", True, "raises"])
+    def test_r1m1_a_host_without_long_paths_is_refused_before_anything(tmp_path, value):
+        root, _ = toy(tmp_path)
+    
+        def reader():
+            if value == "raises":
+                raise PermissionError("registry access denied")
+            return value
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"LongPathsEnabled .* not 1: refused"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1048: Failed
+___ test_r1m1_a_host_without_long_paths_is_refused_before_anything[raises] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1m1_a_host_without_long_5')
+value = 'raises'
+
+    @pytest.mark.parametrize("value", [0, None, 2, "1", True, "raises"])
+    def test_r1m1_a_host_without_long_paths_is_refused_before_anything(tmp_path, value):
+        root, _ = toy(tmp_path)
+    
+        def reader():
+            if value == "raises":
+                raise PermissionError("registry access denied")
+            return value
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"LongPathsEnabled .* not 1: refused"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1048: Failed
+___________ test_r1m1_the_report_records_the_host_long_paths_value ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1m1_the_report_records_t0')
+
+    def test_r1m1_the_report_records_the_host_long_paths_value(tmp_path):
+        root, _ = toy(tmp_path)
+        rep = _session(root, tmp_path, _test_exec_factory=factory())
+>       assert rep["host"] == {"long_paths_enabled": 1,
+                               "registry": r"HKLM\SYSTEM\CurrentControlSet\Control\FileSystem\LongPathsEnabled"}, \
+            rep["host"]
+E       KeyError: 'host'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1056: KeyError
+___ test_r1m1_the_registry_reader_opens_the_key_read_only_and_never_writes ____
+
+    def test_r1m1_the_registry_reader_opens_the_key_read_only_and_never_writes():
+        real = REAL_READER["fn"]
+>       assert real is not None, "the driver has a real LongPathsEnabled reader"
+E       AssertionError: the driver has a real LongPathsEnabled reader
+E       assert None is not None
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1090: AssertionError
+________ test_r1n1_a_failing_report_write_keeps_the_original_interrupt ________
+
+item = {'end': [1, 5], 'job_id': 'j01', 'module_path': 'research/s1/s1_x.py', 'occurrence': 1, ...}
+copy_root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1n1_a_failing_report_wri0/work/s1_x__a/session-000/copies/j01')
+job_dir = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1n1_a_failing_report_wri0/work/s1_x__a/session-000/jobs/j01')
+
+    def seam(item, copy_root, job_dir):
+        calls.append((kind, item["job_id"]))
+        if on_call:
+            on_call(kind, item["job_id"])
+        if kind == "screen":
+            r = (screen or {}).get(item["job_id"], CLEAN_KILL)
+        elif kind == "retry":
+            r = (retry or {}).get(item["job_id"], CLEAN_KILL)
+        else:
+            r = (comp or {}).get((kind, item["job_id"]), CLEAN_SURV)
+        if isinstance(r, BaseException):
+>           raise r
+E           KeyboardInterrupt
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:149: KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1n1_a_failing_report_wri0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000021BF7CDD970>
+
+    def test_r1n1_a_failing_report_write_keeps_the_original_interrupt(tmp_path, monkeypatch):
+        root, _ = toy(tmp_path)
+        drv = _drv()
+    
+        def broken_finish(*a, **k):
+            raise FileExistsError("report_session-000.json")
+        monkeypatch.setattr(drv, "_finish", broken_finish)
+        with pytest.raises(KeyboardInterrupt) as ei:
+>           _session(root, tmp_path, _test_exec_factory=factory(screen={"j01": KeyboardInterrupt()}))
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1113: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:164: in _session
+    return _run(root, tmp_path / "work", "s1_x/a", **kw)
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:160: in _run
+    return _drv().session(root, work, config, **kw)
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\cr_calibrate.py:540: in session
+    _finish(rep, croot, sroot, t0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = ({'calibration_batch': ['j00', 'j01', 'j02', 'j03', 'j04', 'j05', ...], 'completion_stage': "2 shards: ['c1', 'c2']", ...AppData/Local/Temp/pytest-of-gl450/pytest-21775/test_r1n1_a_failing_report_wri0/work/s1_x__a/session-000'), 391752.578)
+k = {}
+
+    def broken_finish(*a, **k):
+>       raise FileExistsError("report_session-000.json")
+E       FileExistsError: report_session-000.json
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py:1110: FileExistsError
+=========================== short test summary info ===========================
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root[True]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root[False]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_r1m1_a_host_without_long_paths_is_refused_before_anything[0]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_r1m1_a_host_without_long_paths_is_refused_before_anything[None]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_r1m1_a_host_without_long_paths_is_refused_before_anything[2]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_r1m1_a_host_without_long_paths_is_refused_before_anything[1]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_r1m1_a_host_without_long_paths_is_refused_before_anything[True]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_r1m1_a_host_without_long_paths_is_refused_before_anything[raises]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_r1m1_the_report_records_the_host_long_paths_value
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_r1m1_the_registry_reader_opens_the_key_read_only_and_never_writes
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f2red_variant\test_cr_calibrate.py::test_r1n1_a_failing_report_write_keeps_the_original_interrupt
+11 failed, 92 passed in 97.83s (0:01:37)

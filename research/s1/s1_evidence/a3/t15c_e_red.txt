@@ -1,0 +1,2434 @@
+A3 Task 15c-E RED (2026-11-17T07:22:25-05:00); HEAD 3f198a3 + the new test file research/s1/cr_tools/test_cr_calibrate.py only (cr_calibrate.py absent). No mutant, calibration or real S1 guard run; the toy builder ran synthetic pre-flights and, for the real-path toy, real default-runner pre-flights and a real cosmic-ray init on a tmp toy module.
+result: 26 failed, all 'AssertionError: the 15c execution driver cr_calibrate exists'; the 229 15c focused tests pass unchanged.
+cmd: S1_HYPOTHESIS_ROOT=<fresh scratch dir> PYTHONPATH="research/s1;research/s1/s1_tests;research/s1/cr_tools" <testenv>/Scripts/python.exe -B -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_cr_guard.py research/s1/s1_tests/test_s1_a3_cr_completion.py research/s1/s1_tests/test_s1_a3_cr_preflight.py research/s1/cr_tools/test_cr_calibrate.py -q -rf (serial, from the worktree root)
+pytest rc: 1; last line: 26 failed, 229 passed in 62.10s (0:01:02)
+files run (sha256):
+bd3301811231b37037fd705313a9914d43265dee93764023a23f273e57b1463c *research/s1/s1_tests/test_s1_a3_cr_guard.py
+6b0b25699d2fc2d42ee082a43b630a3d1a1cc8b99259f7f1a6d679f48c107f62 *research/s1/s1_tests/test_s1_a3_cr_completion.py
+9731664119a041963fd51ef294ee29d2b62b3d7aa7098386393f51ccd14221cc *research/s1/s1_tests/test_s1_a3_cr_preflight.py
+55af652ee78c497e53f274a4915d9b451c00d4054e9682e4ab082266fd43958f *research/s1/cr_tools/test_cr_calibrate.py
+(absent) research/s1/cr_tools/cr_calibrate.py
+dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8 *research/s1/s1_tests/cr_coord.py
+22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a *research/s1/s1_tests/cr_preflight.py
+1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+====
+........................................................................ [ 28%]
+........................................................................ [ 56%]
+........................................................................ [ 84%]
+.............FFFFFFFFFFFFFFFFFFFFFFFFFF                                  [100%]
+================================== FAILURES ===================================
+_ test_E_session_runs_exactly_the_calibration_batch_then_completes_each_survivor _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_session_runs_exactly_th0')
+
+    def test_E_session_runs_exactly_the_calibration_batch_then_completes_each_survivor(tmp_path):
+        root, items = toy(tmp_path)
+        calls = []
+>       rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j03": CLEAN_SURV, "j07": CLEAN_SURV},
+                                                                  calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:153: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+________________ test_E_the_report_holds_no_environment_values ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_the_report_holds_no_env0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000015E6FA6A3F0>
+
+    def test_E_the_report_holds_no_environment_values(tmp_path, monkeypatch):
+        monkeypatch.setenv("S1_CE_SECRET_TOKEN", "ce-secret-value-4471")
+        root, _ = toy(tmp_path)
+>       _session(root, tmp_path, _test_exec_factory=factory(screen={"j03": CLEAN_SURV}))
+
+research\s1\cr_tools\test_cr_calibrate.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_________________ test_E_a_config_root_that_exists_is_refused _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_a_config_root_that_exis0')
+
+    def test_E_a_config_root_that_exists_is_refused(tmp_path):
+        root, _ = toy(tmp_path)
+        (tmp_path / "work" / "s1_x__a").mkdir(parents=True)
+        calls = []
+        with pytest.raises(cr_coord.CoordError, match=r"config root .* already exists: one fresh session root"):
+>           _session(root, tmp_path, _test_exec_factory=factory(calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:186: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+____ test_E_only_a_screening_config_can_be_calibrated[s1_x/completion/c1] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_only_a_screening_config0')
+config = 's1_x/completion/c1'
+
+    @pytest.mark.parametrize("config", ["s1_x/completion/c1", "s1_x/zzz", "s1_y"])
+    def test_E_only_a_screening_config_can_be_calibrated(tmp_path, config):
+        root, _ = toy(tmp_path)
+        with pytest.raises(cr_coord.CoordError, match=r"not a screening config"):
+>           _drv().session(root, tmp_path / "work", config, _test_exec_factory=factory())
+
+research\s1\cr_tools\test_cr_calibrate.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_________ test_E_only_a_screening_config_can_be_calibrated[s1_x/zzz] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_only_a_screening_config1')
+config = 's1_x/zzz'
+
+    @pytest.mark.parametrize("config", ["s1_x/completion/c1", "s1_x/zzz", "s1_y"])
+    def test_E_only_a_screening_config_can_be_calibrated(tmp_path, config):
+        root, _ = toy(tmp_path)
+        with pytest.raises(cr_coord.CoordError, match=r"not a screening config"):
+>           _drv().session(root, tmp_path / "work", config, _test_exec_factory=factory())
+
+research\s1\cr_tools\test_cr_calibrate.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+___________ test_E_only_a_screening_config_can_be_calibrated[s1_y] ____________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_only_a_screening_config2')
+config = 's1_y'
+
+    @pytest.mark.parametrize("config", ["s1_x/completion/c1", "s1_x/zzz", "s1_y"])
+    def test_E_only_a_screening_config_can_be_calibrated(tmp_path, config):
+        root, _ = toy(tmp_path)
+        with pytest.raises(cr_coord.CoordError, match=r"not a screening config"):
+>           _drv().session(root, tmp_path / "work", config, _test_exec_factory=factory())
+
+research\s1\cr_tools\test_cr_calibrate.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_____ test_E_the_src_root_must_verify_against_its_hash_manifest[tampered] _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_the_src_root_must_verif0')
+case = 'tampered'
+
+    @pytest.mark.parametrize("case", ["tampered", "missing_file", "no_manifest"])
+    def test_E_the_src_root_must_verify_against_its_hash_manifest(tmp_path, case):
+        root, _ = toy(tmp_path)
+        ctl = root / EVID_REL / "s1_x/completion/pool.json"
+        if case == "tampered":
+            ctl.write_text(ctl.read_text(encoding="utf-8") + " ", encoding="utf-8")
+        elif case == "missing_file":
+            ctl.unlink()
+        else:
+            (root / MANIFEST_REL).unlink()
+        calls = []
+        with pytest.raises(cr_coord.CoordError, match=r"t15c_prep_hashes\.txt"):
+>           _session(root, tmp_path, _test_exec_factory=factory(calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:209: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+___ test_E_the_src_root_must_verify_against_its_hash_manifest[missing_file] ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_the_src_root_must_verif1')
+case = 'missing_file'
+
+    @pytest.mark.parametrize("case", ["tampered", "missing_file", "no_manifest"])
+    def test_E_the_src_root_must_verify_against_its_hash_manifest(tmp_path, case):
+        root, _ = toy(tmp_path)
+        ctl = root / EVID_REL / "s1_x/completion/pool.json"
+        if case == "tampered":
+            ctl.write_text(ctl.read_text(encoding="utf-8") + " ", encoding="utf-8")
+        elif case == "missing_file":
+            ctl.unlink()
+        else:
+            (root / MANIFEST_REL).unlink()
+        calls = []
+        with pytest.raises(cr_coord.CoordError, match=r"t15c_prep_hashes\.txt"):
+>           _session(root, tmp_path, _test_exec_factory=factory(calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:209: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+___ test_E_the_src_root_must_verify_against_its_hash_manifest[no_manifest] ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_the_src_root_must_verif2')
+case = 'no_manifest'
+
+    @pytest.mark.parametrize("case", ["tampered", "missing_file", "no_manifest"])
+    def test_E_the_src_root_must_verify_against_its_hash_manifest(tmp_path, case):
+        root, _ = toy(tmp_path)
+        ctl = root / EVID_REL / "s1_x/completion/pool.json"
+        if case == "tampered":
+            ctl.write_text(ctl.read_text(encoding="utf-8") + " ", encoding="utf-8")
+        elif case == "missing_file":
+            ctl.unlink()
+        else:
+            (root / MANIFEST_REL).unlink()
+        calls = []
+        with pytest.raises(cr_coord.CoordError, match=r"t15c_prep_hashes\.txt"):
+>           _session(root, tmp_path, _test_exec_factory=factory(calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:209: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+______________ test_E_the_running_harness_must_be_the_src_roots _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_the_running_harness_mus0')
+
+    def test_E_the_running_harness_must_be_the_src_roots(tmp_path):
+        root, _ = toy(tmp_path)
+        g = root / "research/s1/s1_tests/cr_guard.py"
+        g.write_text(g.read_text(encoding="utf-8") + "\n# other\n", encoding="utf-8")
+        write_manifest(root)
+        with pytest.raises(cr_coord.CoordError, match=r"harness .* differs from the src_root's"):
+>           _session(root, tmp_path, _test_exec_factory=factory())
+
+research\s1\cr_tools\test_cr_calibrate.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_____________ test_E_the_plan_must_be_the_calibration_first_plan ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_the_plan_must_be_the_ca0')
+
+    def test_E_the_plan_must_be_the_calibration_first_plan(tmp_path):
+        root, _ = toy(tmp_path)
+        p = root / EVID_REL / "s1_x/a/batch_plan.json"
+        plan = json.loads(p.read_text(encoding="utf-8"))
+        plan["calibration_batch"] = plan["calibration_batch"][1:] + plan["pending_after_calibration"][:1]
+        p.write_text(json.dumps(plan), encoding="utf-8")
+        write_manifest(root)
+        with pytest.raises(cr_coord.CoordError, match=r"calibration_batch is not the first 24 kept ids"):
+>           _session(root, tmp_path, _test_exec_factory=factory())
+
+research\s1\cr_tools\test_cr_calibrate.py:230: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+______________ test_E_a_stale_preflight_is_refused_by_the_gates _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_a_stale_preflight_is_re0')
+
+    def test_E_a_stale_preflight_is_refused_by_the_gates(tmp_path):
+        root, _ = toy(tmp_path)
+        (root / "research/s1/s1_tests/test_new.py").write_text("def test_z():\n    pass\n", encoding="utf-8")
+        calls = []
+>       rep = _session(root, tmp_path, _test_exec_factory=factory(calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:237: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_ test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record0-cleanup_uncertain] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_a_screening_stop_ends_t0')
+record = {'cleanup_verified': False, 'exec_status': 'cleanup_uncertain', 'guard_status': 'survived', 'label': 'survived', ...}
+kind = 'cleanup_uncertain'
+
+    @pytest.mark.parametrize("record,kind", [(UNCERTAIN_SURV, "cleanup_uncertain"), (CRERR_SURV, "error"),
+                                             (OSError("launcher vanished"), "error")])
+    def test_E_a_screening_stop_ends_the_session_with_no_further_candidate(tmp_path, record, kind):
+        root, items = toy(tmp_path)
+        calls = []
+>       rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j02": CLEAN_SURV, "j05": record},
+                                                                  calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_ test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record1-error] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_a_screening_stop_ends_t1')
+record = {'cleanup_verified': True, 'exec_status': 'error:cr_exit_1', 'guard_status': 'survived', 'label': 'survived', ...}
+kind = 'error'
+
+    @pytest.mark.parametrize("record,kind", [(UNCERTAIN_SURV, "cleanup_uncertain"), (CRERR_SURV, "error"),
+                                             (OSError("launcher vanished"), "error")])
+    def test_E_a_screening_stop_ends_the_session_with_no_further_candidate(tmp_path, record, kind):
+        root, items = toy(tmp_path)
+        calls = []
+>       rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j02": CLEAN_SURV, "j05": record},
+                                                                  calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_ test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record2-error] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_a_screening_stop_ends_t2')
+record = OSError('launcher vanished'), kind = 'error'
+
+    @pytest.mark.parametrize("record,kind", [(UNCERTAIN_SURV, "cleanup_uncertain"), (CRERR_SURV, "error"),
+                                             (OSError("launcher vanished"), "error")])
+    def test_E_a_screening_stop_ends_the_session_with_no_further_candidate(tmp_path, record, kind):
+        root, items = toy(tmp_path)
+        calls = []
+>       rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j02": CLEAN_SURV, "j05": record},
+                                                                  calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+______ test_E_a_guard_error_label_ends_the_session_before_any_completion ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_a_guard_error_label_end0')
+
+    def test_E_a_guard_error_label_ends_the_session_before_any_completion(tmp_path):
+        root, _ = toy(tmp_path)
+        calls = []
+>       rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j02": CLEAN_SURV, "j05": GUARD_ERROR},
+                                                                  calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:258: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+______________ test_E_a_screening_fence_refusal_ends_the_session ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_a_screening_fence_refus0')
+
+    def test_E_a_screening_fence_refusal_ends_the_session(tmp_path):
+        root, _ = toy(tmp_path)
+        now = [0.0]
+    
+        def clock():
+            v = now[0]
+            now[0] = 1e9                                   # after the session start, everything is past the fence
+            return v
+        calls = []
+>       rep = _session(root, tmp_path, clock=clock, _test_exec_factory=factory(calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:273: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+____ test_E_a_screening_timeout_gets_its_one_retry_then_the_session_stops _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_a_screening_timeout_get0')
+
+    def test_E_a_screening_timeout_gets_its_one_retry_then_the_session_stops(tmp_path):
+        root, items = toy(tmp_path)
+        calls = []
+>       rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j02": CLEAN_SURV, "j05": GUARD_TIMEOUT},
+                                                                  retry={"j05": CLEAN_KILL}, calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:280: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_____ test_E_a_completion_stop_ends_the_session_and_later_survivors_wait ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_a_completion_stop_ends_0')
+
+    def test_E_a_completion_stop_ends_the_session_and_later_survivors_wait(tmp_path):
+        root, _ = toy(tmp_path)
+        calls = []
+>       rep = _session(root, tmp_path, _test_exec_factory=factory(
+            screen={"j03": CLEAN_SURV, "j07": CLEAN_SURV}, comp={("c1", "j03"): UNCERTAIN_SURV}, calls=calls))
+
+research\s1\cr_tools\test_cr_calibrate.py:291: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_______________ test_E_a_coordinator_exception_ends_the_session _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_a_coordinator_exception0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000015E6FCE6D80>
+
+    def test_E_a_coordinator_exception_ends_the_session(tmp_path, monkeypatch):
+        root, _ = toy(tmp_path)
+    
+        def boom(*a, **k):
+            raise cr_coord.CoordError("synthetic coordinator refusal")
+        monkeypatch.setattr(cr_coord, "run_completion", boom)
+>       rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j03": CLEAN_SURV, "j07": CLEAN_SURV}))
+
+research\s1\cr_tools\test_cr_calibrate.py:304: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+___ test_E_resume_continues_fence_refused_completions_in_a_new_session_root ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_resume_continues_fence_0')
+
+    def test_E_resume_continues_fence_refused_completions_in_a_new_session_root(tmp_path):
+>       root, rep1 = _fenced_completion(tmp_path)
+
+research\s1\cr_tools\test_cr_calibrate.py:323: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:316: in _fenced_completion
+    rep = _session(root, tmp_path, clock=lambda: now[0],
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_____ test_E_resume_is_refused_unless_the_last_session_stopped_on_a_fence _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_resume_is_refused_unles0')
+
+    def test_E_resume_is_refused_unless_the_last_session_stopped_on_a_fence(tmp_path):
+        root, _ = toy(tmp_path)
+        with pytest.raises(cr_coord.CoordError, match=r"nothing to resume"):
+>           _drv().session(root, tmp_path / "work", "s1_x/a", resume=True, _test_exec_factory=factory())
+
+research\s1\cr_tools\test_cr_calibrate.py:339: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+______ test_E_derive_cap_writes_the_record_once_and_never_runs_anything _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_derive_cap_writes_the_r0')
+
+    def test_E_derive_cap_writes_the_record_once_and_never_runs_anything(tmp_path):
+        root, _ = toy(tmp_path)
+>       _session(root, tmp_path, _test_exec_factory=factory())
+
+research\s1\cr_tools\test_cr_calibrate.py:349: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\test_cr_calibrate.py:142: in _session
+    return _drv().session(root, tmp_path / "work", "s1_x/a", **kw)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+______ test_E_the_cli_cannot_reach_the_test_seam_and_runs_the_real_path _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_the_cli_cannot_reach_th0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000015E6F9FD160>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000015E6F9FE660>
+
+    def test_E_the_cli_cannot_reach_the_test_seam_and_runs_the_real_path(tmp_path, monkeypatch, capsys):
+>       drv = _drv()
+
+research\s1\cr_tools\test_cr_calibrate.py:361: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+_______________ test_E_the_driver_lives_outside_every_copy_path _______________
+
+    def test_E_the_driver_lives_outside_every_copy_path():
+>       drv = _drv()
+
+research\s1\cr_tools\test_cr_calibrate.py:375: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+____________________ test_E_real_path_end_to_end_on_a_toy _____________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21723/test_E_real_path_end_to_end_on0')
+
+    def test_E_real_path_end_to_end_on_a_toy(tmp_path):
+        """Real pre-flights (default runner: the real guard), real_exec (real Cosmic Ray + the real guard) for screening
+        and completion, on a tmp toy whose g() mutants survive (test_b asserts nothing)."""
+        stage = tmp_path / "stage"
+        s1 = stage / "research" / "s1"
+        (s1 / "s1_tests").mkdir(parents=True)
+        (s1 / "s1_x.py").write_text(TOY_MODULE, encoding="utf-8")
+        cfg = cr_coord.CRConfig(python=PY, module_rel="research/s1/s1_x.py", target_module="s1_x",
+                                pythonpath_rel=["research/s1", "research/s1/s1_tests"], guard_args=["x"])
+        real_items = cr_coord.inventory(stage, ["research/s1/s1_x.py"], cfg, tmp_path / "inv")
+        assert 2 <= len(real_items) <= 8, real_items
+        root, items = toy(tmp_path, items=real_items, module_src=TOY_MODULE, test_src=TOY_TESTS, runner="real")
+        before = sha(root / "research/s1/s1_x.py")
+>       rep = _drv().session(root, tmp_path / "work", "s1_x/a")
+
+research\s1\cr_tools\test_cr_calibrate.py:402: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _drv():
+        try:
+            import cr_calibrate
+        except ImportError:
+            cr_calibrate = None
+>       assert cr_calibrate is not None, "the 15c execution driver cr_calibrate exists"
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       assert None is not None
+
+research\s1\cr_tools\test_cr_calibrate.py:33: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_session_runs_exactly_the_calibration_batch_then_completes_each_survivor
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_the_report_holds_no_environment_values
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_config_root_that_exists_is_refused
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_only_a_screening_config_can_be_calibrated[s1_x/completion/c1]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_only_a_screening_config_can_be_calibrated[s1_x/zzz]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_only_a_screening_config_can_be_calibrated[s1_y]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_the_src_root_must_verify_against_its_hash_manifest[tampered]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_the_src_root_must_verify_against_its_hash_manifest[missing_file]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_the_src_root_must_verify_against_its_hash_manifest[no_manifest]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_the_running_harness_must_be_the_src_roots
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_the_plan_must_be_the_calibration_first_plan
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_stale_preflight_is_refused_by_the_gates
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record0-cleanup_uncertain]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record1-error]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record2-error]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_guard_error_label_ends_the_session_before_any_completion
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_screening_fence_refusal_ends_the_session
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_screening_timeout_gets_its_one_retry_then_the_session_stops
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_completion_stop_ends_the_session_and_later_survivors_wait
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_coordinator_exception_ends_the_session
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_resume_continues_fence_refused_completions_in_a_new_session_root
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_resume_is_refused_unless_the_last_session_stopped_on_a_fence
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_derive_cap_writes_the_record_once_and_never_runs_anything
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_the_cli_cannot_reach_the_test_seam_and_runs_the_real_path
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_the_driver_lives_outside_every_copy_path
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_real_path_end_to_end_on_a_toy
+26 failed, 229 passed in 62.10s (0:01:02)
+
+==== SUPPLEMENTARY RED (3 tests added after the run above, while planning the deletion checks: plan bound to its inventory, resume skips a settled survivor, derive-cap re-verifies the src_root) ====
+run: the final test file copied to a scratch dir, with research/s1/cr_tools NOT on PYTHONPATH (the driver absent), -k for the three tests.
+files (sha256):
+8ec12eb9b21bb71c89683a05326d4c805225df432d52f6be03963ed413743389 *test_cr_calibrate.py
+----
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       AssertionError: the 15c execution driver cr_calibrate exists
+E       AssertionError: the 15c execution driver cr_calibrate exists
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_supp\test_cr_calibrate.py::test_E_the_plan_must_be_bound_to_its_inventory
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_supp\test_cr_calibrate.py::test_E_resume_skips_a_survivor_whose_completion_is_already_settled
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_supp\test_cr_calibrate.py::test_E_derive_cap_re_verifies_the_src_root
+3 failed, 26 deselected in 4.37s
+
+==== SUPPLEMENTARY RED 2 (finding during the read-only real-tree probe: journal / locks / trial / stage have NO completion shards and no pool.json - whole-module selectors, t15c_prep.md - so the first driver draft would have stopped every such session with a FileNotFoundError at the first survivor) ====
+2 tests added: a whole-module selector has no completion stage; a completion stage without its pool.json is refused. Run against the FIRST driver draft (before the fix):
+files (sha256):
+9d53c0178254b1c38b4a2a2a0b4a4997749a45a305cb926f1913c42713362f3a *research/s1/cr_tools/cr_calibrate.py
+62e6b08f365207db844bdc19da1ec6f9c899ede7c63bac303a4d3e9aaeab8c31 *research/s1/cr_tools/test_cr_calibrate.py
+----
+E       AssertionError: {'calibration_batch': ['j00', 'j01', 'j02', 'j03', 'j04', 'j05', ...], 'completions': {}, 'config_id': 's1_x/a', 'conf...sers\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pyt
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_whole_module_selector_has_no_completion_stage
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_a_completion_stage_without_its_pool_is_refused
+2 failed, 29 deselected in 2.51s
+
+
+AMENDMENT RED (Codex X26 + protocol C1-C8; 2026-11-17T07:43:03-05:00): the amended test file against the PRE-AMENDMENT driver (the 15c-E draft before the policy seam and the C-checks).
+cmd: S1_HYPOTHESIS_ROOT=<fresh scratch dir> PYTHONPATH="research/s1;research/s1/s1_tests;research/s1/cr_tools" <testenv>/Scripts/python.exe -B -m pytest -p conftest -p no:cacheprovider research/s1/s1_tests/test_s1_a3_cr_guard.py research/s1/s1_tests/test_s1_a3_cr_completion.py research/s1/s1_tests/test_s1_a3_cr_preflight.py research/s1/cr_tools/test_cr_calibrate.py -q -rf (serial, from the worktree root)
+pytest rc: 1; last line: 19 failed, 261 passed in 116.15s (0:01:56)
+files run (sha256):
+bd3301811231b37037fd705313a9914d43265dee93764023a23f273e57b1463c *research/s1/s1_tests/test_s1_a3_cr_guard.py
+6b0b25699d2fc2d42ee082a43b630a3d1a1cc8b99259f7f1a6d679f48c107f62 *research/s1/s1_tests/test_s1_a3_cr_completion.py
+9731664119a041963fd51ef294ee29d2b62b3d7aa7098386393f51ccd14221cc *research/s1/s1_tests/test_s1_a3_cr_preflight.py
+e89d35628070e43b012e44b4385ad4822e256209657a47afacce608915fdd807 *research/s1/cr_tools/test_cr_calibrate.py
+93233465e587be5aa7c36cbfca4083f29bd5c8333ceb4125559d27e3740c6537 *research/s1/cr_tools/cr_calibrate.py
+dc1b0e863d4eea1b87e5405c99517d9e6106bf2ad5a105f2c03c4cb6498761b8 *research/s1/s1_tests/cr_coord.py
+22a133c376e79dc716ddf763c4d319061290d66901237f50dfdbf580c6601c0a *research/s1/s1_tests/cr_preflight.py
+1e1c07fdd1abb0177c57b7084b0c574dc3aa7aff6583542485fcedcfa2e2ce4d *research/s1/s1_tests/cr_reconcile.py
+54e88df7e25be245083d6478cfe07341346859a93f771ef3ac56632c3e657f76 *research/s1/s1_tests/cr_guard.py
+b6aa8d2acd5e8fd79ac8020530c8deabc2260ee33c31df9bad3a43ec643f2f00 *research/s1/s1_tests/cr_launch.py
+ff0b768907c73c6db221c936a1a8f81c0d64cd41547458b89342d0b790c341c8 *research/s1/s1_tests/conftest.py
+====
+........................................................................ [ 25%]
+........................................................................ [ 51%]
+........................................................................ [ 77%]
+.......................................FFF.....FFFFFFFFFFFF.FFFF         [100%]
+================================== FAILURES ===================================
+___ test_E_resume_continues_fence_refused_completions_in_a_new_session_root ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_E_resume_continues_fence_0')
+
+    def test_E_resume_continues_fence_refused_completions_in_a_new_session_root(tmp_path):
+>       _needs_review_ref()
+
+research\s1\cr_tools\test_cr_calibrate.py:386: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _needs_review_ref():
+>       assert "review_ref" in inspect.signature(_drv().session).parameters, "session(review_ref=...) (C5)"
+E       AssertionError: session(review_ref=...) (C5)
+E       assert 'review_ref' in mappingproxy(OrderedDict({'src_root': <Parameter "src_root">, 'work_root': <Parameter "work_root">, 'config': <Paramet...ock': <Parameter "clock=<built-in function monotonic>">, '_test_exec_factory': <Parameter "_test_exec_factory=None">}))
+E        +  where mappingproxy(OrderedDict({'src_root': <Parameter "src_root">, 'work_root': <Parameter "work_root">, 'config': <Paramet...ock': <Parameter "clock=<built-in function monotonic>">, '_test_exec_factory': <Parameter "_test_exec_factory=None">})) = <Signature (src_root, work_root, config: str, *, resume: bool = False, clock=<built-in function monotonic>, _test_exec_factory=None) -> dict>.parameters
+E        +    where <Signature (src_root, work_root, config: str, *, resume: bool = False, clock=<built-in function monotonic>, _test_exec_factory=None) -> dict> = <function signature at 0x0000023A311F07C0>(<function session at 0x0000023A353285E0>)
+E        +      where <function signature at 0x0000023A311F07C0> = inspect.signature
+E        +      and   <function session at 0x0000023A353285E0> = <module 'cr_calibrate' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\cr_tools\\cr_calibrate.py'>.session
+E        +        where <module 'cr_calibrate' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\cr_tools\\cr_calibrate.py'> = _drv()
+
+research\s1\cr_tools\test_cr_calibrate.py:147: AssertionError
+_____ test_E_resume_skips_a_survivor_whose_completion_is_already_settled ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_E_resume_skips_a_survivor0')
+
+    def test_E_resume_skips_a_survivor_whose_completion_is_already_settled(tmp_path):
+>       _needs_review_ref()
+
+research\s1\cr_tools\test_cr_calibrate.py:402: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _needs_review_ref():
+>       assert "review_ref" in inspect.signature(_drv().session).parameters, "session(review_ref=...) (C5)"
+E       AssertionError: session(review_ref=...) (C5)
+E       assert 'review_ref' in mappingproxy(OrderedDict({'src_root': <Parameter "src_root">, 'work_root': <Parameter "work_root">, 'config': <Paramet...ock': <Parameter "clock=<built-in function monotonic>">, '_test_exec_factory': <Parameter "_test_exec_factory=None">}))
+E        +  where mappingproxy(OrderedDict({'src_root': <Parameter "src_root">, 'work_root': <Parameter "work_root">, 'config': <Paramet...ock': <Parameter "clock=<built-in function monotonic>">, '_test_exec_factory': <Parameter "_test_exec_factory=None">})) = <Signature (src_root, work_root, config: str, *, resume: bool = False, clock=<built-in function monotonic>, _test_exec_factory=None) -> dict>.parameters
+E        +    where <Signature (src_root, work_root, config: str, *, resume: bool = False, clock=<built-in function monotonic>, _test_exec_factory=None) -> dict> = <function signature at 0x0000023A311F07C0>(<function session at 0x0000023A353285E0>)
+E        +      where <function signature at 0x0000023A311F07C0> = inspect.signature
+E        +      and   <function session at 0x0000023A353285E0> = <module 'cr_calibrate' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\cr_tools\\cr_calibrate.py'>.session
+E        +        where <module 'cr_calibrate' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\cr_tools\\cr_calibrate.py'> = _drv()
+
+research\s1\cr_tools\test_cr_calibrate.py:147: AssertionError
+_____ test_E_resume_is_refused_unless_the_last_session_stopped_on_a_fence _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_E_resume_is_refused_unles0')
+
+    def test_E_resume_is_refused_unless_the_last_session_stopped_on_a_fence(tmp_path):
+>       _needs_review_ref()
+
+research\s1\cr_tools\test_cr_calibrate.py:422: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _needs_review_ref():
+>       assert "review_ref" in inspect.signature(_drv().session).parameters, "session(review_ref=...) (C5)"
+E       AssertionError: session(review_ref=...) (C5)
+E       assert 'review_ref' in mappingproxy(OrderedDict({'src_root': <Parameter "src_root">, 'work_root': <Parameter "work_root">, 'config': <Paramet...ock': <Parameter "clock=<built-in function monotonic>">, '_test_exec_factory': <Parameter "_test_exec_factory=None">}))
+E        +  where mappingproxy(OrderedDict({'src_root': <Parameter "src_root">, 'work_root': <Parameter "work_root">, 'config': <Paramet...ock': <Parameter "clock=<built-in function monotonic>">, '_test_exec_factory': <Parameter "_test_exec_factory=None">})) = <Signature (src_root, work_root, config: str, *, resume: bool = False, clock=<built-in function monotonic>, _test_exec_factory=None) -> dict>.parameters
+E        +    where <Signature (src_root, work_root, config: str, *, resume: bool = False, clock=<built-in function monotonic>, _test_exec_factory=None) -> dict> = <function signature at 0x0000023A311F07C0>(<function session at 0x0000023A353285E0>)
+E        +      where <function signature at 0x0000023A311F07C0> = inspect.signature
+E        +      and   <function session at 0x0000023A353285E0> = <module 'cr_calibrate' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\cr_tools\\cr_calibrate.py'>.session
+E        +        where <module 'cr_calibrate' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\cr_tools\\cr_calibrate.py'> = _drv()
+
+research\s1\cr_tools\test_cr_calibrate.py:147: AssertionError
+__ test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[crash] ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_a_non_kill_non_surviv0')
+case = 'crash'
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call(tmp_path, case):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": HALTS[case]}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '..., 'j05'), ...] == [('screen', 'j00')]
+E         
+E         Left contains 23 more items, first extra item: ('screen', 'j01')
+E         Use -v to get more diff
+
+research\s1\cr_tools\test_cr_calibrate.py:536: AssertionError
+__ test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[error] ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_a_non_kill_non_surviv1')
+case = 'error'
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call(tmp_path, case):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": HALTS[case]}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '..., 'j05'), ...] == [('screen', 'j00')]
+E         
+E         Left contains 23 more items, first extra item: ('screen', 'j01')
+E         Use -v to get more diff
+
+research\s1\cr_tools\test_cr_calibrate.py:536: AssertionError
+_ test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[error_setup] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_a_non_kill_non_surviv2')
+case = 'error_setup'
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call(tmp_path, case):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": HALTS[case]}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '..., 'j05'), ...] == [('screen', 'j00')]
+E         
+E         Left contains 23 more items, first extra item: ('screen', 'j01')
+E         Use -v to get more diff
+
+research\s1\cr_tools\test_cr_calibrate.py:536: AssertionError
+_ test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[missing_record] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_a_non_kill_non_surviv3')
+case = 'missing_record'
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call(tmp_path, case):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": HALTS[case]}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+>       assert rep["stop"]["kind"] in ("policy_halt", "cleanup_uncertain"), rep["stop"]
+E       AssertionError: {'detail': "AttributeError: 'NoneType' object has no attribute 'get'", 'kind': 'exception'}
+E       assert 'exception' in ('policy_halt', 'cleanup_uncertain')
+
+research\s1\cr_tools\test_cr_calibrate.py:537: AssertionError
+_ test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[not_installed] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_a_non_kill_non_surviv4')
+case = 'not_installed'
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call(tmp_path, case):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": HALTS[case]}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '..., 'j05'), ...] == [('screen', 'j00')]
+E         
+E         Left contains 23 more items, first extra item: ('screen', 'j01')
+E         Use -v to get more diff
+
+research\s1\cr_tools\test_cr_calibrate.py:536: AssertionError
+_ test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[survived_guard_error] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_a_non_kill_non_surviv5')
+case = 'survived_guard_error'
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call(tmp_path, case):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": HALTS[case]}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '..., 'j05'), ...] == [('screen', 'j00')]
+E         
+E         Left contains 25 more items, first extra item: ('screen', 'j01')
+E         Use -v to get more diff
+
+research\s1\cr_tools\test_cr_calibrate.py:536: AssertionError
+_ test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[unparseable] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_a_non_kill_non_surviv6')
+case = 'unparseable'
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call(tmp_path, case):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": HALTS[case]}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+>       assert rep["stop"]["kind"] in ("policy_halt", "cleanup_uncertain"), rep["stop"]
+E       AssertionError: {'detail': "AttributeError: 'str' object has no attribute 'get'", 'kind': 'exception'}
+E       assert 'exception' in ('policy_halt', 'cleanup_uncertain')
+
+research\s1\cr_tools\test_cr_calibrate.py:537: AssertionError
+_ test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[untested] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_a_non_kill_non_surviv7')
+case = 'untested'
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call(tmp_path, case):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": HALTS[case]}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '..., 'j05'), ...] == [('screen', 'j00')]
+E         
+E         Left contains 23 more items, first extra item: ('screen', 'j01')
+E         Use -v to get more diff
+
+research\s1\cr_tools\test_cr_calibrate.py:536: AssertionError
+_ test_X26_killed_and_survived_continue_and_a_timeout_keeps_its_stop_and_retry _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_killed_and_survived_c0')
+
+    def test_X26_killed_and_survived_continue_and_a_timeout_keeps_its_stop_and_retry(tmp_path):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j01": CLEAN_SURV, "j02": GUARD_TIMEOUT},
+                                                                  retry={"j02": CLEAN_KILL}, calls=calls))
+        sp, st = _first_state(tmp_path)
+        assert st["stop_reason"] == "timeout: j02" and rep["stop"]["kind"] == "timeout", st["stop_reason"]
+        assert [j for k, j in calls if k == "screen"] == ["j00", "j01", "j02"] and ("retry", "j02") in calls
+>       assert (st["results"]["j00"].get("policy") or {}).get("halt") is False
+E       AssertionError: assert None is False
+E        +  where None = <built-in method get of dict object at 0x0000023A35622580>('halt')
+E        +    where <built-in method get of dict object at 0x0000023A35622580> = (None or {}).get
+E        +      where None = <built-in method get of dict object at 0x0000023A35623900>('policy')
+E        +        where <built-in method get of dict object at 0x0000023A35623900> = {'cleanup_verified': True, 'exec_status': 'ok', 'guard_status': 'killed', 'label': 'killed', ...}.get
+
+research\s1\cr_tools\test_cr_calibrate.py:560: AssertionError
+__ test_X26_a_completion_result_that_is_not_kill_or_survival_halts_its_shard __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_a_completion_result_t0')
+
+    def test_X26_a_completion_result_that_is_not_kill_or_survival_halts_its_shard(tmp_path):
+        root, _ = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(
+            screen={"j03": CLEAN_SURV, "j07": CLEAN_SURV}, comp={("c1", "j03"): ERROR_SETUP}, calls=calls))
+>       assert [c for c in calls if c[0] != "screen"] == [("c1", "j03")], "c2 / j07 never start"
+E       AssertionError: c2 / j07 never start
+E       assert [('c1', 'j03'...('c2', 'j07')] == [('c1', 'j03')]
+E         
+E         Left contains 3 more items, first extra item: ('c2', 'j03')
+E         Use -v to get more diff
+
+research\s1\cr_tools\test_cr_calibrate.py:569: AssertionError
+___ test_X26_the_policy_seam_keeps_the_real_command_tag_and_says_what_it_is ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_X26_the_policy_seam_keeps0')
+
+    def test_X26_the_policy_seam_keeps_the_real_command_tag_and_says_what_it_is(tmp_path):
+        drv = _drv()
+        c = cr_coord.CRConfig(python=PY, module_rel="pkg/m.py", target_module="pkg.m", guard_args=["--control", "c.json"])
+        inner = cr_coord.real_exec(c)
+>       assert hasattr(drv, "policy_seam"), "the driver has the X26 policy seam"
+E       AssertionError: the driver has the X26 policy seam
+E       assert False
+E        +  where False = hasattr(<module 'cr_calibrate' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\cr_tools\\cr_calibrate.py'>, 'policy_seam')
+
+research\s1\cr_tools\test_cr_calibrate.py:577: AssertionError
+_ test_C1_C7_configs_run_in_discover_order_and_a_stop_blocks_the_next_config __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_C1_C7_configs_run_in_disc0')
+
+    def test_C1_C7_configs_run_in_discover_order_and_a_stop_blocks_the_next_config(tmp_path):
+        root, _ = toy(tmp_path, screens=("a", "b"))
+        drv = _drv()
+>       with pytest.raises(cr_coord.CoordError, match=r"earlier config s1_x/a has no clean calibration report"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+research\s1\cr_tools\test_cr_calibrate.py:587: Failed
+________________ test_C5_resume_needs_a_named_review_reference ________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_C5_resume_needs_a_named_r0')
+
+    def test_C5_resume_needs_a_named_review_reference(tmp_path):
+>       _needs_review_ref()
+
+research\s1\cr_tools\test_cr_calibrate.py:604: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _needs_review_ref():
+>       assert "review_ref" in inspect.signature(_drv().session).parameters, "session(review_ref=...) (C5)"
+E       AssertionError: session(review_ref=...) (C5)
+E       assert 'review_ref' in mappingproxy(OrderedDict({'src_root': <Parameter "src_root">, 'work_root': <Parameter "work_root">, 'config': <Paramet...ock': <Parameter "clock=<built-in function monotonic>">, '_test_exec_factory': <Parameter "_test_exec_factory=None">}))
+E        +  where mappingproxy(OrderedDict({'src_root': <Parameter "src_root">, 'work_root': <Parameter "work_root">, 'config': <Paramet...ock': <Parameter "clock=<built-in function monotonic>">, '_test_exec_factory': <Parameter "_test_exec_factory=None">})) = <Signature (src_root, work_root, config: str, *, resume: bool = False, clock=<built-in function monotonic>, _test_exec_factory=None) -> dict>.parameters
+E        +    where <Signature (src_root, work_root, config: str, *, resume: bool = False, clock=<built-in function monotonic>, _test_exec_factory=None) -> dict> = <function signature at 0x0000023A311F07C0>(<function session at 0x0000023A353285E0>)
+E        +      where <function signature at 0x0000023A311F07C0> = inspect.signature
+E        +      and   <function session at 0x0000023A353285E0> = <module 'cr_calibrate' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\cr_tools\\cr_calibrate.py'>.session
+E        +        where <module 'cr_calibrate' from 'C:\\Users\\gl450\\trading_app-s1\\research\\s1\\cr_tools\\cr_calibrate.py'> = _drv()
+
+research\s1\cr_tools\test_cr_calibrate.py:147: AssertionError
+_____ test_C6_a_manifest_change_during_the_session_is_reported_as_a_stop ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_C6_a_manifest_change_duri0')
+
+    def test_C6_a_manifest_change_during_the_session_is_reported_as_a_stop(tmp_path):
+        root, items = toy(tmp_path)
+        pool = root / EVID_REL / "s1_x/completion/pool.json"
+    
+        def tamper(kind, job):
+            if (kind, job) == ("screen", items[23]["job_id"]):
+                pool.write_text(pool.read_text(encoding="utf-8") + " ", encoding="utf-8")
+        rep = _session(root, tmp_path, _test_exec_factory=factory(on_call=tamper))
+>       assert (rep.get("manifest_after") or {}).get("verified") is False, rep.get("manifest_after")
+E       AssertionError: None
+E       assert None is False
+E        +  where None = <built-in method get of dict object at 0x0000023A35794F80>('verified')
+E        +    where <built-in method get of dict object at 0x0000023A35794F80> = (None or {}).get
+E        +      where None = <built-in method get of dict object at 0x0000023A356D05C0>('manifest_after')
+E        +        where <built-in method get of dict object at 0x0000023A356D05C0> = {'calibration_batch': ['j00', 'j01', 'j02', 'j03', 'j04', 'j05', ...], 'completion_stage': "2 shards: ['c1', 'c2']", 'completions': {}, 'config_id': 's1_x/a', ...}.get
+
+research\s1\cr_tools\test_cr_calibrate.py:619: AssertionError
+______________ test_C7_derive_cap_refuses_a_session_that_stopped ______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_C7_derive_cap_refuses_a_s0')
+
+    def test_C7_derive_cap_refuses_a_session_that_stopped(tmp_path):
+        root, _ = toy(tmp_path)
+        _session(root, tmp_path, _test_exec_factory=factory(screen={"j05": UNCERTAIN_SURV}))
+        with pytest.raises(cr_coord.CoordError, match=r"derive-cap needs a calibration session that ended without a stop"):
+>           _drv().derive_cap(tmp_path / "work" / "s1_x__a" / "session-000", "s1_x/a")
+
+research\s1\cr_tools\test_cr_calibrate.py:628: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+research\s1\cr_tools\cr_calibrate.py:347: in derive_cap
+    return cr_coord.derive_cap(state, out=sroot.parent / "derived_cap.json", identity=identity)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+calibration_state = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_C7_derive_cap_refuses_a_s0/work/s1_x__a/session-000/batch_000_state.json')
+
+    def derive_cap(calibration_state: Path, *, out: Path, identity: dict, min_items: int | None = None,
+                   item_outer_s: float | None = None, io_margin_s: float = IO_MARGIN_S) -> dict:
+        """15c-H (ruling 2) + fix round 1 (ruling 4): from ONE calibration batch state of ONE config (its recorded
+        ``config`` must equal ``identity``) with >= BUDGETS["batch_max"] measured items, derive and RECORD the batch cap
+        floor((session length - fence) / max measured item). The record binds the config identity and the calibration
+        state's path + sha256, gets a sha256 sidecar and is never overwritten. An efficiency estimate only: the fence stays
+        the safety bound."""
+        out, calibration_state = Path(out), Path(calibration_state)
+        if out.exists():
+            raise CoordError(f"{out.name} already exists: a cap record is never overwritten")
+        s = json.loads(calibration_state.read_text(encoding="utf-8"))
+        if not identity or s.get("config") != identity:
+            raise CoordError(f"calibration state is from a different config ({(s.get('config') or {}).get('config_id')}"
+                             f", not {(identity or {}).get('config_id')})")
+        need = BUDGETS["batch_max"] if min_items is None else int(min_items)
+        costs = {job: float(sec) for job, sec in (s.get("item_s") or {}).items() if job in s.get("batch", [])}
+        if len(costs) < need:
+>           raise CoordError(f"calibration needs at least {need} measured items, got {len(costs)}")
+E           cr_coord.CoordError: calibration needs at least 24 measured items, got 6
+
+research\s1\s1_tests\cr_coord.py:558: CoordError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_C7_derive_cap_refuses_a_s0')
+
+    def test_C7_derive_cap_refuses_a_session_that_stopped(tmp_path):
+        root, _ = toy(tmp_path)
+        _session(root, tmp_path, _test_exec_factory=factory(screen={"j05": UNCERTAIN_SURV}))
+>       with pytest.raises(cr_coord.CoordError, match=r"derive-cap needs a calibration session that ended without a stop"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'derive-cap needs a calibration session that ended without a stop'
+E        Input: 'calibration needs at least 24 measured items, got 6'
+
+research\s1\cr_tools\test_cr_calibrate.py:627: AssertionError
+_________________ test_C_the_report_lists_the_protocol_checks _________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21734/test_C_the_report_lists_the_pr0')
+
+    def test_C_the_report_lists_the_protocol_checks(tmp_path):
+        root, _ = toy(tmp_path)
+        rep = _session(root, tmp_path, _test_exec_factory=factory())
+>       assert {"C1", "C2", "C3", "C4", "C5", "C6", "C7"} <= set(rep.get("protocol", {})), rep.get("protocol")
+E       AssertionError: None
+E       assert {'C1', 'C2', ...5', 'C6', ...} <= set()
+E         
+E         Extra items in the left set:
+E         'C3'
+E         'C2'
+E         'C6'
+E         'C4'
+E         'C1'
+E         'C7'
+E         'C5'
+
+research\s1\cr_tools\test_cr_calibrate.py:635: AssertionError
+=========================== short test summary info ===========================
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_resume_continues_fence_refused_completions_in_a_new_session_root
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_resume_skips_a_survivor_whose_completion_is_already_settled
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_E_resume_is_refused_unless_the_last_session_stopped_on_a_fence
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[crash]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[error]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[error_setup]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[missing_record]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[not_installed]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[survived_guard_error]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[unparseable]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_a_non_kill_non_survival_result_halts_with_zero_next_call[untested]
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_killed_and_survived_continue_and_a_timeout_keeps_its_stop_and_retry
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_a_completion_result_that_is_not_kill_or_survival_halts_its_shard
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_X26_the_policy_seam_keeps_the_real_command_tag_and_says_what_it_is
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_C1_C7_configs_run_in_discover_order_and_a_stop_blocks_the_next_config
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_C5_resume_needs_a_named_review_reference
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_C6_a_manifest_change_during_the_session_is_reported_as_a_stop
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_C7_derive_cap_refuses_a_session_that_stopped
+FAILED research/s1/cr_tools/test_cr_calibrate.py::test_C_the_report_lists_the_protocol_checks
+19 failed, 261 passed in 116.15s (0:01:56)
+
+
+SECOND AMENDMENT RED (Codex X26 peer disposition: no retry/resume, field-aware fail-closed policy, archive-pinned harness, location; 2026-11-17T10:13:14-05:00)
+The FINAL amended test file run against the saved PRE-AMENDMENT driver (the X26 + C1-C8 draft, sha256 b55c75127b14eb183b90b36f84d5637da8a91e6bd7d2d790dea7aa41fc37acbb), from the worktree root, -B, fresh S1_HYPOTHESIS_ROOT, both files copied into a scratch dir on PYTHONPATH.
+Disclosure: in this round the driver was rewritten BEFORE the amended tests; this RED is demonstrated afterwards against the saved prior driver. Six tests were added after a first GREEN to pin guards the deletion check found unpinned (harness set / EVID_REL, library sys.path, CLI rc, state halt flag, malformed manifest line, pending-shard record).
+test file sha256: fc98ecb0dc5039e103baf00fa31a9a5cd2eade09b76b4bb78bb061a61302e541
+strict run (rc 1): 76 failed, 3 passed in 35.49s | failure types:  2 : AssertionError; 10 : AttributeError; 1 : Failed; 64 : TypeError;
+  (strict: mostly TypeError - the pre-amendment session()/derive_cap() have no _test_harness_anywhere parameter)
+behavioural variant (rc 1; scratch copy only: the _run/_dcap helpers pass _test_harness_anywhere only to a driver that has it): 44 failed, 35 passed in 77.54s (0:01:17) | failure types:  30 : AssertionError; 10 : AttributeError; 1 : Failed; 4 : KeyError;
+non-assertion errors in the variant:
+      1 E               AttributeError: module 'cr_calibrate' has no attribute 'load_harness'
+      1 E           AttributeError: module 'cr_calibrate' has no attribute 'HarnessRefused'
+      4 E           AttributeError: module 'cr_calibrate' has no attribute 'load_harness'
+      2 E       AttributeError: <module 'cr_calibrate' from '<scratch> has no attribute 'load_harness'
+      1 E       AttributeError: module 'cr_calibrate' has no attribute 'HarnessRefused'
+      1 E       AttributeError: module 'cr_calibrate' has no attribute 'load_harness'
+      1 E       KeyError: 'no_retry'
+      3 E       KeyError: 'reason'
+failing tests (variant):
+test_E_the_running_harness_must_be_the_src_roots
+test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record0-cleanup_uncertain]
+test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record1-error]
+test_E_a_screening_timeout_stops_the_session_with_no_retry
+test_E_the_driver_has_no_retry_resolve_or_resume_path
+test_E_the_cli_cannot_reach_the_test_seams_and_pins_the_harness_first
+test_E_the_cli_derive_cap_pins_the_reports_archive_harness_first
+test_H_the_cli_imports_every_harness_module_from_the_archive
+test_H_the_cli_refuses_when_a_harness_module_is_already_imported
+test_H_the_cli_refuses_an_archive_whose_harness_does_not_verify
+test_H_the_cli_refuses_a_module_whose_bytes_are_not_the_manifests
+test_H_library_use_imports_a_missing_module_from_the_archive_and_leaves_sys_path_alone
+test_H_the_harness_must_be_the_one_the_driver_was_written_for[harness_files]
+test_H_the_harness_must_be_the_one_the_driver_was_written_for[evid_rel]
+test_H_library_use_refuses_a_harness_not_imported_from_the_archive
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[cleanup_verified_not_exactly_true]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[crash]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[error]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[error_setup]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[exec_status_error]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[exec_status_not_exactly_ok]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[guard_not_a_string]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[killed_guard_survived]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[label_not_a_string]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_cleanup_verified]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_exec_status]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_guard_status]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_label]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_raw_timeout]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_record]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[not_installed_alias]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[not_installed_canonical]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[raw_timeout_none]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[raw_timeout_not_exactly_false]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[survived_guard_error]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[timeout]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[unknown_label]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[unparseable]
+test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[untested]
+test_X26_only_a_clean_kill_or_survival_continues[record0]
+test_X26_only_a_clean_kill_or_survival_continues[record1]
+test_X26_the_policy_check_is_field_aware
+test_X26_a_completion_result_that_is_not_kill_or_survival_halts_its_shard
+test_C_the_report_lists_the_protocol_checks_and_the_harness_import
+==== behavioural variant raw output ====
+...............F...FF...F....F...FFFFFFFFFF..FFFFFFFFFFFFFFFFFFFFFFFFFFF [ 91%]
+F.....F                                                                  [100%]
+================================== FAILURES ===================================
+______________ test_E_the_running_harness_must_be_the_src_roots _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_E_the_running_harness_mus0')
+
+    def test_E_the_running_harness_must_be_the_src_roots(tmp_path):
+        root, _ = toy(tmp_path)
+        g = root / "research/s1/s1_tests/cr_guard.py"
+        g.write_text(g.read_text(encoding="utf-8") + "\n# other\n", encoding="utf-8")
+        write_manifest(root)
+        with pytest.raises(cr_coord.CoordError, match=r"harness module cr_guard .* is not the archive's approved bytes"):
+>           _session(root, tmp_path, _test_exec_factory=factory())
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:291: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:161: in _session
+    return _run(root, tmp_path / "work", "s1_x/a", **kw)
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:157: in _run
+    return _drv().session(root, work, config, **kw)
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\cr_calibrate.py:309: in session
+    harness = verify_harness(src_root)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+src_root = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_E_the_running_harness_mus0/repo')
+
+    def verify_harness(src_root: Path) -> dict:
+        """The imported harness (cr_coord.HARNESS_DIR) must be byte-identical to the src_root's own."""
+        mine = cr_coord.harness_hashes()
+        theirs = {n: (_sha(Path(src_root) / "research/s1/s1_tests" / n)
+                      if (Path(src_root) / "research/s1/s1_tests" / n).is_file() else None) for n in mine}
+        if mine != theirs:
+            diff = sorted(n for n in mine if mine[n] != theirs[n])
+>           raise CoordError(f"the running harness {diff} differs from the src_root's: run the driver with the src_root's "
+                             f"research/s1/s1_tests on PYTHONPATH")
+E           cr_coord.CoordError: the running harness ['cr_guard.py'] differs from the src_root's: run the driver with the src_root's research/s1/s1_tests on PYTHONPATH
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\cr_calibrate.py:113: CoordError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_E_the_running_harness_mus0')
+
+    def test_E_the_running_harness_must_be_the_src_roots(tmp_path):
+        root, _ = toy(tmp_path)
+        g = root / "research/s1/s1_tests/cr_guard.py"
+        g.write_text(g.read_text(encoding="utf-8") + "\n# other\n", encoding="utf-8")
+        write_manifest(root)
+>       with pytest.raises(cr_coord.CoordError, match=r"harness module cr_guard .* is not the archive's approved bytes"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: "harness module cr_guard .* is not the archive's approved bytes"
+E        Input: "the running harness ['cr_guard.py'] differs from the src_root's: run the driver with the src_root's research/s1/s1_tests on PYTHONPATH"
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:290: AssertionError
+_ test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record0-cleanup_uncertain] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_E_a_screening_stop_ends_t0')
+record = {'cleanup_verified': False, 'exec_status': 'cleanup_uncertain', 'guard_status': 'survived', 'label': 'survived', ...}
+kind = 'cleanup_uncertain'
+
+    @pytest.mark.parametrize("record,kind", [(UNCERTAIN_SURV, "cleanup_uncertain"), (CRERR_SURV, "error"),
+                                             (OSError("launcher vanished"), "error")])
+    def test_E_a_screening_stop_ends_the_session_with_no_further_candidate(tmp_path, record, kind):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j02": CLEAN_SURV, "j05": record},
+                                                                  calls=calls))
+        assert rep["stop"]["kind"] == kind, rep["stop"]
+        assert [j for _, j in calls] == [i["job_id"] for i in items[:6]], "nothing after the stopping item"
+        assert rep["completions"] == {} and _no_resolutions(tmp_path)
+        raw = json.loads((tmp_path / "work/s1_x__a/session-000/jobs/j05/policy_result.json").read_text(encoding="utf-8"))
+        if isinstance(record, BaseException):     # the policy seam keeps the fact of an inner exception, then re-raises
+            assert raw["exception"] == "OSError: launcher vanished" and raw["halt"] is True, raw
+        else:                                     # halting, but run_batch stops on it by itself: returned untouched
+>           assert raw["raw"] == record and raw["halt"] is True, raw
+E           AssertionError: {'halt': False, 'job_id': 'j05', 'raw': {'cleanup_verified': False, 'exec_status': 'cleanup_uncertain', 'guard_status': 'survived', 'label': 'survived', ...}, 'returned_exec_status': 'cleanup_uncertain', ...}
+E           assert ({'cleanup_ver...urvived', ...} == {'cleanup_ver...urvived', ...}
+E             
+E             Omitting 8 identical items, use -vv to show
+E             Use -v to get more diff and False is True)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:339: AssertionError
+_ test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record1-error] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_E_a_screening_stop_ends_t1')
+record = {'cleanup_verified': True, 'exec_status': 'error:cr_exit_1', 'guard_status': 'survived', 'label': 'survived', ...}
+kind = 'error'
+
+    @pytest.mark.parametrize("record,kind", [(UNCERTAIN_SURV, "cleanup_uncertain"), (CRERR_SURV, "error"),
+                                             (OSError("launcher vanished"), "error")])
+    def test_E_a_screening_stop_ends_the_session_with_no_further_candidate(tmp_path, record, kind):
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j02": CLEAN_SURV, "j05": record},
+                                                                  calls=calls))
+        assert rep["stop"]["kind"] == kind, rep["stop"]
+        assert [j for _, j in calls] == [i["job_id"] for i in items[:6]], "nothing after the stopping item"
+        assert rep["completions"] == {} and _no_resolutions(tmp_path)
+        raw = json.loads((tmp_path / "work/s1_x__a/session-000/jobs/j05/policy_result.json").read_text(encoding="utf-8"))
+        if isinstance(record, BaseException):     # the policy seam keeps the fact of an inner exception, then re-raises
+            assert raw["exception"] == "OSError: launcher vanished" and raw["halt"] is True, raw
+        else:                                     # halting, but run_batch stops on it by itself: returned untouched
+>           assert raw["raw"] == record and raw["halt"] is True, raw
+E           AssertionError: {'halt': False, 'job_id': 'j05', 'raw': {'cleanup_verified': True, 'exec_status': 'error:cr_exit_1', 'guard_status': 'survived', 'label': 'survived', ...}, 'returned_exec_status': 'error:cr_exit_1', ...}
+E           assert ({'cleanup_ver...urvived', ...} == {'cleanup_ver...urvived', ...}
+E             
+E             Omitting 8 identical items, use -vv to show
+E             Use -v to get more diff and False is True)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:339: AssertionError
+_________ test_E_a_screening_timeout_stops_the_session_with_no_retry __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_E_a_screening_timeout_sto0')
+
+    def test_E_a_screening_timeout_stops_the_session_with_no_retry(tmp_path):
+        """Codex X26 disposition item 1: a timeout stops and is reported; no run_retry, no resolve, no resume."""
+        root, items = toy(tmp_path)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j02": CLEAN_SURV, "j05": GUARD_TIMEOUT},
+                                                                  retry={"j05": CLEAN_KILL}, calls=calls))
+>       assert [j for _, j in calls] == [i["job_id"] for i in items[:6]], "no retry and nothing after j05"
+E       AssertionError: no retry and nothing after j05
+E       assert ['j00', 'j01'...', 'j05', ...] == ['j00', 'j01'... 'j04', 'j05']
+E         
+E         Left contains one more item: 'j05'
+E         Use -v to get more diff
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:372: AssertionError
+____________ test_E_the_driver_has_no_retry_resolve_or_resume_path ____________
+
+    def test_E_the_driver_has_no_retry_resolve_or_resume_path():
+        drv = _drv()
+        params = inspect.signature(drv.session).parameters
+>       assert "resume" not in params and "retry" not in params, params
+E       AssertionError: mappingproxy(OrderedDict({'src_root': <Parameter "src_root">, 'work_root': <Parameter "work_root">, 'config': <Paramet...eview_ref': <Parameter "review_ref: str | None = None">, '_test_exec_factory': <Parameter "_test_exec_factory=None">}))
+E       assert ('resume' not in mappingproxy(OrderedDict({'src_root': <Parameter "src_root">, 'work_root': <Parameter "work_root">, 'config': <Paramet...eview_ref': <Parameter "review_ref: str | None = None">, '_test_exec_factory': <Parameter "_test_exec_factory=None">})))
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:414: AssertionError
+____ test_E_the_cli_cannot_reach_the_test_seams_and_pins_the_harness_first ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_E_the_cli_cannot_reach_th0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB448CB8F0>
+
+    def test_E_the_cli_cannot_reach_the_test_seams_and_pins_the_harness_first(tmp_path, monkeypatch):
+        drv = _drv()
+        seen, order = {}, []
+    
+        def fake_load(src_root, *, fresh, **kw):
+            order.append(("load", str(src_root), fresh, dict(kw)))
+    
+        def fake_session(src_root, work_root, config, **kw):
+            order.append(("session",))
+            seen.update(kw, src_root=src_root, work_root=work_root, config=config)
+            return {"stop": None}
+>       monkeypatch.setattr(drv, "load_harness", fake_load)
+E       AttributeError: <module 'cr_calibrate' from 'C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\p15e\\red_variant\\cr_calibrate.py'> has no attribute 'load_harness'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:469: AttributeError
+______ test_E_the_cli_derive_cap_pins_the_reports_archive_harness_first _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_E_the_cli_derive_cap_pins0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB448C9280>
+
+    def test_E_the_cli_derive_cap_pins_the_reports_archive_harness_first(tmp_path, monkeypatch):
+        drv = _drv()
+        sroot = tmp_path / "c" / "session-000"
+        sroot.mkdir(parents=True)
+        (tmp_path / "c" / "report_session-000.json").write_text(json.dumps({"src_root": "ARCH"}), encoding="utf-8")
+        order = []
+>       monkeypatch.setattr(drv, "load_harness", lambda src, *, fresh, **kw: order.append(("load", str(src), fresh, kw)))
+E       AttributeError: <module 'cr_calibrate' from 'C:\\Users\\gl450\\AppData\\Local\\Temp\\claude\\4a6d95c7011f8258\\c661c7e7-0401-4122-9c4b-9345620dbebb\\scratchpad\\p15e\\red_variant\\cr_calibrate.py'> has no attribute 'load_harness'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:487: AttributeError
+________ test_H_the_cli_imports_every_harness_module_from_the_archive _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_H_the_cli_imports_every_h0')
+
+    def test_H_the_cli_imports_every_harness_module_from_the_archive(tmp_path):
+        root, _ = toy(tmp_path)
+        drv = _drv()
+        arch = (root / "research/s1/s1_tests").resolve()
+        with _Isolated():
+>           h = drv.load_harness(root, fresh=True)
+E           AttributeError: module 'cr_calibrate' has no attribute 'load_harness'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:524: AttributeError
+______ test_H_the_cli_refuses_when_a_harness_module_is_already_imported _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_H_the_cli_refuses_when_a_0')
+
+    def test_H_the_cli_refuses_when_a_harness_module_is_already_imported(tmp_path):
+        root, _ = toy(tmp_path)
+>       with pytest.raises(_drv().HarnessRefused, match=r"already imported.*only from the approved archive"):
+E       AttributeError: module 'cr_calibrate' has no attribute 'HarnessRefused'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:536: AttributeError
+_______ test_H_the_cli_refuses_an_archive_whose_harness_does_not_verify _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_H_the_cli_refuses_an_arch0')
+
+    def test_H_the_cli_refuses_an_archive_whose_harness_does_not_verify(tmp_path):
+        root, _ = toy(tmp_path)
+        g = root / "research/s1/s1_tests/cr_guard.py"
+        g.write_text(g.read_text(encoding="utf-8") + "\n# other\n", encoding="utf-8")
+        with _Isolated():
+>           with pytest.raises(_drv().HarnessRefused, match=r"t15c_prep_hashes\.txt does not verify"):
+E           AttributeError: module 'cr_calibrate' has no attribute 'HarnessRefused'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:545: AttributeError
+______ test_H_the_cli_refuses_a_module_whose_bytes_are_not_the_manifests ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_H_the_cli_refuses_a_modul0')
+
+    def test_H_the_cli_refuses_a_module_whose_bytes_are_not_the_manifests(tmp_path):
+        """The archive's file verifies but the manifest's entry for the harness is another sha: refused."""
+        root, _ = toy(tmp_path)
+        m = root / MANIFEST_REL
+        lines = m.read_text(encoding="utf-8").splitlines()
+        m.write_bytes(("\n".join(ln for ln in lines if not ln.endswith("s1_tests/cr_launch.py")) + "\n").encode("utf-8"))
+        with _Isolated():
+            with pytest.raises(Exception, match=r"harness module cr_launch .* is not the archive's approved bytes") as ei:
+>               _drv().load_harness(root, fresh=True)
+E               AttributeError: module 'cr_calibrate' has no attribute 'load_harness'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:558: AttributeError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_H_the_cli_refuses_a_modul0')
+
+    def test_H_the_cli_refuses_a_module_whose_bytes_are_not_the_manifests(tmp_path):
+        """The archive's file verifies but the manifest's entry for the harness is another sha: refused."""
+        root, _ = toy(tmp_path)
+        m = root / MANIFEST_REL
+        lines = m.read_text(encoding="utf-8").splitlines()
+        m.write_bytes(("\n".join(ln for ln in lines if not ln.endswith("s1_tests/cr_launch.py")) + "\n").encode("utf-8"))
+        with _Isolated():
+>           with pytest.raises(Exception, match=r"harness module cr_launch .* is not the archive's approved bytes") as ei:
+E           AssertionError: Regex pattern did not match.
+E            Regex: "harness module cr_launch .* is not the archive's approved bytes"
+E            Input: "module 'cr_calibrate' has no attribute 'load_harness'"
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:557: AssertionError
+_ test_H_library_use_imports_a_missing_module_from_the_archive_and_leaves_sys_path_alone _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_H_library_use_imports_a_m0')
+
+    def test_H_library_use_imports_a_missing_module_from_the_archive_and_leaves_sys_path_alone(tmp_path):
+        root, _ = toy(tmp_path)
+        arch = (root / "research/s1/s1_tests").resolve()
+        with _Isolated():
+            before = list(sys.path)
+>           h = _drv().load_harness(root, fresh=False)
+E           AttributeError: module 'cr_calibrate' has no attribute 'load_harness'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:567: AttributeError
+_ test_H_the_harness_must_be_the_one_the_driver_was_written_for[harness_files] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_H_the_harness_must_be_the0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB44790560>
+what = 'harness_files'
+
+    @pytest.mark.parametrize("what", ["harness_files", "evid_rel"])
+    def test_H_the_harness_must_be_the_one_the_driver_was_written_for(tmp_path, monkeypatch, what):
+        root, _ = toy(tmp_path)
+        if what == "harness_files":
+            monkeypatch.setattr(cr_coord, "HARNESS_FILES", cr_coord.HARNESS_FILES + ("cr_extra.py",))
+            pat = r"the harness file set .* is not the driver's"
+        else:
+            monkeypatch.setattr(cr_preflight, "EVID_REL", "research/s1/s1_evidence/other")
+            pat = r"the harness evidence root .* is not research/s1/s1_evidence/cr_a3"
+        with pytest.raises(cr_coord.CoordError, match=pat):
+>           _drv().load_harness(root, fresh=False, _test_harness_anywhere=True)
+E           AttributeError: module 'cr_calibrate' has no attribute 'load_harness'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:583: AttributeError
+___ test_H_the_harness_must_be_the_one_the_driver_was_written_for[evid_rel] ___
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_H_the_harness_must_be_the1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB447CC290>
+what = 'evid_rel'
+
+    @pytest.mark.parametrize("what", ["harness_files", "evid_rel"])
+    def test_H_the_harness_must_be_the_one_the_driver_was_written_for(tmp_path, monkeypatch, what):
+        root, _ = toy(tmp_path)
+        if what == "harness_files":
+            monkeypatch.setattr(cr_coord, "HARNESS_FILES", cr_coord.HARNESS_FILES + ("cr_extra.py",))
+            pat = r"the harness file set .* is not the driver's"
+        else:
+            monkeypatch.setattr(cr_preflight, "EVID_REL", "research/s1/s1_evidence/other")
+            pat = r"the harness evidence root .* is not research/s1/s1_evidence/cr_a3"
+        with pytest.raises(cr_coord.CoordError, match=pat):
+>           _drv().load_harness(root, fresh=False, _test_harness_anywhere=True)
+E           AttributeError: module 'cr_calibrate' has no attribute 'load_harness'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:583: AttributeError
+_____ test_H_library_use_refuses_a_harness_not_imported_from_the_archive ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_H_library_use_refuses_a_h0')
+
+    def test_H_library_use_refuses_a_harness_not_imported_from_the_archive(tmp_path):
+        root, _ = toy(tmp_path)
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"imported from .*, not from the approved archive"):
+E       Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:589: Failed
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[cleanup_verified_not_exactly_true] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_0')
+case = 'cleanup_verified_not_exactly_true'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB447CFA10>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '..., 'j05'), ...] == [('screen', 'j00')]
+E         
+E         Left contains 25 more items, first extra item: ('screen', 'j01')
+E         Use -v to get more diff
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:712: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[crash] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_1')
+case = 'crash'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB46356DB0>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:crash/crash: j00
+E       assert (True is True and 'policy_halt:crash/crash: j00' == 'policy_halt:...sh/crash: j00'
+E         
+E         - policy_halt:label:crash/crash: j00
+E         ?            ------
+E         + policy_halt:crash/crash: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[error] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_2')
+case = 'error'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB4636FA10>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:error/error:collection: j00
+E       assert (True is True and 'policy_halt:...llection: j00' == 'policy_halt:...llection: j00'
+E         
+E         - policy_halt:label:error/error:collection: j00
+E         ?            ------
+E         + policy_halt:error/error:collection: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[error_setup] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_3')
+case = 'error_setup'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB46395E50>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:error/error:setup: j00
+E       assert (True is True and 'policy_halt:...or:setup: j00' == 'policy_halt:...or:setup: j00'
+E         
+E         - policy_halt:label:error/error:setup: j00
+E         ?            ------
+E         + policy_halt:error/error:setup: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[exec_status_error] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_4')
+case = 'exec_status_error'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB46396030>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+        assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+        assert st["pending"] == [i["job_id"] for i in items[1:24]] and st["done"] == []
+        assert rep["stop"]["kind"] == _drv()._kind(st["stop_reason"]) and rep["completions"] == {}, rep["stop"]
+        assert dumps and all(dumps), "raw result persisted before the halt"
+        rec = json.loads(raw_p.read_text(encoding="utf-8"))
+>       assert rec["halt"] is True and rec["reason"] == reason, rec
+E       AssertionError: {'halt': False, 'job_id': 'j00', 'raw': {'cleanup_verified': True, 'exec_status': 'error:cr_exit_1', 'guard_status': 'error:collection', 'label': 'error', ...}, 'returned_exec_status': 'error:cr_exit_1', ...}
+E       assert (False is True)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:719: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[exec_status_not_exactly_ok] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_5')
+case = 'exec_status_not_exactly_ok'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB46396750>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+        assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+        assert st["pending"] == [i["job_id"] for i in items[1:24]] and st["done"] == []
+        assert rep["stop"]["kind"] == _drv()._kind(st["stop_reason"]) and rep["completions"] == {}, rep["stop"]
+        assert dumps and all(dumps), "raw result persisted before the halt"
+        rec = json.loads(raw_p.read_text(encoding="utf-8"))
+>       assert rec["halt"] is True and rec["reason"] == reason, rec
+E       AssertionError: {'halt': False, 'job_id': 'j00', 'raw': {'cleanup_verified': True, 'exec_status': 'OK', 'guard_status': 'survived', 'label': 'survived', ...}, 'returned_exec_status': 'OK', ...}
+E       assert (False is True)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:719: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[guard_not_a_string] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_6')
+case = 'guard_not_a_string'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB4636E360>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:survived/7: j00
+E       assert (True is True and 'policy_halt:survived/7: j00' == 'policy_halt:...d_status: j00'
+E         
+E         - policy_halt:malformed_field:guard_status: j00
+E         + policy_halt:survived/7: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[killed_guard_survived] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_7')
+case = 'killed_guard_survived'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB463A5CD0>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:killed/survived: j00
+E       assert (True is True and 'policy_halt:...survived: j00' == 'policy_halt:...survived: j00'
+E         
+E         - policy_halt:label_guard_mismatch:killed/survived: j00
+E         ?            ---------------------
+E         + policy_halt:killed/survived: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[label_not_a_string] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_8')
+case = 'label_not_a_string'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB46419160>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:3/survived: j00
+E       assert (True is True and 'policy_halt:3/survived: j00' == 'policy_halt:...ld:label: j00'
+E         
+E         - policy_halt:malformed_field:label: j00
+E         + policy_halt:3/survived: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_cleanup_verified] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_9')
+case = 'missing_cleanup_verified'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB4636CAD0>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+        assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+        assert st["pending"] == [i["job_id"] for i in items[1:24]] and st["done"] == []
+        assert rep["stop"]["kind"] == _drv()._kind(st["stop_reason"]) and rep["completions"] == {}, rep["stop"]
+        assert dumps and all(dumps), "raw result persisted before the halt"
+        rec = json.loads(raw_p.read_text(encoding="utf-8"))
+>       assert rec["halt"] is True and rec["reason"] == reason, rec
+E       AssertionError: {'halt': False, 'job_id': 'j00', 'raw': {'exec_status': 'ok', 'guard_status': 'survived', 'label': 'survived', 'raw': None, ...}, 'returned_exec_status': 'ok', ...}
+E       assert (False is True)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:719: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_exec_status] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_10')
+case = 'missing_exec_status'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB4636C320>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '..., 'j05'), ...] == [('screen', 'j00')]
+E         
+E         Left contains 25 more items, first extra item: ('screen', 'j01')
+E         Use -v to get more diff
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:712: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_guard_status] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_11')
+case = 'missing_guard_status'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB46397AA0>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:survived/None: j00
+E       assert (True is True and 'policy_halt:...ved/None: j00' == 'policy_halt:...d_status: j00'
+E         
+E         - policy_halt:missing_field:guard_status: j00
+E         + policy_halt:survived/None: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_label] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_12')
+case = 'missing_label'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB46394170>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: cleanup_uncertain: j00
+E       assert (True is True and 'cleanup_uncertain: j00' == 'policy_halt:...ld:label: j00'
+E         
+E         - policy_halt:missing_field:label: j00
+E         + cleanup_uncertain: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_raw_timeout] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_13')
+case = 'missing_raw_timeout'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB463552E0>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '..., 'j05'), ...] == [('screen', 'j00')]
+E         
+E         Left contains 25 more items, first extra item: ('screen', 'j01')
+E         Use -v to get more diff
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:712: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_record] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_14')
+case = 'missing_record'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB463A6750>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+        assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+        assert st["pending"] == [i["job_id"] for i in items[1:24]] and st["done"] == []
+        assert rep["stop"]["kind"] == _drv()._kind(st["stop_reason"]) and rep["completions"] == {}, rep["stop"]
+        assert dumps and all(dumps), "raw result persisted before the halt"
+        rec = json.loads(raw_p.read_text(encoding="utf-8"))
+>       assert rec["halt"] is True and rec["reason"] == reason, rec
+E       KeyError: 'reason'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:719: KeyError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[not_installed_alias] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_15')
+case = 'not_installed_alias'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB463A5520>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:not_installed/None: j00
+E       assert (True is True and 'policy_halt:...led/None: j00' == 'policy_halt:...nstalled: j00'
+E         
+E         - policy_halt:unexpected_label:not_installed: j00
+E         + policy_halt:not_installed/None: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[not_installed_canonical] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_16')
+case = 'not_installed_canonical'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB463D69C0>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:not-installed/None: j00
+E       assert (True is True and 'policy_halt:...led/None: j00' == 'policy_halt:...nstalled: j00'
+E         
+E         - policy_halt:not-installed: j00
+E         + policy_halt:not-installed/None: j00
+E         ?                          +++++)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[raw_timeout_none] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_17')
+case = 'raw_timeout_none'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB463973B0>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '..., 'j05'), ...] == [('screen', 'j00')]
+E         
+E         Left contains 25 more items, first extra item: ('screen', 'j01')
+E         Use -v to get more diff
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:712: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[raw_timeout_not_exactly_false] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_18')
+case = 'raw_timeout_not_exactly_false'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB463A7F80>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+        assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+        assert st["pending"] == [i["job_id"] for i in items[1:24]] and st["done"] == []
+        assert rep["stop"]["kind"] == _drv()._kind(st["stop_reason"]) and rep["completions"] == {}, rep["stop"]
+        assert dumps and all(dumps), "raw result persisted before the halt"
+        rec = json.loads(raw_p.read_text(encoding="utf-8"))
+>       assert rec["halt"] is True and rec["reason"] == reason, rec
+E       AssertionError: {'halt': False, 'job_id': 'j00', 'raw': {'cleanup_verified': True, 'exec_status': 'ok', 'guard_status': 'survived', 'label': 'survived', ...}, 'returned_exec_status': 'ok', ...}
+E       assert (False is True)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:719: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[survived_guard_error] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_19')
+case = 'survived_guard_error'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB463A7AD0>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:survived/error:collection: j00
+E       assert (True is True and 'policy_halt:...llection: j00' == 'policy_halt:...llection: j00'
+E         
+E         - policy_halt:label_guard_mismatch:survived/error:collection: j00
+E         ?            ---------------------
+E         + policy_halt:survived/error:collection: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[timeout] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_20')
+case = 'timeout'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB463A5C10>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+>       assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+E       AssertionError: the seam is never called for the next candidate
+E       assert [('screen', '...etry', 'j00')] == [('screen', 'j00')]
+E         
+E         Left contains one more item: ('retry', 'j00')
+E         Use -v to get more diff
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:712: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[unknown_label] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_21')
+case = 'unknown_label'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB46396960>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:weird/weird: j00
+E       assert (True is True and 'policy_halt:weird/weird: j00' == 'policy_halt:...el:weird: j00'
+E         
+E         - policy_halt:unexpected_label:weird: j00
+E         + policy_halt:weird/weird: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[unparseable] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_22')
+case = 'unparseable'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB4641CD70>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+        assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+        assert st["pending"] == [i["job_id"] for i in items[1:24]] and st["done"] == []
+        assert rep["stop"]["kind"] == _drv()._kind(st["stop_reason"]) and rep["completions"] == {}, rep["stop"]
+        assert dumps and all(dumps), "raw result persisted before the halt"
+        rec = json.loads(raw_p.read_text(encoding="utf-8"))
+>       assert rec["halt"] is True and rec["reason"] == reason, rec
+E       KeyError: 'reason'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:719: KeyError
+_ test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[untested] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_anything_but_a_clean_23')
+case = 'untested'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FB463D6630>
+
+    @pytest.mark.parametrize("case", sorted(HALTS))
+    def test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call(tmp_path, case, monkeypatch):
+        record, reason, stop = HALTS[case]
+        root, items = toy(tmp_path)
+        raw_p = tmp_path / "work" / "s1_x__a" / "session-000" / "jobs" / "j00" / "policy_result.json"
+        dumps, real_dump = [], cr_coord._dump
+    
+        def watch(path, st):                     # the raw result is on disk BEFORE the stop is recorded
+            if st.get("stopped"):
+                dumps.append(raw_p.is_file())
+            real_dump(path, st)
+        monkeypatch.setattr(cr_coord, "_dump", watch)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": record}, calls=calls))
+        assert calls == [("screen", "j00")], "the seam is never called for the next candidate"
+        sp, st = _first_state(tmp_path)
+>       assert st["stopped"] is True and st["stop_reason"] == f"{stop}: j00", st["stop_reason"]
+E       AssertionError: policy_halt:untested/untested: j00
+E       assert (True is True and 'policy_halt:...untested: j00' == 'policy_halt:...untested: j00'
+E         
+E         - policy_halt:label:untested/untested: j00
+E         ?            ------
+E         + policy_halt:untested/untested: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:714: AssertionError
+__________ test_X26_only_a_clean_kill_or_survival_continues[record0] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_only_a_clean_kill_or_0')
+record = {'cleanup_verified': True, 'exec_status': 'ok', 'guard_status': 'killed', 'label': 'killed', ...}
+
+    @pytest.mark.parametrize("record", [CLEAN_KILL, CLEAN_SURV])
+    def test_X26_only_a_clean_kill_or_survival_continues(tmp_path, record):
+        root, items = toy(tmp_path, completion=False)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={i["job_id"]: record for i in items},
+                                                                  calls=calls))
+        sp, st = _first_state(tmp_path)
+        assert rep["stop"] is None and len(calls) == 24 and st["done"] == [i["job_id"] for i in items[:24]]
+>       assert all(r["policy"] == {"halt": False, "reason": None, "original_exec_status": "ok"} and r["exec_status"] == "ok"
+                   for r in st["results"].values())
+E       assert False
+E        +  where False = all(<generator object test_X26_only_a_clean_kill_or_survival_continues.<locals>.<genexpr> at 0x000001FB44AC5C40>)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:743: AssertionError
+__________ test_X26_only_a_clean_kill_or_survival_continues[record1] __________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_only_a_clean_kill_or_1')
+record = {'cleanup_verified': True, 'exec_status': 'ok', 'guard_status': 'survived', 'label': 'survived', ...}
+
+    @pytest.mark.parametrize("record", [CLEAN_KILL, CLEAN_SURV])
+    def test_X26_only_a_clean_kill_or_survival_continues(tmp_path, record):
+        root, items = toy(tmp_path, completion=False)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={i["job_id"]: record for i in items},
+                                                                  calls=calls))
+        sp, st = _first_state(tmp_path)
+        assert rep["stop"] is None and len(calls) == 24 and st["done"] == [i["job_id"] for i in items[:24]]
+>       assert all(r["policy"] == {"halt": False, "reason": None, "original_exec_status": "ok"} and r["exec_status"] == "ok"
+                   for r in st["results"].values())
+E       assert False
+E        +  where False = all(<generator object test_X26_only_a_clean_kill_or_survival_continues.<locals>.<genexpr> at 0x000001FB46369EE0>)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:743: AssertionError
+__________________ test_X26_the_policy_check_is_field_aware ___________________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_the_policy_check_is_f0')
+
+    def test_X26_the_policy_check_is_field_aware(tmp_path):
+        root, _ = toy(tmp_path)
+        drv = _drv()
+>       drv.load_harness(root, fresh=False, _test_harness_anywhere=True)
+E       AttributeError: module 'cr_calibrate' has no attribute 'load_harness'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:750: AttributeError
+__ test_X26_a_completion_result_that_is_not_kill_or_survival_halts_its_shard __
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_X26_a_completion_result_t0')
+
+    def test_X26_a_completion_result_that_is_not_kill_or_survival_halts_its_shard(tmp_path):
+        root, _ = toy(tmp_path)
+        calls = []
+        setup_error = dict(GUARD_ERROR, guard_status="error:setup")
+        rep = _session(root, tmp_path, _test_exec_factory=factory(
+            screen={"j03": CLEAN_SURV, "j07": CLEAN_SURV}, comp={("c1", "j03"): setup_error}, calls=calls))
+        assert [c for c in calls if c[0] != "screen"] == [("c1", "j03")], "c2 / j07 never start"
+        assert rep["stop"]["kind"] == "policy_halt", rep["stop"]
+        rec = json.loads(next((tmp_path / "work/s1_x__a/session-000/completion/j03").rglob("policy_result.json"))
+                         .read_text(encoding="utf-8"))
+>       assert rec["reason"] == "label:error/error:setup"
+E       KeyError: 'reason'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:766: KeyError
+_____ test_C_the_report_lists_the_protocol_checks_and_the_harness_import ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21748/test_C_the_report_lists_the_pr0')
+
+    def test_C_the_report_lists_the_protocol_checks_and_the_harness_import(tmp_path):
+        root, _ = toy(tmp_path)
+        rep = _session(root, tmp_path, _test_exec_factory=factory())
+        assert {"C1", "C2", "C3", "C4", "C5", "C6", "C7"} <= set(rep.get("protocol", {})), rep.get("protocol")
+>       assert rep["policy"]["halts_on"] and "killed" in rep["policy"]["continues_on"] and rep["policy"]["no_retry"]
+E       KeyError: 'no_retry'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py:823: KeyError
+=========================== short test summary info ===========================
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_E_the_running_harness_must_be_the_src_roots
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record0-cleanup_uncertain]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_E_a_screening_stop_ends_the_session_with_no_further_candidate[record1-error]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_E_a_screening_timeout_stops_the_session_with_no_retry
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_E_the_driver_has_no_retry_resolve_or_resume_path
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_E_the_cli_cannot_reach_the_test_seams_and_pins_the_harness_first
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_E_the_cli_derive_cap_pins_the_reports_archive_harness_first
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_H_the_cli_imports_every_harness_module_from_the_archive
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_H_the_cli_refuses_when_a_harness_module_is_already_imported
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_H_the_cli_refuses_an_archive_whose_harness_does_not_verify
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_H_the_cli_refuses_a_module_whose_bytes_are_not_the_manifests
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_H_library_use_imports_a_missing_module_from_the_archive_and_leaves_sys_path_alone
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_H_the_harness_must_be_the_one_the_driver_was_written_for[harness_files]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_H_the_harness_must_be_the_one_the_driver_was_written_for[evid_rel]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_H_library_use_refuses_a_harness_not_imported_from_the_archive
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[cleanup_verified_not_exactly_true]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[crash]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[error]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[error_setup]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[exec_status_error]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[exec_status_not_exactly_ok]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[guard_not_a_string]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[killed_guard_survived]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[label_not_a_string]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_cleanup_verified]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_exec_status]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_guard_status]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_label]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_raw_timeout]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[missing_record]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[not_installed_alias]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[not_installed_canonical]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[raw_timeout_none]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[raw_timeout_not_exactly_false]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[survived_guard_error]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[timeout]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[unknown_label]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[unparseable]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_anything_but_a_clean_kill_or_survival_halts_with_zero_next_call[untested]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_only_a_clean_kill_or_survival_continues[record0]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_only_a_clean_kill_or_survival_continues[record1]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_the_policy_check_is_field_aware
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_X26_a_completion_result_that_is_not_kill_or_survival_halts_its_shard
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\red_variant\test_cr_calibrate.py::test_C_the_report_lists_the_protocol_checks_and_the_harness_import
+44 failed, 35 passed in 77.54s (0:01:17)

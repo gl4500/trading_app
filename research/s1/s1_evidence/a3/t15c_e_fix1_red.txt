@@ -1,0 +1,593 @@
+A3 Task 15c-E fix round 1 RED (2026-11-17T11:03:16-05:00): review m1 (git src_root refusal + exact report field), m2 (raw persisted on policy/encode failure), m3 (interrupt report), m5 (deepest copied file budget 250), m6 (derive-cap refusal clauses pinned).
+The fix-1 test file (sha256 9b31336517edfa519bbb029712465cf0ab70f293dc7a0f7ad066c36ccd1c7ed4) against the REVIEWED driver (sha256 ad88dbdcb490507b8b39bd8b3d4d5dabca790c008a62b8e5c9eed4b698a75bdb), from the worktree root, -B, fresh S1_HYPOTHESIS_ROOT, both files in a scratch dir on PYTHONPATH. Tests written before the driver change.
+strict run (rc 1): 87 failed, 6 passed in 36.14s | failure types:  1 : AssertionError; 4 : AttributeError; 82 : TypeError;
+  (strict: most failures are TypeError - the reviewed driver has no _test_allow_git_src_root parameter)
+behavioural variant (rc 1; scratch copy only, the new keyword dropped): 18 failed, 75 passed in 81.20s (0:01:21) | failure types:  5 : AssertionError; 4 : AttributeError; 1 : Failed; 4 : KeyError;
+non-assertion errors in the variant:
+      1 E               TypeError: keys must be str, int, float, bool or None, not tuple
+      4 E       AttributeError: module 'cr_calibrate' has no attribute 'git_checkout_of'
+      1 E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_m2_a_policy_error_sti
+      1 E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_m3_an_interrupt_write
+      1 E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_m3_an_interrupt_write
+      1 E       KeyError: 'path_budget'
+      3 E       KeyError: 'pinned_to_src_root'
+failing tests (variant):
+test_E_the_running_harness_must_be_the_src_roots
+test_H_the_cli_imports_every_harness_module_from_the_archive
+test_H_the_cli_refuses_when_a_harness_module_is_already_imported
+test_H_the_cli_refuses_a_module_whose_bytes_are_not_the_manifests
+test_H_library_use_imports_a_missing_module_from_the_archive_and_leaves_sys_path_alone
+test_H_library_use_refuses_a_harness_not_imported_from_the_archive
+test_C_the_report_lists_the_protocol_checks_and_the_harness_import
+test_m1_a_src_root_inside_a_git_checkout_is_refused[dir_at_root]
+test_m1_a_src_root_inside_a_git_checkout_is_refused[file_at_root]
+test_m1_a_src_root_inside_a_git_checkout_is_refused[in_a_parent]
+test_m1_the_git_probe_walks_up_to_the_drive_root
+test_m2_an_unserialisable_result_halts_and_its_raw_result_is_persisted
+test_m2_a_policy_error_still_persists_the_raw_result_and_halts
+test_m2_the_write_once_record_is_never_empty_even_if_encoding_fails
+test_m3_an_interrupt_writes_an_interrupted_report_then_re_raises[KeyboardInterrupt]
+test_m3_an_interrupt_writes_an_interrupted_report_then_re_raises[SystemExit]
+test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root
+test_m5_a_copied_file_past_the_limit_is_refused_before_anything
+==== behavioural variant raw output ====
+...............F...................FF.FF..F............................. [ 77%]
+......F...FFFFFFFFFFF                                                    [100%]
+================================== FAILURES ===================================
+______________ test_E_the_running_harness_must_be_the_src_roots _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_E_the_running_harness_mus0')
+
+    def test_E_the_running_harness_must_be_the_src_roots(tmp_path):
+        root, _ = toy(tmp_path)
+        g = root / "research/s1/s1_tests/cr_guard.py"
+        g.write_text(g.read_text(encoding="utf-8") + "\n# other\n", encoding="utf-8")
+        write_manifest(root)
+        with pytest.raises(cr_coord.CoordError, match=r"harness module cr_guard .* is not the bytes the --src-root's "
+                                                      r"t15c_prep_hashes\.txt approves"):
+>           _session(root, tmp_path, _test_exec_factory=factory())
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:293: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:163: in _session
+    return _run(root, tmp_path / "work", "s1_x/a", **kw)
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:159: in _run
+    return _drv().session(root, work, config, **kw)
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:392: in session
+    harness = load_harness(src_root, fresh=False, _test_harness_anywhere=_test_harness_anywhere)
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:174: in load_harness
+    _refuse(f"harness module {m} ({f}) is not the archive's approved bytes (t15c_prep_hashes.txt): refused")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+msg = "harness module cr_guard (C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_tests\\cr_guard.py) is not the archive's approved bytes (t15c_prep_hashes.txt): refused"
+
+    def _refuse(msg: str):
+>       raise (cr_coord.CoordError if cr_coord is not None else HarnessRefused)(msg)
+E       cr_coord.CoordError: harness module cr_guard (C:\Users\gl450\trading_app-s1\research\s1\s1_tests\cr_guard.py) is not the archive's approved bytes (t15c_prep_hashes.txt): refused
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:84: CoordError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_E_the_running_harness_mus0')
+
+    def test_E_the_running_harness_must_be_the_src_roots(tmp_path):
+        root, _ = toy(tmp_path)
+        g = root / "research/s1/s1_tests/cr_guard.py"
+        g.write_text(g.read_text(encoding="utf-8") + "\n# other\n", encoding="utf-8")
+        write_manifest(root)
+>       with pytest.raises(cr_coord.CoordError, match=r"harness module cr_guard .* is not the bytes the --src-root's "
+                                                      r"t15c_prep_hashes\.txt approves"):
+E                                                     AssertionError: Regex pattern did not match.
+E                                                      Regex: "harness module cr_guard .* is not the bytes the --src-root's t15c_prep_hashes\\.txt approves"
+E                                                      Input: "harness module cr_guard (C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_tests\\cr_guard.py) is not the archive's approved bytes (t15c_prep_hashes.txt): refused"
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:291: AssertionError
+________ test_H_the_cli_imports_every_harness_module_from_the_archive _________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_H_the_cli_imports_every_h0')
+
+    def test_H_the_cli_imports_every_harness_module_from_the_archive(tmp_path):
+        root, _ = toy(tmp_path)
+        drv = _drv()
+        arch = (root / "research/s1/s1_tests").resolve()
+        with _Isolated():
+            h = drv.load_harness(root, fresh=True)
+            files = {m: sys.modules[m].__file__ for m in HARNESS_MODULES}
+            hdir = drv.cr_coord.HARNESS_DIR
+>       assert h["pinned_to_src_root"] is True and set(h["modules"]) == set(HARNESS_MODULES), h
+E       KeyError: 'pinned_to_src_root'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:529: KeyError
+______ test_H_the_cli_refuses_when_a_harness_module_is_already_imported _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_H_the_cli_refuses_when_a_0')
+
+    def test_H_the_cli_refuses_when_a_harness_module_is_already_imported(tmp_path):
+        root, _ = toy(tmp_path)
+        with pytest.raises(_drv().HarnessRefused, match=r"already imported.*only from the --src-root"):
+>           _drv().load_harness(root, fresh=True)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:540: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:150: in load_harness
+    _refuse(f"harness module(s) {clash} are already imported; the driver imports the harness only from the "
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+msg = "harness module(s) ['cr_coord', 'cr_guard', 'cr_launch', 'cr_preflight', 'cr_reconcile'] are already imported; the dri...a\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_H_the_cli_refuses_when_a_0\\repo\\research\\s1\\s1_tests): refused"
+
+    def _refuse(msg: str):
+>       raise (cr_coord.CoordError if cr_coord is not None else HarnessRefused)(msg)
+E       cr_calibrate.HarnessRefused: harness module(s) ['cr_coord', 'cr_guard', 'cr_launch', 'cr_preflight', 'cr_reconcile'] are already imported; the driver imports the harness only from the approved archive --src-root (C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21761\test_H_the_cli_refuses_when_a_0\repo\research\s1\s1_tests): refused
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:84: HarnessRefused
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_H_the_cli_refuses_when_a_0')
+
+    def test_H_the_cli_refuses_when_a_harness_module_is_already_imported(tmp_path):
+        root, _ = toy(tmp_path)
+>       with pytest.raises(_drv().HarnessRefused, match=r"already imported.*only from the --src-root"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'already imported.*only from the --src-root'
+E        Input: "harness module(s) ['cr_coord', 'cr_guard', 'cr_launch', 'cr_preflight', 'cr_reconcile'] are already imported; the driver imports the harness only from the approved archive --src-root (C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_H_the_cli_refuses_when_a_0\\repo\\research\\s1\\s1_tests): refused"
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:539: AssertionError
+______ test_H_the_cli_refuses_a_module_whose_bytes_are_not_the_manifests ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_H_the_cli_refuses_a_modul0')
+
+    def test_H_the_cli_refuses_a_module_whose_bytes_are_not_the_manifests(tmp_path):
+        """The archive's file verifies but the manifest's entry for the harness is another sha: refused."""
+        root, _ = toy(tmp_path)
+        m = root / MANIFEST_REL
+        lines = m.read_text(encoding="utf-8").splitlines()
+        m.write_bytes(("\n".join(ln for ln in lines if not ln.endswith("s1_tests/cr_launch.py")) + "\n").encode("utf-8"))
+        with _Isolated():
+            with pytest.raises(Exception, match=r"harness module cr_launch .* is not the bytes the --src-root's "
+                                                r"t15c_prep_hashes\.txt approves") as ei:
+>               _drv().load_harness(root, fresh=True)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:562: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:174: in load_harness
+    _refuse(f"harness module {m} ({f}) is not the archive's approved bytes (t15c_prep_hashes.txt): refused")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+msg = "harness module cr_launch (C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_H_the_cli_refus...odul0\\repo\\research\\s1\\s1_tests\\cr_launch.py) is not the archive's approved bytes (t15c_prep_hashes.txt): refused"
+
+    def _refuse(msg: str):
+>       raise (cr_coord.CoordError if cr_coord is not None else HarnessRefused)(msg)
+E       cr_coord.CoordError: harness module cr_launch (C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21761\test_H_the_cli_refuses_a_modul0\repo\research\s1\s1_tests\cr_launch.py) is not the archive's approved bytes (t15c_prep_hashes.txt): refused
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:84: CoordError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_H_the_cli_refuses_a_modul0')
+
+    def test_H_the_cli_refuses_a_module_whose_bytes_are_not_the_manifests(tmp_path):
+        """The archive's file verifies but the manifest's entry for the harness is another sha: refused."""
+        root, _ = toy(tmp_path)
+        m = root / MANIFEST_REL
+        lines = m.read_text(encoding="utf-8").splitlines()
+        m.write_bytes(("\n".join(ln for ln in lines if not ln.endswith("s1_tests/cr_launch.py")) + "\n").encode("utf-8"))
+        with _Isolated():
+>           with pytest.raises(Exception, match=r"harness module cr_launch .* is not the bytes the --src-root's "
+                                                r"t15c_prep_hashes\.txt approves") as ei:
+E                                               AssertionError: Regex pattern did not match.
+E                                                Regex: "harness module cr_launch .* is not the bytes the --src-root's t15c_prep_hashes\\.txt approves"
+E                                                Input: "harness module cr_launch (C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_H_the_cli_refuses_a_modul0\\repo\\research\\s1\\s1_tests\\cr_launch.py) is not the archive's approved bytes (t15c_prep_hashes.txt): refused"
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:560: AssertionError
+_ test_H_library_use_imports_a_missing_module_from_the_archive_and_leaves_sys_path_alone _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_H_library_use_imports_a_m0')
+
+    def test_H_library_use_imports_a_missing_module_from_the_archive_and_leaves_sys_path_alone(tmp_path):
+        root, _ = toy(tmp_path)
+        arch = (root / "research/s1/s1_tests").resolve()
+        with _Isolated():
+            before = list(sys.path)
+            h = _drv().load_harness(root, fresh=False)
+            after = list(sys.path)
+>       assert h["pinned_to_src_root"] is True and after == before, (after[:3], before[:3])
+E       KeyError: 'pinned_to_src_root'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:573: KeyError
+_____ test_H_library_use_refuses_a_harness_not_imported_from_the_archive ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_H_library_use_refuses_a_h0')
+
+    def test_H_library_use_refuses_a_harness_not_imported_from_the_archive(tmp_path):
+        root, _ = toy(tmp_path)
+        calls = []
+        with pytest.raises(cr_coord.CoordError, match=r"imported from .*, not from the --src-root"):
+>           _drv().session(root, tmp_path / "work", "s1_x/a", _test_exec_factory=factory(calls=calls),
+                           )
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:594: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:392: in session
+    harness = load_harness(src_root, fresh=False, _test_harness_anywhere=_test_harness_anywhere)
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:176: in load_harness
+    _refuse(f"harness module {m} was imported from {f.parent}, not from the approved archive {hdir}: run "
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+msg = 'harness module cr_guard was imported from C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_tests, not from the appr...uses_a_h0\\repo\\research\\s1\\s1_tests: run the driver by path (the CLI imports the harness from --src-root): refused'
+
+    def _refuse(msg: str):
+>       raise (cr_coord.CoordError if cr_coord is not None else HarnessRefused)(msg)
+E       cr_coord.CoordError: harness module cr_guard was imported from C:\Users\gl450\trading_app-s1\research\s1\s1_tests, not from the approved archive C:\Users\gl450\AppData\Local\Temp\pytest-of-gl450\pytest-21761\test_H_library_use_refuses_a_h0\repo\research\s1\s1_tests: run the driver by path (the CLI imports the harness from --src-root): refused
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:84: CoordError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_H_library_use_refuses_a_h0')
+
+    def test_H_library_use_refuses_a_harness_not_imported_from_the_archive(tmp_path):
+        root, _ = toy(tmp_path)
+        calls = []
+>       with pytest.raises(cr_coord.CoordError, match=r"imported from .*, not from the --src-root"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'imported from .*, not from the --src-root'
+E        Input: 'harness module cr_guard was imported from C:\\Users\\gl450\\trading_app-s1\\research\\s1\\s1_tests, not from the approved archive C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_H_library_use_refuses_a_h0\\repo\\research\\s1\\s1_tests: run the driver by path (the CLI imports the harness from --src-root): refused'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:593: AssertionError
+_____ test_C_the_report_lists_the_protocol_checks_and_the_harness_import ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_C_the_report_lists_the_pr0')
+
+    def test_C_the_report_lists_the_protocol_checks_and_the_harness_import(tmp_path):
+        root, _ = toy(tmp_path)
+        rep = _session(root, tmp_path, _test_exec_factory=factory())
+        assert {"C1", "C2", "C3", "C4", "C5", "C6", "C7"} <= set(rep.get("protocol", {})), rep.get("protocol")
+        assert rep["policy"]["halts_on"] and "killed" in rep["policy"]["continues_on"] and rep["policy"]["no_retry"]
+        assert set(rep["harness"]["modules"]) == set(HARNESS_MODULES)
+>       assert rep["harness"]["pinned_to_src_root"] is False, "library test use: worktree modules, byte-identical"
+E       KeyError: 'pinned_to_src_root'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:835: KeyError
+______ test_m1_a_src_root_inside_a_git_checkout_is_refused[dir_at_root] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m1_a_src_root_inside_a_gi0')
+where = 'dir_at_root'
+
+    @pytest.mark.parametrize("where", ["dir_at_root", "file_at_root", "in_a_parent"])
+    def test_m1_a_src_root_inside_a_git_checkout_is_refused(tmp_path, where):
+        root, _ = toy(tmp_path)
+        if where == "dir_at_root":
+            (root / ".git").mkdir()
+            marker = root
+        elif where == "file_at_root":                    # a git worktree: .git is a file
+            (root / ".git").write_text("gitdir: elsewhere\n", encoding="utf-8")
+            marker = root
+        else:
+            (tmp_path / ".git").mkdir()
+            marker = tmp_path
+        drv = _drv()
+>       assert drv.git_checkout_of(root) == marker.resolve()
+E       AttributeError: module 'cr_calibrate' has no attribute 'git_checkout_of'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:896: AttributeError
+______ test_m1_a_src_root_inside_a_git_checkout_is_refused[file_at_root] ______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m1_a_src_root_inside_a_gi1')
+where = 'file_at_root'
+
+    @pytest.mark.parametrize("where", ["dir_at_root", "file_at_root", "in_a_parent"])
+    def test_m1_a_src_root_inside_a_git_checkout_is_refused(tmp_path, where):
+        root, _ = toy(tmp_path)
+        if where == "dir_at_root":
+            (root / ".git").mkdir()
+            marker = root
+        elif where == "file_at_root":                    # a git worktree: .git is a file
+            (root / ".git").write_text("gitdir: elsewhere\n", encoding="utf-8")
+            marker = root
+        else:
+            (tmp_path / ".git").mkdir()
+            marker = tmp_path
+        drv = _drv()
+>       assert drv.git_checkout_of(root) == marker.resolve()
+E       AttributeError: module 'cr_calibrate' has no attribute 'git_checkout_of'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:896: AttributeError
+______ test_m1_a_src_root_inside_a_git_checkout_is_refused[in_a_parent] _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m1_a_src_root_inside_a_gi2')
+where = 'in_a_parent'
+
+    @pytest.mark.parametrize("where", ["dir_at_root", "file_at_root", "in_a_parent"])
+    def test_m1_a_src_root_inside_a_git_checkout_is_refused(tmp_path, where):
+        root, _ = toy(tmp_path)
+        if where == "dir_at_root":
+            (root / ".git").mkdir()
+            marker = root
+        elif where == "file_at_root":                    # a git worktree: .git is a file
+            (root / ".git").write_text("gitdir: elsewhere\n", encoding="utf-8")
+            marker = root
+        else:
+            (tmp_path / ".git").mkdir()
+            marker = tmp_path
+        drv = _drv()
+>       assert drv.git_checkout_of(root) == marker.resolve()
+E       AttributeError: module 'cr_calibrate' has no attribute 'git_checkout_of'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:896: AttributeError
+______________ test_m1_the_git_probe_walks_up_to_the_drive_root _______________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m1_the_git_probe_walks_up0')
+
+    def test_m1_the_git_probe_walks_up_to_the_drive_root(tmp_path):
+        deep = tmp_path / "a" / "b" / "c"
+        deep.mkdir(parents=True)
+        (tmp_path / "a" / ".git").write_text("gitdir: x\n", encoding="utf-8")
+>       assert _drv().git_checkout_of(deep) == (tmp_path / "a").resolve()
+E       AttributeError: module 'cr_calibrate' has no attribute 'git_checkout_of'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:913: AttributeError
+___ test_m2_an_unserialisable_result_halts_and_its_raw_result_is_persisted ____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m2_an_unserialisable_resu0')
+
+    def test_m2_an_unserialisable_result_halts_and_its_raw_result_is_persisted(tmp_path):
+        root, items = toy(tmp_path)
+        rec = dict(CLEAN_KILL, raw={("tuple", "key"): 1})
+        calls = []
+        _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": rec}, calls=calls))
+        sp, st = _first_state(tmp_path)
+        raw_p = sp.parent / "jobs/j00/policy_result.json"
+>       assert calls == [("screen", "j00")] and st["stop_reason"] == "policy_halt:unserialisable_result: j00", st
+E       AssertionError: {'batch': ['j00', 'j01', 'j02', 'j03', 'j04', 'j05', ...], 'batch_cap': 24, 'batch_id': '000', 'bindings': {}, ...}
+E       assert ([('screen', 'j00')] == [('screen', 'j00')]
+E         
+E         Use -v to get more diff and 'exec_exception: j00' == 'policy_halt:...e_result: j00'
+E         
+E         - policy_halt:unserialisable_result: j00
+E         + exec_exception: j00)
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:925: AssertionError
+_______ test_m2_a_policy_error_still_persists_the_raw_result_and_halts ________
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m2_a_policy_error_still_p0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002E6DFF3EFC0>
+
+    def test_m2_a_policy_error_still_persists_the_raw_result_and_halts(tmp_path, monkeypatch):
+        root, items = toy(tmp_path)
+        drv = _drv()
+    
+        def bad(result):
+            raise ValueError("policy bug")
+        monkeypatch.setattr(drv, "policy_check", bad)
+        calls = []
+        rep = _session(root, tmp_path, _test_exec_factory=factory(screen={"j00": CLEAN_KILL}, calls=calls))
+        sp, st = _first_state(tmp_path)
+>       body = json.loads((sp.parent / "jobs/j00/policy_result.json").read_text(encoding="utf-8"))
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:941: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m2_a_policy_error_still_p0/work/s1_x__a/session-000/jobs/j00/policy_result.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_m2_a_policy_error_still_p0\\work\\s1_x__a\\session-000\\jobs\\j00\\policy_result.json'
+
+..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+_____ test_m2_the_write_once_record_is_never_empty_even_if_encoding_fails _____
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m2_the_write_once_record_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002E6DFEFBD10>
+
+    def test_m2_the_write_once_record_is_never_empty_even_if_encoding_fails(tmp_path, monkeypatch):
+        drv = _drv()
+    
+        class Odd:
+            def __repr__(self):
+                return "<odd thing>"
+        p1 = tmp_path / "a" / "policy_result.json"
+>       drv._write_once(p1, {("k",): Odd()})                         # json cannot encode a tuple key
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:954: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\cr_calibrate.py:244: in _write_once
+    fh.write(json.dumps(obj, indent=1, sort_keys=True, default=repr))
+..\trading_app\runtime\python\Lib\json\__init__.py:238: in dumps
+    **kw).encode(obj)
+..\trading_app\runtime\python\Lib\json\encoder.py:202: in encode
+    chunks = list(chunks)
+..\trading_app\runtime\python\Lib\json\encoder.py:432: in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+dct = {('k',): <odd thing>}, _current_indent_level = 1
+
+    def _iterencode_dict(dct, _current_indent_level):
+        if not dct:
+            yield '{}'
+            return
+        if markers is not None:
+            markerid = id(dct)
+            if markerid in markers:
+                raise ValueError("Circular reference detected")
+            markers[markerid] = dct
+        yield '{'
+        if _indent is not None:
+            _current_indent_level += 1
+            newline_indent = '\n' + _indent * _current_indent_level
+            item_separator = _item_separator + newline_indent
+            yield newline_indent
+        else:
+            newline_indent = None
+            item_separator = _item_separator
+        first = True
+        if _sort_keys:
+            items = sorted(dct.items())
+        else:
+            items = dct.items()
+        for key, value in items:
+            if isinstance(key, str):
+                pass
+            # JavaScript is weakly typed for these, so it makes sense to
+            # also allow them.  Many encoders seem to do something like this.
+            elif isinstance(key, float):
+                # see comment for int/float in _make_iterencode
+                key = _floatstr(key)
+            elif key is True:
+                key = 'true'
+            elif key is False:
+                key = 'false'
+            elif key is None:
+                key = 'null'
+            elif isinstance(key, int):
+                # see comment for int/float in _make_iterencode
+                key = _intstr(key)
+            elif _skipkeys:
+                continue
+            else:
+>               raise TypeError(f'keys must be str, int, float, bool or None, '
+                                f'not {key.__class__.__name__}')
+E               TypeError: keys must be str, int, float, bool or None, not tuple
+
+..\trading_app\runtime\python\Lib\json\encoder.py:377: TypeError
+_ test_m3_an_interrupt_writes_an_interrupted_report_then_re_raises[KeyboardInterrupt] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m3_an_interrupt_writes_an0')
+exc = <class 'KeyboardInterrupt'>
+
+    @pytest.mark.parametrize("exc", [KeyboardInterrupt, SystemExit])
+    def test_m3_an_interrupt_writes_an_interrupted_report_then_re_raises(tmp_path, exc):
+        root, items = toy(tmp_path)
+        calls = []
+        with pytest.raises(exc):
+            _session(root, tmp_path, _test_exec_factory=factory(screen={"j01": exc()}, calls=calls))
+        croot = tmp_path / "work/s1_x__a"
+>       rep = json.loads((croot / "report_session-000.json").read_text(encoding="utf-8"))
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:975: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m3_an_interrupt_writes_an0/work/s1_x__a/report_session-000.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_m3_an_interrupt_writes_an0\\work\\s1_x__a\\report_session-000.json'
+
+..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+_ test_m3_an_interrupt_writes_an_interrupted_report_then_re_raises[SystemExit] _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m3_an_interrupt_writes_an1')
+exc = <class 'SystemExit'>
+
+    @pytest.mark.parametrize("exc", [KeyboardInterrupt, SystemExit])
+    def test_m3_an_interrupt_writes_an_interrupted_report_then_re_raises(tmp_path, exc):
+        root, items = toy(tmp_path)
+        calls = []
+        with pytest.raises(exc):
+            _session(root, tmp_path, _test_exec_factory=factory(screen={"j01": exc()}, calls=calls))
+        croot = tmp_path / "work/s1_x__a"
+>       rep = json.loads((croot / "report_session-000.json").read_text(encoding="utf-8"))
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:975: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\trading_app\runtime\python\Lib\pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m3_an_interrupt_writes_an1/work/s1_x__a/report_session-000.json')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\gl450\\AppData\\Local\\Temp\\pytest-of-gl450\\pytest-21761\\test_m3_an_interrupt_writes_an1\\work\\s1_x__a\\report_session-000.json'
+
+..\trading_app\runtime\python\Lib\pathlib.py:1013: FileNotFoundError
+_ test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root _
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m5_the_report_records_the0')
+
+    def test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root(tmp_path):
+        root, _ = toy(tmp_path)
+        rep = _session(root, tmp_path, _test_exec_factory=factory())
+        want = _deepest_expected(root, tmp_path / "work", 3)
+>       pb = rep["path_budget"]
+E       KeyError: 'path_budget'
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:1003: KeyError
+_______ test_m5_a_copied_file_past_the_limit_is_refused_before_anything _______
+
+tmp_path = WindowsPath('C:/Users/gl450/AppData/Local/Temp/pytest-of-gl450/pytest-21761/test_m5_a_copied_file_past_the0')
+
+    def test_m5_a_copied_file_past_the_limit_is_refused_before_anything(tmp_path):
+        """The child cwd would fit the old 240-character rule; the deepest COPIED FILE does not fit 250."""
+        root, _ = toy(tmp_path)
+        (root / "research/s1/docs" / ("d" * 100 + ".md")).write_text("long\n", encoding="utf-8")
+        calls = []
+>       with pytest.raises(cr_coord.CoordError,
+                           match=r"the work root is too long: .* \(> 250\); use a --work-root of at most \d+ characters"):
+E                          Failed: DID NOT RAISE <class 'cr_coord.CoordError'>
+
+..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py:1013: Failed
+=========================== short test summary info ===========================
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_E_the_running_harness_must_be_the_src_roots
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_H_the_cli_imports_every_harness_module_from_the_archive
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_H_the_cli_refuses_when_a_harness_module_is_already_imported
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_H_the_cli_refuses_a_module_whose_bytes_are_not_the_manifests
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_H_library_use_imports_a_missing_module_from_the_archive_and_leaves_sys_path_alone
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_H_library_use_refuses_a_harness_not_imported_from_the_archive
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_C_the_report_lists_the_protocol_checks_and_the_harness_import
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m1_a_src_root_inside_a_git_checkout_is_refused[dir_at_root]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m1_a_src_root_inside_a_git_checkout_is_refused[file_at_root]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m1_a_src_root_inside_a_git_checkout_is_refused[in_a_parent]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m1_the_git_probe_walks_up_to_the_drive_root
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m2_an_unserialisable_result_halts_and_its_raw_result_is_persisted
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m2_a_policy_error_still_persists_the_raw_result_and_halts
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m2_the_write_once_record_is_never_empty_even_if_encoding_fails
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m3_an_interrupt_writes_an_interrupted_report_then_re_raises[KeyboardInterrupt]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m3_an_interrupt_writes_an_interrupted_report_then_re_raises[SystemExit]
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m5_the_report_records_the_deepest_copied_file_and_the_longest_work_root
+FAILED ..\AppData\Local\Temp\claude\4a6d95c7011f8258\c661c7e7-0401-4122-9c4b-9345620dbebb\scratchpad\p15e\f1red_variant\test_cr_calibrate.py::test_m5_a_copied_file_past_the_limit_is_refused_before_anything
+18 failed, 75 passed in 81.20s (0:01:21)
+
+
+m6 RED (2026-11-17T11:03:17-05:00): the m6 tests (keyword dropped as in the variant) against the REVIEWED driver with derive_cap C7 sub-clauses deleted.
+R12: 3 failed, 90 deselected in 7.44s
+  FAILED test_m6_derive_cap_refuses_after_a_completion_only_stop
+  FAILED test_m6_derive_cap_refuses_a_recorded_stop_even_after_a_human_resolved_it
+  FAILED test_m6_derive_cap_refuses_an_unresolved_later_stage_stop_the_report_does_not_show
+R12a: 1 failed, 2 passed, 90 deselected in 7.56s
+  FAILED test_m6_derive_cap_refuses_a_recorded_stop_even_after_a_human_resolved_it
+R12b: 1 failed, 2 passed, 90 deselected in 6.68s
+  FAILED test_m6_derive_cap_refuses_an_unresolved_later_stage_stop_the_report_does_not_show
+none: 3 passed, 90 deselected in 7.04s
