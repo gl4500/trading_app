@@ -70,15 +70,24 @@ def _config(d, rel, guard_args, *, inventory=None):
     return cfg
 
 
-def toy(tmp_path, *, n_items=30, items=None, module_src="X = 1\n", test_src=None, runner="synthetic",
-        completion=True, screens=("a",)):
+def toy(tmp_path, *, n_items=24, items=None, module_src="X = 1\n", test_src=None, runner="synthetic",
+        completion=True, screens=("a",), extra=None, work=None):
     """A research/s1-shaped tree: module s1_x, one screening config cr_a3/s1_x/a (n_items synthetic WorkItems, or the
     given real ones), completion shards c1 (test_a) / c2 (test_b) with pool.json, clean pre-flights for all three
-    configs, and the hash manifest written last. Returns (root, items)."""
+    configs, and the hash manifest written last. Returns (root, items).
+
+    15c-P2 (amended): ``extra`` {rel: text} adds more toy source files; a toy external sampling plan v2
+    (<tmp_path>/plan.json, built by build_sampling_v2.build_plan over the toy) is written last, with a toy
+    predecessor root (<tmp_path>/pred/s1_x) and the planned root ``work`` (default <tmp_path>/work). The default is
+    24 items: a pool of at most 24 is selected whole by the two-strata rule, so the calibration batch is still the
+    first 24 kept ids, as the pre-P2 tests expect."""
     root = tmp_path / "repo"
     s1 = root / "research" / "s1"
     (s1 / "docs").mkdir(parents=True)
     (s1 / "docs" / "d.md").write_text("doc\n", encoding="utf-8")
+    for rel, text in (extra or {}).items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text, encoding="utf-8")
     t = s1 / "s1_tests"
     t.mkdir()
     for n in cr_coord.HARNESS_FILES:                                  # byte-identical harness, as in a real archive
@@ -122,7 +131,32 @@ def toy(tmp_path, *, n_items=30, items=None, module_src="X = 1\n", test_src=None
                                runner=guard_runner() if runner == "synthetic" else None, clock=lambda: 0.0)
     assert [r["verdict"] for r in out] == ["clean"] * (len(screens) + (2 if completion else 0)), out
     write_manifest(root)
+    write_toy_plan(tmp_path, root, [f"s1_x/{s}" for s in screens], work or tmp_path / "work")
     return root, items
+
+
+def write_toy_plan(tmp_path, root, configs, work):
+    """15c-P2: the toy's external sampling plan v2 (same builder as the real plan), bound to this driver + probe."""
+    try:
+        import build_sampling_v2
+    except ImportError:
+        build_sampling_v2 = None
+    assert build_sampling_v2 is not None, "the sampling plan v2 builder build_sampling_v2 exists"
+    pred = tmp_path / "pred" / "s1_x"
+    if not pred.exists():
+        (pred / "session-000" / "jobs" / "j00").mkdir(parents=True)
+        for rel, text in (("report_session-000.json", '{"stop": "toy halt"}'),
+                          ("session-000/batch_000_state.json", '{"stopped": true}'),
+                          ("session-000/jobs/j00/guard.json", '{"status": "error:collection"}')):
+            (pred / rel).write_text(text, encoding="utf-8")
+    plan = build_sampling_v2.build_plan(
+        root, configs=configs, source_commit="toy", preflight_commit="toy",
+        predecessor={"root": str(pred), "first_job": "j00",
+                     "files": ["report_session-000.json", "session-000/batch_000_state.json",
+                               "session-000/jobs/j00/guard.json"]},
+        planned_root=str(work))
+    build_sampling_v2.write_plan(tmp_path / "plan.json", plan)
+    return tmp_path / "plan.json"
 
 
 def factory(screen=None, comp=None, retry=None, calls=None, on_call=None):
@@ -158,6 +192,7 @@ def _run(root, work, config, **kw):
     kw.setdefault("_test_harness_anywhere", True)
     kw.setdefault("_test_allow_git_src_root", True)
     kw.setdefault("_test_long_paths_reader", lambda: 1)
+    kw.setdefault("plan", Path(root).parent / "plan.json")          # 15c-P2: the toy's external plan
     return _drv().session(root, work, config, **kw)
 
 
@@ -310,14 +345,19 @@ def test_E_the_running_harness_must_be_the_src_roots(tmp_path):
 
 
 def test_E_the_plan_must_be_the_calibration_first_plan(tmp_path):
-    root, _ = toy(tmp_path)
-    p = root / EVID_REL / "s1_x/a/batch_plan.json"
+    """15c-P2 (amended): the calibration ids now come from the EXTERNAL sampling plan v2 (two-strata midpoint rule,
+    recomputed and verified by the driver); a batch the rule does not produce is refused."""
+    root, _ = toy(tmp_path, n_items=30)
+    p = tmp_path / "plan.json"
     plan = json.loads(p.read_text(encoding="utf-8"))
-    plan["calibration_batch"] = plan["calibration_batch"][1:] + plan["pending_after_calibration"][:1]
+    kept = [f"j{i:02d}" for i in range(30)]
+    assert plan["configs"][0]["calibration_batch"] != kept[:24], "30 kept: the midpoint rule, not the first 24"
+    plan["configs"][0]["calibration_batch"] = kept[:24]
     p.write_text(json.dumps(plan), encoding="utf-8")
-    write_manifest(root)
-    with pytest.raises(cr_coord.CoordError, match=r"calibration_batch is not the first 24 kept ids"):
-        _session(root, tmp_path, _test_exec_factory=factory())
+    calls = []
+    with pytest.raises(cr_coord.CoordError, match=r"sampling plan .*calibration batch"):
+        _session(root, tmp_path, _test_exec_factory=factory(calls=calls))
+    assert calls == []
 
 
 def test_E_the_plan_must_be_bound_to_its_inventory(tmp_path):
@@ -640,9 +680,10 @@ def test_E_real_path_end_to_end_on_a_toy(tmp_path):
                             pythonpath_rel=["research/s1", "research/s1/s1_tests"], guard_args=["x"])
     real_items = cr_coord.inventory(stage, ["research/s1/s1_x.py"], cfg, tmp_path / "inv")
     assert 2 <= len(real_items) <= 8, real_items
-    root, items = toy(tmp_path, items=real_items, module_src=TOY_MODULE, test_src=TOY_TESTS, runner="real")
-    before = sha(root / "research/s1/s1_x.py")
     work = Path(tempfile.gettempdir()) / "cw" / uuid.uuid4().hex[:8]         # short: the 250-char path budget
+    root, items = toy(tmp_path, items=real_items, module_src=TOY_MODULE, test_src=TOY_TESTS, runner="real",
+                      work=work)
+    before = sha(root / "research/s1/s1_x.py")
     try:
         rep = _run(root, work, "s1_x/a")
     finally:
